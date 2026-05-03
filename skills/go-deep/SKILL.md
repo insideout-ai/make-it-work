@@ -25,7 +25,7 @@ Announce first:
 For each question:
 - Call `AskUserQuestion` with:
   - `question`: `"Question [X] of [N] · [Category]: [The question]\n\n[One sentence explaining why this matters.]"` — where `[Category]` is either `Product/domain` (questions 1–10) or `Architecture/technical` (questions 11–20).
-  - `options`: up to 2 substantive pre-enumerated choices + always `{ label: "Other — I'll describe it", description: "Type a custom answer." }` (second-to-last) + always `{ label: "Skip — clear from code", description: "Already determined from code analysis; no input needed." }` (last). Tool caps at 4 options total.
+  - `options`: up to 3 substantive pre-enumerated choices + always `{ label: "Skip — clear from code", description: "Already determined from code analysis; no input needed." }` (last). Tool caps at 4 options total. Use open-ended format (options omitted except Skip) only when the answer truly cannot be pre-enumerated.
   - Always recommend one option: place it first and append `(Recommended)` to its label.
   - Never place Skip first — it must always be last.
 - Wait for the user's response before calling `AskUserQuestion` for the next question.
