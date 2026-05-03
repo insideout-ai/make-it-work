@@ -9,6 +9,8 @@ Maps your codebase from the inside out and builds a layered documentation system
 
 Run it once when you onboard a new project. Run it again when the project evolves — it audits what's there, finds what's drifted or missing, and updates CLAUDE.md, architecture.md, product.md, and the relevant skills to match the current state of the code.
 
+Part of what `go-deep` builds is a hard enforcement rule in CLAUDE.md: before every commit, Claude checks whether any skill or doc file needs updating. New domain? Create the skill. Existing domain changed? Update it. Nothing ships without the knowledge base staying in sync with the code.
+
 ### `/make-it-work:close-the-gaps`
 Acts as a Product Analyst before development begins: finds every gap in a ticket (unclear language, missing edge cases, conflicting requirements), walks you through them one by one, and outputs a Gherkin-ready refined spec.
 
