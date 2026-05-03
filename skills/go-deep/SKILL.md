@@ -17,7 +17,21 @@ First, analyze the existing codebase to understand what's already there:
 - Identify domain models, entities, or data structures
 
 **Phase 2: Targeted Questions**
-After code discovery, ask questions **one at a time** about missing or unclear information. Only ask what couldn't be determined from the code analysis:
+After code discovery, announce how many questions you have, then ask each one using the `AskUserQuestion` tool — one call per question. Only ask about information that could not be determined from code analysis.
+
+Announce first:
+> "I've analyzed the codebase and have [N] questions. I'll ask them one at a time."
+
+For each question:
+- Call `AskUserQuestion` with:
+  - `question`: `"Question [X] of [N] · [Category]: [The question]\n\n[One sentence explaining why this matters.]"` — where `[Category]` is either `Product/domain` (questions 1–10) or `Architecture/technical` (questions 11–20).
+  - `options`: up to 2 substantive pre-enumerated choices + always `{ label: "Other — I'll describe it", description: "Type a custom answer." }` (second-to-last) + always `{ label: "Skip — clear from code", description: "Already determined from code analysis; no input needed." }` (last). Tool caps at 4 options total.
+  - Always recommend one option: place it first and append `(Recommended)` to its label.
+  - Never place Skip first — it must always be last.
+- Wait for the user's response before calling `AskUserQuestion` for the next question.
+- Record each answer (or skip) before proceeding.
+
+After the last question: "All questions answered. Confirming scope..."
 
 **Product & Domain Questions:**
 1. What is the primary purpose/goal of this project? (1-2 sentences) [if not clear from README/docs]
@@ -45,7 +59,7 @@ After code discovery, ask questions **one at a time** about missing or unclear i
 
 **Instructions:**
 - **Phase 1 — Code Discovery:** Start by thoroughly analyzing the codebase
-- **Phase 2 — Targeted Questions:** Ask questions naturally, one at a time, only about information that couldn't be determined from code analysis. Wait for each answer before proceeding to the next question.
+- **Phase 2 — Targeted Questions:** Use `AskUserQuestion` for each question, one at a time, only about information that couldn't be determined from code analysis. Wait for each answer before proceeding to the next question.
 - **Phase 3 — Confirm Scope:** Present the identified functional domains and use cases to the user for confirmation before creating any files. Show a draft domain list and UC list. **Checkpoint: user must confirm scope before proceeding.**
 - **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use the Task tool to create one task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, marking each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in. **Checkpoint: user reviews the UC table, Functional Domains table, and CLAUDE.md scope before proceeding.**
 - **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use the Task tool to create one task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. **Checkpoint: user reviews depth, structure, and sections.** Incorporate feedback, then create remaining skills in parallel batches, marking each task `completed` when done.
