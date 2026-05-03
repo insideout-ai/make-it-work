@@ -1,0 +1,9 @@
+{
+  "name": "make-it-work",
+  "description": "Know your code. Close your gaps. Ship with confidence.",
+  "version": "1.0.0",
+  "author": {
+    "name": "insideout-ai"
+  },
+  "homepage": "https://github.com/insideout-ai/make-it-work"
+}
