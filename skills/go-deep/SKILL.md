@@ -104,9 +104,10 @@ Create slim orientation maps. Use tables and bullet lists, avoid prose.
 
 **Product Skills (one per use case):**
 For each use case listed in `.claude/rules/product.md`, create a dedicated skill:
-- Directory structure: `.claude/skills/uc-{use-case-id}-{use-case-name}/`
+- **Naming:** `uc-{id}-{kebab-case-name}` — zero-padded ID + Use Case as kebab-case (e.g., "Withdraw Money" → `uc-01-withdraw-money`). Never just `uc-{id}`.
+- Directory structure: `.claude/skills/uc-{id}-{kebab-case-name}/`
 - Files: `SKILL.md` only (include examples as an optional "Examples" section within SKILL.md)
-- Frontmatter: `name: uc-{use-case-id}-{use-case-name}`, `description: "..."`
+- Frontmatter: `name: uc-{id}-{kebab-case-name}`, `description: "..."`
 - **Description format:** Topic summary followed by a trigger clause: `"[what it covers]. Use when [specific scenarios]."` Stay within 250 characters — Claude truncates beyond that. Front-load the key topic.
 - **Prescribed sections for SKILL.md:**
   1. **Summary** (1–2 sentences)
