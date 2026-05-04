@@ -1,0 +1,12 @@
+{
+  "plugins": [
+    {
+      "name": "make-it-work",
+      "description": "Know your code. Close your gaps. Ship with confidence.",
+      "source": {
+        "source": "github",
+        "repo": "insideout-ai/make-it-work"
+      }
+    }
+  ]
+}
