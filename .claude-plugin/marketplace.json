@@ -1,4 +1,8 @@
 {
+  "name": "make-it-work",
+  "owner": {
+    "name": "insideout-ai"
+  },
   "plugins": [
     {
       "name": "make-it-work",
