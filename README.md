@@ -1,28 +1,65 @@
 # make-it-work
 
-> Skills that make Claude actually work in your project. Not just generally, but *specifically*, the way your codebase is built.
+> Deep codebase context for Claude. Solid requirements for your team. Before the first line of code.
 
-## Skills
+Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
+
+## The problem
+
+Claude reads code well. But on a large, long-lived codebase it misses things - domain rules buried in old commits, implicit constraints never documented, business logic spread across layers. It guesses. The bigger the repo, the worse it gets.
+
+`make-it-work` solves this at the source.
+
+## How it works
 
 ### `/make-it-work:go-deep`
-Maps your codebase from the inside out and builds a layered documentation system so every Claude session starts grounded in your project's real structure, rules, and use cases. Not generic assumptions.
 
-Run it once when you onboard a new project. Run it again when the project evolves — it audits what's there, finds what's drifted or missing, and updates CLAUDE.md, architecture.md, product.md, and the relevant skills to match the current state of the code.
+`go-deep` maps your codebase and builds a structured knowledge base that Claude loads before doing any work:
 
-Part of what `go-deep` builds is a hard enforcement rule in CLAUDE.md: before every commit, Claude checks whether any skill or doc file needs updating. New domain? Create the skill. Existing domain changed? Update it. Nothing ships without the knowledge base staying in sync with the code.
+- **How and what** (always loaded) - two rule files: `architecture.md` is the *how* (domains, components, code areas), `product.md` is the *what* (use cases, actors, business rules).
+- **Skills** (loaded on demand) - one per functional domain, one per use case. Each skill is a precise, minimal description of one area of your code - enough for Claude to navigate, not so much it bloats the context.
+
+**The cross-reference map**
+
+Every domain skill points to the use cases it affects. Every use case skill points to the domains it touches. Claude uses these cross-references automatically - when planning a feature it follows links to understand which domains are involved; when planning tests it traces which use cases are affected by a domain change, covering progression and regression without you having to map it out.
+
+**Context efficiency**
+
+Skill descriptions are written to be minimal but precise. Claude reads the description and decides whether to load the skill - it never pulls in unneeded information. The bigger the codebase, the more this matters: Claude gets exactly the context it needs for the task at hand, nothing more. No hallucinating, no misunderstanding, whether planning or executing.
+
+**Staying in sync**
+
+Part of what `go-deep` builds is a hard enforcement rule in CLAUDE.md: before every commit, Claude checks whether any skill or doc needs updating. New domain? Create the skill. Existing domain changed? Update it. Nothing ships without the knowledge base staying in sync with the code.
+
+Run `go-deep` once when you onboard a project.
+
+**What the code can't tell you**
+
+During `go-deep`, Claude asks targeted questions so the how and what files capture what can't be learned from reading the code alone - giving Claude the full picture of the project, not just its structure.
+
+The questioning phase reveals what Claude misunderstands about your code - surfacing domain concepts not obvious from reading files, business rules that live only in developers' heads, and assumptions baked into the architecture that were never written down. Answering those questions produces documentation no static analysis tool can generate: the *why* behind the *what*.
+
+The skills produced are also useful outside Claude Code. Product managers can read domain and use case skills to understand what the system actually does, making them a live source of truth for writing requirements.
+
+---
 
 ### `/make-it-work:close-the-gaps`
-Acts as a Product Analyst before development begins: finds every gap in a ticket (unclear language, missing edge cases, conflicting requirements), walks you through them one by one, and outputs a Gherkin-ready refined spec.
 
-The cost of a vague ticket is paid in rework. close-the-gaps makes sure requirements are solid before a single line of code is written.
+`close-the-gaps` acts as a Product Analyst before development begins. It loads the project skills relevant to the ticket, digs into the affected code, and surfaces every gap - unclear language, missing edge cases, conflicting requirements, unstated assumptions - then walks you through them one question at a time.
 
-## Install
+The output is a Gherkin-ready refined spec. Unknown unknowns become explicit. Requirements are solid before a single line of code is written.
 
-```bash
-/plugin install make-it-work@insideout-ai
-```
+Teams use it before refinement meetings so developers arrive with focused questions rather than discovering gaps mid-discussion. Or post the output directly to the Jira ticket for product to review asynchronously - no meeting needed for straightforward tickets.
 
-Or browse to [claude.com/plugins](https://claude.com/plugins) and search **make-it-work**.
+The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps before the first line of code.
+
+---
+
+## Keep improving
+
+When Claude gets something wrong, don't just correct it - ask why it missed. What was unclear in the skills or rules? Update them so it doesn't happen again. Every misunderstanding is a chance to make the knowledge base more accurate. Over time the system gets sharper, not stale.
+
+---
 
 ## Usage
 
@@ -32,11 +69,13 @@ Or browse to [claude.com/plugins](https://claude.com/plugins) and search **make-
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 ```
 
-## Why
+## Install
 
-Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
+```bash
+/plugin install make-it-work@insideout-ai
+```
 
-`make-it-work` gives Claude the project-specific depth it needs to stop making avoidable mistakes.
+Or browse to [claude.com/plugins](https://claude.com/plugins) and search **make-it-work**.
 
 ---
 
