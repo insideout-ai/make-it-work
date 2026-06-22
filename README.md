@@ -55,6 +55,14 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ---
 
+### `/make-it-work:shape-the-epic`
+
+Acts as a senior product coach to help you write a complete, elaboration-ready epic for any work management tool (Jira, Azure DevOps, Linear, Shortcut). Runs five structured phases — context ingestion, discovery interview, internal analysis, criterion-by-criterion validation, and epic generation — covering value proposition, target users & permissions, KPIs, use cases with Gherkin acceptance criteria, rollout plan, and definition of done.
+
+Use it when writing or improving a product epic, fleshing out a feature idea for engineering, or whenever you need to turn a rough concept into a spec that's ready for elaboration.
+
+---
+
 ## Keep improving
 
 When Claude gets something wrong, don't just correct it - ask why it missed. What was unclear in the skills or rules? Update them so it doesn't happen again. Every misunderstanding is a chance to make the knowledge base more accurate. Over time the system gets sharper, not stale.
@@ -67,6 +75,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:go-deep                        # Scaffold full project docs from scratch
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
+/make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 ```
 
 ## Install
