@@ -65,7 +65,7 @@ Use it when writing or improving a product epic, fleshing out a feature idea for
 
 ### `/make-it-work:build-the-brain`
 
-Builds a personal "second brain" for Claude: a `brain.md` profile of your org, key contacts, communication style, active initiatives, and open loops, synthesized from your email/Slack history. Sets up a Cowork Project so the file is read automatically every session, and a scheduled task that keeps it refreshed and sends you a daily summary of what needs attention.
+Builds a work-focused "second brain" for Claude: a `brain.md` profile of your org, key contacts, communication style, active initiatives, and open loops, synthesized from your work email/Slack history. Sets up a Cowork Project so the file is read automatically every session, and a scheduled task that keeps it refreshed and sends you a daily summary of what needs attention.
 
 Use it when you want Claude to know your organization, contacts, and writing style without re-explaining them every session, or when you want a standing daily summary of what's in flight.
 
