@@ -63,9 +63,9 @@ Use it when writing or improving a product epic, fleshing out a feature idea for
 
 ---
 
-### `/make-it-work:build-the-brain`
+### `/make-it-work:close-my-loops`
 
-Builds a work-focused "second brain" for Claude: a `brain.md` profile of your org, key contacts, communication style, active initiatives, and open loops, synthesized from your work email/Slack history. Sets up a Cowork Project so the file is read automatically every session, and a scheduled task that keeps it refreshed and sends you a daily summary of what needs attention.
+Builds a personal work profile and open-loop tracker for Claude: a `brain.md` profile of your org, key contacts, communication style, active initiatives, and open loops, synthesized from your own email/Slack history. Sets up a Cowork Project so the file is read automatically every session, and a scheduled task that keeps it refreshed and sends you a daily summary of what needs attention.
 
 Use it when you want Claude to know your organization, contacts, and writing style without re-explaining them every session, or when you want a standing daily summary of what's in flight.
 
@@ -84,7 +84,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
-/make-it-work:build-the-brain                # Build/refresh your brain.md, set up Cowork + a daily summary task
+/make-it-work:close-my-loops                 # Build/refresh your brain.md, set up Cowork + a daily summary task
 ```
 
 ## Install

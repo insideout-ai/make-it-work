@@ -1,9 +1,9 @@
 ---
-name: build-the-brain
-description: Build a work-focused "second brain" for the user — a markdown profile of their org, key contacts, communication style, active initiatives, and open loops synthesized from their work email/Slack, not a general personal knowledge base or life-notes system. Includes a Cowork Project setup so that file is actually read every session, and a scheduled task that keeps it refreshed and sends a daily summary. Use this whenever the user asks to build, create, update, refresh, or extend a "second brain," "brain.md," or work context file from their email/Slack/Teams history. Also trigger for "learn my organization / contacts / writing style," "make Claude always use this file," "set up a Cowork project around my brain file," or "send me a daily summary of what needs my attention" — even without the words "second brain."
+name: close-my-loops
+description: Build and maintain a personal work profile and open-loop tracker for the user's own job — a markdown file covering their org, key contacts, communication style, active initiatives, and open loops synthesized from their own email/Slack; a Cowork Project setup so that file is actually read every session; and a scheduled task that keeps it refreshed and sends a daily summary. Unlike skills that operate on a shared repo or ticket, this one runs on the user's personal accounts and data. Use this whenever the user asks to build, create, update, refresh, or extend a "second brain," "brain.md," or personal context file from their email/Slack/Teams history. Also trigger for "learn my organization / contacts / writing style," "make Claude always use this file," "set up a Cowork project around my brain file," or "send me a daily summary of what needs my attention" — even without the words "second brain."
 ---
 
-# Build the Brain
+# Close My Loops
 
 This skill has three parts. They build on each other but are each independently useful — jump to whichever one matches what the user asked for.
 
@@ -76,7 +76,7 @@ Anything in Active Initiatives or Open Loops should read as a snapshot ("as of [
 
 ## Part 2: Set up a Cowork Project around the brain
 
-A brain.md sitting in a folder isn't used automatically — in a standalone Cowork session, memory doesn't carry over between sessions, so nothing prompts a future Claude to go read it. Cowork Projects solve this: a Project has a persistent "Instructions" field that's read every session in that project, plus its own memory scoped to the project. Pointing a Project at the brain's folder with the right instructions is what actually makes this a living second brain instead of a file that only helps when someone remembers to attach it.
+A brain.md sitting in a folder isn't used automatically — in a standalone Cowork session, memory doesn't carry over between sessions, so nothing prompts a future Claude to go read it. Cowork Projects solve this: a Project has a persistent "Instructions" field that's read every session in that project, plus its own memory scoped to the project. Pointing a Project at the brain's folder with the right instructions is what actually makes this persistent and self-updating, instead of a file that only helps when someone remembers to attach it.
 
 Read `assets/project-instructions-template.md` for the instructions text. Fill in its placeholders using what you already know from Part 1 (the user's name, the brain.md path, whether a recurring-docs/canvases section exists, whether a scheduled refresh task exists yet and its cadence — leave out any clause that doesn't apply rather than leaving a placeholder unfilled). Present the completed text to the user and tell them exactly where it goes:
 
