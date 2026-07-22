@@ -63,6 +63,14 @@ Use it when writing or improving a product epic, fleshing out a feature idea for
 
 ---
 
+### `/make-it-work:slice-the-epic`
+
+Slices a requirement, epic, ticket, or user story into small, independently deliverable increments, and writes each slice as a proper Gherkin (Given/When/Then) user story. Picks a slicing technique (functional, workflow, data, user role, or complexity slicing), sizes each slice to half a sprint or less, and orders them by risk.
+
+Use it whenever a ticket or epic feels too big and needs to become sprint-sized stories - including requests like "this ticket is too large," "break this into smaller pieces," or "help me write user stories for this epic."
+
+---
+
 ## Keep improving
 
 When Claude gets something wrong, don't just correct it - ask why it missed. What was unclear in the skills or rules? Update them so it doesn't happen again. Every misunderstanding is a chance to make the knowledge base more accurate. Over time the system gets sharper, not stale.
@@ -76,6 +84,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
+/make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
 ```
 
 ## Install
