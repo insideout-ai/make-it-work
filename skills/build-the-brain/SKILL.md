@@ -46,8 +46,18 @@ Work through these in order. Look at what the data actually shows rather than as
 1. **Who I am** — the user's role, name, email, chat-app user ID, and reporting line if you can establish it (manager above, direct reports below, with titles). Only state a reporting relationship as fact if it comes from an org chart or explicit statement — otherwise describe it as inferred. Capturing name/email/user ID here matters beyond this file — Part 3's scheduled task needs them and shouldn't have to re-derive them.
 2. **Key people** — group by actual relationship: direct reports, manager, other frequent contacts, external vendors, and a lower-priority "broader orbit" for people who appeared once or twice. Rank by real interaction frequency, not assumption. For each person, capture channel (email vs. Slack, language used) and a style note — a real, verbatim quote is far more useful here than a generic adjective like "casual."
 3. **Active initiatives** — a short table: initiative, owner/stakeholders, current status, next action. Pull these from recurring subject lines, meeting series, and multi-message threads — a one-off email isn't an initiative.
-4. **Open loops** — things left unresolved: a question that never got an answer, a decision explicitly deferred, an owner explicitly left TBD.
+4. **Open loops** — things left unresolved, split into four groups by who owns the next move:
+   - **My action items** — the user must do something next (reply, approve, decide, nudge).
+   - **Waiting on others** — someone else owes the next step; the user only monitors or nudges if it stalls.
+   - **FYI / monitoring** — no action pending, just context worth remembering.
+   - **Resolved (recent)** — items closed out recently, kept briefly for history/traceability.
+
+   Classify by judgment: if the next concrete step is the user's, it's an action item; if they're blocked on someone else, it's waiting-on-others; if there's nothing to do but it's worth remembering, it's FYI. Move items between buckets as status changes — an action item the user completes moves to Resolved; a waiting-on-others item that stalls might become an action item to nudge.
+
+   Don't prune the Resolved bucket yourself on every refresh — a separate periodic consolidation pass (see the companion `consolidate-memory` skill, if installed) handles trimming it over time. Just don't let it balloon: merge/update existing lines rather than duplicating, and keep entries terse.
 5. **Known recurring docs/canvases** (optional, only if relevant) — if the user maintains living documents outside plain messages (a Slack canvas for 1:1 notes, a shared doc for team status), list them by name and ID/link. Plain message search usually can't surface this kind of content, so recording the direct reference here saves every future session (especially the scheduled one in Part 3) from having to re-search for it.
+
+   If the chat app supports a canvas/live-doc primitive (e.g. Slack Canvases), consider setting up a dedicated **Open Loops canvas** as part of this system — see Part 3's optional canvas setup below. If one exists, record its ID/link here alongside any other recurring docs, since the scheduled task depends on reusing that exact ID rather than recreating it.
 6. **Writing style** — separate Slack from email if they differ, and separate by audience if tone clearly shifts. Prefer real examples over abstract description.
 7. **How to use this file** — practical defaults: whose threads matter most, what tone to default to, when to switch languages, etc.
 8. **Changelog** — a short list at the very top of the file (right under the title), newest first, one dated line per refresh describing what changed ("2026-07-20: bumped Eran Steinitz to core contact, closed the RPA-owner open loop"). Keep only the 5 most recent lines — trim older ones on each refresh. This is what lets a scheduled run (Part 3) show its work without the file growing forever, and what lets the user glance at the top and see what's new since they last looked.
@@ -97,3 +107,14 @@ Read `assets/scheduled-task-prompt-template.md` and substitute every placeholder
 ### Step 3: Confirm, then create
 
 Show the user the filled-in prompt along with your proposed task name and cron schedule. Once they confirm, create it with `mcp__scheduled-tasks__create_scheduled_task` (load via ToolSearch if it's deferred). If they later want to change cadence or wording, use `mcp__scheduled-tasks__update_scheduled_task` rather than creating a duplicate.
+
+### Optional: a live Open Loops canvas
+
+If the connected chat app has a canvas/live-doc primitive (Slack Canvases are the common case), it's worth offering to set up a persistent **Open Loops canvas** — a checkbox list, attached to the user's self-DM, mirroring the memory file's Open Loops section (minus the Resolved bucket). This gives the user a way to resolve something themselves — just check the box — without it needing to show up anywhere in email/Slack first.
+
+If the user wants this:
+1. Create the canvas once (e.g. `slack_create_canvas`), attach it to their self-DM, and record its ID/link in the memory file's "Known recurring docs/canvases" section so no future run has to re-discover it.
+2. Add the checkbox-resolution convention to the scheduled task prompt (see the template) — the run should read the canvas first and treat any checked box as resolved, then rewrite the canvas at the end with the current active loops.
+3. Explain the convention to the user: check a box any time something's actually resolved (even with no trace in email/Slack), or just tell Claude directly in chat for an instant update instead of waiting for the next scheduled run.
+
+Skip this entirely if the chat app has no canvas/live-doc equivalent — a plain scheduled summary is still useful without it.
