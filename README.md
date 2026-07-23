@@ -71,6 +71,14 @@ Use it whenever a ticket or epic feels too big and needs to become sprint-sized 
 
 ---
 
+### `/make-it-work:close-my-loops`
+
+Builds a personal work profile and open-loop tracker for Claude: a `brain.md` profile of your org, key contacts, communication style, active initiatives, and open loops, synthesized from your own email/Slack history. Sets up a Cowork Project so the file is read automatically every session, and a scheduled task that keeps it refreshed and sends you a daily summary of what needs attention.
+
+Use it when you want Claude to know your organization, contacts, and writing style without re-explaining them every session, or when you want a standing daily summary of what's in flight.
+
+---
+
 ## Keep improving
 
 When Claude gets something wrong, don't just correct it - ask why it missed. What was unclear in the skills or rules? Update them so it doesn't happen again. Every misunderstanding is a chance to make the knowledge base more accurate. Over time the system gets sharper, not stale.
@@ -85,6 +93,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
+/make-it-work:close-my-loops                 # Build/refresh your brain.md, set up Cowork + a daily summary task
 ```
 
 ## Install
