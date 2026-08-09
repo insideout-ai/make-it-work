@@ -147,6 +147,8 @@ If no canvas exists for that person yet:
 
 ### Step 2: Do the research
 
+Before researching, call the canvas-read tool for that person's canvas and parse the current content of the "Claude prep" section. Treat any line already checked `[x]` as resolved by the user and exclude it from the refreshed checklist — unless the fresh research below turns up clear, specific evidence that it reopened. Only research and refresh items that are still unchecked.
+
 Same approach as any other open-loop research: pull that person's recent email threads (`from:`/`to:` them) and Slack DM/channel history, cross-reference brain.md's Active Initiatives and Open Loops for anything tagged to them, and look specifically for things that haven't made it into brain.md yet (a live unanswered ask, a meeting agenda item, a deadline mentioned only in a thread) — these are often the most useful things to surface, precisely because they're not yet tracked anywhere else.
 
 Group findings the same way brain.md's Open Loops are grouped — needs a decision/answer from them, status to check, FYI-only — since that's a structure the user already recognizes.
@@ -156,7 +158,7 @@ Group findings the same way brain.md's Open Loops are grouped — needs a decisi
 Answer in chat as usual. Then write the same checklist into the canvas:
 1. Call the canvas-read tool first to get a fresh `section_id_mapping` — section IDs change after every edit, never reuse one from an earlier turn.
 2. Add or replace a section clearly marked as Claude's (e.g. a `## 🔎 Claude prep — next 1:1` heading) using the canvas-update tool. Never touch or overwrite the user's own pre-existing content in that canvas (e.g. their own running notes list) — only manage the section you created for this purpose.
-3. Use plain unchecked checklist items (`- [ ]`) so the user can tick them off during or after the 1:1, same convention as the Open Loops canvas in Part 3.
+3. Carry forward any already-checked `[x]` item verbatim — don't re-research it or re-add it as a new line. Write fresh `- [ ]` items only for what's new or still open, so the user can tick them off during or after the 1:1 — same convention as the Open Loops canvas in Part 3.
 4. Note the date the section was last refreshed, so a stale-looking checklist is self-evident before the next ask.
 
 ### Notes
