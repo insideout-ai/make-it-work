@@ -1,0 +1,21 @@
+.claude-plugin/plugin.json
+  s_e881d901072147::t_21dc79699a69f1 4
+skills/go-deep/SKILL.md
+  s_e881d901072147::t_38f53ccfb0d3ab 7-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7f57a29489d752871435bd45dd30078e33ef0a1f",
+  "prompts": {},
+  "sessions": {
+    "s_e881d901072147": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "53d4cecf-b17c-4baa-9e9b-e151b443c86e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
