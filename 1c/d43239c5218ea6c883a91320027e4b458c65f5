@@ -1,0 +1,29 @@
+skills/close-the-gaps/SKILL.md
+  s_66e2bd6bfbf77f::t_1dc5f9d58079fe 86
+  s_66e2bd6bfbf77f::t_e29d3f88802abc 125
+  s_66e2bd6bfbf77f::t_0f665028a67e01 103
+  s_66e2bd6bfbf77f::t_392f5b98daced7 180-181
+  s_66e2bd6bfbf77f::t_17033c50f30805 25
+  s_66e2bd6bfbf77f::t_af9fbf491fa14d 114
+  s_66e2bd6bfbf77f::t_47dab90fafe278 101,106
+  s_66e2bd6bfbf77f::t_3beb79eb1211e0 84
+  s_66e2bd6bfbf77f::t_2d000901b94ca1 45
+  s_66e2bd6bfbf77f::t_4185c70dd22918 83,85
+  s_66e2bd6bfbf77f::t_b7b1392c114002 116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1cd43239c5218ea6c883a91320027e4b458c65f5",
+  "prompts": {},
+  "sessions": {
+    "s_66e2bd6bfbf77f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "09cd07d3-7850-4ad5-b5cc-94f8b19411b0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
