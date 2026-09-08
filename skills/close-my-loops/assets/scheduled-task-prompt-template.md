@@ -31,6 +31,7 @@ Read each known doc/canvas directly by ID (don't re-search for them — the mapp
 STEP 5 — Update the memory file
 - Edit it in place: update the initiatives/open-loops/recurring-docs sections with anything new, resolved, or changed. Keep entries factual and dated. Merge/update existing rows rather than appending duplicates.
 - If using the four-bucket Open Loops structure (My action items / Waiting on others / FYI-monitoring / Resolved), classify each item by who owns the next move and move items between buckets as their status changes. Keep the Resolved bucket brief for history, but don't prune it yourself — that's handled by a periodic consolidation pass; just don't let it balloon.
+- **Source tagging (required):** every open-loop bullet — across all buckets — must end with a bracketed source tag: `[Email: "<exact subject>"]`, `[<chat app> #channel]`, `[<chat app> DM: <name>]`, `[<chat app> group DM: <names>]`, or `[<chat app> canvas: <name>]`. For a bullet synthesizing multiple threads, tag the most recent/decision-relevant one, or separate two with `; `. When refreshing an existing item, update the tag to the latest source rather than stacking old ones.
 - Add ONE new changelog line at the top with today's date and a one-sentence summary. Keep only the 5 most recent changelog lines — trim older ones so the file doesn't grow unbounded.
 
 STEP 6 — Send the summary
@@ -38,11 +39,12 @@ STEP 6 — Send the summary
 - Match their own communication style per the memory file — short, direct, substance over structure. Lead with anything urgent or time-sensitive.
 - If genuinely nothing needs attention, send one line saying so, plus 1-2 things worth knowing if any.
 - Only use the channel/medium specified — don't send by other means (e.g. email) unless asked.
+- Carry each item's source tag from the memory file into the summary (same bracketed format) so [Name] can tell at a glance which app to check and where.
 
 STEP 7 — Update the Open Loops canvas [only if one exists — otherwise delete this step]
 - Load the canvas-update tool via ToolSearch (it may live on a different connector than the one used for scanning — that's fine, use whichever has it).
 - You already have a fresh section_id_mapping from Step 1's read — if any edits happened since then, re-read first. Section IDs change after every update — never reuse stale ones from a prior run.
-- Replace the body with today's date and one checklist section per active Open Loops bucket from the memory file (same items, same wording, one line each as an unchecked box) — WITHOUT the Resolved bucket, which stays in the memory file only.
+- Replace the body with today's date and one checklist section per active Open Loops bucket from the memory file (same items, same wording — including the bracketed source tag from each bullet — one line each as an unchecked box) — WITHOUT the Resolved bucket, which stays in the memory file only.
 - Keep the intro line explaining the checkbox convention (checking a box = resolved, picked up next run; or the user can just tell Claude directly in chat for an instant update).
 - Always update the same canvas ID in place — never create a new canvas for this.
 

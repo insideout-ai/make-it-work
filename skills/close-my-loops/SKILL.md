@@ -1,17 +1,18 @@
 ---
-name: close-my-loops
-description: Build and maintain a personal work profile and open-loop tracker for the user's own job — a markdown file covering their org, key contacts, communication style, active initiatives, and open loops synthesized from their own email/Slack; a Cowork Project setup so that file is actually read every session; and a scheduled task that keeps it refreshed and sends a daily summary. Unlike skills that operate on a shared repo or ticket, this one runs on the user's personal accounts and data. Use this whenever the user asks to build, create, update, refresh, or extend a "second brain," "brain.md," or personal context file from their email/Slack/Teams history. Also trigger for "learn my organization / contacts / writing style," "make Claude always use this file," "set up a Cowork project around my brain file," or "send me a daily summary of what needs my attention" — even without the words "second brain."
+name: "close-my-loops"
+description: "Build and maintain a personal work profile and open-loop tracker for the user's own job — a markdown file covering their org, key contacts, communication style, active initiatives, and open loops synthesized from their own email/Slack; a Cowork Project setup so that file is actually read every session; a scheduled task that keeps it refreshed and sends a daily summary; and on-demand per-person 1:1 prep checklists written into Slack canvases. Unlike skills that operate on a shared repo or ticket, this one runs on the user's personal accounts and data. Use this whenever the user asks to build, create, update, refresh, or extend a \"second brain,\" \"brain.md,\" or personal context file from their email/Slack/Teams history. Also trigger for \"learn my organization / contacts / writing style,\" \"make Claude always use this file,\" \"set up a Cowork project around my brain file,\" \"send me a daily summary of what needs my attention,\" or \"prepare me for my weekly/1:1 with X\" — even without the words \"second brain.\""
 ---
 
 # Close My Loops
 
-This skill has three parts. They build on each other but are each independently useful — jump to whichever one matches what the user asked for.
+This skill has four parts. They build on each other but are each independently useful — jump to whichever one matches what the user asked for.
 
 1. **Build/refresh `brain.md`** — a profile of the user's working life, from their own email/Slack.
 2. **Set up a Cowork Project** so that file gets read automatically every session, instead of only when someone remembers to mention it.
 3. **Set up a scheduled task** that refreshes the file daily and sends a summary of what needs attention.
+4. **On-demand 1:1 prep checklists** — when the user asks to be prepared for a weekly/1:1 with a specific person, research that person's open threads and write the result into a persistent Slack canvas section for them, not just into the chat reply.
 
-The three connect: Part 2 is what makes Part 1's file actually useful without the user re-uploading it every time, and Part 3 is what keeps it current without the user having to ask again. A brain.md nobody re-reads, or one that goes stale, is much less valuable than the sum of its parts — so if the user only asks for Part 1, it's worth mentioning Parts 2 and 3 exist once the file is built.
+The four connect: Part 2 is what makes Part 1's file actually useful without the user re-uploading it every time, Part 3 is what keeps it current without the user having to ask again, and Part 4 is what turns "prepare me for X" from a one-off chat answer into something that persists in the same place the user already keeps notes for that person. A brain.md nobody re-reads, or one that goes stale, is much less valuable than the sum of its parts — so if the user only asks for Part 1, it's worth mentioning the other parts exist once the file is built.
 
 ---
 
@@ -44,7 +45,7 @@ When pulling email, request only the fields you need (subject, from/to, date) ra
 Work through these in order. Look at what the data actually shows rather than assuming titles/roles from context — reporting lines especially should come from an authoritative source (an org chart the user provides) if one exists, not be inferred from who emails whom, since frequent contact doesn't imply hierarchy.
 
 1. **Who I am** — the user's role, name, email, chat-app user ID, and reporting line if you can establish it (manager above, direct reports below, with titles). Only state a reporting relationship as fact if it comes from an org chart or explicit statement — otherwise describe it as inferred. Capturing name/email/user ID here matters beyond this file — Part 3's scheduled task needs them and shouldn't have to re-derive them.
-2. **Key people** — group by actual relationship: direct reports, manager, other frequent contacts, external vendors, and a lower-priority "broader orbit" for people who appeared once or twice. Rank by real interaction frequency, not assumption. For each person, capture channel (email vs. Slack, language used) and a style note — a real, verbatim quote is far more useful here than a generic adjective like "casual."
+2. **Key people** — group by actual relationship: direct reports, manager, other frequent contacts, external vendors, and a lower-priority "broader orbit" for people who appeared once or twice. Rank by real interaction frequency, not assumption. For each person, capture channel (email vs. Slack, language used) and a style note — a real, verbatim quote is far more useful here than a generic adjective like "casual." Flag which of these people are direct reports or the user's manager — Part 4 scopes its per-person canvases to exactly that set.
 3. **Active initiatives** — a short table: initiative, owner/stakeholders, current status, next action. Pull these from recurring subject lines, meeting series, and multi-message threads — a one-off email isn't an initiative.
 4. **Open loops** — things left unresolved, split into four groups by who owns the next move:
    - **My action items** — the user must do something next (reply, approve, decide, nudge).
@@ -55,9 +56,13 @@ Work through these in order. Look at what the data actually shows rather than as
    Classify by judgment: if the next concrete step is the user's, it's an action item; if they're blocked on someone else, it's waiting-on-others; if there's nothing to do but it's worth remembering, it's FYI. Move items between buckets as status changes — an action item the user completes moves to Resolved; a waiting-on-others item that stalls might become an action item to nudge.
 
    Don't prune the Resolved bucket yourself on every refresh — a separate periodic consolidation pass (see the companion `consolidate-memory` skill, if installed) handles trimming it over time. Just don't let it balloon: merge/update existing lines rather than duplicating, and keep entries terse.
-5. **Known recurring docs/canvases** (optional, only if relevant) — if the user maintains living documents outside plain messages (a Slack canvas for 1:1 notes, a shared doc for team status), list them by name and ID/link. Plain message search usually can't surface this kind of content, so recording the direct reference here saves every future session (especially the scheduled one in Part 3) from having to re-search for it.
+
+   Every open-loop bullet, in all four buckets, should end with a short bracketed source tag so it's traceable without re-reading the file: `[Email: "<exact subject line>"]`, `[<chat app> #channel-name]`, `[<chat app> DM: <person's name>]`, `[<chat app> group DM: <names>]`, or `[<chat app> canvas/doc: <name>]`. If a bullet synthesizes multiple messages/threads, tag it with the most recent or most decision-relevant one, or list two tags separated by `; ` if both matter. When updating an existing item on a later refresh, replace the tag with the latest relevant source rather than stacking every historical one.
+5. **Known recurring docs/canvases** (optional, only if relevant) — if the user maintains living documents outside plain messages (a Slack canvas for 1:1 notes, a shared doc for team status), list them by name and ID/link. Plain message search usually can't surface this kind of content, so recording the direct reference here saves every future session (especially the scheduled one in Part 3, and the on-demand one in Part 4) from having to re-search for it.
 
    If the chat app supports a canvas/live-doc primitive (e.g. Slack Canvases), consider setting up a dedicated **Open Loops canvas** as part of this system — see Part 3's optional canvas setup below. If one exists, record its ID/link here alongside any other recurring docs, since the scheduled task depends on reusing that exact ID rather than recreating it.
+
+   If the user already maintains a **per-report or per-manager 1:1 canvas** (a running notes list for each direct report and their own manager), record each one's ID/link here too, keyed by person — Part 4 reuses these directly rather than creating separate ones. If a person in that set (direct reports + manager) doesn't have one yet, note that it's missing; Part 4 covers creating it.
 6. **Writing style** — separate Slack from email if they differ, and separate by audience if tone clearly shifts. Prefer real examples over abstract description.
 7. **How to use this file** — practical defaults: whose threads matter most, what tone to default to, when to switch languages, etc.
 8. **Changelog** — a short list at the very top of the file (right under the title), newest first, one dated line per refresh describing what changed ("2026-07-20: bumped Eran Steinitz to core contact, closed the RPA-owner open loop"). Keep only the 5 most recent lines — trim older ones on each refresh. This is what lets a scheduled run (Part 3) show its work without the file growing forever, and what lets the user glance at the top and see what's new since they last looked.
@@ -93,6 +98,8 @@ This is what keeps the brain current without the user asking again: a recurring 
 
 The critical thing to understand and to tell the user if they're unfamiliar with scheduled tasks: each scheduled run is a brand-new session with zero memory of any previous run. It only knows what's in the prompt itself, plus whatever it reads from brain.md. That's exactly why brain.md matters here — without it, every run would start from zero, either repeating information or missing that something was already resolved. With it, each run reads yesterday's state and updates only what changed.
 
+Per-person 1:1 prep (Part 4) is deliberately **not** part of this scheduled run by default — it's on-demand only, so it doesn't go stale between meetings or do wasted work for people the user isn't meeting soon. Don't fold it into the daily prompt unless the user explicitly asks for that.
+
 ### Step 1: Gather what the template needs
 
 Most of this should already be sitting in brain.md's "Who I am" section from Part 1 — reuse it rather than re-asking: the user's name, email, chat-app user ID, and role. Also confirm:
@@ -118,3 +125,43 @@ If the user wants this:
 3. Explain the convention to the user: check a box any time something's actually resolved (even with no trace in email/Slack), or just tell Claude directly in chat for an instant update instead of waiting for the next scheduled run.
 
 Skip this entirely if the chat app has no canvas/live-doc equivalent — a plain scheduled summary is still useful without it.
+
+---
+
+## Part 4: On-demand 1:1 prep checklists
+
+### What this produces
+
+When the user says something like "prepare me for my weekly with [name]" — where `[name]` is a direct report or their manager — do the research as normal and answer in chat, but *also* persist the result as a checklist in a Slack canvas dedicated to that person, so it doesn't evaporate at the end of the conversation. This is deliberately scoped to direct reports + manager, not every recurring contact — those are the people the user has a standing 1:1 with and a natural place (their existing per-person canvas) to put it.
+
+This is on-demand, not scheduled: it runs when asked, using whatever's fresh in email/Slack at that moment, and writes straight into Slack so it's there the next time the user opens that canvas — including from their phone, without needing to re-open a chat session.
+
+### Step 1: Find or create the person's canvas
+
+Check brain.md's "Known recurring docs/canvases" section (Part 1, Step 3.5) for that person's canvas ID. If the user already has a running 1:1-notes canvas for them, reuse it — add a new section rather than replacing their existing content.
+
+If no canvas exists for that person yet:
+1. Create one with the chat app's canvas-creation tool (e.g. `slack_create_canvas`), titled after the person (e.g. "Guy Kronenthal — 1:1").
+2. Most canvas-creation tools don't attach the new canvas to a channel/DM as a tab automatically — tell the user it needs a one-time manual step (open the person's DM → add the canvas as a Canvas tab) and give them the canvas link.
+3. Record the new canvas ID/link in brain.md's "Known recurring docs/canvases" section immediately, so it's never re-created on a future ask.
+
+### Step 2: Do the research
+
+Before researching, call the canvas-read tool for that person's canvas and parse the current content of the "Claude prep" section. Treat any line already checked `[x]` as resolved by the user and exclude it from the refreshed checklist — unless the fresh research below turns up clear, specific evidence that it reopened. Only research and refresh items that are still unchecked.
+
+Same approach as any other open-loop research: pull that person's recent email threads (`from:`/`to:` them) and Slack DM/channel history, cross-reference brain.md's Active Initiatives and Open Loops for anything tagged to them, and look specifically for things that haven't made it into brain.md yet (a live unanswered ask, a meeting agenda item, a deadline mentioned only in a thread) — these are often the most useful things to surface, precisely because they're not yet tracked anywhere else.
+
+Group findings the same way brain.md's Open Loops are grouped — needs a decision/answer from them, status to check, FYI-only — since that's a structure the user already recognizes.
+
+### Step 3: Write to chat AND to the canvas
+
+Answer in chat as usual. Then write the same checklist into the canvas:
+1. Call the canvas-read tool first to get a fresh `section_id_mapping` — section IDs change after every edit, never reuse one from an earlier turn.
+2. Add or replace a section clearly marked as Claude's (e.g. a `## 🔎 Claude prep — next 1:1` heading) using the canvas-update tool. Never touch or overwrite the user's own pre-existing content in that canvas (e.g. their own running notes list) — only manage the section you created for this purpose.
+3. Carry forward any already-checked `[x]` item verbatim — don't re-research it or re-add it as a new line. Write fresh `- [ ]` items only for what's new or still open, so the user can tick them off during or after the 1:1 — same convention as the Open Loops canvas in Part 3.
+4. Note the date the section was last refreshed, so a stale-looking checklist is self-evident before the next ask.
+
+### Notes
+
+- Keep this separate from the daily scheduled task (Part 3) unless the user explicitly asks to fold it in — see the note in Part 3. Running it daily for every person would mean stale, unread checklists piling up for people the user isn't meeting that week, and duplicates a lot of what the Open Loops canvas already covers in aggregate.
+- If the user wants this for someone outside the direct-report/manager set (a peer, a cross-functional partner with a standing 1:1), it's fine to do the same thing for them — just confirm first, since brain.md's canvas registry is keyed by person and unscoped growth here can get noisy fast.
