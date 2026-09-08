@@ -4,6 +4,24 @@ description: "Builds a 3-tier doc system (CLAUDE.md, orientation maps, domain & 
 
 Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
 
+## Phase 0 — Prior-Run Detection
+
+Before Phase 1, check whether `go-deep` has already been run in this repo. Any one signal is enough:
+- `.claude/skills/` contains a `uc-*` or `domain-*` directory
+- `CLAUDE.md` contains go-deep markers (Skill Loading Gate, Skills Reference, or After Any Feature Change sections)
+- `.claude/rules/architecture.md` or `.claude/rules/product.md` exists
+
+If none are present, skip to Phase 1 — this is a first run.
+
+If detected, tell the user what evidence was found, then check each condition below and surface only the options that are actually relevant. Present them via `AskUserQuestion` with `multiSelect: true`, plus always include a final "Run full fresh onboarding anyway" escape hatch.
+
+1. **CLAUDE.md gap** — relevant if CLAUDE.md is missing, or missing any of: Skill Loading Gate, Skills Reference tables, After Any Feature Change section. On selection: add the missing structure immediately.
+2. **Missing skills** — cross-reference every `uc-{id}-{name}` / `domain-{name}` named in CLAUDE.md's Skills Reference, product.md's use case table, and architecture.md's Functional Domains table against actual directories under `.claude/skills/`. Relevant if any referenced skill has no matching directory. On selection: list the missing skills, confirm with the user, then create them via Phase 5's parallel-task method.
+3. **Non-compliant skills** — read every existing skill's line count against its size target (UC: 30–50, domain: 60–120, 500 hard max) and scan for signal-to-noise violations (see rule 12 below: ASCII diagrams, code snippets, "None" sections, prop tables, etc.). Relevant if any skill exceeds its target or contains a flagged pattern. On selection: list the flagged skills and violations, confirm with the user, then trim each.
+4. **Staleness re-scan** — always relevant when a prior run is detected. Ask the user to pick a window (10/30/60/90 days) via `AskUserQuestion`, then diff commits in that window against each skill's declared code areas (Key Components/Functions in architecture.md, Key code areas in the Skills Reference table). Flag skills whose code areas were touched. On selection: list flagged skills and the touching commits, confirm with the user, then update each.
+
+**Checkpoint discipline:** Options 2–4 always show what would change and wait for explicit confirmation before writing any file. Option 1 proceeds directly once selected.
+
 ## Information Gathering Process
 
 **Phase 1: Code Discovery**
