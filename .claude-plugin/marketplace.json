@@ -1,13 +1,38 @@
 {
   "name": "insideout-ai",
-  "description": "Agentic SDLC tools for codebase context, product requirements, and documentation-grounded code review.",
+  "description": "AI-assisted SDLC tools for codebase context, product requirements, implementation planning, and documentation-grounded code review.",
   "owner": {
-    "name": "insideout-ai"
+    "name": "InsideOut AI",
+    "url": "https://insideoutai.io"
   },
   "plugins": [
     {
       "name": "make-it-work",
-      "description": "Agentic SDLC - from idea to delivery.",
+      "displayName": "Make It Work",
+      "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, plan implementation, and review pull requests against documented intent.",
+      "author": {
+        "name": "InsideOut AI",
+        "url": "https://insideoutai.io"
+      },
+      "homepage": "https://insideoutai.io/make-it-work",
+      "repository": "https://github.com/insideout-ai/make-it-work",
+      "license": "MIT",
+      "keywords": [
+        "claude-code",
+        "software-development",
+        "context-engineering",
+        "requirements-engineering",
+        "implementation-planning",
+        "code-review"
+      ],
+      "category": "development",
+      "tags": [
+        "sdlc",
+        "requirements",
+        "planning",
+        "documentation",
+        "code-review"
+      ],
       "source": {
         "source": "github",
         "repo": "insideout-ai/make-it-work"

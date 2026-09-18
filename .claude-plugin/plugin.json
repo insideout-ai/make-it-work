@@ -1,11 +1,22 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "make-it-work",
-  "description": "Agentic SDLC - from idea to delivery.",
-  "version": "2.0.0",
+  "displayName": "Make It Work",
+  "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, plan implementation, and review pull requests against documented intent.",
+  "version": "2.1.0",
   "author": {
-    "name": "insideout-ai"
+    "name": "InsideOut AI",
+    "url": "https://insideoutai.io"
   },
-  "homepage": "https://github.com/insideout-ai/make-it-work",
+  "homepage": "https://insideoutai.io/make-it-work",
   "repository": "https://github.com/insideout-ai/make-it-work",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "software-development",
+    "context-engineering",
+    "requirements-engineering",
+    "implementation-planning",
+    "code-review"
+  ]
 }
