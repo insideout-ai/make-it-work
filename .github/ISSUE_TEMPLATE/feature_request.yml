@@ -1,0 +1,73 @@
+name: Feature request
+description: Propose an improvement to a make-it-work workflow or its packaging
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the workflow problem and desired outcome. A concrete use case is more useful than an implementation-only proposal.
+
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched the existing issues and did not find a matching request.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Who encounters this problem, in what situation, and what is difficult today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: Desired outcome
+      description: What should a successful workflow enable the user to accomplish?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected-area
+    attributes:
+      label: Affected area
+      options:
+        - New skill or workflow
+        - go-deep
+        - shape-the-epic
+        - slice-the-epic
+        - close-the-gaps
+        - review-the-pr
+        - Installation or updates
+        - Marketplace or plugin metadata
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: Show a representative prompt, input, or scenario and the result you would expect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any current workaround or other approach you considered.
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add non-sensitive references, screenshots, or related issues.
+

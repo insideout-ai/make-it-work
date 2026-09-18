@@ -207,6 +207,8 @@ claude plugin validate skills --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
 ```
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for local testing and pull-request guidance.
+
 ---
 
 Built by [insideout-ai](https://github.com/insideout-ai)

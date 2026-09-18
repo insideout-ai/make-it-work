@@ -1,0 +1,108 @@
+name: Bug report
+description: Report a reproducible problem with make-it-work
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve make-it-work. Do not include secrets, private source code, or customer data. For a suspected vulnerability, follow the [security policy](https://github.com/insideout-ai/make-it-work/security/policy) instead.
+
+  - type: checkboxes
+    id: existing-issues
+    attributes:
+      label: Existing issues
+      options:
+        - label: I searched the existing issues and did not find a matching report.
+          required: true
+
+  - type: dropdown
+    id: affected-area
+    attributes:
+      label: Affected area
+      options:
+        - Installation or update
+        - go-deep
+        - shape-the-epic
+        - slice-the-epic
+        - close-the-gaps
+        - review-the-pr
+        - Marketplace metadata
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code version
+      description: Run `claude --version` and paste the result.
+      placeholder: "2.1.267"
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Enter the version shown in `/plugin`.
+      placeholder: "2.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation-channel
+    attributes:
+      label: Installation channel
+      options:
+        - claude-community
+        - insideout-ai
+        - Local --plugin-dir
+        - Other or unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include the command or sanitized prompt, relevant project state, and the smallest repeatable sequence.
+      placeholder: |
+        1. Open a project with ...
+        2. Run /make-it-work:...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What did you expect the plugin to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include the exact error when one was shown.
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add sanitized logs, screenshots, or other details that may help reproduce the problem.
+
+  - type: checkboxes
+    id: sensitive-data
+    attributes:
+      label: Sensitive data
+      options:
+        - label: I removed credentials, private source code, customer data, and other sensitive information.
+          required: true
+
