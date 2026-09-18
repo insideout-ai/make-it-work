@@ -1,0 +1,28 @@
+skills/go-deep/SKILL.md
+  s_aa0817ecc19293::t_8156c6423da5b7 20,39,44,47,81,83-84,153,172,195
+README.md
+  s_aa0817ecc19293::t_8156c6423da5b7 102
+skills/close-the-gaps/SKILL.md
+  s_aa0817ecc19293::t_a02cdf466d6cd2 100
+  s_aa0817ecc19293::t_8156c6423da5b7 98,112,114
+skills/shape-the-epic/SKILL.md
+  s_aa0817ecc19293::t_8156c6423da5b7 154,157
+.claude-plugin/plugin.json
+  s_aa0817ecc19293::t_8156c6423da5b7 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "fae7825dfe5dd06873e6d98e3bf48c8c674418a3",
+  "prompts": {},
+  "sessions": {
+    "s_aa0817ecc19293": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b4d0-cf81-7641-8279-3e52946aa84b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
