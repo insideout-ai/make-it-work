@@ -1,0 +1,32 @@
+skills/close-my-loops/SKILL.md
+  s_5d409c8c808f2f::t_a3651b51c1a91d 3
+skills/go-deep/SKILL.md
+  s_5d409c8c808f2f::t_0af44a70aa79d6 3
+  s_5d409c8c808f2f::t_d47d228e27dcd9 2
+skills/close-the-gaps/SKILL.md
+  s_5d409c8c808f2f::t_fc910768746c5e 2
+  s_5d409c8c808f2f::t_299989634ba9ee 3
+skills/shape-the-epic/SKILL.md
+  s_5d409c8c808f2f::t_67d9f54f316133 2
+  s_5d409c8c808f2f::t_ff7234c90cd312 3
+skills/code-review/SKILL.md
+  s_5d409c8c808f2f::t_c477b23d9218f1 3
+skills/slice-the-epic/SKILL.md
+  s_5d409c8c808f2f::t_bb176be41e4e9b 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a1dbd14c3d14ed6c18cac78a70a36d5fe99bfbd4",
+  "prompts": {},
+  "sessions": {
+    "s_5d409c8c808f2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86251ece-7524-444b-89b5-29007f8f9cd0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
