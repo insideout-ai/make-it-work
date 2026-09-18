@@ -1,0 +1,21 @@
+skills/shape-the-epic/SKILL.md
+  s_31e1dd2a1ca4df::t_64d1c91d4238ff 225
+skills/close-the-gaps/SKILL.md
+  s_31e1dd2a1ca4df::t_d4bf6941667edf 126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "03288f242e7ce4573f35f600abbd912a15afaa9f",
+  "prompts": {},
+  "sessions": {
+    "s_31e1dd2a1ca4df": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3a4da44e-6a83-4b73-bfa8-ef9dbf7250b2",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": null
+    }
+  }
+}
