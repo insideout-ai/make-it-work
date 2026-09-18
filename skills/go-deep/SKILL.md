@@ -14,14 +14,21 @@ Before Phase 1, check whether `go-deep` has already been run in this repo. Any o
 
 If none are present, skip to Phase 1 — this is a first run.
 
-If detected, tell the user what evidence was found, then check each condition below and surface only the options that are actually relevant. Present them via `AskUserQuestion` with `multiSelect: true`, plus always include a final "Run full fresh onboarding anyway" escape hatch.
+If detected, tell the user what evidence was found, then use `AskUserQuestion` with `multiSelect: false` to choose one workflow:
+
+1. `{ label: "Repair existing docs (Recommended)", description: "Preserve the current documentation system and choose only the repairs it needs." }`
+2. `{ label: "Run fresh onboarding", description: "Rebuild the documentation system from scratch after reviewing the affected files." }`
+
+If **Run fresh onboarding** is selected, list the existing files that may be replaced or substantially rewritten — `CLAUDE.md`, `.claude/rules/architecture.md`, `.claude/rules/product.md`, and matching `.claude/skills/uc-*` / `.claude/skills/domain-*` files — and require explicit confirmation before modifying anything. After confirmation, continue at Phase 1 and follow all normal checkpoints.
+
+If **Repair existing docs** is selected, check each condition below and surface only the repair actions that are actually relevant. When two or more actions are relevant, present them through `AskUserQuestion` with `multiSelect: true`. When only one action is relevant, use a single-choice question with that action plus `{ label: "No repairs now", description: "Leave the existing documentation unchanged." }` so the tool always receives at least two options.
 
 1. **CLAUDE.md gap** — relevant if CLAUDE.md is missing, or missing any of: Skill Loading Gate, Skills Reference tables, After Any Feature Change section. On selection: add the missing structure immediately.
-2. **Missing skills** — cross-reference every `uc-{id}-{name}` / `domain-{name}` named in CLAUDE.md's Skills Reference, product.md's use case table, and architecture.md's Functional Domains table against actual directories under `.claude/skills/`. Relevant if any referenced skill has no matching directory. On selection: list the missing skills, confirm with the user, then create them via Phase 5's parallel-task method.
+2. **Missing skills** — cross-reference every `uc-{id}-{name}` / `domain-{name}` named in CLAUDE.md's Skills Reference, product.md's use case table, and architecture.md's Functional Domains table against actual directories under `.claude/skills/`. Relevant if any referenced skill has no matching directory. On selection: list the missing skills, confirm with the user, then create them via Phase 5's parallel-agent method.
 3. **Non-compliant skills** — read every existing skill's line count against its size target (UC: 30–50, domain: 60–120, 500 hard max) and scan for signal-to-noise violations (see rule 12 below: ASCII diagrams, code snippets, "None" sections, prop tables, etc.). Relevant if any skill exceeds its target or contains a flagged pattern. On selection: list the flagged skills and violations, confirm with the user, then trim each.
 4. **Staleness re-scan** — always relevant when a prior run is detected. Ask the user to pick a window (10/30/60/90 days) via `AskUserQuestion`, then diff commits in that window against each skill's declared code areas (Key Components/Functions in architecture.md, Key code areas in the Skills Reference table). Flag skills whose code areas were touched. On selection: list flagged skills and the touching commits, confirm with the user, then update each.
 
-**Checkpoint discipline:** Options 2–4 always show what would change and wait for explicit confirmation before writing any file. Option 1 proceeds directly once selected.
+**Checkpoint discipline:** Fresh onboarding requires a separate file-impact confirmation before any write. Repair options 2–4 always show what would change and wait for explicit confirmation before writing any file. Repair option 1 proceeds directly once selected.
 
 ## Information Gathering Process
 
@@ -36,15 +43,15 @@ First, analyze the existing codebase to understand what's already there:
 - Identify domain models, entities, or data structures
 
 **Phase 2: Targeted Questions**
-After code discovery, announce how many questions you have, then ask each one using the `AskUserQuestion` tool — one call per question. Only ask about information that could not be determined from code analysis.
+After code discovery, announce how many questions you have. Use `AskUserQuestion` for questions with at least one substantive pre-enumerated answer; ask genuinely open-ended questions in plain text instead. Ask only one question per turn, and only about information that could not be determined from code analysis.
 
 Announce first:
 > "I've analyzed the codebase and have [N] questions. I'll ask them one at a time."
 
-For each question:
+For each multiple-choice question:
 - Call `AskUserQuestion` with:
   - `question`: `"Question [X] of [N] · [Category]: [The question]\n\n[One sentence explaining why this matters.]"` — where `[Category]` is either `Product/domain` (questions 1–10) or `Architecture/technical` (questions 11–20).
-  - `options`: up to 3 substantive pre-enumerated choices + always `{ label: "Skip — clear from code", description: "Already determined from code analysis; no input needed." }` (last). Tool caps at 4 options total. Use open-ended format (options omitted except Skip) only when the answer truly cannot be pre-enumerated.
+  - `options`: 1–3 substantive pre-enumerated choices + always `{ label: "Skip — clear from code", description: "Already determined from code analysis; no input needed." }` (last). The tool requires 2–4 options total. If the answer truly cannot be pre-enumerated, do not call `AskUserQuestion`; ask one concise plain-text question instead.
   - Always recommend one option: place it first and append `(Recommended)` to its label.
   - Never place Skip first — it must always be last.
 - Wait for the user's response before calling `AskUserQuestion` for the next question.
@@ -78,10 +85,10 @@ After the last question: "All questions answered. Confirming scope..."
 
 **Instructions:**
 - **Phase 1 — Code Discovery:** Start by thoroughly analyzing the codebase
-- **Phase 2 — Targeted Questions:** Use `AskUserQuestion` for each question, one at a time, only about information that couldn't be determined from code analysis. Wait for each answer before proceeding to the next question.
+- **Phase 2 — Targeted Questions:** Use `AskUserQuestion` for multiple-choice questions and plain text for genuinely open-ended questions. Ask one at a time, only about information that couldn't be determined from code analysis, and wait for each answer before proceeding.
 - **Phase 3 — Confirm Scope:** Present the identified functional domains and use cases to the user for confirmation before creating any files. Show a draft domain list and UC list. **Checkpoint: user must confirm scope before proceeding.**
-- **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use the Task tool to create one task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, marking each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in. **Checkpoint: user reviews the UC table, Functional Domains table, and CLAUDE.md scope before proceeding.**
-- **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use the Task tool to create one task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. **Checkpoint: user reviews depth, structure, and sections.** Incorporate feedback, then create remaining skills in parallel batches, marking each task `completed` when done.
+- **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use `TaskCreate` to create one progress task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, using `TaskUpdate` to mark each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in. **Checkpoint: user reviews the UC table, Functional Domains table, and CLAUDE.md scope before proceeding.**
+- **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use `TaskCreate` to create one progress task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. **Checkpoint: user reviews depth, structure, and sections.** Incorporate feedback, then create remaining skills in parallel batches with the `Agent` tool, using `TaskUpdate` to mark each progress task `completed` when done.
 - **Phase 6 — Final Review:** Run cross-reference consistency check and present summary. **Checkpoint: user confirms all cross-references resolve and file inventory is complete.**
 
 **Checkpoint discipline:** Never proceed past a workflow checkpoint without explicit user confirmation.
@@ -150,7 +157,7 @@ For each use case listed in `.claude/rules/product.md`, create a dedicated skill
   5. **Alternative / Error Flows** (from the user's perspective — what they see when something goes wrong or takes a different path)
   6. **Cross-references** — "Related Domain Skills" linking to `/domain-{name}` (for implementation details), "Related Use Case Skills" linking to `/uc-{id}-{name}`
 - **Keep concise:** Aim for 30–50 lines. 500 is a hard max, not a target. Focus on actionable details.
-- **Creation method:** Use the Task tool (subagent_type) for each use case skill creation to work in parallel. **Batch into groups of 3–5 parallel agents** if there are more than 6 skills to create.
+- **Creation method:** Use the `Agent` tool with `subagent_type` for each use case skill creation. **Batch into groups of 3–5 parallel agents** if there are more than 6 skills to create.
 
 **Architecture Skills (one per functional domain):**
 For each functional domain listed in `.claude/rules/architecture.md`, create a dedicated skill:
@@ -169,7 +176,7 @@ For each functional domain listed in `.claude/rules/architecture.md`, create a d
   8. **Cross-references** — "Related Use Case Skills" linking to `/uc-{id}-{name}`, "Related Domain Skills" linking to `/domain-{name}`
 - **Section inclusion rule:** Only include sections that have substantive content for this domain. If a domain has no backend functions, no external APIs, or no formulas — omit those sections entirely rather than writing "None" or "N/A".
 - **Keep concise:** Aim for 60–120 lines. 500 is a hard max, not a target. Focus on practical implementation details.
-- **Creation method:** Use the Task tool (subagent_type) for each domain skill creation to work in parallel. **Batch into groups of 3–5 parallel agents** if there are more than 6 skills to create.
+- **Creation method:** Use the `Agent` tool with `subagent_type` for each domain skill creation. **Batch into groups of 3–5 parallel agents** if there are more than 6 skills to create.
 
 
 ## Critical rules:
@@ -192,7 +199,7 @@ For each functional domain listed in `.claude/rules/architecture.md`, create a d
 8. **Skill naming conventions:**
    - Product/use case skills: `uc-{use-case-id}-{use-case-name}` (e.g., uc-01-login)
    - Architecture/domain skills: `domain-{domain-name}` (e.g., domain-auth)
-9. **Parallel skill creation:** Use the Task tool (subagent_type) to create each skill in parallel for efficiency. Each task should receive the relevant use case or domain information from the rules files. **Batch into groups of 3–5 parallel agents** if there are more than 6 skills to create, to avoid overwhelming the system.
+9. **Parallel skill creation:** Use the `Agent` tool with `subagent_type` to create each skill in parallel for efficiency. Each agent should receive the relevant use case or domain information from the rules files. **Batch into groups of 3–5 parallel agents** if there are more than 6 skills to create, to avoid overwhelming the system.
 10. **Quality over quantity:** Every line should pass the test: "Would removing this cause the AI agent to make mistakes or miss critical information?"
 11. **UC/Domain content separation:** UC skills contain only user-facing flow information (what the actor does, what they see, error scenarios from the user's perspective). Implementation details (component file paths, backend function names/signatures, state variables, props, code snippets, formulas) belong exclusively in domain skills. Cross-references in UC skills point to the relevant domain skills for implementation context. This avoids token waste from duplication and keeps maintenance to one location per concern.
 12. **Signal-to-noise principle:** A skill should tell the AI agent WHERE things are and HOW they connect — not WHAT the code says. If the AI can learn it by reading the source file, it doesn't belong in the skill. Specifically, do NOT include:

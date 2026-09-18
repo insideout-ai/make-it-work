@@ -1,9 +1,11 @@
 {
   "name": "make-it-work",
   "description": "Agentic SDLC - from idea to delivery.",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "author": {
     "name": "insideout-ai"
   },
-  "homepage": "https://github.com/insideout-ai/make-it-work"
+  "homepage": "https://github.com/insideout-ai/make-it-work",
+  "repository": "https://github.com/insideout-ai/make-it-work",
+  "license": "MIT"
 }
