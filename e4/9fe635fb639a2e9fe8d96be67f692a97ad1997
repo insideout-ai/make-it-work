@@ -1,0 +1,19 @@
+.claude-plugin/plugin.json
+  s_5d409c8c808f2f::t_0eab8ae43397ec 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e49fe635fb639a2e9fe8d96be67f692a97ad1997",
+  "prompts": {},
+  "sessions": {
+    "s_5d409c8c808f2f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "86251ece-7524-444b-89b5-29007f8f9cd0",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
