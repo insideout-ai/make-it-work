@@ -151,10 +151,10 @@ Then call `AskUserQuestion` with:
 
 **Behavioral rules:**
 
-- **One `AskUserQuestion` call per turn.** Never batch questions. Wait for the PM's response before asking the next.
+- **One question per turn.** For a multiple-choice question, make one `AskUserQuestion` call. Never batch questions, and wait for the PM's response before asking the next.
 - **Closed multiple-choice by default.** Use open-ended text exchange only when the answer cannot be pre-enumerated.
 - **Recommend based on:** product best practices, minimal scope creep, what is most likely to be complete and unambiguous.
-- **Questions are called via the tool — never output as plain text.**
+- **Multiple-choice questions are called via the tool.** Genuinely open-ended questions are asked in plain text, as described above.
 - **If `AskUserQuestion` is unavailable** (e.g., plain Claude.ai without tools): present each question as structured text with a clearly numbered option list, and ask the PM to reply with the number of their choice.
 
 **Depth-first resolution:** A criterion is only closed when its section is unambiguous and complete. If the PM's answer is partial or reveals a dependency, treat the gap as an immediate follow-up before advancing. A criterion is only closed when the PM has explicitly confirmed a proposal — typed responses alone do not count as sign-off.

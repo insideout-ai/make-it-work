@@ -95,9 +95,9 @@ This draft is internal only. Do not output it. Use it to generate the question l
 Tell the user:
 > "I've analyzed the ticket and found [N] questions to resolve. I'll ask them one at a time."
 
-Then ask each question using the **`AskUserQuestion` tool** — one tool call per question. Do not output the question as text; call the tool directly.
+Use **`AskUserQuestion`** for questions with pre-enumerated answers. If a question is genuinely open-ended, ask it as one concise plain-text question instead. Ask only one question per turn.
 
-For each question:
+For each multiple-choice question:
 - Call `AskUserQuestion` with:
   - `header`: a short label (≤12 characters) for this question — use the gap type abbreviated, or a one-word topic (e.g. "Duration", "Scope", "Conflict"). Never put the full question text here.
   - `question`: `"Question [X] of [N] · [Gap type]: [The question]\n\n[One sentence explaining why this matters.]"`
@@ -109,9 +109,9 @@ For each question:
 - Record each answer (or skip) before proceeding.
 
 Rules:
-- One `AskUserQuestion` call per turn. Never ask two questions at once.
+- Ask one question per turn. For a multiple-choice question, make one `AskUserQuestion` call and wait for the response.
 - Frame questions as **closed (multiple choice)** whenever possible.
-- Use open-ended format only when the answer cannot be pre-enumerated.
+- When the answer cannot be pre-enumerated, ask in plain text instead of calling `AskUserQuestion` with fewer than two options.
 - **Always recommend one option per question.** Place the recommended option first in the list and append `(Recommended)` to its label. Base the recommendation on product best practices, what the codebase already supports, and what is least likely to introduce scope creep. Exception: for a `Cross-cutting concern` question, "do nothing to the existing flow" is often the smallest-scope option but not the safest one — recommend whichever option keeps the system's existing compliance/lifecycle guarantee intact (e.g., new state actually gets cleared where an existing erasure/cleanup flow promises completeness), even if it takes slightly more scope than doing nothing.
 - Never place the Skip option first — it should always be last.
 - If an answer creates a new gap or follow-up, insert it as the next question before continuing, and update [N] in subsequent question counts to reflect the new total — don't leave a stale total that under-counts what's actually being asked.

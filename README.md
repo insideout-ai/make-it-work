@@ -99,6 +99,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 ## Install
 
 ```bash
+/plugin marketplace add insideout-ai/make-it-work
 /plugin install make-it-work@insideout-ai
 ```
 
