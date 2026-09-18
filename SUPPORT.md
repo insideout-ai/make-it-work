@@ -26,4 +26,3 @@ Open a [GitHub issue](https://github.com/insideout-ai/make-it-work/issues) descr
 ## Security reports
 
 Do not disclose a suspected vulnerability in a public issue. Follow the private reporting instructions in [SECURITY.md](SECURITY.md).
-

@@ -57,4 +57,3 @@ Keep each pull request focused on one outcome. In the description, include:
 - Any compatibility or migration impact.
 
 By contributing, you agree that your contribution is provided under this repository's [MIT License](LICENSE).
-

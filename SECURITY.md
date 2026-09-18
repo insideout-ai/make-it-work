@@ -29,4 +29,3 @@ Examples of issues that belong in this repository include:
 - A packaging or marketplace configuration problem that causes untrusted content to load as part of `make-it-work`.
 
 Issues in Claude Code itself, Anthropic services, third-party issue trackers, or separately installed integrations should be reported to their respective maintainers. General quality problems without a security impact belong in [GitHub Issues](https://github.com/insideout-ai/make-it-work/issues).
-
