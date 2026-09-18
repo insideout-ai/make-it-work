@@ -1,0 +1,19 @@
+CHANGELOG.md
+  s_46f52b1fa70d79::t_eb9c91b3363c47 7,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ece3cd937fd78b3b1c148fdf86d6025108d19637",
+  "prompts": {},
+  "sessions": {
+    "s_46f52b1fa70d79": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b565-262f-7380-b4a4-ef899271778e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
