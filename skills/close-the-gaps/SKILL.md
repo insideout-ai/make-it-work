@@ -1,5 +1,6 @@
 ---
-description: "Product Analyst session: fetches a ticket, loads project skills, explores affected code, asks gap-analysis questions one at a time, outputs Gherkin-format refined ticket. Use when refining a ticket before dev starts."
+description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions one at a time, and outputs a Gherkin-format refined ticket. Use when refining a ticket before dev starts."
+disable-model-invocation: true
 ---
 
 # Ticket Refinement Session

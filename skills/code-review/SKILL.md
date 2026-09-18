@@ -1,5 +1,6 @@
 ---
 description: "Reviews a pull request in three documentation-grounded passes (business correctness, regression safety, coding standards) and emits an evidence-dense, verdict-first report. Use when reviewing a PR or diff in any repo that keeps CLAUDE.md plus uc-*/domain-* skills and .claude/rules docs."
+disable-model-invocation: true
 ---
 
 # Code Review

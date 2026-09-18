@@ -1,5 +1,6 @@
 ---
-description: "Builds a 3-tier doc system (CLAUDE.md, orientation maps, domain & UC skills) for any codebase. Use when onboarding a project to Claude Code or auditing/updating existing docs after the project evolves."
+description: "Makes any codebase AI-ready with a 3-tier doc system (CLAUDE.md, orientation maps, domain & UC skills). Use when onboarding a project to Claude Code or auditing/updating existing docs after the project evolves."
+disable-model-invocation: true
 ---
 
 Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
