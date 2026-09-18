@@ -1,0 +1,21 @@
+.claude-plugin/marketplace.json
+  s_46f52b1fa70d79::t_eb1dae6e6ba214 3,5-6,11-33
+.claude-plugin/plugin.json
+  s_46f52b1fa70d79::t_eb1dae6e6ba214 2,4-5,8-9,11,13-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "89e3e3a4bc3f89dea5828de18583a2b789cef94d",
+  "prompts": {},
+  "sessions": {
+    "s_46f52b1fa70d79": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b565-262f-7380-b4a4-ef899271778e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
