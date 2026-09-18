@@ -1,0 +1,19 @@
+.claude-plugin/marketplace.json
+  s_2e5fcb398177f1::t_9d2ed03377a2d2 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b4b8d9a1ea032524788c6928626ad789d5dc68ef",
+  "prompts": {},
+  "sessions": {
+    "s_2e5fcb398177f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d0ac3704-3f27-4638-ac4b-d8f21216ff14",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
