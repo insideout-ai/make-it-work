@@ -195,6 +195,8 @@ Issue-tracker access is not included in this plugin. Looking up a ticket by ID r
 
 If the problem persists, [open a GitHub issue](https://github.com/insideout-ai/make-it-work/issues) with your Claude Code version, installation channel, and the relevant error message.
 
+See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report suspected vulnerabilities privately by following [SECURITY.md](SECURITY.md).
+
 ## Development
 
 Validate the manifest, bundled skills, and marketplace entry before opening a pull request:
