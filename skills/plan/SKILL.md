@@ -8,7 +8,7 @@ description: "Turns a spec or refined ticket into a concrete, execution-ready im
 
 **Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/plan-<TICKET>.md`. **Write no code here** — a later step executes the plan one atomic step at a time, so every step must be independently verifiable.
 
-This is the planning step of a pipeline: a spec already exists (e.g. from `close-the-gaps`), and after planning a separate step executes it, then `code-review` reviews it.
+This is the planning step of a pipeline: a spec already exists (e.g. from `close-the-gaps`), and after planning a separate step executes it, then `review-the-pr` reviews it.
 
 ---
 
@@ -81,13 +81,15 @@ Extract from the spec and hold onto these — they become sections of the plan. 
 - **Technical requirements** — what the system must do.
 - **In scope / out of scope** — what is explicitly included or excluded.
 - **Assumptions** — anything you are inferring that the spec does not state. List each one.
-- **Open questions / blockers** — ambiguities that must be resolved before development. Surface them and ask the user before continuing if any are critical.
+- **Open questions / blockers** — ambiguities in the spec. Stop and ask now only for *critical blockers* that make planning impossible; hold every other open question for the Step 4.5 Q&A, where code investigation will have sharpened it into a concrete "how" decision.
 
 ---
 
 ## Step 3 — Load the project's skills
 
-A project documented for this workflow keeps its knowledge as plain markdown inside each repo, in a predictable shape you should look for and use:
+Read whatever orientation docs and skills each affected repo actually has — its `CLAUDE.md` or `README`, any `docs/`, architecture notes, or ADRs, and any skills it ships — plus the coding rules the plan must respect, and lean on Step 4's code investigation for anything undocumented. Do not start planning a domain or flow you have loaded no context for.
+
+**If the project was set up with `go-deep`, expect a predictable layout** and use it directly:
 
 - A per-repo **`CLAUDE.md`** listing a skill inventory with trigger conditions, plus the coding rules the plan must respect.
 - Two orientation files — a **product** view (the business / end-to-end use-case rules) and an **architecture** view (the structural / domain rules and constraints) — typically under `.claude/rules/`.
@@ -95,15 +97,7 @@ A project documented for this workflow keeps its knowledge as plain markdown ins
   - **domain skills** — one per functional domain: the architectural invariants, data contracts, and status/state rules that domain owns.
   - **use-case skills** — one per end-to-end flow: the step-by-step behavior, field mappings, and edge cases that flow must preserve.
 
-If a repo doesn't follow this shape, adapt — read whatever orientation docs and skills it does have, and lean on Step 4's code investigation for anything undocumented. Do not start planning a domain or flow you have loaded no context for.
-
-**Read skills with the Read tool — do NOT use the Skill tool** — so you control exactly how much you load.
-
-**Token discipline (important):** Skills are large and mostly irrelevant to any single ticket. Do NOT read whole skill files by default:
-
-1. Identify the **one primary domain (or use-case)** the ticket centers on. Read that skill in full.
-2. For every **secondary** skill, do NOT read the whole file. `grep -n` it for the headings/keywords the ticket actually touches, then Read only the matching window (`offset`/`limit`). A skill that is 20% relevant should cost ~20% of its tokens.
-3. Skip skills the ticket does not touch at all, even if they're listed as available.
+**Read skills with the Read tool — do NOT use the Skill tool** — so you control exactly what you pull in and when.
 
 ### Discovery (repeat for every affected repo)
 
@@ -111,7 +105,6 @@ If a repo doesn't follow this shape, adapt — read whatever orientation docs an
 1. Read the repo's **`CLAUDE.md`** for its skill inventory and trigger conditions, then the **product** and **architecture** orientation files for the use-case list and the domain list.
 2. Match the ticket's key nouns, verbs, and domain terms against the skill names and descriptions. Load the relevant **domain** skills first, then the **use-case** skills whose flow overlaps the ticket. When a use-case skill references a domain skill (or vice versa), load both — cross-referenced skills carry the constraints that matter most. When in doubt, load it: a false positive costs tokens, a miss costs a silent planning mistake.
 3. If there is no `CLAUDE.md`, list `.claude/skills/` directly — each subdirectory is a skill — and match by name/description.
-4. Apply the token discipline above: full read for the primary skill only; grep-then-windowed read for secondary ones. Reading ten irrelevant sections to find one wastes the budget and risks running out before the plan is written.
 
 ---
 
@@ -145,9 +138,32 @@ Read the actual code paths the spec implies will change across **all affected re
 
 ---
 
-## Step 4.5 — Confirm approach (only if non-trivial)
+## Step 4.5 — Resolve open questions & confirm approach (interactive)
 
-If the investigation surfaces two or more genuinely viable implementation approaches, **stop and present them** before drafting:
+`close-the-gaps` already closed the product / **"what"** gaps upstream. Planning surfaces a second layer — the **"how"**: technical and scoping decisions the spec leaves open that would change the plan materially. Resolve those with the user now, once investigation has sharpened them, rather than guessing silently.
+
+**Build the question list.** From Step 2's open questions and Step 4's findings, scan for "how" gaps:
+
+1. **Approach** — two or more viable implementations (use the tradeoff format below).
+2. **Scope boundary** — does the change extend to a sibling module/service the investigation surfaced, or stop at the one the spec names?
+3. **Data / migration** — backfill existing rows? default for a new non-null column? migrate in place, dual-write, or lazily?
+4. **Backward compatibility** — must the current API/event contract keep working, or is a breaking change acceptable — and who consumes it?
+5. **Unspecified detail the spec assumes** — where a new field/flag/config lives; which existing pattern to follow when several compete.
+6. **Missing prerequisite** — a validation, endpoint, or invariant the spec assumes exists but the code (per Codebase Gaps) does not have.
+7. **Sequencing / rollout** — feature flag? cross-repo deploy order? staged rollout?
+
+Ask only about gaps where guessing wrong would send the executor down the wrong path. Anything you can resolve safely from the codebase or a low-risk convention is **not** a question — record it as an Assumption in the plan instead.
+
+**Ask one question per turn** (same mechanics as `close-the-gaps`):
+
+- Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead.
+- `header`: a ≤12-char topic — e.g. `Approach`, `Migration`, `Scope`, `Compat`, `Rollout`.
+- `question`: `"Question [X] of [N] · [Gap type]: [the question]\n\n[one sentence on why it changes the plan]"`.
+- `options`: up to 3 substantive choices with the **recommended one first**, its label suffixed `(Recommended)` — base the recommendation on what the codebase already supports, the smallest safe scope, and the invariants in the loaded skills. Always end with a final option:
+  `{ label: "Proceed with the recommended assumption", description: "Don't decide now — I'll document the default choice in the plan's Assumptions." }`
+- Wait for each answer before asking the next. If an answer opens a new gap, insert it as the next question and update `[N]`.
+
+**For an `Approach` gap specifically**, present the tradeoffs in full rather than as a one-line option list:
 
 ```
 ## Approach options
@@ -163,7 +179,9 @@ If the investigation surfaces two or more genuinely viable implementation approa
 **Recommendation:** Option X — <one sentence why>
 ```
 
-Wait for the user to confirm an option (or propose their own). The confirmed decision becomes the plan's `## Approach` section. If the path is clear, skip this step.
+**Feed each answer into the plan:** an approach decision → the `## Approach` section; a scope / compatibility / migration / sequencing decision → the relevant Steps, Risks, or Pre-flight; a "proceed with the recommended assumption" answer → an explicit line in **Assumptions**.
+
+If no gap rises to this bar, say "No open planning questions — proceeding to draft." and continue.
 
 ---
 
@@ -175,7 +193,7 @@ Guidelines:
 
 - Reference exact file paths and function names from your investigation.
 - No large code blocks — short snippets only where they clarify intent.
-- Respect invariants surfaced by the loaded skills (status transitions, PCI/data handling, ID linkage, etc.).
+- Respect invariants surfaced by the loaded skills (status transitions, data-handling/compliance rules, ID/reference integrity, etc.).
 - Discover the project's real **build / type-check / lint / test** commands (from `package.json` scripts, `Makefile`, `CLAUDE.md`, CI config, etc.) and use those in Verify/Pre-flight/Definition of Done — do not assume `npm`/`tsc`.
 
 ### Plan structure
@@ -298,7 +316,7 @@ _Always the last step before Definition of Done._ Write the tests listed in the 
 
 ## Step 5.5 — Self-review the plan
 
-After saving, review the draft with fresh eyes before handing it over. This is a checklist you run yourself:
+Before handing off, run this quick self-check on the draft. It's a mechanical pass you run yourself — not a substitute for the independent review offered in Step 6:
 
 1. **Spec coverage** — for each requirement and acceptance criterion, can you point to a step that implements it? Add steps for any gaps.
 2. **Placeholder scan** — search for the anti-patterns above and fix every instance.
@@ -319,16 +337,16 @@ Plan: make-it-work/plan-<TICKET>.md
 Repositories: <comma-separated list>
 Assumptions: <count>
 Open questions: <count>
-Recommended model for execution: <haiku | sonnet | opus> — <one-line reason>
+Recommended executor tier: <low | standard | high> — <one-line reason>
 ```
 
-**Recommended model for execution** — derive purely from the plan you just wrote (no new investigation): read off the Affected Code table (repo/file count), the Risks table (risk surface), and the Steps (count + additive vs invasive):
+**Recommended executor tier** — how capable a model should execute this plan, derived purely from the plan you just wrote (no new investigation): read off the Affected Code table (repo/file count), the Risks table (risk surface), and the Steps (count + additive vs invasive):
 
-- **haiku** — mechanical, few files, additive, no data-migration / state-transition / security risk, steps fully specified.
-- **sonnet** — moderate: a few domains or repos, some risk, mostly-specified steps.
-- **opus** — high: multiple repos with logic changes, security / state transitions / data migrations / cross-service flows, or steps that still need judgment during execution.
+- **low** — mechanical, few files, additive, no data-migration / state-transition / security risk, steps fully specified.
+- **standard** — moderate: a few domains or repos, some risk, mostly-specified steps.
+- **high** — multiple repos with logic changes, security / state transitions / data migrations / cross-service flows, or steps that still need judgment during execution.
 
-State the recommendation; do not switch models yourself.
+Tier, not a model name — map it to whatever model lineup the executor uses. You cannot change the current session's model: under **Inline Execution** it's the user's call to apply (e.g. via `/model`). Under **Subagent-Driven** execution, pass a model matching this tier as the `model` argument on each `Agent` dispatch, so every step runs at the recommended level.
 
 Then offer the execution choice:
 
@@ -340,6 +358,6 @@ Then offer the execution choice:
 
 **Which approach? (or: review the plan first, then decide)**"
 
-**Optional:** if the plan is high-effort or high-risk, also offer: "I can dispatch a plan-reviewer subagent to verify spec coverage and catch gaps before you start. Want that?"
+**Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
 
 Do not paste the full plan in chat unless the user asks.
