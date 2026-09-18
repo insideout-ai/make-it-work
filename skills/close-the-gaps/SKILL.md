@@ -123,7 +123,7 @@ Rules:
 
 ## Phase 6 — Refined Ticket Output
 
-Generate the final ticket and save it as a new file named `[TICKET-ID]-refined.md`. If the ticket has no ID (pasted content with no ticket key), derive the filename from a kebab-case slug of the title instead, e.g. `add-dark-mode-toggle-refined.md`. If there's no clear title either, fall back to `refined-ticket-YYYY-MM-DD.md`.
+Generate the final ticket and save it to `make-it-work/[TICKET-ID]-refined.md` (create the `make-it-work/` folder at the repo root if it doesn't exist). If the ticket has no ID (pasted content with no ticket key), derive the filename from a kebab-case slug of the title instead, e.g. `make-it-work/add-dark-mode-toggle-refined.md`. If there's no clear title either, fall back to `make-it-work/refined-ticket-YYYY-MM-DD.md`.
 
 ### Output structure
 

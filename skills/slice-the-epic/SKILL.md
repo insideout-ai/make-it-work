@@ -1,5 +1,4 @@
 ---
-name: slice-the-epic
 description: Slices a large requirement into small, AI-ready, value-driven slices. Use when the user asks to split, slice, right-size, or write stories from a requirement.
 disable-model-invocation: true
 ---
