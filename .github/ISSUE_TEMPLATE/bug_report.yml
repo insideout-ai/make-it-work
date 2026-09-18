@@ -27,6 +27,7 @@ body:
         - shape-the-epic
         - slice-the-epic
         - close-the-gaps
+        - plan
         - review-the-pr
         - Marketplace metadata
         - Documentation
@@ -48,7 +49,7 @@ body:
     attributes:
       label: Plugin version
       description: Enter the version shown in `/plugin`.
-      placeholder: "2.0.0"
+      placeholder: "2.1.0"
     validations:
       required: true
 
@@ -105,4 +106,3 @@ body:
       options:
         - label: I removed credentials, private source code, customer data, and other sensitive information.
           required: true
-

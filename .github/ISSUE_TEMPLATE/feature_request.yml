@@ -43,6 +43,7 @@ body:
         - shape-the-epic
         - slice-the-epic
         - close-the-gaps
+        - plan
         - review-the-pr
         - Installation or updates
         - Marketplace or plugin metadata
@@ -70,4 +71,3 @@ body:
     attributes:
       label: Additional context
       description: Add non-sensitive references, screenshots, or related issues.
-

@@ -1,6 +1,6 @@
 {
   "name": "insideout-ai",
-  "description": "AI-assisted SDLC tools for codebase context, product requirements, and documentation-grounded code review.",
+  "description": "AI-assisted SDLC tools for codebase context, product requirements, implementation planning, and documentation-grounded code review.",
   "owner": {
     "name": "InsideOut AI",
     "url": "https://insideoutai.io"
@@ -9,7 +9,7 @@
     {
       "name": "make-it-work",
       "displayName": "Make It Work",
-      "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, and review pull requests against documented intent.",
+      "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, plan implementation, and review pull requests against documented intent.",
       "author": {
         "name": "InsideOut AI",
         "url": "https://insideoutai.io"
@@ -22,12 +22,14 @@
         "software-development",
         "context-engineering",
         "requirements-engineering",
+        "implementation-planning",
         "code-review"
       ],
       "category": "development",
       "tags": [
         "sdlc",
         "requirements",
+        "planning",
         "documentation",
         "code-review"
       ],

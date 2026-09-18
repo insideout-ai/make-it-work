@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "make-it-work",
   "displayName": "Make It Work",
-  "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, and review pull requests against documented intent.",
-  "version": "2.0.0",
+  "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, plan implementation, and review pull requests against documented intent.",
+  "version": "2.1.0",
   "author": {
     "name": "InsideOut AI",
     "url": "https://insideoutai.io"
@@ -16,6 +16,7 @@
     "software-development",
     "context-engineering",
     "requirements-engineering",
+    "implementation-planning",
     "code-review"
   ]
 }
