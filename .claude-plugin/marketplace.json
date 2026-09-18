@@ -1,5 +1,6 @@
 {
   "name": "insideout-ai",
+  "description": "Agentic SDLC tools for codebase context, product requirements, and documentation-grounded code review.",
   "owner": {
     "name": "insideout-ai"
   },

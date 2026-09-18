@@ -5,5 +5,7 @@
   "author": {
     "name": "insideout-ai"
   },
-  "homepage": "https://github.com/insideout-ai/make-it-work"
+  "homepage": "https://github.com/insideout-ai/make-it-work",
+  "repository": "https://github.com/insideout-ai/make-it-work",
+  "license": "MIT"
 }

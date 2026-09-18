@@ -14,14 +14,21 @@ Before Phase 1, check whether `go-deep` has already been run in this repo. Any o
 
 If none are present, skip to Phase 1 — this is a first run.
 
-If detected, tell the user what evidence was found, then check each condition below and surface only the options that are actually relevant. Present them via `AskUserQuestion` with `multiSelect: true`, plus always include a final "Run full fresh onboarding anyway" escape hatch.
+If detected, tell the user what evidence was found, then use `AskUserQuestion` with `multiSelect: false` to choose one workflow:
+
+1. `{ label: "Repair existing docs (Recommended)", description: "Preserve the current documentation system and choose only the repairs it needs." }`
+2. `{ label: "Run fresh onboarding", description: "Rebuild the documentation system from scratch after reviewing the affected files." }`
+
+If **Run fresh onboarding** is selected, list the existing files that may be replaced or substantially rewritten — `CLAUDE.md`, `.claude/rules/architecture.md`, `.claude/rules/product.md`, and matching `.claude/skills/uc-*` / `.claude/skills/domain-*` files — and require explicit confirmation before modifying anything. After confirmation, continue at Phase 1 and follow all normal checkpoints.
+
+If **Repair existing docs** is selected, check each condition below and surface only the repair actions that are actually relevant. When two or more actions are relevant, present them through `AskUserQuestion` with `multiSelect: true`. When only one action is relevant, use a single-choice question with that action plus `{ label: "No repairs now", description: "Leave the existing documentation unchanged." }` so the tool always receives at least two options.
 
 1. **CLAUDE.md gap** — relevant if CLAUDE.md is missing, or missing any of: Skill Loading Gate, Skills Reference tables, After Any Feature Change section. On selection: add the missing structure immediately.
 2. **Missing skills** — cross-reference every `uc-{id}-{name}` / `domain-{name}` named in CLAUDE.md's Skills Reference, product.md's use case table, and architecture.md's Functional Domains table against actual directories under `.claude/skills/`. Relevant if any referenced skill has no matching directory. On selection: list the missing skills, confirm with the user, then create them via Phase 5's parallel-agent method.
 3. **Non-compliant skills** — read every existing skill's line count against its size target (UC: 30–50, domain: 60–120, 500 hard max) and scan for signal-to-noise violations (see rule 12 below: ASCII diagrams, code snippets, "None" sections, prop tables, etc.). Relevant if any skill exceeds its target or contains a flagged pattern. On selection: list the flagged skills and violations, confirm with the user, then trim each.
 4. **Staleness re-scan** — always relevant when a prior run is detected. Ask the user to pick a window (10/30/60/90 days) via `AskUserQuestion`, then diff commits in that window against each skill's declared code areas (Key Components/Functions in architecture.md, Key code areas in the Skills Reference table). Flag skills whose code areas were touched. On selection: list flagged skills and the touching commits, confirm with the user, then update each.
 
-**Checkpoint discipline:** Options 2–4 always show what would change and wait for explicit confirmation before writing any file. Option 1 proceeds directly once selected.
+**Checkpoint discipline:** Fresh onboarding requires a separate file-impact confirmation before any write. Repair options 2–4 always show what would change and wait for explicit confirmation before writing any file. Repair option 1 proceeds directly once selected.
 
 ## Information Gathering Process
 

@@ -1,6 +1,6 @@
 # make-it-work
 
-> Deep codebase context for Claude. Solid requirements for your team. Before the first line of code.
+> From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, and review changes against the requirements and codebase guidance.
 
 Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
 
@@ -98,12 +98,10 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ## Install
 
-```bash
+```text
 /plugin marketplace add insideout-ai/make-it-work
 /plugin install make-it-work@insideout-ai
 ```
-
-Or browse to [claude.com/plugins](https://claude.com/plugins) and search **make-it-work**.
 
 ---
 
