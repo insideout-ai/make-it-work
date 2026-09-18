@@ -1,5 +1,6 @@
 ---
-description: "Guides a PM through writing a complete, elaboration-ready epic for any work management tool. Use when writing or improving a product epic, drafting acceptance criteria, or documenting a feature for engineering."
+description: "Turns a rough idea into a complete, elaboration-ready epic via a guided interview session, PM-coach style. Use when writing or improving a product epic, drafting acceptance criteria, or documenting a feature for engineering."
+disable-model-invocation: true
 ---
 
 # Shape the Epic

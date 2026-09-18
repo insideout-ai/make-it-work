@@ -1,5 +1,6 @@
 ---
 name: "close-my-loops"
+disable-model-invocation: true
 description: "Build and maintain a personal work profile and open-loop tracker for the user's own job — a markdown file covering their org, key contacts, communication style, active initiatives, and open loops synthesized from their own email/Slack; a Cowork Project setup so that file is actually read every session; a scheduled task that keeps it refreshed and sends a daily summary; and on-demand per-person 1:1 prep checklists written into Slack canvases. Unlike skills that operate on a shared repo or ticket, this one runs on the user's personal accounts and data. Use this whenever the user asks to build, create, update, refresh, or extend a \"second brain,\" \"brain.md,\" or personal context file from their email/Slack/Teams history. Also trigger for \"learn my organization / contacts / writing style,\" \"make Claude always use this file,\" \"set up a Cowork project around my brain file,\" \"send me a daily summary of what needs my attention,\" or \"prepare me for my weekly/1:1 with X\" — even without the words \"second brain.\""
 ---
 

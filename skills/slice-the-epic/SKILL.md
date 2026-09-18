@@ -1,6 +1,7 @@
 ---
 name: slice-the-epic
-description: Break a large requirement, epic, or story into small, independently valuable sprint-sized slices. Use when the user asks to split, right-size, or write stories from a requirement; do not use for ordinary acceptance-criteria drafting without a slicing request.
+description: Slices a large requirement into small, AI-ready, value-driven slices. Use when the user asks to split, slice, right-size, or write stories from a requirement.
+disable-model-invocation: true
 ---
 
 # Slice the Epic
