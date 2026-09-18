@@ -1,0 +1,29 @@
+README.md
+  s_aa0817ecc19293::t_a6392a5846e7fa 101
+  s_aa0817ecc19293::t_7d682ed4505171 3
+.github/workflows/validate-plugin.yml
+  s_aa0817ecc19293::t_ea737b8b5c50cf 1-27,31-32
+  s_aa0817ecc19293::t_533efbb0035312 28-30
+skills/go-deep/SKILL.md
+  s_aa0817ecc19293::t_1b7c0633cc122a 17-24,31
+.claude-plugin/marketplace.json
+  s_aa0817ecc19293::t_04f9ddf56898fa 3
+.claude-plugin/plugin.json
+  s_aa0817ecc19293::t_9da93df2206c31 8-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "6d24860a22459964ea12ceb1479680033c9affba",
+  "prompts": {},
+  "sessions": {
+    "s_aa0817ecc19293": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b4d0-cf81-7641-8279-3e52946aa84b",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
