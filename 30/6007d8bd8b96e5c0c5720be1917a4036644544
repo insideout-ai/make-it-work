@@ -1,0 +1,29 @@
+.github/ISSUE_TEMPLATE/feature_request.yml
+  s_46f52b1fa70d79::t_1166dba06f8c7a 46
+.github/ISSUE_TEMPLATE/bug_report.yml
+  s_46f52b1fa70d79::t_1166dba06f8c7a 30,52
+README.md
+  s_46f52b1fa70d79::t_1166dba06f8c7a 3,74-81,104-105,112,180,184,204
+.claude-plugin/marketplace.json
+  s_46f52b1fa70d79::t_1166dba06f8c7a 3,12,25,32
+CHANGELOG.md
+  s_46f52b1fa70d79::t_1166dba06f8c7a 1-37
+.claude-plugin/plugin.json
+  s_46f52b1fa70d79::t_1166dba06f8c7a 5-6,19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "306007d8bd8b96e5c0c5720be1917a4036644544",
+  "prompts": {},
+  "sessions": {
+    "s_46f52b1fa70d79": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0b565-262f-7380-b4a4-ef899271778e",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
