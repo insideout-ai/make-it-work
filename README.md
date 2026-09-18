@@ -43,18 +43,6 @@ The skills produced are also useful outside Claude Code. Product managers can re
 
 ---
 
-### `/make-it-work:close-the-gaps`
-
-`close-the-gaps` acts as a Product Analyst before development begins. It loads the project skills relevant to the ticket, digs into the affected code, and surfaces every gap - unclear language, missing edge cases, conflicting requirements, unstated assumptions - then walks you through them one question at a time.
-
-The output is a Gherkin-ready refined spec. Unknown unknowns become explicit. Requirements are solid before a single line of code is written.
-
-Teams use it before refinement meetings so developers arrive with focused questions rather than discovering gaps mid-discussion. Or post the output directly to the Jira ticket for product to review asynchronously - no meeting needed for straightforward tickets.
-
-The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps before the first line of code.
-
----
-
 ### `/make-it-work:shape-the-epic`
 
 Acts as a senior product coach to help you write a complete, elaboration-ready epic for any work management tool (Jira, Azure DevOps, Linear, Shortcut). Runs five structured phases — context ingestion, discovery interview, internal analysis, criterion-by-criterion validation, and epic generation — covering value proposition, target users & permissions, KPIs, use cases with Gherkin acceptance criteria, rollout plan, and definition of done.
@@ -71,6 +59,26 @@ Use it whenever a ticket or epic feels too big and needs to become sprint-sized 
 
 ---
 
+### `/make-it-work:close-the-gaps`
+
+`close-the-gaps` acts as a Product Analyst before development begins. It loads the project skills relevant to the ticket, digs into the affected code, and surfaces every gap - unclear language, missing edge cases, conflicting requirements, unstated assumptions - then walks you through them one question at a time.
+
+The output is a Gherkin-ready refined spec. Unknown unknowns become explicit. Requirements are solid before a single line of code is written.
+
+Teams use it before refinement meetings so developers arrive with focused questions rather than discovering gaps mid-discussion. Or post the output directly to the Jira ticket for product to review asynchronously - no meeting needed for straightforward tickets.
+
+The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps before the first line of code.
+
+---
+
+### `/make-it-work:review-the-pr`
+
+Acts as a reviewer grounded in the project's own documentation instead of generic intuition. Runs three passes - business correctness against the `uc-*` skills, regression safety against the `domain-*` skills and architectural constraints, and coding standards against `CLAUDE.md` - then a docs-sync check to confirm skills were updated alongside behavior. Emits a verdict-first, evidence-dense report, both as a pasteable file and a scannable chat summary.
+
+Use it to review a pull request or diff in any repo that keeps the `go-deep` knowledge base (`CLAUDE.md` plus `uc-*`/`domain-*` skills and `.claude/rules` docs).
+
+---
+
 ## Keep improving
 
 When Claude gets something wrong, don't just correct it - ask why it missed. What was unclear in the skills or rules? Update them so it doesn't happen again. Every misunderstanding is a chance to make the knowledge base more accurate. Over time the system gets sharper, not stale.
@@ -81,10 +89,11 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ```
 /make-it-work:go-deep                        # Scaffold full project docs from scratch
-/make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
-/make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
+/make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
+/make-it-work:close-the-gaps                 # Paste ticket content directly
+/make-it-work:review-the-pr                  # Review a PR against the project's own skills and CLAUDE.md
 ```
 
 ## Install

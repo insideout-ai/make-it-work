@@ -3,7 +3,7 @@ description: "Reviews a pull request in three documentation-grounded passes (bus
 disable-model-invocation: true
 ---
 
-# Code Review
+# Review the PR
 
 ## Overview
 
