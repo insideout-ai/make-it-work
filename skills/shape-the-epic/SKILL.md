@@ -222,7 +222,7 @@ Scenario: [scenario name]
 
 Generate the full Epic description using all accepted proposals and PM-provided answers. Use only collected content — do not fill in specifics that were never discussed.
 
-Save the output as a new markdown file named `epic-[title-in-kebab-case]-[YYYYMMDD-HHMM].md` in the current working directory. Tell the PM the filename once it is saved.
+Save the output to `make-it-work/epic-[title-in-kebab-case]-[YYYYMMDD-HHMM].md` (create the `make-it-work/` folder at the repo root if it doesn't exist). Tell the PM the filename once it is saved.
 
 Output structure:
 
