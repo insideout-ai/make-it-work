@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "make-it-work",
-      "description": "Know your code. Close your gaps. Ship with confidence.",
+      "description": "Agentic SDLC - from idea to delivery.",
       "source": {
         "source": "github",
         "repo": "insideout-ai/make-it-work"
