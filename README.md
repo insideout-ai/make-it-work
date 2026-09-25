@@ -71,9 +71,9 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ---
 
-### `/make-it-work:plan`
+### `/make-it-work:plan-the-work`
 
-Turns an agreed spec or refined ticket into an execution-ready implementation plan before any code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/plan-<TICKET>.md`.
+Turns an agreed spec or refined ticket into an execution-ready implementation plan before any code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>-plan.md`.
 
 Pass a ticket ID or a spec path, or let the skill derive the ticket from the current branch. Use it after `close-the-gaps` and before implementation so another engineer or agent can execute the work step by step without guessing.
 
@@ -101,15 +101,15 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
-/make-it-work:plan TICKET-123                # Turn a refined spec into an implementation plan
-/make-it-work:plan path/to/spec.md           # Plan from an explicit local spec
+/make-it-work:plan-the-work TICKET-123       # Turn a refined spec into an implementation plan
+/make-it-work:plan-the-work path/to/spec.md  # Plan from an explicit local spec
 /make-it-work:review-the-pr                  # Review a PR against the project's own skills and CLAUDE.md
 ```
 
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated.
-- A project workspace, ideally a Git repository. `go-deep`, `plan`, and `review-the-pr` inspect the repository's code and documentation.
+- A project workspace, ideally a Git repository. `go-deep`, `plan-the-work`, and `review-the-pr` inspect the repository's code and documentation.
 - For ticket IDs such as `TICKET-123`, a separately installed and configured issue-tracker integration. You can always paste the ticket content instead.
 
 `review-the-pr` is most effective after `go-deep` has created the project's `CLAUDE.md`, `.claude/rules` documentation, and domain/use-case skills.
@@ -181,7 +181,7 @@ Refine a ticket, then turn the agreed spec into an implementation plan:
 
 ```text
 /make-it-work:close-the-gaps TICKET-123
-/make-it-work:plan TICKET-123
+/make-it-work:plan-the-work TICKET-123
 ```
 
 Review the current pull request against the repository's documented product behavior and architecture:
@@ -196,12 +196,14 @@ This plugin contains Markdown-based skills. It does not bundle executable script
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
+Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
+
 ## Troubleshooting
 
 - **A skill is not available:** run `/reload-plugins` or restart Claude Code, then confirm the plugin is enabled with `/plugin`.
 - **Claude Code loads an older version:** update both the marketplace and the plugin using the commands above, then reload plugins.
 - **A ticket ID cannot be found:** configure an issue-tracker integration or invoke `close-the-gaps` without an ID and paste the ticket content.
-- **`plan` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123-spec.md`.
+- **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123-spec.md`.
 - **`review-the-pr` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.
 - **The plugin is installed twice:** remove or disable one copy in `/plugin` and keep the marketplace channel you want to follow.
 

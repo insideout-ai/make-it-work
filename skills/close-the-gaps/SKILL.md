@@ -1,5 +1,5 @@
 ---
-description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions one at a time, and outputs a Gherkin-format refined ticket. Use when refining a ticket before dev starts."
+description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Use when refining a ticket before dev starts."
 disable-model-invocation: true
 ---
 
@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 **Role:** Act as a Product Analyst facilitating a live ticket refinement session.
 
-**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions one by one. Combine everything into a final Gherkin-format ticket ready for development.
+**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development.
 
 ---
 
@@ -93,31 +93,38 @@ This draft is internal only. Do not output it. Use it to generate the question l
 ## Phase 5 — Interactive Q&A
 
 Tell the user:
-> "I've analyzed the ticket and found [N] questions to resolve. I'll ask them one at a time."
+> "I've analyzed the ticket and found [N] questions to resolve. I'll ask them in batches, grouped so you can navigate and revise answers within each batch before submitting."
 
-Use **`AskUserQuestion`** for questions with pre-enumerated answers. If a question is genuinely open-ended, ask it as one concise plain-text question instead. Ask only one question per turn.
+**Group the question list into waves before asking anything.** `AskUserQuestion` accepts up to 4 questions in a single call and renders them as navigable tabs the user can jump between and revise — but every question in that call is fixed and visible at once, so it only works for questions that don't depend on each other's answers.
 
-For each multiple-choice question:
-- Call `AskUserQuestion` with:
+1. For every question, check whether any *other* pending question's wording, options, or relevance could change depending on how it's answered. If so, that question **depends on** the other and must go in a **later** wave — never the same batch, since the user could revise the earlier answer after already seeing the dependent one.
+2. **Wave 1** = every question with no unresolved dependency on another pending question. Most gap types (Unclear language, Missing definition, Missing edge case, Missing acceptance criteria, Scope ambiguity, Cross-surface consistency, Cross-cutting concern, etc.) are independent of each other by default and belong here unless one specifically hinges on another's answer (e.g., "which entity does this apply to" gates "which field on that entity").
+3. Each subsequent wave = questions whose dependencies were fully resolved by the previous wave's answers, plus any new follow-up questions those answers surfaced.
+
+**Ask each wave in one `AskUserQuestion` call:**
+- If a wave has more than 4 questions, split it into consecutive batch calls of ≤4 — order between those calls doesn't matter, since everything in the wave is mutually independent.
+- If a wave contains a genuinely open-ended question with no pre-enumerable answer, ask that one separately as plain text; do not force it into the `AskUserQuestion` array.
+
+For each multiple-choice question in a batch, include it in the `questions` array with:
   - `header`: a short label (≤12 characters) for this question — use the gap type abbreviated, or a one-word topic (e.g. "Duration", "Scope", "Conflict"). Never put the full question text here.
-  - `question`: `"Question [X] of [N] · [Gap type]: [The question]\n\n[One sentence explaining why this matters.]"`
+  - `question`: `"[Gap type]: [The question]\n\n[One sentence explaining why this matters.]"`
     - `[Gap type]` must be one of: `Unclear language`, `Missing definition`, `Unstated assumption`, `Conflicting requirements`, `Skill conflict`, `Code conflict`, `Missing edge case`, `Missing acceptance criteria`, `Scope ambiguity`, `Missing actor/trigger`, `Cross-surface consistency`, `Cross-cutting concern`
   - `options`: up to 3 substantive choices **plus always one final option**:
     `{ label: "Skip — decide later (TBD)", description: "Leave this open; it will be listed as an unresolved item in the refined ticket." }`
-  - The `AskUserQuestion` tool caps options at 4, so use at most 3 substantive choices + the Skip option. If a gap genuinely has more than 3 meaningful answers, either narrow to the 3 most likely/valuable and let Skip implicitly cover the rest, or split it into two sequential questions (e.g., resolve the category first, then the specific value) rather than forcing a cramped single question.
-- Wait for the user's response before calling `AskUserQuestion` again for the next question.
+  - The `AskUserQuestion` tool caps options at 4 per question, so use at most 3 substantive choices + the Skip option. If a gap genuinely has more than 3 meaningful answers, either narrow to the 3 most likely/valuable and let Skip implicitly cover the rest, or split it into two sequential questions (e.g., resolve the category first, then the specific value) rather than forcing a cramped single question.
+- Wait for the whole batch's answers before building the next wave.
 - Record each answer (or skip) before proceeding.
 
 Rules:
-- Ask one question per turn. For a multiple-choice question, make one `AskUserQuestion` call and wait for the response.
+- Batch every mutually-independent question of a wave into a single `AskUserQuestion` call (≤4 per call) — do not artificially split independent questions across separate calls one at a time; that throws away the navigation/revision UI for no reason.
 - Frame questions as **closed (multiple choice)** whenever possible.
 - When the answer cannot be pre-enumerated, ask in plain text instead of calling `AskUserQuestion` with fewer than two options.
 - **Always recommend one option per question.** Place the recommended option first in the list and append `(Recommended)` to its label. Base the recommendation on product best practices, what the codebase already supports, and what is least likely to introduce scope creep. Exception: for a `Cross-cutting concern` question, "do nothing to the existing flow" is often the smallest-scope option but not the safest one — recommend whichever option keeps the system's existing compliance/lifecycle guarantee intact (e.g., new state actually gets cleared where an existing erasure/cleanup flow promises completeness), even if it takes slightly more scope than doing nothing.
 - Never place the Skip option first — it should always be last.
-- If an answer creates a new gap or follow-up, insert it as the next question before continuing, and update [N] in subsequent question counts to reflect the new total — don't leave a stale total that under-counts what's actually being asked.
+- If a wave's answers create a new gap, unblock a dependent question, or surface a follow-up, fold it into the next wave rather than re-opening or re-batching a wave already asked.
 - Never ask about implementation details, technical choices, or architecture.
 - Skipped questions are recorded and included as TBD in the final output.
-- After the last question: "All questions answered. Generating refined ticket..."
+- After the last wave: "All questions answered. Generating refined ticket..."
 
 ---
 
@@ -150,7 +157,19 @@ Scenario: [edge case or error case]
 ```
 ````
 
-4. **Append TBD section** — only if any questions were skipped:
+4. **Append Decision Log** — always include this section when at least one question was asked in Phase 5, listing every question asked (in the order asked) and how it was resolved:
+
+```
+## Decision Log
+
+| Question | Gap Type | Answer |
+| --- | --- | --- |
+| [full question text as asked] | [gap type] | [option the user picked, verbatim — or "Skipped — see TBD"] |
+```
+
+Include every question here, including skipped ones — the Decision Log is the complete record; TBD (below) is only the actionable follow-up list for skipped items.
+
+5. **Append TBD section** — only if any questions were skipped:
 
 ```
 ## TBD — Unresolved Items
@@ -161,7 +180,7 @@ Scenario: [edge case or error case]
 - [ ] [Skipped question 2 — original question text]
 ```
 
-5. **Append Out of Scope section** — only if anything was explicitly clarified as out of scope during Q&A:
+6. **Append Out of Scope section** — only if anything was explicitly clarified as out of scope during Q&A:
 
 ```
 ## Out of Scope
@@ -179,6 +198,6 @@ Scenario: [edge case or error case]
 - Keep Given/When/Then in plain business language — no code, no field names, no API details.
 - If the original ticket already has Gherkin scenarios, add new ones in the same style.
 - Before finalizing any new Gherkin scenario that asserts specific system behavior (not just user-visible intent), re-check that behavior against the exact code/logic found during Phase 3 exploration — don't rely on a general impression of how it "probably" works. A wrong assertion here becomes a wrong acceptance criterion.
-- New sections (Acceptance Criteria — Added During Refinement, TBD, Out of Scope) always use `##` headers, even if the original ticket used no headers at all — this is expected, not a violation of "preserve the original format." Only the original ticket's own content should be left in its original style.
-- TBD and Out of Scope sections are omitted if empty.
+- New sections (Acceptance Criteria — Added During Refinement, Decision Log, TBD, Out of Scope) always use `##` headers, even if the original ticket used no headers at all — this is expected, not a violation of "preserve the original format." Only the original ticket's own content should be left in its original style.
+- Decision Log, TBD, and Out of Scope sections are omitted if empty (i.e., no questions were asked, none were skipped, or nothing was scoped out, respectively).
 - Do not include implementation notes, technical choices, or a "how" section.

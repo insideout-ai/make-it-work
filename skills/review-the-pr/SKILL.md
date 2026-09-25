@@ -118,7 +118,7 @@ Deliver the review in **two tiers** — a durable, pasteable report in a file, a
 
 ### Tier 1 — Full report (file)
 
-Save to `make-it-work/code-review-{TICKET}.md` (create the `make-it-work/` folder at the repo root if it doesn't exist), or to the path the user specifies. PR-comment style — verdict first, then findings, no checklist boilerplate:
+Save to `make-it-work/{TICKET}-review.md` (create the `make-it-work/` folder at the repo root if it doesn't exist), or to the path the user specifies. PR-comment style — verdict first, then findings, no checklist boilerplate:
 
 ```markdown
 ### Code review — {TICKET} (<branch>, <reviewed commit short-hash>)
@@ -151,7 +151,7 @@ Verdict: Request changes (1 Critical, 2 Major)
 1. [Critical] <one-line claim of the defect> — <file>:<line>
 2. [Major]    <one-line claim of the defect> — <file>:<line>
 3. [Major]    <one-line claim of the defect> — <file>:<line>
-→ full report: make-it-work/code-review-{TICKET}.md
+→ full report: make-it-work/{TICKET}-review.md
 ```
 
 When there are **no findings**, say so plainly in both tiers — `Verdict: Approve — no issues found` plus the Coverage line — and don't invent filler.
