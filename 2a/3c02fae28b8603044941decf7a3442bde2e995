@@ -1,0 +1,74 @@
+skills/go-deep/SKILL.md
+  s_4996d5ad333930::t_82218d9229690e 119
+README.md
+  s_4996d5ad333930::t_ac00200587853c 206
+  s_4996d5ad333930::t_0085cc46a49d64 104-105
+  s_4996d5ad333930::t_68b30e42d8763f 112
+  s_4996d5ad333930::t_934d5312971ab2 74,76
+  s_4996d5ad333930::t_122abd622d8020 184
+  s_4996d5ad333930::t_beb10077e871f8 199-200
+skills/close-the-gaps/SKILL.md
+  s_34b17807ba26b4::t_3b7aed01079dcc 201-202
+  s_37fb93eaccd6d5::t_4c7817699f1d26 10
+  s_34b17807ba26b4::t_6011cea8c17763 160-172,183
+  s_37fb93eaccd6d5::t_2effd5932d3006 2
+  s_37fb93eaccd6d5::t_3665bfa1b34cee 96,98,100-108,110,114-115,119,124,127
+.claude-plugin/plugin.json
+  s_4996d5ad333930::t_270a59e523f51c 6
+skills/review-the-pr/SKILL.md
+  s_4996d5ad333930::t_3d0b074ff8e500 154
+  s_4996d5ad333930::t_a3088b7111e090 121
+skills/plan-the-work/SKILL.md
+  s_4996d5ad333930::t_fc5d0d21f985b9 210-215,219,222-223
+  s_4996d5ad333930::t_6f2b6053b941db 269-274,278-282
+  s_4996d5ad333930::t_630d45273307fe 2
+  s_4996d5ad333930::t_624c8d7cda60a4 399-400
+  s_4996d5ad333930::t_cc62f85ea43ebb 117
+  s_4996d5ad333930::t_89c33a82264fe4 9
+  s_4996d5ad333930::t_2ad222556e24d9 251
+  s_4996d5ad333930::t_80c050be80208a 192
+  s_4996d5ad333930::t_ab102bfcc538c0 358
+  s_4996d5ad333930::t_aeb53cff851ded 375,379
+  s_4996d5ad333930::t_747caca9e6971f 18
+  s_4996d5ad333930::t_b775f8bf8ac8a5 216-218,220-221,238
+  s_4996d5ad333930::t_04994ac6a36f5f 371
+  s_4996d5ad333930::t_7f1840150813c4 283
+  s_4996d5ad333930::t_e84b162dedf23f 357
+  s_4996d5ad333930::t_a46bd8cc989467 380
+  s_4996d5ad333930::t_48b141e03582f1 157,159-163,166,184,228-235
+CHANGELOG.md
+  s_4996d5ad333930::t_251c74ada6556d 52
+  s_4996d5ad333930::t_df066b7d167eaf 7-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2a3c02fae28b8603044941decf7a3442bde2e995",
+  "prompts": {},
+  "sessions": {
+    "s_34b17807ba26b4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "185d9418-1d3a-4959-97dd-7eb4dd32c730",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_37fb93eaccd6d5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e19c40c3-1ec4-4468-899b-eeb92fe71d30",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_4996d5ad333930": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "54ff6112-a5a0-482e-b028-40a241f54ff7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
