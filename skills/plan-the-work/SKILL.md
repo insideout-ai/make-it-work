@@ -1,12 +1,12 @@
 ---
-description: "Turns a spec or refined ticket into a concrete, execution-ready implementation plan — the plan step of the spec → plan → execute → review pipeline. Loads the project's skills, investigates the affected code across one or more repos, and writes an atomic, per-step plan file with no placeholders. Use when planning how to implement a ticket, epic, or spec before any code is written."
+description: "Turns a spec or refined ticket into a concrete, execution-ready implementation plan — the plan-the-work step of the spec → plan-the-work → execute → review pipeline. Loads the project's skills, investigates the affected code across one or more repos, and writes an atomic, per-step plan file with no placeholders. Use when planning how to implement a ticket, epic, or spec before any code is written."
 ---
 
 # Implementation Planning Session
 
 **Role:** Act as a senior engineer turning an agreed spec into an implementation plan another engineer (or a subagent) can execute step by step.
 
-**Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/plan-<TICKET>.md`. **Write no code here** — a later step executes the plan one atomic step at a time, so every step must be independently verifiable.
+**Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/<TICKET>-plan.md`. **Write no code here** — a later step executes the plan one atomic step at a time, so every step must be independently verifiable.
 
 This is the planning step of a pipeline: a spec already exists (e.g. from `close-the-gaps`), and after planning a separate step executes it, then `review-the-pr` reviews it.
 
@@ -15,7 +15,7 @@ This is the planning step of a pipeline: a spec already exists (e.g. from `close
 ## Usage
 
 ```
-/make-it-work:plan [TICKET-ID | path/to/spec.md]
+/make-it-work:plan-the-work [TICKET-ID | path/to/spec.md]
 ```
 
 - Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec file, or nothing (the skill derives the key from the current branch).
@@ -114,7 +114,7 @@ Read whatever orientation docs and skills each affected repo actually has — it
 
 - **grep before read.** To locate a symbol, `grep -n` for it and Read only the matching window — never read a large file top-to-bottom hunting for a definition.
 - **Repos touched only to confirm a fact get grep-only treatment.** If you enter a repo just to answer "does X route through Y?" or "does function Z exist?", answer with a grep. Do NOT read that repo's onboarding docs (`CLAUDE.md`, `architecture.md`, `product.md`) — read those in depth only in repos that will actually change.
-- **Write the skeleton early.** Before deep investigation, ensure a `make-it-work/` folder exists at the root (create it if it doesn't). Then check whether `make-it-work/plan-<TICKET>.md` already exists **from a previous run** — if it does, ask whether to overwrite, suffix (`-v2`), or abort, and resolve that before writing anything. Once the target path is settled, write the skeleton with the sections you can already fill (Goal, Requirement Summary, Open Questions, a draft Affected Code table) and mark unknowns `[INVESTIGATE: <question>]`. Then resolve only those markers. This caps scope and means a partial plan survives even if context runs out.
+- **Write the skeleton early.** Before deep investigation, ensure a `make-it-work/` folder exists at the root (create it if it doesn't). Then check whether `make-it-work/<TICKET>-plan.md` already exists **from a previous run** — if it does, ask whether to overwrite, suffix (`-v2`), or abort, and resolve that before writing anything. Once the target path is settled, write the skeleton with the sections you can already fill (Goal, Requirement Summary, Open Questions, a draft Affected Code table) **and the full `## Execution Status` block verbatim as given in Step 5's template — not an abbreviated form** — and mark unknowns `[INVESTIGATE: <question>]`. Then resolve only those markers. This caps scope and means a partial plan survives even if context runs out — including a died-mid-creation plan a fresh session later picks up cold, which is exactly why Execution Status must exist, in full, from the skeleton onward, not only once Step 5 fleshes the plan out.
 
 Read the actual code paths the spec implies will change across **all affected repos**. Use Grep/Glob/Read to confirm:
 
@@ -154,14 +154,16 @@ Read the actual code paths the spec implies will change across **all affected re
 
 Ask only about gaps where guessing wrong would send the executor down the wrong path. Anything you can resolve safely from the codebase or a low-risk convention is **not** a question — record it as an Assumption in the plan instead.
 
-**Ask one question per turn** (same mechanics as `close-the-gaps`):
+**Ask in dependency-ordered waves** (same mechanics as `close-the-gaps`): `AskUserQuestion` can batch up to 4 questions into one call, rendered as navigable tabs the user can jump between and revise before submitting — but only when those questions don't depend on each other's answers.
 
-- Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead.
-- `header`: a ≤12-char topic — e.g. `Approach`, `Migration`, `Scope`, `Compat`, `Rollout`.
-- `question`: `"Question [X] of [N] · [Gap type]: [the question]\n\n[one sentence on why it changes the plan]"`.
+- Before asking anything, check each gap against every other pending gap: does answering one change another's wording, options, or whether it's still needed? If so, the dependent one goes in a **later** wave, never the same batch. Common dependency: a `Scope boundary` or `Data / migration` answer often gates the options for a later `Sequencing / rollout` question. Independent gap types (most `Unstated assumption`, `Missing prerequisite`, unrelated `Approach` choices) default to Wave 1.
+- Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead — outside the batch.
+- Batch each wave's independent questions into a single `AskUserQuestion` call (≤4 per call); if a wave has more than 4, split into consecutive calls of ≤4 in that wave — order between them doesn't matter.
+- Per question — `header`: a ≤12-char topic — e.g. `Approach`, `Migration`, `Scope`, `Compat`, `Rollout`.
+- `question`: `"[Gap type]: [the question]\n\n[one sentence on why it changes the plan]"`.
 - `options`: up to 3 substantive choices with the **recommended one first**, its label suffixed `(Recommended)` — base the recommendation on what the codebase already supports, the smallest safe scope, and the invariants in the loaded skills. Always end with a final option:
   `{ label: "Proceed with the recommended assumption", description: "Don't decide now — I'll document the default choice in the plan's Assumptions." }`
-- Wait for each answer before asking the next. If an answer opens a new gap, insert it as the next question and update `[N]`.
+- Wait for the whole wave's answers before building the next wave. If a wave's answers open a new gap or unblock a dependent question, fold it into the next wave rather than re-opening one already asked.
 
 **For an `Approach` gap specifically**, present the tradeoffs in full rather than as a one-line option list:
 
@@ -179,7 +181,7 @@ Ask only about gaps where guessing wrong would send the executor down the wrong 
 **Recommendation:** Option X — <one sentence why>
 ```
 
-**Feed each answer into the plan:** an approach decision → the `## Approach` section; a scope / compatibility / migration / sequencing decision → the relevant Steps, Risks, or Pre-flight; a "proceed with the recommended assumption" answer → an explicit line in **Assumptions**.
+**Feed each answer into the plan:** an approach decision → the `## Approach` section; a scope / compatibility / migration / sequencing decision → the relevant Steps, Risks, or Pre-flight; a "proceed with the recommended assumption" answer → an explicit line in **Assumptions**. Additionally, record every question asked in this step — regardless of where else it fed in — into the `## Decision Log` section, in the order asked.
 
 If no gap rises to this bar, say "No open planning questions — proceeding to draft." and continue.
 
@@ -187,7 +189,7 @@ If no gap rises to this bar, say "No open planning questions — proceeding to d
 
 ## Step 5 — Draft the plan
 
-Fill in the skeleton you wrote in Step 4 at `make-it-work/plan-<TICKET>.md` (the folder and any overwrite/`-v2`/abort decision were already handled there). Flesh every section out to full detail.
+Fill in the skeleton you wrote in Step 4 at `make-it-work/<TICKET>-plan.md` (the folder and any overwrite/`-v2`/abort decision were already handled there). Flesh every section out to full detail.
 
 Guidelines:
 
@@ -205,13 +207,35 @@ Reproduce this section structure. Keep every section (write "None" where empty r
 
 > **Spec:** `<resolved spec path>` · **Target branch:** `<branch>` · **For executors:** complete steps in order unless a step is marked **parallel**; do not proceed past a step until its **Verify** passes; do not edit files not listed in Affected Code.
 
+## What This Changes
+
+3–6 sentences, plain business/technical language a non-implementer can follow: what will be different after this plan is executed, and why it matters. No file paths, function/class/method names, or code snippets — those live in Affected Code and Steps.
+
+## Execution Status
+
+**Mode:** Not yet chosen. Before doing anything else — even if you were only handed this file with no memory of it being created — ask the user to choose:
+- **Subagent-Driven** — dispatch a fresh subagent per step (via the Agent tool), reviewed between steps.
+- **Inline** — execute steps in this session, checkpointed after each step's Verify.
+
+Do not invent a different execution strategy. Once chosen, update this line to the chosen mode.
+
+**Progress:** Step 0 of N complete. Update this line immediately after each step's Verify passes.
+
 ## Open Questions & Blockers
 
 Resolve before starting. If none: _None — all questions resolved before planning._
 
+## Decision Log
+
+Questions asked during Step 4.5 and how they were resolved, in the order asked. If none were asked: _None — no planning questions were needed._
+
+| Question | Gap Type | Answer |
+| --- | --- | --- |
+| [full question text as asked] | [gap type from Step 4.5's list] | [option the user picked, verbatim — or "Proceed with the recommended assumption"] |
+
 ## Goal
 
-One paragraph: what the system does after this plan is executed, and why. Link to the spec.
+One paragraph, for the executor: the system's technical end-state after this plan runs — what changed at the code/data/interface level — and a link to the spec. (`What This Changes` above covers the same event for a non-technical reader; this section covers it for whoever implements it.)
 
 ## Requirement Summary
 
@@ -224,7 +248,7 @@ One paragraph: what the system does after this plan is executed, and why. Link t
 
 ## Approach
 
-Key design decisions. Explain _why_ — alternatives considered and why rejected. The executor follows these without re-deriving them.
+Key design decisions. Explain _why_ — alternatives considered and why rejected. The executor follows these without re-deriving them. No file paths, function/class/method names, or code snippets in this section — name approaches/patterns conceptually; file-level specifics belong in Affected Code and Steps only.
 
 ## Affected Code
 
@@ -242,11 +266,20 @@ What is currently absent and must be added as part of this ticket (validations, 
 
 ## Risks
 
-| Risk | Severity | Mitigation |
-| --- | --- | --- |
-| … | High / Med / Low | … |
+| Risk | Severity | Mitigation | Residual severity |
+| --- | --- | --- | --- |
+| … | High / Med / Low | … | High / Med / Low |
+
+**Overall risk (before mitigations):** High / Med / Low — the highest value in the Severity column above.
+**Overall risk (after mitigations):** High / Med / Low — the highest value in the Residual severity column above, escalated to High if three or more rows carry a Medium residual severity.
 
 Include cross-repo deployment order and rollback approach here.
+
+If Overall risk (after mitigations) is High, add:
+
+### Phasing alternative
+
+A smaller, independently-shippable first phase that lowers residual risk (e.g. a read-only phase before a write phase, a feature-flagged rollout, a reduced pilot scope) — an alternative the user can choose instead of executing the full plan at once.
 
 ## Pre-flight
 
@@ -321,6 +354,8 @@ Before handing off, run this quick self-check on the draft. It's a mechanical pa
 1. **Spec coverage** — for each requirement and acceptance criterion, can you point to a step that implements it? Add steps for any gaps.
 2. **Placeholder scan** — search for the anti-patterns above and fix every instance.
 3. **Name consistency** — do method/type/field names in later steps match what earlier steps define? `processRefund()` in Step 3 but `handleRefund()` in Step 7 is a bug in the plan.
+4. **Decision Log completeness** — does every question actually asked in Step 4.5 have a row in `## Decision Log`? Add any missing rows.
+5. **Readability scan** — does `## What This Changes` (and `## Approach`) stay in plain prose with no file paths, function/class/method names, or code snippets? Fix any that slipped in.
 
 Fix issues inline; don't re-review after fixing.
 
@@ -333,12 +368,15 @@ After saving and self-reviewing, respond with:
 ```
 Ticket: <TICKET>
 Spec: <resolved spec path — e.g. make-it-work/<TICKET>-spec.md, _specs/<TICKET>.md, or "fetched from ticket comment, cached to make-it-work/<TICKET>-spec.md">
-Plan: make-it-work/plan-<TICKET>.md
+Plan: make-it-work/<TICKET>-plan.md
 Repositories: <comma-separated list>
 Assumptions: <count>
 Open questions: <count>
+Overall risk: <before mitigations> → <after mitigations>
 Recommended executor tier: <low | standard | high> — <one-line reason>
 ```
+
+If Overall risk (after mitigations) is High, also print the plan's `### Phasing alternative` summary in chat here — that's where the user actually decides, not buried in the file.
 
 **Recommended executor tier** — how capable a model should execute this plan, derived purely from the plan you just wrote (no new investigation): read off the Affected Code table (repo/file count), the Risks table (risk surface), and the Steps (count + additive vs invasive):
 
@@ -357,6 +395,8 @@ Then offer the execution choice:
 **2. Inline Execution** — execute steps in this session with a checkpoint after each step's Verify.
 
 **Which approach? (or: review the plan first, then decide)**"
+
+The moment the user answers, update the plan file's `## Execution Status → Mode` line to the chosen value before executing anything; after each step's Verify passes (under either mode), update `Progress` in the file too. This keeps the file self-governing regardless of which session ends up executing it.
 
 **Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
 
