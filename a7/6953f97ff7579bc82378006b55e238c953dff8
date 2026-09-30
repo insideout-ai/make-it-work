@@ -1,0 +1,23 @@
+README.md
+  s_7a79b0863dcb02::t_3f107d87245971 46-50,116,132,187,191,224
+  s_7a79b0863dcb02::t_c3a1c7da4e42d7 51-53
+  s_7a79b0863dcb02::t_6aa74d471a2f98 225
+skills/define-test-strategy/SKILL.md
+  s_7a79b0863dcb02::t_3f107d87245971 1-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a76953f97ff7579bc82378006b55e238c953dff8",
+  "prompts": {},
+  "sessions": {
+    "s_7a79b0863dcb02": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "de1f2456-6aaa-4242-8e1e-80971e16f5c3",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
