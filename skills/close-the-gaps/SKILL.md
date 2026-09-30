@@ -1,5 +1,5 @@
 ---
-description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Use when refining a ticket before dev starts."
+description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode: export every question to a file to answer outside the session, then re-invoke with that file to inject the answers and resume. Use when refining a ticket before dev starts."
 disable-model-invocation: true
 ---
 
@@ -7,25 +7,36 @@ disable-model-invocation: true
 
 **Role:** Act as a Product Analyst facilitating a live ticket refinement session.
 
-**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development.
+**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development. When invoked with `--offline`, or when resuming from a previously exported questions file, follow Phase 5B or Phase 5C instead of asking questions live.
 
 ---
 
 ## Usage
 
 ```
-/make-it-work:close-the-gaps [TICKET-ID]
+/make-it-work:close-the-gaps [TICKET-ID] [--offline]
+/make-it-work:close-the-gaps path/to/<TICKET>-questions.md
 ```
 
 Or paste the ticket content directly into the chat after invoking.
+
+Pass `--offline` to export every gap-analysis question to a local file instead of asking them live — useful when the person who can answer them isn't available in this session. Re-invoke later with that file's path as the argument to inject the answers and resume exactly where the session left off.
 
 ---
 
 ## Phase 1 — Ticket Ingestion
 
+**0. Detect an injection run first.** If the argument is a path to an existing `*-questions.md` file, this is an **injection** run: read the file in full, skip the rest of Phase 1, restore the original ticket content, the loaded-skills list, and the code findings from its `## Session Context` section — then re-read each skill named in that list, so its content is available for Phase 6's re-check — and go directly to **Phase 5C — Offline Injection**.
+
+Otherwise, ingest the ticket as usual:
+
 - If a ticket ID is provided, fetch it via the available MCP integration (e.g., Atlassian, Linear, GitHub Issues). If the fetch fails (not found, no access, tool unavailable), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content.
 - If content is pasted, parse it as-is — work with whatever is there, even if vague or incomplete.
 - Extract: ticket ID, summary, description, acceptance criteria, linked tickets, and any attachments or comments.
+- Record the **source**: either "Fetched from `<tracker>` issue `<ID>`" or "Pasted directly, no tracker ticket" — Phase 5B will embed this so Phase 5C can later check for ticket drift.
+- Derive `<TICKET-or-slug>`: the ticket ID if there is one; otherwise a kebab-case slug of the title; otherwise `spec-YYYY-MM-DD` — the same rule Phase 6 uses for its own output filename. Reuse this one value for the rest of this phase, for Phase 5B's export filename, and for Phase 6's final spec filename, so all three always agree.
+- **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently.
+- Note whether `--offline` was passed in the arguments — carry this forward as a session flag for Phase 5 to check.
 - Acknowledge to the user: "Loaded ticket [ID]: [summary]. Starting analysis..."
 
 ---
@@ -92,6 +103,10 @@ This draft is internal only. Do not output it. Use it to generate the question l
 
 ## Phase 5 — Interactive Q&A
 
+If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of asking anything live. Otherwise, follow **Phase 5A**.
+
+### Phase 5A — Live Q&A
+
 Tell the user:
 > "I've analyzed the ticket and found [N] questions to resolve. I'll ask them in batches, grouped so you can navigate and revise answers within each batch before submitting."
 
@@ -125,6 +140,109 @@ Rules:
 - Never ask about implementation details, technical choices, or architecture.
 - Skipped questions are recorded and included as TBD in the final output.
 - After the last wave: "All questions answered. Generating refined ticket..."
+
+### Phase 5B — Offline Export
+
+Build the **complete** question list up front — every wave, not just Wave 1 — since there is no live back-and-forth to reveal later waves incrementally:
+
+1. Compute Wave 1 exactly as in Phase 5A.
+2. For each question, enumerate every later-wave question that depends on it, for each of its own options, **recursively** — a question two or three waves deep (e.g. a chain like Trigger → Detect → Reinvoke) is still written out, chained through its own immediate gating question rather than only checked against Wave 1. Write each dependent question directly after the question it depends on, so the file's order always presents a gating question before anything conditioned on it. Label each with the exact condition under which it applies (see template below). If a later question's wording or options cannot be enumerated without an answer that doesn't exist yet (e.g. it depends on free text with no fixed set of branches), do not force it into the file — record it instead under a `## Follow-up Needed After This Round` section at the end of the file, in plain language; Phase 5C resolves it live rather than exporting a second file.
+3. Do not call `AskUserQuestion`. Do not ask anything in chat.
+
+Write the file to `make-it-work/<TICKET-or-slug>-questions.md` (the same base name Phase 1 derived and Phase 6 will use), using this template:
+
+```markdown
+# Offline Questions — <TICKET-or-slug>
+
+> **Status:** Awaiting Answers
+> Fill in the checkboxes and notes below, save this file, then re-invoke:
+> `/make-it-work:close-the-gaps <this file's path>`
+
+## Session Context
+
+### Source
+
+<"Fetched from <tracker> issue <ID>" or "Pasted directly, no tracker ticket">, exported <YYYY-MM-DD>
+
+### Original Ticket
+
+<the full ticket content exactly as ingested in Phase 1>
+
+### Skills Loaded
+
+- <skill name> — <one-line reason it was loaded>
+
+### Code Findings
+
+- Q1 — `<path/to/file>`: <one-sentence summary of the Phase 3 finding this question is based on>
+
+## Questions
+
+### Q1 — [Gap type]
+
+**Question:** <question text>
+**Why it matters:** <one sentence>
+
+- [ ] <Option 1 label> (Recommended)
+- [ ] <Option 2 label>
+- [ ] <Option 3 label>
+- [ ] Other: ______________________
+- [ ] Skip — decide later (TBD)
+
+Notes (optional):
+
+### Q2 — [Gap type] *(Answer only if Q1 = <option label>)*
+
+**Question:** <question text>
+**Why it matters:** <one sentence>
+
+- [ ] <Option 1 label> (Recommended)
+- [ ] <Option 2 label>
+- [ ] Other: ______________________
+- [ ] Skip — decide later (TBD)
+
+Notes (optional):
+
+### Q3 — [Gap type] *(open-ended — no fixed options)*
+
+**Question:** <question text>
+**Why it matters:** <one sentence>
+
+**Your answer:**
+
+## Follow-up Needed After This Round
+
+<!-- Omit this section entirely if every question could be enumerated above. -->
+- <plain-language description of the gap that could not be phrased as a conditional question, and why>
+```
+
+Tell the user: "Questions exported to `<path>`. Answer them there, then re-invoke `/make-it-work:close-the-gaps <path>` to continue." Stop here — do not proceed to Phase 6 in this session.
+
+### Phase 5C — Offline Injection
+
+**0. Check for ticket drift (tracker-sourced tickets only).** If `## Session Context → Source` names a tracker and issue ID, and that tracker's MCP integration is available in this session, fetch the current ticket read-only and compare it to the embedded `### Original Ticket` content.
+- If they differ, tell the user the live ticket has changed since export, and add a one-line callout directly under the refined ticket's title in Phase 6's output: "> **Note:** the live ticket in `<tracker>` has changed since this refinement was exported on `<date>`; this spec reflects the snapshot taken at export time." The embedded snapshot stays authoritative — do not substitute the live version.
+- If the tracker integration isn't available, or the ticket was pasted (no tracker source), say the comparison was skipped (or wasn't applicable) and proceed using the snapshot.
+
+Resolve questions in two passes, since a conditional question can only be evaluated once its gating answer is known:
+
+**Pass 1 — unconditional questions** (no "Answer only if…" label):
+
+1. **Read its answer.** A checkbox-style question is answered if exactly one checkbox is checked (including "Other:", if it has text after the colon) or "Skip" is checked; if more than one box is checked, ask the user live to resolve the conflict, showing them what was checked. An open-ended question (no checkboxes, just a `**Your answer:**` line) is answered if that line has any text after it.
+2. **Re-verify its code finding**, using the file path(s) noted under `## Session Context → Code Findings` for that question:
+   - If the code still matches the recorded finding, keep the recorded finding and the file's answer as-is.
+   - If it has changed in a way that contradicts the file's answer or the question's premise, flag this to the user now (e.g. "Q3 assumed X, but `path/to/file` now does Y — does your answer still hold?") and ask live using the same options the file recorded.
+3. **Ask live anything left blank** — a checkbox-style question with no box checked and no notes, or an open-ended question with an empty `**Your answer:**` line — via `AskUserQuestion` if it has enumerable options (reuse the header, gap type, and options exactly as recorded in the file) or as plain text if it was recorded as open-ended. Batch up to 4 independent blank checkbox-style questions per `AskUserQuestion` call, per Phase 5A's batching rules, rather than asking them one at a time.
+
+**Pass 2 — conditional questions** ("Answer only if Q_n = X" label): process them in the order they appear in the file — Phase 5B always places a gating question before anything conditioned on it, so by the time you reach a conditional question here, the question it names already has a final status from earlier in this pass or from Pass 1.
+
+- If the question it names is itself `N/A — condition not met`, mark this question `N/A — condition not met` too, without evaluating its own condition — a question gated by a question that was never asked can't apply either. This propagates down a chain of any length.
+- Otherwise, check the now-resolved answer to the question it names: if it does **not** match the stated condition, mark this question `N/A — condition not met`. Do not ask it, do not re-verify its code finding, and do not include it in Phase 6's Decision Log — it was never actually asked.
+- If the gating answer **does** match, treat it exactly like an unconditional question: apply steps 1–3 above to it.
+
+**Resolve any `## Follow-up Needed After This Round` items live**, the same way as step 3 above, now that every gating answer from both passes is known — do not export a second file for these.
+
+Once every applicable question has a final answer, proceed to **Phase 6** exactly as today, using the answers gathered here (whether from the file or live) as if Phase 5A had produced them. Only **after** Phase 6 has saved `make-it-work/<TICKET-or-slug>-spec.md`, update this file's status line to `**Status:** Answered — superseded by make-it-work/<TICKET-or-slug>-spec.md`. If the session ends before Phase 6 finishes, leave the status as `Awaiting Answers` — a later run must not mistake an incomplete session for a finished one.
 
 ---
 
