@@ -1,0 +1,30 @@
+skills/run-regression/SKILL.md
+  s_afb397b26abbc2::t_bd89879a2a822d 218,220-222
+  s_afb397b26abbc2::t_ecdcc6a9992ef3 120,122,124,126,128,130,132,134,136,138,140,144,146-148,150,152,154
+  s_afb397b26abbc2::t_3faa3e80987d6d 212-213
+  s_afb397b26abbc2::t_8b24b8bc5f9537 156,158,162,164,166,168,172,177,183-185
+  s_afb397b26abbc2::t_61bbf1c04ad0ec 198-199,204-206
+  s_afb397b26abbc2::t_cc446e9feac486 227
+skills/define-test-strategy/SKILL.md
+  s_afb397b26abbc2::t_95a58828cbab01 143,146-148
+  s_afb397b26abbc2::t_84503211efc334 133,135,137-139
+  s_afb397b26abbc2::t_1dd52265e95744 161-163,167
+  s_afb397b26abbc2::t_670a5ea6dac8a4 118,121-123
+  s_afb397b26abbc2::t_7dc04283ac5e78 184,186-188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "954d79c864be171e291b1268fd10fb85fd22936e",
+  "prompts": {},
+  "sessions": {
+    "s_afb397b26abbc2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd0aaf5b-0bf4-4643-8a42-cd99059a129f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
