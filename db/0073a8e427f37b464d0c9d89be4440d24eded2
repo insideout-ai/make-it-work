@@ -1,0 +1,24 @@
+skills/define-test-strategy/SKILL.md
+  s_07dc5e39838e40::t_95f27cc7412b1a 1-253
+README.md
+  s_07dc5e39838e40::t_95f27cc7412b1a 46-61,116-117,187,191,208-213,222-224
+  s_07dc5e39838e40::t_048c737c8cb05b 132
+skills/run-regression/SKILL.md
+  s_07dc5e39838e40::t_95f27cc7412b1a 1-318
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "db0073a8e427f37b464d0c9d89be4440d24eded2",
+  "prompts": {},
+  "sessions": {
+    "s_07dc5e39838e40": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "66b5f748-5cfc-4a33-8eee-844f832c9c37",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
