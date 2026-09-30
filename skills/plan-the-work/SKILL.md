@@ -57,7 +57,9 @@ Then resolve the spec file **local-first, with an issue-tracker fallback**, usin
 1. `make-it-work/<TICKET>-spec.md` — the output of `close-the-gaps` (richest spec; preferred).
 2. `_specs/<TICKET>.md` — the output of a `/spec`-style step, if the project uses one.
 
-**If neither local file exists, fall back to the issue tracker:**
+**If neither exists, check for a pending offline refinement before falling back to the tracker:** if `make-it-work/<TICKET>-questions.md` exists and its `**Status:**` marker is not `Answered` (i.e. it still reads `Awaiting Answers`), warn the user: "TICKET is mid-refinement — `make-it-work/<TICKET>-questions.md` has unanswered offline questions from `close-the-gaps`." and ask them to choose: **stop here and finish `close-the-gaps <path>` first** (recommended), or **proceed anyway** using whatever ticket content can be found below. Do not continue past this check silently. If the file doesn't exist, or its status is `Answered`, continue below without asking anything.
+
+**If neither local spec file exists (or the user chose to proceed anyway above), fall back to the issue tracker:**
 
 > **Guard:** This fallback is reachable ONLY when no explicit path was passed AND neither local spec file exists. If an explicit path was given, you already used it and stopped.
 
