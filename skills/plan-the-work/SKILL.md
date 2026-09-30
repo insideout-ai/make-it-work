@@ -1,12 +1,12 @@
 ---
-description: "Turns a spec or refined ticket into a concrete, execution-ready implementation plan — the plan-the-work step of the spec → plan-the-work → execute → review pipeline. Loads the project's skills, investigates the affected code across one or more repos, and writes an atomic, per-step plan file with no placeholders. Use when planning how to implement a ticket, epic, or spec before any code is written."
+description: "Turns a spec or refined ticket into a concrete, execution-ready implementation plan — the plan-the-work step of the spec → plan-the-work → execute → review pipeline. Loads the project's skills, investigates the affected code across one or more repos, and writes an atomic, per-step plan file with no placeholders. When the target project has a test framework configured, it also writes and confirms per-step progression (red) and regression (currently-passing) tests. Use when planning how to implement a ticket, epic, or spec before any code is written."
 ---
 
 # Implementation Planning Session
 
 **Role:** Act as a senior engineer turning an agreed spec into an implementation plan another engineer (or a subagent) can execute step by step.
 
-**Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/<TICKET>-plan.md`. **Write no code here** — a later step executes the plan one atomic step at a time, so every step must be independently verifiable.
+**Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/<TICKET>-plan.md`. **Write no production code here beyond the test files and the minimal stub signatures this plan's Steps record, needed to reach a valid runtime red state on any stack** — a later step implements the rest and executes the plan one atomic step at a time, so every step must be independently verifiable.
 
 This is the planning step of a pipeline: a spec already exists (e.g. from `close-the-gaps`), and after planning a separate step executes it, then `review-the-pr` reviews it.
 
@@ -24,7 +24,7 @@ This is the planning step of a pipeline: a spec already exists (e.g. from `close
 
 - Do NOT make assumptions silently — every inference becomes an explicit line in the plan's Assumptions.
 - Always adhere to the coding rules and skill-loading instructions of each affected repo (its `CLAUDE.md`, `.claude/rules/`, etc.).
-- Investigation is read-only. The only file you write in this skill is the plan itself.
+- Investigation is read-only. The only files you write in this skill are the plan itself and, per Step 5's per-step test-writing sub-phase, each step's test files (and any stub signature) when the target project has a test framework configured.
 
 ---
 
@@ -200,6 +200,20 @@ Guidelines:
 - Respect invariants surfaced by the loaded skills (status transitions, data-handling/compliance rules, ID/reference integrity, etc.).
 - Discover the project's real **build / type-check / lint / test** commands (from `package.json` scripts, `Makefile`, `CLAUDE.md`, CI config, etc.) and use those in Verify/Pre-flight/Definition of Done — do not assume `npm`/`tsc`.
 
+### Writing and confirming each step's tests
+
+This sub-phase runs per step, as each step is drafted, evaluated independently per affected repo (see point 1 — a single-repo plan is just the one-repo case of that same rule). It is the test-file and stub-writing exception that **Rules before you begin** carves out of the read-only rule.
+
+1. **Applicability gate (per repo)** — evaluate this once per affected repo, never once for "the whole plan": a repo is in scope for this sub-phase only when it has a genuine, configured test framework — a real test command discoverable via the exact discovery the Guidelines above already perform (`package.json` scripts, `Makefile`, CI config, `CLAUDE.md`), and not merely a placeholder (e.g. npm's own default `"test": "echo \"Error: no test specified\" && exit 1"` script does not count as a configured framework). For a step whose Affected Code table lists more than one repo, evaluate this gate independently per repo — one repo may be in scope while a sibling repo, in the same step, is not. For a repo with no framework configured: omit the `**Tests:**` field for that repo's rows entirely; instead, author that repo's test scenarios directly as rows in the shared `## Test Plan` table, and use the plan template's conditional trailing `### Step N — Write tests` step for that repo's tests, scoped to that repo — exactly as `plan-the-work` produced before this sub-phase existed.
+2. **Per-step classification** — for each step being drafted, in each in-scope repo, decide test-required (it introduces new or changed behavior, or touches code with regression risk) vs. exempt (neither applies). An exempt step gets a one-line reason recorded in its `**Tests:**` field instead of test information — never a silently omitted field.
+3. **Naming the tests** — for a test-required step, name the progression test(s) that prove the new behavior and the regression test(s) that protect nearby existing behavior, reusing the exact investigation Step 4's "Indirect impact" sub-phase already performed to surface affected tests and callers.
+4. **Reuse vs. write** — when adequate, currently-passing regression coverage already exists for that nearby behavior, reference its file path and command as-is rather than duplicating it; otherwise write or extend a regression test file.
+5. **Confirming the regression baseline** — before touching any production code for this step, run the regression test(s) (whether reused or newly written in point 4) and confirm they currently pass. A regression test already failing at this point is a pre-existing issue unrelated to this step, not a valid state for this step, and must be resolved or called out separately before the step is considered ready.
+6. **Reaching progression red** — write the progression test. Check the step's own Affected Code row for the symbol/file it names: if the row is **New** (the symbol or file does not exist yet), write a minimal stub signature — no real logic, a language-idiomatic "not implemented" throw/raise, or, only where a throwing expression isn't syntactically valid in that position, a type-satisfying sentinel — at that exact new location, carrying a same-line or adjacent comment unambiguously marking it as a planning-phase placeholder pending implementation, e.g. `// plan-the-work stub — pending implementation`, so it can never be mistaken for finished work. If the row is **Modify** (the symbol already exists and already runs), write no stub and touch no production code at all — the progression test simply asserts the new/changed behavior against the current, not-yet-updated implementation, which fails on its own because that behavior doesn't exist yet; this is an ordinary TDD red state needing no code change. In both cases, never rely on a bare compile/type/import error alone as proof of red, on any stack, typed or dynamic — a New row's stub is what turns that into a genuine runtime assertion failure; a Modify row already produces one without help. Run the progression test and confirm it now fails for the right reason — the missing or not-yet-changed behavior — not a broken test setup, import, or typo.
+7. **Committing** — commit the step's test file(s) and any New-row stub signature onto the plan's own feature branch (the branch already established per Pre-flight's "On the correct branch" check) in one commit, immediately once that step's states are confirmed — not batched at the end of drafting — using this exact message format: `test: step <N> — <short step title> (red state)`.
+8. **Recording** — record the file path(s), the exact scoped command, and the confirmed state (or the exemption reason) in the step's `**Tests:**` field.
+9. **Multi-repo plans** — in a workspace plan, this entire sub-phase (points 1–8) runs separately for each repo a step's Affected Code table lists — each in-scope affected repo gets its own test files, its own commit, and its own `**Tests:**` entry for that step; an out-of-scope repo (per point 1) instead gets that step's scenarios added to the shared `## Test Plan` table for that repo.
+
 ### Plan structure
 
 Reproduce this section structure. Keep every section (write "None" where empty rather than deleting it).
@@ -285,6 +299,8 @@ A smaller, independently-shippable first phase that lowers residual risk (e.g. a
 
 ## Pre-flight
 
+The "Working tree clean" check below applies once, before planning starts — the per-step test commits the test-writing sub-phase produces as planning proceeds (see the `### Writing and confirming each step's tests` subsection above) are an expected, intentional deviation from a clean tree, not a Pre-flight violation.
+
 Stop and flag if any fail before writing code.
 
 - [ ] On the correct branch, branched from `<base>`
@@ -304,11 +320,15 @@ Stop and flag if any fail before writing code.
 
 **Verify:** type-check/build passes with no new errors; _(specific observable check)_.
 
+**Tests:** `<file path(s)>, <exact command>, <confirmed state: "progression red — <reason>" / "regression passing">` — or, for an exempt step, `Exempt — <one-line reason>`.
+
 ### Step N — Write tests
 
-_Always the last step before Definition of Done._ Write the tests listed in the Test Plan. **Verify:** test suite passes; coverage on new files meets the project's bar.
+_Only used for a repo where the per-step test-writing sub-phase's applicability gate (point 1 of the `### Writing and confirming each step's tests` subsection above) found no test framework configured — omit this step for a repo where a framework was found and tests were written per step instead. In a multi-repo plan with mixed framework availability across repos, this step still applies, scoped to whichever repo(s) lack a framework; in a single-repo plan with no framework, it covers the whole plan. When used, this is always the last step before Definition of Done._ Write the tests listed in the Test Plan for that repo. **Verify:** test suite passes; coverage on new files meets the project's bar.
 
 ## Test Plan
+
+For a repo where the per-step test-writing sub-phase applies (a test framework is configured there), this section is a derived summary aggregating what each step's `**Tests:**` field already recorded for that repo — not a place to author new tests for it — and each such scenario row should reference which step its test came from. For a repo where no framework is configured, this section is instead the one place new test scenarios for that repo are authored directly, exactly as `plan-the-work` did before this sub-phase existed. A multi-repo plan may contain both kinds of row side by side.
 
 | Scenario | Type | File / command |
 | --- | --- | --- |
@@ -329,6 +349,7 @@ _Always the last step before Definition of Done._ Write the tests listed in the 
 - [ ] Test suite passes (no skipped/pending)
 - [ ] Type-check / build / lint pass
 - [ ] All **Verify** checkpoints green
+- [ ] For every repo where the per-step test-writing sub-phase applies, every step's **Tests:** field is resolved — a test-required step's progression test is confirmed red and its regression test confirmed passing (or, once execution completes, confirmed green); no step's field is still an unaddressed placeholder. For any repo where no framework is configured, its `## Test Plan` rows and conditional `### Step N — Write tests` step cover it instead.
 - [ ] Open questions resolved or escalated (owner named)
 - [ ] Logging and error handling at the correct layers
 - [ ] Security and authorization reviewed

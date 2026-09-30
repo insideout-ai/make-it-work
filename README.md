@@ -73,7 +73,7 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ### `/make-it-work:plan-the-work`
 
-Turns an agreed spec or refined ticket into an execution-ready implementation plan before any code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>-plan.md`.
+Turns an agreed spec or refined ticket into an execution-ready implementation plan before any production code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — and commits them onto the plan's branch; projects with no test framework configured are unaffected.
 
 Pass a ticket ID or a spec path, or let the skill derive the ticket from the current branch. Use it after `close-the-gaps` and before implementation so another engineer or agent can execute the work step by step without guessing.
 
@@ -111,7 +111,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated.
-- A project workspace, ideally a Git repository. `go-deep`, `plan-the-work`, and `review-the-pr` inspect the repository's code and documentation.
+- A project workspace, ideally a Git repository. `go-deep` and `review-the-pr` inspect the repository's code and documentation. `plan-the-work` does the same and, when a test framework is configured in the target project, also writes and commits per-step progression and regression test files onto the plan's branch.
 - For ticket IDs such as `TICKET-123`, a separately installed and configured issue-tracker integration. You can always paste the ticket content instead.
 
 `review-the-pr` is most effective after `go-deep` has created the project's `CLAUDE.md`, `.claude/rules` documentation, and domain/use-case skills.
@@ -195,6 +195,8 @@ Review the current pull request against the repository's documented product beha
 ## Data access and permissions
 
 This plugin contains Markdown-based skills. It does not bundle executable scripts, hooks, MCP servers, or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow.
+
+`plan-the-work` also writes directly into the target project itself when a test framework is configured there: it writes per-step progression and regression test files — including minimal, clearly-marked stub signatures where needed to reach a valid runtime red state — and commits them onto the plan's own branch (never pushed to a remote). Projects with no test framework configured are unaffected; `plan-the-work` falls back to its prior behavior of only writing planning artifacts under `make-it-work/`.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
