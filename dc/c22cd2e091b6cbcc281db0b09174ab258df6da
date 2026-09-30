@@ -1,0 +1,22 @@
+skills/plan-the-work/SKILL.md
+  s_afb397b26abbc2::t_82d1db8bf132c9 327
+  s_afb397b26abbc2::t_40c206abf68bc5 207-208
+skills/execute/SKILL.md
+  s_afb397b26abbc2::t_7cffbdb7111210 133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "dcc22cd2e091b6cbcc281db0b09174ab258df6da",
+  "prompts": {},
+  "sessions": {
+    "s_afb397b26abbc2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd0aaf5b-0bf4-4643-8a42-cd99059a129f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
