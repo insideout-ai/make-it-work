@@ -225,13 +225,13 @@ Unlike Phase 2's per-step work, Phase 4 always runs in whichever session is curr
 
 ### Resolving scope: scoped vs. full-suite
 
-Per this plan's Approach section ("Completion-gate scope resolution"), attempt scoped mode only when **all three** of the following hold — check them in this order, and fall back to full-suite mode the moment any one of them fails, without checking the rest:
+Attempt scoped mode only when **all three** of the following hold — check them in this order, and fall back to full-suite mode the moment any one of them fails, without checking the rest:
 
 (a) The plan's `## Affected Code` table lists exactly one repo.
 (b) That one repo's `.claude/rules/testing-strategy.md` file exists.
 (c) The plan file itself has a non-empty "Domains/UCs Touched" field recorded for that repo.
 
-**This branch is currently unreachable in practice.** No plan produced by the `plan-the-work` skill as it exists today writes a "Domains/UCs Touched" field anywhere in the plan file — persisting that field is explicitly deferred to a Post-Plan Follow-Up, outside this plan's own scope. Condition (c) can therefore never be satisfied by any plan file `execute` will actually encounter today, so — regardless of how (a) and (b) resolve — scope resolution always falls through to full-suite mode as things stand. This is the intended, safe default, not a bug: it is exactly the spec's own resolved wording, "falls back automatically to full-suite mode... when the target project has no `define-test-strategy` mapping to compute a scope from," extended to also cover the case this plan adds on top of it — no recorded mapping in the plan file yet, either. Once a future `plan-the-work` change starts persisting that field, this same check starts succeeding for qualifying plans, with no further change needed here.
+**This branch is currently unreachable in practice.** No plan produced by the `plan-the-work` skill as it exists today writes a "Domains/UCs Touched" field anywhere in the plan file. Condition (c) can therefore never be satisfied by any plan file `execute` will actually encounter today, so — regardless of how (a) and (b) resolve — scope resolution always falls through to full-suite mode as things stand. This is the intended, safe default, not a bug: it mirrors `run-regression`'s own resolved behavior of falling back automatically to full-suite mode when there is no mapping to compute a scope from. If a future `plan-the-work` change starts persisting a "Domains/UCs Touched" field, this same check starts succeeding for qualifying plans, with no further change needed here.
 
 ### Invoking `run-regression`
 
@@ -240,7 +240,7 @@ However scope resolved, invoke `run-regression` via the `Skill` tool — the sam
 - **Scoped mode** (conditions (a)–(c) all hold): `Skill({skill: "make-it-work:run-regression", args: "<space-separated domain-*/UC-* tokens from the plan's Domains/UCs Touched field>"})` — e.g. `Skill({skill: "make-it-work:run-regression", args: "domain-velocity UC-08"})`.
 - **Full-suite mode** (any condition fails — which is every run today, per the previous section): `Skill({skill: "make-it-work:run-regression", args: "full"})`.
 
-This call requires `skills/run-regression/SKILL.md` to no longer carry the `disable-model-invocation: true` frontmatter line (dropped in this plan's Step 1). Without that, the `Skill` tool refuses the call outright with "Unknown skill" — it does not run `run-regression` in some degraded form or fall back to anything else; the call simply fails to resolve. Step 1 having already landed is a hard prerequisite for this phase to function at all, not an optional optimization.
+This call requires `skills/run-regression/SKILL.md` to not carry a `disable-model-invocation: true` frontmatter line — it does not, as shipped. Without that, the `Skill` tool refuses the call outright with "Unknown skill" — it does not run `run-regression` in some degraded form or fall back to anything else; the call simply fails to resolve.
 
 `run-regression`'s own frontmatter carries no subagent-dispatch directive, so invoking it via the `Skill` tool loads its instructions into this same session's current turn rather than handing the work to a separate subagent: this session itself then works through `run-regression`'s own Phase 0 through Phase 5 exactly as that skill's `SKILL.md` describes, using the argument just passed (the scope tokens, or `full`), and it is this session that ends up printing `run-regression`'s fixed Phase 5 report block(s) directly in the chat. Once that report has been printed, control returns here, to `execute`'s own Phase 4, to read it — `run-regression`'s own Phase 5 is not itself the end of this run; `execute` still has to act on what it produced.
 
@@ -249,7 +249,7 @@ This call requires `skills/run-regression/SKILL.md` to no longer carry the `disa
 `run-regression`'s Phase 5 report takes one of two shapes, and which one applies is a property of the report itself — not of how many repos this plan's own `## Affected Code` table lists (a single-repo plan can still resolve, inside `run-regression`, to a detected multi-repo workspace, since `run-regression` does its own independent repo/workspace detection whenever it's given `full`):
 
 - **No leading `Workspace:` line** — a single-repo run. Read that one block's own `Gate result:` field.
-- **A leading `Workspace: <n> repos` line, followed by one block per repo** — a multi-repo workspace run (exactly what `run-regression full` produces on its own whenever it detects a workspace, with no extra per-repo orchestration needed from `execute`, per this plan's Assumption 7). Read the closing `Overall gate result:` line, never any individual repo's own `Gate result:` line — a workspace run can have some repos PASS and others FAIL, and `Overall gate result` is the single line that already folds that all together correctly.
+- **A leading `Workspace: <n> repos` line, followed by one block per repo** — a multi-repo workspace run (exactly what `run-regression full` produces on its own whenever it detects a workspace, with no extra per-repo orchestration needed from `execute`). Read the closing `Overall gate result:` line, never any individual repo's own `Gate result:` line — a workspace run can have some repos PASS and others FAIL, and `Overall gate result` is the single line that already folds that all together correctly.
 
 **If the result reads `PASS`** (`Gate result: PASS` for a single-repo run, or `Overall gate result: PASS` for a workspace run): proceed to Phase 5.
 
