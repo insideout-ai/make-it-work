@@ -43,6 +43,14 @@ The skills produced are also useful outside Claude Code. Product managers can re
 
 ---
 
+### `/make-it-work:define-test-strategy`
+
+`define-test-strategy` bootstraps a per-project test strategy and an initial regression baseline: a `.claude/rules/testing-strategy.md` file documenting the project's test layers, a coverage decision tree, and example commands per layer, plus scaffolded placeholder tests for the confirmed-uncovered critical flows from `go-deep`'s use-case list. It establishes a UC/domain test-tagging convention with a re-runnable coverage-check mode, so you can re-invoke it later to see which use cases or domains still have no mapped tests, and it wires enforcement into the project's `CLAUDE.md` — adding a regression-check item to the "After Any Feature Change" checklist, with an optional git hook offered on top.
+
+Run it once per project, right after `go-deep` — the same way `go-deep` itself is run once to bootstrap the knowledge base. It requires `go-deep` to have already run in the target project: if it hasn't, the skill stops and tells you to run `go-deep` first.
+
+---
+
 ### `/make-it-work:run-regression`
 
 `run-regression` runs a project's regression suite - the full suite, or scoped to specific domains and use cases named from `go-deep`'s vocabulary (e.g. `domain-velocity`, `UC-08`). It discovers the full-suite command from `define-test-strategy`'s generated `.claude/rules/testing-strategy.md` when that file exists, falling back to `package.json`/`Makefile`/CI discovery otherwise - the same way `plan-the-work` already discovers build and lint commands. Scaffolded placeholder tests never block a run, and results are reported live in chat, with nothing persisted to disk.
@@ -105,6 +113,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ```
 /make-it-work:go-deep                        # Scaffold full project docs from scratch
+/make-it-work:define-test-strategy           # Bootstrap a test strategy and regression baseline once per project
 /make-it-work:run-regression [full | domain-<name> | UC-<id> ...]  # Run the regression suite, full or scoped
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
@@ -120,7 +129,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated.
-- A project workspace, ideally a Git repository. `go-deep`, `plan-the-work`, and `review-the-pr` inspect the repository's code and documentation.
+- A project workspace, ideally a Git repository. `go-deep`, `define-test-strategy`, `plan-the-work`, and `review-the-pr` inspect the repository's code and documentation.
 - For ticket IDs such as `TICKET-123`, a separately installed and configured issue-tracker integration. You can always paste the ticket content instead.
 
 `review-the-pr` is most effective after `go-deep` has created the project's `CLAUDE.md`, `.claude/rules` documentation, and domain/use-case skills.
@@ -175,10 +184,11 @@ Run `/reload-plugins` or restart Claude Code after updating.
 
 ## Example workflows
 
-Onboard an established repository and create its project knowledge base:
+Onboard an established repository, create its project knowledge base, and bootstrap its test strategy:
 
 ```text
 /make-it-work:go-deep
+/make-it-work:define-test-strategy
 ```
 
 Turn a rough feature idea into an elaboration-ready epic, then split it into independently valuable stories:
@@ -210,6 +220,8 @@ Review the current pull request against the repository's documented product beha
 ## Data access and permissions
 
 This plugin contains Markdown-based skills. It does not bundle executable scripts, hooks, MCP servers, or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow; `run-regression` additionally runs the target project's own already-configured test command via Bash.
+
+Unlike the other pipeline skills, which only read code and write review/planning artifacts under `make-it-work/`, `define-test-strategy` also writes directly into the target project itself: it generates `.claude/rules/testing-strategy.md`, scaffolds placeholder test files into the project's existing test directories, and edits the project's `CLAUDE.md` (its "Rules Files" list and "After Any Feature Change" checklist). If you opt in to its optional hook offer, it additionally writes a git hook file into the project's hook-manager location (e.g. `.husky/` or `.git/hooks/`) that runs the full test suite before every commit or push.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
