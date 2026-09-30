@@ -1,0 +1,29 @@
+README.md
+  s_dc2cf5232c5fd0::t_5eb0188a654cea 80
+  s_dc2cf5232c5fd0::t_6594f142ccaf32 260
+  s_dc2cf5232c5fd0::t_25e2764ee9594a 257
+  s_dc2cf5232c5fd0::t_04e58183f55af1 219-225
+  s_dc2cf5232c5fd0::t_fb89d664980bb7 78-79,81-85
+  s_dc2cf5232c5fd0::t_040892537a3f0e 136
+  s_dc2cf5232c5fd0::t_ef28194b090fd9 256
+skills/find-the-repos/SKILL.md
+  s_dc2cf5232c5fd0::t_8148b941dea1d8 72
+  s_dc2cf5232c5fd0::t_c2c54e3ae7641c 1-49,52-56,59-71,73-127
+  s_dc2cf5232c5fd0::t_993d963ca8d95d 50-51,57-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3e022baddf345baf594c59735afbf7913875ee90",
+  "prompts": {},
+  "sessions": {
+    "s_dc2cf5232c5fd0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "93881959-80b9-4ec5-ab39-4413161ec226",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
