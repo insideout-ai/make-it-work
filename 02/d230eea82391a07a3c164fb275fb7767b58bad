@@ -1,0 +1,19 @@
+skills/review-the-pr/SKILL.md
+  s_afb397b26abbc2::t_6cc93487a5a1f0 94-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "02d230eea82391a07a3c164fb275fb7767b58bad",
+  "prompts": {},
+  "sessions": {
+    "s_afb397b26abbc2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd0aaf5b-0bf4-4643-8a42-cd99059a129f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
