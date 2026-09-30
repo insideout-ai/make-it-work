@@ -1,6 +1,5 @@
 ---
 description: "Runs a project's regression suite — full or scoped to specific domains/use-cases — and reports pass/fail results; the shared implementation the future `execute` skill calls at the end of a plan. Use when running or checking a project's test suite, full or scoped to specific domains/use-cases."
-disable-model-invocation: true
 ---
 
 # Run Regression

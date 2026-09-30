@@ -95,6 +95,14 @@ Pass a ticket ID or a spec path, or let the skill derive the ticket from the cur
 
 ---
 
+### `/make-it-work:execute`
+
+Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate, scoped to what the plan touched when the target project supports it and full-suite otherwise, and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
+
+Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `plan-the-work` to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr` pipeline.
+
+---
+
 ### `/make-it-work:review-the-pr`
 
 Acts as a reviewer grounded in the project's own documentation instead of generic intuition. Runs three passes - business correctness against the `uc-*` skills, regression safety against the `domain-*` skills and architectural constraints, and coding standards against `CLAUDE.md` - then a docs-sync check to confirm skills were updated alongside behavior. Emits a verdict-first, evidence-dense report, both as a pasteable file and a scannable chat summary.
@@ -123,6 +131,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps make-it-work/TICKET-123-questions.md  # Resume and inject answers from that file
 /make-it-work:plan-the-work TICKET-123       # Turn a refined spec into an implementation plan
 /make-it-work:plan-the-work path/to/spec.md  # Plan from an explicit local spec
+/make-it-work:execute [TICKET-ID | path/to/plan.md]  # Execute a plan step by step, then run the completion gate
 /make-it-work:review-the-pr                  # Review a PR against the project's own skills and CLAUDE.md
 ```
 
@@ -203,6 +212,7 @@ Refine a ticket, then turn the agreed spec into an implementation plan:
 ```text
 /make-it-work:close-the-gaps TICKET-123
 /make-it-work:plan-the-work TICKET-123
+/make-it-work:execute TICKET-123
 ```
 
 Run a scoped regression check against the domain you're actively working on:
@@ -224,6 +234,8 @@ This plugin contains Markdown-based skills. It does not bundle executable script
 Unlike the other pipeline skills, which only read code and write review/planning artifacts under `make-it-work/`, `define-test-strategy` also writes directly into the target project itself: it generates `.claude/rules/testing-strategy.md`, scaffolds placeholder test files into the project's existing test directories, and edits the project's `CLAUDE.md` (its "Rules Files" list and "After Any Feature Change" checklist). If you opt in to its optional hook offer, it additionally writes a git hook file into the project's hook-manager location (e.g. `.husky/` or `.git/hooks/`) that runs the full test suite before every commit or push.
 
 `plan-the-work` also writes directly into the target project itself when a test framework is configured there: it writes per-step progression and regression test files — including minimal, clearly-marked stub signatures where needed to reach a valid runtime red state — and commits them onto the plan's own branch (never pushed to a remote). Projects with no test framework configured are unaffected; `plan-the-work` falls back to its prior behavior of only writing planning artifacts under `make-it-work/`.
+
+`execute` goes further still: unlike `define-test-strategy` and `plan-the-work` above, which write test files (and, for `plan-the-work`, commit them) but never the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — but, unlike `plan-the-work`, it never runs `git commit` on the user's behalf; every change it makes is left uncommitted for you to review.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
