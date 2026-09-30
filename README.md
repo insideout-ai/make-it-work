@@ -51,6 +51,14 @@ Run it once per project, right after `go-deep` — the same way `go-deep` itself
 
 ---
 
+### `/make-it-work:run-regression`
+
+`run-regression` runs a project's regression suite - the full suite, or scoped to specific domains and use cases named from `go-deep`'s vocabulary (e.g. `domain-velocity`, `UC-08`). It discovers the full-suite command from `define-test-strategy`'s generated `.claude/rules/testing-strategy.md` when that file exists, falling back to `package.json`/`Makefile`/CI discovery otherwise - the same way `plan-the-work` already discovers build and lint commands. Scaffolded placeholder tests never block a run, and results are reported live in chat, with nothing persisted to disk.
+
+Use it directly during day-to-day development to check a change against the regression suite, full or scoped. It's also meant to become the shared implementation the future `execute` skill calls as its completion gate at the end of a plan, instead of writing its own test-running logic.
+
+---
+
 ### `/make-it-work:shape-the-epic`
 
 Acts as a senior product coach to help you write a complete, elaboration-ready epic for any work management tool (Jira, Azure DevOps, Linear, Shortcut). Runs five structured phases — context ingestion, discovery interview, internal analysis, criterion-by-criterion validation, and epic generation — covering value proposition, target users & permissions, KPIs, use cases with Gherkin acceptance criteria, rollout plan, and definition of done.
@@ -106,6 +114,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 ```
 /make-it-work:go-deep                        # Scaffold full project docs from scratch
 /make-it-work:define-test-strategy           # Bootstrap a test strategy and regression baseline once per project
+/make-it-work:run-regression [full | domain-<name> | UC-<id> ...]  # Run the regression suite, full or scoped
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
@@ -196,6 +205,12 @@ Refine a ticket, then turn the agreed spec into an implementation plan:
 /make-it-work:plan-the-work TICKET-123
 ```
 
+Run a scoped regression check against the domain you're actively working on:
+
+```text
+/make-it-work:run-regression domain-velocity
+```
+
 Review the current pull request against the repository's documented product behavior and architecture:
 
 ```text
@@ -204,7 +219,7 @@ Review the current pull request against the repository's documented product beha
 
 ## Data access and permissions
 
-This plugin contains Markdown-based skills. It does not bundle executable scripts, hooks, MCP servers, or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow.
+This plugin contains Markdown-based skills. It does not bundle executable scripts, hooks, MCP servers, or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow; `run-regression` additionally runs the target project's own already-configured test command via Bash.
 
 Unlike the other pipeline skills, which only read code and write review/planning artifacts under `make-it-work/`, `define-test-strategy` also writes directly into the target project itself: it generates `.claude/rules/testing-strategy.md`, scaffolds placeholder test files into the project's existing test directories, and edits the project's `CLAUDE.md` (its "Rules Files" list and "After Any Feature Change" checklist). If you opt in to its optional hook offer, it additionally writes a git hook file into the project's hook-manager location (e.g. `.husky/` or `.git/hooks/`) that runs the full test suite before every commit or push.
 
