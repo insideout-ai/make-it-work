@@ -91,6 +91,8 @@ To make sure nothing is skipped, walk `CLAUDE.md` section by section rather than
 
 Severity follows the same calibration as everywhere else: a violation that changes behavior or hides a defect ranks higher than cosmetic hygiene (naming, missing explicit types, import order), which is Minor unless it demonstrably conceals a bug in this diff.
 
+**Unresolved `plan-the-work` stub check.** If this repo uses `make-it-work`'s TDD verification pipeline (`plan-the-work` writes per-step test files, including stub signatures for not-yet-implemented code), grep the diff for the fixed marker `plan-the-work stub — pending implementation`. Any match reaching this PR is, by definition, an unfinished step that never got real implementation — flag it as a **Critical** finding naming the exact file/line, regardless of what other category it might also fall under: a stub reaching review means the branch was merged (or is being reviewed for merge) before `execute` finished the plan it came from.
+
 ## Step 6 — Docs-sync check
 
 `CLAUDE.md`'s "After Any Feature Change" section (or equivalent) makes skill/doc updates part of the change itself — review them like code:

@@ -55,7 +55,7 @@ Run it once per project, right after `go-deep` — the same way `go-deep` itself
 
 `run-regression` runs a project's regression suite - the full suite, or scoped to specific domains and use cases named from `go-deep`'s vocabulary (e.g. `domain-velocity`, `UC-08`). It discovers the full-suite command from `define-test-strategy`'s generated `.claude/rules/testing-strategy.md` when that file exists, falling back to `package.json`/`Makefile`/CI discovery otherwise - the same way `plan-the-work` already discovers build and lint commands. Scaffolded placeholder tests never block a run, and results are reported live in chat, with nothing persisted to disk.
 
-Use it directly during day-to-day development to check a change against the regression suite, full or scoped. It's also meant to become the shared implementation the future `execute` skill calls as its completion gate at the end of a plan, instead of writing its own test-running logic.
+Use it directly during day-to-day development to check a change against the regression suite, full or scoped. It's also the shared implementation `execute` calls as its completion gate at the end of a plan, instead of writing its own test-running logic.
 
 ---
 
@@ -97,7 +97,7 @@ Pass a ticket ID or a spec path, or let the skill derive the ticket from the cur
 
 ### `/make-it-work:execute`
 
-Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate, scoped to what the plan touched when the target project supports it and full-suite otherwise, and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
+Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate — full-suite today, with the groundwork in place for a future scoped mode once plans record which domains/use-cases they touch — and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
 
 Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `plan-the-work` to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr` pipeline.
 
