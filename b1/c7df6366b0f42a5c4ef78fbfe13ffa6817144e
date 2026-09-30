@@ -1,0 +1,43 @@
+README.md
+  s_1ae77086fde6dc::t_2ffafac9f5e537 239
+  s_1ae77086fde6dc::t_1102ce3e06b02b 98-105
+  s_1ae77086fde6dc::t_21d232c8118157 238
+  s_1ae77086fde6dc::t_5aeec1d8c48072 134
+  s_1ae77086fde6dc::t_fa87dc6d352830 215
+skills/execute/SKILL.md
+  s_1ae77086fde6dc::t_ab13509393d005 25,34
+  s_1ae77086fde6dc::t_348444b8efc8cf 1-24,26-33,35-46,51-61
+  s_1ae77086fde6dc::t_bdf0e230c52700 154
+  s_1ae77086fde6dc::t_ea593562fe4efd 47-50
+  s_1ae77086fde6dc::t_ca6a8c3553e548 134
+  s_1ae77086fde6dc::t_1c6c0b82558e9a 144-146,148-150
+  s_1ae77086fde6dc::t_76b468427719ab 217-258
+  s_1ae77086fde6dc::t_39017a3dca7887 79
+  s_1ae77086fde6dc::t_daddbe2fb7922c 147
+  s_1ae77086fde6dc::t_a5d45340d6954a 259-288
+  s_1ae77086fde6dc::t_0ebbe7d33b5839 65
+  s_1ae77086fde6dc::t_3013446969701d 62-64,66-78,80,87,89-106
+  s_1ae77086fde6dc::t_5f1a893b45c163 186
+  s_1ae77086fde6dc::t_10d5db0913f914 107-113,115,117,119-121,123,126-133,135-143,151-153,155
+  s_1ae77086fde6dc::t_96039fcaa70fd8 114,116,118
+  s_1ae77086fde6dc::t_c1ab7a87486755 81-86,88
+  s_1ae77086fde6dc::t_945b5c6770d9bb 122,124-125
+  s_1ae77086fde6dc::t_1b67ebd0ebb6b5 159
+  s_1ae77086fde6dc::t_9a145f761b5fc1 156-158,160-185,187-216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b1c7df6366b0f42a5c4ef78fbfe13ffa6817144e",
+  "prompts": {},
+  "sessions": {
+    "s_1ae77086fde6dc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "43905f4f-6628-4a04-b48e-df3ce6505972",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
