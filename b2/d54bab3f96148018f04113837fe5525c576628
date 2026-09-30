@@ -1,0 +1,35 @@
+skills/plan-the-work/SKILL.md
+  s_07dc5e39838e40::t_b34a6cce9b0db6 205,207-208,211-213,215
+  s_07dc5e39838e40::t_0cab201e75c4dd 302-303
+  s_07dc5e39838e40::t_29a3394974ac2a 352
+  s_07dc5e39838e40::t_da477fa7b8bf94 9
+  s_07dc5e39838e40::t_bf207029e28d8b 203-204,216
+  s_07dc5e39838e40::t_f0c63a1fc24508 206,209-210,214
+  s_07dc5e39838e40::t_104d63acc94be9 323
+  s_07dc5e39838e40::t_91da653de01f6b 327
+  s_07dc5e39838e40::t_396c153885733e 2
+  s_07dc5e39838e40::t_7c525def49c407 331
+  s_07dc5e39838e40::t_b2488fae47bda6 27
+  s_07dc5e39838e40::t_8efc9d8c0bf576 324
+  s_07dc5e39838e40::t_e843cc9ba17bcf 332
+README.md
+  s_07dc5e39838e40::t_b12e1e1e06dc7d 76
+  s_07dc5e39838e40::t_134552e07b50e9 199-200
+  s_07dc5e39838e40::t_045be7b5c82c3c 114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b2d54bab3f96148018f04113837fe5525c576628",
+  "prompts": {},
+  "sessions": {
+    "s_07dc5e39838e40": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "66b5f748-5cfc-4a33-8eee-844f832c9c37",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
