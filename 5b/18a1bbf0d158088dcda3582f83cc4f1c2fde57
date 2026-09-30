@@ -1,0 +1,22 @@
+skills/execute/SKILL.md
+  s_afb397b26abbc2::t_490819f4e19485 234
+  s_afb397b26abbc2::t_cf9acd1338c681 252
+  s_afb397b26abbc2::t_6b86ba3d6e8796 243
+  s_afb397b26abbc2::t_ef1584fd5bcb43 228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "5b18a1bbf0d158088dcda3582f83cc4f1c2fde57",
+  "prompts": {},
+  "sessions": {
+    "s_afb397b26abbc2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd0aaf5b-0bf4-4643-8a42-cd99059a129f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
