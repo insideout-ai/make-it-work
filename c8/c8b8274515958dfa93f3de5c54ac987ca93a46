@@ -1,0 +1,48 @@
+skills/define-test-strategy/SKILL.md
+  s_5ae92c05f4e69b::t_45c599de9f8f9c 71
+  s_5ae92c05f4e69b::t_b5c8fe0ec8b7f2 88
+  s_5ae92c05f4e69b::t_75cd2ad6138109 89
+  s_5ae92c05f4e69b::t_22dc3230d0439c 93
+  s_5ae92c05f4e69b::t_fbfc82320ee0bd 77
+  s_5ae92c05f4e69b::t_43cf21a07bd3f7 175-185,187,190-191,193,195-197,199,201,206-207,209-215
+  s_5ae92c05f4e69b::t_4e0f5040da2889 136-143,146,148-149,151-152,155
+  s_5ae92c05f4e69b::t_a2dc981329e3f6 1-17,46-48,82-84,127-129,172-174,217-219
+  s_5ae92c05f4e69b::t_e02cbe27833ef7 130-133,135,144-145,147,153-154,158-163,168-171
+  s_5ae92c05f4e69b::t_b378e3460b48d8 19,21,23,31,42,44
+  s_5ae92c05f4e69b::t_8f417517a150e1 60
+  s_5ae92c05f4e69b::t_560b95ebf5dfd3 186,188-189,194,198,200,202-205,208
+  s_5ae92c05f4e69b::t_4a5f4f9a10bd58 192
+  s_5ae92c05f4e69b::t_2c6aa11ae39448 216
+  s_5ae92c05f4e69b::t_781382d200f929 220-231,233-239,241,243-245,250-253
+  s_5ae92c05f4e69b::t_4aeff518885f35 85-87,90-92,94-126
+  s_5ae92c05f4e69b::t_cefa4b45cbbe6c 49-59,61-70,72-76,78-81
+  s_5ae92c05f4e69b::t_0cea0119ecbaa1 134,156-157,164,166-167
+  s_5ae92c05f4e69b::t_577c68645bba76 240,242,246-249
+  s_5ae92c05f4e69b::t_cf5a1b10db7047 18,20,22,24-30,32-41,43,45
+  s_5ae92c05f4e69b::t_e20bc8ea4c83a7 165
+  s_5ae92c05f4e69b::t_fb092052f2267d 150
+  s_5ae92c05f4e69b::t_9ae4a2605ce558 232
+README.md
+  s_5ae92c05f4e69b::t_cc300c3b3a58d8 108
+  s_5ae92c05f4e69b::t_5c6c1dc6724a10 209-210
+  s_5ae92c05f4e69b::t_2668e37c96ff80 50
+  s_5ae92c05f4e69b::t_ef06afbc0afd62 123
+  s_5ae92c05f4e69b::t_5f8fbf15c13cfa 178,182
+  s_5ae92c05f4e69b::t_c4f93dac238fdb 46-49,51-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "c8c8b8274515958dfa93f3de5c54ac987ca93a46",
+  "prompts": {},
+  "sessions": {
+    "s_5ae92c05f4e69b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e925cc9e-c6fd-4f82-b0f4-4a9a0d50a8ee",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
