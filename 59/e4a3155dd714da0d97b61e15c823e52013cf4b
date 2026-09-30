@@ -1,0 +1,19 @@
+skills/define-test-strategy/SKILL.md
+  s_afb397b26abbc2::t_fa37f90efae75b 220,222,224,226,228-232,236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "59e4a3155dd714da0d97b61e15c823e52013cf4b",
+  "prompts": {},
+  "sessions": {
+    "s_afb397b26abbc2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd0aaf5b-0bf4-4643-8a42-cd99059a129f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
