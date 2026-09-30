@@ -229,6 +229,8 @@ Reproduce this section structure. Keep every section (write "None" where empty r
 
 ## Execution Status
 
+_This section is owned by `execute`, not `plan-the-work` — `plan-the-work` writes it once, verbatim, as part of the initial skeleton, and never edits it again. Everything below is written for whichever session runs `execute` against this plan._
+
 **Mode:** Not yet chosen. Before doing anything else — even if you were only handed this file with no memory of it being created — ask the user to choose:
 - **Subagent-Driven** — dispatch a fresh subagent per step (via the Agent tool), reviewed between steps.
 - **Inline** — execute steps in this session, checkpointed after each step's Verify.
@@ -407,19 +409,13 @@ If Overall risk (after mitigations) is High, also print the plan's `### Phasing 
 - **standard** — moderate: a few domains or repos, some risk, mostly-specified steps.
 - **high** — multiple repos with logic changes, security / state transitions / data migrations / cross-service flows, or steps that still need judgment during execution.
 
-Tier, not a model name — map it to whatever model lineup the executor uses. You cannot change the current session's model: under **Inline Execution** it's the user's call to apply (e.g. via `/model`). Under **Subagent-Driven** execution, pass a model matching this tier as the `model` argument on each `Agent` dispatch, so every step runs at the recommended level.
+Tier, not a model name — map it to whatever model lineup the executor uses. `execute` re-derives this same tier independently, directly from the plan file, and applies it when it runs: under Inline mode it's informational for the user to apply themselves if they want (e.g. via `/model`); under Subagent-Driven mode, `execute` passes a model matching this tier as the `model` argument on each `Agent` dispatch it makes.
 
-Then offer the execution choice:
+Then tell the user the plan is ready — this skill never drives step execution itself, so it never asks the Subagent-Driven-vs-Inline question or touches `## Execution Status` beyond the skeleton it already wrote:
 
-**"Plan saved. Two execution options:**
+**"Plan saved. Run `/make-it-work:execute <TICKET>` (or `/make-it-work:execute make-it-work/<TICKET>-plan.md`) when you're ready to implement it — it will ask you to choose Subagent-Driven or Inline execution the first time it runs, and a later re-run picks up wherever the last one left off."**
 
-**1. Subagent-Driven (recommended)** — dispatch a fresh subagent per step (via the Agent tool), review between steps. Best for complex multi-repo plans; keeps each step's context clean.
-
-**2. Inline Execution** — execute steps in this session with a checkpoint after each step's Verify.
-
-**Which approach? (or: review the plan first, then decide)**"
-
-The moment the user answers, update the plan file's `## Execution Status → Mode` line to the chosen value before executing anything; after each step's Verify passes (under either mode), update `Progress` in the file too. This keeps the file self-governing regardless of which session ends up executing it.
+Leave `## Execution Status` exactly as the skeleton wrote it (`Mode: Not yet chosen`, `Progress: Step 0 of N complete`). `execute` owns asking for Mode (once, the first time it runs against this plan) and owns updating both Mode and Progress from that point on — `plan-the-work` never edits this section after the initial skeleton, regardless of what the user says next.
 
 **Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
 
