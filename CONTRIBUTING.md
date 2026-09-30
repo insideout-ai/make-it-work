@@ -56,4 +56,4 @@ Keep each pull request focused on one outcome. In the description, include:
 - Screenshots or transcripts only when they add useful evidence, with sensitive data removed.
 - Any compatibility or migration impact.
 
-By contributing, you agree that your contribution is provided under this repository's [MIT License](LICENSE).
+By contributing, you agree that your contribution is provided under this repository's [PolyForm Internal Use License 1.0.0](LICENSE).
