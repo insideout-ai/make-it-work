@@ -217,19 +217,23 @@ Present all of these lists directly in the chat response to the user. Do not wri
 
 This phase only ever runs for a repo that went through Phase 1's **fresh**, **extend**, or **adopt** path and continued past Phase 4 via that phase's "Offered at the end of a fresh/extend/adopt run" entry point. It never runs for a repo that arrived via Phase 1's case **(d) Re-check coverage only** — per Phase 4's own "Entry points" section, that path already ended the run for this repo at Phase 4, and this phase must not be reached for it under any circumstance.
 
-### Rules Files entry — always done
+### Rules Files entry — ensured, not always added
 
-For each repo in scope reaching this phase, add `.claude/rules/testing-strategy.md` as a new row in this repo's `CLAUDE.md`, in the "Rules Files" section `go-deep` already creates there (the section listing all `.claude/rules/*.md` files with brief descriptions). Add one new row alongside the existing ones, with a one-line description such as "Test layers, coverage decision tree, test commands, and the UC/domain test-tagging convention." Do not touch or reorder any existing row in that section.
+For each repo in scope reaching this phase, first check whether this repo's `CLAUDE.md` "Rules Files" section already has a row referencing `.claude/rules/testing-strategy.md` — this phase is reachable on an **extend**/**adopt** re-run (Phase 1's case (b)/(c)) just as much as on a **fresh** run, so a prior run may have already added this row. If a matching row already exists, leave it exactly as-is and move on to the checklist-item check below; do not add a second row or edit the existing one.
 
-If this repo's `CLAUDE.md` has no "Rules Files" section at all, or the section that's there doesn't take the expected shape (a list/table of `.claude/rules/*.md` files), stop and ask the user where they'd like this reference added, naming the repo, rather than guessing a location or inventing a new section — per this plan's Risks mitigation for CLAUDE.md-shape drift. Do not proceed to the checklist-item edit below for this repo until this is resolved.
+If no matching row exists yet, add `.claude/rules/testing-strategy.md` as a new row in the "Rules Files" section `go-deep` already creates there (the section listing all `.claude/rules/*.md` files with brief descriptions). Add one new row alongside the existing ones, with a one-line description such as "Test layers, coverage decision tree, test commands, and the UC/domain test-tagging convention." Do not touch or reorder any existing row in that section.
 
-### After Any Feature Change checklist item — always done
+If this repo's `CLAUDE.md` has no "Rules Files" section at all, or the section that's there doesn't take the expected shape (a list/table of `.claude/rules/*.md` files), stop and ask the user where they'd like this reference added, naming the repo, rather than guessing a location or inventing a new section. Do not proceed to the checklist-item edit below for this repo until this is resolved.
 
-For the same repo, add one new checklist item to the existing "After Any Feature Change — CRITICAL" section `go-deep` already creates at the end of this repo's `CLAUDE.md`, instructing Claude to check the project's regression/coverage status — using the full-suite command documented in the strategy file's own `## Commands` section — before every commit. Insert this new item **first** in that checklist, before any existing "commit together" step already there — checking regression status logically precedes committing, not follows it. This is a new item added inside `go-deep`'s existing section, never a new, separate rule file and never a competing section elsewhere in `CLAUDE.md` (per this plan's Assumption (3)).
+### After Any Feature Change checklist item — ensured, not always added
+
+For the same repo, first check whether the existing "After Any Feature Change — CRITICAL" section already has a checklist item instructing Claude to check the project's regression/coverage status before every commit (the exact wording this phase would otherwise insert, or close enough that it's clearly the same item from a prior run). If it does, leave it exactly as-is; do not insert a second, duplicate item.
+
+If no such item exists yet, add one new checklist item to the existing "After Any Feature Change — CRITICAL" section `go-deep` already creates at the end of this repo's `CLAUDE.md`, instructing Claude to check the project's regression/coverage status — using the full-suite command documented in the strategy file's own `## Commands` section — before every commit. Insert this new item **first** in that checklist, before any existing "commit together" step already there — checking regression status logically precedes committing, not follows it. This is a new item added inside `go-deep`'s existing section, never a new, separate rule file and never a competing section elsewhere in `CLAUDE.md`.
 
 If this repo's `CLAUDE.md` has no "After Any Feature Change — CRITICAL" section, or what's there doesn't take the expected shape (a checklist `go-deep` itself would recognize as its own, including its quick-lookup table), stop and ask the user where they'd like this item added, the same way as the Rules Files case above, rather than guessing or inserting it into an unrelated section.
 
-Both edits above are unconditional: every repo reaching this phase gets them, regardless of whatever the user decides about the hook below.
+Both checks above run every time this phase is reached, including on an extend/adopt re-run: every repo reaching this phase ends up with exactly one Rules Files row and exactly one checklist item, regardless of whether this is the first time or a later re-run, and regardless of whatever the user decides about the hook below.
 
 ### Optional hook offer — opt-in, after both CLAUDE.md edits
 
