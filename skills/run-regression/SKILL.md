@@ -1,5 +1,5 @@
 ---
-description: "Runs a project's regression suite — full or scoped to specific domains/use-cases — and reports pass/fail results; the shared implementation the future `execute` skill calls at the end of a plan. Use when running or checking a project's test suite, full or scoped to specific domains/use-cases."
+description: "Runs a project's regression suite — full or scoped to specific domains/use-cases — and reports pass/fail results; the shared implementation `execute` calls at the end of a plan. Use when running or checking a project's test suite, full or scoped to specific domains/use-cases."
 ---
 
 # Run Regression
@@ -14,7 +14,7 @@ description: "Runs a project's regression suite — full or scoped to specific d
 - **`full` or `full-suite`** — runs the full suite, no prompt.
 - **One or more space-separated domain/UC tokens** (e.g. `domain-velocity UC-08`) — runs a scoped subset covering just those domains/use-cases, no prompt.
 
-This skill is meant to be invoked both directly by a user and, once built, by the `execute` skill's own instructions passing an already-resolved argument.
+This skill is invoked both directly by a user and by the `execute` skill's own instructions passing an already-resolved argument.
 
 ## Phase 0 — Resolve repo context and mode
 
@@ -48,7 +48,7 @@ Resolve the mode from the invocation argument (per the Usage syntax above):
 - **One or more tokens matching `domain-{name}` or `UC-{id}`** → proceed straight to Phase 2 with those tokens as the requested scope, no prompt.
 - **Any other argument** → tell the user the argument wasn't recognized as `full` or a `domain-*`/`UC-*` token, and fall through to the no-argument prompt above rather than guessing.
 
-**Note:** this skill never attempts to infer who invoked it (a user typing a command vs. another skill's instructions calling it) — it only ever reacts to the argument it was given. This is a deliberate design decision: the future `execute` skill is responsible for always passing an already-resolved argument (a computed scope, or literally `full`) rather than this skill trying to detect "is my caller the completion gate."
+**Note:** this skill never attempts to infer who invoked it (a user typing a command vs. another skill's instructions calling it) — it only ever reacts to the argument it was given. This is a deliberate design decision: the `execute` skill is responsible for always passing an already-resolved argument (a computed scope, or literally `full`) rather than this skill trying to detect "is my caller the completion gate."
 
 ## Phase 1 — Discover and run the full suite
 
@@ -56,7 +56,7 @@ Run this phase once per repo in scope: every repo in a detected workspace, or th
 
 ### Discovery order
 
-1. **Check for a test-strategy file.** Look for `.claude/rules/testing-strategy.md` in this repo. If it exists, read its `## Commands` section — this is the primary, authoritative source: `define-test-strategy` generates this file and its own spec states explicitly that this `## Commands` section is "the section a future `run-regression` skill reads to find 'the full suite command.'" That section records both the full-suite command and one example command per test layer — use only the documented full-suite command, never a per-layer example command. If the section exists but has no full-suite entry, fall through to step 2 below exactly as if the file/section were absent.
+1. **Check for a test-strategy file.** Look for `.claude/rules/testing-strategy.md` in this repo. If it exists, read its `## Commands` section — this is the primary, authoritative source: `define-test-strategy` generates this file and its own instructions state explicitly that this `## Commands` section is "the section the `run-regression` skill reads to find 'the full suite command.'" That section records both the full-suite command and one example command per test layer — use only the documented full-suite command, never a per-layer example command. If the section exists but has no full-suite entry, fall through to step 2 below exactly as if the file/section were absent.
 2. **Fall back to the same discovery order `plan-the-work` uses** if that file or section is absent, or has no full-suite entry, for this repo: check `package.json` scripts, `Makefile` targets, and CI config (e.g. `.github/workflows/`) for a full-test/regression command. The only exclusions are build, lint, and type-check commands — a plain `test` script or target (even one that only runs unit tests, e.g. a bare `jest`/`vitest` invocation) is a usable full-suite command on its own. If several test-related commands exist, prefer the broadest one (`test:all`, `test:ci`, or a CI job step that runs the whole suite) over a narrower `test`.
 
 ### Stop-and-ask fallback
@@ -186,7 +186,7 @@ Per repo/run, this phase produces, for Phase 5 to assemble into the final report
 
 ## Phase 5 — Report results
 
-This is the final phase: it assembles whatever the earlier phases produced for each repo in scope into one fixed chat block per repo, and prints it. **Nothing here is written to disk, and nothing is read back from disk.** The report is returned live, in the same chat turn, to whichever session invoked this skill — a direct user invocation or, once built, the `execute` skill's own completion-gate call — per the spec's Decision Log ("no persisted file — return the result live to the caller only"). There is no report file for a re-run to check for or overwrite, and no raw test-runner log is ever pasted into the chat response: only the fixed summary block below, plus (for a multi-repo full-suite run only) the one leading line described in "How many blocks: full-suite mode" below. The three stop-and-ask conditions that can precede or replace this phase entirely — Phase 0's "could not identify the project root," Phase 1's per-repo undiscoverable-command stop, and Phase 2's scoped-mode availability gate — are each handled exactly as described under "Stop-and-ask conditions and this phase" below; none of them prints raw test-runner output either.
+This is the final phase: it assembles whatever the earlier phases produced for each repo in scope into one fixed chat block per repo, and prints it. **Nothing here is written to disk, and nothing is read back from disk.** The report is returned live, in the same chat turn, to whichever session invoked this skill — a direct user invocation or the `execute` skill's own completion-gate call — per the spec's Decision Log ("no persisted file — return the result live to the caller only"). There is no report file for a re-run to check for or overwrite, and no raw test-runner log is ever pasted into the chat response: only the fixed summary block below, plus (for a multi-repo full-suite run only) the one leading line described in "How many blocks: full-suite mode" below. The three stop-and-ask conditions that can precede or replace this phase entirely — Phase 0's "could not identify the project root," Phase 1's per-repo undiscoverable-command stop, and Phase 2's scoped-mode availability gate — are each handled exactly as described under "Stop-and-ask conditions and this phase" below; none of them prints raw test-runner output either.
 
 ### The fixed block
 

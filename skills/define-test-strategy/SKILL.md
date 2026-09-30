@@ -94,7 +94,7 @@ Immediately under the file's top-level title, in all three modes, the first line
 
 ### Fixed headings
 
-Write exactly these four headings, in this exact order, verbatim — a future `run-regression` skill locates each section by matching this heading text exactly, so the wording and order must never vary from run to run or repo to repo:
+Write exactly these four headings, in this exact order, verbatim — the `run-regression` skill locates each section by matching this heading text exactly, so the wording and order must never vary from run to run or repo to repo:
 
 **`## Test Layers`**
 
@@ -111,7 +111,7 @@ Adjust, add, or drop branches as needed to match whichever layers this project's
 
 **`## Commands`**
 
-Record the full-suite command and one example command per layer named in `## Test Layers`. State explicitly, as the first line under this heading, that this is the section a future `run-regression` skill reads to find "the full suite command" — so its shape and presence matter beyond this skill's own use. Discover these commands the same way `plan-the-work` discovers build/lint/test commands: from `package.json` scripts, `Makefile` targets, CI config (e.g. `.github/workflows/`), or `CLAUDE.md`'s existing Quick Reference section — never assume `npm test` or `pytest` by default just because they're common. If a layer has no discoverable command yet (e.g. contract tests aren't wired into any script), say so explicitly rather than inventing one.
+Record the full-suite command and one example command per layer named in `## Test Layers`. State explicitly, as the first line under this heading, that this is the section the `run-regression` skill reads to find "the full suite command" — so its shape and presence matter beyond this skill's own use. Discover these commands the same way `plan-the-work` discovers build/lint/test commands: from `package.json` scripts, `Makefile` targets, CI config (e.g. `.github/workflows/`), or `CLAUDE.md`'s existing Quick Reference section — never assume `npm test` or `pytest` by default just because they're common. If a layer has no discoverable command yet (e.g. contract tests aren't wired into any script), say so explicitly rather than inventing one.
 
 **`## UC/Domain Tag Convention`**
 
