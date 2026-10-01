@@ -7,9 +7,39 @@ disable-model-invocation: true
 
 Turn an oversized requirement into a small, ordered backlog of independently demonstrable increments. Preserve the epic-level goal while making uncertainty, dependencies, and delivery order visible.
 
+## Usage
+
+```
+/make-it-work:slice-the-epic [--autopilot] <requirement text | Jira/Confluence reference>
+```
+
+- **No `--autopilot`** — interactive. If the requirement is missing an identifiable outcome, or it combines unrelated initiatives, asks one focused clarifying question and waits, exactly as documented below.
+- **`--autopilot`** — unattended. If that clarifying question would otherwise fire, apply the Autopilot Mode policy below instead of pausing.
+
+## Autopilot Mode
+
+When invoked with `--autopilot`, still evaluate the "Understand the request" condition exactly as the interactive path would — only skip the pause when the condition is actually met (no identifiable outcome, or unrelated initiatives bundled together).
+
+**Hard-stop exception:** none. This skill reads a requirement and returns a backlog in chat; it never overwrites or discards existing state, so there is no destructive-action analog to guard against. The "Wrap up" step's offer to refine or split slices further is already non-blocking by design — the skill text explicitly says not to require another decision point there — so autopilot makes no change to it.
+
+**Decision log:** after the backlog has been produced — never before it, and never as a reason to delay or withhold the backlog — write `.claude/slice-the-epic-autopilot-log.jsonl` at repo root, overwritten fresh for this run (zero lines if the clarifying-question condition never fired). If the write is denied (e.g. a sandboxed environment that blocks `.claude/` writes), treat that as non-fatal: the backlog has already been delivered, so simply note the failed write in the end-of-run summary instead of stopping or retrying. One JSON object per line, written only when the condition actually fires:
+- `phase` — `"Understand the request"`.
+- `site` — `"missing-fact-clarification"`.
+- `kind` — `"open_text"`.
+- `chosen` — the free-text best-guess answer, prefixed `[autopilot best-guess]`.
+- `rationale` — one sentence explaining the inference.
+
+**Resolution table:**
+
+| Site | `kind` | Autopilot resolution |
+|---|---|---|
+| Missing-fact clarification (fires only when there is no identifiable outcome, or the material combines unrelated initiatives) | `open_text` | State the best-guess assumption inline, prefixed `[autopilot best-guess]`, and proceed with slicing on that assumption rather than waiting for an answer. |
+
+At the end of an autopilot run, print a short summary: either the one auto-resolved assumption and the log file's path, or a one-line note that no clarifying question was needed this run (and whether the log write itself succeeded).
+
 ## Understand the request
 
-Work from the requirement the user provides. If they give a Jira or Confluence reference and a suitable connector is available, retrieve it. Ask one focused question only when a missing fact prevents a meaningful slice—for example, there is no identifiable outcome or the material combines unrelated initiatives.
+Work from the requirement the user provides. If they give a Jira or Confluence reference and a suitable connector is available, retrieve it. Ask one focused question only when a missing fact prevents a meaningful slice—for example, there is no identifiable outcome or the material combines unrelated initiatives. (autopilot: see Autopilot Mode)
 
 Existing acceptance criteria may already reveal natural boundaries. Reuse those boundaries when they produce independently valuable slices.
 

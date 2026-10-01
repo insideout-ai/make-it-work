@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-the-work-plan-collision-negative-control
+tags: [plan-the-work, smoke]
+context:
+  scaffold_script: fixture.sh

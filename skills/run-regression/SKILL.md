@@ -7,16 +7,48 @@ description: "Runs a project's regression suite — full or scoped to specific d
 ## Usage
 
 ```
-/make-it-work:run-regression [full | domain-<name> | UC-<id> ...]
+/make-it-work:run-regression [--autopilot] [full | domain-<name> | UC-<id> ...]
 ```
 
 - **No argument** — asks the user whether to run the full suite or a specific scope.
 - **`full` or `full-suite`** — runs the full suite, no prompt.
 - **One or more space-separated domain/UC tokens** (e.g. `domain-velocity UC-08`) — runs a scoped subset covering just those domains/use-cases, no prompt.
+- **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. `--autopilot` is parsed and stripped as a flag before the remaining tokens are classified as `full`/`full-suite`/`domain-*`/`UC-*` — it may appear anywhere in the argument list (e.g. `--autopilot full`, `domain-velocity --autopilot`) and never counts as "no argument" or as an unrecognized scope token on its own. Invoking `--autopilot` with no scope argument resolves to `full` — see Autopilot Mode.
 
 This skill is invoked both directly by a user and by the `execute` skill's own instructions passing an already-resolved argument.
 
-## Phase 0 — Resolve repo context and mode
+## Autopilot Mode
+
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — the exact option labels, `multiSelect` settings, and list-vs-picker thresholds all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+
+**Hard-stop exception:** no destructive or irreversible action exists anywhere in this skill — `run-regression` runs tests and reports results; it never overwrites, discards, or replaces any existing file or state (see Phase 5: nothing is ever written to disk except the autopilot log below). There is therefore no destructive-action analog to name as a hard-stop exception, stated explicitly rather than omitted.
+
+**Mode choice default:** the Phase 0 mode choice (Full suite vs. Scoped, the "No argument" case below) resolves automatically when `--autopilot` is invoked with no `full`/`full-suite`/`domain-*`/`UC-*` argument: choose the option labeled `(Recommended)` — `Full suite` (see its label in Mode resolution below). Full suite is the broadest, non-destructive option — it runs every test, nothing is narrowed or skipped — which is why it's the safe unattended default rather than `Scoped`, which would otherwise need its own follow-up domain/UC picker with no way to ask it unattended.
+
+**Decision log:** write `.claude/run-regression-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the very start of every `--autopilot` invocation, before any site is checked, and appended to as each site below is reached. This is the only file this skill ever writes under any invocation — every other phase (notably Phase 5) writes nothing to disk at all; see Phase 5's own note. A run where zero interactive sites fire — the common case, since an explicit `full`/`domain-*`/`UC-*` argument with an unambiguous single repo hits none of the sites below — still leaves behind an empty log file; its bare existence is the evidence `--autopilot` engaged, even when nothing needed resolving. One JSON object per line:
+- `phase` — e.g. `"Phase 0"`, `"Phase 1"`.
+- `site` — a short slug, e.g. `"mode-choice"`, `"repo-ambiguity"`, `"no-command"`.
+- `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause/ask point was auto-resolved).
+- `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"`.
+- `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
+- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, or `null` for a site that stopped rather than resolving.
+- `rationale` — one sentence.
+
+**Resolution table** (one row per interactive site):
+
+| Phase | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Phase 0 | mode choice, no argument (Full suite vs. Scoped) | `askUserQuestion` | Choose the option labeled `(Recommended)` — `Full suite`. |
+| Phase 0 | ambiguous repo pick among unrelated clones with no unifying doc | `checkpoint` | No safe default — which repo even exists isn't a product-policy choice to infer. Stop and require a human. |
+| Phase 0 | ambiguous workspace-repo target for a scoped run | `askUserQuestion` | No safe default, same reasoning as above. Stop and require a human. |
+| Phase 0 | combined domain/UC candidate-list confirmation (only reachable when "Scoped" is chosen with no tokens given) | `askUserQuestion` / `checkpoint` | Unreachable under autopilot: the mode-choice site above always resolves to `Full suite`, never `Scoped`, when no argument is given — so this site is never reached unattended. If a future change to the mode-choice resolution ever makes `Scoped` autopilot's choice, treat this the same as the other no-default sites above: stop and require a human. |
+| Phase 1 | stop-and-ask fallback — no discoverable full-suite command for this repo, single-repo run | `checkpoint` (deliberately **not** treated as an open-ended best-guess site) | Never invent a test command here — a guessed command could produce a false PASS or FAIL that has nothing to do with this project's real suite, which this skill's own "never a false pass" invariant forbids. Print Phase 1's stop message verbatim, print no Phase 5 block, and stop. A multi-repo run needs no resolution at this site at all: Phase 5 already reports that one repo's block automatically (`Gate result: FAIL`, fixed reason) and the run proceeds to the rest of the workspace regardless of `--autopilot`. |
+
+Two sites in this skill are deterministic gates, not questions, and need no autopilot resolution at all because they already behave identically with or without `--autopilot`: Phase 2's scoped-mode availability gate (no `testing-strategy.md`) and Phase 3's wrapper-attachment refusal (matched tokens whose file paths can't be reliably attached to the discovered runner). Phase 0's "could not identify the project root" stop is the same — a hard stop with no human input that could resolve it, unaffected by autopilot.
+
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision (or the single "stopped — no default/no command" decision, when that's what happened) and the decision log's path, so someone can audit the run afterward.
+
+## Phase 0 — Resolve repo context and mode (autopilot: see Autopilot Mode)
 
 ### Repo/workspace detection
 
@@ -25,24 +57,24 @@ Reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **sin
 1. **`.git` exists here.** This repo is a project root. Then:
    - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`).
    - Otherwise → **single-repo project**, root is here — even if the parent happens to contain other, unrelated repos.
-2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to run against, rather than guessing.
+2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to run against, rather than guessing. (autopilot: see Autopilot Mode)
 3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop.
 
-Full-suite mode (Phase 1) iterates every repo in a detected workspace. Scoped mode (Phase 2 onward) operates against exactly one repo. If a workspace is detected and no single repo is unambiguous from context (e.g. the invocation directory), list the affected repos and ask the user which one this scoped run targets via a single `AskUserQuestion` call (`multiSelect: false`), before proceeding to Phase 2 for that repo only.
+Full-suite mode (Phase 1) iterates every repo in a detected workspace. Scoped mode (Phase 2 onward) operates against exactly one repo. If a workspace is detected and no single repo is unambiguous from context (e.g. the invocation directory), list the affected repos and ask the user which one this scoped run targets via a single `AskUserQuestion` call (`multiSelect: false`), before proceeding to Phase 2 for that repo only. (autopilot: see Autopilot Mode)
 
-### Mode resolution
+### Mode resolution (autopilot: see Autopilot Mode)
 
-Resolve the mode from the invocation argument (per the Usage syntax above):
+Resolve the mode from the invocation argument (per the Usage syntax above). `--autopilot` is stripped before this classification runs (see Usage) and never itself counts as "no argument":
 
 - **No argument** → ask the user, via a single `AskUserQuestion` call (`multiSelect: false`), whether to run the full suite or a specific scope:
-  - `{ label: "Full suite", description: "Run every test." }`
+  - `{ label: "Full suite (Recommended)", description: "Run every test." }`
   - `{ label: "Scoped to specific domain(s)/use-case(s)", description: "Focus on the flows you're actively touching." }`
 
   If **"Full suite"** is chosen, proceed to Phase 1. If **"Scoped"** is chosen, first check whether `.claude/rules/testing-strategy.md` exists in this repo — the same availability gate Phase 2 defines. If it does not exist, skip straight to Phase 2's availability-gate message and stop; do not present a domain/UC picker for a project where scoped mode can't run anyway. Only once that file's presence is confirmed, and the user gave no tokens, read the target repo's `.claude/rules/product.md` UC table and `.claude/rules/architecture.md` Functional Domains table, and present the combined list:
   - as multi-select options (`AskUserQuestion`, `multiSelect: true`) if there are 4 or fewer combined rows;
   - otherwise as a plain-text list to choose from/confirm.
 
-  This mirrors a confirmation-checkpoint pattern used elsewhere in this plugin's skills: show the candidate list, get explicit confirmation before proceeding, never invent flows from scratch.
+  This mirrors a confirmation-checkpoint pattern used elsewhere in this plugin's skills: show the candidate list, get explicit confirmation before proceeding, never invent flows from scratch. (autopilot: see Autopilot Mode — unreachable under autopilot today, since reaching it requires the no-argument mode choice above to have already resolved to "Scoped," which autopilot never does unattended.)
 
 - **`full` or `full-suite`** (case-insensitive) → proceed straight to Phase 1, no prompt.
 - **One or more tokens matching `domain-{name}` or `UC-{id}`** → proceed straight to Phase 2 with those tokens as the requested scope, no prompt.
@@ -59,7 +91,7 @@ Run this phase once per repo in scope: every repo in a detected workspace, or th
 1. **Check for a test-strategy file.** Look for `.claude/rules/testing-strategy.md` in this repo. If it exists, read its `## Commands` section — this is the primary, authoritative source: `define-test-strategy` generates this file and its own instructions state explicitly that this `## Commands` section is "the section the `run-regression` skill reads to find 'the full suite command.'" That section records both the full-suite command and one example command per test layer — use only the documented full-suite command, never a per-layer example command. If the section exists but has no full-suite entry, fall through to step 2 below exactly as if the file/section were absent.
 2. **Fall back to the same discovery order `plan-the-work` uses** if that file or section is absent, or has no full-suite entry, for this repo: check `package.json` scripts, `Makefile` targets, and CI config (e.g. `.github/workflows/`) for a full-test/regression command. The only exclusions are build, lint, and type-check commands — a plain `test` script or target (even one that only runs unit tests, e.g. a bare `jest`/`vitest` invocation) is a usable full-suite command on its own. If several test-related commands exist, prefer the broadest one (`test:all`, `test:ci`, or a CI job step that runs the whole suite) over a narrower `test`.
 
-### Stop-and-ask fallback
+### Stop-and-ask fallback (autopilot: see Autopilot Mode)
 
 If neither source yields a usable command for this repo, stop before running anything for this repo and tell the user, verbatim:
 
@@ -186,7 +218,7 @@ Per repo/run, this phase produces, for Phase 5 to assemble into the final report
 
 ## Phase 5 — Report results
 
-This is the final phase: it assembles whatever the earlier phases produced for each repo in scope into one fixed chat block per repo, and prints it. **Nothing here is written to disk, and nothing is read back from disk.** The report is returned live, in the same chat turn, to whichever session invoked this skill — a direct user invocation or the `execute` skill's own completion-gate call — per the spec's Decision Log ("no persisted file — return the result live to the caller only"). There is no report file for a re-run to check for or overwrite, and no raw test-runner log is ever pasted into the chat response: only the fixed summary block below, plus (for a multi-repo full-suite run only) the one leading line described in "How many blocks: full-suite mode" below. The three stop-and-ask conditions that can precede or replace this phase entirely — Phase 0's "could not identify the project root," Phase 1's per-repo undiscoverable-command stop, and Phase 2's scoped-mode availability gate — are each handled exactly as described under "Stop-and-ask conditions and this phase" below; none of them prints raw test-runner output either.
+This is the final phase: it assembles whatever the earlier phases produced for each repo in scope into one fixed chat block per repo, and prints it. **Nothing here is written to disk, and nothing is read back from disk** — the one exception, orthogonal to this phase, is `--autopilot`'s own decision log at `.claude/run-regression-autopilot-log.jsonl` (see Autopilot Mode), which is written before Phase 5 ever runs and isn't part of this phase's own output. The report is returned live, in the same chat turn, to whichever session invoked this skill — a direct user invocation or the `execute` skill's own completion-gate call — per the spec's Decision Log ("no persisted file — return the result live to the caller only"). There is no report file for a re-run to check for or overwrite, and no raw test-runner log is ever pasted into the chat response: only the fixed summary block below, plus (for a multi-repo full-suite run only) the one leading line described in "How many blocks: full-suite mode" below. The three stop-and-ask conditions that can precede or replace this phase entirely — Phase 0's "could not identify the project root," Phase 1's per-repo undiscoverable-command stop, and Phase 2's scoped-mode availability gate — are each handled exactly as described under "Stop-and-ask conditions and this phase" below; none of them prints raw test-runner output either.
 
 ### The fixed block
 

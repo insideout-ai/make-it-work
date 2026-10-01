@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: rr-full-fail
+tags: [run-regression, smoke]
+context:
+  scaffold_script: fixture.sh

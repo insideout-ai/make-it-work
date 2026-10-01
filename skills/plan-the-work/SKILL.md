@@ -15,16 +15,56 @@ This is the planning step of a pipeline: a spec already exists (e.g. from `close
 ## Usage
 
 ```
-/make-it-work:plan-the-work [TICKET-ID | path/to/spec.md]
+/make-it-work:plan-the-work [TICKET-ID | path/to/spec.md] [--autopilot]
 ```
 
-- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec file, or nothing (the skill derives the key from the current branch).
+- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec file, or nothing (the skill derives the key from the current branch). `--autopilot` can appear anywhere in the arguments — strip it out before resolving the ticket-key/path argument above, so a bare `--autopilot` with no other argument is treated exactly like no argument at all.
+- **No `--autopilot`** — interactive. Every `AskUserQuestion` and checkpoint below pauses for a human, exactly as documented.
+- **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. Exception: an existing-plan-file collision (see Autopilot Mode) is never silently overwritten.
 
 **Rules before you begin:**
 
 - Do NOT make assumptions silently — every inference becomes an explicit line in the plan's Assumptions.
 - Always adhere to the coding rules and skill-loading instructions of each affected repo (its `CLAUDE.md`, `.claude/rules/`, etc.).
 - Investigation is read-only. The only files you write in this skill are the plan itself and, per Step 5's per-step test-writing sub-phase, each step's test files (and any stub signature) when the target project has a test framework configured.
+
+## Autopilot Mode
+
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — option count, ordering, and the `(Recommended)` label rules all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+
+**Hard-stop exception:** autopilot must never silently overwrite an existing plan file. If `make-it-work/<TICKET>-plan.md` already exists from a previous run, autopilot writes to the next unused `-v2` (then `-v3`, `-v4`, …) suffix instead of overwriting it — "overwrite" and "abort" are never auto-selected, since a free suffix is always available as a non-destructive alternative. Step 6's final output, and the `/make-it-work:execute` hint it prints, both name the actual resolved path explicitly (e.g. `make-it-work/PROJ-123-plan-v2.md`) — not the bare `<TICKET>`, since `execute <TICKET>` alone would resolve to the original file instead.
+
+**Decision log:** write `.claude/plan-the-work-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). One JSON object per line:
+- `phase` — e.g. `"Step 1"`, `"Step 4"`, `"Step 4.5"`.
+- `site` — a short slug, e.g. `"existing-plan-collision"`, `"approach-gap"`, `"scope-check"`.
+- `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-resolved), or `"open_text"` (a non-enumerable gap was self-answered).
+- `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"`.
+- `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
+- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, or the free-text answer when `kind` is `"open_text"`.
+- `rationale` — one sentence.
+
+This file is a run artifact: never reference it from the plan itself, and never list it as an Affected Code entry.
+
+**Resolution table** (one row per interactive site, in the order they appear):
+
+| Step | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| 1a | ambiguous workspace — unrelated repos with no unifying doc | — | **Remains a hard stop.** No safe default exists for guessing which repo or workspace is in scope; stop and require a human, exactly as the interactive path already does. |
+| 1a | project root not identified at all | — | **Remains a hard stop**, unchanged from the interactive path. |
+| 1a | scope check — spec covers 2+ independent subsystems | `checkpoint` | Auto-confirm; proceed with the single plan as scoped rather than splitting it. Non-destructive — a human can always ask for a split on a later run. |
+| 1b | no ticket key derivable from the argument or the current branch | — | **Remains a hard stop.** Autopilot cannot invent a ticket key; this requires a human to supply one. |
+| 1b | mid-refinement questions file (`<TICKET>-questions.md` still `Awaiting Answers`) | `checkpoint` | The skill's own designated default here is "stop here and finish `close-the-gaps` first (recommended)" — autopilot honors that default literally: halt the run, log the decision, print the summary. This is the recommended path auto-selected, not an error exit. |
+| 1b | no local spec and the tracker fetch is unavailable, fails, or has no refinement | — | **Remains a hard stop**, unchanged from the interactive path — autopilot cannot fabricate a spec. |
+| 2 | "critical blocker" that makes planning impossible | `checkpoint` / `open_text` | If a reasonable inference from the spec or codebase resolves it, do so, record it as an Assumption prefixed `[autopilot best-guess]` (`open_text`), and continue. If it genuinely cannot be inferred — e.g. the spec is self-contradictory or unreadable — **remains a hard stop**. |
+| 4 | existing `<TICKET>-plan.md` collision | `checkpoint` | See the Hard-stop exception above: write to the next free `-v2`/`-v3`/… suffix. Never overwrite, never abort. |
+| 4.5 | per-gap `AskUserQuestion` (Approach, Scope boundary, Data/migration, Backward compatibility, Unstated assumption, Missing prerequisite, Sequencing/rollout) | `askUserQuestion` | Choose the option labeled `(Recommended)`. Never choose the filler `"Proceed with the recommended assumption"` — a substantive recommended option is always present per this skill's own question-construction rule, so autopilot always has a concrete one to pick. For an `Approach` gap specifically, still print the full tradeoff block, then pick the option named in its `Recommendation:` line. |
+| 4.5 | genuinely open-ended gap (no fixed option set) | `open_text` | Answer with your own best inference from Step 4's investigation, prefixed `[autopilot best-guess]`. |
+| 5 | a step's regression baseline already failing before this step's changes | `checkpoint` | Do not attempt to fix an unrelated pre-existing failure. Record it in that step's Codebase Gaps/Risks and in the decision log, then continue with the progression test only. |
+| 6 | "Optional — independent review" offer | `checkpoint` | Decline. There is no human to ask; the run completes without the extra review pass, and the final summary notes that it was skipped. |
+
+Only the Step 4.5 entries carry a `(Recommended)` label in this skill; the three rows marked "Remains a hard stop" are unaffected by `--autopilot` — they require information no autopilot heuristic can safely invent, exactly as in the interactive path.
+
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision — including which hard stop halted it, if any — and the log file's path, so someone can audit the run afterward.
 
 ---
 
@@ -37,8 +77,8 @@ Run `pwd`, then decide whether this is a **single repo** or a **coordinated mult
 1. **`.git` exists here.** This repo is a project root. Then:
    - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`).
    - Otherwise → **single-repo project**, root is here — even if the parent happens to contain other, unrelated repos.
-2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to plan for, rather than guessing.
-3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop.
+2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to plan for, rather than guessing (autopilot: see Autopilot Mode — remains a hard stop).
+3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop (autopilot: see Autopilot Mode — remains a hard stop).
 
 All paths below are relative to the root identified here. In a single-repo project, "each affected repo" simply means the one repo. When unsure between single and multi, prefer single-repo and widen only if the investigation in Step 4 shows the change genuinely crosses into a sibling repo.
 
@@ -50,14 +90,14 @@ Otherwise determine the `<TICKET>` key:
 
 - If the argument looks like a ticket key, use it.
 - If the argument is empty, derive the key from `git branch --show-current` in the current (or most recently modified) repo, e.g. `feature/PROJ-123-add-x` → `PROJ-123`.
-- If no argument was given and no key can be derived from the branch (e.g. on `main` or a branch that doesn't encode a key), do not proceed with an undefined `<TICKET>`: ask the user for the ticket key or an explicit spec path, and stop until they answer.
+- If no argument was given and no key can be derived from the branch (e.g. on `main` or a branch that doesn't encode a key), do not proceed with an undefined `<TICKET>`: ask the user for the ticket key or an explicit spec path, and stop until they answer (autopilot: see Autopilot Mode — remains a hard stop).
 
 Then resolve the spec file **local-first, with an issue-tracker fallback**, using the first that exists:
 
 1. `make-it-work/<TICKET>-spec.md` — the output of `close-the-gaps` (richest spec; preferred).
 2. `_specs/<TICKET>.md` — the output of a `/spec`-style step, if the project uses one.
 
-**If neither exists, check for a pending offline refinement before falling back to the tracker:** if `make-it-work/<TICKET>-questions.md` exists and its `**Status:**` marker is not `Answered` (i.e. it still reads `Awaiting Answers`), warn the user: "TICKET is mid-refinement — `make-it-work/<TICKET>-questions.md` has unanswered offline questions from `close-the-gaps`." and ask them to choose: **stop here and finish `close-the-gaps <path>` first** (recommended), or **proceed anyway** using whatever ticket content can be found below. Do not continue past this check silently. If the file doesn't exist, or its status is `Answered`, continue below without asking anything.
+**If neither exists, check for a pending offline refinement before falling back to the tracker:** if `make-it-work/<TICKET>-questions.md` exists and its `**Status:**` marker is not `Answered` (i.e. it still reads `Awaiting Answers`), warn the user: "TICKET is mid-refinement — `make-it-work/<TICKET>-questions.md` has unanswered offline questions from `close-the-gaps`." and ask them to choose: **stop here and finish `close-the-gaps <path>` first** (recommended), or **proceed anyway** using whatever ticket content can be found below. Do not continue past this check silently (autopilot: see Autopilot Mode). If the file doesn't exist, or its status is `Answered`, continue below without asking anything.
 
 **If neither local spec file exists (or the user chose to proceed anyway above), fall back to the issue tracker:**
 
@@ -66,12 +106,12 @@ Then resolve the spec file **local-first, with an issue-tracker fallback**, usin
 3. Fetch the ticket via whatever MCP integration is available for this project's tracker (Jira, Linear, GitHub Issues, etc.), including comments. A refined spec is often **pasted into a ticket comment** — scan comments (newest first) and pick the one carrying refinement signals: Gherkin `Scenario:` blocks, an `Acceptance Criteria` list, or a `TBD` / `Open Questions` / `Resolved Items` section.
    - If several qualify, prefer the most recent.
    - **Cache it locally:** write the chosen content to `make-it-work/<TICKET>-spec.md` so it's reviewable, diffable, and not re-fetched next run. Tell the user you did this.
-   - If the ticket has only a raw description with no refinement, tell the user: "No refined spec found locally or in the ticket comments. Run `close-the-gaps <TICKET>` to produce one." and stop.
-4. If the fetch fails (no MCP access, ticket not found), tell the user to run `close-the-gaps <TICKET>` first and stop.
+   - If the ticket has only a raw description with no refinement, tell the user: "No refined spec found locally or in the ticket comments. Run `close-the-gaps <TICKET>` to produce one." and stop (autopilot: see Autopilot Mode — remains a hard stop).
+4. If the fetch fails (no MCP access, ticket not found), tell the user to run `close-the-gaps <TICKET>` first and stop (autopilot: see Autopilot Mode — remains a hard stop).
 
 Read the resolved spec in full before proceeding.
 
-**Scope check:** If the spec covers two or more independent subsystems that could be built, tested, and deployed separately, stop and suggest splitting it into one plan per subsystem — each should produce working, testable software on its own. Wait for the user to confirm before continuing.
+**Scope check:** If the spec covers two or more independent subsystems that could be built, tested, and deployed separately, stop and suggest splitting it into one plan per subsystem — each should produce working, testable software on its own. Wait for the user to confirm before continuing (autopilot: see Autopilot Mode).
 
 ---
 
@@ -83,7 +123,7 @@ Extract from the spec and hold onto these — they become sections of the plan. 
 - **Technical requirements** — what the system must do.
 - **In scope / out of scope** — what is explicitly included or excluded.
 - **Assumptions** — anything you are inferring that the spec does not state. List each one.
-- **Open questions / blockers** — ambiguities in the spec. Stop and ask now only for *critical blockers* that make planning impossible; hold every other open question for the Step 4.5 Q&A, where code investigation will have sharpened it into a concrete "how" decision.
+- **Open questions / blockers** — ambiguities in the spec. Stop and ask now only for *critical blockers* that make planning impossible (autopilot: see Autopilot Mode); hold every other open question for the Step 4.5 Q&A, where code investigation will have sharpened it into a concrete "how" decision.
 
 ---
 
@@ -116,7 +156,7 @@ Read whatever orientation docs and skills each affected repo actually has — it
 
 - **grep before read.** To locate a symbol, `grep -n` for it and Read only the matching window — never read a large file top-to-bottom hunting for a definition.
 - **Repos touched only to confirm a fact get grep-only treatment.** If you enter a repo just to answer "does X route through Y?" or "does function Z exist?", answer with a grep. Do NOT read that repo's onboarding docs (`CLAUDE.md`, `architecture.md`, `product.md`) — read those in depth only in repos that will actually change.
-- **Write the skeleton early.** Before deep investigation, ensure a `make-it-work/` folder exists at the root (create it if it doesn't). Then check whether `make-it-work/<TICKET>-plan.md` already exists **from a previous run** — if it does, ask whether to overwrite, suffix (`-v2`), or abort, and resolve that before writing anything. Once the target path is settled, write the skeleton with the sections you can already fill (Goal, Requirement Summary, Open Questions, a draft Affected Code table) **and the full `## Execution Status` block verbatim as given in Step 5's template — not an abbreviated form** — and mark unknowns `[INVESTIGATE: <question>]`. Then resolve only those markers. This caps scope and means a partial plan survives even if context runs out — including a died-mid-creation plan a fresh session later picks up cold, which is exactly why Execution Status must exist, in full, from the skeleton onward, not only once Step 5 fleshes the plan out.
+- **Write the skeleton early.** Before deep investigation, ensure a `make-it-work/` folder exists at the root (create it if it doesn't). Then check whether `make-it-work/<TICKET>-plan.md` already exists **from a previous run** — if it does, ask whether to overwrite, suffix (`-v2`), or abort, and resolve that before writing anything (autopilot: see Autopilot Mode). Once the target path is settled, write the skeleton with the sections you can already fill (Goal, Requirement Summary, Open Questions, a draft Affected Code table) **and the full `## Execution Status` block verbatim as given in Step 5's template — not an abbreviated form** — and mark unknowns `[INVESTIGATE: <question>]`. Then resolve only those markers. This caps scope and means a partial plan survives even if context runs out — including a died-mid-creation plan a fresh session later picks up cold, which is exactly why Execution Status must exist, in full, from the skeleton onward, not only once Step 5 fleshes the plan out.
 
 Read the actual code paths the spec implies will change across **all affected repos**. Use Grep/Glob/Read to confirm:
 
@@ -159,12 +199,12 @@ Ask only about gaps where guessing wrong would send the executor down the wrong 
 **Ask in dependency-ordered waves** (same mechanics as `close-the-gaps`): `AskUserQuestion` can batch up to 4 questions into one call, rendered as navigable tabs the user can jump between and revise before submitting — but only when those questions don't depend on each other's answers.
 
 - Before asking anything, check each gap against every other pending gap: does answering one change another's wording, options, or whether it's still needed? If so, the dependent one goes in a **later** wave, never the same batch. Common dependency: a `Scope boundary` or `Data / migration` answer often gates the options for a later `Sequencing / rollout` question. Independent gap types (most `Unstated assumption`, `Missing prerequisite`, unrelated `Approach` choices) default to Wave 1.
-- Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead — outside the batch.
+- Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead — outside the batch (autopilot: see Autopilot Mode).
 - Batch each wave's independent questions into a single `AskUserQuestion` call (≤4 per call); if a wave has more than 4, split into consecutive calls of ≤4 in that wave — order between them doesn't matter.
 - Per question — `header`: a ≤12-char topic — e.g. `Approach`, `Migration`, `Scope`, `Compat`, `Rollout`.
 - `question`: `"[Gap type]: [the question]\n\n[one sentence on why it changes the plan]"`.
 - `options`: up to 3 substantive choices with the **recommended one first**, its label suffixed `(Recommended)` — base the recommendation on what the codebase already supports, the smallest safe scope, and the invariants in the loaded skills. Always end with a final option:
-  `{ label: "Proceed with the recommended assumption", description: "Don't decide now — I'll document the default choice in the plan's Assumptions." }`
+  `{ label: "Proceed with the recommended assumption", description: "Don't decide now — I'll document the default choice in the plan's Assumptions." }` (autopilot: see Autopilot Mode — never auto-selected, since a substantive recommended option is always available to pick instead)
 - Wait for the whole wave's answers before building the next wave. If a wave's answers open a new gap or unblock a dependent question, fold it into the next wave rather than re-opening one already asked.
 
 **For an `Approach` gap specifically**, present the tradeoffs in full rather than as a one-line option list:
@@ -210,7 +250,7 @@ This sub-phase runs per step, as each step is drafted, evaluated independently p
 2. **Per-step classification** — for each step being drafted, in each in-scope repo, decide test-required (it introduces new or changed behavior, or touches code with regression risk) vs. exempt (neither applies). An exempt step gets a one-line reason recorded in its `**Tests:**` field instead of test information — never a silently omitted field.
 3. **Naming the tests** — for a test-required step, name the progression test(s) that prove the new behavior and the regression test(s) that protect nearby existing behavior, reusing the exact investigation Step 4's "Indirect impact" sub-phase already performed to surface affected tests and callers.
 4. **Reuse vs. write** — when adequate, currently-passing regression coverage already exists for that nearby behavior, reference its file path and command as-is rather than duplicating it; otherwise write or extend a regression test file.
-5. **Confirming the regression baseline** — before touching any production code for this step, run the regression test(s) (whether reused or newly written in point 4) and confirm they currently pass. A regression test already failing at this point is a pre-existing issue unrelated to this step, not a valid state for this step, and must be resolved or called out separately before the step is considered ready.
+5. **Confirming the regression baseline** — before touching any production code for this step, run the regression test(s) (whether reused or newly written in point 4) and confirm they currently pass. A regression test already failing at this point is a pre-existing issue unrelated to this step, not a valid state for this step, and must be resolved or called out separately before the step is considered ready (autopilot: see Autopilot Mode).
 6. **Reaching progression red** — write the progression test. Check the step's own Affected Code row for the symbol/file it names: if the row is **New** (the symbol or file does not exist yet), write a minimal stub signature — no real logic, a language-idiomatic "not implemented" throw/raise, or, only where a throwing expression isn't syntactically valid in that position, a type-satisfying sentinel — at that exact new location, carrying a same-line or adjacent comment unambiguously marking it as a planning-phase placeholder pending implementation, e.g. `// plan-the-work stub — pending implementation`, so it can never be mistaken for finished work. If the row is **Modify** (the symbol already exists and already runs), write no stub and touch no production code at all — the progression test simply asserts the new/changed behavior against the current, not-yet-updated implementation, which fails on its own because that behavior doesn't exist yet; this is an ordinary TDD red state needing no code change. In both cases, never rely on a bare compile/type/import error alone as proof of red, on any stack, typed or dynamic — a New row's stub is what turns that into a genuine runtime assertion failure; a Modify row already produces one without help. Run the progression test and confirm it now fails for the right reason — the missing or not-yet-changed behavior — not a broken test setup, import, or typo.
 7. **Committing** — commit the step's test file(s) and any New-row stub signature onto the plan's own feature branch (the branch already established per Pre-flight's "On the correct branch" check) in one commit, immediately once that step's states are confirmed — not batched at the end of drafting — using this exact message format: `test: step <N> — <short step title> (red state)`.
 8. **Recording** — record the file path(s), the exact scoped command, and the confirmed state (or the exemption reason) in the step's `**Tests:**` field.
@@ -419,6 +459,6 @@ Then tell the user the plan is ready — this skill never drives step execution 
 
 Leave `## Execution Status` exactly as the skeleton wrote it (`Mode: Not yet chosen`, `Progress: Step 0 of N complete`). `execute` owns asking for Mode (once, the first time it runs against this plan) and owns updating both Mode and Progress from that point on — `plan-the-work` never edits this section after the initial skeleton, regardless of what the user says next.
 
-**Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
+**Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (autopilot: see Autopilot Mode — declined automatically) (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
 
 Do not paste the full plan in chat unless the user asks.

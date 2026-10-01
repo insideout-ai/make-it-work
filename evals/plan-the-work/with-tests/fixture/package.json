@@ -1,0 +1,9 @@
+{
+  "name": "demo-tasks",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  }
+}

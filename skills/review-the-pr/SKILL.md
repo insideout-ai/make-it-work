@@ -5,6 +5,40 @@ disable-model-invocation: true
 
 # Review the PR
 
+## Usage
+
+```
+/make-it-work:review-the-pr [--autopilot]
+```
+
+- **No argument** — interactive. Every checkpoint below pauses for a human, exactly as documented in Steps 0–1.
+- **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing.
+
+## Autopilot Mode
+
+This skill uses no `AskUserQuestion` calls today — every interactive point is a plain-text prompt. Autopilot answers each one in place rather than introducing a tool call where none exists.
+
+**Resolution table** (one row per interactive site, in the order they appear):
+
+| Step | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Step 0 | "ask the user for the pull-request link" | `open_text` | If the invocation already includes a PR link, use it (log it as already provided — this is not a guess). Otherwise resolve to the skill's own documented **"No PR yet"** branch: proceed without one, note it, and cite files by commit hash only. Never invent or look up a PR URL — Step 0's "never substitute your own guess" rule is about not picking *which* PR the user means among several candidates; it does not forbid this fixed, non-destructive fallback the skill already defines for "no PR yet." |
+| Step 1 (Requirements) | "Is there a requirements file or ticket text I should review against?" | `open_text` | If requirements were already supplied in the invocation, use them (log as already provided). Otherwise answer "none provided" and let the skill's own documented fallback chain run unattended: attempt the ticket fetch (extract the ticket key from the branch name, fetch via whatever MCP issue-tracker tool is available in this environment); if that yields nothing, fall through to the branch-name/commit-message inference. Either way, the Coverage line's requirements-source field must say so, exactly as the interactive path already requires. |
+| Step 1 (Base) | Source/destination branch confirmation | `checkpoint` | Auto-confirm a deterministic guess — current branch as source, the repo's default branch (`main`/`master`, or whatever `git branch -r`/PR metadata points to) as destination — exactly as if a human had accepted both suggested branches. Record the confirmed pair in the Coverage line as usual. |
+
+**Hard-stop exception:** no destructive action is flagged for this skill — autopilot never deletes, force-pushes, or discards anything. One caveat worth naming rather than silently assuming away: a re-run for the same ticket overwrites `make-it-work/{TICKET}-review.md` from a prior run, in **both** interactive and autopilot mode — the interactive path has no overwrite prompt either (Step 7's Output format section just says "Save to..."). Autopilot therefore removes no human gate that existed before it. This file is a regenerable analysis artifact, not hand-curated source of truth (unlike, say, a plan file), so this is not treated as the hard-stop destructive-action exception — just documented here so it isn't mistaken for an oversight.
+
+**Decision log:** write `.claude/review-the-pr-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run. One JSON object per line, same schema as the rest of this plugin's autopilot logs:
+- `phase` — e.g. `"Step 0"`, `"Step 1"`.
+- `site` — a short slug, e.g. `"pr-link"`, `"requirements-source"`, `"branch-pair"`.
+- `kind` — `"open_text"` or `"checkpoint"` (this skill never reaches `"askUserQuestion"`).
+- `chosen` — the free-text answer (`open_text`) or a short string describing what was confirmed (`checkpoint`).
+- `rationale` — one sentence.
+
+Log a line for every site above on every run, including a site skipped because its input was already supplied in the invocation — mark `chosen` accordingly (e.g. `"already provided in the invocation"`) so the log stays a complete, auditable record of the run rather than only the sites that needed a real decision.
+
+At the end of an autopilot run, print a short human-readable summary of the three resolutions above and the log file's path, so someone can audit the run afterward.
+
 ## Overview
 
 Review changes in three passes, grounded in **this repo's documentation** — never from generic intuition alone:
@@ -19,7 +53,7 @@ This is production code that moves real money or data on behalf of real customer
 
 ## Step 0 — Ask for the PR link first
 
-Before doing anything else — before fetching requirements, before running any git command — **ask the user for the pull-request link** unless the request already includes one. The PR link is the findings anchor: it pins the exact head commit and gives the output its Bitbucket/GitHub/GitLab source URL for inline citations. One question, then wait:
+Before doing anything else — before fetching requirements, before running any git command — **ask the user for the pull-request link** unless the request already includes one. The PR link is the findings anchor: it pins the exact head commit and gives the output its Bitbucket/GitHub/GitLab source URL for inline citations. One question, then wait (autopilot: see Autopilot Mode):
 
 > "Please share the PR link for this review (or tell me there's no PR yet)."
 
@@ -30,13 +64,13 @@ Before doing anything else — before fetching requirements, before running any 
 ## Step 1 — Establish the diff
 
 1. **Requirements** — the review's definition of *intended scope*, resolved in this order:
-   1. **User-provided (preferred)**: the user may hand you the requirements directly — a pasted ticket description, a ticket key, or a path to a requirements/refined-ticket markdown file. If the request doesn't include one, ask once: "Is there a requirements file or ticket text I should review against?" — then proceed with whatever the answer is.
+   1. **User-provided (preferred)**: the user may hand you the requirements directly — a pasted ticket description, a ticket key, or a path to a requirements/refined-ticket markdown file. If the request doesn't include one, ask once: "Is there a requirements file or ticket text I should review against?" — then proceed with whatever the answer is (autopilot: see Autopilot Mode).
    2. **Ticket fetch**: otherwise extract the ticket key from the branch name (e.g. `feature/TICKET-123-...` → `TICKET-123`) and fetch it using whatever MCP tool is available for this repo's issue tracker (Jira, Linear, GitHub Issues, etc.).
    3. **Fallback**: if neither is available, derive intent from the branch name and commit messages, and state in the output that scope was inferred, not confirmed.
 
    Whichever source is used, record it in the Coverage line. Scope-creep findings (Step 3) are only as strong as this source — with user-provided requirements they are authoritative; with inferred scope, phrase them as questions to the author rather than verdicts.
 
-2. **Base — always verify the branch pair before diffing**: the review is only as valid as the source/destination pair it diffs; a wrong base reports other people's merged work as this PR's changes and buries the real diff. **Always ask** — even when a PR link is provided — before reading any code:
+2. **Base — always verify the branch pair before diffing**: the review is only as valid as the source/destination pair it diffs; a wrong base reports other people's merged work as this PR's changes and buries the real diff. **Always ask** — even when a PR link is provided — before reading any code (autopilot: see Autopilot Mode):
 
    > **Source (origin) branch**: `<your best guess>` / other (type below)
    > **Destination branch**: `<your best guess>` / other (type below)

@@ -1,0 +1,7 @@
+{
+  "name": "rr-full-fail-fixture",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

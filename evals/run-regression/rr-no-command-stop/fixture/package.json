@@ -1,0 +1,8 @@
+{
+  "name": "rr-no-command-stop-fixture",
+  "private": true,
+  "scripts": {
+    "build": "echo building",
+    "lint": "echo linting"
+  }
+}
