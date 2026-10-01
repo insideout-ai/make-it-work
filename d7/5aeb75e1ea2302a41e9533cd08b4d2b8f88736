@@ -1,0 +1,61 @@
+skills/close-the-gaps/SKILL.md
+  s_af0112a5b23fd0::t_4b64181203c788 295
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+  s_af0112a5b23fd0::t_7fa77d9fcb9777 57
+skills/define-test-strategy/SKILL.md
+  s_af0112a5b23fd0::t_c1817f5010633b 43
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+skills/implement/SKILL.md
+  s_af0112a5b23fd0::t_a42119c1dafb30 267
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+skills/plan-the-work/SKILL.md
+  s_af0112a5b23fd0::t_671300cb385e53 58
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+skills/execute/SKILL.md
+  s_af0112a5b23fd0::t_80a27d798921ab 53
+  s_af0112a5b23fd0::t_8006f286dcb417 55
+  s_af0112a5b23fd0::t_78fe59e31d15fd 23,28
+  s_af0112a5b23fd0::t_8ca94168d26498 30
+  s_af0112a5b23fd0::t_e901c20d5499a0 84
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+  s_af0112a5b23fd0::t_69c777046e157b 21
+skills/shape-the-epic/SKILL.md
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+  s_af0112a5b23fd0::t_d10bc60ea315a0 175-176
+  s_af0112a5b23fd0::t_adffdf0e1c3374 403
+  s_af0112a5b23fd0::t_c5cbd9f5433fc7 389-390
+skills/review-the-pr/SKILL.md
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+  s_af0112a5b23fd0::t_6f44d348afb747 3
+  s_af0112a5b23fd0::t_baa47fbba17c0f 28
+  s_af0112a5b23fd0::t_e115de07a97277 30
+skills/slice-the-epic/SKILL.md
+  s_af0112a5b23fd0::t_b1a9398322b799 3
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+skills/run-regression/SKILL.md
+  s_af0112a5b23fd0::t_785e07a1c91e94 44
+  s_af0112a5b23fd0::t_5fc704d4dce624 43,45
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+skills/find-the-repos/SKILL.md
+  s_af0112a5b23fd0::t_a422b128322cf2 22
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+skills/go-deep/SKILL.md
+  s_af0112a5b23fd0::t_0721c95ea1698c 2
+  s_af0112a5b23fd0::t_40072dd89255cc 7-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d75aeb75e1ea2302a41e9533cd08b4d2b8f88736",
+  "prompts": {},
+  "sessions": {
+    "s_af0112a5b23fd0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b527e827-29c1-4d2e-97e6-db8f6ed45dd4",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
