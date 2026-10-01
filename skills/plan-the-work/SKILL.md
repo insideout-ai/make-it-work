@@ -24,7 +24,7 @@ This is the planning step of a pipeline: a spec already exists (e.g. from `close
 
 - Do NOT make assumptions silently — every inference becomes an explicit line in the plan's Assumptions.
 - Always adhere to the coding rules and skill-loading instructions of each affected repo (its `CLAUDE.md`, `.claude/rules/`, etc.).
-- Investigation is read-only. The only files you write in this skill are the plan itself and, per Step 5's per-step test-writing sub-phase, each step's test files (and any stub signature) when the target project has a test framework configured.
+- Investigation is read-only. The only files you write in this skill are the plan itself and, per Step 5's per-step test-writing sub-phase, each step's test files (and any stub signature) when the target project has a test framework configured, and, in Step 5.6, context updates about the existing system.
 
 ---
 
@@ -388,6 +388,25 @@ Fix issues inline; don't re-review after fixing.
 
 ---
 
+## Step 5.6 — Context update
+
+Skip this step silently when the project has no `go-deep` context to update (no `uc-*` / `domain-*` skills under `.claude/skills/` and no `.claude/rules/` files).
+
+**Scope — current facts only.** Record facts about the *existing* code that Step 4's investigation confirmed and that a loaded skill or rules file states wrongly or omits: a function that moved or was renamed, an undocumented invariant, a stale file path, a caller the skill doesn't list. **Never** record the changes this plan intends to make — those enter the knowledge base only once they have actually been built.
+
+- Record: "the refund service is now called from the nightly batch job, which the domain skill doesn't list."
+- Do not record: "Step 3 will add a retry to the refund service."
+
+**Where it goes** — follow `go-deep`'s layout and its UC-vs-domain separation and size targets:
+
+- User-facing flow facts → the matching `uc-*` skill.
+- Implementation facts (files, functions, data contracts) → the matching `domain-*` skill.
+- Cross-cutting rules or constraints → `.claude/rules/product.md` or `.claude/rules/architecture.md`.
+
+Write the updates directly, without a confirmation step. Most plans will have nothing to record; that is expected, not a gap.
+
+---
+
 ## Step 6 — Final output
 
 After saving and self-reviewing, respond with:
@@ -401,6 +420,7 @@ Assumptions: <count>
 Open questions: <count>
 Overall risk: <before mitigations> → <after mitigations>
 Recommended executor tier: <low | standard | high> — <one-line reason>
+Context updated: <each file changed in Step 5.6, with a one-line reason | none>
 ```
 
 If Overall risk (after mitigations) is High, also print the plan's `### Phasing alternative` summary in chat here — that's where the user actually decides, not buried in the file.
@@ -422,3 +442,49 @@ Leave `## Execution Status` exactly as the skeleton wrote it (`Mode: Not yet cho
 **Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
 
 Do not paste the full plan in chat unless the user asks.
+
+---
+
+## When run by implement
+
+This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
+
+**Inputs** — the spec path, the run's autonomy level (Guided or Autonomous), the plan version `N`, optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
+
+**Initial mode** (`N = 1`) — write `make-it-work/<TICKET>-plan.md`. If it already exists, overwrite it without the overwrite / `-v2` / abort question; `implement` has already offered the user to reuse it. **With redo notes:** read the existing plan before overwriting it, treat the notes as constraints the new draft must satisfy, and handle the earlier draft's test commits the same way replan mode does (reuse what is still valid; adjust or remove the rest in new commits).
+
+**Replan mode** (`N > 1`, with the previous plan path, a feedback path — the review report or `execute`'s saved report — and the decided findings list):
+
+- Write `make-it-work/<TICKET>-plan-v<N>.md`, without the overwrite / `-v2` / abort question.
+- Read the previous plan and the feedback in full before Step 4. Treat every failed assumption, `Route: replan` finding, `Route: fix` finding, decided `Route: human` finding, or `execute` stop as a constraint the new plan must resolve.
+- The working tree still contains the previous version's uncommitted implementation. Investigate it as current code, and make every new step say explicitly what it keeps, changes, or removes. Removals are ordinary file edits inside steps — never `git checkout`, `reset`, `restore`, or `stash`.
+- Add `**Replan of:** <previous plan path> — <one-line reason>` directly under the plan's header blockquote.
+- A regression test that fails because of the previous version's uncommitted changes (it covers a file the previous plan changed, or a test that plan named) is **not** a pre-existing failure: do not return `Blocked:` for it — make the new plan bring it back to green.
+- The previous version's test commits stay in history. Reuse the tests that are still valid (reference them in the new steps' `**Tests:**` fields); remove or adjust obsolete ones in new commits using the same `test: step <N> — <short step title> (red state)` format. Never amend, reset, or rebase.
+
+**Amend mode** (the current plan path plus one fix source: a review report with the user's decisions on any `Route: human` findings, or `execute`'s completion-gate report with the failing tests classified as related) — do not rewrite the plan:
+
+- Investigate only what each `Route: fix` finding, decided `Route: human` finding, or related failing test touches, using Step 4's discipline.
+- Append new steps after the last existing step, numbered `M+1` onward — one per finding that still needs a code change, or per small group of related findings; a finding the user accepted as-is gets no step, so a round can add zero steps — each in the Step 5 step template and each through the test-writing sub-phase (red test plus its commit).
+- Add any file a new step touches to Affected Code if it isn't listed yet, and add `**Amended for fix cycle <n> (<review | gate>):**` under the plan's header blockquote.
+- **Gate fix source:** each related failing test *is* the new step's progression test, and it is already red — record it in the step's `**Tests:**` field as `progression red — failing in the completion gate`, skip Step 5 point 5's baseline check for that test, and make no new test commit for it (it already exists). Point 5 still applies to any other regression test the step names.
+- For a repo with no configured test framework the sub-phase doesn't apply: add one `## Test Plan` row per new step, naming the step, so `execute` can find that step's manual verification.
+- Then update **only** the total `M` in `## Execution Status → Progress` to the new step count — never the Mode line, never the completed count `N`. This is the one exception to "never edits `## Execution Status` after the skeleton", and it applies only in amend mode.
+
+**All modes:**
+
+- The test-writing sub-phase runs and commits exactly as in a standalone run; this skill makes no other commits.
+- **Baseline blocked:** if Step 5 point 5 finds a regression test already failing, stop drafting and return `Blocked: pre-existing failing regression — <test file / name>`. When `implement` comes back with the user's decision ("call it out and proceed" or "stop"), apply it and continue.
+- **Questions:** every question this skill asks (Step 1b's scope split, Step 4.5's waves) is asked live, exactly as in a standalone run.
+- **Hand-offs:** skip Step 6's "Run `/make-it-work:execute` …" message and the plan-reviewer offer; `implement` decides what runs next.
+
+**Return report** — print Step 6's output block, with `Plan:` set to the path actually written (e.g. `make-it-work/<TICKET>-plan-v2.md`), followed by:
+
+```
+Mode: initial | replan | amend
+Steps added: <range, or none, for amend | n/a>
+Test commits: <short hashes | none>
+Blocked: <reason>        ← only when applicable
+```
+
+Then stop.

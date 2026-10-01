@@ -166,3 +166,43 @@ When there are **no findings**, say so plainly in both tiers — `Verdict: Appro
 **Causal-chain citation**: when a finding's impact runs through *unchanged* code — an exception caught by a generic handler, a downstream consumer, a shared utility — cite the whole chain, not just the diff line: the changed line that introduces the behavior AND the unchanged handler/consumer where the consequence materializes (`file:line` for each). The author must be able to verify the claim without re-tracing it.
 
 **Do not flag**: pre-existing issues (separate note only), formatting the linter will fix automatically, intentional pattern-breaking in test mocks/stubs, style preferences no `CLAUDE.md` rule names, optimizations without a measured need.
+
+## When run by implement
+
+This section applies only when `/make-it-work:implement` dispatches the review; a standalone review ignores it entirely and runs every step above as written.
+
+**Inputs** — the dispatch prompt provides: the ticket key, the spec path, the current plan path, the base branch, the literal `no PR`, the review cycle number, the list of known unrelated regressions (may be empty), and the list of decided findings (may be empty).
+
+**Skipped prompts** — do not run Step 0 (PR link), and skip Step 1's requirements question and its branch-pair confirmation. The requirements source is the provided spec plus plan, treated as authoritative exactly like user-provided requirements in Step 1.
+
+**Diff to review** — the work is not committed and there is no PR, so review the working tree against the base:
+
+- Tracked changes: `git diff $(git merge-base <base> HEAD)` — this covers committed and uncommitted work together.
+- Untracked new files: `git ls-files --others --exclude-standard -- . ':!make-it-work'` — read each one in full.
+- Exclude `make-it-work/` from everything above.
+- In the report header, label the reviewed commit as `working tree on <HEAD short-hash>`, and omit hosted-source links.
+
+**Unchanged steps** — Steps 2–5 and Step 7 apply as written, including Step 5's unresolved-stub check.
+
+**Docs-sync override (Step 6)** — `implement` updates skills and rules files in its own final context sync, after review. A missing or stale `uc-*`, `domain-*`, or rules-file update is therefore **not** a finding here: list each one under a `**Context gaps (for final sync):**` block in the report instead. A skill or rules update that *is* in the diff but contradicts the code is still a finding.
+
+**Known unrelated regressions** — list the ones `implement` passed in under a `**Known unrelated regressions (documented, out of scope):**` block, not as findings — unless the diff demonstrably caused one, in which case report it as a normal finding with that evidence.
+
+**Decided findings** — a `Route: human` question the user has already decided in an earlier cycle (passed in by `implement`) is settled: do not raise it again unless the diff has since changed the code it concerns. List each one under a `**Decided (not re-raised):**` block in the report.
+
+**Finding routes** — tag every numbered finding with exactly one route:
+
+- `Route: fix` — fixable within the current approach (includes an unresolved `plan-the-work` stub).
+- `Route: replan` — the approach itself, or an assumption the plan relies on, is wrong.
+- `Route: human` — needs a product, business, or architectural decision no document settles (the "question to the author" cases above).
+
+**Outcome line** — end both the Tier 1 report and the Tier 2 chat summary with exactly one line:
+
+```
+Orchestrator outcome: CLEAN | FIX_REQUIRED | REPLAN_REQUIRED | HUMAN_DECISION
+```
+
+- Verdict **Approve** or **Approve with nits** → `CLEAN`.
+- Verdict **Request changes** → `REPLAN_REQUIRED` if any finding is `Route: replan`; otherwise `HUMAN_DECISION` if any is `Route: human`; otherwise `FIX_REQUIRED`.
+
+**No questions** — never ask the user anything in this mode. Anything that would need a question becomes a `Route: human` finding.
