@@ -14,13 +14,56 @@ disable-model-invocation: true
 ## Usage
 
 ```
-/make-it-work:close-the-gaps [TICKET-ID] [--offline]
-/make-it-work:close-the-gaps path/to/<TICKET>-questions.md
+/make-it-work:close-the-gaps [TICKET-ID] [--offline] [--autopilot]
+/make-it-work:close-the-gaps path/to/<TICKET>-questions.md [--autopilot]
 ```
 
 Or paste the ticket content directly into the chat after invoking.
 
 Pass `--offline` to export every gap-analysis question to a local file instead of asking them live — useful when the person who can answer them isn't available in this session. Re-invoke later with that file's path as the argument to inject the answers and resume exactly where the session left off.
+
+Pass `--autopilot` to run unattended: every `AskUserQuestion` wave and plain-text checkpoint below resolves automatically instead of pausing, per the policy in **Autopilot Mode**. Combine freely with `[TICKET-ID]`, pasted content, `--offline`, or the questions-file path form — `--offline --autopilot` still exports the file untouched (there's nothing to autopilot in an export-only run); autopilot's resolutions apply the next time that file comes back through the injection path. Without `--autopilot`, every interactive point pauses for a human exactly as documented below.
+
+## Autopilot Mode
+
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — wave batching, the 2–4 option cap, `(Recommended)` placed first, `Skip — decide later (TBD)` placed last — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+
+**Hard-stop exceptions — never auto-resolved, even in autopilot mode:**
+
+1. **Phase 1 ticket-fetch failure with nothing pasted.** If a tracker fetch fails and no ticket content was ever supplied, autopilot cannot fabricate a ticket. Stop and require a human to paste the content.
+2. **Phase 1 pending offline export** (`make-it-work/<TICKET-or-slug>-questions.md` exists with `**Status:** Awaiting Answers`). None of its three choices — resume it, overwrite it and continue this fresh session, or abort — carries a designated default anywhere in this skill's text, and one of them is destructive: overwriting discards a file that may hold previously recorded answers. Autopilot does not guess among the three. It prints the file's path and the three choices, then stops and requires a human. "Overwrite it and continue this fresh session" is named here as never auto-selectable on its own, independent of which of the other two choices a human later makes.
+3. **Phase 5C conflicting checkboxes** (more than one box checked for the same question, including a filled-in "Other:"). There is no safe way to infer which of two explicit, conflicting human selections was intended. Stop and show the user what was checked, exactly as the interactive path already does.
+
+**Decision log:** write `.claude/close-the-gaps-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). One JSON object per line:
+- `phase` — e.g. `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`.
+- `site` — a short slug, e.g. `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
+- `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-confirmed or hard-stopped), or `"open_text"` (a non-enumerable question was self-answered).
+- `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"` (always `false` today — this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead).
+- `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
+- `chosen` — a string for single-select, or the free-text answer when `kind` is `"open_text"`.
+- `rationale` — one sentence.
+
+This file is a run artifact: never treat it as a Phase 3 "code finding," never embed it in a `*-questions.md` export, and never reference it from Phase 6's own `## Decision Log` table — the two logs serve different audiences (this one is for auditing the autopilot run itself; Phase 6's is part of the deliverable ticket).
+
+**Resolution table** (one row per interactive site, in the order they can appear):
+
+| Phase | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Phase 1 | ticket-fetch failure, nothing pasted | `checkpoint` | Hard-stop exception above — stop and require a human. |
+| Phase 1 | pending offline export (resume / overwrite / abort) | `checkpoint` | Hard-stop exception above — stop and require a human. Never auto-select "overwrite it and continue this fresh session." |
+| Phase 5A | per-question wave batch | `askUserQuestion` | Choose the option labeled `(Recommended)`. |
+| Phase 5A | genuinely open-ended question (no pre-enumerable answer) | `open_text` | Answer with your own best inference from Phase 2–3 findings, prefixed `[autopilot best-guess]`. |
+| Phase 5C | recorded answer's code finding changed in a way that contradicts it | `askUserQuestion` | Re-resolve using the same options the file recorded; choose `(Recommended)`. Log the rationale as the drift that triggered re-resolution, e.g. `"<path> no longer matches the recorded finding; re-resolved via Recommended."` |
+| Phase 5C | blank checkbox-style question | `askUserQuestion` | Reuse the header, gap type, and options exactly as recorded in the file; choose `(Recommended)`. |
+| Phase 5C | blank open-ended question | `open_text` | Answer with your own best inference, prefixed `[autopilot best-guess]`. |
+| Phase 5C | more than one checkbox checked for the same question | `checkpoint` | Hard-stop exception above — stop and require a human. |
+| Phase 5C | `## Follow-up Needed After This Round` item | `open_text` | Answer with your own best inference from the embedded ticket/code findings, prefixed `[autopilot best-guess]`. |
+
+Only the Phase 5A/5C `askUserQuestion` rows carry a `(Recommended)` label in this skill — do not invent one for the two Phase 1 checkpoints, which are hard-stops with nothing to auto-resolve, or for the Phase 5C conflicting-checkbox checkpoint.
+
+**Marking autopilot answers in the deliverable itself:** when a question's final answer in a session came from an autopilot resolution rather than a human (live pick or a pre-recorded, unambiguous checkbox from an offline file), append `_(autopilot)_` after the answer text in Phase 6's `## Decision Log` table for that row — so a reviewer reading the refined ticket alone, without `.claude/close-the-gaps-autopilot-log.jsonl`, can see which decisions weren't confirmed by a person. An `open_text` best-guess answer keeps its `[autopilot best-guess]` prefix in that same cell instead of adding a second marker. A question that was already answered unambiguously in an offline file before this run needs no marker — a human already decided it.
+
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision (including any hard-stop that was hit) and the log file's path, so someone can audit the run afterward.
 
 ---
 
@@ -30,12 +73,12 @@ Pass `--offline` to export every gap-analysis question to a local file instead o
 
 Otherwise, ingest the ticket as usual:
 
-- If a ticket ID is provided, fetch it via the available MCP integration (e.g., Atlassian, Linear, GitHub Issues). If the fetch fails (not found, no access, tool unavailable), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content.
+- If a ticket ID is provided, fetch it via the available MCP integration (e.g., Atlassian, Linear, GitHub Issues). If the fetch fails (not found, no access, tool unavailable), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
 - If content is pasted, parse it as-is — work with whatever is there, even if vague or incomplete.
 - Extract: ticket ID, summary, description, acceptance criteria, linked tickets, and any attachments or comments.
 - Record the **source**: either "Fetched from `<tracker>` issue `<ID>`" or "Pasted directly, no tracker ticket" — Phase 5B will embed this so Phase 5C can later check for ticket drift.
 - Derive `<TICKET-or-slug>`: the ticket ID if there is one; otherwise a kebab-case slug of the title; otherwise `spec-YYYY-MM-DD` — the same rule Phase 6 uses for its own output filename. Reuse this one value for the rest of this phase, for Phase 5B's export filename, and for Phase 6's final spec filename, so all three always agree.
-- **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently.
+- **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
 - Note whether `--offline` was passed in the arguments — carry this forward as a session flag for Phase 5 to check.
 - Acknowledge to the user: "Loaded ticket [ID]: [summary]. Starting analysis..."
 
@@ -118,7 +161,7 @@ Tell the user:
 
 **Ask each wave in one `AskUserQuestion` call:**
 - If a wave has more than 4 questions, split it into consecutive batch calls of ≤4 — order between those calls doesn't matter, since everything in the wave is mutually independent.
-- If a wave contains a genuinely open-ended question with no pre-enumerable answer, ask that one separately as plain text; do not force it into the `AskUserQuestion` array.
+- If a wave contains a genuinely open-ended question with no pre-enumerable answer, ask that one separately as plain text; do not force it into the `AskUserQuestion` array. (autopilot: see Autopilot Mode — resolved as `open_text`.)
 
 For each multiple-choice question in a batch, include it in the `questions` array with:
   - `header`: a short label (≤12 characters) for this question — use the gap type abbreviated, or a one-word topic (e.g. "Duration", "Scope", "Conflict"). Never put the full question text here.
@@ -127,7 +170,7 @@ For each multiple-choice question in a batch, include it in the `questions` arra
   - `options`: up to 3 substantive choices **plus always one final option**:
     `{ label: "Skip — decide later (TBD)", description: "Leave this open; it will be listed as an unresolved item in the refined ticket." }`
   - The `AskUserQuestion` tool caps options at 4 per question, so use at most 3 substantive choices + the Skip option. If a gap genuinely has more than 3 meaningful answers, either narrow to the 3 most likely/valuable and let Skip implicitly cover the rest, or split it into two sequential questions (e.g., resolve the category first, then the specific value) rather than forcing a cramped single question.
-- Wait for the whole batch's answers before building the next wave.
+- Wait for the whole batch's answers before building the next wave. (autopilot: see Autopilot Mode)
 - Record each answer (or skip) before proceeding.
 
 Rules:
@@ -228,11 +271,11 @@ Resolve questions in two passes, since a conditional question can only be evalua
 
 **Pass 1 — unconditional questions** (no "Answer only if…" label):
 
-1. **Read its answer.** A checkbox-style question is answered if exactly one checkbox is checked (including "Other:", if it has text after the colon) or "Skip" is checked; if more than one box is checked, ask the user live to resolve the conflict, showing them what was checked. An open-ended question (no checkboxes, just a `**Your answer:**` line) is answered if that line has any text after it.
+1. **Read its answer.** A checkbox-style question is answered if exactly one checkbox is checked (including "Other:", if it has text after the colon) or "Skip" is checked; if more than one box is checked, ask the user live to resolve the conflict, showing them what was checked. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.) An open-ended question (no checkboxes, just a `**Your answer:**` line) is answered if that line has any text after it.
 2. **Re-verify its code finding**, using the file path(s) noted under `## Session Context → Code Findings` for that question:
    - If the code still matches the recorded finding, keep the recorded finding and the file's answer as-is.
-   - If it has changed in a way that contradicts the file's answer or the question's premise, flag this to the user now (e.g. "Q3 assumed X, but `path/to/file` now does Y — does your answer still hold?") and ask live using the same options the file recorded.
-3. **Ask live anything left blank** — a checkbox-style question with no box checked and no notes, or an open-ended question with an empty `**Your answer:**` line — via `AskUserQuestion` if it has enumerable options (reuse the header, gap type, and options exactly as recorded in the file) or as plain text if it was recorded as open-ended. Batch up to 4 independent blank checkbox-style questions per `AskUserQuestion` call, per Phase 5A's batching rules, rather than asking them one at a time.
+   - If it has changed in a way that contradicts the file's answer or the question's premise, flag this to the user now (e.g. "Q3 assumed X, but `path/to/file` now does Y — does your answer still hold?") and ask live using the same options the file recorded. (autopilot: see Autopilot Mode)
+3. **Ask live anything left blank** — a checkbox-style question with no box checked and no notes, or an open-ended question with an empty `**Your answer:**` line — via `AskUserQuestion` if it has enumerable options (reuse the header, gap type, and options exactly as recorded in the file) or as plain text if it was recorded as open-ended. Batch up to 4 independent blank checkbox-style questions per `AskUserQuestion` call, per Phase 5A's batching rules, rather than asking them one at a time. (autopilot: see Autopilot Mode)
 
 **Pass 2 — conditional questions** ("Answer only if Q_n = X" label): process them in the order they appear in the file — Phase 5B always places a gating question before anything conditioned on it, so by the time you reach a conditional question here, the question it names already has a final status from earlier in this pass or from Pass 1.
 
@@ -240,7 +283,7 @@ Resolve questions in two passes, since a conditional question can only be evalua
 - Otherwise, check the now-resolved answer to the question it names: if it does **not** match the stated condition, mark this question `N/A — condition not met`. Do not ask it, do not re-verify its code finding, and do not include it in Phase 6's Decision Log — it was never actually asked.
 - If the gating answer **does** match, treat it exactly like an unconditional question: apply steps 1–3 above to it.
 
-**Resolve any `## Follow-up Needed After This Round` items live**, the same way as step 3 above, now that every gating answer from both passes is known — do not export a second file for these.
+**Resolve any `## Follow-up Needed After This Round` items live**, the same way as step 3 above, now that every gating answer from both passes is known — do not export a second file for these. (autopilot: see Autopilot Mode — resolved as `open_text`.)
 
 Once every applicable question has a final answer, proceed to **Phase 6** exactly as today, using the answers gathered here (whether from the file or live) as if Phase 5A had produced them. Only **after** Phase 6 has saved `make-it-work/<TICKET-or-slug>-spec.md`, update this file's status line to `**Status:** Answered — superseded by make-it-work/<TICKET-or-slug>-spec.md`. If the session ends before Phase 6 finishes, leave the status as `Awaiting Answers` — a later run must not mistake an incomplete session for a finished one.
 
@@ -285,7 +328,7 @@ Scenario: [edge case or error case]
 | [full question text as asked] | [gap type] | [option the user picked, verbatim — or "Skipped — see TBD"] |
 ```
 
-Include every question here, including skipped ones — the Decision Log is the complete record; TBD (below) is only the actionable follow-up list for skipped items.
+Include every question here, including skipped ones — the Decision Log is the complete record; TBD (below) is only the actionable follow-up list for skipped items. (autopilot: see Autopilot Mode — autopilot-resolved answers get an `_(autopilot)_` marker in the Answer column.)
 
 5. **Append TBD section** — only if any questions were skipped:
 

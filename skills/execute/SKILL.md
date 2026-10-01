@@ -8,10 +8,52 @@ disable-model-invocation: true
 ## Usage
 
 ```
-/make-it-work:execute [TICKET-ID | path/to/plan.md]
+/make-it-work:execute [TICKET-ID | path/to/plan.md] [--autopilot]
 ```
 
-- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a plan file, or nothing (the skill derives the key from the current branch).
+- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a plan file, or nothing (the skill derives the key from the current branch). `--autopilot` may appear anywhere in the invocation — strip it from the argument before Phase 0 point 2's ticket/path resolution runs, so it is never mistaken for the ticket key or the plan path.
+- **No `--autopilot`** — interactive. Every `AskUserQuestion` and checkpoint below pauses for a human, exactly as documented.
+- **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing.
+
+## Autopilot Mode
+
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — option counts, labels, and the `(recommended)` rule all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+
+**Hard-stop exception:** no destructive action exists in this skill — `execute` never deletes or overwrites user content beyond the plan file's own `## Execution Status` bookkeeping, and it never runs `git commit` (Phase 1's "Never git-commit" rule, unaffected by `--autopilot`). Four sites nonetheless remain unconditional stops under `--autopilot`, identical to the interactive path, because autopilot cannot safely infer an answer for any of them — these are missing-input stops, not a destructive-action analog, but are listed here for completeness per this section's own disclosure requirement:
+- Phase 0 point 1's ambiguous repo/workspace selection among unrelated clones with no unifying doc — there is no way to infer which of several unrelated repos is the right one, so this stays a stop under both modes.
+- Phase 0 point 1's "Could not identify the project root" message.
+- Phase 0 point 2's underivable `<TICKET>` key / plan path.
+- Phase 0 point 2's "No plan found at `make-it-work/<TICKET>-plan.md`..." message.
+
+Separately, the Execution Mode question's "review the plan first" alternative (Phase 0 point 3) is never auto-selected under `--autopilot` — autopilot always resolves Mode via the `(recommended)`-label rule below instead, so in practice this path is structurally unreachable under autopilot, the same way `go-deep`'s destructive "Run fresh onboarding" path becomes unreachable once its own Recommended option is always chosen. If some caller nonetheless forces a pause here under `--autopilot`, do not resolve it by treating silence as "review the plan first" — stop and require a human.
+
+**Not autopilot-governed at all:** the guardrail and the 5-attempt retry limit (Phase 1) are correctness halts built into this skill, not interactive points — they fire identically with or without `--autopilot`, and when either fires the run ends with Phase 3's fixed report exactly as documented; autopilot never retries further, guesses an answer, or suppresses the report. Likewise, `run-regression`'s own stop-and-ask (e.g. "Could not find a full-suite test command for `<repo>`...") is not resolved here either — Phase 4's own instructions already treat it as a non-interactive FAIL-equivalent stop regardless of `--autopilot`, since `execute` always invokes `run-regression` with an explicit `full` (or scope-token) argument, never blank and never with `--autopilot` appended, so `run-regression`'s own mode-selection prompt is never reached from this call site.
+
+**Decision log:** write `.claude/execute-autopilot-log.jsonl` at repo root. Initialize it fresh (truncate/overwrite) the first time this run resolves any site — it describes this run only, never a prior one — then **append one line each time a further site is resolved later in the same run**: do not write it once near the start and leave it there unchanged. Concretely, under Subagent-Driven mode this means the file gains one more line after *every* step's per-step checkpoint (Phase 2), not just the one line from the Phase 0 Mode decision — a plan with `M` steps produces `M` additional `step-review` lines over the course of the run, appended as each step's checkpoint is actually reached, since each is its own separately-resolved site per the table below. If a run ends up resolving zero sites at all (e.g. Mode was already recorded from a prior run and Inline mode's per-step loop has no checkpoint of its own), the file is still written, with zero lines. One JSON object per line:
+- `phase` — e.g. `"Phase 0"`, `"Phase 2"`.
+- `site` — a short slug, e.g. `"mode-choice"`, `"step-review"`.
+- `kind` — `"askUserQuestion"` (a real question/options payload was constructed) or `"checkpoint"` (a plain-text pause point was auto-confirmed). This skill has no non-enumerable `open_text` sites.
+- `multiSelect` — always `false` when `kind` is `"askUserQuestion"` (every question this skill asks is single-select).
+- `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
+- `chosen` — the label chosen.
+- `rationale` — one sentence.
+
+Only sites actually resolved during this run are logged — a site skipped because Mode was already recorded, or a step/phase never reached because an earlier stop condition halted the plan, is not logged.
+
+**Resolution table** (one row per interactive site, in the order they appear):
+
+| Phase | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Phase 0 | ambiguous repo/workspace selection (unrelated clones, no unifying doc) | `checkpoint` | Unconditional stop, unaffected by autopilot — see Hard-stop exception above. |
+| Phase 0 | "Could not identify the project root" | `checkpoint` | Unconditional stop, unaffected by autopilot. |
+| Phase 0 | underivable `<TICKET>` key / plan path | `checkpoint` | Unconditional stop, unaffected by autopilot. |
+| Phase 0 | "No plan found at `make-it-work/<TICKET>-plan.md`..." | `checkpoint` | Unconditional stop, unaffected by autopilot. |
+| Phase 0 | Execution Mode choice (`AskUserQuestion`, `multiSelect: false`, 2 options: Subagent-Driven / Inline) | `askUserQuestion` | Choose the option labeled `(recommended)` — today "Subagent-Driven". The "review the plan first" free-text alternative is never auto-selected (hard-stop exception above) — it is not one of the 2 enumerated options to begin with. Write the plan file's `## Execution Status → Mode` line exactly as the chosen branch already specifies. |
+| Phase 0 | Mode already recorded from a prior run | — | Not a decision site this run — proceed under the recorded mode without asking, and log nothing for it. |
+| Phase 2 (Subagent-Driven mode only) | per-step "reviewed between steps" pause, once per step (site slug: `step-review`) | `checkpoint` | Auto-confirm: relay the subagent's report to the user as chat text, append one `step-review` line to the decision log for this step, then — within that same response, without ending the turn to wait for a reply — dispatch the next step's subagent (or proceed to Phase 3/4 if this was the last step, or a stop condition fired). Ending the turn here would hang an unattended/headless run forever. A plan with `M` steps under Subagent-Driven mode therefore logs exactly `M` `step-review` lines over the run, one appended after each step, not a single line written once near the start. |
+| Phase 2 (Inline mode) | — | — | No per-step checkpoint exists in Inline mode even interactively (Phase 2's own text: Inline "runs straight through... without pausing between them for review") — nothing to auto-resolve or log here. |
+
+At the end of an autopilot run that reaches a terminal report (Phase 3's report, Phase 4's FAIL stop, or Phase 5's success report), print a short human-readable summary of every auto-resolved decision and the log file's path, so someone can audit the run afterward.
 
 ## Phase 0 — Locate the plan and resolve execution context
 
@@ -19,8 +61,8 @@ disable-model-invocation: true
    - **`.git` exists here.** This repo is a project root. Then:
      - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`).
      - Otherwise → **single-repo project**, root is here — even if the parent happens to contain other, unrelated repos.
-   - **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to execute against, rather than guessing.
-   - **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop.
+   - **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to execute against, rather than guessing (autopilot: see Autopilot Mode — this is an unconditional stop).
+   - **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop (autopilot: see Autopilot Mode — this is an unconditional stop).
 
    All paths below are relative to the root identified here. In a single-repo project, "each affected repo" simply means the one repo. When unsure between single and multi, prefer single-repo.
 
@@ -29,25 +71,22 @@ disable-model-invocation: true
    - **Otherwise, determine the `<TICKET>` key:**
      - If the argument looks like a ticket key, use it.
      - If the argument is empty, derive the key from `git branch --show-current` in the current (or most recently modified) repo, e.g. `feature/PROJ-123-add-x` → `PROJ-123`.
-     - If no argument was given and no key can be derived from the branch (e.g. on `main` or a branch that doesn't encode a key), do not proceed with an undefined `<TICKET>`: ask the user for the ticket key or an explicit plan path, and stop until they answer.
-   - Once a `<TICKET>` is known, resolve `make-it-work/<TICKET>-plan.md`. If it does not exist, tell the user: "No plan found at `make-it-work/<TICKET>-plan.md`. Run `/make-it-work:plan-the-work` first." and stop.
+     - If no argument was given and no key can be derived from the branch (e.g. on `main` or a branch that doesn't encode a key), do not proceed with an undefined `<TICKET>`: ask the user for the ticket key or an explicit plan path, and stop until they answer (autopilot: see Autopilot Mode — this is an unconditional stop).
+   - Once a `<TICKET>` is known, resolve `make-it-work/<TICKET>-plan.md`. If it does not exist, tell the user: "No plan found at `make-it-work/<TICKET>-plan.md`. Run `/make-it-work:plan-the-work` first." and stop (autopilot: see Autopilot Mode — this is an unconditional stop).
    - Read the resolved plan file in full before proceeding.
 
 3. **Resolve Execution Status → Mode** — read the plan file's `## Execution Status → Mode` line.
-   - **If it reads "Not yet chosen"**, ask the user to choose, before doing anything else — even if you were only handed this file with no memory of it being created — using the same two options `plan-the-work`'s own Step 6 offers:
+   - **If it reads "Not yet chosen"**, ask the user to choose, before doing anything else — even if you were only handed this file with no memory of it being created — using the same two options `plan-the-work`'s own Step 6 offers. Call `AskUserQuestion` with `multiSelect: false` and exactly these two options (autopilot: see Autopilot Mode):
 
-     **Two execution options:**
+     1. `{ label: "Subagent-Driven (recommended)", description: "Dispatch a fresh subagent per step (via the Agent tool), reviewed between steps. Best for complex multi-repo plans; keeps each step's context clean." }`
+     2. `{ label: "Inline Execution", description: "Execute steps in this session with a checkpoint after each step's Verify." }`
 
-     **1. Subagent-Driven (recommended)** — dispatch a fresh subagent per step (via the Agent tool), review between steps. Best for complex multi-repo plans; keeps each step's context clean.
-
-     **2. Inline Execution** — execute steps in this session with a checkpoint after each step's Verify.
-
-     **Which approach? (or: review the plan first, then decide)**
+     The question text itself may also invite reviewing the plan first ("Which approach? (or: review the plan first, then decide)") — this is a free-text alternative reply the user can give instead of picking an option, not a third enumerated option in the `AskUserQuestion` call.
 
      - If the user picks **Subagent-Driven**, replace the "Not yet chosen" line and its two bullet options with `**Mode:** Subagent-Driven — dispatch a fresh subagent per step (via the Agent tool), reviewed between steps.` in the plan file, then proceed to point 4.
      - If the user picks **Inline**, replace that same block with `**Mode:** Inline — execute steps in this session, checkpointed after each step's Verify.` in the plan file, then proceed to point 4.
-     - If the user asks to review the plan first, stop here and wait — write nothing back until they come back with one of the two choices above.
-   - **If a mode is already recorded** (the line already reads `Subagent-Driven` or `Inline` rather than "Not yet chosen" — set by a prior `plan-the-work` or `execute` run), proceed under that mode without asking again.
+     - If the user asks to review the plan first, stop here and wait — write nothing back until they come back with one of the two choices above (autopilot: see Autopilot Mode — never auto-selected).
+   - **If a mode is already recorded** (the line already reads `Subagent-Driven` or `Inline` rather than "Not yet chosen" — set by a prior `plan-the-work` or `execute` run), proceed under that mode without asking again (autopilot: nothing to resolve or log here — see Autopilot Mode).
 
 4. **Resolve Progress / resume point** — parse the plan file's `## Execution Status → Progress` line ("Step N of M complete").
    - If `N` equals `M`, every implementation/test step is already done — skip directly to Phase 4 (the completion gate); only the gate remains, or needs re-running.
@@ -147,7 +186,7 @@ How points 1–4 above are actually carried out differs by the `Mode` Phase 0 po
   - Phase 3's two fixed report shapes (Case 1 — Guardrail fired; Case 2 — Retry limit reached), verbatim, so the subagent already knows exactly what shape to return, with every field filled in from what it actually observed, the instant either of Phase 1's stop conditions fires inside it — rather than reporting back in free-form prose the orchestrating session would then have to reconstruct into shape after the fact;
   - the plan file's own path, this step's number `N`, and the total step count `M`, together with an explicit instruction that the subagent itself is responsible for updating `## Execution Status → Progress` in that plan file to "Step N of M complete" the moment its Verify (and, where applicable, Test Plan row(s)) pass — per point 4 above — before it returns its report.
 - The dispatched subagent is responsible for performing points 1–4 above on its own: implementing the change, running Verify, retrying internally (up to Phase 1's 5-attempt limit) on an ordinary failure, applying the guardrail check itself if a fix looks like it needs to change the test, writing the Progress update itself once it passes, and reporting back once the step either passes or hits a Phase 1 stop condition. Do not re-dispatch a new subagent mid-step for a retry — the same subagent iterates internally.
-- Once the subagent returns its report, review it before doing anything else: read what it implemented, then re-read the plan file's own `## Execution Status → Progress` line directly (not merely the subagent's prose claim) to confirm it now reads "Step N of M complete" for this step, or that a Phase 1 stop condition fired per the report. The subagent is the one that writes Progress; only if the file's Progress line was not actually updated despite the subagent reporting success does this session write it directly, as a correction, before proceeding. Once Progress is confirmed, either continue to the next step (if this step passed) or proceed to Phase 3 (if a stop condition fired). This review is this mode's own "reviewed between steps" pause point, required by the plan's chosen Mode line and by `plan-the-work`'s own definition of Subagent-Driven. Do not dispatch the subagent for the next step until the current step's subagent's report has been reviewed and relayed to the user in chat — never dispatch two steps' subagents back to back without an intervening report to the user, even if the current step's report looked unambiguous.
+- Once the subagent returns its report, review it before doing anything else: read what it implemented, then re-read the plan file's own `## Execution Status → Progress` line directly (not merely the subagent's prose claim) to confirm it now reads "Step N of M complete" for this step, or that a Phase 1 stop condition fired per the report. The subagent is the one that writes Progress; only if the file's Progress line was not actually updated despite the subagent reporting success does this session write it directly, as a correction, before proceeding. Once Progress is confirmed, either continue to the next step (if this step passed) or proceed to Phase 3 (if a stop condition fired). This review is this mode's own "reviewed between steps" pause point, required by the plan's chosen Mode line and by `plan-the-work`'s own definition of Subagent-Driven (autopilot: see Autopilot Mode). Do not dispatch the subagent for the next step until the current step's subagent's report has been reviewed and relayed to the user in chat — never dispatch two steps' subagents back to back without an intervening report to the user, even if the current step's report looked unambiguous.
 
 **Inline mode.** Perform points 1–4 above directly in this session, for each step in turn:
 - Implement the step's change, run its Verify check, and apply Phase 1's policy on failure, all within this same session — no subagent dispatch.

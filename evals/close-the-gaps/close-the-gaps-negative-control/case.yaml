@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: close-the-gaps-negative-control
+tags: [close-the-gaps, smoke]
+context:
+  scaffold_script: fixture.sh

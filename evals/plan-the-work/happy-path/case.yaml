@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-the-work-happy-path
+tags: [plan-the-work, smoke]
+context:
+  scaffold_script: fixture.sh
