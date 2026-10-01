@@ -327,3 +327,43 @@ This report is one of exactly three distinct, mutually exclusive ways a run of `
 3. **This Phase 5 report** — printed only when every step passed *and* the completion gate came back PASS. This is the sole successful, fully-terminal outcome of a run of `execute`.
 
 Every run of `execute` ends in exactly one of these three ways. Do not print this Phase 5 report alongside either of the other two, and do not print it as a partial or interim status — once printed, the run is finished.
+
+## When run by implement
+
+This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely. Everything above still applies unchanged — Phases 0–5, the retry limit, the guardrail, the halt scope, and the never-git-commit rule.
+
+**Inputs** — the plan path (always passed explicitly, so Phase 0 point 2 uses it directly — it may be a versioned `make-it-work/<TICKET>-plan-v<N>.md`) and the run's autonomy level (Guided or Autonomous).
+
+**Mode (Phase 0 point 3)** — when the Mode line reads "Not yet chosen":
+
+- **Guided** — ask the user exactly as in a standalone run. If they choose to review the plan first, do not wait inside this run: end it with the `EXECUTE_STOPPED` outcome below (reason: user reviewing the plan).
+- **Autonomous** — do not ask. Record `Subagent-Driven`, the recommended option, in exactly the format Phase 0 point 3 prescribes, and proceed.
+
+A Mode line that already records a mode is used as-is, in both levels.
+
+**Completion gate questions** — `run-regression`'s own stop-and-ask for a full-suite command is asked as usual.
+
+**Discoveries under Subagent-Driven mode** — add one item to every per-step dispatch prompt: "End your report with a `Discoveries:` line listing reusable facts about the existing system you noticed (an undocumented caller, an invariant the code enforces), or `none`." Collect those lines from each step's report for the final `Discoveries:` line below.
+
+**Stop reports point back to `implement`** — keep every field of Phase 3's Case 1 and Case 2 reports and of Phase 4's FAIL / no-result report, but wherever they tell the user to re-invoke `/make-it-work:execute` to continue, say instead: "`implement` will decide the next step." Phase 5's report is unchanged.
+
+**Outcome lines** — after whichever terminal report this run printed, end the output with:
+
+```
+Execute outcome: PASSED | GUARDRAIL | RETRY_LIMIT | GATE_FAILED | GATE_NO_RESULT | EXECUTE_STOPPED
+Discoveries: <reusable facts about the existing system noticed while implementing | none>
+Failing tests: <test files / names from run-regression's captured output tail | unknown>   ← GATE_FAILED only
+```
+
+Map the run's terminal report to exactly one value:
+
+| Terminal report | `Execute outcome` |
+| --- | --- |
+| Phase 5 final report | `PASSED` |
+| Phase 3, Case 1 — Guardrail fired | `GUARDRAIL` |
+| Phase 3, Case 2 — Retry limit reached | `RETRY_LIMIT` |
+| Phase 4, gate result `FAIL` | `GATE_FAILED` |
+| Phase 4, no `Gate result` / `Overall gate result` line at all | `GATE_NO_RESULT` |
+| Any other stop, outside Phase 3 and Phase 4 — Phase 0 (plan not found, project root not identified), Phase 2's inconsistent-dependency check, or the Guided review-first choice above | `EXECUTE_STOPPED` |
+
+`Discoveries` records facts about the system *as it already was* — for example an undocumented caller or an invariant the code enforces — never the changes this run made; `implement` uses them in its final context sync.
