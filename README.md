@@ -75,6 +75,14 @@ Use it whenever a ticket or epic feels too big and needs to become sprint-sized 
 
 ---
 
+### `/make-it-work:find-the-repos`
+
+`find-the-repos` shortlists which repo(s) in a multi-repo workspace a ticket actually affects, before that ticket has even been assigned to one. It matches the ticket against each candidate repo's `product.md` — or, for a purely technical ticket with no business-logic content to match, each repo's `architecture.md` instead — and reports the result as **definite** and **possible** confidence tiers, never silently dropping a possible match in favor of a single "best" answer. It presents the draft shortlist — which you can adjust — and waits for your explicit confirmation before saving it.
+
+Unlike the fixed `close-the-gaps → plan-the-work → execute → review-the-pr` pipeline, `find-the-repos` ships standalone: nothing else in this plugin calls it yet. Run it on its own, before that pipeline starts, whenever a ticket's home repo isn't already obvious.
+
+---
+
 ### `/make-it-work:close-the-gaps`
 
 `close-the-gaps` acts as a Product Analyst before development begins. It loads the project skills relevant to the ticket, digs into the affected code, and surfaces every gap - unclear language, missing edge cases, conflicting requirements, unstated assumptions - then walks you through them one question at a time. It can also run in an **offline mode** — export every question to a file to answer outside the session, then re-invoke pointing at that file to inject the answers and resume — for when the person who can answer isn't available live.
@@ -125,6 +133,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:run-regression [full | domain-<name> | UC-<id> ...]  # Run the regression suite, full or scoped
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
+/make-it-work:find-the-repos TICKET-123  # Shortlist which repo(s) in a multi-repo workspace a ticket affects
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:close-the-gaps TICKET-123 --offline            # Export gap-analysis questions to a file instead of asking live
@@ -207,6 +216,13 @@ Turn a rough feature idea into an elaboration-ready epic, then split it into ind
 /make-it-work:slice-the-epic
 ```
 
+In a multi-repo workspace, shortlist which repo a ticket belongs to before refining it:
+
+```text
+/make-it-work:find-the-repos TICKET-123
+/make-it-work:close-the-gaps TICKET-123
+```
+
 Refine a ticket, then turn the agreed spec into an implementation plan:
 
 ```text
@@ -237,9 +253,11 @@ Unlike the other pipeline skills, which only read code and write review/planning
 
 `execute` goes further still: unlike `define-test-strategy` and `plan-the-work` above, which write test files (and, for `plan-the-work`, commit them) but never the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — but, unlike `plan-the-work`, it never runs `git commit` on the user's behalf; every change it makes is left uncommitted for you to review.
 
+Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
+
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
-Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
+Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`, and `find-the-repos`'s `<TICKET>-repos.md`) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
 
 ## Troubleshooting
 
