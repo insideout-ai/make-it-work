@@ -1,0 +1,119 @@
+evals/find-the-repos/find-the-repos-happy-path/graders/cross-repo-note-not-matched.md
+  s_9dfa962f10803a::t_2299d63d76ea16 1-17
+evals/find-the-repos/find-the-repos-happy-path/graders/excluded-repos-flagged.md
+  s_9dfa962f10803a::t_cd5c94febf3165 1-15
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/payments-api/.claude/rules/product.md
+  s_9dfa962f10803a::t_2e0ab7c595ec2c 1-10
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/notifications-service/.claude/rules/product.md
+  s_9dfa962f10803a::t_39bf449de65f9b 1-9
+evals/find-the-repos/find-the-repos-single-repo-refusal/fixture/README.md
+  s_9dfa962f10803a::t_6a5a43c697a7ab 1-3
+evals/find-the-repos/find-the-repos-single-repo-refusal/prompt.md
+  s_9dfa962f10803a::t_6a2ac5eb9f9557 1-9
+evals/find-the-repos/find-the-repos-happy-path/fixture/legacy-worker/.claude/rules/product.md
+  s_9dfa962f10803a::t_2a0f2353e67759 1-9
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-b-possible-match.md
+  s_9dfa962f10803a::t_de4756e67e6848 1-14
+evals/find-the-repos/find-the-repos-single-repo-refusal/graders/refusal-stated.md
+  s_9dfa962f10803a::t_344678bf969d91 1-16
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/no-repos-file-written.md
+  s_9dfa962f10803a::t_688c11a000236c 1-6
+evals/find-the-repos/find-the-repos-unrelated-clones/fixture/repo-alpha/README.md
+  s_9dfa962f10803a::t_bdb9879f398207 1-3
+evals/find-the-repos/find-the-repos-unrelated-clones/fixture/repo-beta/README.md
+  s_9dfa962f10803a::t_bebe6e5811b2e6 1-3
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/notifications-service/.claude/rules/architecture.md
+  s_9dfa962f10803a::t_c9948360966367 1-15
+evals/find-the-repos/find-the-repos-single-repo-refusal/fixture.sh
+  s_9dfa962f10803a::t_5c34c0e02f10ba 1-26
+evals/find-the-repos/find-the-repos-unrelated-clones/fixture/TICKET-910-spec.md
+  s_9dfa962f10803a::t_3e8c0658cea136 1-12
+evals/find-the-repos/find-the-repos-happy-path/fixture/SNOOZE-100-spec.md
+  s_9dfa962f10803a::t_2c61c283d3e58e 1-15
+evals/find-the-repos/find-the-repos-technical-fallback/graders/technical-fallback-stated.md
+  s_9dfa962f10803a::t_abdc8f16faaddc 1-17
+evals/find-the-repos/find-the-repos-unrelated-clones/prompt.md
+  s_9dfa962f10803a::t_3922dc56ec0e0f 1-9
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/payments-api/.claude/rules/architecture.md
+  s_9dfa962f10803a::t_9033bddc435ff4 1-15
+evals/find-the-repos/find-the-repos-single-repo-refusal/graders/no-shortlist-presented.md
+  s_9dfa962f10803a::t_27c04c6aa13701 1-10
+evals/find-the-repos/find-the-repos-happy-path/fixture.sh
+  s_9dfa962f10803a::t_495de6dd2af184 1-31
+evals/find-the-repos/find-the-repos-unrelated-clones/case.yaml
+  s_9dfa962f10803a::t_e18f7e050a72fd 1-5
+evals/find-the-repos/find-the-repos-single-repo-refusal/graders/no-repos-file-written.md
+  s_9dfa962f10803a::t_518c52f6ab3ad9 1-6
+evals/find-the-repos/find-the-repos-happy-path/fixture/tasks-api/.claude/rules/product.md
+  s_9dfa962f10803a::t_a354b66368fe85 1-12
+evals/find-the-repos/find-the-repos-happy-path/prompt.md
+  s_9dfa962f10803a::t_d4029b5fb334d2 1-9
+evals/find-the-repos/find-the-repos-happy-path/graders/ripple-effect-not-matched.md
+  s_9dfa962f10803a::t_470f6fd1bec408 1-15
+evals/find-the-repos/find-the-repos-technical-fallback/graders/no-autosave-before-confirmation.md
+  s_9dfa962f10803a::t_b2ba2c04cc8c24 1-6
+evals/find-the-repos/find-the-repos-technical-fallback/prompt.md
+  s_9dfa962f10803a::t_af999058562a6c 1-9
+evals/find-the-repos/find-the-repos-technical-fallback/graders/payments-api-matched.md
+  s_9dfa962f10803a::t_99fe0173613c7f 1-15
+evals/find-the-repos/run-all.sh
+  s_9dfa962f10803a::t_1134f2055ac1a0 1-33
+evals/find-the-repos/find-the-repos-happy-path/case.yaml
+  s_9dfa962f10803a::t_3ab7f64d01346c 1-5
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-a-definite-match.md
+  s_9dfa962f10803a::t_01c26dc8e32a33 1-15
+evals/find-the-repos/find-the-repos-happy-path/fixture/analytics-service/.claude/rules/product.md
+  s_9dfa962f10803a::t_25dad74545332e 1-15
+evals/find-the-repos/find-the-repos-technical-fallback/case.yaml
+  s_9dfa962f10803a::t_27ab08c37567fd 1-5
+evals/find-the-repos/find-the-repos-technical-fallback/graders/notifications-service-not-matched.md
+  s_9dfa962f10803a::t_6578a9d84b9796 1-15
+evals/find-the-repos/find-the-repos-single-repo-refusal/fixture/TICKET-900-spec.md
+  s_9dfa962f10803a::t_0c89753e027f06 1-12
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/CVE-UPGRADE-200-spec.md
+  s_9dfa962f10803a::t_f634ce33ecd8b7 1-13
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/asks-which-repos.md
+  s_9dfa962f10803a::t_6ae42a815b02c9 1-17
+evals/find-the-repos/find-the-repos-happy-path/fixture/billing-service/README.md
+  s_9dfa962f10803a::t_f1c9e62acee58f 1-3
+evals/find-the-repos/find-the-repos-happy-path/graders/no-technical-fallback.md
+  s_9dfa962f10803a::t_a2bce38ade8e8c 1-11
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/CLAUDE.md
+  s_9dfa962f10803a::t_09b88e96dc7dc9 1-10
+evals/find-the-repos/README.md
+  s_9dfa962f10803a::t_dbb69bfa6b3569 1-142
+evals/find-the-repos/find-the-repos-happy-path/fixture/CLAUDE.md
+  s_9dfa962f10803a::t_8100f13b089b80 1-13
+evals/find-the-repos/find-the-repos-happy-path/graders/confirmation-checkpoint-reached.md
+  s_9dfa962f10803a::t_75ed521c8a501c 1-16
+evals/find-the-repos/find-the-repos-single-repo-refusal/fixture/.claude/rules/product.md
+  s_9dfa962f10803a::t_b2695ac00865ff 1-10
+evals/find-the-repos/find-the-repos-unrelated-clones/fixture.sh
+  s_9dfa962f10803a::t_e1bf8527a5775a 1-31
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/no-shortlist-presented.md
+  s_9dfa962f10803a::t_0815b256ad9cb5 1-10
+evals/find-the-repos/find-the-repos-happy-path/fixture/notifications-service/.claude/rules/product.md
+  s_9dfa962f10803a::t_320a77add2c444 1-12
+evals/find-the-repos/find-the-repos-single-repo-refusal/case.yaml
+  s_9dfa962f10803a::t_bf750626f82727 1-5
+evals/find-the-repos/find-the-repos-happy-path/graders/no-autosave-before-confirmation.md
+  s_9dfa962f10803a::t_593e8b2b81eca9 1-6
+evals/find-the-repos/find-the-repos-technical-fallback/fixture.sh
+  s_9dfa962f10803a::t_fae7b97f7222ed 1-30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "5458beb659f44d184b2d0e5660c6d56f2a1fb818",
+  "prompts": {},
+  "sessions": {
+    "s_9dfa962f10803a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d1768e77-55e6-4a3c-9b36-3e33712aa996",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
