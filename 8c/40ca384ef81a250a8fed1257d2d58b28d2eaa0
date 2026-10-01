@@ -1,0 +1,129 @@
+evals/go-deep/repair-path/fixture/.claude/rules/architecture.md
+  s_6a53e8e0c544ec::t_32e0f37db16b9e 1-34
+evals/go-deep/fresh-onboarding/graders/architecture-md-content.md
+  s_6a53e8e0c544ec::t_40c8c3e4262c36 1-15
+evals/go-deep/README.md
+  s_6a53e8e0c544ec::t_34ca21857384ff 1-4,13-42
+  s_6a53e8e0c544ec::t_1ffc4f1ea3c783 5-12
+evals/go-deep/fresh-onboarding/graders/claude-md-structure.md
+  s_6a53e8e0c544ec::t_959f38ff3cbf71 1-15
+evals/go-deep/fresh-onboarding/graders/uc-skills-exist.md
+  s_6a53e8e0c544ec::t_f844a1eace66d8 1-4
+evals/go-deep/repair-path/fixture/.claude/rules/product.md
+  s_6a53e8e0c544ec::t_ac4a4031f49830 1-23
+evals/go-deep/fresh-onboarding/case.yaml
+  s_6a53e8e0c544ec::t_4353fe4f36a938 1-5
+evals/go-deep/repair-path/fixture/src/tasks/completeTask.js
+  s_6a53e8e0c544ec::t_0daabdd08ed140 1-8
+evals/go-deep/fresh-onboarding/graders/domain-skills-exist.md
+  s_6a53e8e0c544ec::t_dab6cc9ba70028 1-4
+evals/go-deep/negative-control/fixture/README.md
+  s_6a53e8e0c544ec::t_99f23361cdc04d 1-3
+evals/go-deep/negative-control/fixture/src/tasks/createTask.js
+  s_6a53e8e0c544ec::t_99f23361cdc04d 1-16
+evals/go-deep/repair-path/fixture/src/tasks/createTask.js
+  s_6a53e8e0c544ec::t_0daabdd08ed140 1-16
+evals/go-deep/repair-path/fixture/src/notifications/sendReminder.js
+  s_6a53e8e0c544ec::t_0daabdd08ed140 1-12
+evals/go-deep/repair-path/graders/autopilot-log-content.md
+  s_6a53e8e0c544ec::t_54a973009caa5d 1-16
+evals/go-deep/negative-control/graders/question-format-reached.md
+  s_6a53e8e0c544ec::t_a4fba26bb255cc 1-6
+evals/go-deep/fresh-onboarding/graders/claude-md-exists.md
+  s_6a53e8e0c544ec::t_d627568907bb45 1-4
+evals/go-deep/negative-control/graders/claude-md-not-created.md
+  s_6a53e8e0c544ec::t_19b6a31e6ee7cf 1-6
+skills/go-deep/SKILL.md
+  s_6a53e8e0c544ec::t_7da890e9144356 136-139,141
+  s_6a53e8e0c544ec::t_28d37a7499dda2 69,71
+  s_6a53e8e0c544ec::t_c44200c75f772b 6-52
+  s_6a53e8e0c544ec::t_c02417d99dcd78 64
+  s_6a53e8e0c544ec::t_3d13af01b2b542 104
+  s_6a53e8e0c544ec::t_e32245e1734692 76,78
+evals/go-deep/negative-control/fixture/src/models/user.js
+  s_6a53e8e0c544ec::t_99f23361cdc04d 1-12
+evals/go-deep/fresh-onboarding/fixture/src/models/user.js
+  s_6a53e8e0c544ec::t_b26fd97d937537 1-12
+evals/go-deep/repair-path/fixture.sh
+  s_6a53e8e0c544ec::t_2ee3677477d586 1-16
+evals/go-deep/fresh-onboarding/graders/autopilot-log-content.md
+  s_6a53e8e0c544ec::t_70d38650321600 1-20
+evals/go-deep/fresh-onboarding/fixture/src/tasks/createTask.js
+  s_6a53e8e0c544ec::t_2f76beee161f1d 1-16
+evals/go-deep/negative-control/prompt.md
+  s_6a53e8e0c544ec::t_50c80250d69b5c 1-9
+evals/go-deep/fresh-onboarding/graders/product-md-exists.md
+  s_6a53e8e0c544ec::t_21b45ef91480c2 1-4
+evals/go-deep/fresh-onboarding/fixture/src/tasks/completeTask.js
+  s_6a53e8e0c544ec::t_778c98708d2bec 1-8
+.gitignore
+  s_6a53e8e0c544ec::t_6ad20449b4c3ce 2
+evals/go-deep/negative-control/fixture.sh
+  s_6a53e8e0c544ec::t_dd6f2d87645c7a 1-4
+evals/go-deep/repair-path/graders/sentinel-survives.md
+  s_6a53e8e0c544ec::t_1cc0c0be5db4df 1-6
+evals/go-deep/repair-path/fixture/.claude/skills/uc-02-complete-task/SKILL.md
+  s_6a53e8e0c544ec::t_f2db49e9f7332e 1-30
+evals/go-deep/fresh-onboarding/graders/autopilot-log-exists.md
+  s_6a53e8e0c544ec::t_e8519356ada2cb 1-4
+evals/go-deep/repair-path/case.yaml
+  s_6a53e8e0c544ec::t_f67b26c486f8d6 1-5
+evals/go-deep/negative-control/fixture/src/tasks/completeTask.js
+  s_6a53e8e0c544ec::t_99f23361cdc04d 1-8
+evals/go-deep/repair-path/fixture/README.md
+  s_6a53e8e0c544ec::t_911c488d2535dc 1-3
+evals/go-deep/repair-path/fixture/package.json
+  s_6a53e8e0c544ec::t_0daabdd08ed140 1-8
+evals/go-deep/fresh-onboarding/graders/architecture-md-exists.md
+  s_6a53e8e0c544ec::t_c24be968e3f4ef 1-4
+evals/go-deep/repair-path/fixture/src/models/user.js
+  s_6a53e8e0c544ec::t_0daabdd08ed140 1-12
+evals/go-deep/repair-path/fixture/CLAUDE.md
+  s_6a53e8e0c544ec::t_7537d65ee2384f 1-58
+evals/go-deep/repair-path/fixture/.claude/skills/uc-01-create-task/SKILL.md
+  s_6a53e8e0c544ec::t_df9e942956798f 1-31
+evals/go-deep/fresh-onboarding/fixture/src/notifications/sendReminder.js
+  s_6a53e8e0c544ec::t_eb1c9851fb39d6 1-12
+evals/go-deep/run-all.sh
+  s_6a53e8e0c544ec::t_7d95600c273b4f 1-56
+evals/go-deep/fresh-onboarding/fixture/package.json
+  s_6a53e8e0c544ec::t_2ad1d9ed545ca1 1-8
+evals/go-deep/fresh-onboarding/prompt.md
+  s_6a53e8e0c544ec::t_16458cba80cde8 1-9
+evals/go-deep/repair-path/prompt.md
+  s_6a53e8e0c544ec::t_3ed3a8a6d6f4ef 1-9
+evals/go-deep/negative-control/fixture/package.json
+  s_6a53e8e0c544ec::t_99f23361cdc04d 1-8
+evals/go-deep/repair-path/graders/missing-skill-created.md
+  s_6a53e8e0c544ec::t_ce555d3bf136be 1-5
+evals/go-deep/fresh-onboarding/fixture/README.md
+  s_6a53e8e0c544ec::t_6eb97381492571 1-3
+evals/go-deep/fresh-onboarding/graders/product-md-content.md
+  s_6a53e8e0c544ec::t_f15b6d8df5b7bb 1-15
+evals/go-deep/negative-control/case.yaml
+  s_6a53e8e0c544ec::t_f31179825d60cb 1-5
+evals/go-deep/fresh-onboarding/fixture.sh
+  s_6a53e8e0c544ec::t_0be01ef48e7dc0 1-4
+evals/go-deep/repair-path/fixture/.claude/skills/uc-03-receive-overdue-reminder/SKILL.md
+  s_6a53e8e0c544ec::t_693f675845289f 1-31
+evals/go-deep/repair-path/fixture/.claude/skills/domain-tasks/SKILL.md
+  s_6a53e8e0c544ec::t_662ce0efd377b0 1-25
+evals/go-deep/negative-control/fixture/src/notifications/sendReminder.js
+  s_6a53e8e0c544ec::t_99f23361cdc04d 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8c40ca384ef81a250a8fed1257d2d58b28d2eaa0",
+  "prompts": {},
+  "sessions": {
+    "s_6a53e8e0c544ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a74a150c-674b-43ad-9958-06aa67de394f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
