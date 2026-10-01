@@ -3,6 +3,53 @@ description: "Makes any codebase AI-ready with a 3-tier doc system (CLAUDE.md, o
 disable-model-invocation: true
 ---
 
+## Usage
+
+```
+/make-it-work:go-deep [--autopilot]
+```
+
+- **No argument** — interactive. Every `AskUserQuestion` and checkpoint below pauses for a human, exactly as documented.
+- **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. Exception: the destructive "Run fresh onboarding" path (see Autopilot Mode) is never auto-selected, even in autopilot mode.
+
+## Autopilot Mode
+
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — the 2–4 option count, `Skip` placed last where it applies, and the `(Recommended)` label rules all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+
+**Hard-stop exception:** autopilot must never select "Run fresh onboarding" (the path that replaces existing docs wholesale). If that workflow-choice site is reached and "Repair existing docs" isn't a valid option for some reason, stop and require a human rather than proceeding unattended. In practice this exception is never actually triggered by the table below, since the Recommended option at that site is always "Repair existing docs" — but it is a named, explicit rule, not an implicit consequence of always picking the recommended option.
+
+**Decision log:** write `.claude/go-deep-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). One JSON object per line:
+- `phase` — e.g. `"Phase 0"`, `"Phase 2"`.
+- `site` — a short slug, e.g. `"workflow-choice"`, `"staleness-window"`, `"per-question"`, `"confirm-scope"`.
+- `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-confirmed), or `"open_text"` (a non-enumerable Phase 2 question was self-answered).
+- `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"`.
+- `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
+- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, or the free-text answer when `kind` is `"open_text"`.
+- `rationale` — one sentence.
+
+This file is a run artifact: never add it to CLAUDE.md's Rules Files section, and never let the Phase 4 cross-tier dedup pass touch it.
+
+**Resolution table** (one row per interactive site, in the order they appear):
+
+| Phase | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Phase 0 | workflow choice (Repair vs Fresh) | `askUserQuestion` | Choose the option labeled `(Recommended)` — today "Repair existing docs". Never choose "Run fresh onboarding" (hard-stop exception above). |
+| Phase 0 | fresh-onboarding file-impact confirmation | `checkpoint` | Unreachable under the rule above; if somehow reached, stop and require a human. |
+| Phase 0 | repair-action selection, `multiSelect: true` | `askUserQuestion` | Select every surfaced action. |
+| Phase 0 | repair-action selection, single-choice + `No repairs now` filler | `askUserQuestion` | Choose the surfaced action, not `No repairs now`. |
+| Phase 0 | staleness window | `askUserQuestion` | Choose `30 days`. |
+| Phase 0 | repair pre-write confirmation (options 2–4: "confirm with the user" before creating/trimming/updating) | `checkpoint` | Auto-confirm; proceed. Treated as non-destructive and safe to automate — unlike "Run fresh onboarding," these are scoped, git-diffable edits (create a missing file, trim a flagged section, update a stale one), not a wholesale replace. |
+| Phase 2 | per-question `AskUserQuestion` | `askUserQuestion` | Choose the option labeled `(Recommended)`. |
+| Phase 2 | plain-text question (answer not pre-enumerable) | `open_text` | Answer with your own best inference from Phase 1 code discovery, prefixed `[autopilot best-guess]`. |
+| Phase 3 | Confirm Scope checkpoint | `checkpoint` | Auto-confirm; proceed. |
+| Phase 4 | UC/Domain/CLAUDE.md review checkpoint | `checkpoint` | Auto-confirm; proceed. |
+| Phase 5 | sample-skill review checkpoint | `checkpoint` | Auto-confirm; proceed directly to batch creation. |
+| Phase 6 | Final Review checkpoint | `checkpoint` | Auto-confirm; proceed. |
+
+Only the Phase 0 workflow choice and Phase 2 entries carry a `(Recommended)` label in this skill; Phase 0's repair-selection and staleness-window entries don't — do not invent a `(Recommended)` label or a `Skip`-last option on those two.
+
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision and the log file's path, so someone can audit the run afterward.
+
 Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
 
 ## Phase 0 — Prior-Run Detection
@@ -14,21 +61,21 @@ Before Phase 1, check whether `go-deep` has already been run in this repo. Any o
 
 If none are present, skip to Phase 1 — this is a first run.
 
-If detected, tell the user what evidence was found, then use `AskUserQuestion` with `multiSelect: false` to choose one workflow:
+If detected, tell the user what evidence was found, then use `AskUserQuestion` with `multiSelect: false` to choose one workflow (autopilot: see Autopilot Mode):
 
 1. `{ label: "Repair existing docs (Recommended)", description: "Preserve the current documentation system and choose only the repairs it needs." }`
 2. `{ label: "Run fresh onboarding", description: "Rebuild the documentation system from scratch after reviewing the affected files." }`
 
-If **Run fresh onboarding** is selected, list the existing files that may be replaced or substantially rewritten — `CLAUDE.md`, `.claude/rules/architecture.md`, `.claude/rules/product.md`, and matching `.claude/skills/uc-*` / `.claude/skills/domain-*` files — and require explicit confirmation before modifying anything. After confirmation, continue at Phase 1 and follow all normal checkpoints.
+If **Run fresh onboarding** is selected, list the existing files that may be replaced or substantially rewritten — `CLAUDE.md`, `.claude/rules/architecture.md`, `.claude/rules/product.md`, and matching `.claude/skills/uc-*` / `.claude/skills/domain-*` files — and require explicit confirmation before modifying anything (autopilot: see Autopilot Mode — this path is never auto-selected). After confirmation, continue at Phase 1 and follow all normal checkpoints.
 
-If **Repair existing docs** is selected, check each condition below and surface only the repair actions that are actually relevant. When two or more actions are relevant, present them through `AskUserQuestion` with `multiSelect: true`. When only one action is relevant, use a single-choice question with that action plus `{ label: "No repairs now", description: "Leave the existing documentation unchanged." }` so the tool always receives at least two options.
+If **Repair existing docs** is selected, check each condition below and surface only the repair actions that are actually relevant. When two or more actions are relevant, present them through `AskUserQuestion` with `multiSelect: true`. When only one action is relevant, use a single-choice question with that action plus `{ label: "No repairs now", description: "Leave the existing documentation unchanged." }` so the tool always receives at least two options (autopilot: see Autopilot Mode).
 
 1. **CLAUDE.md gap** — relevant if CLAUDE.md is missing, or missing any of: Skill Loading Gate, Skills Reference tables, After Any Feature Change section. On selection: add the missing structure immediately.
 2. **Missing skills** — cross-reference every `uc-{id}-{name}` / `domain-{name}` named in CLAUDE.md's Skills Reference, product.md's use case table, and architecture.md's Functional Domains table against actual directories under `.claude/skills/`. Relevant if any referenced skill has no matching directory. On selection: list the missing skills, confirm with the user, then create them via Phase 5's parallel-agent method.
 3. **Non-compliant skills** — read every existing skill's line count against its size target (UC: 30–50, domain: 60–120, 500 hard max) and scan for signal-to-noise violations (see rule 12 below: ASCII diagrams, code snippets, "None" sections, prop tables, etc.). Relevant if any skill exceeds its target or contains a flagged pattern. On selection: list the flagged skills and violations, confirm with the user, then trim each.
-4. **Staleness re-scan** — always relevant when a prior run is detected. Ask the user to pick a window (10/30/60/90 days) via `AskUserQuestion`, then diff commits in that window against each skill's declared code areas (Key Components/Functions in architecture.md, Key code areas in the Skills Reference table). Flag skills whose code areas were touched. On selection: list flagged skills and the touching commits, confirm with the user, then update each.
+4. **Staleness re-scan** — always relevant when a prior run is detected. Ask the user to pick a window (10/30/60/90 days) via `AskUserQuestion` (autopilot: see Autopilot Mode), then diff commits in that window against each skill's declared code areas (Key Components/Functions in architecture.md, Key code areas in the Skills Reference table). Flag skills whose code areas were touched. On selection: list flagged skills and the touching commits, confirm with the user, then update each.
 
-**Checkpoint discipline:** Fresh onboarding requires a separate file-impact confirmation before any write. Repair options 2–4 always show what would change and wait for explicit confirmation before writing any file. Repair option 1 proceeds directly once selected.
+**Checkpoint discipline:** Fresh onboarding requires a separate file-impact confirmation before any write. Repair options 2–4 always show what would change and wait for explicit confirmation before writing any file (autopilot: see Autopilot Mode). Repair option 1 proceeds directly once selected.
 
 ## Information Gathering Process
 
@@ -54,7 +101,7 @@ For each multiple-choice question:
   - `options`: 1–3 substantive pre-enumerated choices + always `{ label: "Skip — clear from code", description: "Already determined from code analysis; no input needed." }` (last). The tool requires 2–4 options total. If the answer truly cannot be pre-enumerated, do not call `AskUserQuestion`; ask one concise plain-text question instead.
   - Always recommend one option: place it first and append `(Recommended)` to its label.
   - Never place Skip first — it must always be last.
-- Wait for the user's response before calling `AskUserQuestion` for the next question.
+- Wait for the user's response before calling `AskUserQuestion` for the next question (autopilot: see Autopilot Mode).
 - Record each answer (or skip) before proceeding.
 
 After the last question: "All questions answered. Confirming scope..."
@@ -86,12 +133,12 @@ After the last question: "All questions answered. Confirming scope..."
 **Instructions:**
 - **Phase 1 — Code Discovery:** Start by thoroughly analyzing the codebase
 - **Phase 2 — Targeted Questions:** Use `AskUserQuestion` for multiple-choice questions and plain text for genuinely open-ended questions. Ask one at a time, only about information that couldn't be determined from code analysis, and wait for each answer before proceeding.
-- **Phase 3 — Confirm Scope:** Present the identified functional domains and use cases to the user for confirmation before creating any files. Show a draft domain list and UC list. **Checkpoint: user must confirm scope before proceeding.**
-- **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use `TaskCreate` to create one progress task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, using `TaskUpdate` to mark each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in. **Checkpoint: user reviews the UC table, Functional Domains table, and CLAUDE.md scope before proceeding.**
-- **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use `TaskCreate` to create one progress task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. **Checkpoint: user reviews depth, structure, and sections.** Incorporate feedback, then create remaining skills in parallel batches with the `Agent` tool, using `TaskUpdate` to mark each progress task `completed` when done.
-- **Phase 6 — Final Review:** Run cross-reference consistency check and present summary. **Checkpoint: user confirms all cross-references resolve and file inventory is complete.**
+- **Phase 3 — Confirm Scope:** Present the identified functional domains and use cases to the user for confirmation before creating any files. Show a draft domain list and UC list. **Checkpoint: user must confirm scope before proceeding.** (autopilot: see Autopilot Mode)
+- **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use `TaskCreate` to create one progress task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, using `TaskUpdate` to mark each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in. **Checkpoint: user reviews the UC table, Functional Domains table, and CLAUDE.md scope before proceeding.** (autopilot: see Autopilot Mode)
+- **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use `TaskCreate` to create one progress task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. **Checkpoint: user reviews depth, structure, and sections.** (autopilot: see Autopilot Mode) Incorporate feedback, then create remaining skills in parallel batches with the `Agent` tool, using `TaskUpdate` to mark each progress task `completed` when done.
+- **Phase 6 — Final Review:** Run cross-reference consistency check and present summary. **Checkpoint: user confirms all cross-references resolve and file inventory is complete.** (autopilot: see Autopilot Mode)
 
-**Checkpoint discipline:** Never proceed past a workflow checkpoint without explicit user confirmation.
+**Checkpoint discipline:** Never proceed past a workflow checkpoint without explicit user confirmation (autopilot: see Autopilot Mode).
 
 ## The 3-tier structure to create:
 
