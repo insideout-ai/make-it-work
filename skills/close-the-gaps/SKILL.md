@@ -319,3 +319,44 @@ Include every question here, including skipped ones — the Decision Log is the 
 - New sections (Acceptance Criteria — Added During Refinement, Decision Log, TBD, Out of Scope) always use `##` headers, even if the original ticket used no headers at all — this is expected, not a violation of "preserve the original format." Only the original ticket's own content should be left in its original style.
 - Decision Log, TBD, and Out of Scope sections are omitted if empty (i.e., no questions were asked, none were skipped, or nothing was scoped out, respectively).
 - Do not include implementation notes, technical choices, or a "how" section.
+
+---
+
+## Phase 7 — Context Update
+
+Run this once Phase 6 has saved the spec, in every run that reaches Phase 6 — live or offline injection. Skip it silently when the project has no `go-deep` context to update (no `uc-*` / `domain-*` skills under `.claude/skills/` and no `.claude/rules/` files).
+
+**Scope — current facts only.** Record facts about the *existing* system or product that this session surfaced: a business rule, term definition, or current behavior the user explained during Q&A, or a statement in a loaded skill that Phase 3 exploration showed to be wrong or missing. **Never** record the ticket's new or decided behavior — that enters the knowledge base only once it has actually been built.
+
+- Record: "the user explained that refunds over 30 days need manager approval today."
+- Do not record: "the ticket will add a 60-day refund limit."
+
+**Where it goes** — follow `go-deep`'s layout and its UC-vs-domain separation and size targets:
+
+- User-facing flow facts → the matching `uc-*` skill.
+- Implementation facts (files, functions, data contracts) → the matching `domain-*` skill.
+- Cross-cutting business rules or constraints → `.claude/rules/product.md` or `.claude/rules/architecture.md`.
+
+Write the updates directly, without a confirmation step. Most runs will have nothing to record; that is expected, not a gap.
+
+Finish by printing one line: `Context updated: <each file changed, with a one-line reason | none>`.
+
+---
+
+## When run by implement
+
+This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
+
+**Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided or Autonomous), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
+
+**No offline mode** — ignore `--offline` and always use Phase 5A. (`implement` stops before calling this skill when a pending questions file exists.)
+
+**Questions** — every question this skill asks, from Phase 1's prompts to Phase 5A's waves, is asked live exactly as in a standalone run, at either autonomy level.
+
+**Return report** — end the output with these lines, then stop without suggesting next steps:
+
+```
+Spec: <path written in Phase 6>
+TBD items: <count>
+Context updated: <list from Phase 7 | none>
+```

@@ -4,6 +4,20 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Added `/make-it-work:implement`, which orchestrates the full pipeline for one ticket — context check → `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr` → final context sync — with two autonomy levels (Guided, Autonomous), saved and resumable workflow state in `make-it-work/<TICKET>-state.md`, material-change detection on resume, capped loops (3 fix cycles and 5 reviews per plan version, 2 replans per run), and a branch guard. It never commits implementation changes, pushes, or opens a PR.
+- Added a `## When run by implement` section to `close-the-gaps`, `plan-the-work`, `execute`, and `review-the-pr`, defining each stage's orchestrated inputs and return report. Standalone runs ignore it.
+- Added replan and amend modes to `plan-the-work` under `implement`: replans write versioned `<TICKET>-plan-v<N>.md` files and build on the previous attempt's working tree; amend mode turns review fixes and spec-related completion-gate regressions into new test-first steps that `execute` resumes on.
+- Added an `Execute outcome:` line to orchestrated `execute` runs, and an `Orchestrator outcome:` line, finding routes (`fix` / `replan` / `human`), and an uncommitted-working-tree review to orchestrated `review-the-pr` runs, which also report docs-sync gaps for the final sync instead of as findings.
+- Added an end-of-run context update to `close-the-gaps` (Phase 7) and `plan-the-work` (Step 5.6) that records facts about the existing system learned during the run — never the ticket's planned behavior.
+
+### Changed
+
+- `close-the-gaps` and `plan-the-work` now end with a `Context updated:` line, and may write the project's skills and `.claude/rules` files directly in their new context-update step.
+
 ## [3.0.0] - 2026-09-25
 
 ### Added
