@@ -1,0 +1,148 @@
+evals/review-the-pr/autopilot-bare/fixture/CLAUDE.md
+  s_6530bd912e55e8::t_050f034597612f 1-53
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/taskRepo.js
+  s_6530bd912e55e8::t_01ec312dbfabcd 1-17
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/package.json
+  s_6530bd912e55e8::t_7c73350cf710ef 1-5
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/src/orders/model.js
+  s_6530bd912e55e8::t_8c6622046e0d61 1-8
+skills/slice-the-epic/SKILL.md
+  s_6530bd912e55e8::t_98687437723700 10-39,42
+evals/plan-the-work/negative-control/case.yaml
+  s_6530bd912e55e8::t_e92c13d3c71741 1-5
+evals/slice-the-epic/negative-control/graders/asks-clarifying-question.md
+  s_6530bd912e55e8::t_0185a67772969b 1-13
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/rules/product.md
+  s_6530bd912e55e8::t_1b8c7f303b5562 1-22
+skills/close-the-gaps/SKILL.md
+  s_6530bd912e55e8::t_60309060de2394 81
+  s_6530bd912e55e8::t_08ed5f77a71a74 331
+  s_6530bd912e55e8::t_d8f9084a072c87 286
+  s_6530bd912e55e8::t_9ef38a05a590bf 17-18,25-66
+  s_6530bd912e55e8::t_99ff5cca2c0c4a 164
+  s_6530bd912e55e8::t_07c159ac9a262e 173
+  s_6530bd912e55e8::t_da60eaef1c8dec 274,277-278
+  s_6530bd912e55e8::t_3affba366c0e73 76
+  s_6530bd912e55e8::t_86977d0dfe5b0f 67
+evals/slice-the-epic/negative-control/case.yaml
+  s_6530bd912e55e8::t_a46ffa695e6119 1,3
+  s_6530bd912e55e8::t_4764198de10988 2
+evals/plan-the-work/negative-control/fixture/README.md
+  s_6530bd912e55e8::t_da7eb3d9b325e9 1-3
+evals/plan-the-work/negative-control/fixture.sh
+  s_6530bd912e55e8::t_bc580001652493 1-11
+evals/run-regression/rr-smoke/fixture.sh
+  s_6530bd912e55e8::t_7c3185d33996d4 1-7
+evals/run-regression/rr-smoke/prompt.md
+  s_6530bd912e55e8::t_7c3185d33996d4 1-9
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/completeTask.feature.js
+  s_6530bd912e55e8::t_71a5902d304b2a 1-18
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture.sh
+  s_6530bd912e55e8::t_43e811b4ef3641 1-4
+evals/run-regression/rr-smoke/graders/criteria.md
+  s_6530bd912e55e8::t_7c3185d33996d4 1-6
+skills/review-the-pr/SKILL.md
+  s_6530bd912e55e8::t_709c03163afedc 56
+  s_6530bd912e55e8::t_932e3101be2876 67
+  s_6530bd912e55e8::t_1cf756091988ba 73
+  s_6530bd912e55e8::t_dd2b94077aa627 8-41
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_1d97aae8db802f 1-16
+evals/run-regression/rr-smoke/fixture/package.json
+  s_6530bd912e55e8::t_7c3185d33996d4 1-7
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/skills/uc-01-create-task/SKILL.md
+  s_6530bd912e55e8::t_51c281b6700166 1-30
+evals/plan-the-work/negative-control/graders/mid-refinement-warning-reached.md
+  s_6530bd912e55e8::t_793294f2f4f4e9 1-6
+evals/review-the-pr/autopilot-bare/fixture.sh
+  s_6530bd912e55e8::t_3c10b89c9fa482 1-32
+evals/plan-the-work/negative-control/prompt.md
+  s_6530bd912e55e8::t_1ec9bc20caa77c 1-9
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/README.md
+  s_6530bd912e55e8::t_8e4324463278e1 1-8
+evals/plan-the-work/negative-control/graders/plan-not-created.md
+  s_6530bd912e55e8::t_8c8e253cd09832 1-6
+evals/run-regression/rr-smoke/case.yaml
+  s_6530bd912e55e8::t_7c3185d33996d4 1-5
+evals/plan-the-work/_bash-probe/graders/ran.md
+  s_6530bd912e55e8::t_8c59f788ace45b 1-6
+evals/plan-the-work/negative-control/fixture/package.json
+  s_6530bd912e55e8::t_5405a60cf73853 1-8
+evals/plan-the-work/negative-control/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_e6d930857c07ac 1-10
+evals/slice-the-epic/negative-control/prompt.md
+  s_6530bd912e55e8::t_7ab8faf5279b3b 1-11
+evals/plan-the-work/_bash-probe/prompt.md
+  s_6530bd912e55e8::t_af574f0fa67553 1-9
+evals/plan-the-work/_bash-probe/case.yaml
+  s_6530bd912e55e8::t_af574f0fa67553 1-3
+evals/run-regression/results/2026-10-01T07-58-29-935Z/report.html
+  s_6530bd912e55e8::t_2f29ca10fc8a09 1-255
+evals/review-the-pr/autopilot-bare/fixture/package.json
+  s_6530bd912e55e8::t_524cd026aa5bb3 1-8
+evals/review-the-pr/autopilot-bare/fixture/README.md
+  s_6530bd912e55e8::t_39731995406096 1-15
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_0fcb3646d8a518 1-21
+evals/run-regression/results/2026-10-01T07-58-29-935Z/aggregate-result.json
+  s_6530bd912e55e8::t_2f29ca10fc8a09 1-72
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/skills/domain-tasks/SKILL.md
+  s_6530bd912e55e8::t_6e913316330ad0 1-26
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/rules/architecture.md
+  s_6530bd912e55e8::t_325b56b463cba7 1-32
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/src/orders/status.js
+  s_6530bd912e55e8::t_b60382fcb9f180 1-25
+skills/run-regression/SKILL.md
+  s_6530bd912e55e8::t_c542f1e2002539 64,67,69,71
+  s_6530bd912e55e8::t_3dd9a6421497d3 98
+  s_6530bd912e55e8::t_40621c470ee104 225
+  s_6530bd912e55e8::t_4c520efc52041a 10,16,20-55
+  s_6530bd912e55e8::t_9544ea695b9566 81
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/skills/uc-02-complete-task/SKILL.md
+  s_6530bd912e55e8::t_3d377eaa663b16 1-32
+evals/run-regression/rr-smoke/fixture/test/sample.test.js
+  s_6530bd912e55e8::t_7c3185d33996d4 1-6
+skills/define-test-strategy/SKILL.md
+  s_6530bd912e55e8::t_6a51752beca510 107
+  s_6530bd912e55e8::t_9b6abde7500db2 11,14-61
+  s_6530bd912e55e8::t_39a8585f61d782 76-77,81
+  s_6530bd912e55e8::t_71a1921eccf23f 115
+.claude/claude-dir/rules/architecture.md
+  s_6530bd912e55e8::t_d348ab74975339 1-32
+.claude/claude-dir/rules/product.md
+  s_6530bd912e55e8::t_a5eded5a2be90e 1-22
+.claude/claude-dir/skills/domain-tasks/SKILL.md
+  s_6530bd912e55e8::t_db16411e52d109 1-26
+.claude/claude-dir/skills/uc-01-create-task/SKILL.md
+  s_6530bd912e55e8::t_9c1b9582308f6b 1-30
+.claude/claude-dir/skills/uc-02-complete-task/SKILL.md
+  s_6530bd912e55e8::t_93c43d4539ef9a 1-32
+CLAUDE.md
+  s_6530bd912e55e8::t_4b5ff06977abae 1-53
+README.md
+  s_6530bd912e55e8::t_5f3b5dc5380200 1,3,8,11,14
+package.json
+  s_6530bd912e55e8::t_01c5065054eb40 1-8
+src/tasks/completeTask.js
+  s_6530bd912e55e8::t_213be0cf55ac55 1-16
+src/tasks/createTask.js
+  s_6530bd912e55e8::t_6d98d72771fd78 1-21
+src/tasks/taskRepo.js
+  s_6530bd912e55e8::t_2d87cb82312770 1-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b02e8fbb800ca1aba1037ad1f15f01de34931537",
+  "prompts": {},
+  "sessions": {
+    "s_6530bd912e55e8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "264bc350-3d39-4e8e-8700-ba81f16a0b71",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
