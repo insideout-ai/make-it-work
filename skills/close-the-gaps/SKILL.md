@@ -1,4 +1,5 @@
 ---
+name: close-the-gaps
 description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode: export every question to a file to answer outside the session, then re-invoke with that file to inject the answers and resume. Use when refining a ticket before dev starts."
 disable-model-invocation: true
 ---
@@ -53,10 +54,10 @@ This file is a run artifact: never treat it as a Phase 3 "code finding," never e
 | Phase 1 | pending offline export (resume / overwrite / abort) | `checkpoint` | Hard-stop exception above — stop and require a human. Never auto-select "overwrite it and continue this fresh session." |
 | Phase 5A | per-question wave batch | `askUserQuestion` | Choose the option labeled `(Recommended)`. |
 | Phase 5A | genuinely open-ended question (no pre-enumerable answer) | `open_text` | Answer with your own best inference from Phase 2–3 findings, prefixed `[autopilot best-guess]`. |
+| Phase 5C | more than one checkbox checked for the same question | `checkpoint` | Hard-stop exception above — stop and require a human. |
 | Phase 5C | recorded answer's code finding changed in a way that contradicts it | `askUserQuestion` | Re-resolve using the same options the file recorded; choose `(Recommended)`. Log the rationale as the drift that triggered re-resolution, e.g. `"<path> no longer matches the recorded finding; re-resolved via Recommended."` |
 | Phase 5C | blank checkbox-style question | `askUserQuestion` | Reuse the header, gap type, and options exactly as recorded in the file; choose `(Recommended)`. |
 | Phase 5C | blank open-ended question | `open_text` | Answer with your own best inference, prefixed `[autopilot best-guess]`. |
-| Phase 5C | more than one checkbox checked for the same question | `checkpoint` | Hard-stop exception above — stop and require a human. |
 | Phase 5C | `## Follow-up Needed After This Round` item | `open_text` | Answer with your own best inference from the embedded ticket/code findings, prefixed `[autopilot best-guess]`. |
 
 Only the Phase 5A/5C `askUserQuestion` rows carry a `(Recommended)` label in this skill — do not invent one for the two Phase 1 checkpoints, which are hard-stops with nothing to auto-resolve, or for the Phase 5C conflicting-checkbox checkpoint.
@@ -291,7 +292,7 @@ Once every applicable question has a final answer, proceed to **Phase 6** exactl
 
 ## Phase 6 — Refined Ticket Output
 
-Generate the final ticket and save it to `make-it-work/[TICKET-ID]-spec.md` (create the `make-it-work/` folder at the repo root if it doesn't exist). If the ticket has no ID (pasted content with no ticket key), derive the filename from a kebab-case slug of the title instead, e.g. `make-it-work/add-dark-mode-toggle-spec.md`. If there's no clear title either, fall back to `make-it-work/spec-YYYY-MM-DD.md`.
+Generate the final ticket and save it to `make-it-work/<TICKET-or-slug>-spec.md` (create the `make-it-work/` folder at the repo root if it doesn't exist) — the same value derived in Phase 1, so this filename always agrees with Phase 5B's export filename.
 
 ### Output structure
 

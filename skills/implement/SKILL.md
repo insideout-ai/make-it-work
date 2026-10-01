@@ -1,4 +1,5 @@
 ---
+name: implement
 description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → plan-the-work → execute → review-the-pr → final context sync — with saved, resumable workflow state, two autonomy levels (Guided, Autonomous), and capped fix/replan loops. Never commits implementation changes, pushes, or opens a PR. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
 disable-model-invocation: true
 ---
@@ -263,6 +264,7 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
 - give the absolute path of `review-the-pr/SKILL.md` and say to follow it, including its `## When run by implement` section;
 - pass the ticket key, the spec path, the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list;
+- when `gate: none` (the completion gate was skipped per the `GATE_NO_RESULT` handling above), also pass a note that the automated gate was skipped and the plan's `## Test Plan` rows should be verified manually as part of the regression-safety pass;
 - ask it to return the chat summary, ending with the `Orchestrator outcome:` line.
 
 Then read `make-it-work/<TICKET>-review.md`: record `review` from its `Orchestrator outcome:` line, and append the items under its `Context gaps (for final sync)` block to Context discoveries. A missing or unreadable outcome line is treated as `HUMAN_DECISION`, with the reason "review outcome unreadable".

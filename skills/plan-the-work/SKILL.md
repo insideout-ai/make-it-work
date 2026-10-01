@@ -1,4 +1,5 @@
 ---
+name: plan-the-work
 description: "Turns a spec or refined ticket into a concrete, execution-ready implementation plan — the plan-the-work step of the spec → plan-the-work → execute → review pipeline. Loads the project's skills, investigates the affected code across one or more repos, and writes an atomic, per-step plan file with no placeholders. When the target project has a test framework configured, it also writes and confirms per-step progression (red) and regression (currently-passing) tests. Use when planning how to implement a ticket, epic, or spec before any code is written."
 ---
 
@@ -51,10 +52,10 @@ This file is a run artifact: never reference it from the plan itself, and never 
 |---|---|---|---|
 | 1a | ambiguous workspace — unrelated repos with no unifying doc | — | **Remains a hard stop.** No safe default exists for guessing which repo or workspace is in scope; stop and require a human, exactly as the interactive path already does. |
 | 1a | project root not identified at all | — | **Remains a hard stop**, unchanged from the interactive path. |
-| 1a | scope check — spec covers 2+ independent subsystems | `checkpoint` | Auto-confirm; proceed with the single plan as scoped rather than splitting it. Non-destructive — a human can always ask for a split on a later run. |
 | 1b | no ticket key derivable from the argument or the current branch | — | **Remains a hard stop.** Autopilot cannot invent a ticket key; this requires a human to supply one. |
 | 1b | mid-refinement questions file (`<TICKET>-questions.md` still `Awaiting Answers`) | `checkpoint` | The skill's own designated default here is "stop here and finish `close-the-gaps` first (recommended)" — autopilot honors that default literally: halt the run, log the decision, print the summary. This is the recommended path auto-selected, not an error exit. |
 | 1b | no local spec and the tracker fetch is unavailable, fails, or has no refinement | — | **Remains a hard stop**, unchanged from the interactive path — autopilot cannot fabricate a spec. |
+| Step 1 | scope check — spec covers 2+ independent subsystems | `checkpoint` | Auto-confirm; proceed with the single plan as scoped rather than splitting it. Non-destructive — a human can always ask for a split on a later run. |
 | 2 | "critical blocker" that makes planning impossible | `checkpoint` / `open_text` | If a reasonable inference from the spec or codebase resolves it, do so, record it as an Assumption prefixed `[autopilot best-guess]` (`open_text`), and continue. If it genuinely cannot be inferred — e.g. the spec is self-contradictory or unreadable — **remains a hard stop**. |
 | 4 | existing `<TICKET>-plan.md` collision | `checkpoint` | See the Hard-stop exception above: write to the next free `-v2`/`-v3`/… suffix. Never overwrite, never abort. |
 | 4.5 | per-gap `AskUserQuestion` (Approach, Scope boundary, Data/migration, Backward compatibility, Unstated assumption, Missing prerequisite, Sequencing/rollout) | `askUserQuestion` | Choose the option labeled `(Recommended)`. Never choose the filler `"Proceed with the recommended assumption"` — a substantive recommended option is always present per this skill's own question-construction rule, so autopilot always has a concrete one to pick. For an `Approach` gap specifically, still print the full tradeoff block, then pick the option named in its `Recommendation:` line. |

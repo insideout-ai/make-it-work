@@ -1,7 +1,12 @@
 ---
+name: go-deep
 description: "Makes any codebase AI-ready with a 3-tier doc system (CLAUDE.md, orientation maps, domain & UC skills). Use when onboarding a project to Claude Code or auditing/updating existing docs after the project evolves."
 disable-model-invocation: true
 ---
+
+# Go Deep
+
+Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
 
 ## Usage
 
@@ -49,8 +54,6 @@ This file is a run artifact: never add it to CLAUDE.md's Rules Files section, an
 Only the Phase 0 workflow choice and Phase 2 entries carry a `(Recommended)` label in this skill; Phase 0's repair-selection and staleness-window entries don't — do not invent a `(Recommended)` label or a `Skip`-last option on those two.
 
 At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision and the log file's path, so someone can audit the run afterward.
-
-Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
 
 ## Phase 0 — Prior-Run Detection
 

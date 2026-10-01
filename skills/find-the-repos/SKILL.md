@@ -1,4 +1,5 @@
 ---
+name: find-the-repos
 description: "Given a ticket, shortlists which repositories in a multi-repo workspace it affects, by matching the ticket against each repo's product.md (falling back to architecture.md when the ticket is purely technical, with no business-logic content to match). Reports definite and possible matches, confirms the shortlist with the user — who may adjust it — then saves it. Use when you need to know which repo(s) a ticket belongs to, in a workspace with more than one repo, before refining or planning it."
 ---
 
@@ -18,7 +19,7 @@ description: "Given a ticket, shortlists which repositories in a multi-repo work
 
 Or paste the ticket content directly into the chat after invoking.
 
-- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec or ticket file, or nothing (the skill derives the key from the current branch).
+- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec or ticket file, paste the ticket content directly, or nothing (the skill derives the key from the current branch).
 - This skill ships standalone: nothing else in this plugin calls it yet, and it isn't part of the `close-the-gaps → plan-the-work → execute → review-the-pr` pipeline. Run it on its own, whenever a ticket's home repo isn't already obvious, before starting that pipeline.
 
 ---

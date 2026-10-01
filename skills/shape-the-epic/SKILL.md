@@ -1,4 +1,5 @@
 ---
+name: shape-the-epic
 description: "Turns a rough idea into a complete, elaboration-ready epic via a guided interview session, PM-coach style. Use when writing or improving a product epic, drafting acceptance criteria, or documenting a feature for engineering."
 disable-model-invocation: true
 ---
@@ -171,8 +172,8 @@ For criterion 4 (KPIs & Success Metrics), draft each KPI with a `Measured by:` l
 
 After working through the 7 criteria, review the running log from Phases 1 and 2:
 - Any **TBD / deferred** item that touches one of the 7 criteria → treat it as missing content for that criterion and factor it into your question for Phase 4
-- Any **TBD / deferred** item that doesn't map to a criterion → carry it forward as an unresolved open item for the Phase 6 output
-- Any **out-of-scope** item → carry it forward as an explicit exclusion for the Phase 6 output
+- Any **TBD / deferred** item that doesn't map to a criterion → carry it forward as an unresolved open item for the Phase 5 output
+- Any **out-of-scope** item → carry it forward as an explicit exclusion for the Phase 5 output
 
 Work through the full list internally. Then announce:
 
@@ -385,6 +386,8 @@ Mark `[x]` for every section that is complete and concrete. Leave `[ ]` for any 
 
 ## Decision Log
 
+Append this table to the saved epic file, directly after the Readiness Checklist.
+
 | # | Topic | Decision | Rationale | Status |
 |---|---|---|---|---|
 | … | … | … | … | … |
@@ -397,3 +400,4 @@ Rules for populating this table:
 - **Status** — one of: Confirmed · Deferred · Out of scope
 - Sort by Status: Confirmed rows first, then Deferred, then Out of scope
 - If no decisions were logged, write: `No decisions recorded.`
+- **Decision** (autopilot runs only) — see Autopilot Mode's "Marking autopilot answers in the generated epic" for the `[autopilot best-guess]` / `_(autopilot)_` markers this field carries when a run was unattended.
