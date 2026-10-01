@@ -1,0 +1,909 @@
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/decision-log-write-attempted.md
+  s_6530bd912e55e8::t_f60c6223893edd 1-6
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/taskRepo.js
+  s_6530bd912e55e8::t_01ec312dbfabcd 1-17
+skills/define-test-strategy/SKILL.md
+  s_6530bd912e55e8::t_6a51752beca510 107
+  s_6530bd912e55e8::t_39a8585f61d782 76-77,81
+  s_6530bd912e55e8::t_9b6abde7500db2 11,14-61
+  s_6530bd912e55e8::t_71a1921eccf23f 115
+  s_6530bd912e55e8::t_d89dd78786f0d2 135-136,184,200-202,215,226,274,282,288,295-296
+evals/define-test-strategy/fresh-autopilot/fixture.sh
+  s_6530bd912e55e8::t_cd83a78f5ffa63 1-21
+evals/shape-the-epic/shape-the-epic-negative-control/graders/asks-and-waits.md
+  s_6530bd912e55e8::t_6ebf92d6ec295d 1-14
+skills/review-the-pr/SKILL.md
+  s_6530bd912e55e8::t_dd2b94077aa627 8-41
+  s_6530bd912e55e8::t_932e3101be2876 67
+  s_6530bd912e55e8::t_1cf756091988ba 73
+  s_6530bd912e55e8::t_709c03163afedc 56
+evals/define-test-strategy/extend-autopilot/graders/hook-declined.md
+  s_6530bd912e55e8::t_2d8fa2361d4d43 3
+  s_6530bd912e55e8::t_b7b7fc5fc73146 1-2,4-13
+skills/run-regression/SKILL.md
+  s_6530bd912e55e8::t_e58404653da21e 16
+  s_6530bd912e55e8::t_9544ea695b9566 77
+  s_6530bd912e55e8::t_3a5b6095e3cbca 41,44
+  s_6530bd912e55e8::t_4c520efc52041a 10,20-25,27-40,42-43,45-51
+  s_6530bd912e55e8::t_152baf7d6048c8 26
+  s_6530bd912e55e8::t_8aa7b955afd64c 70
+  s_6530bd912e55e8::t_c542f1e2002539 60,63,65,67
+  s_6530bd912e55e8::t_40621c470ee104 221
+  s_6530bd912e55e8::t_3dd9a6421497d3 94
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/prompt.md
+  s_6530bd912e55e8::t_c6d1f925e5837a 1-2,4-13
+  s_6530bd912e55e8::t_97f9962dbdcd09 3
+skills/close-the-gaps/SKILL.md
+  s_6530bd912e55e8::t_08ed5f77a71a74 331
+  s_6530bd912e55e8::t_da60eaef1c8dec 274,277-278
+  s_6530bd912e55e8::t_3affba366c0e73 76
+  s_6530bd912e55e8::t_99ff5cca2c0c4a 164
+  s_6530bd912e55e8::t_86977d0dfe5b0f 67
+  s_6530bd912e55e8::t_9ef38a05a590bf 17-18,25-66
+  s_6530bd912e55e8::t_d8f9084a072c87 286
+  s_6530bd912e55e8::t_60309060de2394 81
+  s_6530bd912e55e8::t_07c159ac9a262e 173
+evals/slice-the-epic/negative-control/case.yaml
+  s_6530bd912e55e8::t_a46ffa695e6119 1,3
+  s_6530bd912e55e8::t_4764198de10988 2
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/package.json
+  s_6530bd912e55e8::t_7c73350cf710ef 1-5
+evals/define-test-strategy/extend-autopilot/graders/log-denial-handled-gracefully.md
+  s_6530bd912e55e8::t_a069cb120d2cda 1-15
+evals/plan-the-work/negative-control/case.yaml
+  s_6530bd912e55e8::t_e92c13d3c71741 1-5
+evals/plan-the-work/negative-control/fixture.sh
+  s_6530bd912e55e8::t_bc580001652493 1-11
+evals/define-test-strategy/fresh-autopilot/graders/hook-declined.md
+  s_6530bd912e55e8::t_03411f68900e94 1-7
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/case.yaml
+  s_6530bd912e55e8::t_10500130e0e519 1-3
+evals/shape-the-epic/shape-the-epic-negative-control/prompt.md
+  s_6530bd912e55e8::t_64faea65b1b46b 1-2,4-26
+  s_6530bd912e55e8::t_50ba1f31e1cd12 3
+evals/shape-the-epic/shape-the-epic-negative-control/case.yaml
+  s_6530bd912e55e8::t_6cde23a89671cf 1-3
+evals/define-test-strategy/extend-autopilot/graders/coverage-report-shown.md
+  s_6530bd912e55e8::t_a069cb120d2cda 1-6
+  s_6530bd912e55e8::t_55731f4722a0c1 7-11
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/skills/uc-01-create-task/SKILL.md
+  s_6530bd912e55e8::t_51c281b6700166 1-30
+evals/review-the-pr/autopilot-bare/fixture.sh
+  s_6530bd912e55e8::t_3c10b89c9fa482 1-47,53-58
+  s_6530bd912e55e8::t_4e385d7fb2af08 48-52
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/README.md
+  s_6530bd912e55e8::t_8e4324463278e1 1-8
+evals/plan-the-work/negative-control/fixture/README.md
+  s_6530bd912e55e8::t_da7eb3d9b325e9 1-3
+evals/define-test-strategy/extend-autopilot/graders/sentinel-survives.md
+  s_6530bd912e55e8::t_ca490d8fddbb45 1-6
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/src/orders/status.js
+  s_6530bd912e55e8::t_b60382fcb9f180 1-25
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/decision-log-write-attempted.md
+  s_6530bd912e55e8::t_68f1d792ced5ef 1-6
+evals/shape-the-epic/shape-the-epic-negative-control/graders/no-epic-file-written.md
+  s_6530bd912e55e8::t_8f1bafc581ee26 1-8
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/turn-cap-respected.md
+  s_6530bd912e55e8::t_63152860d11885 1-14
+evals/plan-the-work/plan-collision/graders/collision-decision-logged.md
+  s_6530bd912e55e8::t_ea7fd37e84afeb 4
+  s_6530bd912e55e8::t_f692b962748273 1-3
+  s_6530bd912e55e8::t_813c0cb3f7177f 5-7
+  s_6530bd912e55e8::t_2b600bdda5cb66 8-10
+evals/plan-the-work/negative-control/graders/mid-refinement-warning-reached.md
+  s_6530bd912e55e8::t_793294f2f4f4e9 1-6
+evals/go-deep/README.md
+  s_6530bd912e55e8::t_720dfc5662d0d9 21
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/no-askuserquestion.md
+  s_6530bd912e55e8::t_0d048a3b61d386 1-7
+evals/slice-the-epic/negative-control/prompt.md
+  s_6530bd912e55e8::t_7ab8faf5279b3b 1-11
+evals/define-test-strategy/fresh-autopilot/graders/autopilot-log-content.md
+  s_6530bd912e55e8::t_5de60a75726684 1-18
+evals/plan-the-work/README.md
+  s_6530bd912e55e8::t_c13f71bc7caff9 315-325
+  s_6530bd912e55e8::t_a233910ddeee46 347-360
+  s_6530bd912e55e8::t_e994f72d3face6 297
+  s_6530bd912e55e8::t_dbe64690549882 1-296,298-314,326-346
+evals/define-test-strategy/fresh-autopilot/graders/sentinel-survives.md
+  s_6530bd912e55e8::t_0bab7031e00c23 1-6
+evals/plan-the-work/negative-control/prompt.md
+  s_6530bd912e55e8::t_1ec9bc20caa77c 1-9
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_1d97aae8db802f 1-16
+evals/define-test-strategy/fresh-autopilot/graders/all-four-scaffolded-uc04.md
+  s_6530bd912e55e8::t_e233122e173798 1-6
+skills/shape-the-epic/SKILL.md
+  s_6530bd912e55e8::t_105a322a70c593 208
+  s_6530bd912e55e8::t_80ac20ce6ee098 124-125,127
+  s_6530bd912e55e8::t_fccce5fa16b7af 49
+  s_6530bd912e55e8::t_75160f86f04049 73
+  s_6530bd912e55e8::t_8ecbf6aa938905 216
+  s_6530bd912e55e8::t_6529b0ca61bbaf 32-48,50-69,71-72,74-81
+  s_6530bd912e55e8::t_39a45bf314147f 14
+  s_6530bd912e55e8::t_69619f33cec2a2 70
+  s_6530bd912e55e8::t_1006d4689c0731 137
+  s_6530bd912e55e8::t_810bc53a06bc5d 82
+  s_6530bd912e55e8::t_daa18a80528f86 187
+  s_6530bd912e55e8::t_fde1456e13a879 83-85
+evals/go-deep/fresh-onboarding/fixture.sh
+  s_6530bd912e55e8::t_5dc458f1d001e4 4-25
+evals/plan-the-work/negative-control/fixture/package.json
+  s_6530bd912e55e8::t_5405a60cf73853 1-8
+evals/shape-the-epic/shape-the-epic-negative-control/graders/no-autopilot-markers.md
+  s_6530bd912e55e8::t_e2e34086d0c45c 1-4,6-7
+  s_6530bd912e55e8::t_103c8bdea8374e 5
+evals/shape-the-epic/run-all.sh
+  s_6530bd912e55e8::t_28c4d73227581a 1-28,30-43
+  s_6530bd912e55e8::t_b5464a971e4f93 29
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/skills/uc-02-complete-task/SKILL.md
+  s_6530bd912e55e8::t_3d377eaa663b16 1-32
+evals/define-test-strategy/fresh-autopilot/graders/claude-md-structure.md
+  s_6530bd912e55e8::t_ffb5706f37f3e6 1-13
+evals/define-test-strategy/fresh-autopilot/graders/all-four-scaffolded-uc03.md
+  s_6530bd912e55e8::t_d6997fa0c842dc 1-6
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture.sh
+  s_6530bd912e55e8::t_43e811b4ef3641 1-4
+evals/define-test-strategy/fresh-autopilot/case.yaml
+  s_6530bd912e55e8::t_f04d8e1f86a51a 1-5
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/case.yaml
+  s_6530bd912e55e8::t_e2338932ebe6a4 1-3
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/no-askuserquestion.md
+  s_6530bd912e55e8::t_eec4f39fb49a98 1-7
+evals/define-test-strategy/extend-autopilot/graders/claude-md-structure.md
+  s_6530bd912e55e8::t_bac2ee62855238 7-9
+  s_6530bd912e55e8::t_08852e80bf8696 4-6
+  s_eb0efe35d31703::t_494c20184a6601 1-3
+evals/slice-the-epic/negative-control/graders/asks-clarifying-question.md
+  s_6530bd912e55e8::t_0185a67772969b 1-13
+evals/define-test-strategy/extend-autopilot/graders/rules-files-row-added-once.md
+  s_6530bd912e55e8::t_b17150b6a845ac 4
+  s_6530bd912e55e8::t_a2facac5da800c 1-3,5-7
+evals/define-test-strategy/fresh-autopilot/graders/all-four-scaffolded.md
+  s_6530bd912e55e8::t_cde292d51e0503 1-6
+evals/define-test-strategy/fresh-autopilot/prompt.md
+  s_6530bd912e55e8::t_4e2d2863fcccaa 1-9
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/prompt.md
+  s_6530bd912e55e8::t_0c2b5b2701fa1c 3
+  s_6530bd912e55e8::t_2608424526ab22 1-2,4-26
+skills/slice-the-epic/SKILL.md
+  s_6530bd912e55e8::t_98687437723700 10-39,42
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/epic-structure-sections.md
+  s_6530bd912e55e8::t_7c71f574544254 7
+  s_6530bd912e55e8::t_1eb9a025a85843 14
+  s_6530bd912e55e8::t_9b9112f1402444 1-6,8-13,15-16
+evals/plan-the-work/negative-control/graders/plan-not-created.md
+  s_6530bd912e55e8::t_8c8e253cd09832 1-6
+evals/define-test-strategy/run-all.sh
+  s_6530bd912e55e8::t_2ba11de078f149 4
+  s_6530bd912e55e8::t_76fefc27feb33d 32-33
+  s_6530bd912e55e8::t_d9ab7f55b71508 28
+  s_6530bd912e55e8::t_799238e51e4d9b 1-3,5-27,29-31,34-63
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/skills/domain-tasks/SKILL.md
+  s_6530bd912e55e8::t_6e913316330ad0 1-26
+evals/go-deep/negative-control/fixture.sh
+  s_6530bd912e55e8::t_d1d0e17771e6b5 4-25
+evals/define-test-strategy/fresh-autopilot/graders/all-four-scaffolded-uc02.md
+  s_6530bd912e55e8::t_6a4562ad718dc6 1-6
+evals/README.md
+  s_6530bd912e55e8::t_3b051e635553e6 19
+  s_6530bd912e55e8::t_2abacadfef4d2b 1-18
+evals/go-deep/repair-path/fixture.sh
+  s_6530bd912e55e8::t_70dc9dd7fe5e52 4-26
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/rules/product.md
+  s_6530bd912e55e8::t_1b8c7f303b5562 1-22
+evals/review-the-pr/autopilot-bare/fixture/README.md
+  s_6530bd912e55e8::t_39731995406096 1-15
+evals/define-test-strategy/extend-autopilot/graders/quick-lookup-table-preserved.md
+  s_6530bd912e55e8::t_b45fb521d2d388 1-6
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/turn-cap-exercised.md
+  s_6530bd912e55e8::t_ed0348cb931c6c 1-6,8,11,15
+  s_6530bd912e55e8::t_d1087bf9d0e5f9 7,9-10,12-14,16
+evals/shape-the-epic/README.md
+  s_6530bd912e55e8::t_6aa58ea71a5c2c 26,30
+  s_6530bd912e55e8::t_e4c7757a3a3c04 55,57,59-60,62,64-74,79
+  s_6530bd912e55e8::t_ba3382088add69 1-25,27-29,31-54,56,58,61,63,75-78,80
+evals/review-the-pr/autopilot-bare/fixture/package.json
+  s_6530bd912e55e8::t_524cd026aa5bb3 1-8
+evals/review-the-pr/autopilot-bare/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_0fcb3646d8a518 1-21
+evals/review-the-pr/autopilot-bare/fixture/claude-dir/rules/architecture.md
+  s_6530bd912e55e8::t_325b56b463cba7 1-32
+evals/plan-the-work/negative-control/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_e6d930857c07ac 1-10
+.gitignore
+  s_6530bd912e55e8::t_c2c5b1ada934d0 3
+evals/define-test-strategy/fresh-autopilot/graders/testing-strategy-generated.md
+  s_6530bd912e55e8::t_3aff52d793ef51 1-17
+evals/review-the-pr/autopilot-bare/fixture/CLAUDE.md
+  s_6530bd912e55e8::t_050f034597612f 1-53
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/epic-file-written.md
+  s_6530bd912e55e8::t_dc2a39ccbb0d46 1-7
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/epic-file-written.md
+  s_6530bd912e55e8::t_b95480b4af4944 1-7
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/open-items-populated.md
+  s_6530bd912e55e8::t_70c34ed03f2daf 1-16
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture/src/orders/model.js
+  s_6530bd912e55e8::t_8c6622046e0d61 1-8
+evals/define-test-strategy/define-test-strategy-negative-control/case.yaml
+  s_6530bd912e55e8::t_de457707f7e8d1 2
+  s_6530bd912e55e8::t_f85f1eb0195abb 1
+  s_6530bd912e55e8::t_fe012938a33141 3-5
+evals/define-test-strategy/README.md
+  s_6530bd912e55e8::t_45bc149619f33e 1-5,7-8,10-15,17-18,20-75
+  s_6530bd912e55e8::t_d9ab7f55b71508 16
+  s_6530bd912e55e8::t_ea0800cf0e2a66 19
+  s_6530bd912e55e8::t_f17114ae1d5fbd 9
+  s_6530bd912e55e8::t_0a3133517d6490 6
+evals/shape-the-epic/manual-log-check.sh
+  s_6530bd912e55e8::t_4a077fdb8be46e 1-77,79-100
+  s_6530bd912e55e8::t_2033c410e8849f 78
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/phase4-fully-conducted.md
+  s_6530bd912e55e8::t_6e373776c0beb8 1-16
+evals/close-the-gaps/README.md
+  s_6530bd912e55e8::t_1cd5a6c3b99999 1-50
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/admin-role-gap-addressed.md
+  s_6530bd912e55e8::t_fc12d4c8c0a4a4 1-11
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/autopilot-log-referenced.md
+  s_af0112a5b23fd0::t_ebe20ed07ec605 1-6
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/autopilot-markers-present.md
+  s_6530bd912e55e8::t_d814bb65ac8dfd 1-6
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/decision-log-table-present.md
+  s_6530bd912e55e8::t_90e82e38dcfe79 1-6
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/gherkin-keyword-spacing.md
+  s_6530bd912e55e8::t_5c03c9afaa0c5a 1-7
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/gherkin-scenarios-present.md
+  s_6530bd912e55e8::t_2371146f3742d1 1-6
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/no-tbd-section.md
+  s_6530bd912e55e8::t_c4a4487aa2b713 1-7
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/spec-exists.md
+  s_6530bd912e55e8::t_041f7d39aa5f50 1-5
+evals/close-the-gaps/close-the-gaps-live-autopilot/prompt.md
+  s_6530bd912e55e8::t_4589cbb48d2394 1-18
+evals/close-the-gaps/close-the-gaps-negative-control/fixture.sh
+  s_6530bd912e55e8::t_98da95f81314ad 1-4
+evals/close-the-gaps/close-the-gaps-negative-control/fixture/README.md
+  s_6530bd912e55e8::t_9274bb4fb194a0 1-8
+evals/close-the-gaps/close-the-gaps-negative-control/fixture/package.json
+  s_6530bd912e55e8::t_812fe36494c113 1-5
+evals/close-the-gaps/close-the-gaps-negative-control/fixture/src/orders/model.js
+  s_6530bd912e55e8::t_700382d9baffee 1-8
+evals/close-the-gaps/close-the-gaps-negative-control/fixture/src/orders/status.js
+  s_6530bd912e55e8::t_b0f230402ec850 1-25
+evals/close-the-gaps/close-the-gaps-offline-injection/case.yaml
+  s_6530bd912e55e8::t_3b6919fa463ab1 1-5
+evals/close-the-gaps/close-the-gaps-offline-injection/fixture.sh
+  s_6530bd912e55e8::t_b9f84ef6e20a3a 1-4
+evals/close-the-gaps/close-the-gaps-offline-injection/fixture/package.json
+  s_6530bd912e55e8::t_4d722189e7ae48 1-5
+evals/close-the-gaps/close-the-gaps-offline-injection/fixture/src/orders/export.js
+  s_6530bd912e55e8::t_0a14435329e092 1-11
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/decision-log-content.md
+  s_6530bd912e55e8::t_a5d58843caae28 1-20
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/questions-file-superseded.md
+  s_6530bd912e55e8::t_2b8cfe6605453e 1-6
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/spec-exists.md
+  s_6530bd912e55e8::t_7082584d149b71 1-5
+evals/close-the-gaps/close-the-gaps-offline-injection/prompt.md
+  s_6530bd912e55e8::t_a3ba3564a7e30a 1-9
+evals/close-the-gaps/close-the-gaps-stale-questions-file/case.yaml
+  s_6530bd912e55e8::t_a168a4c7142884 1-5
+evals/close-the-gaps/close-the-gaps-stale-questions-file/fixture.sh
+  s_6530bd912e55e8::t_37318ef16d5f5b 1-4
+evals/close-the-gaps/close-the-gaps-stale-questions-file/fixture/src/orders/export.js
+  s_7b5dc18aa92b06::t_3cb312dd1e1b07 1-9
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/halt-explained.md
+  s_6530bd912e55e8::t_7053bdf2d00846 1-17
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/spec-not-created.md
+  s_6530bd912e55e8::t_94f5d932d5eb7a 1-6
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/stale-file-survives.md
+  s_6530bd912e55e8::t_971d8729cd5f82 1-6
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/status-still-awaiting.md
+  s_6530bd912e55e8::t_aac220a811be69 1-6
+evals/close-the-gaps/close-the-gaps-stale-questions-file/prompt.md
+  s_6530bd912e55e8::t_11a8b0e2b619d0 1-17
+evals/close-the-gaps/manual-log-check.sh
+  s_6530bd912e55e8::t_c099256f5931e7 1-60
+evals/close-the-gaps/run-all.sh
+  s_6530bd912e55e8::t_79d3489ef5b231 1-43
+evals/define-test-strategy/define-test-strategy-negative-control/fixture.sh
+  s_6530bd912e55e8::t_3157b4d9f9fec6 1-13
+evals/define-test-strategy/extend-autopilot/case.yaml
+  s_6530bd912e55e8::t_82287fbdbf655c 1-5
+evals/define-test-strategy/extend-autopilot/fixture.sh
+  s_6530bd912e55e8::t_3b17cf0a873c20 1-13
+evals/define-test-strategy/extend-autopilot/fixture/.claude/rules/architecture.md
+  s_6530bd912e55e8::t_4ef329790f8616 1-34
+evals/define-test-strategy/extend-autopilot/fixture/.claude/rules/product.md
+  s_6530bd912e55e8::t_54a74377222f5d 1-24
+evals/define-test-strategy/extend-autopilot/fixture/.claude/rules/testing-strategy.md
+  s_6530bd912e55e8::t_2acc729ff8c83f 1-31
+evals/define-test-strategy/extend-autopilot/fixture/.claude/skills/domain-notifications/SKILL.md
+  s_6530bd912e55e8::t_a3258f7ad85378 1-12
+evals/define-test-strategy/extend-autopilot/fixture/.claude/skills/domain-tasks/SKILL.md
+  s_6530bd912e55e8::t_b43b6d8ff2221c 1-12
+evals/define-test-strategy/extend-autopilot/fixture/.claude/skills/uc-01-create-task/SKILL.md
+  s_6530bd912e55e8::t_4d595ca0ba76e7 1-12
+evals/define-test-strategy/extend-autopilot/fixture/.claude/skills/uc-02-complete-task/SKILL.md
+  s_6530bd912e55e8::t_f1f178a532ee14 1-12
+evals/define-test-strategy/extend-autopilot/fixture/.claude/skills/uc-03-receive-overdue-reminder/SKILL.md
+  s_6530bd912e55e8::t_1ce0d1db08e253 1-12
+evals/define-test-strategy/extend-autopilot/fixture/.claude/skills/uc-04-delete-task/SKILL.md
+  s_6530bd912e55e8::t_f7bfa83c9a6619 1-12
+evals/define-test-strategy/extend-autopilot/fixture/CLAUDE.md
+  s_6530bd912e55e8::t_155e2356a75754 1-59
+evals/define-test-strategy/extend-autopilot/fixture/README.md
+  s_6530bd912e55e8::t_bf8f38f5a8ae39 1-3
+evals/define-test-strategy/extend-autopilot/fixture/__tests__/domain-tasks-helpers.test.js
+  s_6530bd912e55e8::t_f6749c46272b1c 1-9
+evals/define-test-strategy/extend-autopilot/fixture/__tests__/uc-01-create-task.test.js
+  s_6530bd912e55e8::t_6a78aa4fd4682b 1-13
+evals/define-test-strategy/extend-autopilot/fixture/__tests__/uc-02-complete-task.test.js
+  s_6530bd912e55e8::t_6aeae3590d3dcf 1-4
+evals/define-test-strategy/extend-autopilot/fixture/package.json
+  s_6530bd912e55e8::t_a178df58301406 1-8
+evals/define-test-strategy/extend-autopilot/fixture/src/models/user.js
+  s_6530bd912e55e8::t_5caa75828e98d3 1-7
+evals/define-test-strategy/extend-autopilot/fixture/src/notifications/sendReminder.js
+  s_6530bd912e55e8::t_a44c4a8b399f31 1-7
+evals/define-test-strategy/extend-autopilot/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_9b72a5930f0303 1-8
+evals/define-test-strategy/extend-autopilot/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_0f0d91ee318250 1-8
+evals/define-test-strategy/extend-autopilot/fixture/src/tasks/deleteTask.js
+  s_6530bd912e55e8::t_62dbb7b5d7d5d2 1-9
+evals/define-test-strategy/extend-autopilot/prompt.md
+  s_6530bd912e55e8::t_b65853a1dd33ad 1-9
+evals/execute/README.md
+  s_6530bd912e55e8::t_520a4945e0d0e9 1-265
+evals/execute/execute-full-pass/case.yaml
+  s_6530bd912e55e8::t_a28c52897ed4b0 1-5
+evals/execute/execute-full-pass/fixture.sh
+  s_6530bd912e55e8::t_f306585710e877 1-41
+evals/execute/execute-full-pass/fixture/README.md
+  s_6530bd912e55e8::t_e1cee9b5483524 1-11
+evals/execute/execute-full-pass/fixture/package.json
+  s_6530bd912e55e8::t_cb0a138ce63b70 1-8
+evals/execute/execute-full-pass/fixture/src/greeting.js
+  s_6530bd912e55e8::t_169e6fc5bb6c72 1-5
+evals/execute/execute-full-pass/fixture/test.js
+  s_6530bd912e55e8::t_d09096b98b663c 1-8
+evals/execute/execute-full-pass/graders/code-correct.md
+  s_6530bd912e55e8::t_3d5a5b021dcccc 1-9
+evals/execute/execute-full-pass/graders/decision-log-content.md
+  s_6530bd912e55e8::t_92d0c53dc78530 1-17
+evals/execute/execute-full-pass/graders/gate-pass.md
+  s_6530bd912e55e8::t_bd8d319c256d37 1-6
+evals/execute/execute-full-pass/graders/mode-resolved-subagent-driven.md
+  s_6530bd912e55e8::t_53a7781274bc20 1-6
+evals/execute/execute-full-pass/graders/no-git-commit.md
+  s_6530bd912e55e8::t_3df0cd170e0f77 1-8
+evals/execute/execute-full-pass/graders/phase5-success-report.md
+  s_6530bd912e55e8::t_49eb01e3aa2d83 1-6
+evals/execute/execute-full-pass/graders/progress-complete.md
+  s_6530bd912e55e8::t_f5e0ce4dc00a13 1-6
+evals/execute/execute-negative-control/case.yaml
+  s_6530bd912e55e8::t_1faf7d4b2bd818 1-5
+evals/execute/execute-negative-control/fixture.sh
+  s_6530bd912e55e8::t_1176d2fc70c283 1-30
+evals/execute/execute-negative-control/fixture/README.md
+  s_6530bd912e55e8::t_f4ec0db0062ec2 1-7
+evals/execute/execute-negative-control/fixture/src/greeting.js
+  s_6530bd912e55e8::t_50074228091a2e 1-5
+evals/execute/execute-negative-control/graders/code-untouched.md
+  s_6530bd912e55e8::t_a487d3712c11ca 1-7
+evals/execute/execute-negative-control/graders/mode-still-unresolved.md
+  s_6530bd912e55e8::t_b9a45de4cb8d22 1-6
+evals/execute/execute-negative-control/graders/progress-unchanged.md
+  s_6530bd912e55e8::t_96fa4efd44d931 1-6
+evals/execute/execute-negative-control/graders/question-reached.md
+  s_6530bd912e55e8::t_4453c5ad7a0c8e 1-6
+evals/execute/execute-negative-control/prompt.md
+  s_6530bd912e55e8::t_2670aba4c7b495 1-9
+evals/execute/execute-resume-inline/case.yaml
+  s_6530bd912e55e8::t_1c324444678445 1-5
+evals/execute/execute-resume-inline/fixture.sh
+  s_6530bd912e55e8::t_f784f2995c874e 1-34
+evals/execute/execute-resume-inline/fixture/README.md
+  s_6530bd912e55e8::t_5c1bfca871ad29 1-7
+evals/execute/execute-resume-inline/fixture/src/greeting.js
+  s_6530bd912e55e8::t_c98f09d4fb0e22 1-9
+evals/execute/execute-resume-inline/graders/mode-unchanged-inline.md
+  s_6530bd912e55e8::t_79dd587fc4fcba 1-6
+evals/execute/execute-resume-inline/graders/no-askuserquestion.md
+  s_6530bd912e55e8::t_a41aa66dafbdd8 1-7
+evals/execute/execute-resume-inline/graders/no-mode-question.md
+  s_6530bd912e55e8::t_043d7fa7c08807 1-7
+evals/execute/execute-resume-inline/graders/no-subagent-dispatch.md
+  s_6530bd912e55e8::t_36c1521cddb6f2 1-7
+evals/execute/execute-resume-inline/graders/progress-complete.md
+  s_6530bd912e55e8::t_0486d7caa080a1 1-6
+evals/execute/execute-resume-inline/graders/regression-gate-stop.md
+  s_6530bd912e55e8::t_2ac7de9cb0a917 1-6
+evals/execute/execute-resume-inline/prompt.md
+  s_6530bd912e55e8::t_7eb7b044facedc 1-9
+evals/execute/execute-stop-at-gate/case.yaml
+  s_6530bd912e55e8::t_b39e449973efb1 1-5
+evals/execute/execute-stop-at-gate/fixture.sh
+  s_6530bd912e55e8::t_0c17f31d346b5f 1-35
+evals/execute/execute-stop-at-gate/fixture/README.md
+  s_6530bd912e55e8::t_45f8cba9858505 1-7
+evals/execute/execute-stop-at-gate/fixture/src/greeting.js
+  s_6530bd912e55e8::t_5547d0a0b2ae2b 1-5
+evals/execute/execute-stop-at-gate/graders/attempted-log-payload.md
+  s_6530bd912e55e8::t_ba1ad22fc4a9c9 1-35
+evals/execute/execute-stop-at-gate/graders/code-correct.md
+  s_6530bd912e55e8::t_a1d54af7193dd6 1-9
+evals/execute/execute-stop-at-gate/graders/code-implemented.md
+  s_6530bd912e55e8::t_a36244bf7b5055 1-6
+evals/execute/execute-stop-at-gate/graders/mode-resolved-subagent-driven.md
+  s_6530bd912e55e8::t_dc960944b96864 1-6
+evals/execute/execute-stop-at-gate/graders/no-askuserquestion.md
+  s_6530bd912e55e8::t_e3fa92c2b2d00d 1-7
+evals/execute/execute-stop-at-gate/graders/no-phase5-success.md
+  s_6530bd912e55e8::t_2ded1ccce76820 1-7
+evals/execute/execute-stop-at-gate/graders/progress-complete.md
+  s_6530bd912e55e8::t_1939bc6a6b14c8 1-6
+evals/execute/execute-stop-at-gate/graders/regression-gate-stop.md
+  s_6530bd912e55e8::t_83d38e16bb94ae 1-6
+evals/execute/execute-stop-at-gate/graders/run-regression-invoked.md
+  s_6530bd912e55e8::t_55ac74c70b0a20 1-7
+evals/execute/execute-stop-at-gate/graders/subagent-dispatch-used.md
+  s_6530bd912e55e8::t_8c6407d4073071 1-6
+evals/execute/execute-stop-at-gate/prompt.md
+  s_6530bd912e55e8::t_51aa90440fa5a2 1-9
+evals/execute/run-all.sh
+  s_6530bd912e55e8::t_e43c36ddce474f 1-65
+evals/plan-the-work/happy-path/case.yaml
+  s_6530bd912e55e8::t_f8768a3bb02cba 1-5
+evals/plan-the-work/happy-path/fixture.sh
+  s_6530bd912e55e8::t_a7cae7b190734e 1-11
+evals/plan-the-work/happy-path/fixture/README.md
+  s_6530bd912e55e8::t_20e98f94ff7f8d 1-5
+evals/plan-the-work/happy-path/fixture/package.json
+  s_6530bd912e55e8::t_a08532bed7fda9 1-9
+evals/plan-the-work/happy-path/fixture/src/events/taskEvents.js
+  s_6530bd912e55e8::t_708bcb649fb975 1-14
+evals/plan-the-work/happy-path/fixture/src/notifications/sendReminder.js
+  s_6530bd912e55e8::t_8ef1a5f1c9b076 1-15
+evals/plan-the-work/happy-path/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_d666bfcd04ec8e 1-13
+evals/plan-the-work/happy-path/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_a858f3a8dc1e04 1-17
+evals/plan-the-work/happy-path/graders/approach-gap-resolved.md
+  s_6530bd912e55e8::t_5fec113ef369d9 1-25
+evals/plan-the-work/happy-path/graders/filler-never-chosen.md
+  s_6530bd912e55e8::t_22c175ae1ab9c1 1-10
+evals/plan-the-work/happy-path/graders/final-summary-printed.md
+  s_6530bd912e55e8::t_1f7b96d734a358 1-6
+evals/plan-the-work/happy-path/graders/no-manual-pause.md
+  s_6530bd912e55e8::t_a72a1d1b822a37 1-7
+evals/plan-the-work/happy-path/graders/plan-file-exists.md
+  s_6530bd912e55e8::t_858c6da3b78d6d 1-5
+evals/plan-the-work/happy-path/graders/recommended-option-chosen.md
+  s_6530bd912e55e8::t_a927a82a5868f7 1-9
+evals/plan-the-work/happy-path/prompt.md
+  s_6530bd912e55e8::t_e900a82d78a065 1-9
+evals/plan-the-work/plan-collision-negative-control/case.yaml
+  s_6530bd912e55e8::t_9533b87f196563 1-5
+evals/plan-the-work/plan-collision-negative-control/fixture.sh
+  s_6530bd912e55e8::t_ada48ff0e7ba5f 1-11
+evals/plan-the-work/plan-collision-negative-control/fixture/README.md
+  s_6530bd912e55e8::t_260e17779fec35 1-3
+evals/plan-the-work/plan-collision-negative-control/fixture/package.json
+  s_6530bd912e55e8::t_2155366b53bf9b 1-9
+evals/plan-the-work/plan-collision-negative-control/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_d1f46c317438f1 1-8
+evals/plan-the-work/plan-collision-negative-control/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_c13943ac0523de 1-10
+evals/plan-the-work/plan-collision-negative-control/graders/collision-question-reached.md
+  s_6530bd912e55e8::t_0dce8df8d5b39d 1-7
+evals/plan-the-work/plan-collision-negative-control/graders/original-untouched.md
+  s_6530bd912e55e8::t_297cdfa92e4739 1-6
+evals/plan-the-work/plan-collision-negative-control/graders/v2-not-created.md
+  s_6530bd912e55e8::t_bf9f88e33e849a 1-6
+evals/plan-the-work/plan-collision-negative-control/prompt.md
+  s_6530bd912e55e8::t_b31cb796d7ec84 1-9
+evals/plan-the-work/plan-collision/case.yaml
+  s_6530bd912e55e8::t_60d8f81055cc31 1-5
+evals/plan-the-work/plan-collision/fixture.sh
+  s_6530bd912e55e8::t_030e6abbba1157 1-11
+evals/plan-the-work/plan-collision/fixture/README.md
+  s_6530bd912e55e8::t_e1e3aa8db9c91c 1-3
+evals/plan-the-work/plan-collision/fixture/package.json
+  s_6530bd912e55e8::t_1c5268c4e8a5c5 1-9
+evals/plan-the-work/plan-collision/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_f09ad03bc82f1f 1-8
+evals/plan-the-work/plan-collision/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_193771495f805a 1-10
+evals/plan-the-work/plan-collision/graders/execute-hint-names-v2.md
+  s_6530bd912e55e8::t_ead7abb98856ee 1-12
+evals/plan-the-work/plan-collision/graders/filler-never-chosen.md
+  s_6530bd912e55e8::t_3c5ac60383bb44 1-10
+evals/plan-the-work/plan-collision/graders/original-plan-not-overwritten.md
+  s_6530bd912e55e8::t_bf886245bf52ae 1-6
+evals/plan-the-work/plan-collision/graders/original-plan-untouched.md
+  s_6530bd912e55e8::t_3237db3a1695df 1-6
+evals/plan-the-work/plan-collision/graders/v2-plan-created.md
+  s_6530bd912e55e8::t_87500f70b2c7be 1-5
+evals/plan-the-work/plan-collision/graders/v2-plan-structure.md
+  s_6530bd912e55e8::t_93a43d05f645b9 1-24
+evals/plan-the-work/plan-collision/prompt.md
+  s_6530bd912e55e8::t_972499091247cc 1-9
+evals/plan-the-work/run-all.sh
+  s_6530bd912e55e8::t_a009563a82e7e9 1-70
+evals/plan-the-work/with-tests/case.yaml
+  s_6530bd912e55e8::t_2b8e13ceb763bf 1-5
+evals/plan-the-work/with-tests/fixture.sh
+  s_6530bd912e55e8::t_d0083d97f30713 1-11
+evals/plan-the-work/with-tests/fixture/README.md
+  s_6530bd912e55e8::t_209891a054a849 1-5
+evals/plan-the-work/with-tests/fixture/package.json
+  s_6530bd912e55e8::t_7c7c423cc97eea 1-9
+evals/plan-the-work/with-tests/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_a75a25cdb96ef6 1-10
+evals/plan-the-work/with-tests/fixture/src/tasks/createTask.test.js
+  s_6530bd912e55e8::t_4057b116fb1a85 1-14
+evals/plan-the-work/with-tests/graders/autopilot-log-exists.md
+  s_6530bd912e55e8::t_02281258eda1f8 1-8
+evals/plan-the-work/with-tests/graders/plan-tests-field-recorded.md
+  s_6530bd912e55e8::t_d33d16d273a0a0 1-14
+evals/plan-the-work/with-tests/graders/progression-test-added.md
+  s_6530bd912e55e8::t_7600073909bc4c 1-6
+evals/plan-the-work/with-tests/graders/test-commit-made.md
+  s_6530bd912e55e8::t_75fb0131f15061 1-11
+evals/plan-the-work/with-tests/prompt.md
+  s_6530bd912e55e8::t_0234a7d78d9447 1-9
+evals/review-the-pr/README.md
+  s_6530bd912e55e8::t_757c8e11d9bbb9 1-204
+evals/review-the-pr/autopilot-bare/case.yaml
+  s_6530bd912e55e8::t_2ddb000ae26027 1-5
+evals/review-the-pr/autopilot-bare/completeTask.feature.js
+  s_6530bd912e55e8::t_a23c26b09082bd 1-18
+evals/review-the-pr/autopilot-bare/graders/autopilot-log-content.md
+  s_6530bd912e55e8::t_6d99973036b1f0 1-21
+evals/review-the-pr/autopilot-bare/graders/autopilot-log-exists.md
+  s_6530bd912e55e8::t_c26a46de4512ee 1-5
+evals/review-the-pr/autopilot-bare/graders/review-content.md
+  s_6530bd912e55e8::t_562e4fb20c6d60 1-26
+evals/review-the-pr/autopilot-bare/graders/review-created.md
+  s_6530bd912e55e8::t_0b95a750ba1177 1-5
+evals/review-the-pr/autopilot-bare/prompt.md
+  s_6530bd912e55e8::t_3a76dac42b4bd0 1-9
+evals/review-the-pr/autopilot-full-info/case.yaml
+  s_6530bd912e55e8::t_70b4a42ce7bf7e 1-5
+evals/review-the-pr/autopilot-full-info/completeTask.feature.js
+  s_6530bd912e55e8::t_c1ce2b5329390d 1-18
+evals/review-the-pr/autopilot-full-info/fixture.sh
+  s_6530bd912e55e8::t_b0e797077febd6 1-58
+evals/review-the-pr/autopilot-full-info/fixture/CLAUDE.md
+  s_6530bd912e55e8::t_0641f1c9f151d1 1-53
+evals/review-the-pr/autopilot-full-info/fixture/README.md
+  s_6530bd912e55e8::t_3558fe5fead367 1-15
+evals/review-the-pr/autopilot-full-info/fixture/claude-dir/rules/architecture.md
+  s_6530bd912e55e8::t_b533f00f130422 1-32
+evals/review-the-pr/autopilot-full-info/fixture/claude-dir/rules/product.md
+  s_6530bd912e55e8::t_a393b43de66c78 1-22
+evals/review-the-pr/autopilot-full-info/fixture/claude-dir/skills/domain-tasks/SKILL.md
+  s_6530bd912e55e8::t_6ea6332ef7d986 1-26
+evals/review-the-pr/autopilot-full-info/fixture/claude-dir/skills/uc-01-create-task/SKILL.md
+  s_6530bd912e55e8::t_05d463a5abfef5 1-30
+evals/review-the-pr/autopilot-full-info/fixture/claude-dir/skills/uc-02-complete-task/SKILL.md
+  s_6530bd912e55e8::t_3c5c44cb9be3ed 1-32
+evals/review-the-pr/autopilot-full-info/fixture/package.json
+  s_6530bd912e55e8::t_a8ac6c4d2ed203 1-8
+evals/review-the-pr/autopilot-full-info/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_1bc876189c83fb 1-16
+evals/review-the-pr/autopilot-full-info/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_f04c5afe100c8d 1-21
+evals/review-the-pr/autopilot-full-info/fixture/src/tasks/taskRepo.js
+  s_6530bd912e55e8::t_e39122b8b47f88 1-17
+evals/review-the-pr/autopilot-full-info/graders/autopilot-log-content.md
+  s_6530bd912e55e8::t_4fd3c54cd6b6e6 1-23
+evals/review-the-pr/autopilot-full-info/graders/autopilot-log-exists.md
+  s_6530bd912e55e8::t_d3537557f765b0 1-5
+evals/review-the-pr/autopilot-full-info/graders/review-content.md
+  s_6530bd912e55e8::t_4baab9fcee2685 1-27
+evals/review-the-pr/autopilot-full-info/graders/review-created.md
+  s_6530bd912e55e8::t_b853eabb61006e 1-5
+evals/review-the-pr/autopilot-full-info/prompt.md
+  s_6530bd912e55e8::t_d837ebc574da60 1-14
+evals/review-the-pr/negative-control/case.yaml
+  s_6530bd912e55e8::t_f22989baa64aa3 1-5
+evals/review-the-pr/negative-control/fixture.sh
+  s_6530bd912e55e8::t_0514dbcf44be2f 1-24
+evals/review-the-pr/negative-control/fixture/CLAUDE.md
+  s_6530bd912e55e8::t_b2a8eb9562cd64 1-53
+evals/review-the-pr/negative-control/fixture/README.md
+  s_6530bd912e55e8::t_dca375ca917f0d 1-15
+evals/review-the-pr/negative-control/fixture/claude-dir/rules/architecture.md
+  s_6530bd912e55e8::t_6fc59eac614edf 1-32
+evals/review-the-pr/negative-control/fixture/claude-dir/rules/product.md
+  s_6530bd912e55e8::t_97e18d117b7f41 1-22
+evals/review-the-pr/negative-control/fixture/claude-dir/skills/domain-tasks/SKILL.md
+  s_6530bd912e55e8::t_b16c1adedf998e 1-26
+evals/review-the-pr/negative-control/fixture/claude-dir/skills/uc-01-create-task/SKILL.md
+  s_6530bd912e55e8::t_979b03968609ad 1-30
+evals/review-the-pr/negative-control/fixture/claude-dir/skills/uc-02-complete-task/SKILL.md
+  s_6530bd912e55e8::t_8a2381c3065d38 1-32
+evals/review-the-pr/negative-control/fixture/package.json
+  s_6530bd912e55e8::t_eceebbb3cddadb 1-8
+evals/review-the-pr/negative-control/fixture/src/tasks/completeTask.js
+  s_6530bd912e55e8::t_f187a8a402433a 1-16
+evals/review-the-pr/negative-control/fixture/src/tasks/createTask.js
+  s_6530bd912e55e8::t_a412165209cc1d 1-21
+evals/review-the-pr/negative-control/fixture/src/tasks/taskRepo.js
+  s_6530bd912e55e8::t_34fb5e35c619b5 1-17
+evals/review-the-pr/run-all.sh
+  s_6530bd912e55e8::t_6fb2b8623ea4cd 1-88
+evals/run-regression/README.md
+  s_6530bd912e55e8::t_3672c674c3b6a8 1-187
+evals/run-regression/rr-full-fail/case.yaml
+  s_6530bd912e55e8::t_66b02cc1973905 1-5
+evals/run-regression/rr-full-fail/fixture.sh
+  s_6530bd912e55e8::t_d9c6d85aed2280 1-7
+evals/run-regression/rr-full-fail/graders/autopilot-log-exists.md
+  s_6530bd912e55e8::t_3c8c0a1b0f1e90 1-10
+evals/run-regression/rr-full-fail/graders/gate-fail.md
+  s_6530bd912e55e8::t_1e785693a7da87 1-6
+evals/run-regression/rr-full-fail/graders/no-reason-on-plain-fail.md
+  s_6530bd912e55e8::t_da8cb86a2cd378 1-17
+evals/run-regression/rr-full-fail/prompt.md
+  s_6530bd912e55e8::t_ef7eea707a75a2 1-9
+evals/run-regression/rr-full-pass/case.yaml
+  s_6530bd912e55e8::t_ba801846c458cc 1-5
+evals/run-regression/rr-full-pass/fixture.sh
+  s_6530bd912e55e8::t_de4d8cd979a63b 1-7
+evals/run-regression/rr-full-pass/fixture/README.md
+  s_6530bd912e55e8::t_a50532e77d2d4d 1-7
+evals/run-regression/rr-full-pass/fixture/package.json
+  s_6530bd912e55e8::t_9cc3d54b239669 1-7
+evals/run-regression/rr-full-pass/fixture/test/sample.test.js
+  s_6530bd912e55e8::t_485d1f9e50cf3b 1-10
+evals/run-regression/rr-full-pass/graders/autopilot-log-exists.md
+  s_6530bd912e55e8::t_bae3410bce0913 1-13
+evals/run-regression/rr-full-pass/graders/gate-pass.md
+  s_6530bd912e55e8::t_a5180d738b4034 1-6
+evals/run-regression/rr-full-pass/graders/mode-full-suite.md
+  s_6530bd912e55e8::t_173edc905f6536 1-6
+evals/run-regression/rr-full-pass/graders/ran-test-command.md
+  s_6530bd912e55e8::t_3839b0764b604a 1-5
+evals/run-regression/rr-full-pass/prompt.md
+  s_6530bd912e55e8::t_235150e4037766 1-9
+evals/run-regression/rr-negative-control/case.yaml
+  s_6530bd912e55e8::t_78e506037afe44 1-5
+evals/run-regression/rr-negative-control/fixture.sh
+  s_6530bd912e55e8::t_ad77d658b691e8 1-7
+evals/run-regression/rr-negative-control/fixture/README.md
+  s_6530bd912e55e8::t_963197051c3974 1-7
+evals/run-regression/rr-negative-control/fixture/package.json
+  s_6530bd912e55e8::t_455ed4855c6b51 1-7
+evals/run-regression/rr-negative-control/fixture/test/sample.test.js
+  s_6530bd912e55e8::t_2136d4b7770b05 1-6
+evals/run-regression/rr-negative-control/graders/mode-question-reached.md
+  s_6530bd912e55e8::t_67bb2a62ea62e3 1-14
+evals/run-regression/rr-negative-control/prompt.md
+  s_6530bd912e55e8::t_48053437412ab3 1-9
+evals/run-regression/rr-no-command-stop/case.yaml
+  s_6530bd912e55e8::t_bc2f20e0d77f55 1-5
+evals/run-regression/rr-no-command-stop/fixture.sh
+  s_6530bd912e55e8::t_0c9481dad8875f 1-7
+evals/run-regression/rr-no-command-stop/fixture/README.md
+  s_7b5dc18aa92b06::t_af6a0e8e1ddd06 1-16
+evals/run-regression/rr-no-command-stop/graders/no-invented-command.md
+  s_6530bd912e55e8::t_a3be3133832429 1-22
+evals/run-regression/rr-no-command-stop/graders/stop-message-verbatim.md
+  s_6530bd912e55e8::t_69a8a8bccc4281 1-6
+evals/run-regression/rr-no-command-stop/prompt.md
+  s_6530bd912e55e8::t_9bb107327301e8 1-9
+evals/run-regression/rr-scoped-explicit/case.yaml
+  s_6530bd912e55e8::t_25be1e713ddeb6 1-5
+evals/run-regression/rr-scoped-explicit/fixture.sh
+  s_6530bd912e55e8::t_5798e1a0be47d0 1-7
+evals/run-regression/rr-scoped-explicit/fixture/README.md
+  s_af0112a5b23fd0::t_d38654e6c0df5c 1-12
+evals/run-regression/rr-scoped-explicit/fixture/test/domain-billing.test.js
+  s_7b5dc18aa92b06::t_ccd6cf1c436e37 1-9
+evals/run-regression/rr-scoped-explicit/fixture/test/domain-velocity.test.js
+  s_7b5dc18aa92b06::t_abc167a859320d 1-6
+evals/run-regression/rr-scoped-explicit/graders/autopilot-log-exists.md
+  s_6530bd912e55e8::t_ca47474967e717 1-10
+evals/run-regression/rr-scoped-explicit/graders/billing-not-touched.md
+  s_6530bd912e55e8::t_52d4dceb2c4893 1-7
+evals/run-regression/rr-scoped-explicit/graders/scoped-result.md
+  s_6530bd912e55e8::t_1659b0685fe096 1-19
+evals/run-regression/rr-scoped-explicit/prompt.md
+  s_6530bd912e55e8::t_9a8d06adf2059b 1-9
+evals/run-regression/rr-scoped-unavailable/case.yaml
+  s_6530bd912e55e8::t_8bec037d22172f 1-5
+evals/run-regression/rr-scoped-unavailable/fixture.sh
+  s_6530bd912e55e8::t_402cc02908a467 1-7
+evals/run-regression/rr-scoped-unavailable/fixture/README.md
+  s_6530bd912e55e8::t_c6a249004d53a0 1-8
+evals/run-regression/rr-scoped-unavailable/fixture/package.json
+  s_6530bd912e55e8::t_b91460738f505e 1-7
+evals/run-regression/rr-scoped-unavailable/fixture/test/sample.test.js
+  s_6530bd912e55e8::t_da0eacdcbcff9d 1-6
+evals/run-regression/rr-scoped-unavailable/graders/no-gate-result.md
+  s_6530bd912e55e8::t_284df88c515afb 1-20
+evals/run-regression/rr-scoped-unavailable/graders/stop-message-verbatim.md
+  s_6530bd912e55e8::t_23e8d2808087ee 1-6
+evals/run-regression/rr-scoped-unavailable/prompt.md
+  s_6530bd912e55e8::t_85dbf1c5eeca8a 1-9
+evals/run-regression/run-all.sh
+  s_6530bd912e55e8::t_add0f8aeb735a6 1-104
+evals/slice-the-epic/README.md
+  s_6530bd912e55e8::t_779d40c0c978a4 1-66
+evals/slice-the-epic/ambiguous-epic-autopilot/case.yaml
+  s_6530bd912e55e8::t_b19be2730838f8 1-3
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/log-write-attempted.md
+  s_6530bd912e55e8::t_0ac3265edb4bf3 1-6
+evals/slice-the-epic/negative-control/graders/no-backlog-produced.md
+  s_6530bd912e55e8::t_be05128fc1406e 1-7
+evals/slice-the-epic/well-specified-epic-autopilot/case.yaml
+  s_6530bd912e55e8::t_257154a63f8ac1 1-3
+evals/slice-the-epic/well-specified-epic-autopilot/graders/backlog-produced.md
+  s_6530bd912e55e8::t_cdffa94296f9a7 1-15
+evals/slice-the-epic/well-specified-epic-autopilot/graders/log-write-attempted.md
+  s_6530bd912e55e8::t_74c7119378d2c0 1-6
+evals/slice-the-epic/well-specified-epic-autopilot/graders/no-best-guess-marker.md
+  s_6530bd912e55e8::t_ea8380fa3a91bf 1-7
+skills/execute/SKILL.md
+  s_6530bd912e55e8::t_c4ebc48c2a2426 11,14-56,64-65,74-75,79,81-82,84,88-89,189
+skills/plan-the-work/SKILL.md
+  s_6530bd912e55e8::t_a8c75ef4c7adf3 18,21-23,31-68,80-81,93,100,109-110,114,126,159,202,207,253,462
+evals/close-the-gaps/close-the-gaps-live-autopilot/case.yaml
+  s_ba089a1859f5b3::t_867fdd6b940755 1-5
+evals/close-the-gaps/close-the-gaps-negative-control/case.yaml
+  s_ba089a1859f5b3::t_4a802459617263 1-5
+evals/close-the-gaps/close-the-gaps-negative-control/graders/questions-announced.md
+  s_ba089a1859f5b3::t_a3234b4442c68a 1-6
+evals/close-the-gaps/close-the-gaps-negative-control/graders/spec-not-created.md
+  s_ba089a1859f5b3::t_be487fe21b6810 1-6
+evals/close-the-gaps/close-the-gaps-negative-control/prompt.md
+  s_be827c1933bbad::t_b0754ef55168d4 1-18
+evals/close-the-gaps/close-the-gaps-stale-questions-file/fixture/package.json
+  s_af0112a5b23fd0::t_71f0c613c0bcb1 1-5
+evals/define-test-strategy/define-test-strategy-negative-control/graders/blocks-before-proceeding.md
+  s_eb0efe35d31703::t_577fe78c02279c 1-7
+evals/define-test-strategy/define-test-strategy-negative-control/graders/claude-md-untouched.md
+  s_eb0efe35d31703::t_8cbd27f6ac11eb 1-7
+evals/define-test-strategy/define-test-strategy-negative-control/graders/no-scaffold-mentioned.md
+  s_eb0efe35d31703::t_139bd464142e26 1-7
+evals/define-test-strategy/define-test-strategy-negative-control/prompt.md
+  s_eb0efe35d31703::t_2479b07c933ce5 1-9
+evals/define-test-strategy/extend-autopilot/graders/testing-strategy-preserved.md
+  s_eb0efe35d31703::t_22d4c8fc03c0bd 1-15
+evals/define-test-strategy/extend-autopilot/graders/uc02-placeholder-preserved.md
+  s_eb0efe35d31703::t_f1cddeebae0307 1-6
+evals/define-test-strategy/extend-autopilot/graders/uc03-scaffolded.md
+  s_eb0efe35d31703::t_3905f9667620a1 1-6
+evals/define-test-strategy/extend-autopilot/graders/uc04-scaffolded.md
+  s_bc83e37a334386::t_73ea026e1331d5 1-6
+evals/execute/execute-full-pass/prompt.md
+  s_ba089a1859f5b3::t_68ff27b3a01651 1-9
+evals/plan-the-work/happy-path/graders/filler-label-preserved-not-chosen.md
+  s_bc83e37a334386::t_5022011d64989a 1-18
+evals/review-the-pr/negative-control/graders/pr-link-question-asked.md
+  s_ed27e6c431c74d::t_7adee94455b1bd 1-6
+evals/review-the-pr/negative-control/graders/review-not-created.md
+  s_ed27e6c431c74d::t_6dff04baee2ada 1-6
+evals/review-the-pr/negative-control/prompt.md
+  s_ed27e6c431c74d::t_dfd74c8948442a 1-9
+evals/run-regression/rr-full-fail/fixture/README.md
+  s_af0112a5b23fd0::t_edca237cd65224 1-6
+evals/run-regression/rr-full-fail/fixture/package.json
+  s_be827c1933bbad::t_98d5b2fecaab96 1-7
+evals/run-regression/rr-full-fail/fixture/test/sample.test.js
+  s_be827c1933bbad::t_90d1cda50d5573 1-10
+evals/run-regression/rr-no-command-stop/fixture/package.json
+  s_be827c1933bbad::t_cf9817aada4c8b 1-8
+evals/run-regression/rr-no-command-stop/fixture/src/index.js
+  s_be827c1933bbad::t_3bb5f378a12066 1-5
+evals/run-regression/rr-scoped-explicit/fixture/.claude/rules/architecture.md
+  s_be827c1933bbad::t_1a0a1cd956fd3f 1-17
+evals/run-regression/rr-scoped-explicit/fixture/.claude/rules/product.md
+  s_be827c1933bbad::t_6a7610c102fc81 1-13
+evals/run-regression/rr-scoped-explicit/fixture/.claude/rules/testing-strategy.md
+  s_be827c1933bbad::t_803d1d589947e7 1-24
+evals/run-regression/rr-scoped-explicit/fixture/package.json
+  s_be827c1933bbad::t_200758932f9442 1-7
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/best-guess-and-backlog.md
+  s_813f6b8e3e7cfa::t_23bb136ff899df 1-16
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/best-guess-marker-present.md
+  s_ba089a1859f5b3::t_8454de077b34ef 1-6
+evals/slice-the-epic/ambiguous-epic-autopilot/prompt.md
+  s_ba089a1859f5b3::t_58580d2417368d 1-11
+evals/slice-the-epic/negative-control/graders/no-autopilot-markers.md
+  s_bea3dc6fcf1e24::t_90a77bad5e7b6e 1-7
+evals/slice-the-epic/well-specified-epic-autopilot/prompt.md
+  s_be827c1933bbad::t_07ffcceb752d00 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "90a21cdf44d60b5d0cdde6a20808671fbcdd8a3c",
+  "prompts": {},
+  "sessions": {
+    "s_6530bd912e55e8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "264bc350-3d39-4e8e-8700-ba81f16a0b71",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_7b5dc18aa92b06": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7b6f1190-8189-4221-8e44-31a0c744ec43",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_813f6b8e3e7cfa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-aab4d24c0974c2b68",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_af0112a5b23fd0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b527e827-29c1-4d2e-97e6-db8f6ed45dd4",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_ba089a1859f5b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ae4ad329ba9a8652b",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_bc83e37a334386": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a0fb823fe5a47b53c",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_be827c1933bbad": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-aa975e1a5dceddf6c",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_bea3dc6fcf1e24": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a997901ad4142f84b",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_eb0efe35d31703": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a2e132dd4b231fb7c",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_ed27e6c431c74d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a16319a9925aa50e6",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
