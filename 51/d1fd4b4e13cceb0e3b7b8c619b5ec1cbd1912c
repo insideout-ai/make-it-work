@@ -1,0 +1,47 @@
+skills/close-the-gaps/SKILL.md
+  s_21c6f3bf492833::t_340afee1263257 38
+  s_21c6f3bf492833::t_1fadf4f784332a 58
+skills/define-test-strategy/SKILL.md
+  s_21c6f3bf492833::t_3a7108f2ba3581 26
+skills/find-the-repos/SKILL.md
+  s_21c6f3bf492833::t_8a02789e903ea0 37
+skills/go-deep/SKILL.md
+  s_21c6f3bf492833::t_4a553f5e7c0175 26
+CONTRIBUTING.md
+  s_21c6f3bf492833::t_e99599e8dcc052 32
+skills/run-regression/SKILL.md
+  s_21c6f3bf492833::t_cfc026c9194ba1 29
+docs/autopilot-log-schema.md
+  s_21c6f3bf492833::t_40d4df7711098c 1-39
+skills/shape-the-epic/SKILL.md
+  s_21c6f3bf492833::t_6dcd3032df33e0 50
+  s_21c6f3bf492833::t_139853b11d954d 54
+skills/plan-the-work/SKILL.md
+  s_21c6f3bf492833::t_7804e7f5ff1859 39
+skills/slice-the-epic/SKILL.md
+  s_21c6f3bf492833::t_d8700b8efa1ccc 26
+CHANGELOG.md
+  s_21c6f3bf492833::t_a7aaf80341da09 16,21
+skills/review-the-pr/SKILL.md
+  s_21c6f3bf492833::t_5c2154d90b2bba 32
+skills/execute/SKILL.md
+  s_21c6f3bf492833::t_11b43cae071cc8 36
+  s_21c6f3bf492833::t_b482b0ac629e77 34
+  s_21c6f3bf492833::t_d9d90e8383c487 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "51d1fd4b4e13cceb0e3b7b8c619b5ec1cbd1912c",
+  "prompts": {},
+  "sessions": {
+    "s_21c6f3bf492833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3adc157e-d1de-41c6-9be1-0137335904c4",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
