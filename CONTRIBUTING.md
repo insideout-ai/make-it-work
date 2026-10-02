@@ -29,6 +29,7 @@ The local copy takes precedence over an installed marketplace copy for that sess
 - `.claude-plugin/plugin.json` defines the plugin identity and release version.
 - `.claude-plugin/marketplace.json` defines the InsideOut AI marketplace listing.
 - `skills/<skill-name>/SKILL.md` contains each user-facing workflow.
+- `docs/` contains shared reference documentation for skill authors (e.g. the `--autopilot` decision-log schema), referenced from multiple skills' `SKILL.md` files rather than duplicated in each.
 - `.github/workflows/validate-plugin.yml` runs strict validation in CI.
 
 Do not bump the plugin version as part of an ordinary contribution. Maintainers update versions when preparing a release.

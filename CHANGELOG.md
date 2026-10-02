@@ -13,10 +13,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added replan and amend modes to `plan-the-work` under `implement`: replans write versioned `<TICKET>-plan-v<N>.md` files and build on the previous attempt's working tree; amend mode turns review fixes and spec-related completion-gate regressions into new test-first steps that `execute` resumes on.
 - Added an `Execute outcome:` line to orchestrated `execute` runs, and an `Orchestrator outcome:` line, finding routes (`fix` / `replan` / `human`), and an uncommitted-working-tree review to orchestrated `review-the-pr` runs, which also report docs-sync gaps for the final sync instead of as findings.
 - Added an end-of-run context update to `close-the-gaps` (Phase 7) and `plan-the-work` (Step 5.6) that records facts about the existing system learned during the run — never the ticket's planned behavior.
+- Added `docs/autopilot-log-schema.md`, the canonical `--autopilot` decision-log schema (field shape, the `repo`-field exception, and the `[autopilot best-guess]`/`_(autopilot)_` marker convention) shared by all 10 autopilot-enabled skills.
 
 ### Changed
 
 - `close-the-gaps` and `plan-the-work` now end with a `Context updated:` line, and may write the project's skills and `.claude/rules` files directly in their new context-update step.
+- `close-the-gaps`, `define-test-strategy`, `execute`, `find-the-repos`, `go-deep`, `plan-the-work`, `review-the-pr`, `run-regression`, `shape-the-epic`, and `slice-the-epic` now point to `docs/autopilot-log-schema.md` for their `--autopilot` decision-log field shape instead of each documenting it inline; each skill's own log filename, write timing, and resolution table are unchanged.
 
 ## [3.0.0] - 2026-09-25
 
