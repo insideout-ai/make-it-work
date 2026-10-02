@@ -41,7 +41,7 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 - `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-confirmed or hard-stopped), or `"open_text"` (a non-enumerable question was self-answered).
 - `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"` (always `false` today — this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead).
 - `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
-- `chosen` — a string for single-select, or the free-text answer when `kind` is `"open_text"`.
+- `chosen` — a string for single-select, the free-text answer when `kind` is `"open_text"`, or `null` for a site that stopped rather than resolving.
 - `rationale` — one sentence.
 
 This file is a run artifact: never treat it as a Phase 3 "code finding," never embed it in a `*-questions.md` export, and never reference it from Phase 6's own `## Decision Log` table — the two logs serve different audiences (this one is for auditing the autopilot run itself; Phase 6's is part of the deliverable ticket).

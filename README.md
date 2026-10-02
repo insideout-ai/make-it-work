@@ -69,9 +69,9 @@ Use it when writing or improving a product epic, fleshing out a feature idea for
 
 ### `/make-it-work:slice-the-epic`
 
-Slices a requirement, epic, ticket, or user story into small, independently deliverable increments, and writes each slice as a proper Gherkin (Given/When/Then) user story. Picks a slicing technique (functional, workflow, data, user role, or complexity slicing), sizes each slice to half a sprint or less, and orders them by risk.
+Slices a requirement, epic, ticket, or user story into small, independently deliverable increments, and writes each slice as a proper Gherkin (Given/When/Then) user story. Picks a slicing technique (functional, workflow, data, user role, or technical-risk slicing), sizes each slice to half a sprint or less, and orders them by risk.
 
-Use it whenever a ticket or epic feels too big and needs to become sprint-sized stories - including requests like "this ticket is too large," "break this into smaller pieces," or "help me write user stories for this epic."
+Use it when a ticket or epic feels too big and needs to become sprint-sized stories. Tell Claude things like "this ticket is too large," "break this into smaller pieces," or "help me write user stories for this epic," or invoke it directly with `/make-it-work:slice-the-epic`.
 
 ---
 

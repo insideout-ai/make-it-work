@@ -100,7 +100,7 @@ None
 **Fingerprints:**
 
 - `head` = `git rev-parse HEAD`.
-- `worktree_fingerprint` = `git hash-object --stdin` over the output of `git diff HEAD --binary -- . ':!make-it-work'`, followed by every untracked file from `git ls-files --others --exclude-standard -- . ':!make-it-work'` listed with its own `git hash-object` — so an edit inside a new, untracked file changes the fingerprint too.
+- `worktree_fingerprint` = `git hash-object --stdin` over the concatenated output of `{ git diff HEAD --binary -- . ':!make-it-work'; git ls-files --others --exclude-standard -z -- . ':!make-it-work' | xargs -0 -I{} git hash-object {}; }` — the tracked diff's bytes, followed by one `git hash-object` line per untracked file in `git ls-files`'s stable sorted order, all piped through a single final `git hash-object --stdin` call. This is one exact, reproducible pipeline, not two separate hashes to combine by hand — so an edit inside a new, untracked file changes the fingerprint too, and the same repo state always produces the same fingerprint.
 - `spec_hash` = `git hash-object <spec>`.
 - `plan_hash` = the same, over the plan with its `## Execution Status` section (from that header to the next `## ` header) removed — `execute` owns and updates that section.
 

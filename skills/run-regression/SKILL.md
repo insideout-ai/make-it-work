@@ -73,7 +73,7 @@ Resolve the mode from the invocation argument (per the Usage syntax above). `--a
 
   If **"Full suite"** is chosen, proceed to Phase 1. If **"Scoped"** is chosen, first check whether `.claude/rules/testing-strategy.md` exists in this repo — the same availability gate Phase 2 defines. If it does not exist, skip straight to Phase 2's availability-gate message and stop; do not present a domain/UC picker for a project where scoped mode can't run anyway. Only once that file's presence is confirmed, and the user gave no tokens, read the target repo's `.claude/rules/product.md` UC table and `.claude/rules/architecture.md` Functional Domains table, and present the combined list:
   - as multi-select options (`AskUserQuestion`, `multiSelect: true`) if there are 4 or fewer combined rows;
-  - otherwise as a plain-text list to choose from/confirm.
+  - otherwise print the combined list as a plain-text numbered list (`AskUserQuestion` cannot hold that many options in one call) and ask the user to confirm it as-is or edit it in reply — naming only the specific `domain-*`/`UC-*` tokens they want this scoped run to cover.
 
   This mirrors a confirmation-checkpoint pattern used elsewhere in this plugin's skills: show the candidate list, get explicit confirmation before proceeding, never invent flows from scratch. (autopilot: see Autopilot Mode — unreachable under autopilot today, since reaching it requires the no-argument mode choice above to have already resolved to "Scoped," which autopilot never does unattended.)
 

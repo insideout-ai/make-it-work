@@ -29,7 +29,7 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 - `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-confirmed), or `"open_text"` (a non-enumerable Phase 2 question was self-answered).
 - `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"`.
 - `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
-- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, or the free-text answer when `kind` is `"open_text"`.
+- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, the free-text answer when `kind` is `"open_text"`, or `null` for a site that stopped rather than resolving.
 - `rationale` — one sentence.
 
 This file is a run artifact: never add it to CLAUDE.md's Rules Files section, and never let the Phase 4 cross-tier dedup pass touch it.

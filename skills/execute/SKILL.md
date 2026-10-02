@@ -37,10 +37,10 @@ Separately, the Execution Mode question's "review the plan first" alternative (P
 - `kind` — `"askUserQuestion"` (a real question/options payload was constructed) or `"checkpoint"` (a plain-text pause point was auto-confirmed). This skill has no non-enumerable `open_text` sites.
 - `multiSelect` — always `false` when `kind` is `"askUserQuestion"` (every question this skill asks is single-select).
 - `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
-- `chosen` — the label chosen.
+- `chosen` — the label chosen, or `null` for a site that stopped rather than resolving.
 - `rationale` — one sentence.
 
-Only sites actually resolved during this run are logged — a site skipped because Mode was already recorded, or a step/phase never reached because an earlier stop condition halted the plan, is not logged.
+A hard-stop site that actually fires is still logged, with `chosen: null` — this is distinct from a site that's merely moot this run: a site skipped because Mode was already recorded, or a step/phase never reached because an earlier stop condition halted the plan before reaching it, is not logged at all.
 
 **Resolution table** (one row per interactive site, in the order they appear):
 
