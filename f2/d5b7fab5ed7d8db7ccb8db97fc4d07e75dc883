@@ -1,0 +1,46 @@
+README.md
+  s_af0112a5b23fd0::t_9f7b50bb5d1c26 72,74
+skills/execute/SKILL.md
+  s_af0112a5b23fd0::t_3c091a1ea65ad7 40
+  s_af0112a5b23fd0::t_39b21826347525 43
+skills/close-the-gaps/SKILL.md
+  s_af0112a5b23fd0::t_14ef6b3c099eb9 44
+skills/plan-the-work/SKILL.md
+  s_af0112a5b23fd0::t_ee232304297c2d 4
+  s_af0112a5b23fd0::t_a34f6a284d6648 263
+  s_af0112a5b23fd0::t_186a637bb7fb82 45
+skills/find-the-repos/SKILL.md
+  s_af0112a5b23fd0::t_7fc1cc6ecd0dc2 87,89
+  s_af0112a5b23fd0::t_1a1363dc029987 126
+  s_af0112a5b23fd0::t_e8b2cbb6c8ee40 18,25-40,42-55
+  s_af0112a5b23fd0::t_36a3a1a760c0a2 41
+  s_af0112a5b23fd0::t_9fea7494a138c0 67
+  s_af0112a5b23fd0::t_f16ce3a5b2c852 68-69
+  s_af0112a5b23fd0::t_50e2db18a4a527 4
+skills/implement/SKILL.md
+  s_af0112a5b23fd0::t_b36f08faa8caa9 103
+skills/plan-the-work/references/plan-template.md
+  s_af0112a5b23fd0::t_1e7b6142b11730 1-144
+skills/run-regression/SKILL.md
+  s_af0112a5b23fd0::t_9182e1e2029d3d 76
+skills/go-deep/SKILL.md
+  s_af0112a5b23fd0::t_142984705309f8 32
+skills/review-the-pr/SKILL.md
+  s_af0112a5b23fd0::t_d6005c7e64f802 32,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f2d5b7fab5ed7d8db7ccb8db97fc4d07e75dc883",
+  "prompts": {},
+  "sessions": {
+    "s_af0112a5b23fd0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b527e827-29c1-4d2e-97e6-db8f6ed45dd4",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
