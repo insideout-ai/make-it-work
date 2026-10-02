@@ -1,5 +1,7 @@
 ---
+name: find-the-repos
 description: "Given a ticket, shortlists which repositories in a multi-repo workspace it affects, by matching the ticket against each repo's product.md (falling back to architecture.md when the ticket is purely technical, with no business-logic content to match). Reports definite and possible matches, confirms the shortlist with the user — who may adjust it — then saves it. Use when you need to know which repo(s) a ticket belongs to, in a workspace with more than one repo, before refining or planning it."
+disable-model-invocation: true
 ---
 
 # Find The Repos
@@ -13,13 +15,44 @@ description: "Given a ticket, shortlists which repositories in a multi-repo work
 ## Usage
 
 ```
-/make-it-work:find-the-repos [TICKET-ID | path/to/spec.md]
+/make-it-work:find-the-repos [TICKET-ID | path/to/spec.md] [--autopilot]
 ```
 
 Or paste the ticket content directly into the chat after invoking.
 
-- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec or ticket file, or nothing (the skill derives the key from the current branch).
+- Pass a ticket key (e.g. `PROJ-123`), an explicit path to a spec or ticket file, paste the ticket content directly, or nothing (the skill derives the key from the current branch).
 - This skill ships standalone: nothing else in this plugin calls it yet, and it isn't part of the `close-the-gaps → plan-the-work → execute → review-the-pr` pipeline. Run it on its own, whenever a ticket's home repo isn't already obvious, before starting that pipeline.
+- **No argument** — interactive. Every checkpoint below pauses for a human, exactly as documented.
+- **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing.
+
+## Autopilot Mode
+
+**Hard-stop exception:** no destructive action exists in this skill — `find-the-repos` only reads repo documentation and saves a shortlist file; it never deletes or overwrites anything but its own regenerable `make-it-work/<TICKET>-repos.md` output. Five sites nonetheless remain unconditional stops under `--autopilot`, because autopilot cannot safely infer an answer for any of them:
+- Phase 1 point 1's single-repo-with-no-workspace refusal ("nothing to shortlist").
+- Phase 1 point 2's ambiguous repo pick among unrelated clones with no unifying doc.
+- Phase 1 point 3's "Could not identify the project root" message.
+- Phase 2 point 3's underivable `<TICKET>` key (no argument, no branch-derivable key).
+- Phase 2 point 3's tracker-fetch failure (no local spec, fetch fails or is unavailable).
+
+**Decision log:** write `.claude/find-the-repos-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the start of the run. One JSON object per line:
+- `phase` — e.g. `"Phase 1"`, `"Phase 4"`.
+- `site` — a short slug, e.g. `"shortlist-confirmation"`.
+- `kind` — `"checkpoint"` (a plain-text pause point was auto-confirmed). This skill has no `askUserQuestion` or `open_text` sites.
+- `chosen` — a short string describing what was confirmed, or `null` for a site that stopped rather than resolving.
+- `rationale` — one sentence.
+
+**Resolution table** (one row per interactive site, in the order they appear):
+
+| Phase | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Phase 1 | single repo, no workspace-root orientation file | `checkpoint` | Unconditional stop, unaffected by autopilot — see Hard-stop exception above. |
+| Phase 1 | ambiguous repo pick among unrelated clones with no unifying doc | `checkpoint` | No safe default — which repo even exists isn't a product-policy choice to infer. Stop and require a human. |
+| Phase 1 | "Could not identify the project root" | `checkpoint` | Unconditional stop, unaffected by autopilot. |
+| Phase 2 | no ticket key derivable from the argument or the current branch | `checkpoint` | Unconditional stop, unaffected by autopilot — autopilot cannot invent a ticket key. |
+| Phase 2 | tracker fetch fails (no local spec, fetch unavailable/fails) | `checkpoint` | Unconditional stop, unaffected by autopilot — autopilot cannot fabricate ticket content. |
+| Phase 4 | shortlist confirmation | `checkpoint` | Auto-confirm the draft shortlist as-is; proceed to report and save. Non-destructive — a human can always adjust the shortlist on a later run. |
+
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision and the log file's path, so someone can audit the run afterward.
 
 ---
 
@@ -31,9 +64,9 @@ Run `pwd`, then decide whether this is a **single repo with no workspace** or a 
 
 1. **`.git` exists here.** This repo is a project root. Then:
    - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`). Read that file for the candidate repo list.
-   - Otherwise → **tell the user there is nothing to shortlist and stop.** Do not proceed to Phase 2. (**This is the divergence from `plan-the-work`'s Step 1a:** that skill treats this exact situation as an ordinary single-repo project and proceeds to plan against the one repo it found. `find-the-repos` refuses instead — a single repo with no workspace-root orientation file tying it to siblings has nothing to shortlist between, so trivially "matching" the one repo it's sitting in would tell the caller nothing they didn't already know.)
-2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here; read that file for the candidate repo list. If they are just unrelated clones with no unifying doc → **ask the user which repo(s) to check**, rather than guessing.
-3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop.
+   - Otherwise → **tell the user there is nothing to shortlist and stop.** Do not proceed to Phase 2. (autopilot: see Autopilot Mode) (**This is the divergence from `plan-the-work`'s Step 1a:** that skill treats this exact situation as an ordinary single-repo project and proceeds to plan against the one repo it found. `find-the-repos` refuses instead — a single repo with no workspace-root orientation file tying it to siblings has nothing to shortlist between, so trivially "matching" the one repo it's sitting in would tell the caller nothing they didn't already know.)
+2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here; read that file for the candidate repo list. If they are just unrelated clones with no unifying doc → **ask the user which repo(s) to check**, rather than guessing. (autopilot: see Autopilot Mode)
+3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop. (autopilot: see Autopilot Mode)
 4. For each repo named in the orientation file: if its directory does not exist on disk, exclude it from the candidate list and note it explicitly in the eventual output as "`<repo-name>` named in the workspace file but not found on disk" — the same explicit-flagging treatment Phase 3 gives a candidate with no `product.md`, rather than silently dropping it.
 
 Everything from Phase 2 onward operates only on the candidate repo list this phase produced.
@@ -51,9 +84,9 @@ Resolve the ticket using this precedence — matching `plan-the-work`'s Step 1b,
 3. **Ticket key, then local cache, then tracker.** Otherwise (no explicit path, and nothing pasted), determine a `<TICKET>` key:
    - If the argument looks like a ticket key, use it.
    - Otherwise, derive it from `git branch --show-current` in the resolved workspace root's current repo (e.g. `feature/PROJ-123-add-x` → `PROJ-123`).
-   - If neither yields a key, ask the user for the ticket key or an explicit spec path, and stop until they answer — never proceed with an undefined `<TICKET>`.
+   - If neither yields a key, ask the user for the ticket key or an explicit spec path, and stop until they answer — never proceed with an undefined `<TICKET>`. (autopilot: see Autopilot Mode)
 
-   Once a key is known, look first for `make-it-work/<TICKET>-spec.md` at the resolved workspace root — this is `close-the-gaps`'s own output, and reading it if it already exists means matching against the richest, already-refined description of the ticket rather than a raw one. If that file doesn't exist, fetch the ticket via whatever issue-tracker MCP integration is configured for this project. If the fetch fails (no access, tool unavailable, ticket not found), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content.
+   Once a key is known, look first for `make-it-work/<TICKET>-spec.md` at the resolved workspace root — this is `close-the-gaps`'s own output, and reading it if it already exists means matching against the richest, already-refined description of the ticket rather than a raw one. If that file doesn't exist, fetch the ticket via whatever issue-tracker MCP integration is configured for this project. If the fetch fails (no access, tool unavailable, ticket not found), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content. (autopilot: see Autopilot Mode)
 
 **Deriving `<TICKET>` when there is no ticket key.** Steps 1 and 2 above can both supply ticket content without ever supplying a `<TICKET>` key — an explicit spec file's name may not be a key, and pasted content may have none. When that happens, derive `<TICKET>` the same way `close-the-gaps` already does: a kebab-case slug of the ticket's title (or first line, if it has no clear title), or, if no usable title exists either, a dated fallback (e.g. `2026-09-30-find-the-repos`). Use this derived value everywhere `<TICKET>` appears below; the local-cache lookup in step 3 doesn't apply in this case, since there was no key to look one up by.
 
@@ -90,7 +123,7 @@ Present the draft shortlist to the user and wait for their explicit confirmation
 - **Possible matches** — the same shape: repo name plus 1–2 sentences of reasoning.
 - **Excluded / flagged repos** — every repo skipped for having no `product.md` (or, in the technical fallback, no `architecture.md`) and every repo named in the workspace file but missing on disk, each with a one-line reason.
 
-Wait for explicit confirmation before doing anything else. If the user adds or removes a repo from the draft before confirming, use that adjusted list — not the original draft — for everything below; the adjusted list is what gets reported and saved, in full, as if it had been the draft all along.
+Wait for explicit confirmation before doing anything else. (autopilot: see Autopilot Mode) If the user adds or removes a repo from the draft before confirming, use that adjusted list — not the original draft — for everything below; the adjusted list is what gets reported and saved, in full, as if it had been the draft all along.
 
 Once the shortlist is confirmed:
 

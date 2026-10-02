@@ -1,4 +1,5 @@
 ---
+name: run-regression
 description: "Runs a project's regression suite — full or scoped to specific domains/use-cases — and reports pass/fail results; the shared implementation `execute` calls at the end of a plan. Use when running or checking a project's test suite, full or scoped to specific domains/use-cases."
 ---
 
@@ -38,10 +39,10 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 | Phase | Site | `kind` | Autopilot resolution |
 |---|---|---|---|
-| Phase 0 | mode choice, no argument (Full suite vs. Scoped) | `askUserQuestion` | Choose the option labeled `(Recommended)` — `Full suite`. |
 | Phase 0 | ambiguous repo pick among unrelated clones with no unifying doc | `checkpoint` | No safe default — which repo even exists isn't a product-policy choice to infer. Stop and require a human. |
-| Phase 0 | ambiguous workspace-repo target for a scoped run | `askUserQuestion` | No safe default, same reasoning as above. Stop and require a human. |
-| Phase 0 | combined domain/UC candidate-list confirmation (only reachable when "Scoped" is chosen with no tokens given) | `askUserQuestion` / `checkpoint` | Unreachable under autopilot: the mode-choice site above always resolves to `Full suite`, never `Scoped`, when no argument is given — so this site is never reached unattended. If a future change to the mode-choice resolution ever makes `Scoped` autopilot's choice, treat this the same as the other no-default sites above: stop and require a human. |
+| Phase 0 | ambiguous workspace-repo target for a scoped run | `checkpoint` | No safe default, same reasoning as above. Stop and require a human. |
+| Phase 0 | mode choice, no argument (Full suite vs. Scoped) | `askUserQuestion` | Choose the option labeled `(Recommended)` — `Full suite`. |
+| Phase 0 | combined domain/UC candidate-list confirmation (only reachable when "Scoped" is chosen with no tokens given) | `checkpoint` | Schema-exempt: this site's interactive form varies (`askUserQuestion` for ≤4 combined rows, a plain-text list otherwise), but it never fires under autopilot either way, so the exact `kind` doesn't matter in practice. Unreachable under autopilot: the mode-choice site above always resolves to `Full suite`, never `Scoped`, when no argument is given — so this site is never reached unattended. If a future change to the mode-choice resolution ever makes `Scoped` autopilot's choice, treat this the same as the other no-default sites above: stop and require a human. |
 | Phase 1 | stop-and-ask fallback — no discoverable full-suite command for this repo, single-repo run | `checkpoint` (deliberately **not** treated as an open-ended best-guess site) | Never invent a test command here — a guessed command could produce a false PASS or FAIL that has nothing to do with this project's real suite, which this skill's own "never a false pass" invariant forbids. Print Phase 1's stop message verbatim, print no Phase 5 block, and stop. A multi-repo run needs no resolution at this site at all: Phase 5 already reports that one repo's block automatically (`Gate result: FAIL`, fixed reason) and the run proceeds to the rest of the workspace regardless of `--autopilot`. |
 
 Two sites in this skill are deterministic gates, not questions, and need no autopilot resolution at all because they already behave identically with or without `--autopilot`: Phase 2's scoped-mode availability gate (no `testing-strategy.md`) and Phase 3's wrapper-attachment refusal (matched tokens whose file paths can't be reliably attached to the discovered runner). Phase 0's "could not identify the project root" stop is the same — a hard stop with no human input that could resolve it, unaffected by autopilot.
@@ -72,7 +73,7 @@ Resolve the mode from the invocation argument (per the Usage syntax above). `--a
 
   If **"Full suite"** is chosen, proceed to Phase 1. If **"Scoped"** is chosen, first check whether `.claude/rules/testing-strategy.md` exists in this repo — the same availability gate Phase 2 defines. If it does not exist, skip straight to Phase 2's availability-gate message and stop; do not present a domain/UC picker for a project where scoped mode can't run anyway. Only once that file's presence is confirmed, and the user gave no tokens, read the target repo's `.claude/rules/product.md` UC table and `.claude/rules/architecture.md` Functional Domains table, and present the combined list:
   - as multi-select options (`AskUserQuestion`, `multiSelect: true`) if there are 4 or fewer combined rows;
-  - otherwise as a plain-text list to choose from/confirm.
+  - otherwise print the combined list as a plain-text numbered list (`AskUserQuestion` cannot hold that many options in one call) and ask the user to confirm it as-is or edit it in reply — naming only the specific `domain-*`/`UC-*` tokens they want this scoped run to cover.
 
   This mirrors a confirmation-checkpoint pattern used elsewhere in this plugin's skills: show the candidate list, get explicit confirmation before proceeding, never invent flows from scratch. (autopilot: see Autopilot Mode — unreachable under autopilot today, since reaching it requires the no-argument mode choice above to have already resolved to "Scoped," which autopilot never does unattended.)
 

@@ -1,5 +1,6 @@
 ---
-description: Slices a large requirement into small, AI-ready, value-driven slices. Use when the user asks to split, slice, right-size, or write stories from a requirement.
+name: slice-the-epic
+description: Slices a large requirement into small, AI-ready, value-driven slices. Use when the user asks to split, slice, right-size, or write stories from a requirement — including phrasing like "this ticket is too large," "break this into smaller pieces," or "help me write user stories for this epic."
 disable-model-invocation: true
 ---
 

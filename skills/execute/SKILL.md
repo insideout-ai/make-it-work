@@ -1,4 +1,5 @@
 ---
+name: execute
 description: "Implements a plan `plan-the-work` produced, step by step: writes each step's code, re-runs that step's named test(s) to green with a 5-attempt retry limit before escalating, and applies the test-vs-product-behavior guardrail — halting the entire plan on a real product-behavior question rather than guessing. Once every step is green, runs `run-regression` as a completion gate. This is the execute step of the spec → plan-the-work → execute → review-the-pr pipeline. Use when implementing a plan that plan-the-work already wrote."
 disable-model-invocation: true
 ---
@@ -17,15 +18,16 @@ disable-model-invocation: true
 
 ## Autopilot Mode
 
-When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — option counts, labels, and the `(recommended)` rule all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — option counts, labels, and the `(Recommended)` rule all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
 
-**Hard-stop exception:** no destructive action exists in this skill — `execute` never deletes or overwrites user content beyond the plan file's own `## Execution Status` bookkeeping, and it never runs `git commit` (Phase 1's "Never git-commit" rule, unaffected by `--autopilot`). Four sites nonetheless remain unconditional stops under `--autopilot`, identical to the interactive path, because autopilot cannot safely infer an answer for any of them — these are missing-input stops, not a destructive-action analog, but are listed here for completeness per this section's own disclosure requirement:
+**Hard-stop exception:** no destructive action exists in this skill — `execute` never deletes or overwrites user content beyond the plan file's own `## Execution Status` bookkeeping, and it never runs `git commit` (Phase 1's "Never git-commit" rule, unaffected by `--autopilot`). Five sites nonetheless remain unconditional stops under `--autopilot`, identical to the interactive path, because autopilot cannot safely infer an answer for any of them — these are missing-input or malformed-plan stops, not a destructive-action analog, but are listed here for completeness per this section's own disclosure requirement:
 - Phase 0 point 1's ambiguous repo/workspace selection among unrelated clones with no unifying doc — there is no way to infer which of several unrelated repos is the right one, so this stays a stop under both modes.
 - Phase 0 point 1's "Could not identify the project root" message.
 - Phase 0 point 2's underivable `<TICKET>` key / plan path.
 - Phase 0 point 2's "No plan found at `make-it-work/<TICKET>-plan.md`..." message.
+- Phase 2's inconsistent dependency ordering (a step's `**Depends on:**` line names a later-numbered step) — the plan itself is malformed; autopilot does not attempt to reorder execution to satisfy it.
 
-Separately, the Execution Mode question's "review the plan first" alternative (Phase 0 point 3) is never auto-selected under `--autopilot` — autopilot always resolves Mode via the `(recommended)`-label rule below instead, so in practice this path is structurally unreachable under autopilot, the same way `go-deep`'s destructive "Run fresh onboarding" path becomes unreachable once its own Recommended option is always chosen. If some caller nonetheless forces a pause here under `--autopilot`, do not resolve it by treating silence as "review the plan first" — stop and require a human.
+Separately, the Execution Mode question's "review the plan first" alternative (Phase 0 point 3) is never auto-selected under `--autopilot` — autopilot always resolves Mode via the `(Recommended)`-label rule below instead, so in practice this path is structurally unreachable under autopilot, the same way `go-deep`'s destructive "Run fresh onboarding" path becomes unreachable once its own Recommended option is always chosen. If some caller nonetheless forces a pause here under `--autopilot`, do not resolve it by treating silence as "review the plan first" — stop and require a human.
 
 **Not autopilot-governed at all:** the guardrail and the 5-attempt retry limit (Phase 1) are correctness halts built into this skill, not interactive points — they fire identically with or without `--autopilot`, and when either fires the run ends with Phase 3's fixed report exactly as documented; autopilot never retries further, guesses an answer, or suppresses the report. Likewise, `run-regression`'s own stop-and-ask (e.g. "Could not find a full-suite test command for `<repo>`...") is not resolved here either — Phase 4's own instructions already treat it as a non-interactive FAIL-equivalent stop regardless of `--autopilot`, since `execute` always invokes `run-regression` with an explicit `full` (or scope-token) argument, never blank and never with `--autopilot` appended, so `run-regression`'s own mode-selection prompt is never reached from this call site.
 
@@ -35,10 +37,10 @@ Separately, the Execution Mode question's "review the plan first" alternative (P
 - `kind` — `"askUserQuestion"` (a real question/options payload was constructed) or `"checkpoint"` (a plain-text pause point was auto-confirmed). This skill has no non-enumerable `open_text` sites.
 - `multiSelect` — always `false` when `kind` is `"askUserQuestion"` (every question this skill asks is single-select).
 - `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
-- `chosen` — the label chosen.
+- `chosen` — the label chosen, or `null` for a site that stopped rather than resolving.
 - `rationale` — one sentence.
 
-Only sites actually resolved during this run are logged — a site skipped because Mode was already recorded, or a step/phase never reached because an earlier stop condition halted the plan, is not logged.
+A hard-stop site that actually fires is still logged, with `chosen: null` — this is distinct from a site that's merely moot this run: a site skipped because Mode was already recorded, or a step/phase never reached because an earlier stop condition halted the plan before reaching it, is not logged at all.
 
 **Resolution table** (one row per interactive site, in the order they appear):
 
@@ -48,8 +50,9 @@ Only sites actually resolved during this run are logged — a site skipped becau
 | Phase 0 | "Could not identify the project root" | `checkpoint` | Unconditional stop, unaffected by autopilot. |
 | Phase 0 | underivable `<TICKET>` key / plan path | `checkpoint` | Unconditional stop, unaffected by autopilot. |
 | Phase 0 | "No plan found at `make-it-work/<TICKET>-plan.md`..." | `checkpoint` | Unconditional stop, unaffected by autopilot. |
-| Phase 0 | Execution Mode choice (`AskUserQuestion`, `multiSelect: false`, 2 options: Subagent-Driven / Inline) | `askUserQuestion` | Choose the option labeled `(recommended)` — today "Subagent-Driven". The "review the plan first" free-text alternative is never auto-selected (hard-stop exception above) — it is not one of the 2 enumerated options to begin with. Write the plan file's `## Execution Status → Mode` line exactly as the chosen branch already specifies. |
+| Phase 0 | Execution Mode choice (`AskUserQuestion`, `multiSelect: false`, 2 options: Subagent-Driven / Inline) | `askUserQuestion` | Choose the option labeled `(Recommended)` — today "Subagent-Driven". The "review the plan first" free-text alternative is never auto-selected (hard-stop exception above) — it is not one of the 2 enumerated options to begin with. Write the plan file's `## Execution Status → Mode` line exactly as the chosen branch already specifies. |
 | Phase 0 | Mode already recorded from a prior run | — | Not a decision site this run — proceed under the recorded mode without asking, and log nothing for it. |
+| Phase 2 | a step's `**Depends on:**` line names a later-numbered step | `checkpoint` | Unconditional stop, unaffected by autopilot — see Hard-stop exception above. The plan's dependency ordering is inconsistent; name the two step numbers involved rather than guessing at a fix. |
 | Phase 2 (Subagent-Driven mode only) | per-step "reviewed between steps" pause, once per step (site slug: `step-review`) | `checkpoint` | Auto-confirm: relay the subagent's report to the user as chat text, append one `step-review` line to the decision log for this step, then — within that same response, without ending the turn to wait for a reply — dispatch the next step's subagent (or proceed to Phase 3/4 if this was the last step, or a stop condition fired). Ending the turn here would hang an unattended/headless run forever. A plan with `M` steps under Subagent-Driven mode therefore logs exactly `M` `step-review` lines over the run, one appended after each step, not a single line written once near the start. |
 | Phase 2 (Inline mode) | — | — | No per-step checkpoint exists in Inline mode even interactively (Phase 2's own text: Inline "runs straight through... without pausing between them for review") — nothing to auto-resolve or log here. |
 
@@ -78,7 +81,7 @@ At the end of an autopilot run that reaches a terminal report (Phase 3's report,
 3. **Resolve Execution Status → Mode** — read the plan file's `## Execution Status → Mode` line.
    - **If it reads "Not yet chosen"**, ask the user to choose, before doing anything else — even if you were only handed this file with no memory of it being created — using the same two options `plan-the-work`'s own Step 6 offers. Call `AskUserQuestion` with `multiSelect: false` and exactly these two options (autopilot: see Autopilot Mode):
 
-     1. `{ label: "Subagent-Driven (recommended)", description: "Dispatch a fresh subagent per step (via the Agent tool), reviewed between steps. Best for complex multi-repo plans; keeps each step's context clean." }`
+     1. `{ label: "Subagent-Driven (Recommended)", description: "Dispatch a fresh subagent per step (via the Agent tool), reviewed between steps. Best for complex multi-repo plans; keeps each step's context clean." }`
      2. `{ label: "Inline Execution", description: "Execute steps in this session with a checkpoint after each step's Verify." }`
 
      The question text itself may also invite reviewing the plan first ("Which approach? (or: review the plan first, then decide)") — this is a free-text alternative reply the user can give instead of picking an option, not a third enumerated option in the `AskUserQuestion` call.

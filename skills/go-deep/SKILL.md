@@ -1,7 +1,12 @@
 ---
+name: go-deep
 description: "Makes any codebase AI-ready with a 3-tier doc system (CLAUDE.md, orientation maps, domain & UC skills). Use when onboarding a project to Claude Code or auditing/updating existing docs after the project evolves."
 disable-model-invocation: true
 ---
+
+# Go Deep
+
+Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
 
 ## Usage
 
@@ -24,7 +29,7 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 - `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-confirmed), or `"open_text"` (a non-enumerable Phase 2 question was self-answered).
 - `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"`.
 - `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
-- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, or the free-text answer when `kind` is `"open_text"`.
+- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, the free-text answer when `kind` is `"open_text"`, or `null` for a site that stopped rather than resolving.
 - `rationale` — one sentence.
 
 This file is a run artifact: never add it to CLAUDE.md's Rules Files section, and never let the Phase 4 cross-tier dedup pass touch it.
@@ -49,8 +54,6 @@ This file is a run artifact: never add it to CLAUDE.md's Rules Files section, an
 Only the Phase 0 workflow choice and Phase 2 entries carry a `(Recommended)` label in this skill; Phase 0's repair-selection and staleness-window entries don't — do not invent a `(Recommended)` label or a `Skip`-last option on those two.
 
 At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision and the log file's path, so someone can audit the run afterward.
-
-Create a 3-tier layered documentation system from scratch. The goal is to keep context concise and well-organized while ensuring the AI agent has all necessary information.
 
 ## Phase 0 — Prior-Run Detection
 

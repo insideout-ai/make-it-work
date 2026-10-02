@@ -1,4 +1,5 @@
 ---
+name: define-test-strategy
 description: "Bootstraps a per-project test strategy file and an initial regression baseline once per project, the same way go-deep bootstraps the knowledge base — generating a starting test-strategy doc, scaffolding placeholder tests for confirmed-uncovered critical flows, and wiring a UC/domain test-tagging convention with a re-runnable coverage-check mode. Use when a project needs its test strategy and baseline coverage established after go-deep has already run."
 disable-model-invocation: true
 ---
@@ -38,8 +39,8 @@ If writing this log file is denied by the current environment (e.g. a sandboxed 
 
 | Phase | Site | `kind` | Autopilot resolution |
 |---|---|---|---|
-| Phase 0 | project root cannot be identified at all | `checkpoint` | Not a product-policy choice — this is already an unconditional stop on the interactive path. Autopilot behaves identically: stop, same message, no resolution to log. |
 | Phase 0 | ambiguous repo pick among unrelated clones with no unifying doc | `checkpoint` | No safe default — which repo even exists isn't something to infer. Stop and require a human. |
+| Phase 0 | project root cannot be identified at all | `checkpoint` | Not a product-policy choice — this is already an unconditional stop on the interactive path. Autopilot behaves identically: stop, same message, no resolution to log. |
 | Phase 0 | multi-repo scope confirmation ("confirm with the user which of those repos this run covers") | `checkpoint` | Confirm the full set of repos the workspace-root orientation file names — autopilot never narrows the scope on its own. |
 | Phase 1 | stray-doc search finds more than one genuine, un-adopted candidate | `open_text` | Answer with your own best inference — prefer the candidate with the most complete test-strategy content (closest match to the four fixed headings), breaking ties by most-recently-modified — prefixed `[autopilot best-guess]`. |
 | Phase 1 | "Decide how to proceed" (Extend / Re-check / Adopt / Generate fresh, whichever subset applies) | `askUserQuestion` | Choose the option labeled `(Recommended)` — "Extend existing strategy file" whenever case (b) applies (alone or alongside case (c)); otherwise "Adopt stray doc into the auto-loaded location" when only case (c) applies. Never choose "Generate fresh; leave `<path>` untouched" unattended — it is never the recommended option when it's offered. |

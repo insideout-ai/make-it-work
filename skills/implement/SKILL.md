@@ -1,4 +1,5 @@
 ---
+name: implement
 description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → plan-the-work → execute → review-the-pr → final context sync — with saved, resumable workflow state, two autonomy levels (Guided, Autonomous), and capped fix/replan loops. Never commits implementation changes, pushes, or opens a PR. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
 disable-model-invocation: true
 ---
@@ -99,7 +100,7 @@ None
 **Fingerprints:**
 
 - `head` = `git rev-parse HEAD`.
-- `worktree_fingerprint` = `git hash-object --stdin` over the output of `git diff HEAD --binary -- . ':!make-it-work'`, followed by every untracked file from `git ls-files --others --exclude-standard -- . ':!make-it-work'` listed with its own `git hash-object` — so an edit inside a new, untracked file changes the fingerprint too.
+- `worktree_fingerprint` = `git hash-object --stdin` over the concatenated output of `{ git diff HEAD --binary -- . ':!make-it-work'; git ls-files --others --exclude-standard -z -- . ':!make-it-work' | xargs -0 -I{} git hash-object {}; }` — the tracked diff's bytes, followed by one `git hash-object` line per untracked file in `git ls-files`'s stable sorted order, all piped through a single final `git hash-object --stdin` call. This is one exact, reproducible pipeline, not two separate hashes to combine by hand — so an edit inside a new, untracked file changes the fingerprint too, and the same repo state always produces the same fingerprint.
 - `spec_hash` = `git hash-object <spec>`.
 - `plan_hash` = the same, over the plan with its `## Execution Status` section (from that header to the next `## ` header) removed — `execute` owns and updates that section.
 
@@ -263,6 +264,7 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
 - give the absolute path of `review-the-pr/SKILL.md` and say to follow it, including its `## When run by implement` section;
 - pass the ticket key, the spec path, the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list;
+- when `gate: none` (the completion gate was skipped per the `GATE_NO_RESULT` handling above), also pass a note that the automated gate was skipped and the plan's `## Test Plan` rows should be verified manually as part of the regression-safety pass;
 - ask it to return the chat summary, ending with the `Orchestrator outcome:` line.
 
 Then read `make-it-work/<TICKET>-review.md`: record `review` from its `Orchestrator outcome:` line, and append the items under its `Context gaps (for final sync)` block to Context discoveries. A missing or unreadable outcome line is treated as `HUMAN_DECISION`, with the reason "review outcome unreadable".
