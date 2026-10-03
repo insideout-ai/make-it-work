@@ -123,11 +123,27 @@ Use it to review a pull request or diff in any repo that keeps the `go-deep` kno
 
 Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, then runs `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
 
+```mermaid
+flowchart TD
+    Start(["/make-it-work:implement TICKET"]) --> Gaps["close-the-gaps"]
+    Gaps --> Plan["plan-the-work"]
+    Plan --> Execute["execute"]
+
+    Execute -- "passed" --> Review["review-the-pr"]
+    Execute -- "tests failing or stuck" --> FixPlan["fix the plan"]
+
+    Review -- "clean" --> FinalSync["Final context sync"] --> Complete(["Complete"])
+    Review -- "changes requested" --> FixPlan
+
+    FixPlan -- "steps added" --> Execute
+    FixPlan -- "plan needs rethinking" --> Replan["Replan"] --> Plan
+```
+
 You choose the autonomy level at the start. **Guided** pauses for your approval after the spec and after the plan. **Autonomous** skips those approval gates and replans on its own when the plan stops holding. In both, every question a stage asks still comes to you. A self-deciding level is planned for a later release.
 
 When review asks for fixes, or the final regression run breaks a test tied to the ticket's own requirements, the fixes are added to the plan as new test-first steps, and execution continues from there. Regressions unrelated to the ticket are documented in the summary, not fixed. A project without an automated test suite can continue with the plan's manual test walkthrough instead. Fix rounds are capped at 3 and reviews at 5 per plan version, and replans at 2 per run, so a run never loops indefinitely.
 
-Progress is saved to `make-it-work/<TICKET>-state.md` at every step, so running `implement` again resumes where it stopped — and if the repository changed in the meantime, it shows you what changed instead of assuming it's still safe to continue. It never starts on the base branch, never commits implementation changes, never pushes, and never opens a PR; the only commits a run contains are `plan-the-work`'s own red-state test commits.
+Progress is saved to `make-it-work/<TICKET>-state.md` at every step, so running `implement` again resumes where it stopped — and if the repository changed in the meantime, it shows you what changed instead of assuming it's still safe to continue. Alongside it, a per-ticket progress dashboard (`make-it-work/<TICKET>-status.html`) is created when a run starts and refreshed at every checkpoint, so you can see the run's phase, cycle counts, transition history, and — whenever it's waiting on you — what to do next, without reading the raw state file. It never starts on the base branch, never commits implementation changes, never pushes, and never opens a PR; the only commits a run contains are `plan-the-work`'s own red-state test commits.
 
 Use it when you want one command to take a ticket from request to a reviewed, documented implementation, in a repo that has been onboarded with `go-deep`.
 
@@ -282,7 +298,7 @@ Unlike skills that only read files in the current project, `find-the-repos` also
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
-Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`, `find-the-repos`'s `<TICKET>-repos.md`, and `implement`'s `<TICKET>-state.md`, `<TICKET>-execute-report.md`, and versioned `<TICKET>-plan-v<N>.md` replans) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
+Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`, `find-the-repos`'s `<TICKET>-repos.md`, and `implement`'s `<TICKET>-state.md`, `<TICKET>-status.html`, `<TICKET>-execute-report.md`, and versioned `<TICKET>-plan-v<N>.md` replans) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
 
 ## Troubleshooting
 
@@ -293,7 +309,7 @@ Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<
 - **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123-spec.md`.
 - **`review-the-pr` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.
 - **`implement` says the project context is incomplete:** run `/make-it-work:go-deep` and choose its "Repair existing docs" mode, then run `implement` again.
-- **`implement` stopped mid-run:** read the stop reason in chat or in `make-it-work/<TICKET>-state.md` (`pause_reason`), address it, and run `implement` again — it resumes from the saved phase.
+- **`implement` stopped mid-run:** read the stop reason in chat, in `make-it-work/<TICKET>-state.md` (`pause_reason`), or in `make-it-work/<TICKET>-status.html`'s "Waiting on you" section, address it, and run `implement` again — it resumes from the saved phase.
 - **The plugin is installed twice:** remove or disable one copy in `/plugin` and keep the marketplace channel you want to follow.
 
 If the problem persists, [open a GitHub issue](https://github.com/insideout-ai/make-it-work/issues) with your Claude Code version, installation channel, and the relevant error message.
