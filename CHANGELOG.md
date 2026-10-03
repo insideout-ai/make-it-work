@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-03
+
 ### Added
 
 - Added `/make-it-work:implement`, which orchestrates the full pipeline for one ticket — context check → `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr` → final context sync — with two autonomy levels (Guided, Autonomous), saved and resumable workflow state in `make-it-work/<TICKET>-state.md`, material-change detection on resume, capped loops (3 fix cycles and 5 reviews per plan version, 2 replans per run), and a branch guard. It never commits implementation changes, pushes, or opens a PR.
