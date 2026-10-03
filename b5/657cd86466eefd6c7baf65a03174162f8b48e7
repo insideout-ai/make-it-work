@@ -1,0 +1,40 @@
+CHANGELOG.md
+  s_2ba2ddb5ac12e9::t_adb8f6e1a8dc25 12
+skills/implement/SKILL.md
+  s_2ba2ddb5ac12e9::t_077593ce46ff59 113
+  s_2ba2ddb5ac12e9::t_3eb33d211d92f5 174-175
+  s_2ba2ddb5ac12e9::t_63616e7be13524 111-112,114-173,176-178,180-182
+  s_2ba2ddb5ac12e9::t_0089e7b5da352c 394
+  s_2ba2ddb5ac12e9::t_88c60a51975c0e 191
+  s_2ba2ddb5ac12e9::t_5fbe3d22b051df 98
+  s_2ba2ddb5ac12e9::t_43504ab22cdfd9 179
+  s_2ba2ddb5ac12e9::t_d1f9bc84eb7896 190
+README.md
+  s_2ba2ddb5ac12e9::t_eba968bda2bae8 285
+  s_2ba2ddb5ac12e9::t_56cc4e3ead0f44 296
+  s_2ba2ddb5ac12e9::t_7260069a54de72 130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b5657cd86466eefd6c7baf65a03174162f8b48e7",
+  "prompts": {},
+  "sessions": {
+    "s_21c6f3bf492833": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3adc157e-d1de-41c6-9be1-0137335904c4",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_2ba2ddb5ac12e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9909d17e-4f8a-4c49-b56f-46df14eb3a8c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
