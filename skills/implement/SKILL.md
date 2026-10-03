@@ -95,7 +95,7 @@ None
 | --- | --- | --- | --- | --- |
 ````
 
-**Checkpoint rule** — at every transition, rewrite the field block and append one row to the transition log *before* starting the next phase. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts.
+**Checkpoint rule** — at every transition, rewrite the field block and append one row to the transition log *before* starting the next phase. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts. Immediately after rewriting the field block, also regenerate `make-it-work/<TICKET>-status.html` from the fields just written — never let the two fall out of sync (see Progress dashboard below).
 
 **Fingerprints:**
 
@@ -108,6 +108,78 @@ None
 
 ---
 
+## Progress dashboard
+
+Alongside the state file, maintain a human-readable status page at `make-it-work/<TICKET>-status.html` — a static snapshot the user opens in a browser, not a live view. It is created once, the first time a ticket's state file is created (Start → New run, or Start → Pending offline refinement, whichever creates it first), immediately after that first write, then fully regenerated at every later checkpoint, per the Checkpoint rule above, from the fields that checkpoint just wrote. **Never backfilled** — a run already in progress when this feature ships, resumed with no status file, is not given one retroactively; it only appears for a ticket whose state file is first created after this feature exists.
+
+Write it with exactly this template, filling in every bracketed placeholder from the state file's own fields at the moment of the write — introduce no field this file doesn't already track:
+
+```html
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title><TICKET> — implement status</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.3rem; }
+  .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 1rem; font-size: 0.85rem; background: #eee; margin-right: 0.3rem; }
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+  th, td { text-align: left; border-bottom: 1px solid #ddd; padding: 0.3rem 0.5rem; font-size: 0.9rem; }
+  .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
+  .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
+</style>
+</head>
+<body>
+<h1><TICKET> — implement status</h1>
+<p><span class="pill">Phase: <PHASE></span><span class="pill">Status: <STATUS></span><span class="pill">Autonomy: <AUTONOMY></span></p>
+
+<!-- only when status is Paused or Stopped -->
+<p class="next-action"><strong>Waiting on you:</strong> <PAUSE_REASON></p>
+
+<!-- only when status is Complete -->
+<p class="complete"><strong>Run complete.</strong></p>
+
+<h2>Cycle counters</h2>
+<p>Review cycles: <REVIEW_CYCLE> / 5 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
+
+<h2>Artifacts</h2>
+<ul>
+  <li>Spec: <SPEC_LINK_OR_NONE></li>
+  <li>Plan: <PLAN_LINK_OR_NONE></li>
+  <li>Execute report: <EXECUTE_REPORT_LINK_OR_NONE></li>
+  <li>Review: <REVIEW_LINK_OR_NONE></li>
+</ul>
+
+<h2>Known regressions</h2>
+<KNOWN_REGRESSIONS_LIST_OR_NONE>
+
+<h2>Decided findings</h2>
+<DECIDED_FINDINGS_LIST_OR_NONE>
+
+<h2>Transition log</h2>
+<table>
+<tr><th>#</th><th>Time</th><th>From</th><th>To</th><th>Outcome / reason</th></tr>
+<TRANSITION_LOG_ROWS>
+</table>
+</body>
+</html>
+```
+
+Filling in the bracketed placeholders:
+
+- `<TICKET>`, `<PHASE>`, `<STATUS>`, `<AUTONOMY>`, `<REVIEW_CYCLE>`, `<FIX_CYCLE>`, `<REPLANS_USED>` — copied verbatim from the state file's field block.
+- The "Waiting on you" paragraph is included only when `status` is `Paused` or `Stopped`, using the state file's own `pause_reason` field verbatim — the same explanation already given to the user in chat at that stop, per the Stop definition elsewhere in this file. Omit this paragraph entirely for any other status.
+- The "Run complete" banner is included only when `status` is `Complete`. Omit it for any other status.
+- `<SPEC_LINK_OR_NONE>` / `<PLAN_LINK_OR_NONE>` / `<EXECUTE_REPORT_LINK_OR_NONE>` — an `<a href="...">` link to the file named in the state file's `spec` / `plan` / `execute_report` field, with that field's own `make-it-work/` prefix stripped from the `href` — the dashboard and these artifacts all live in the same `make-it-work/` directory, so the link only needs the bare filename (e.g. `href="<TICKET>-spec.md"`); the link text may keep the field's full value. Print the literal text `Not yet created` for any of these three whose state field still reads `none`.
+- `<REVIEW_LINK_OR_NONE>` — once the state file's `review` field reads anything other than `not-started`, a link to `<TICKET>-review.md` (bare filename, same stripping rule as above); while `review` still reads `not-started`, print `Not yet created` instead. This reflects the current plan version's review status only — if a replan resets `review` back to `not-started`, show `Not yet created` again even if an older review file from a prior plan version is still on disk.
+- `<KNOWN_REGRESSIONS_LIST_OR_NONE>` / `<DECIDED_FINDINGS_LIST_OR_NONE>` — an `<ul>` with one `<li>` per entry under the state file's `## Known regressions` / `## Decided findings` sections, or the literal text `<p>None</p>` when that section reads `None`.
+- `<TRANSITION_LOG_ROWS>` — one `<tr>` per row of the state file's own `## Transition log` table, in the same order, each cell copied verbatim.
+
+Mention the file's path once, in whichever of Start's two creation points actually creates the state file first for this ticket (New run's summary, alongside the autonomy level and base branch; or Pending offline refinement's stop message) — never repeated at later checkpoints, and never shown at all for a Resume (per the no-backfill rule above).
+
+---
+
 ## Start
 
 Work through these checks in order; the first one that applies decides what happens.
@@ -115,8 +187,8 @@ Work through these checks in order; the first one that applies decides what happ
 1. **Branch guard** — if the current branch equals `base`, or `HEAD` is detached, stop: tell the user to create or switch to a feature branch first. `plan-the-work` commits its tests to the current branch, so a run must never start on the base branch.
 2. **Completed run** — a state file exists with `status: Complete` → ask whether to start a new run (the state file is overwritten) or stop.
 3. **Run in progress** — a state file exists with any other status → go to **Resume**.
-4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
-5. **New run** — run **Context check**, then **Choose autonomy**. Then, if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Create the state file and log the first transition.
+4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
+5. **New run** — run **Context check**, then **Choose autonomy**. Then, if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Create the state file and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mention the dashboard's path once here, and log the first transition.
 
 ---
 
@@ -319,3 +391,4 @@ End with: "Implementation changes are uncommitted — review the working tree an
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.
 - Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking.
 - Never fix a regression classified as unrelated.
+- Never backfill `make-it-work/<TICKET>-status.html` for a run resumed with the file already missing — it is only ever created the first time a ticket's state file is created (Start → New run or Start → Pending offline refinement).
