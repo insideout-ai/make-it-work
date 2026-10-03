@@ -23,12 +23,7 @@ When invoked with `--autopilot`, still evaluate the "Understand the request" con
 
 **Hard-stop exception:** none. This skill reads a requirement and returns a backlog in chat; it never overwrites or discards existing state, so there is no destructive-action analog to guard against. The "Wrap up" step's offer to refine or split slices further is already non-blocking by design — the skill text explicitly says not to require another decision point there — so autopilot makes no change to it.
 
-**Decision log:** after the backlog has been produced — never before it, and never as a reason to delay or withhold the backlog — write `.claude/slice-the-epic-autopilot-log.jsonl` at repo root, overwritten fresh for this run (zero lines if the clarifying-question condition never fired). If the write is denied (e.g. a sandboxed environment that blocks `.claude/` writes), treat that as non-fatal: the backlog has already been delivered, so simply note the failed write in the end-of-run summary instead of stopping or retrying. One JSON object per line, written only when the condition actually fires:
-- `phase` — `"Understand the request"`.
-- `site` — `"missing-fact-clarification"`.
-- `kind` — `"open_text"`.
-- `chosen` — the free-text best-guess answer, prefixed `[autopilot best-guess]`.
-- `rationale` — one sentence explaining the inference.
+**Decision log:** after the backlog has been produced — never before it, and never as a reason to delay or withhold the backlog — write `.claude/slice-the-epic-autopilot-log.jsonl` at repo root, overwritten fresh for this run (zero lines if the clarifying-question condition never fired). If the write is denied (e.g. a sandboxed environment that blocks `.claude/` writes), treat that as non-fatal: the backlog has already been delivered, so simply note the failed write in the end-of-run summary instead of stopping or retrying. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has exactly one possible site, always `kind: "open_text"`, so it omits `multiSelect`/`question`/`options` entirely and `chosen` is always the free-text best-guess answer, prefixed `[autopilot best-guess]` — there is no hard-stop here, so `chosen` never needs the `null` branch. Every line also still includes `rationale` (one sentence explaining the inference), per the shared schema's core fields. `phase` is always `"Understand the request"`; `site` is always `"missing-fact-clarification"`.
 
 **Resolution table:**
 

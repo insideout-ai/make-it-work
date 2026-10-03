@@ -34,12 +34,7 @@ Or paste the ticket content directly into the chat after invoking.
 - Phase 2 point 3's underivable `<TICKET>` key (no argument, no branch-derivable key).
 - Phase 2 point 3's tracker-fetch failure (no local spec, fetch fails or is unavailable).
 
-**Decision log:** write `.claude/find-the-repos-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the start of the run. One JSON object per line:
-- `phase` — e.g. `"Phase 1"`, `"Phase 4"`.
-- `site` — a short slug, e.g. `"shortlist-confirmation"`.
-- `kind` — `"checkpoint"` (a plain-text pause point was auto-confirmed). This skill has no `askUserQuestion` or `open_text` sites.
-- `chosen` — a short string describing what was confirmed, or `null` for a site that stopped rather than resolving.
-- `rationale` — one sentence.
+**Decision log:** write `.claude/find-the-repos-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the start of the run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has only `"checkpoint"` sites (no `askUserQuestion` or `open_text`), so it omits `multiSelect`/`question`/`options` entirely and `chosen` is only ever a short string describing what was confirmed, or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 4"`. `site` example: `"shortlist-confirmation"`.
 
 **Resolution table** (one row per interactive site, in the order they appear):
 

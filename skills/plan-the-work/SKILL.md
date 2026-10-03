@@ -36,14 +36,7 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 **Hard-stop exception:** autopilot must never silently overwrite an existing plan file. If `make-it-work/<TICKET>-plan.md` already exists from a previous run, autopilot writes to the next unused `-v2` (then `-v3`, `-v4`, …) suffix instead of overwriting it — "overwrite" and "abort" are never auto-selected, since a free suffix is always available as a non-destructive alternative. Step 6's final output, and the `/make-it-work:execute` hint it prints, both name the actual resolved path explicitly (e.g. `make-it-work/PROJ-123-plan-v2.md`) — not the bare `<TICKET>`, since `execute <TICKET>` alone would resolve to the original file instead.
 
-**Decision log:** write `.claude/plan-the-work-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). One JSON object per line:
-- `phase` — e.g. `"Step 1"`, `"Step 4"`, `"Step 4.5"`.
-- `site` — a short slug, e.g. `"existing-plan-collision"`, `"approach-gap"`, `"scope-check"`.
-- `kind` — one of `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-resolved), or `"open_text"` (a non-enumerable gap was self-answered).
-- `multiSelect` — boolean, only present when `kind` is `"askUserQuestion"`.
-- `question`, `options` — the exact constructed payload, only present when `kind` is `"askUserQuestion"`.
-- `chosen` — a string for single-select, an array of strings for `multiSelect: true`, the free-text answer when `kind` is `"open_text"`, or `null` for a site that stopped rather than resolving.
-- `rationale` — one sentence.
+**Decision log:** write `.claude/plan-the-work-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean, so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. No `repo` field — this skill has no per-repo-resolved site. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 1"`, `"Step 4"`, `"Step 4.5"`. `site` examples: `"existing-plan-collision"`, `"approach-gap"`, `"scope-check"`.
 
 This file is a run artifact: never reference it from the plan itself, and never list it as an Affected Code entry.
 
