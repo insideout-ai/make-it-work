@@ -1,0 +1,20 @@
+README.md
+  s_99a4e50b7fa878::t_5e4e1c75daa6f6 126-127,131,134,137-138,140-141
+  s_99a4e50b7fa878::t_2389663cc55b58 128-130,132-133,135-136,139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a44090282dd8da09fed50667983e383d9c5d02fb",
+  "prompts": {},
+  "sessions": {
+    "s_99a4e50b7fa878": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b358b94e-1b55-4cd6-98f4-0240ff122b6e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
