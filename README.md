@@ -123,6 +123,22 @@ Use it to review a pull request or diff in any repo that keeps the `go-deep` kno
 
 Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, then runs `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
 
+```mermaid
+flowchart TD
+    Start(["/make-it-work:implement TICKET"]) --> Gaps["close-the-gaps"]
+    Gaps --> Plan["plan-the-work"]
+    Plan --> Execute["execute"]
+
+    Execute -- "passed" --> Review["review-the-pr"]
+    Execute -- "tests failing or stuck" --> FixPlan["fix the plan"]
+
+    Review -- "clean" --> FinalSync["Final context sync"] --> Complete(["Complete"])
+    Review -- "changes requested" --> FixPlan
+
+    FixPlan -- "steps added" --> Execute
+    FixPlan -- "plan needs rethinking" --> Replan["Replan"] --> Plan
+```
+
 You choose the autonomy level at the start. **Guided** pauses for your approval after the spec and after the plan. **Autonomous** skips those approval gates and replans on its own when the plan stops holding. In both, every question a stage asks still comes to you. A self-deciding level is planned for a later release.
 
 When review asks for fixes, or the final regression run breaks a test tied to the ticket's own requirements, the fixes are added to the plan as new test-first steps, and execution continues from there. Regressions unrelated to the ticket are documented in the summary, not fixed. A project without an automated test suite can continue with the plan's manual test walkthrough instead. Fix rounds are capped at 3 and reviews at 5 per plan version, and replans at 2 per run, so a run never loops indefinitely.
