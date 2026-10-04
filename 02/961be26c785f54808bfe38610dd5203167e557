@@ -1,0 +1,33 @@
+skills/implement/SKILL.md
+  s_10659ba4ed3593::t_9c0caf7ee15f74 287
+  s_10659ba4ed3593::t_edeb950dd37567 190
+  s_10659ba4ed3593::t_fa98cd03889c73 168
+  s_10659ba4ed3593::t_50fb916d7dd1b2 293
+  s_10659ba4ed3593::t_a54dbd9ec9bf0b 303,305-314
+  s_10659ba4ed3593::t_d7684a00eb3dc3 269,271
+  s_10659ba4ed3593::t_602f09d0333c81 278-280
+  s_10659ba4ed3593::t_e2274167f7f917 143-144
+  s_10659ba4ed3593::t_330f748d449113 205
+  s_10659ba4ed3593::t_ade63f0ae05655 587
+  s_10659ba4ed3593::t_6fd95a96f2cd8e 322-340
+  s_10659ba4ed3593::t_4df3715bca7632 571
+  s_10659ba4ed3593::t_4ae13073fbd732 147
+  s_10659ba4ed3593::t_4dae172b1ba8dd 285
+  s_10659ba4ed3593::t_1cbfc5ed895191 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "02961be26c785f54808bfe38610dd5203167e557",
+  "prompts": {},
+  "sessions": {
+    "s_10659ba4ed3593": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "aa66028c-5197-4ffb-ac3e-d989194fbbed",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
