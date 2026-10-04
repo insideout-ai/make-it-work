@@ -1,0 +1,47 @@
+evals/execute/execute-resume-inline/graders/inline-pause-mode-backfilled.md
+  s_fbe3bc02a9a609::t_8af87df8348cc5 1-15
+evals/execute/README.md
+  s_fbe3bc02a9a609::t_2513059082ac88 28-30
+  s_fbe3bc02a9a609::t_c5fdd8416a8e40 243-277
+  s_fbe3bc02a9a609::t_54ddd4e3721cbc 172-176
+  s_fbe3bc02a9a609::t_925ce2bd9590c1 15-23
+  s_fbe3bc02a9a609::t_9c62b42d4a13e4 32-37
+  s_fbe3bc02a9a609::t_0a22c2edd4c573 219-239
+evals/execute/execute-full-pass/graders/decision-log-content.md
+  s_fbe3bc02a9a609::t_439df7da73f550 15
+evals/execute/execute-negative-control/graders/question-reached.md
+  s_fbe3bc02a9a609::t_ad1bdac9020db9 4
+evals/execute/execute-full-pass/graders/subagent-dispatch-used.md
+  s_fbe3bc02a9a609::t_df040fecc476b6 1-6
+skills/execute/SKILL.md
+  s_fbe3bc02a9a609::t_62bd8352c393c6 47
+  s_fbe3bc02a9a609::t_f68f883fd808a9 50
+  s_fbe3bc02a9a609::t_da79fcd498472c 191
+  s_fbe3bc02a9a609::t_ac78e64812f1db 85
+  s_fbe3bc02a9a609::t_8f45c50d226e55 30
+  s_fbe3bc02a9a609::t_c1f9704cc50434 87
+  s_fbe3bc02a9a609::t_d6c17f79c69510 34
+  s_fbe3bc02a9a609::t_8bd5e4dd7a76c9 187
+  s_fbe3bc02a9a609::t_dc4ce573d7b3cb 48,51-52
+evals/execute/execute-stop-at-gate/graders/attempted-log-payload.md
+  s_fbe3bc02a9a609::t_4fe7f23528c304 24
+evals/execute/execute-resume-inline/graders/attempted-log-payload-backfill.md
+  s_fbe3bc02a9a609::t_edd6157ef01e19 1-12,15-28
+  s_fbe3bc02a9a609::t_271e880c5cad6e 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e1fd12d58be2cfcfa47fcb6ce90a9be53ac61d70",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
