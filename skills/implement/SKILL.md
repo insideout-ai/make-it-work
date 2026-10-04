@@ -103,7 +103,7 @@ None
 | --- | --- | --- | --- |
 ````
 
-**Checkpoint rule** — at every transition, rewrite the field block and append one row to the transition log *before* starting the next phase. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts. Immediately after rewriting the field block, also regenerate `make-it-work/<TICKET>-status.html` from the fields just written — never let the two fall out of sync (see Progress dashboard below).
+**Checkpoint rule** — at every transition, rewrite the field block and append one row to the transition log *before* starting the next phase. That row's `Time` cell is a real wall-clock timestamp in ISO 8601 UTC (e.g. `2026-01-01T12:00:00Z`, obtained via a shell `date` call or this session's own real clock) captured at the moment of this very checkpoint write — never estimated, guessed, or back-filled, for every row including the first one a run ever logs. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts. Immediately after rewriting the field block, also regenerate `make-it-work/<TICKET>-status.html` from the fields just written — never let the two fall out of sync (see Progress dashboard below).
 
 **Fingerprints:**
 
@@ -207,8 +207,8 @@ Work through these checks in order; the first one that applies decides what happ
    - **Neither condition applies** → continue to the next Start check.
 2. **Completed run** — a state file exists with `status: Complete` → ask whether to start a new run (the state file is overwritten) or stop.
 3. **Run in progress** — a state file exists with any other status → go to **Resume**.
-4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
-5. **New run** — run **Context check**, then **Choose autonomy**. Then, if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Create the state file and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mention the dashboard's path once here, and log the first transition.
+4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, a real captured timestamp in `start_time` (same capture rule as the Checkpoint rule's `Time` cell), and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
+5. **New run** — run **Context check**, then **Choose autonomy**. Then, if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Create the state file — capturing a real timestamp into `start_time` at this same moment, same capture rule as the Checkpoint rule's `Time` cell — and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mention the dashboard's path once here, and log the first transition.
 
 ---
 
@@ -396,6 +396,8 @@ Set `status: Complete` and `phase: complete`, and log the transition. Then print
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Replans used** — the count.
+- **Elapsed** — if `start_time` is a real captured timestamp (not `none`), the plain delta between it and this transition's own just-logged timestamp, as a human-readable duration (e.g. "2h 14m") — convert both ISO timestamps to epoch seconds via the host's `date` utility and subtract; this is a duration, not a display timestamp, so no timezone conversion is needed. If `start_time` is `none` (this run began before real start-timestamp capture existed), state "Elapsed: unknown — no real start timestamp was captured for this run" instead of estimating or backfilling one.
+- **Cost** — not shown; no tool surfaces token-usage or billing data to this session. Check your own client's `/usage` command instead.
 
 End with: "Changes are uncommitted — review the working tree and commit when ready."
 
@@ -410,3 +412,4 @@ End with: "Changes are uncommitted — review the working tree and commit when r
 - Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking.
 - Never fix a regression classified as unrelated.
 - Never backfill `make-it-work/<TICKET>-status.html` for a run resumed with the file already missing — it is only ever created the first time a ticket's state file is created (Start → New run or Start → Pending offline refinement).
+- Never fabricate or estimate a timestamp, a cost figure, or a duration computed from a missing real anchor — state plainly when a figure isn't knowable instead.
