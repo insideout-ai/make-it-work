@@ -1,0 +1,39 @@
+skills/execute/SKILL.md
+  s_fbe3bc02a9a609::t_ce26e0c03b7ed7 206
+  s_fbe3bc02a9a609::t_eb78aff4a737b0 173
+  s_fbe3bc02a9a609::t_003ce03317b14b 244,249
+  s_fbe3bc02a9a609::t_6d9b553c77922b 186
+  s_fbe3bc02a9a609::t_40907023ae020f 253
+  s_fbe3bc02a9a609::t_879d9f98734635 187
+  s_fbe3bc02a9a609::t_2bd1736b616280 188
+  s_fbe3bc02a9a609::t_65b61c32d55653 209
+  s_fbe3bc02a9a609::t_67cb4363ce1afc 185
+  s_fbe3bc02a9a609::t_066b334a9941fe 162
+  s_fbe3bc02a9a609::t_a50606f5719c61 225
+  s_fbe3bc02a9a609::t_6ee474094b04a1 337
+  s_fbe3bc02a9a609::t_a4f82b49cc4ab6 250
+evals/execute/README.md
+  s_fbe3bc02a9a609::t_f9ea288301cab9 308-316
+skills/implement/SKILL.md
+  s_fbe3bc02a9a609::t_94fef2e981dc2c 415
+  s_fbe3bc02a9a609::t_0b791a1da0e3d6 72
+  s_fbe3bc02a9a609::t_ba2ebd40df59b3 443-452
+  s_fbe3bc02a9a609::t_4fdc2e3c520602 442
+  s_fbe3bc02a9a609::t_3bffb1246c5d8a 491
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7754b30d7accb6c90a028c883f5025c68911d882",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
