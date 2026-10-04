@@ -21,7 +21,7 @@ check 1; judge check 1 only against the `"options"` ARRAY itself, not the
 
 1. `"options"` is an array with exactly 2 entries (not 3) — there is no
    third "review the plan first" entry in the `options` array.
-2. The first option's `"label"` is exactly `"Subagent-Driven (recommended)"`
+2. The first option's `"label"` is exactly `"Subagent-Driven (Recommended)"`
    (verbatim, including the parenthetical).
 3. The second option's `"label"` is `"Inline Execution"` (or clearly
    equivalent wording naming the Inline option) — never a label suggesting

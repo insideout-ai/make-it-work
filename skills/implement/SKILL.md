@@ -55,7 +55,10 @@ The run's state lives in `make-it-work/<TICKET>-state.md`, next to the other pip
 ticket: <TICKET>
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | review | fix-plan | final-sync | complete
-autonomy: guided               # guided | autonomous
+autonomy: guided               # guided | autonomous | pending — pending only between state-file creation and Choose autonomy completing (see Start)
+start_time: none                # ISO 8601 UTC timestamp captured as the first action of Start; never fabricated or backfilled
+execution_mode: none            # none | subagent-driven | inline — set once execute's Mode-selection phase runs
+inline_pause_mode: none         # none | stop-after-each-step | run-straight-through — set only when execution_mode is inline
 spec: none
 spec_hash: none
 plan: none
@@ -63,8 +66,10 @@ plan_version: 1                # 1 = the initial plan; each replan adds 1
 plan_hash: none
 execution: not-started         # not-started | running | passed | guardrail | retry-limit | gate-failed | gate-no-result | stopped
 review: not-started            # not-started | clean | fix-required | replan-required | human-decision
-review_cycle: 0                # reviews run for the current plan version (limit 5)
-fix_cycle: 0                   # fix-plan rounds for the current plan version (limit 3)
+review_cycle: 0                # reviews run for the current plan version (limit = fix_cycle's limit + 1 = 4 — one initial review plus one re-review per fix-plan round)
+fix_cycle: 0                   # fix-plan rounds for the current plan version (limit 3 — review_cycle's limit is derived from this one, see its own comment)
+fix_plan_round_steps: none      # step count added by the current fix-plan round; reset to none when a new fix-plan round begins
+fix_plan_dispatch: none         # none | sequential | parallel — dispatch order for the current fix-plan round's own added steps; reset to none when a new fix-plan round begins; never set for the original plan's own steps
 replans_used: 0                # limit 2 per run
 gate: none                     # none | full-suite | scoped
 pause_reason: none
@@ -72,9 +77,9 @@ branch: <current branch>
 base: <base branch>
 head: <commit hash>
 worktree_fingerprint: <hash>
-test_commits: none
 execute_report: none           # path of the last saved execute report
 context_updated: none
+real_rows_from: 1               # Audit-log row number of the first row with a real (post-upgrade) timestamp; 1 for any run created under this feature. Set only by Resume, for a run whose state file predates this feature (see Resume).
 ```
 
 ## Known regressions
@@ -89,13 +94,13 @@ None
 
 None
 
-## Transition log
+## Audit log
 
 | # | Time | From | To | Outcome / reason |
 | --- | --- | --- | --- | --- |
 ````
 
-**Checkpoint rule** — at every transition, rewrite the field block and append one row to the transition log *before* starting the next phase. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts. Immediately after rewriting the field block, also regenerate `make-it-work/<TICKET>-status.html` from the fields just written — never let the two fall out of sync (see Progress dashboard below).
+**Checkpoint rule** — at every transition, rewrite the field block and append one row to the Audit log *before* starting the next phase. That row's `Time` cell is a real wall-clock timestamp in ISO 8601 UTC (e.g. `2026-01-01T12:00:00Z`, obtained via a shell `date` call or this session's own real clock) captured at the moment of this very checkpoint write — never estimated, guessed, or back-filled, for every row including the first one a run ever logs. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts. Immediately after rewriting the field block, also regenerate `make-it-work/<TICKET>-status.html` from the fields just written — never let the two fall out of sync (see Progress dashboard below).
 
 **Fingerprints:**
 
@@ -121,62 +126,191 @@ Write it with exactly this template, filling in every bracketed placeholder from
 <meta charset="utf-8">
 <title><TICKET> — implement status</title>
 <style>
-  body { font-family: -apple-system, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
-  h1 { font-size: 1.3rem; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, sans-serif; width: 100%; margin: 0; padding: 1.5rem 2rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; margin: 0; }
   .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 1rem; font-size: 0.85rem; background: #eee; margin-right: 0.3rem; }
+  .pill[title] { cursor: help; border-bottom: 1px dotted #999; }
   table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
   th, td { text-align: left; border-bottom: 1px solid #ddd; padding: 0.3rem 0.5rem; font-size: 0.9rem; }
+  .step-duration { color: #999; font-size: 0.8em; font-style: italic; white-space: nowrap; }
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
+  .session-timing { font-size: 0.75rem; color: #888; }
+
+  .header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .header-row img { height: 56px; width: auto; flex-shrink: 0; }
+  .header-row .autonomy-pill { margin-left: auto; flex-shrink: 0; }
+
+  .phase-timeline { display: flex; align-items: flex-start; width: 100%; margin: 1.5rem 0 2rem; overflow-x: auto; overflow-y: visible; padding-top: 1rem; padding-bottom: 0.5rem; }
+  .phase-step { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 90px; position: relative; }
+  .phase-step .line { position: absolute; top: 14px; left: -50%; width: 100%; height: 3px; background: #d0d0d0; z-index: 0; }
+  .phase-step:first-child .line { display: none; }
+  .phase-step .line.line-green { background: #4caf50; }
+  .phase-dot { width: 28px; height: 28px; border-radius: 50%; z-index: 1; border: 3px solid #d0d0d0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: default; }
+  .phase-dot.passed { background: #4caf50; border-color: #4caf50; color: #fff; }
+  .phase-dot.failed { background: #e53935; border-color: #e53935; color: #fff; }
+  .phase-dot.current { width: 56px; height: 56px; margin-top: -14px; background: #fff; border-color: #2196f3; box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.25); position: relative; }
+  .phase-dot.current.spinning::after {
+    content: ""; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
+    border-radius: 50%; border: 3px solid transparent; border-top-color: #2196f3; border-right-color: #2196f3;
+    animation: phase-spin 0.9s linear infinite;
+  }
+  @keyframes phase-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .phase-dot.current.spinning::after { animation: none; }
+  }
+  .phase-label { margin-top: 0.4rem; font-size: 0.75rem; text-align: center; color: #555; max-width: 100px; }
+  .phase-label.current-label { font-weight: 700; color: #1a1a1a; }
+  .phase-mode { margin-top: 0.1rem; font-size: 0.62rem; color: #777; text-align: center; }
+  .phase-duration { margin-top: 0.1rem; font-size: 0.65rem; color: #999; text-align: center; font-style: italic; }
+  .phase-status { margin-top: 0.15rem; font-size: 0.68rem; font-weight: 600; text-align: center; }
+  .phase-status.status-in-progress { color: #2196f3; }
+  .phase-status.status-paused, .phase-status.status-stopped { color: #e65100; }
+  .phase-status.status-complete { color: #2e7d32; }
+
+  .artifact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; max-width: 900px; }
+  .artifact-tile { background: #f7f7f8; border: 1px solid #e2e2e4; border-radius: 0.4rem; padding: 0.6rem 0.75rem; min-width: 0; }
+  .artifact-tile .label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: 0.03em; }
+  .artifact-tile a { font-size: 0.85rem; word-break: break-all; }
+  .artifact-tile .none { font-size: 0.9rem; color: #999; }
+
+  @media (max-width: 900px) {
+    .phase-timeline { overflow-x: scroll; }
+    .phase-step { min-width: 80px; }
+    .artifact-grid { grid-template-columns: 1fr; max-width: 100%; }
+  }
 </style>
 </head>
 <body>
-<h1><TICKET> — implement status</h1>
-<p><span class="pill">Phase: <PHASE></span><span class="pill">Status: <STATUS></span><span class="pill">Autonomy: <AUTONOMY></span></p>
+<div class="header-row">
+  <a href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
+    <img src="data:image/png;base64,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" alt="InsideOut AI">
+  </a>
+  <h1>Make-It-Work: Implementation Workflow: <em><TICKET></em></h1>
+  <span class="pill autonomy-pill" title="<AUTONOMY_TOOLTIP>">Autonomy: <AUTONOMY></span>
+</div>
+
+<div class="phase-timeline">
+<PHASE_TIMELINE_STEPS>
+</div>
 
 <!-- only when status is Paused or Stopped -->
 <p class="next-action"><strong>Waiting on you:</strong> <PAUSE_REASON></p>
 
 <!-- only when status is Complete -->
-<p class="complete"><strong>Run complete.</strong></p>
-
-<h2>Cycle counters</h2>
-<p>Review cycles: <REVIEW_CYCLE> / 5 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
+<p class="complete"><strong>Run complete.</strong> <SESSION_DURATION_STATEMENT> Changes are uncommitted — review the working tree and commit when ready.</p>
 
 <h2>Artifacts</h2>
-<ul>
-  <li>Spec: <SPEC_LINK_OR_NONE></li>
-  <li>Plan: <PLAN_LINK_OR_NONE></li>
-  <li>Execute report: <EXECUTE_REPORT_LINK_OR_NONE></li>
-  <li>Review: <REVIEW_LINK_OR_NONE></li>
-</ul>
+<div class="artifact-grid">
+  <div class="artifact-tile"><div class="label">Spec</div><SPEC_LINK_OR_NONE></div>
+  <div class="artifact-tile"><div class="label">Plan</div><PLAN_LINK_OR_NONE></div>
+  <div class="artifact-tile"><div class="label">Execute</div><EXECUTE_REPORT_LINK_OR_NONE></div>
+  <div class="artifact-tile"><div class="label">Review</div><REVIEW_LINK_OR_NONE></div>
+</div>
+
+<h2>Audit log</h2>
+<table>
+<tr><th>#</th><th>Time</th><th>From</th><th>To</th><th>Outcome / reason</th></tr>
+<AUDIT_LOG_ROWS>
+</table>
+<!-- only when the Audit log has at least 2 rows -->
+<p class="session-timing"><SESSION_TIMING_NOTE></p>
+
+<h2>Cycle counters</h2>
+<p>Review cycles: <REVIEW_CYCLE> / 4 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
 
 <h2>Known regressions</h2>
 <KNOWN_REGRESSIONS_LIST_OR_NONE>
 
 <h2>Decided findings</h2>
 <DECIDED_FINDINGS_LIST_OR_NONE>
-
-<h2>Transition log</h2>
-<table>
-<tr><th>#</th><th>Time</th><th>From</th><th>To</th><th>Outcome / reason</th></tr>
-<TRANSITION_LOG_ROWS>
-</table>
+<script>
+  (function () {
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function gmtLabel(date) {
+      var offsetMin = -date.getTimezoneOffset();
+      var sign = offsetMin >= 0 ? '+' : '-';
+      var abs = Math.abs(offsetMin);
+      return 'GMT' + sign + pad(Math.floor(abs / 60)) + ':' + pad(abs % 60);
+    }
+    document.querySelectorAll('.ts').forEach(function (cell) {
+      var raw = cell.getAttribute('data-ts');
+      if (!raw) return;
+      var d = new Date(raw);
+      if (isNaN(d.getTime())) { cell.textContent = raw; return; }
+      var datePart = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      var timePart = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      cell.textContent = datePart + ', ' + timePart + ' (' + gmtLabel(d) + ')';
+    });
+  })();
+</script>
 </body>
 </html>
 ```
 
 Filling in the bracketed placeholders:
 
-- `<TICKET>`, `<PHASE>`, `<STATUS>`, `<AUTONOMY>`, `<REVIEW_CYCLE>`, `<FIX_CYCLE>`, `<REPLANS_USED>` — copied verbatim from the state file's field block.
-- The "Waiting on you" paragraph is included only when `status` is `Paused` or `Stopped`, using the state file's own `pause_reason` field verbatim — the same explanation already given to the user in chat at that stop, per the Stop definition elsewhere in this file. Omit this paragraph entirely for any other status.
+- `<TICKET>`, `<AUTONOMY>`, `<REVIEW_CYCLE>`, `<FIX_CYCLE>`, `<REPLANS_USED>` — copied verbatim from the state file's field block.
+- `<LOGO_BASE64>` — a fixed constant, never derived from the state file: the base64 payload of the InsideOut AI logo (a 112×112 PNG), the same string in every ticket's dashboard.
+- `<AUTONOMY_TOOLTIP>` — a fixed constant: `guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question and still stops at loop limits and at completion.` — except while the state file's `autonomy` field reads `pending`, use instead: `not yet chosen — Context Check and/or Choose Autonomy are still running.` The `<AUTONOMY>` text shown in the pill itself needs no special-case — it already reads `pending` verbatim, per the existing "copied verbatim from the state file's own field block" rule.
+- The "Waiting on you" paragraph (`<PAUSE_REASON>`) is included only when `status` is `Paused` or `Stopped`, using the state file's own `pause_reason` field verbatim. Omit this paragraph entirely for any other status.
 - The "Run complete" banner is included only when `status` is `Complete`. Omit it for any other status.
-- `<SPEC_LINK_OR_NONE>` / `<PLAN_LINK_OR_NONE>` / `<EXECUTE_REPORT_LINK_OR_NONE>` — an `<a href="...">` link to the file named in the state file's `spec` / `plan` / `execute_report` field, with that field's own `make-it-work/` prefix stripped from the `href` — the dashboard and these artifacts all live in the same `make-it-work/` directory, so the link only needs the bare filename (e.g. `href="<TICKET>-spec.md"`); the link text may keep the field's full value. Print the literal text `Not yet created` for any of these three whose state field still reads `none`.
-- `<REVIEW_LINK_OR_NONE>` — once the state file's `review` field reads anything other than `not-started`, a link to `<TICKET>-review.md` (bare filename, same stripping rule as above); while `review` still reads `not-started`, print `Not yet created` instead. This reflects the current plan version's review status only — if a replan resets `review` back to `not-started`, show `Not yet created` again even if an older review file from a prior plan version is still on disk.
+- `<SPEC_LINK_OR_NONE>` / `<PLAN_LINK_OR_NONE>` / `<EXECUTE_REPORT_LINK_OR_NONE>` — an `<a href="...">` link to the file named in the state file's `spec` / `plan` / `execute_report` field, with that field's own `make-it-work/` prefix stripped from the `href` (e.g. `href="<TICKET>-spec.md"`); the link text may keep the field's full value. Print `<span class="none">Not yet created</span>` for any of these three whose state field still reads `none`.
+- `<REVIEW_LINK_OR_NONE>` — once the state file's `review` field reads anything other than `not-started`, a link to `<TICKET>-review.md` (bare filename, same stripping rule as above); while `review` still reads `not-started`, print `<span class="none">Not yet created</span>` instead. If a replan resets `review` back to `not-started`, show `<span class="none">Not yet created</span>` again even if an older review file from a prior plan version is still on disk.
 - `<KNOWN_REGRESSIONS_LIST_OR_NONE>` / `<DECIDED_FINDINGS_LIST_OR_NONE>` — an `<ul>` with one `<li>` per entry under the state file's `## Known regressions` / `## Decided findings` sections, or the literal text `<p>None</p>` when that section reads `None`.
-- `<TRANSITION_LOG_ROWS>` — one `<tr>` per row of the state file's own `## Transition log` table, in the same order, each cell copied verbatim.
+- `<AUDIT_LOG_ROWS>` — one `<tr>` per row of the state file's own `## Audit log` table, in **reverse** order (newest first — the state file itself stays oldest-first/append-only; this reversal is a render-only transform, never applied to the state file). Each row's time cell is `<td class="ts" data-ts="<that row's ISO Time value>"></td>` (empty text content; the client-side script in the template fills it in). Each row's `Outcome / reason` cell is that column's text verbatim, followed by a duration span per these rules, using `real_rows_from` as the legacy-row boundary (a row's own `#` number, not its timestamp's format, decides whether it is legacy — a real ISO timestamp looks identical whether or not the clock reading behind it was genuine, so format alone can never tell the two apart): a row whose `#` is `< real_rows_from` gets no duration span at all; the row whose `#` equals `real_rows_from` gets ` <span class="step-duration" title="First row with a real captured timestamp — no real predecessor to measure from.">(first real timestamp)</span>`; every later row gets ` <span class="step-duration">(+<delta>)</span>`, where `<delta>` is that row's `Time` minus the immediately preceding row's `Time`, computed once via a shell `date` epoch-seconds subtraction at the moment this row is appended (never recomputed later, and never computed by reading two timestamps and subtracting mentally).
+- `<SESSION_TIMING_NOTE>` — **Only rendered once the Audit log has at least 2 rows** (per the template's new conditional-paragraph comment) — a freshly created run's first dashboard (1 row) renders nothing here at all, since this cannot be done before this guard is well satisfied with a real second endpoint to span; there is no zero-duration fallback text, the paragraph is simply absent. Once there are ≥2 rows: one sentence, filled in at every checkpoint that extends the Audit log, reading: `Session timing: rows <real_rows_from>→<last row #> above span <total> of real captured time.` where `<total>` is the same kind of once-computed `date`-epoch delta between the `real_rows_from` row's `Time` and the last row's `Time`. When `real_rows_from > 1`, append: ` This is not the full session duration — everything before row <real_rows_from> happened before any real timestamp was captured.` When `real_rows_from = 1`, omit that sentence entirely — there is nothing to caveat. Always end with: ` Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).`
+- `<SESSION_DURATION_STATEMENT>` — banner-appropriate prose restating the same `<total>` figure already computed for `<SESSION_TIMING_NOTE>` in this same checkpoint — read that figure back from the note's own just-generated text rather than recomputing it independently, so the banner and the note can never disagree (do not paste the note's own sentence verbatim here — its "rows X→Y above" phrasing refers to the table above it, which doesn't make sense inside the banner). Matching the reference implementation's own banner pattern: `Real-timestamped portion of this run: <total>.` When `real_rows_from > 1`, append: ` (not the full session — see the Session timing note below).` When `real_rows_from = 1`, no parenthetical is needed. In the one defensive edge case where `<SESSION_TIMING_NOTE>` itself rendered nothing (fewer than 2 rows even at `status: Complete`), state instead, matching the exact wording the chat Completion summary already uses for its own analogous case (item 12): `Elapsed: unknown — no real start timestamp was captured for this run.`
 
-Mention the file's path once, in whichever of Start's two creation points actually creates the state file first for this ticket (New run's summary, alongside the autonomy level and base branch; or Pending offline refinement's stop message) — never repeated at later checkpoints, and never shown at all for a Resume (per the no-backfill rule above).
+**`<PHASE_TIMELINE_STEPS>`** — a sequence of `<div class="phase-step">...</div>` blocks. The timeline always starts from the 8 canonical phases, in this fixed order, each initially `not-reached` (grey) — **except** `context-check` on a dashboard created via Start's "New run" path, which starts as the **active** dot (`current`, spinning, since `status: In Progress` from the moment of creation — the dashboard now exists *before* Context Check runs, per item 20) and becomes `passed` once its own closing Audit-log row is logged, exactly like any other phase. A dashboard created via "Pending offline refinement" still starts every phase `not-reached` — that path never runs Context Check at all.
+
+Baseline order and slot identifiers: `context-check`, `close-the-gaps`, `plan`, `execute`, `review`, `fix-plan`, `final-sync`, `complete`.
+
+Then walk the state file's own `## Audit log` table **top to bottom** (today's table is chronological oldest-first), maintaining a note of which baseline slots have been activated at least once, and which dot is currently "active" (starts as whichever slot is already `passed` per the rule above, if any — **except** for a New-run dashboard, where `context-check` itself starts as the **active** dot per that same rule, so there already *is* an active dot before the walk begins; for a Pending-offline-refinement dashboard, with nothing yet `passed`, there is indeed no active dot at the very start, exactly as before):
+
+1. **Approval-gate rows are never dots.** A row whose `To` is `spec-approval` or `plan-approval` never starts anything — skip it. A row whose **`From`** is `spec-approval` or `plan-approval`, **and whose `From` differs from its `To`** (the row that actually records the approve/redo/stop decision) sets the **currently active dot's** `<div class="phase-mode">...</div>` annotation to that row's `Outcome / reason` text (e.g. "Approved as-is", "Redo requested") — this is the dot for `close-the-gaps` or `plan` respectively, which is still active at that point. A later approval decision for the same dot overwrites the earlier annotation; it is never appended.
+2. **A row whose `To` is one of the 8 canonical identifiers, and differs from the currently active dot's own phase:**
+   - **Fix-plan resumption (no new dot):** if `To` is `execute` and the currently active dot's phase is `fix-plan`, do not activate or insert anything — this is a fix-plan round resuming execution of its own added steps (per the Transition table's `fix-plan → execute` routing). The `fix-plan` dot simply stays active; this row's own `Outcome / reason` is history under that same dot, surfaced as the live step-progress annotation described in rule 4 below.
+   - **First-ever visit to this phase:** if this canonical phase has never been activated before, activate its baseline slot *in place* (grey → real state, at its fixed position in the 8-slot order) and make it the active dot.
+   - **Repeat visit (a real loop):** if this canonical phase was already activated earlier in the walk (e.g. `review` a second time after a fix-plan round, or `plan` again after a replan), insert a brand-new `phase-step` for it immediately after the **currently active dot** (not necessarily the last baseline slot — e.g. inserting right after `fix-plan`, well before the still-grey `final-sync`/`complete` slots), growing the timeline past 8 slots, and make the new dot active. Do not reuse or recolor the earlier dot for this phase — it keeps its own earlier annotation/state exactly as it was.
+   - **Same phase as the active dot:** no new dot, no insertion — this row is just more history under the currently active dot (e.g. several `execute → execute` step-decision rows).
+3. **Render every slot and every inserted dot, in final sequence order** (baseline slots in their fixed positions, with any inserted repeat-visit dots spliced in at the point they were inserted):
+   - A connecting `<div class="line"></div>` immediately before the dot — omitted for the very first `phase-step`, given class `line-green` when the dot it precedes is `passed` or `current`.
+   - `<div class="phase-dot <dot-state>" title="<internal-id>: <tooltip>"><symbol></div>` — `<internal-id>`/`<tooltip>` from the mapping table below; `<symbol>` is `✓` for `passed`, `✗` for `failed`, empty for `current` or `not-reached`.
+   - `<div class="phase-label">...</div>` with the display label (add class `current-label` when this is the active/last dot and `status` is `In Progress`).
+   - `<div class="phase-mode">...</div>` — rendered when step 1 above recorded an approval-gate annotation for this specific dot, **or** when the step-progress/round-history annotation rule below applies to it. These never both apply to the same dot: approval-gate annotations only ever land on `close-the-gaps`/`plan` dots, and step-progress annotations only ever land on `execute`/`fix-plan` dots.
+   - **Only on the active/last dot**, also render `<div class="phase-status status-<status-slug>"><Status></div>`, where `<status-slug>` is the lowercased, hyphenated `status` value (`in-progress`, `paused`, `stopped`, `complete`) and `<Status>` is its display value.
+4. **Step-progress and duration annotations:**
+   - On the **active** `execute` dot: render `<div class="phase-mode">` with the plan file's own `## Execution Status` block, read fresh at the moment of this regeneration — `<Mode> · Step <N> of <M> complete`.
+   - On the **active** `fix-plan` dot: if the state file's `fix_plan_round_steps` currently reads `none` (this round's own entry row has been logged, but amend-mode planning hasn't yet determined how many steps it adds — see the Execute/Fix-plan phase changes), render **no** `<div class="phase-mode">` for it at all yet; the annotation first appears once that round's size-decision row has been logged and the dashboard regenerated again. Once `fix_plan_round_steps` holds a real count: render `<div class="phase-mode">` with the same `<Mode> · Step <N> of <M> complete` text, but with `<N>`/`<M>` replaced by the *local* count within this round: `<N> − (<M> − fix_plan_round_steps)` out of `fix_plan_round_steps` (both from the state file's own `fix_plan_round_steps` field and the plan's live Progress line).
+   - On a **non-active, already-`passed`** `fix-plan` dot: render the same `<div class="phase-mode">` using that specific round's own step count, read back from the Audit-log decision row that recorded it (`Fix-plan round <N>: added <Y> steps covering <F> findings` — see the Execute/Fix-plan phase changes). Associate each such dot with its own round's decision row by **walk-position** — the decision row logged immediately after that specific dot's own activation in this same walk — never by matching the row's round-number text, which can repeat across plan versions after a replan resets `fix_cycle` to 0. Never read this annotation from the live `fix_plan_round_steps` field, which only ever reflects the *current* round.
+   - On every dot whose state is `passed` (completed, not active), **except the terminal `complete` dot**: render `<div class="phase-duration">` with the delta between the Audit-log row that activated this dot and the row that activated the *next dot that actually gets activated* in final sequence order — skipping over any baseline slot that stays `not-reached` in between (e.g. on a clean single-pass run with no fix-plan round, Review's exit row transitions directly to the row that activates `final-sync`, even though the unused `fix-plan` baseline slot sits between them in the fixed 8-slot order; there is no fix-plan activation row to reference in that case). The transition-out row of one dot is the same row as the transition-in row of the next counted dot; compute the delta once via `date` epoch subtraction at the moment the *later* of those two rows was appended. If either endpoint's row `#` is `< real_rows_from`, render `—` instead of a computed value. The terminal `complete` dot never renders this div at all, passed or otherwise — it marks the run's endpoint rather than a phase with a duration of its own, and has no "next dot" to measure to (matching the reference implementation, whose own Complete dot carries no duration). Never render this div for a `current` or `not-reached` dot either.
+5. **Dot state:** every already-activated dot before the active/last one is `passed`. A baseline slot never activated is `not-reached`. The active/last dot's state comes from the run's `status`:
+   - `Complete` → `passed` (never `current` — the terminal dot must never look like it's still running).
+   - `In Progress` → `current spinning` (both classes).
+   - `Paused` → `current` only, without `spinning` (enlarged, but static — nothing is actively executing while paused).
+   - `Stopped` → `failed`.
+6. **A `To` value that matches none of the 8 canonical identifiers and isn't `spec-approval`/`plan-approval`** never starts, activates, or inserts a dot — skip that row for timeline purposes (it still appears verbatim in the Audit log table itself).
+
+**Worked example** (traced against the reference implementation's own real run, confirming this produces its exact 9-dot shape): `start→close-the-gaps`, `close-the-gaps→spec-approval`, `spec-approval→plan` ("User approved spec as-is"), `plan→plan-approval`, `plan-approval→execute` ("User approved plan as-is"), six `execute→execute` rows, `execute→review`, `review→review` (cycle 1), `review→fix-plan` ("added 6 steps"), five `fix-plan→fix-plan` rows, `execute→execute` ("all 12 fix-plan steps complete" — **fix-plan resumption, folds into Fix Plan, no new dot**), `execute→review` ("gate re-run PASSED"), `review→review` (cycle 2 — **repeat visit, inserted dot**), `review→final-sync`, `final-sync→complete` — yields, in order: Context Check (passed), Refinement (passed, "Approved as-is"), Plan (passed, "Approved as-is"), Execute (passed), Review (passed, cycle-1 history), Fix Plan (passed, includes the resumed-execute history), Review (inserted, cycle-2 history — this is the active dot, so it also carries the `<phase-status>` line), Final Sync (passed), Complete (passed, terminal, since `status: Complete`) — 9 dots, matching the reference exactly.
+
+**Internal identifier → display label / tooltip mapping** (use exactly this wording in every dashboard, so it stays consistent across tickets):
+
+| Internal identifier | Display label | Tooltip text (after `<identifier>: `) |
+| --- | --- | --- |
+| `context-check` | Context Check | verifies the project already has the context (skills, rules) this pipeline needs before starting. |
+| `close-the-gaps` | Refinement (Close The Gaps) | refines the request into a reviewed, gap-checked spec via Q&amp;A, ending in a spec-approval checkpoint. |
+| `plan` | Plan | turns the approved spec into a concrete, testable implementation plan, ending in a plan-approval checkpoint. |
+| `execute` | Execute | implements the plan step by step, writing and passing each step's tests. |
+| `review` | Review | an independent pass reviews the implemented change for correctness and quality. |
+| `fix-plan` | Fix Plan | turns review or gate findings into new plan steps to implement. |
+| `final-sync` | Final Sync | updates the project's skills/docs to reflect what was actually built. |
+| `complete` | Complete | the run has finished successfully. |
+
+**Logging a decision row:** whenever an `AskUserQuestion` resolution represents a consequential in-run decision that is *not itself a phase change* (a phase change already produces its own ordinary row — never double-logged as a decision row too), append an Audit-log row with `From` and `To` both equal to the current phase, and an `Outcome / reason` starting with `Decision: ` (matching the reference implementation's own wording, e.g. `Decision: Execution mode selected — Subagent-Driven (Recommended)`). Examples: the autonomy-level choice (Start), the execution-mode choice and the inline-pause-mode choice (Execute), a fix-plan round's added-step count (Fix plan) — and, in the future, item 8's Sequential-vs-Parallel dispatch choice, with no further change needed here.
+
+Mention the file's path once, in whichever of Start's two creation points actually creates the state file first for this ticket (New run's own creation point, in the very first chat message of the run — before Context Check or Choose Autonomy even run; or Pending offline refinement's stop message) — never repeated at later checkpoints, and never shown at all for a Resume (per the no-backfill rule above).
 
 ---
 
@@ -184,11 +318,30 @@ Mention the file's path once, in whichever of Start's two creation points actual
 
 Work through these checks in order; the first one that applies decides what happens.
 
-1. **Branch guard** — if the current branch equals `base`, or `HEAD` is detached, stop: tell the user to create or switch to a feature branch first. `plan-the-work` commits its tests to the current branch, so a run must never start on the base branch.
-2. **Completed run** — a state file exists with `status: Complete` → ask whether to start a new run (the state file is overwritten) or stop.
+1. **Branch guard**:
+   - **`HEAD` is detached** → stop: tell the user to create or switch to a feature branch first. A run must never start on a detached HEAD — there is no branch for the work this run produces to live on.
+   - **Current branch equals `base`** → compute a suggested branch name: `<TICKET>`; if `git rev-parse --verify --quiet refs/heads/<TICKET>` resolves (the name is already taken), try `<TICKET>-2`, `<TICKET>-3`, … incrementing until one does not resolve, and use that instead. Then ask with `AskUserQuestion`: *"You're on `<base>` — proceed anyway, or should I create a feature branch for you?"*, with these options:
+     - Create feature branch `<suggested-name>` (recommended).
+     - Proceed on `<base>` anyway.
+     - Stop.
+
+     If the user picks **Create feature branch**, confirm the exact name before creating anything: tell them "I'll create and switch to `<suggested-name>` — reply to confirm, or give a different branch name," and wait for their reply. Use whatever name they confirm or supply as `<final-name>`, then run `git switch -c <final-name>`. If that command fails (e.g. the name turned out to be taken after all), show the error and ask again for a different name — never silently retry with a guessed alternative. Once the branch is created, continue to the next Start check.
+
+     If the user picks **Proceed on `<base>` anyway**, continue to the next Start check without creating a branch.
+
+     If the user picks **Stop**, stop here, exactly as today's hard stop did.
+   - **Neither condition applies** → continue to the next Start check.
+2. **Completed run** — a state file exists with `status: Complete`, **or** with `status: Stopped` and `phase: context-check` → ask whether to start a new run (the state file is overwritten) or stop. A run that never got past Context Check produced no artifacts worth resuming, so it is treated the same as a completed run's own re-run prompt, not routed into Resume.
 3. **Run in progress** — a state file exists with any other status → go to **Resume**.
-4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
-5. **New run** — run **Context check**, then **Choose autonomy**. Then, if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Create the state file and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mention the dashboard's path once here, and log the first transition.
+4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, a real captured timestamp in `start_time` (same capture rule as the Checkpoint rule's `Time` cell), and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
+5. **New run**:
+   - Capture a real timestamp into `start_time` (same capture rule as the Checkpoint rule's `Time` cell).
+   - Create the state file with `phase: context-check`, `status: In Progress`, `autonomy: pending`, every other field at its template default (including `real_rows_from: 1`), and log the first Audit-log row: `From: start`, `To: context-check`, with an `Outcome / reason` summarizing whatever the branch guard just resolved (e.g. `New run created; branch <name> created per branch-guard choice` or `New run created; proceeding on <base>` — fold the branch-guard outcome into this one row's narrative; no separate row for it, since no state file existed while the branch guard ran).
+   - Create the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below) from those fields, and tell the user its path in the very first chat message of the run.
+   - *Only then* run **Context check**. **If its outcome is "stop"** (no signal at all, or incomplete, per Context check's own Outcomes), set `status: Stopped` explicitly — not `Paused`: there is no mid-run point to resume into until the user has run `go-deep` externally and re-invokes `implement`, which is effectively a fresh attempt, not a resumable pause. Log this as the phase's own Audit-log row (`From`=`To`=`context-check`, `Outcome / reason`: the exact stop message shown to the user), regenerate the dashboard, then stop exactly as Context check's own Outcomes already specify.
+   - If Context check succeeds, run **Choose autonomy** — when autonomy is chosen, update the `autonomy` field from `pending` to the chosen value, log a decision row (`From`/`To` both `context-check`) reading `Decision: Autonomy level selected — <Guided|Autonomous>`, and regenerate the dashboard (per the Checkpoint rule).
+   - Then, exactly as today: if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase.
+   - **Close out Context check explicitly** (new — this did not need stating before, since no state file existed at this point until now): once the reuse/redo decision above resolves, update `phase` to the actual starting phase (`close-the-gaps` for a fresh spec/plan, or `plan`/`execute` if reusing an existing one per the decision just made), and log the closing Audit-log row `context-check → <that phase>` with an outcome describing the decision, then regenerate the dashboard. This is what flips the pre-activated `context-check` dot from `current` to `passed`, exactly like any other phase's own closing row does.
 
 ---
 
@@ -224,15 +377,16 @@ Offer only these two levels.
 
 Compare the current `branch`, `head`, `worktree_fingerprint`, `spec_hash`, and `plan_hash` against the state file.
 
-- Commits made after the recorded `head` whose messages match `test: step <N> — … (red state)` are `plan-the-work`'s own test commits — they are not outside changes. Any other new commit is.
-- **Nothing changed, and the last log row closed its phase** → show one line (current phase and autonomy level), offer to change the autonomy level, then continue at `phase`.
-- **Interrupted mid-`close-the-gaps`, mid-`review`, or mid-`final-sync`, with nothing else changed** → these phases are safe to repeat: tell the user, then re-run that phase from its start.
+- **Nothing changed, and the last log row closed its phase** (the last Audit-log row's `From` differs from its `To` — a trailing same-phase decision row, per the merged-log design, never counts as closing a phase) → show one line (current phase and autonomy level), offer to change the autonomy level, then continue at `phase`. This bucket never applies while `phase: context-check`, even when its one logged row (`start → context-check`) technically has `From ≠ To` — that row only records *entering* Context Check, and Context Check's own mandatory follow-on orchestration (Choose autonomy, the reuse/redo prompt, the closing row) may not have run yet; a `phase: context-check` state always falls to the next bucket instead.
+- **Interrupted mid-`context-check`, mid-`close-the-gaps`, mid-`review`, or mid-`final-sync`, with nothing else changed** → these phases are safe to repeat: tell the user, then re-run that phase from its start. For `context-check` specifically, "from its start" means re-entering Start check #5 at its "run Context check" bullet and continuing through it exactly as a New run would — Choose autonomy (re-asking if `autonomy` is still `pending`), the reuse/redo prompt, and the explicit closing row/phase-update — since that orchestration lives in Start, not in a `## Phases` subsection of its own.
 - **Anything changed, or the run was interrupted mid-`plan`, mid-`fix-plan`, or mid-`execute`** (the phase started but has no closing log row) → list exactly what differs, then ask:
   - **Resume anyway** — re-record the fingerprints and continue. For an interrupted execute, run `execute` again; it resumes from its own Progress line.
   - **Redo the affected phase** — the earliest phase whose artifact changed; code changed outside the workflow → execute.
   - **Start over** — a new run for this ticket.
 
 Ask this in both autonomy levels. Never assume a changed repository is still safe to resume.
+
+**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). This is the only migration Resume performs; it never touches a file that already has the key.
 
 ---
 
@@ -250,7 +404,7 @@ Show the spec path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 ### Plan
 
-Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Pass the user's redo notes too when redoing the phase. From its return report, record `plan`, `plan_hash`, and `test_commits`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table.
+Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Pass the user's redo notes too when redoing the phase. From its return report, record `plan` and `plan_hash`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table.
 
 ### Plan approval (Guided only)
 
@@ -258,14 +412,14 @@ Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 ### Execute
 
-Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Read its outcome lines:
+Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Whenever the next not-yet-done step's own number is greater than `M − fix_plan_round_steps` (i.e. it belongs to the current fix-plan round's own added steps, not the original plan) — a plain comparison against numbers already in the state file, so this stays correct across an interrupted-and-resumed execute within the same round without depending on which Transition-table row most recently fired — also pass `fix_plan_dispatch`'s current value (`sequential` or `parallel`) as an additional input to `execute`. For the original plan's own steps (resume point at or below that boundary), never pass this input at all. While following it inline, after every per-step checkpoint it performs — under Subagent-Driven mode, the point where this session reviews a step's report and re-reads `## Execution Status → Progress` before dispatching the next step (`execute/SKILL.md`'s Phase 2 "reviewed between steps" pause point); under Inline mode, the point right after a step's own Progress-line update (`execute/SKILL.md`'s Phase 2 point 4) — also regenerate the dashboard immediately, before continuing to the next step, using the plan file's current `## Execution Status` Mode/Progress lines. Do not wait for the whole Execute phase to finish before the first of these regenerations. Also, when execution_mode or inline_pause_mode is first chosen for this plan version, record it in the state file's `execution_mode`/`inline_pause_mode` fields and log a decision row for it (per the decision-row-logging paragraph above) before the first per-step dispatch. Read its outcome lines:
 
 - `Execute outcome:` → record `execution`.
 - `Discoveries:` → append to Context discoveries.
 - `Failing tests:` (on `GATE_FAILED`) → input to Gate triage.
 - Record `gate` from the `Mode:` line of the `run-regression` report block execute printed (`Full suite` → `full-suite`, `Scoped` → `scoped`).
 
-Then save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>-execute-report.md`, overwriting any earlier one, and record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
+Then save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>-execute.md`, overwriting any earlier one, and record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
 
 A missing or unreadable outcome line is treated as `EXECUTE_STOPPED`.
 
@@ -285,7 +439,17 @@ Increment `review_cycle`, then dispatch the review as described in Review dispat
 
 ### Fix plan
 
-Follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests). Afterwards record `plan_hash` and `test_commits`, and re-record `head` and `worktree_fingerprint`. Increment `fix_cycle` only if steps were added — a round that adds none (every finding was accepted as-is) does not count against the limit. Then follow the Transition table: added steps → Execute (it resumes at the first added step); no steps → Review.
+Follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests). At the moment the `review → fix-plan` row is logged (this round's entry, before its actual step count is known), reset both `fix_plan_round_steps` and `fix_plan_dispatch` to `none` and regenerate the dashboard — the new Fix Plan dot renders active with no step-progress annotation yet (per the Progress dashboard section's own guard for this case). Once amend-mode planning determines this round adds `Y` new steps, record `fix_plan_round_steps: Y` in the state file, and log it as a decision row (per the decision-row-logging paragraph above) immediately after that same entry row: `Decision: Fix-plan round <N>: added <Y> steps covering <F> findings` (where `<N>` is this run's count of fix-plan rounds so far, i.e. `fix_cycle` after this round's own increment, and `<F>` is the count of findings this round addresses), then regenerate the dashboard again — this is what makes the step-progress annotation first appear.
+
+At this same point, resolve `fix_plan_dispatch` on exactly one of these three paths, never leaving it at its reset `none`:
+
+- **`execution_mode` does not read `subagent-driven`** (e.g. Inline): record `fix_plan_dispatch: sequential` directly — there is no concurrency primitive to offer a choice about, and this round's own added steps dispatch exactly like the original plan's always have.
+- **`execution_mode` reads `subagent-driven`, but none of this round's newly-added steps carries a `**Can run in parallel with:**` marker naming another step within this same round**: record `fix_plan_dispatch: sequential` directly — there is nothing to choose between.
+- **`execution_mode` reads `subagent-driven`, and at least one added step does carry such a marker:** ask, using the same `AskUserQuestion`-gated-by-autonomy-level pattern already used elsewhere in this skill (e.g. Choose Autonomy, the branch guard): in Guided, ask with `AskUserQuestion` (`multiSelect: false`): *"Dispatch this round's steps sequentially, or in parallel where the plan's own markers allow it?"*, with options `{ label: "Sequential (Recommended)", description: "One step at a time, exactly like today." }` and `{ label: "Parallel", description: "Dispatch genuinely independent steps' subagents at the same time, where the plan's own markers and file ranges allow it." }`; in Autonomous, do not ask — record `sequential`, the recommended option, directly. Record the chosen value in `fix_plan_dispatch` (`sequential` or `parallel`).
+
+Only the third path (an actual question asked, or actually auto-resolved from a real choice) gets a decision row — the first two paths are not a decision, since nothing was actually being chosen between. For the third path, log a decision row (per the decision-row-logging paragraph above): `Decision: Fix-plan round <N> dispatch order: Sequential` or `Decision: Fix-plan round <N> dispatch order: Parallel`. Regenerate the dashboard after resolving `fix_plan_dispatch` on any of the three paths.
+
+A round that adds no steps (every finding accepted as-is) does not set or log this — it already doesn't count against `fix_cycle` per the existing rule below. Do not add the mid-phase dashboard-regeneration instruction from `### Execute` to this phase section — `### Fix plan` covers only the planning sub-phase (drafting and sizing the round's new steps), which has no per-step loop of its own; the added steps' own per-step execution happens under `### Execute`, once routed there per `fix-plan → execute`, where that same mid-phase dashboard-regeneration instruction already applies. Afterwards record `plan_hash`, and re-record `head` and `worktree_fingerprint`. Increment `fix_cycle` only if steps were added — a round that adds none (every finding was accepted as-is) does not count against the limit. Then follow the Transition table: added steps → Execute (it resumes at the first added step); no steps → Review.
 
 ### Final context sync
 
@@ -314,7 +478,7 @@ Every transition is listed here. `—` means the outcome cannot occur at that le
 | execute | `GATE_FAILED`, no related failure | review | review |
 | execute | `GATE_NO_RESULT` | ask: continue to review with the plan's manual `## Test Plan` walkthrough as the regression check (`gate: none`) / stop | same as Guided |
 | execute | `EXECUTE_STOPPED` | pause, showing execute's message | pause, showing execute's message |
-| review | `review_cycle = 5` and not `CLEAN` | stop (review limit reached) | stop (review limit reached) |
+| review | `review_cycle = 4` and not `CLEAN` | stop (review limit reached) | stop (review limit reached) |
 | review | `CLEAN` | final-sync | final-sync |
 | review | `FIX_REQUIRED`, `fix_cycle < 3` | fix-plan (review) | fix-plan (review) |
 | review | `FIX_REQUIRED`, `fix_cycle = 3` | stop (limit reached) | stop (limit reached) |
@@ -324,7 +488,7 @@ Every transition is listed here. `—` means the outcome cannot occur at that le
 | fix-plan | no steps added (every finding accepted as-is) | review | review |
 | final-sync | done | complete | complete |
 
-**Replan** — `replans_used += 1`; `plan_version += 1`; `review_cycle = 0`; `fix_cycle = 0`; `execution` and `review` back to `not-started`; then Plan in replan mode, passing the previous plan path, one feedback path — `execute_report` after an execute stop, or the review report after `REPLAN_REQUIRED` (whose `Route: fix` findings are constraints for the new plan too) — and the Decided findings list, every entry of which is also a constraint. In Guided the new plan goes through plan approval again, and `execute` will ask for the execution mode again, since each new plan version starts with it unchosen.
+**Replan** — `replans_used += 1`; `plan_version += 1`; `review_cycle = 0`; `fix_cycle = 0`; `fix_plan_dispatch` back to `none`; `execution` and `review` back to `not-started`; then Plan in replan mode, passing the previous plan path, one feedback path — `execute_report` after an execute stop, or the review report after `REPLAN_REQUIRED` (whose `Route: fix` findings are constraints for the new plan too) — and the Decided findings list, every entry of which is also a constraint. In Guided the new plan goes through plan approval again, and `execute` will ask for the execution mode again, since each new plan version starts with it unchosen.
 
 **Stop** — set `status: Stopped` when a limit or cap was reached or the user chose to stop, or `status: Paused` when the run is waiting on the user. Set `pause_reason`, then tell the user where the run stopped, why, and what to do before running `implement` again. A resumed Paused run continues at its saved `phase`.
 
@@ -377,18 +541,23 @@ Set `status: Complete` and `phase: complete`, and log the transition. Then print
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Replans used** — the count.
-- **Test commits** — `plan-the-work`'s red-state test commits (short hashes).
+- **Elapsed** — if `start_time` is a real captured timestamp (not `none`), the plain delta between it and this transition's own just-logged timestamp, as a human-readable duration (e.g. "2h 14m") — convert both ISO timestamps to epoch seconds via the host's `date` utility and subtract; this is a duration, not a display timestamp, so no timezone conversion is needed. If `start_time` is `none` (this run began before real start-timestamp capture existed), state "Elapsed: unknown — no real start timestamp was captured for this run" instead of estimating or backfilling one.
+- **Cost** — not shown; no tool surfaces token-usage or billing data to this session. Check your own client's `/usage` command instead.
 
-End with: "Implementation changes are uncommitted — review the working tree and commit when ready."
+End with: "Changes are uncommitted — review the working tree and commit when ready."
 
 ---
 
 ## Rules
 
-- Never commit implementation changes, push, or open a PR. The only commits a run may contain are `plan-the-work`'s own red-state test commits.
-- Never start on the base branch or a detached HEAD.
+- Never commit anything, push, or open a PR.
+- Never start on a detached HEAD. Never start on the base branch unless the user explicitly chose to proceed anyway at the branch guard.
 - Never run `go-deep`, and never start a stage skill through the Skill tool.
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.
 - Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking.
 - Never fix a regression classified as unrelated.
 - Never backfill `make-it-work/<TICKET>-status.html` for a run resumed with the file already missing — it is only ever created the first time a ticket's state file is created (Start → New run or Start → Pending offline refinement).
+- Never fabricate or estimate a timestamp, a cost figure, or a duration computed from a missing real anchor — state plainly when a figure isn't knowable instead.
+- Every duration or delta shown anywhere — per-row audit-log deltas, phase durations, the Session timing note, the completion banner — is computed exactly once, at write time, via an actual shell `date` epoch-seconds subtraction between two real captured timestamps; never by mental arithmetic, and never deferred to client-side JavaScript (client-side JS is used only to convert a single absolute timestamp into the viewer's local display time).
+- Default any open-ended investigation or multi-file/multi-repo exploration this skill performs directly — not already delegated to a stage skill's own instructions — to a fresh subagent dispatch (Agent tool), the same way Review dispatch and per-step Execute already do; work from the returned report rather than accumulating the raw investigation inline. Final context sync's own diff/documentation-impact analysis is the clearest example of this: when the change diff is large or several candidate skills/docs need evaluating, fork that analysis out instead of reading everything in this session.
+- Never let a write to the state file's `## Known regressions` or `## Decided findings` sections wait for the next phase checkpoint to reach the dashboard — regenerate it immediately after that write, wherever it happens (e.g. Gate triage appending an unrelated regression; a review outcome recording a Decided finding), per the Checkpoint rule's own regeneration step.
