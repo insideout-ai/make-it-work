@@ -56,6 +56,9 @@ ticket: <TICKET>
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | review | fix-plan | final-sync | complete
 autonomy: guided               # guided | autonomous
+start_time: none                # ISO 8601 UTC timestamp captured as the first action of Start; never fabricated or backfilled
+execution_mode: none            # none | subagent-driven | inline — set once execute's Mode-selection phase runs
+inline_pause_mode: none         # none | stop-after-each-step | run-straight-through — set only when execution_mode is inline
 spec: none
 spec_hash: none
 plan: none
@@ -65,6 +68,7 @@ execution: not-started         # not-started | running | passed | guardrail | re
 review: not-started            # not-started | clean | fix-required | replan-required | human-decision
 review_cycle: 0                # reviews run for the current plan version (limit 5)
 fix_cycle: 0                   # fix-plan rounds for the current plan version (limit 3)
+fix_plan_round_steps: none      # step count added by the current fix-plan round; reset to none when a new fix-plan round begins
 replans_used: 0                # limit 2 per run
 gate: none                     # none | full-suite | scoped
 pause_reason: none
@@ -93,6 +97,11 @@ None
 
 | # | Time | From | To | Outcome / reason |
 | --- | --- | --- | --- | --- |
+
+## Decisions log
+
+| # | Time | Decision | Choice |
+| --- | --- | --- | --- |
 ````
 
 **Checkpoint rule** — at every transition, rewrite the field block and append one row to the transition log *before* starting the next phase. After every phase that changes files (close-the-gaps, plan, fix-plan, execute, final-sync), re-record `head` and `worktree_fingerprint`. Whenever the user edits the spec or plan by hand at a pause, re-record `spec_hash` / `plan_hash` before the next phase starts. Immediately after rewriting the field block, also regenerate `make-it-work/<TICKET>-status.html` from the fields just written — never let the two fall out of sync (see Progress dashboard below).
