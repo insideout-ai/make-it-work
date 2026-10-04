@@ -30,8 +30,8 @@ like what `plan-the-work` would have produced):
   fixture design.
 - **`execute-full-pass`** — `--autopilot`, a fresh plan against a fixture
   that *does* have a configured test framework (`npm test` → `node test.js`,
-  pre-committed in a red state exactly as `plan-the-work`'s own per-step
-  test-writing sub-phase would leave it). The only case that runs all the
+  pre-committed in a red state, seeded directly by this fixture — independent
+  of how `plan-the-work` itself leaves a red-state test today). The only case that runs all the
   way through Phase 2's real `**Tests:**` field, a real `run-regression full`
   execution (not just a discovery failure), and Phase 5's terminal success
   report.

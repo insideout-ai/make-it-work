@@ -76,7 +76,6 @@ branch: <current branch>
 base: <base branch>
 head: <commit hash>
 worktree_fingerprint: <hash>
-test_commits: none
 execute_report: none           # path of the last saved execute report
 context_updated: none
 ```
@@ -194,7 +193,7 @@ Mention the file's path once, in whichever of Start's two creation points actual
 Work through these checks in order; the first one that applies decides what happens.
 
 1. **Branch guard**:
-   - **`HEAD` is detached** → stop: tell the user to create or switch to a feature branch first. `plan-the-work` commits its tests to the current branch, so a run must never start on a detached HEAD.
+   - **`HEAD` is detached** → stop: tell the user to create or switch to a feature branch first. A run must never start on a detached HEAD — there is no branch for the work this run produces to live on.
    - **Current branch equals `base`** → compute a suggested branch name: `<TICKET>`; if `git rev-parse --verify --quiet refs/heads/<TICKET>` resolves (the name is already taken), try `<TICKET>-2`, `<TICKET>-3`, … incrementing until one does not resolve, and use that instead. Then ask with `AskUserQuestion`: *"You're on `<base>` — proceed anyway, or should I create a feature branch for you?"*, with these options:
      - Create feature branch `<suggested-name>` (recommended).
      - Proceed on `<base>` anyway.
@@ -245,7 +244,6 @@ Offer only these two levels.
 
 Compare the current `branch`, `head`, `worktree_fingerprint`, `spec_hash`, and `plan_hash` against the state file.
 
-- Commits made after the recorded `head` whose messages match `test: step <N> — … (red state)` are `plan-the-work`'s own test commits — they are not outside changes. Any other new commit is.
 - **Nothing changed, and the last log row closed its phase** → show one line (current phase and autonomy level), offer to change the autonomy level, then continue at `phase`.
 - **Interrupted mid-`close-the-gaps`, mid-`review`, or mid-`final-sync`, with nothing else changed** → these phases are safe to repeat: tell the user, then re-run that phase from its start.
 - **Anything changed, or the run was interrupted mid-`plan`, mid-`fix-plan`, or mid-`execute`** (the phase started but has no closing log row) → list exactly what differs, then ask:
@@ -271,7 +269,7 @@ Show the spec path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 ### Plan
 
-Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Pass the user's redo notes too when redoing the phase. From its return report, record `plan`, `plan_hash`, and `test_commits`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table.
+Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Pass the user's redo notes too when redoing the phase. From its return report, record `plan` and `plan_hash`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table.
 
 ### Plan approval (Guided only)
 
@@ -306,7 +304,7 @@ Increment `review_cycle`, then dispatch the review as described in Review dispat
 
 ### Fix plan
 
-Follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests). Afterwards record `plan_hash` and `test_commits`, and re-record `head` and `worktree_fingerprint`. Increment `fix_cycle` only if steps were added — a round that adds none (every finding was accepted as-is) does not count against the limit. Then follow the Transition table: added steps → Execute (it resumes at the first added step); no steps → Review.
+Follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests). Afterwards record `plan_hash`, and re-record `head` and `worktree_fingerprint`. Increment `fix_cycle` only if steps were added — a round that adds none (every finding was accepted as-is) does not count against the limit. Then follow the Transition table: added steps → Execute (it resumes at the first added step); no steps → Review.
 
 ### Final context sync
 
@@ -398,15 +396,14 @@ Set `status: Complete` and `phase: complete`, and log the transition. Then print
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Replans used** — the count.
-- **Test commits** — `plan-the-work`'s red-state test commits (short hashes).
 
-End with: "Implementation changes are uncommitted — review the working tree and commit when ready."
+End with: "Changes are uncommitted — review the working tree and commit when ready."
 
 ---
 
 ## Rules
 
-- Never commit implementation changes, push, or open a PR. The only commits a run may contain are `plan-the-work`'s own red-state test commits.
+- Never commit anything, push, or open a PR.
 - Never start on a detached HEAD. Never start on the base branch unless the user explicitly chose to proceed anyway at the branch guard.
 - Never run `go-deep`, and never start a stage skill through the Skill tool.
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.

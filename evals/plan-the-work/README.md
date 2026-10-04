@@ -17,7 +17,7 @@ Five cases exercising `skills/plan-the-work/SKILL.md`'s `--autopilot` flag:
 - **`with-tests`** — autopilot, with a real configured test framework (Node's built-in
   `node --test`) in the fixture. Exercises Step 5's per-step test-writing sub-phase: running the
   regression baseline, writing a progression test, confirming it fails for the right reason, and
-  committing it with `git commit -m "test: step <N> — ... (red state)"`.
+  leaving it uncommitted in the working tree.
 
 ## Why `negative-control` alone doesn't prove the flag matters (and why `plan-collision-negative-control` does)
 
@@ -44,8 +44,8 @@ bash evals/plan-the-work/run-all.sh
 ```
 
 `negative-control`, `plan-collision-negative-control`, `happy-path`, and `plan-collision` run fully
-automatically via `claude plugin eval`. `with-tests` needs real `Bash` (git commit, running the
-fixture's test suite) and currently cannot run through `claude plugin eval` on this machine (see
+automatically via `claude plugin eval`. `with-tests` needs real `Bash` (running the fixture's test
+suite) and currently cannot run through `claude plugin eval` on this machine (see
 below) — `run-all.sh` runs it manually via `--dangerously-skip-permissions`, the same way
 `evals/go-deep/run-all.sh` runs its two manual cases. Run `run-all.sh` yourself (via `!` in a Claude
 Code session, or directly in a shell/CI) — not something to hand to an agent, for the same reason
@@ -56,7 +56,7 @@ can't invoke or grant itself `--dangerously-skip-permissions`.
 
 `plan-the-work` writes nothing under `.claude/` of its own accord — its real output is
 `make-it-work/<TICKET>-plan.md` (plus, in Step 5's test-writing sub-phase when a test framework is
-configured, test files and a git commit). The **only** thing this rollout adds under `.claude/` is
+configured, test files left uncommitted). The **only** thing this rollout adds under `.claude/` is
 the autopilot decision log itself, `.claude/plan-the-work-autopilot-log.jsonl` (per the shared
 spec's §1 convention) — so `plan-the-work` falls into the spec's §2 middle category ("one specific
 blocked path among otherwise-unblocked output"), the same category `define-test-strategy` is in
@@ -99,8 +99,8 @@ without the manual path.
 ## Why `with-tests` needs the manual path — and it's a *different* reason than `go-deep`'s
 
 This is **not** the `.claude/`-protection story above. Step 5's test-writing sub-phase, when a test
-framework is configured, runs the fixture's actual test command and commits via real `git` — both
-need `Bash`. Granting `Bash` to a `claude plugin eval` case hits the exact, separate, known blocker
+framework is configured, runs the fixture's actual test command — this needs `Bash`. Granting
+`Bash` to a `claude plugin eval` case hits the exact, separate, known blocker
 the spec's §1.5 flags from the `go-deep` work: on this machine, `claude plugin eval` refuses to run
 *any* `Bash`-granting case at all, citing a symlink inside the local Docker credential store
 (`~/.docker`). Confirmed directly (not assumed) before building this case's fixture — a minimal
@@ -135,8 +135,8 @@ including the no-autopilot cases — onto the manual path. Verified directly acr
 plain-eval cases (no `Bash` granted to any of them): the model used `Glob`/`Read` against its own
 already-known cwd instead of literally invoking `pwd`, correctly identified the single-repo layout
 every time, and proceeded normally from there. So none of the four plain-eval cases actually need
-`Bash` in practice on this model/harness combination — only `with-tests`' real test-execution +
-git-commit step does.
+`Bash` in practice on this model/harness combination — only `with-tests`' real test-execution step
+does.
 
 ## Case-by-case notes
 
@@ -263,8 +263,8 @@ current, unmodified `createTask` — confirming this fixture's progression-red p
 just assumed.
 
 Graders (checked by hand against a manual run — not run through `claude plugin eval`, see above):
-a trace regex for the exact `test: step <N> — ... (red state)` commit-message format Step 5's
-sub-phase point 7 requires; a regex on `src/tasks/createTask.test.js` confirming a new
+a check confirming no `git commit` was ever run (point 7 now leaves the red-state test
+uncommitted); a regex on `src/tasks/createTask.test.js` confirming a new
 whitespace-related test was actually added; an `llm` grader on the plan's `**Tests:**` field for
 that step, confirming it names the real file/command and a correctly-reasoned progression-red state
 (this is a **Modify** row — `createTask` already exists and runs — so no stub signature should be
@@ -288,8 +288,9 @@ RUN_DIR=$(mktemp -d)
 ```
 
 Then check: `make-it-work/DEMO-400-plan.md`'s `**Tests:**` field for the step that changes
-`createTask`; `git log` in `$RUN_DIR` for the `test: step ... (red state)` commit and that it only
-touches the test file (no stub — this is a Modify row); that `npm test` run in `$RUN_DIR` **fails**
+`createTask`; `git status` in `$RUN_DIR` showing the new test file as an uncommitted working-tree
+change (no stub — this is a Modify row), and `git log` showing no new commit was made for it; that
+`npm test` run in `$RUN_DIR` **fails**
 on the new whitespace-title test by design at that point (2 original tests passing, the new one
 red) — it should only turn fully green once a later `execute` step actually implements the trimming
 behavior, which this plan does not do; and `$RUN_DIR/.claude/plan-the-work-autopilot-log.jsonl`

@@ -8,7 +8,7 @@
 # which is always under the protected `.claude/` path — see README.md for how
 # to check it by hand.
 #
-# with-tests needs real Bash (git commit, running the fixture's test suite) and
+# with-tests needs real Bash (running the fixture's test suite) and
 # therefore hits a separate, unrelated, known blocker on this machine: granting
 # Bash to a `claude plugin eval` case fails here because of a symlink inside
 # this machine's Docker credential store (`~/.docker`) — see the spec's §1.5 and
@@ -63,7 +63,7 @@ fi
 echo "$RUN_DIR" > /tmp/plan-the-work-with-tests-rundir.txt
 echo "with-tests run dir:   $RUN_DIR"
 echo "with-tests transcript: $TRANSCRIPT"
-echo "Check its files, git log (test: step ... (red state) commit), and"
+echo "Check its files, git status (test file uncommitted, no red-state commit), and"
 echo ".claude/plan-the-work-autopilot-log.jsonl against evals/plan-the-work/with-tests/graders/*.md"
 
 echo

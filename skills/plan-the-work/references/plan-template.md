@@ -84,7 +84,7 @@ A smaller, independently-shippable first phase that lowers residual risk (e.g. a
 
 ## Pre-flight
 
-The "Working tree clean" check below applies once, before planning starts — the per-step test commits the test-writing sub-phase produces as planning proceeds (see the `### Writing and confirming each step's tests` subsection above) are an expected, intentional deviation from a clean tree, not a Pre-flight violation.
+The "Working tree clean" check below applies once, before planning starts — the uncommitted test files (and any New-row stub signatures) the test-writing sub-phase produces as planning proceeds (see the `### Writing and confirming each step's tests` subsection above) are an expected, intentional deviation from a clean tree, not a Pre-flight violation.
 
 Stop and flag if any fail before writing code.
 
