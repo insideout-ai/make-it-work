@@ -1,0 +1,23 @@
+skills/close-the-gaps/SKILL.md
+  s_fbe3bc02a9a609::t_ce1a42f9043321 105-106
+skills/implement/SKILL.md
+  s_fbe3bc02a9a609::t_eefde86e59afe5 551-552
+skills/plan-the-work/SKILL.md
+  s_fbe3bc02a9a609::t_bae29ed18a72a0 154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "25156146546b7af654d91a848c974e284aaa0dc2",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
