@@ -305,3 +305,12 @@ verified by directly running `node test.js` against it (fails as expected:
   `claude plugin eval` at the same time. If a `claude plugin eval` run shows
   an odd sandbox/lock failure unrelated to `execute`'s own logic, consider
   that contention before treating it as a defect in this suite.
+- Doesn't cover the fix-plan Sequential-vs-Parallel dispatch choice or its
+  batch-dispatch mechanics (Phase 2's Working-order exception, the
+  orchestrator-owned batch Progress write, or Phase 3's `Batch siblings`
+  field) — this path is reachable only through `implement`'s own Fix-plan
+  orchestration, never through a standalone `execute` invocation or
+  `--autopilot` (which never dispatches a fix-plan round at all), so no case
+  in this suite can exercise it. `implement` itself has no automated eval
+  suite either. Verified manually instead, via hand-traced scenarios
+  recorded in that item's own plan.
