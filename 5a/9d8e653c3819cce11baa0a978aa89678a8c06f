@@ -1,0 +1,21 @@
+CHANGELOG.md
+  s_fbe3bc02a9a609::t_131f78250677cb 9-28
+.claude-plugin/plugin.json
+  s_fbe3bc02a9a609::t_89d0255b2b3ceb 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "5a9d8e653c3819cce11baa0a978aa89678a8c06f",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
