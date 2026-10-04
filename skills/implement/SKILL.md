@@ -193,7 +193,19 @@ Mention the file's path once, in whichever of Start's two creation points actual
 
 Work through these checks in order; the first one that applies decides what happens.
 
-1. **Branch guard** — if the current branch equals `base`, or `HEAD` is detached, stop: tell the user to create or switch to a feature branch first. `plan-the-work` commits its tests to the current branch, so a run must never start on the base branch.
+1. **Branch guard**:
+   - **`HEAD` is detached** → stop: tell the user to create or switch to a feature branch first. `plan-the-work` commits its tests to the current branch, so a run must never start on a detached HEAD.
+   - **Current branch equals `base`** → compute a suggested branch name: `<TICKET>`; if `git rev-parse --verify --quiet refs/heads/<TICKET>` resolves (the name is already taken), try `<TICKET>-2`, `<TICKET>-3`, … incrementing until one does not resolve, and use that instead. Then ask with `AskUserQuestion`: *"You're on `<base>` — proceed anyway, or should I create a feature branch for you?"*, with these options:
+     - Create feature branch `<suggested-name>` (recommended).
+     - Proceed on `<base>` anyway.
+     - Stop.
+
+     If the user picks **Create feature branch**, confirm the exact name before creating anything: tell them "I'll create and switch to `<suggested-name>` — reply to confirm, or give a different branch name," and wait for their reply. Use whatever name they confirm or supply as `<final-name>`, then run `git switch -c <final-name>`. If that command fails (e.g. the name turned out to be taken after all), show the error and ask again for a different name — never silently retry with a guessed alternative. Once the branch is created, continue to the next Start check.
+
+     If the user picks **Proceed on `<base>` anyway**, continue to the next Start check without creating a branch.
+
+     If the user picks **Stop**, stop here, exactly as today's hard stop did.
+   - **Neither condition applies** → continue to the next Start check.
 2. **Completed run** — a state file exists with `status: Complete` → ask whether to start a new run (the state file is overwritten) or stop.
 3. **Run in progress** — a state file exists with any other status → go to **Resume**.
 4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
@@ -395,7 +407,7 @@ End with: "Implementation changes are uncommitted — review the working tree an
 ## Rules
 
 - Never commit implementation changes, push, or open a PR. The only commits a run may contain are `plan-the-work`'s own red-state test commits.
-- Never start on the base branch or a detached HEAD.
+- Never start on a detached HEAD. Never start on the base branch unless the user explicitly chose to proceed anyway at the branch guard.
 - Never run `go-deep`, and never start a stage skill through the Skill tool.
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.
 - Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking.
