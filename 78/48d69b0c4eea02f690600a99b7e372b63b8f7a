@@ -1,0 +1,54 @@
+skills/implement/SKILL.md
+  s_fbe3bc02a9a609::t_cd4ce986cb0455 272
+  s_fbe3bc02a9a609::t_748de66afdfc36 196
+  s_fbe3bc02a9a609::t_2a52f759c15beb 400,406
+  s_fbe3bc02a9a609::t_2f82b42bcdfc68 307
+README.md
+  s_fbe3bc02a9a609::t_8cd332a6066dec 146
+  s_fbe3bc02a9a609::t_9edd6e72ab9e23 183
+  s_fbe3bc02a9a609::t_31e57da61cff4c 291
+  s_fbe3bc02a9a609::t_aeceaba3618d8c 297
+  s_fbe3bc02a9a609::t_cfa1b41a2c5d6f 293
+  s_fbe3bc02a9a609::t_b42b63a5251e18 100
+evals/plan-the-work/run-all.sh
+  s_fbe3bc02a9a609::t_f05519287239ea 11
+  s_fbe3bc02a9a609::t_c26428e353018f 66
+evals/plan-the-work/README.md
+  s_fbe3bc02a9a609::t_985bad0c233c4a 138-139
+  s_fbe3bc02a9a609::t_b2007254da2ff4 20
+  s_fbe3bc02a9a609::t_a8f1f6886b1e3e 59
+  s_fbe3bc02a9a609::t_70f61789693ae6 266-267
+  s_fbe3bc02a9a609::t_234141e40b4981 291-293
+  s_fbe3bc02a9a609::t_70c24af7cb6695 47-48
+  s_fbe3bc02a9a609::t_2bfbae768c1f35 102-103
+evals/execute/README.md
+  s_fbe3bc02a9a609::t_1c94b64fa1672e 33-34
+skills/plan-the-work/SKILL.md
+  s_fbe3bc02a9a609::t_f6d4a61228b6f0 359
+  s_fbe3bc02a9a609::t_bab99489358980 252
+  s_fbe3bc02a9a609::t_a18f407e89fda9 346
+  s_fbe3bc02a9a609::t_e73bd52676f9a9 250
+  s_fbe3bc02a9a609::t_c781340e79905b 352
+  s_fbe3bc02a9a609::t_a3b550af13b3b7 367
+  s_fbe3bc02a9a609::t_5e858f56b86084 361
+skills/plan-the-work/references/plan-template.md
+  s_fbe3bc02a9a609::t_48d6bd6eb9d46d 87
+evals/plan-the-work/with-tests/graders/test-commit-made.md
+  s_fbe3bc02a9a609::t_4da2601a180986 2-6,10-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7848d69b0c4eea02f690600a99b7e372b63b8f7a",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
