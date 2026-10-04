@@ -12,22 +12,29 @@ like what `plan-the-work` would have produced):
 - **`execute-stop-at-gate`** — `--autopilot`, fresh plan (`Mode: Not yet
   chosen`, `Progress: Step 0 of 2 complete`). Exercises: the Mode
   `AskUserQuestion`'s `(recommended)`-label resolution to Subagent-Driven; a
-  Subagent-Driven dispatch per step with the per-step "reviewed between
-  steps" checkpoint auto-confirmed (relay-then-continue, no turn-ending
-  pause); the no-test-framework "manual Test Plan walkthrough" step; and
-  Phase 4's completion gate, which calls `run-regression full` inline — this
-  fixture repo deliberately has no discoverable full-suite command, so the
-  run ends in Phase 4's FAIL-equivalent stop (`run-regression`'s own
-  "Could not find a full-suite test command..." message), never reaching
-  Phase 5.
+  Subagent-Driven dispatch per step, relaying each step's report and
+  continuing immediately (the same behavior this skill now always uses for
+  Subagent-Driven mode, not an autopilot-specific resolution), confirmed via
+  this case's own `subagent-dispatch-used.md` grader; the no-test-framework
+  "manual Test Plan walkthrough" step; and Phase 4's completion gate, which
+  calls `run-regression full` inline — this fixture repo deliberately has no
+  discoverable full-suite command, so the run ends in Phase 4's
+  FAIL-equivalent stop (`run-regression`'s own "Could not find a full-suite
+  test command..." message), never reaching Phase 5.
 - **`execute-resume-inline`** — `--autopilot`, a plan already recorded as
   `Mode: Inline`, `Progress: Step 1 of 2 complete` (as if a prior run already
   did Step 1). Exercises: the "Mode already recorded" skip (no Mode question
   asked at all, nothing logged for it); Inline mode's per-step dispatch
-  (no `Agent` tool calls, no per-step checkpoint — Inline "runs straight
-  through... without pausing between them for review"); and the same
+  (no `Agent` tool calls, no per-step checkpoint — this fixture's `Mode:
+  Inline` plan backfills to "Run straight through," which never pauses
+  between steps for review); and the same
   Phase 4 regression-gate stop as above, reusing the same no-framework
-  fixture design.
+  fixture design. This fixture's `Mode: Inline` plan also predates the
+  `**Inline pause mode:**` field, so this run also confirms the new field
+  gets backfilled to the Recommended default (`Run straight through`) under
+  `--autopilot` (site `inline-pause-mode-backfill`), with no
+  `AskUserQuestion` call, graded by the two new graders in that case's
+  directory.
 - **`execute-full-pass`** — `--autopilot`, a fresh plan against a fixture
   that *does* have a configured test framework (`npm test` → `node test.js`,
   pre-committed in a red state, seeded directly by this fixture — independent
@@ -162,8 +169,11 @@ inferred from grader output alone):
   walkthrough) was performed directly in-session, Progress reached `Step 2 of
   2 complete`, and the same `run-regression`-discovers-nothing stop fired at
   Phase 4. The model explicitly reasoned that the decision log would have had
-  zero lines this run (nothing was actually decided), which matches this
-  skill's own documented convention.
+  zero lines this run (nothing was actually decided), which matched this
+  skill's own documented convention **at the time of this run** — this
+  fixture predates the `**Inline pause mode:**` field; under the current
+  skill, this same fixture now resolves one `inline-pause-mode-backfill`
+  site instead (see the case description above and its two new graders).
 - **`execute-negative-control`:** `Write`, `Edit`, `Agent`, and `Skill` were
   all granted (not withheld) specifically so a "stop" here would mean the
   skill actually chose to stop, not merely that it lacked the tools to do
@@ -206,33 +216,65 @@ verified by directly running `node test.js` against it (fails as expected:
   for any of them (you cannot guess which of several unrelated repos is
   correct, or guess a ticket key that was never given), so they stay stops
   under both modes, the same way they already were interactively.
-- **The per-step "reviewed between steps" checkpoint under Subagent-Driven
-  mode is resolved as "relay the report, then continue in the same turn"**,
-  not as a traditional pause-and-wait checkpoint — because in an unattended
-  or headless invocation, ending the turn to wait for a reply would hang the
-  run forever with nobody to answer. This is called out explicitly in the
-  resolution table rather than left to be inferred from the generic
-  "checkpoint → auto-confirm" rule.
+- The per-step 'reviewed between steps' review under Subagent-Driven mode
+  was changed from a pause-and-wait checkpoint to 'relay the report, then
+  continue in the same turn,' for both interactive and `--autopilot` use —
+  not just autopilot. It is no longer listed in the Autopilot resolution
+  table at all, since there is no longer an autopilot-specific resolution to
+  document: this behavior is now unconditional.
+- The new Inline-pause-mode legacy-backfill (`inline-pause-mode-backfill`) —
+  a plan already recording `Mode: Inline` from an earlier interactive run,
+  resumed later under `--autopilot` with the new `**Inline pause mode:**`
+  line still missing — auto-resolves to the Recommended default ('Run
+  straight through') rather than stopping, the same `(recommended)`-label
+  policy the Mode question itself already uses. A *fresh* Inline choice's
+  own follow-up is never reachable under `--autopilot` at all, since Mode
+  never freshly resolves to Inline there.
+- A second, independent new site (`inline-step-pause-override`) handles the
+  case where a plan already recorded both `Mode: Inline` *and* `Inline pause
+  mode: Stop after each step` from an earlier interactive run: under
+  `--autopilot`, that recorded pause preference is always overridden,
+  per-step, the same way Subagent-Driven's own pause is — an
+  interactively-recorded request for closer review must never hang an
+  unattended run.
 
 ## Known gaps in this suite (by design, not oversight)
 
-- **The decision log's per-step `step-review` lines (one appended per step
-  under Subagent-Driven mode) cannot be verified via plain `claude plugin
-  eval`.** Confirmed empirically: in `execute-stop-at-gate`'s real run, the
-  very first attempted `Write` to `.claude/execute-autopilot-log.jsonl` (the
-  `mode-choice` line) was denied by the sandbox, and no further attempt to
-  write/append that file appears anywhere later in the trace — only the first
-  site's attempted payload is ever observable in this sandbox (graded by
-  `execute-stop-at-gate/graders/attempted-log-payload.md`, which checks that
-  one payload's content). **The cause is undetermined** — this run doesn't
-  distinguish "the model judged a second attempt futile after the first
-  refusal" from "the per-step append instruction simply wasn't followed" —
-  and SKILL.md's instruction to append one `step-review` line per step is
-  unverified by this sandbox either way. The full `M`-steps-worth of
-  `step-review` lines can only be verified where the write genuinely
-  succeeds — `execute-full-pass`'s manual run, via
-  `graders/decision-log-content.md`'s item 5 (now a required check, not a
-  conditional one).
+- **Only one site's attempted decision-log payload is ever observable via
+  plain `claude plugin eval` in this sandbox, not every site a run
+  resolves.** `.claude/` is a protected path in this sandbox (see the
+  caveat above), so only the very first attempted `Write` to
+  `.claude/execute-autopilot-log.jsonl` in a run is ever actually attempted
+  and observable. Confirmed empirically: in `execute-stop-at-gate`'s real
+  run, the very first attempted `Write` (the `mode-choice` line) was denied
+  by the sandbox, and no further attempt to write/append that file appears
+  anywhere later in the trace — only the first site's attempted payload is
+  ever observable in this sandbox (graded by
+  `execute-stop-at-gate/graders/attempted-log-payload.md`, and, for
+  `execute-resume-inline`'s own single resolved site, by the new
+  `attempted-log-payload-backfill.md`, which depends on this same
+  reasoning). **The cause is undetermined** — a run doesn't distinguish "the
+  model judged a later attempt futile after the first refusal" from "a
+  later append instruction simply wasn't followed." So a site that would log
+  more than one line over the course of a run (e.g. `inline-step-pause-override`,
+  once per step of an `Inline` + "Stop after each step" plan run under
+  `--autopilot`) only has its first logged line's attempted payload
+  verifiable this way; any later lines are unverified by this sandbox either
+  way, and can only be confirmed where the write genuinely succeeds —
+  `execute-full-pass`'s manual run, via `graders/decision-log-content.md`.
+- Doesn't cover the fresh-Inline-choice follow-up question (stop after each
+  step vs. run straight through) interactively — this suite is specifically
+  an `--autopilot` smoke test, and that follow-up is only reachable from an
+  interactive fresh Inline choice, which autopilot itself never makes (Mode
+  always auto-resolves to Subagent-Driven when unset). Only the two
+  autopilot-reachable sites involving this field — the Phase 0 legacy
+  backfill and the Phase 2 per-step override — are covered, both by
+  `execute-resume-inline` (whose fixture would need `Inline pause mode: Stop
+  after each step` already recorded, in addition to `Mode: Inline`, to
+  exercise the per-step override specifically; today's fixture only
+  exercises the Phase 0 backfill, since no pause-mode line is recorded at
+  all — covering the per-step override itself is left for a future fixture
+  addition, not required by this item).
 - Doesn't cover Phase 1's guardrail or 5-attempt retry limit — these are
   correctness halts, not autopilot-resolved interactive points (autopilot
   does not change their behavior at all; see `SKILL.md`'s Autopilot Mode
