@@ -1,0 +1,23 @@
+skills/implement/SKILL.md
+  s_fbe3bc02a9a609::t_4687d5ef001140 106
+  s_fbe3bc02a9a609::t_6b1110f98d7892 415
+  s_fbe3bc02a9a609::t_97bf15e8374871 399-400
+  s_fbe3bc02a9a609::t_ada54521583e2a 210
+  s_fbe3bc02a9a609::t_9465bdc108fa76 211
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bc36ee9b2c113b87dc1cc8896cad699a14809ebb",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
