@@ -129,60 +129,155 @@ Write it with exactly this template, filling in every bracketed placeholder from
 <meta charset="utf-8">
 <title><TICKET> — implement status</title>
 <style>
-  body { font-family: -apple-system, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
-  h1 { font-size: 1.3rem; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, sans-serif; width: 100%; margin: 0; padding: 1.5rem 2rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; margin: 0; }
   .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 1rem; font-size: 0.85rem; background: #eee; margin-right: 0.3rem; }
+  .pill[title] { cursor: help; border-bottom: 1px dotted #999; }
   table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
   th, td { text-align: left; border-bottom: 1px solid #ddd; padding: 0.3rem 0.5rem; font-size: 0.9rem; }
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
+
+  .header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .header-row img { height: 56px; width: auto; flex-shrink: 0; }
+  .header-row .autonomy-pill { margin-left: auto; flex-shrink: 0; }
+
+  .phase-timeline { display: flex; align-items: flex-start; width: 100%; margin: 1.5rem 0 2rem; overflow-x: auto; overflow-y: visible; padding-top: 1rem; padding-bottom: 0.5rem; }
+  .phase-step { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 90px; position: relative; }
+  .phase-step .line { position: absolute; top: 14px; left: -50%; width: 100%; height: 3px; background: #d0d0d0; z-index: 0; }
+  .phase-step:first-child .line { display: none; }
+  .phase-step .line.line-green { background: #4caf50; }
+  .phase-dot { width: 28px; height: 28px; border-radius: 50%; z-index: 1; border: 3px solid #d0d0d0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: default; }
+  .phase-dot.passed { background: #4caf50; border-color: #4caf50; color: #fff; }
+  .phase-dot.failed { background: #e53935; border-color: #e53935; color: #fff; }
+  .phase-dot.current { width: 56px; height: 56px; margin-top: -14px; background: #fff; border-color: #2196f3; box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.25); position: relative; }
+  .phase-dot.current.spinning::after {
+    content: ""; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
+    border-radius: 50%; border: 3px solid transparent; border-top-color: #2196f3; border-right-color: #2196f3;
+    animation: phase-spin 0.9s linear infinite;
+  }
+  @keyframes phase-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .phase-dot.current.spinning::after { animation: none; }
+  }
+  .phase-label { margin-top: 0.4rem; font-size: 0.75rem; text-align: center; color: #555; max-width: 100px; }
+  .phase-label.current-label { font-weight: 700; color: #1a1a1a; }
+  .phase-mode { margin-top: 0.1rem; font-size: 0.62rem; color: #777; text-align: center; }
+  .phase-status { margin-top: 0.15rem; font-size: 0.68rem; font-weight: 600; text-align: center; }
+  .phase-status.status-in-progress { color: #2196f3; }
+  .phase-status.status-paused, .phase-status.status-stopped { color: #e65100; }
+  .phase-status.status-complete { color: #2e7d32; }
+
+  .artifact-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; max-width: 900px; }
+  .artifact-tile { background: #f7f7f8; border: 1px solid #e2e2e4; border-radius: 0.4rem; padding: 0.6rem 0.75rem; min-width: 0; }
+  .artifact-tile .label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: 0.03em; }
+  .artifact-tile a { font-size: 0.85rem; word-break: break-all; }
+  .artifact-tile .none { font-size: 0.9rem; color: #999; }
+
+  @media (max-width: 900px) {
+    .phase-timeline { overflow-x: scroll; }
+    .phase-step { min-width: 80px; }
+    .artifact-grid { grid-template-columns: 1fr; max-width: 100%; }
+  }
 </style>
 </head>
 <body>
-<h1><TICKET> — implement status</h1>
-<p><span class="pill">Phase: <PHASE></span><span class="pill">Status: <STATUS></span><span class="pill">Autonomy: <AUTONOMY></span></p>
+<div class="header-row">
+  <a href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
+    <img src="data:image/png;base64,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" alt="InsideOut AI">
+  </a>
+  <h1>Make-It-Work: Implementation Workflow: <em><TICKET></em></h1>
+  <span class="pill autonomy-pill" title="<AUTONOMY_TOOLTIP>">Autonomy: <AUTONOMY></span>
+</div>
+
+<div class="phase-timeline">
+<PHASE_TIMELINE_STEPS>
+</div>
 
 <!-- only when status is Paused or Stopped -->
 <p class="next-action"><strong>Waiting on you:</strong> <PAUSE_REASON></p>
 
 <!-- only when status is Complete -->
-<p class="complete"><strong>Run complete.</strong></p>
-
-<h2>Cycle counters</h2>
-<p>Review cycles: <REVIEW_CYCLE> / 4 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
+<p class="complete"><strong>Run complete.</strong> Changes are uncommitted — review the working tree and commit when ready.</p>
 
 <h2>Artifacts</h2>
-<ul>
-  <li>Spec: <SPEC_LINK_OR_NONE></li>
-  <li>Plan: <PLAN_LINK_OR_NONE></li>
-  <li>Execute: <EXECUTE_REPORT_LINK_OR_NONE></li>
-  <li>Review: <REVIEW_LINK_OR_NONE></li>
-</ul>
-
-<h2>Known regressions</h2>
-<KNOWN_REGRESSIONS_LIST_OR_NONE>
-
-<h2>Decided findings</h2>
-<DECIDED_FINDINGS_LIST_OR_NONE>
+<div class="artifact-grid">
+  <div class="artifact-tile"><div class="label">Spec</div><SPEC_LINK_OR_NONE></div>
+  <div class="artifact-tile"><div class="label">Plan</div><PLAN_LINK_OR_NONE></div>
+  <div class="artifact-tile"><div class="label">Execute</div><EXECUTE_REPORT_LINK_OR_NONE></div>
+  <div class="artifact-tile"><div class="label">Review</div><REVIEW_LINK_OR_NONE></div>
+</div>
 
 <h2>Transition log</h2>
 <table>
 <tr><th>#</th><th>Time</th><th>From</th><th>To</th><th>Outcome / reason</th></tr>
 <TRANSITION_LOG_ROWS>
 </table>
+
+<h2>Cycle counters</h2>
+<p>Review cycles: <REVIEW_CYCLE> / 4 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
+
+<h2>Known regressions</h2>
+<KNOWN_REGRESSIONS_LIST_OR_NONE>
+
+<h2>Decided findings</h2>
+<DECIDED_FINDINGS_LIST_OR_NONE>
 </body>
 </html>
 ```
 
 Filling in the bracketed placeholders:
 
-- `<TICKET>`, `<PHASE>`, `<STATUS>`, `<AUTONOMY>`, `<REVIEW_CYCLE>`, `<FIX_CYCLE>`, `<REPLANS_USED>` — copied verbatim from the state file's field block.
-- The "Waiting on you" paragraph is included only when `status` is `Paused` or `Stopped`, using the state file's own `pause_reason` field verbatim — the same explanation already given to the user in chat at that stop, per the Stop definition elsewhere in this file. Omit this paragraph entirely for any other status.
+- `<TICKET>`, `<AUTONOMY>`, `<REVIEW_CYCLE>`, `<FIX_CYCLE>`, `<REPLANS_USED>` — copied verbatim from the state file's field block.
+- `<LOGO_BASE64>` — a fixed constant, never derived from the state file: the base64 payload of the InsideOut AI logo (a 112×112 PNG), the same string in every ticket's dashboard.
+- `<AUTONOMY_TOOLTIP>` — a fixed constant: `guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question and still stops at loop limits and at completion.`
+- The "Waiting on you" paragraph (`<PAUSE_REASON>`) is included only when `status` is `Paused` or `Stopped`, using the state file's own `pause_reason` field verbatim. Omit this paragraph entirely for any other status.
 - The "Run complete" banner is included only when `status` is `Complete`. Omit it for any other status.
-- `<SPEC_LINK_OR_NONE>` / `<PLAN_LINK_OR_NONE>` / `<EXECUTE_REPORT_LINK_OR_NONE>` — an `<a href="...">` link to the file named in the state file's `spec` / `plan` / `execute_report` field, with that field's own `make-it-work/` prefix stripped from the `href` — the dashboard and these artifacts all live in the same `make-it-work/` directory, so the link only needs the bare filename (e.g. `href="<TICKET>-spec.md"`); the link text may keep the field's full value. Print the literal text `Not yet created` for any of these three whose state field still reads `none`.
-- `<REVIEW_LINK_OR_NONE>` — once the state file's `review` field reads anything other than `not-started`, a link to `<TICKET>-review.md` (bare filename, same stripping rule as above); while `review` still reads `not-started`, print `Not yet created` instead. This reflects the current plan version's review status only — if a replan resets `review` back to `not-started`, show `Not yet created` again even if an older review file from a prior plan version is still on disk.
+- `<SPEC_LINK_OR_NONE>` / `<PLAN_LINK_OR_NONE>` / `<EXECUTE_REPORT_LINK_OR_NONE>` — an `<a href="...">` link to the file named in the state file's `spec` / `plan` / `execute_report` field, with that field's own `make-it-work/` prefix stripped from the `href` (e.g. `href="<TICKET>-spec.md"`); the link text may keep the field's full value. Print `<span class="none">Not yet created</span>` for any of these three whose state field still reads `none`.
+- `<REVIEW_LINK_OR_NONE>` — once the state file's `review` field reads anything other than `not-started`, a link to `<TICKET>-review.md` (bare filename, same stripping rule as above); while `review` still reads `not-started`, print `<span class="none">Not yet created</span>` instead. If a replan resets `review` back to `not-started`, show `<span class="none">Not yet created</span>` again even if an older review file from a prior plan version is still on disk.
 - `<KNOWN_REGRESSIONS_LIST_OR_NONE>` / `<DECIDED_FINDINGS_LIST_OR_NONE>` — an `<ul>` with one `<li>` per entry under the state file's `## Known regressions` / `## Decided findings` sections, or the literal text `<p>None</p>` when that section reads `None`.
 - `<TRANSITION_LOG_ROWS>` — one `<tr>` per row of the state file's own `## Transition log` table, in the same order, each cell copied verbatim.
+
+**`<PHASE_TIMELINE_STEPS>`** — a sequence of `<div class="phase-step">...</div>` blocks. The timeline always starts from the 8 canonical phases, in this fixed order, each initially `not-reached` (grey) — **except** `context-check`, which starts `passed` for a dashboard created via Start's "New run" path (Context Check already succeeded by the time any dashboard exists on that path — the run would have stopped before creating one otherwise), and starts `not-reached` for one created via "Pending offline refinement" (that path never runs Context Check before creating the state file and dashboard).
+
+Baseline order and slot identifiers: `context-check`, `close-the-gaps`, `plan`, `execute`, `review`, `fix-plan`, `final-sync`, `complete`.
+
+Then walk the state file's own `## Transition log` table **top to bottom** (today's table is chronological oldest-first), maintaining a note of which baseline slots have been activated at least once, and which dot is currently "active" (starts as whichever slot is `passed`/not-reached per the rule above — there is no active dot yet at the very start):
+
+1. **Approval-gate rows are never dots.** A row whose `To` is `spec-approval` or `plan-approval` never starts anything — skip it. A row whose **`From`** is `spec-approval` or `plan-approval` (the row that actually records the approve/redo/stop decision) sets the **currently active dot's** `<div class="phase-mode">...</div>` annotation to that row's `Outcome / reason` text (e.g. "Approved as-is", "Redo requested") — this is the dot for `close-the-gaps` or `plan` respectively, which is still active at that point. A later approval decision for the same dot overwrites the earlier annotation; it is never appended.
+2. **A row whose `To` is one of the 8 canonical identifiers, and differs from the currently active dot's own phase:**
+   - **Fix-plan resumption (no new dot):** if `To` is `execute` and the currently active dot's phase is `fix-plan`, do not activate or insert anything — this is a fix-plan round resuming execution of its own added steps (per the Transition table's `fix-plan → execute` routing). The `fix-plan` dot simply stays active; this row's own `Outcome / reason` is history under that same dot (item 16 will later surface it as a step-progress annotation — this plan does not render one yet).
+   - **First-ever visit to this phase:** if this canonical phase has never been activated before, activate its baseline slot *in place* (grey → real state, at its fixed position in the 8-slot order) and make it the active dot.
+   - **Repeat visit (a real loop):** if this canonical phase was already activated earlier in the walk (e.g. `review` a second time after a fix-plan round, or `plan` again after a replan), insert a brand-new `phase-step` for it immediately after the **currently active dot** (not necessarily the last baseline slot — e.g. inserting right after `fix-plan`, well before the still-grey `final-sync`/`complete` slots), growing the timeline past 8 slots, and make the new dot active. Do not reuse or recolor the earlier dot for this phase — it keeps its own earlier annotation/state exactly as it was.
+   - **Same phase as the active dot:** no new dot, no insertion — this row is just more history under the currently active dot (e.g. several `execute → execute` step-decision rows).
+3. **Render every slot and every inserted dot, in final sequence order** (baseline slots in their fixed positions, with any inserted repeat-visit dots spliced in at the point they were inserted):
+   - A connecting `<div class="line"></div>` immediately before the dot — omitted for the very first `phase-step`, given class `line-green` when the dot it precedes is `passed` or `current`.
+   - `<div class="phase-dot <dot-state>" title="<internal-id>: <tooltip>"><symbol></div>` — `<internal-id>`/`<tooltip>` from the mapping table below; `<symbol>` is `✓` for `passed`, `✗` for `failed`, empty for `current` or `not-reached`.
+   - `<div class="phase-label">...</div>` with the display label (add class `current-label` when this is the active/last dot and `status` is `In Progress`).
+   - `<div class="phase-mode">...</div>` — only when step 1 above recorded an approval-gate annotation for this specific dot.
+   - **Only on the active/last dot**, also render `<div class="phase-status status-<status-slug>"><Status></div>`, where `<status-slug>` is the lowercased, hyphenated `status` value (`in-progress`, `paused`, `stopped`, `complete`) and `<Status>` is its display value.
+4. **Dot state:** every already-activated dot before the active/last one is `passed`. A baseline slot never activated is `not-reached`. The active/last dot's state comes from the run's `status`:
+   - `Complete` → `passed` (never `current` — the terminal dot must never look like it's still running).
+   - `In Progress` → `current spinning` (both classes).
+   - `Paused` → `current` only, without `spinning` (enlarged, but static — nothing is actively executing while paused).
+   - `Stopped` → `failed`.
+5. **A `To` value that matches none of the 8 canonical identifiers and isn't `spec-approval`/`plan-approval`** never starts, activates, or inserts a dot — skip that row for timeline purposes (it still appears verbatim in the Transition log table itself).
+
+**Worked example** (traced against the reference implementation's own real run, confirming this produces its exact 9-dot shape): `start→close-the-gaps`, `close-the-gaps→spec-approval`, `spec-approval→plan` ("User approved spec as-is"), `plan→plan-approval`, `plan-approval→execute` ("User approved plan as-is"), six `execute→execute` rows, `execute→review`, `review→review` (cycle 1), `review→fix-plan` ("added 6 steps"), five `fix-plan→fix-plan` rows, `execute→execute` ("all 12 fix-plan steps complete" — **fix-plan resumption, folds into Fix Plan, no new dot**), `execute→review` ("gate re-run PASSED"), `review→review` (cycle 2 — **repeat visit, inserted dot**), `review→final-sync`, `final-sync→complete` — yields, in order: Context Check (passed), Refinement (passed, "Approved as-is"), Plan (passed, "Approved as-is"), Execute (passed), Review (passed, cycle-1 history), Fix Plan (passed, includes the resumed-execute history), Review (inserted, cycle-2 history — this is the active dot, so it also carries the `<phase-status>` line), Final Sync (passed), Complete (passed, terminal, since `status: Complete`) — 9 dots, matching the reference exactly.
+
+**Internal identifier → display label / tooltip mapping** (use exactly this wording in every dashboard, so it stays consistent across tickets):
+
+| Internal identifier | Display label | Tooltip text (after `<identifier>: `) |
+| --- | --- | --- |
+| `context-check` | Context Check | verifies the project already has the context (skills, rules) this pipeline needs before starting. |
+| `close-the-gaps` | Refinement (Close The Gaps) | refines the request into a reviewed, gap-checked spec via Q&amp;A, ending in a spec-approval checkpoint. |
+| `plan` | Plan | turns the approved spec into a concrete, testable implementation plan, ending in a plan-approval checkpoint. |
+| `execute` | Execute | implements the plan step by step, writing and passing each step's tests. |
+| `review` | Review | an independent pass reviews the implemented change for correctness and quality. |
+| `fix-plan` | Fix Plan | turns review or gate findings into new plan steps to implement. |
+| `final-sync` | Final Sync | updates the project's skills/docs to reflect what was actually built. |
+| `complete` | Complete | the run has finished successfully. |
 
 Mention the file's path once, in whichever of Start's two creation points actually creates the state file first for this ticket (New run's summary, alongside the autonomy level and base branch; or Pending offline refinement's stop message) — never repeated at later checkpoints, and never shown at all for a Resume (per the no-backfill rule above).
 
