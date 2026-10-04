@@ -1,0 +1,51 @@
+skills/implement/SKILL.md
+  s_fbe3bc02a9a609::t_dc4ea92cfc0fd4 135
+  s_fbe3bc02a9a609::t_a79b89d593b66c 262
+  s_fbe3bc02a9a609::t_9fdce680d1e79b 265
+  s_fbe3bc02a9a609::t_f6e15cc0d8bc0f 312
+  s_fbe3bc02a9a609::t_85c0764122184c 333
+  s_fbe3bc02a9a609::t_2d5940739552c9 379
+  s_fbe3bc02a9a609::t_b50f5b5c659613 263
+  s_fbe3bc02a9a609::t_788d7d8ec996bc 261
+  s_fbe3bc02a9a609::t_b959cc34b32ea7 550
+  s_fbe3bc02a9a609::t_8598810e977096 58
+  s_fbe3bc02a9a609::t_f01444e8b72089 271
+  s_fbe3bc02a9a609::t_671b2c570793d6 293
+  s_fbe3bc02a9a609::t_db6c66252f3bab 211,214,216-217
+  s_fbe3bc02a9a609::t_833f2b6d4e6137 138
+  s_fbe3bc02a9a609::t_a76cc71c00a939 388
+  s_fbe3bc02a9a609::t_4eaa7dff1f4aab 336-343
+  s_fbe3bc02a9a609::t_b57ce0f6b64720 310-311
+  s_fbe3bc02a9a609::t_1c7dbd34462ca4 414
+  s_fbe3bc02a9a609::t_3dc1d29b312df2 96
+  s_fbe3bc02a9a609::t_7a320e638ae434 287
+  s_fbe3bc02a9a609::t_4d0b2b5b7c1210 227-246
+  s_fbe3bc02a9a609::t_4cfd124a2e828f 281
+  s_fbe3bc02a9a609::t_f517932063ebcc 441
+  s_fbe3bc02a9a609::t_6b122dba48329d 201
+  s_fbe3bc02a9a609::t_99ea5bdd9e3859 81
+  s_fbe3bc02a9a609::t_1d76cfd846156c 273
+  s_fbe3bc02a9a609::t_e360fc8964918f 269
+  s_fbe3bc02a9a609::t_89edc0cdef8de0 380
+  s_fbe3bc02a9a609::t_213bae01dbc415 165
+  s_fbe3bc02a9a609::t_a87384b307dbc9 255
+  s_fbe3bc02a9a609::t_9686909fe0329e 283-286,288
+  s_fbe3bc02a9a609::t_702e846c8a70ff 102
+  s_fbe3bc02a9a609::t_a2e66bee26c321 389
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8a2199dffdead4544c28d4a55840bebd64536a23",
+  "prompts": {},
+  "sessions": {
+    "s_fbe3bc02a9a609": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c4155892-3fa5-4449-b9f9-d222516f763e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
