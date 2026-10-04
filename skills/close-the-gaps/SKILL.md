@@ -102,6 +102,8 @@ Do not mention which skills were loaded unless the user asks. Just use them.
 Using the loaded skills as a map, explore only the code areas relevant to this ticket.
 Do not do broad exploration — be surgical.
 
+When this exploration spans multiple files, multiple loaded skills, or multiple repos in a workspace — an independently reviewable unit of work, not a single targeted lookup — dispatch it to a fresh subagent (the `Explore` or `general-purpose` agent type, via the Agent tool) and work from its returned report, rather than reading every file directly in this session. This does not relax the surgical-not-broad rule above; it changes who does the surgical reading. A single, narrow confirmation (does this function exist, what are this enum's values) stays inline — forking has overhead that isn't worth it for a one-grep fact-check.
+
 Look for:
 - Enums, status definitions, and state machines that this ticket touches
 - Existing logic that would be affected or extended
