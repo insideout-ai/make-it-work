@@ -66,8 +66,8 @@ plan_version: 1                # 1 = the initial plan; each replan adds 1
 plan_hash: none
 execution: not-started         # not-started | running | passed | guardrail | retry-limit | gate-failed | gate-no-result | stopped
 review: not-started            # not-started | clean | fix-required | replan-required | human-decision
-review_cycle: 0                # reviews run for the current plan version (limit 5)
-fix_cycle: 0                   # fix-plan rounds for the current plan version (limit 3)
+review_cycle: 0                # reviews run for the current plan version (limit = fix_cycle's limit + 1 = 4 — one initial review plus one re-review per fix-plan round)
+fix_cycle: 0                   # fix-plan rounds for the current plan version (limit 3 — review_cycle's limit is derived from this one, see its own comment)
 fix_plan_round_steps: none      # step count added by the current fix-plan round; reset to none when a new fix-plan round begins
 replans_used: 0                # limit 2 per run
 gate: none                     # none | full-suite | scoped
@@ -149,7 +149,7 @@ Write it with exactly this template, filling in every bracketed placeholder from
 <p class="complete"><strong>Run complete.</strong></p>
 
 <h2>Cycle counters</h2>
-<p>Review cycles: <REVIEW_CYCLE> / 5 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
+<p>Review cycles: <REVIEW_CYCLE> / 4 &nbsp; Fix cycles: <FIX_CYCLE> / 3 &nbsp; Replans used: <REPLANS_USED> / 2</p>
 
 <h2>Artifacts</h2>
 <ul>
@@ -333,7 +333,7 @@ Every transition is listed here. `—` means the outcome cannot occur at that le
 | execute | `GATE_FAILED`, no related failure | review | review |
 | execute | `GATE_NO_RESULT` | ask: continue to review with the plan's manual `## Test Plan` walkthrough as the regression check (`gate: none`) / stop | same as Guided |
 | execute | `EXECUTE_STOPPED` | pause, showing execute's message | pause, showing execute's message |
-| review | `review_cycle = 5` and not `CLEAN` | stop (review limit reached) | stop (review limit reached) |
+| review | `review_cycle = 4` and not `CLEAN` | stop (review limit reached) | stop (review limit reached) |
 | review | `CLEAN` | final-sync | final-sync |
 | review | `FIX_REQUIRED`, `fix_cycle < 3` | fix-plan (review) | fix-plan (review) |
 | review | `FIX_REQUIRED`, `fix_cycle = 3` | stop (limit reached) | stop (limit reached) |
