@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-04
+
+### Added
+
+- Rebuilt `implement`'s per-ticket progress dashboard: a branded masthead (logo, title, autonomy pill with tooltip), a full-width layout, and a visual phase timeline that grows and folds dots to match the state file's own transition history instead of a plain phase pill. Added live step-progress and phase-duration annotations beneath the timeline's dots.
+- Renamed the dashboard's Transition log to Audit log: a single, newest-first, locally-timestamped log broadened to record non-phase decisions (execution mode, autonomy level, fix-plan dispatch order) alongside phase transitions, with a completion banner whose stated duration always agrees with the Audit log's own Session-timing note, and a legacy-timestamp guard so a run resumed across this upgrade never computes a duration across a real/approximate timestamp boundary.
+- `implement` now creates and announces its dashboard at the very start of a new run, immediately after the branch guard passes, instead of waiting for Context Check and Choose Autonomy to finish first.
+- Added a branch guard that asks whether to create a feature branch, proceed on the base branch, or stop, instead of hard-stopping `implement` on the base branch.
+- Added honest timestamp/cost handling throughout `implement`: every logged timestamp is a real captured moment, elapsed time is computed only from a real anchor, and cost is stated as unknowable rather than estimated.
+- Added a one-time "stop after each step vs. run straight through" choice to `execute`'s Inline mode, with an autopilot-safe override that never lets a recorded preference hang an unattended run; Subagent-Driven mode no longer pauses between steps at all, matching its own `--autopilot` precedent.
+- Added a Sequential-vs-Parallel dispatch choice to `implement`'s fix-plan rounds: a round's own added steps can now be dispatched as a genuine concurrent batch when the plan's markers and files allow it, with the orchestrating session — not individual subagents — owning the batch's progress, so a partial failure can never silently skip a step.
+- Added a convention forking heavy or open-ended investigation to a fresh subagent in `close-the-gaps`, `plan-the-work`, and `implement`'s own direct investigation, instead of accumulating it inline.
+
+### Changed
+
+- `plan-the-work` no longer commits its red-state test files during planning; resume-ability now comes entirely from the plan and state files, not git history.
+- Renamed the execute-report artifact to `<TICKET>-execute.md`, consistent with the other artifact names.
+- The review-cycle limit is now derived from the fix-cycle limit (`fix_cycle` limit + 1) instead of an independently chosen constant, so the two can't drift out of sync.
+- A write to the state file's Known regressions or Decided findings sections now regenerates the dashboard immediately instead of waiting for the next checkpoint.
+
 ## [4.0.0] - 2026-10-03
 
 ### Added
