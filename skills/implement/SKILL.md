@@ -155,7 +155,7 @@ Write it with exactly this template, filling in every bracketed placeholder from
 <ul>
   <li>Spec: <SPEC_LINK_OR_NONE></li>
   <li>Plan: <PLAN_LINK_OR_NONE></li>
-  <li>Execute report: <EXECUTE_REPORT_LINK_OR_NONE></li>
+  <li>Execute: <EXECUTE_REPORT_LINK_OR_NONE></li>
   <li>Review: <REVIEW_LINK_OR_NONE></li>
 </ul>
 
@@ -284,7 +284,7 @@ Set `execution: running`, then follow `execute` inline with the plan path and th
 - `Failing tests:` (on `GATE_FAILED`) → input to Gate triage.
 - Record `gate` from the `Mode:` line of the `run-regression` report block execute printed (`Full suite` → `full-suite`, `Scoped` → `scoped`).
 
-Then save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>-execute-report.md`, overwriting any earlier one, and record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
+Then save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>-execute.md`, overwriting any earlier one, and record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
 
 A missing or unreadable outcome line is treated as `EXECUTE_STOPPED`.
 

@@ -298,7 +298,7 @@ Unlike skills that only read files in the current project, `find-the-repos` also
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
-Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`, `find-the-repos`'s `<TICKET>-repos.md`, and `implement`'s `<TICKET>-state.md`, `<TICKET>-status.html`, `<TICKET>-execute-report.md`, and versioned `<TICKET>-plan-v<N>.md` replans) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
+Pipeline artifacts (`make-it-work/<TICKET>-spec.md`, `<TICKET>-questions.md`, `<TICKET>-plan.md`, `<TICKET>-review.md`, `find-the-repos`'s `<TICKET>-repos.md`, and `implement`'s `<TICKET>-state.md`, `<TICKET>-status.html`, `<TICKET>-execute.md`, and versioned `<TICKET>-plan-v<N>.md` replans) are working documents, not deliverables — add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed.
 
 ## Troubleshooting
 
