@@ -140,8 +140,7 @@ Write it with exactly this template, filling in every bracketed placeholder from
   .session-timing { font-size: 0.75rem; color: #888; }
 
   .header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
-  .header-row .logo-plate { display: inline-flex; align-items: center; flex-shrink: 0; background: #f7f7f8; border: 1px solid #e2e2e4; padding: 0.4rem 0.6rem; border-radius: 0.5rem; line-height: 0; }
-  .header-row img { height: 56px; width: auto; display: block; }
+  .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
   .header-row .autonomy-pill { margin-left: auto; flex-shrink: 0; }
 
   .phase-timeline { display: flex; align-items: flex-start; width: 100%; margin: 1.5rem 0 2rem; overflow-x: auto; overflow-y: visible; padding-top: 2rem; padding-bottom: 0.5rem; }
@@ -187,7 +186,7 @@ Write it with exactly this template, filling in every bracketed placeholder from
 </head>
 <body>
 <div class="header-row">
-  <a class="logo-plate" href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
+  <a href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
     <img src="data:image/png;base64,<LOGO_BASE64>" alt="InsideOut AI">
   </a>
   <h1>Make-It-Work: Implementation Workflow: <em><TICKET></em></h1>
