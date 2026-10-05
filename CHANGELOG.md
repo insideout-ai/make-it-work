@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-04
+
+### Added
+
+- `implement`'s dashboard now shows which stage skill backs each phase dot (e.g. `Plan (plan-the-work)`), for every phase a stage skill actually backs.
+- Added a live `current_activity` field: a one-sentence, high-level description of what's currently being done, narrated in chat before any multi-tool-call stretch of work with no natural pause point, and mirrored on the dashboard under the active phase dot. Clears on a phase change and is hidden while Paused/Stopped.
+- The dashboard's Fix Plan dot is now spliced into the phase timeline only once a fix-plan round actually starts, instead of always rendering as a dead placeholder slot on runs whose review comes back clean on the first pass.
+- Completion now reminds the user that a ticket's `make-it-work/` artifacts are gitignored and safe to delete once no longer needed.
+
+### Fixed
+
+- The dashboard's masthead logo now sits on a dark backing plate, so it stays visible regardless of the source artwork's own coloring.
+- Fixed the current-phase spinner ring clipping at the phase timeline's top edge.
+
 ## [4.1.0] - 2026-10-04
 
 ### Added
