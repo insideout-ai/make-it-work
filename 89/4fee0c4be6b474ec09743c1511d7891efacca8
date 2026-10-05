@@ -1,0 +1,28 @@
+skills/implement/SKILL.md
+  s_10659ba4ed3593::t_4d4e14978d0e9c 277
+  s_10659ba4ed3593::t_7bfc08107c35f9 312
+  s_10659ba4ed3593::t_7bd2397a269ddb 292
+  s_10659ba4ed3593::t_63cb443b87952b 476
+  s_10659ba4ed3593::t_73f0451f0d4d06 301
+  s_10659ba4ed3593::t_68f0479b5c40f4 464
+  s_10659ba4ed3593::t_814fd808d0f157 474
+  s_10659ba4ed3593::t_361cf96ebfbcae 291
+  s_10659ba4ed3593::t_6295a757c2c0f8 316
+  s_10659ba4ed3593::t_616637476af083 466
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "894fee0c4be6b474ec09743c1511d7891efacca8",
+  "prompts": {},
+  "sessions": {
+    "s_10659ba4ed3593": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "aa66028c-5197-4ffb-ac3e-d989194fbbed",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
