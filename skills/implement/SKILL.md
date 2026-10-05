@@ -140,7 +140,7 @@ Write it with exactly this template, filling in every bracketed placeholder from
   .session-timing { font-size: 0.75rem; color: #888; }
 
   .header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
-  .header-row .logo-plate { display: inline-flex; align-items: center; flex-shrink: 0; background: #1a1a1a; padding: 0.4rem 0.6rem; border-radius: 0.5rem; line-height: 0; }
+  .header-row .logo-plate { display: inline-flex; align-items: center; flex-shrink: 0; background: #f7f7f8; border: 1px solid #e2e2e4; padding: 0.4rem 0.6rem; border-radius: 0.5rem; line-height: 0; }
   .header-row img { height: 56px; width: auto; display: block; }
   .header-row .autonomy-pill { margin-left: auto; flex-shrink: 0; }
 
