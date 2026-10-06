@@ -352,12 +352,15 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 - Read the previous plan and the feedback in full before Step 4. Treat every failed assumption, `Route: replan` finding, `Route: fix` finding, decided `Route: human` finding, or `execute` stop as a constraint the new plan must resolve.
 - The working tree still contains the previous version's uncommitted implementation and test files. Investigate them as current code, and make every new step say explicitly what it keeps, changes, or removes. Reuse test files that are still valid (reference them in the new steps' `**Tests:**` fields); remove or adjust obsolete ones as ordinary file edits inside the new steps. Removals are ordinary file edits — never `git checkout`, `reset`, `restore`, or `stash`.
 - Add `**Replan of:** <previous plan path> — <one-line reason>` directly under the plan's header blockquote.
+- Directly under that line add `**Design reset:**` — a few sentences on what the previous plan modeled or assumed wrongly at the design level (not merely what failed or which findings were raised), and how this plan's model differs. Every new step must follow the new model.
 - A regression test that fails because of the previous version's uncommitted changes (it covers a file the previous plan changed, or a test that plan named) is **not** a pre-existing failure: do not return `Blocked:` for it — make the new plan bring it back to green.
 
 **Amend mode** (the current plan path plus one fix source: a review report with the user's decisions on any `Route: human` findings, or `execute`'s completion-gate report with the failing tests classified as related) — do not rewrite the plan:
 
 - Investigate only what each `Route: fix` finding, decided `Route: human` finding, or related failing test touches, using Step 4's discipline.
 - Append new steps after the last existing step, numbered `M+1` onward — one per finding that still needs a code change, or per small group of related findings; a finding the user accepted as-is gets no step, so a round can add zero steps — each in the Step 5 step template and each through the test-writing sub-phase (red test, left uncommitted).
+- Before writing each fix step, find the root cause: state in the step which invariant or assumption the finding violated, then sweep sibling cases in the same function or code path for the same defect and cover them in the step and its tests, not only the cited symptom. If the fix adds a guard, reject, or filter that narrows behavior, the step's tests must also cover what it might wrongly reject (the complement), not only what it correctly rejects.
+- **Repeat offender:** if the finding was introduced by an earlier fix step (the report says the fix regressed its own path), or the same function or region was flagged in two consecutive fix rounds, say so explicitly in the step and add `Recommend replan: <function / region> — <why another patch won't hold>` to the return report instead of stacking another patch.
 - Add any file a new step touches to Affected Code if it isn't listed yet, and add `**Amended for fix cycle <n> (<review | gate>):**` under the plan's header blockquote.
 - **Gate fix source:** each related failing test *is* the new step's progression test, and it is already red — record it in the step's `**Tests:**` field as `progression red — failing in the completion gate`, skip Step 5 point 5's baseline check for that test, and write no new test file for it (it already exists). Point 5 still applies to any other regression test the step names.
 - For a repo with no configured test framework the sub-phase doesn't apply: add one `## Test Plan` row per new step, naming the step, so `execute` can find that step's manual verification.
@@ -376,6 +379,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 Mode: initial | replan | amend
 Steps added: <range, or none, for amend | n/a>
 Blocked: <reason>        ← only when applicable
+Recommend replan: <reason>   ← only when applicable (amend mode, repeat offender)
 ```
 
 Then stop.
