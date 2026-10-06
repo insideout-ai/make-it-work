@@ -1,0 +1,25 @@
+CHANGELOG.md
+  s_ff19a9bbc639fd::t_50f04054be0dbd 9-18
+skills/implement/SKILL.md
+  s_ff19a9bbc639fd::t_4f4c1fe740ffe7 279,291,410-411,467-471,512-513,518-519,524-526
+skills/plan-the-work/SKILL.md
+  s_ff19a9bbc639fd::t_2d953ed23af889 355,362-363,382
+skills/review-the-pr/SKILL.md
+  s_ff19a9bbc639fd::t_c617f36d803aa1 100,146,168,191-192,227-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "54e73bc72783477630b29c3196b57ac753736248",
+  "prompts": {},
+  "sessions": {
+    "s_ff19a9bbc639fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7525bda-95d0-4dc2-9798-4cc9533ed286",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
