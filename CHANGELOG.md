@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `implement` now escalates to a replan early, instead of burning the remaining fix cycles, when a review finding was introduced by an earlier fix, when two consecutive reviews flag the same function or file region, or when `plan-the-work`'s amend mode returns `Recommend replan:`. From the second fix round of a plan version, the fix-plan entry row also carries a one-line root-cause statement, and Guided mode asks whether to patch again, replan, or stop.
+- `review-the-pr` now enumerates the state space of each changed function or path and reports every verified finding in that region in the same review. In implement-mode re-reviews, each finding carries an `Introduced by fix of: <#N | none>` field, so repeat offenders are visible.
+- `plan-the-work`'s amend mode now requires a root-cause statement and a sibling-case sweep for each fix step, tests the complement of any guard a fix adds, and returns `Recommend replan:` when a fix regressed its own path or the same region was flagged in two consecutive rounds. Its replan mode now opens with a `**Design reset:**` line stating what the previous plan modeled wrongly.
+
+### Fixed
+
+- `implement`'s dashboard and Resume rules now handle the `fix-plan → plan` and early `review → plan` replan transitions.
+
 ## [4.2.0] - 2026-10-04
 
 ### Added

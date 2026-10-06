@@ -97,6 +97,7 @@ For each loaded `uc-*` skill, walk the changed logic against the documented flow
 - **Does the diff alter a documented behavior or validation rule** (product.md "Domain Validation Rules", the UC's Main/Alternative flows)? If the ticket doesn't explicitly mandate that change, it's a **Critical** finding — silent business changes are the most damaging class of bug here.
 - **Paired logic stays paired**: decision methods and their reporting/reason methods must check the same fields; a check-side change without the report-side change (or vice versa) produces impossible or misleading states.
 - **Field provenance**: is the *right* field used? Interfaces often carry near-duplicate fields (different IDs for the same concept, address fields, amount fields). Verify against the UC skill's documented mapping before assuming a rename or substitution is safe.
+- **Enumerate the state space**: for each function or code path the diff changes, list the inputs and states it can receive — null or missing, empty, single, multiple, merged or combined, boundary values, and any state where an upstream data source may be absent or unreliable — and check the changed behavior against each one. An enumerated state is only a candidate; it becomes a finding when Step 7 verifies it.
 - **Scope**: anything in the diff the ticket doesn't ask for (new utilities, drive-by refactors) → flag under "Exact scope". Small and harmless → Minor; behavior-affecting → higher.
 
 ## Step 4 — Regression pass
@@ -142,7 +143,7 @@ Adversarially re-check every candidate finding before writing it down:
 2. Is it introduced by this diff, or pre-existing? (`git blame` / diff base when unsure.) Pre-existing issues go in a short separate note, never in the numbered findings.
 3. Do the file/line references match the reviewed commit?
 
-Drop anything that fails these checks. A short list of confirmed findings is worth more than a long list of maybes — every false positive costs the reviewer's trust.
+Drop anything that fails these checks. **Report every verified finding in the changed region in the same review** — finish the Step 3 state-space enumeration for each changed function or path and don't stop at the first Major; a latent gap that surfaces one finding per review cycle forces repeated fix rounds. A short list of confirmed findings is worth more than a long list of maybes — every false positive costs the reviewer's trust.
 
 ## Output format
 
@@ -164,6 +165,7 @@ Found N issues:
    the concrete input/state → wrong outcome, comparison to the sibling/guarded code
    if one exists, and the specific fix.>
    `path/to/file.ts:123` — <skill/rule violated, e.g. uc-02 / architecture.md constraint / CLAUDE.md logging>
+   Introduced by fix of: <#N | none>   (implement-mode re-reviews only; omit otherwise)
 
 2. **[Major]** ...
 
@@ -185,6 +187,8 @@ Verdict: Request changes (1 Critical, 2 Major)
 3. [Major]    <one-line claim of the defect> — <file>:<line>
 → full report: make-it-work/{TICKET}-review.md
 ```
+
+In an implement-mode re-review, append `(introduced by fix of #N)` to a finding's line when its `Introduced by fix of:` field names one.
 
 When there are **no findings**, say so plainly in both tiers — `Verdict: Approve — no issues found` plus the Coverage line — and don't invent filler.
 
@@ -219,6 +223,8 @@ This section applies only when `/make-it-work:implement` dispatches the review; 
 **Known unrelated regressions** — list the ones `implement` passed in under a `**Known unrelated regressions (documented, out of scope):**` block, not as findings — unless the diff demonstrably caused one, in which case report it as a normal finding with that evidence.
 
 **Decided findings** — a `Route: human` question the user has already decided in an earlier cycle (passed in by `implement`) is settled: do not raise it again unless the diff has since changed the code it concerns. List each one under a `**Decided (not re-raised):**` block in the report.
+
+**Fix-cycle regression check** — when the review cycle number is above 1 and the plan carries an `**Amended for fix cycle <n> ...**` marker, the diff includes fix steps added in response to earlier findings (the steps after the plan's pre-amendment step count, each naming the finding it fixes). For each such step, explicitly check whether it regressed its own code path or introduced a new defect in the region it changed — re-run the Step 3 state-space enumeration over that region, including the complement of any guard, reject, or filter the fix added. Every finding in a re-review then carries `Introduced by fix of: #N`, naming the earlier finding or fix step it descends from, or `none`. A finding with a value other than `none` is a repeat offender: say so in the finding so `plan-the-work` can recommend a replan instead of stacking another patch.
 
 **Finding routes** — tag every numbered finding with exactly one route:
 
