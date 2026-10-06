@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-feedback-idempotent
+tags: [implement, feedback, smoke]
+context:
+  scaffold_script: fixture.sh

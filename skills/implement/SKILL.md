@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → plan-the-work → execute → review-the-pr → final context sync — with saved, resumable workflow state, two autonomy levels (Guided, Autonomous), and capped fix/replan loops. Never commits implementation changes, pushes, or opens a PR. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
+description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → plan-the-work → execute → review-the-pr → final context sync — with saved, resumable workflow state, two autonomy levels (Guided, Autonomous), capped fix/replan loops, and local end-of-run workflow feedback. Never commits implementation changes, pushes, opens a PR, or uploads feedback. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
 disable-model-invocation: true
 ---
 
@@ -41,6 +41,8 @@ Read each one with the Read tool when its phase starts — **never** start them 
 - Review runs in a fresh subagent, for an independent read of the change (see Review dispatch).
 
 If any of the four files is missing, stop and tell the user the exact path that could not be found. Do not improvise the stage.
+
+The feedback retrospective's detailed contract is in `<base>/references/feedback.md`. Read it only after an eligible run has already reached its terminal state; ordinary in-progress phases do not need it.
 
 ---
 
@@ -201,7 +203,7 @@ Write it with exactly this template, filling in every bracketed placeholder from
 <p class="next-action"><strong>Waiting on you:</strong> <PAUSE_REASON></p>
 
 <!-- only when status is Complete -->
-<p class="complete"><strong>Run complete.</strong> <SESSION_DURATION_STATEMENT> Changes are uncommitted — review the working tree and commit when ready. This ticket's artifacts (spec/plan/execute/review/state/dashboard) are in <code>make-it-work/</code> and aren't committed — delete them yourself whenever you're done referencing this run.</p>
+<p class="complete"><strong>Run complete.</strong> <SESSION_DURATION_STATEMENT> Changes are uncommitted — review the working tree and commit when ready. This ticket's artifacts (spec/plan/execute/review/state/dashboard) are in <code>make-it-work/</code> and aren't committed — delete them yourself whenever you're done referencing this run. <code>make-it-work/implement-feedback.md</code> is cumulative and separate from those ticket artifacts; keep it if you plan to review or share the workflow feedback.</p>
 
 <h2>Artifacts</h2>
 <div class="artifact-grid">
@@ -464,11 +466,15 @@ Increment `review_cycle`, then dispatch the review as described in Review dispat
 
 ### Fix
 
-Follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests). The row that enters fix-plan lists the function or file region each finding sits in — the next review's same-region check (see Early replan) compares against it. From the second round of a plan version onward (`fix_cycle >= 1` when the round begins), that same row also carries a one-line root-cause statement: which invariant or assumption the findings violate, and why the earlier patches did not hold. Guided additionally asks with `AskUserQuestion`: **Patch again** / **Replan** / **Stop**, recommending whichever the root-cause statement favors (replan when it says the earlier patches treated symptoms of a broken assumption; offered only while `replans_used < 2`) — skipped when Early replan already asked this round; Autonomous only logs the statement, since Early replan already covers its automatic replan triggers. A choice to replan goes to Replan; log the answer as a decision row (per the decision-row-logging paragraph above).
+Before entering fix-plan, list the function or file region each finding sits in — the next review's same-region check (see Early replan) compares against it. From the second round of a plan version onward (`fix_cycle >= 1` when the round begins), also derive a one-line root-cause statement: which invariant or assumption the findings violate, and why the earlier patches did not hold. Guided additionally asks with `AskUserQuestion`: **Patch again** / **Replan** / **Stop**, recommending whichever the root-cause statement favors (replan when it says the earlier patches treated symptoms of a broken assumption; offered only while `replans_used < 2`) — skipped when Early replan already asked this round; Autonomous proceeds to fix-plan, since Early replan already covers its automatic replan triggers. A choice to replan goes to Replan. Record the answer in the ordinary transition row rather than adding a separate decision row, because the answer determines the phase change.
+
+When proceeding to fix-plan, log the transition into it before starting amend-mode planning, per the Checkpoint rule. The entry row lists a concise trigger summary plus the finding regions and, when this is the second or later round of the plan version, the root-cause statement. Preserve enough causal evidence in that row for the terminal feedback retrospective even if a later cycle overwrites the review or execute report. In that same checkpoint, reset both `fix_plan_round_steps` and `fix_plan_dispatch` to `none` and regenerate the dashboard — the new Fix dot renders active with no step-progress annotation yet (per the Progress dashboard section's own guard for this case).
+
+Then follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests).
 
 Immediately after amend-mode planning returns — before sizing, counting, or dispatching its steps — check its return report for a `Recommend replan:` line; if present, handle it per Early replan. If the user chooses to continue patching, or the replan limit is reached, carry on below.
 
-At the moment the `review → fix-plan` row is logged (this round's entry, before its actual step count is known), reset both `fix_plan_round_steps` and `fix_plan_dispatch` to `none` and regenerate the dashboard — the new Fix dot renders active with no step-progress annotation yet (per the Progress dashboard section's own guard for this case). Once amend-mode planning determines this round adds `Y` new steps, record `fix_plan_round_steps: Y` in the state file, and log it as a decision row (per the decision-row-logging paragraph above) immediately after that same entry row: `Decision: Fix round <N>: added <Y> steps covering <F> findings` (where `<N>` is this run's count of fix-plan rounds so far, i.e. `fix_cycle` after this round's own increment, and `<F>` is the count of findings this round addresses), then regenerate the dashboard again — this is what makes the step-progress annotation first appear.
+Once amend-mode planning determines this round adds `Y` new steps, record `fix_plan_round_steps: Y` in the state file, and log it as a decision row (per the decision-row-logging paragraph above): `Decision: Fix round <N>: added <Y> steps covering <F> findings` (where `<N>` is this run's count of fix-plan rounds so far, i.e. `fix_cycle` after this round's own increment, and `<F>` is the count of findings this round addresses), then regenerate the dashboard again — this is what makes the step-progress annotation first appear.
 
 At this same point, resolve `fix_plan_dispatch` on exactly one of these three paths, never leaving it at its reset `none`:
 
@@ -523,9 +529,9 @@ Every transition is listed here. `—` means the outcome cannot occur at that le
 
 **Early replan** — a fix-plan round is the wrong tool when a fix keeps breaking its own code path, so do not wait for `fix_cycle` to run out. The trigger is any of: a `FIX_REQUIRED` review where any finding is a repeat offender (its `Introduced by fix of:` names an earlier finding or fix step, i.e. is not `none`); a `FIX_REQUIRED` review whose findings land in the same function or file region as the immediately preceding review's (compare against the region list in the previous `→ fix-plan` entry row, see Fix); or a `Recommend replan:` line in `plan-the-work`'s amend-mode return report. The first two are checked when the review outcome is read; the third immediately after fix-plan returns, before its steps are sized, counted, or dispatched (see Fix). Guided asks with `AskUserQuestion` — **Replan (Recommended)** / **Continue patching** / **Stop** — showing the evidence; Autonomous replans without asking. In both, the Audit-log row for the transition states the trigger (the finding and its `Introduced by fix of:` value, the repeated region, or the `Recommend replan:` text). Pass that same evidence to the replan by appending it under a `## Repeat-offender evidence` heading to its feedback file (the review report, or `execute_report` when the fix source was a gate failure). Only while `replans_used < 2`; at the limit, fall back to the plain fix-plan rows and write "replan limit reached" in the row that enters fix-plan (or, after a `Recommend replan:`, in the row that proceeds with its steps).
 
-**Replan** — `replans_used += 1`; `plan_version += 1`; `review_cycle = 0`; `fix_cycle = 0`; `fix_plan_dispatch` back to `none`; `execution` and `review` back to `not-started`; then Plan in replan mode, passing the previous plan path, one feedback path — `execute_report` after an execute stop, or the review report after `REPLAN_REQUIRED` or an early replan (whose `Route: fix` findings are constraints for the new plan too) — and the Decided findings list, every entry of which is also a constraint. In Guided the new plan goes through plan approval again, and `execute` will ask for the execution mode again, since each new plan version starts with it unchosen.
+**Replan** — `replans_used += 1`; `plan_version += 1`; `review_cycle = 0`; `fix_cycle = 0`; `fix_plan_dispatch` back to `none`; `execution` and `review` back to `not-started`; then Plan in replan mode, passing the previous plan path, one feedback path — `execute_report` after an execute stop, or the review report after `REPLAN_REQUIRED` or an early replan (whose `Route: fix` findings are constraints for the new plan too) — and the Decided findings list, every entry of which is also a constraint. The transition row back to `plan` carries a concise summary of the failed assumption or design reason, preserving enough causal evidence for the terminal feedback retrospective even if a later report is overwritten. In Guided the new plan goes through plan approval again, and `execute` will ask for the execution mode again, since each new plan version starts with it unchosen.
 
-**Stop** — set `status: Stopped` when a limit or cap was reached or the user chose to stop, or `status: Paused` when the run is waiting on the user. Set `pause_reason`, then tell the user where the run stopped, why, and what to do before running `implement` again. A resumed Paused run continues at its saved `phase`.
+**Stop** — set `status: Stopped` when a limit or cap was reached or the user chose to stop, or `status: Paused` when the run is waiting on the user. Set `pause_reason` and complete the checkpoint and dashboard regeneration first. When the stop was specifically caused by exhausting the fix, review, or replan limit, run Feedback retrospective below before showing the terminal stop summary; other stops and every pause are ineligible. Then tell the user where the run stopped, why, and what to do before running `implement` again. A resumed Paused run continues at its saved `phase`.
 
 ---
 
@@ -566,9 +572,26 @@ Write the updates directly, without a confirmation step, at both autonomy levels
 
 ---
 
+## Feedback retrospective
+
+This is a terminal hook, not a phase. It never changes `phase`, `status`, the dashboard timeline, or resume behavior.
+
+Run it only after either:
+
+- Completion has checkpointed `status: Complete` and regenerated the dashboard; or
+- Stop has checkpointed `status: Stopped` for an exhausted fix, review, or replan limit and regenerated the dashboard.
+
+Read `<base>/references/feedback.md` in full and follow it. It owns eligibility details, Audit-log counting, non-minimal root-cause analysis, share-safe redaction, clarification questions, and the idempotent update of `make-it-work/implement-feedback.md`.
+
+For a non-minimal run, dispatch the reference's fresh retrospective subagent and work from its structured diagnosis. Write the provisional run block before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+
+The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later.
+
+---
+
 ## Completion
 
-Set `status: Complete` and `phase: complete`, and log the transition. Then print a concise summary:
+Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
 
 - **Implemented** — the plan's `## What This Changes`, in a sentence or two.
 - **Validation** — from `execute`'s final report: steps completed and the completion-gate mode and result, or `gate: none` with the manual Test Plan walkthrough when the user chose to continue without an automated gate.
@@ -576,10 +599,11 @@ Set `status: Complete` and `phase: complete`, and log the transition. Then print
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Replans used** — the count.
+- **Workflow feedback** — `make-it-work/implement-feedback.md`, stating whether this run was recorded as minimal or received a detailed retrospective. If feedback could not be written, state why instead.
 - **Elapsed** — if `start_time` is a real captured timestamp (not `none`), the plain delta between it and this transition's own just-logged timestamp, as a human-readable duration (e.g. "2h 14m") — convert both ISO timestamps to epoch seconds via the host's `date` utility and subtract; this is a duration, not a display timestamp, so no timezone conversion is needed. If `start_time` is `none` (this run began before real start-timestamp capture existed), state "Elapsed: unknown — no real start timestamp was captured for this run" instead of estimating or backfilling one.
 - **Cost** — not shown; no tool surfaces token-usage or billing data to this session. Check your own client's `/usage` command instead.
 
-End with: "Changes are uncommitted — review the working tree and commit when ready." then, on its own line: "This ticket's artifacts (spec/plan/execute/review/state/dashboard) are in `make-it-work/` and aren't committed — delete them yourself whenever you're done referencing this run." This is a plain reminder, not a question — never ask for confirmation, and never delete anything.
+End with: "Changes are uncommitted — review the working tree and commit when ready." then, on its own line: "This ticket's artifacts (spec/plan/execute/review/state/dashboard) are in `make-it-work/` and aren't committed — delete them yourself whenever you're done referencing this run. `make-it-work/implement-feedback.md` is cumulative and separate; keep it if you plan to review or share the workflow feedback." This is a plain reminder, not a question — never ask for confirmation, and never delete anything.
 
 ---
 
@@ -591,6 +615,7 @@ End with: "Changes are uncommitted — review the working tree and commit when r
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.
 - Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking.
 - Never fix a regression classified as unrelated.
+- Never upload or automatically submit `make-it-work/implement-feedback.md`, and never include the project identifiers forbidden by its feedback reference.
 - Never backfill `make-it-work/<TICKET>-status.html` for a run resumed with the file already missing — it is only ever created the first time a ticket's state file is created (Start → New run or Start → Pending offline refinement).
 - Never fabricate or estimate a timestamp, a cost figure, or a duration computed from a missing real anchor — state plainly when a figure isn't knowable instead.
 - Every duration or delta shown anywhere — per-row audit-log deltas, phase durations, the Session timing note, the completion banner — is computed exactly once, at write time, via an actual shell `date` epoch-seconds subtraction between two real captured timestamps; never by mental arithmetic, and never deferred to client-side JavaScript (client-side JS is used only to convert a single absolute timestamp into the viewer's local display time).

@@ -6,14 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-10-06
+
 ### Added
 
+- `implement` now records terminal-run feedback in a cumulative, anonymous, share-safe `make-it-work/implement-feedback.md` file. Minimal runs get a compact entry; runs with fix or replan rounds get an evidence-based retrospective and may ask post-terminal clarification questions when an answer would materially change the diagnosis. The file remains local and is never uploaded automatically.
+- Added model-driven eval coverage for clean, non-minimal, and idempotent feedback runs.
 - `implement` now escalates to a replan early, instead of burning the remaining fix cycles, when a review finding was introduced by an earlier fix, when two consecutive reviews flag the same function or file region, or when `plan-the-work`'s amend mode returns `Recommend replan:`. From the second fix round of a plan version, the fix-plan entry row also carries a one-line root-cause statement, and Guided mode asks whether to patch again, replan, or stop.
 - `review-the-pr` now enumerates the state space of each changed function or path and reports every verified finding in that region in the same review. In implement-mode re-reviews, each finding carries an `Introduced by fix of: <#N | none>` field, so repeat offenders are visible.
 - `plan-the-work`'s amend mode now requires a root-cause statement and a sibling-case sweep for each fix step, tests the complement of any guard a fix adds, and returns `Recommend replan:` when a fix regressed its own path or the same region was flagged in two consecutive rounds. Its replan mode now opens with a `**Design reset:**` line stating what the previous plan modeled wrongly.
 
 ### Fixed
 
+- `implement` now checkpoints the transition into fix planning and resets the fix-round state before invoking `plan-the-work` in amend mode, keeping persisted state and dashboard recovery aligned if amend planning is interrupted.
 - `implement`'s dashboard and Resume rules now handle the `fix-plan → plan` and early `review → plan` replan transitions.
 
 ## [4.2.0] - 2026-10-04
