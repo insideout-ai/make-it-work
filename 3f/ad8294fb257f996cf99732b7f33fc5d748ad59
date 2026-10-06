@@ -1,0 +1,118 @@
+skills/implement/SKILL.md
+  s_ff19a9bbc639fd::t_6d1dcac109d06b 470
+  s_0769a02dd7dd02::t_0d46a1aac3ebac 3,45-46,206,471,532,534,575-591,594,602,606,618
+  s_0769a02dd7dd02::t_016ef6f867936f 469,472-473,477
+evals/implement/feedback-nonminimal/graders/share-safe.md
+  s_0769a02dd7dd02::t_f82ece77110382 1-3,5-7
+  s_0769a02dd7dd02::t_1b459aba4c8ffc 4
+evals/implement/feedback-clean/graders/state-complete.md
+  s_0769a02dd7dd02::t_443383b3105fcf 1-6
+evals/implement/feedback-clean/graders/no-retrospective-agent.md
+  s_0769a02dd7dd02::t_443383b3105fcf 1-7
+skills/implement/references/feedback.md
+  s_0769a02dd7dd02::t_78f24ea6eb86c9 51
+  s_0769a02dd7dd02::t_9257f80f12c430 1-50,52-165
+evals/implement/feedback-idempotent/fixture.sh
+  s_0769a02dd7dd02::t_1a718c5af39cab 1-4
+evals/implement/feedback-nonminimal/case.yaml
+  s_0769a02dd7dd02::t_f82ece77110382 1-5
+evals/implement/run-all.sh
+  s_0769a02dd7dd02::t_afb3c110efbae6 1-13
+evals/implement/feedback-clean/prompt.md
+  s_0769a02dd7dd02::t_443383b3105fcf 1-11
+evals/implement/feedback-idempotent/graders/state-complete.md
+  s_0769a02dd7dd02::t_1a718c5af39cab 1-6
+README.md
+  s_0769a02dd7dd02::t_b86bbb8c3cc4dc 148-149,289,303
+evals/implement/fixture-base/CLAUDE.md
+  s_0769a02dd7dd02::t_cdfe0318b80a25 1-9
+evals/implement/fixture-base/.claude/rules/product.md
+  s_0769a02dd7dd02::t_cdfe0318b80a25 1-3
+evals/implement/feedback-clean/case.yaml
+  s_0769a02dd7dd02::t_443383b3105fcf 1-5
+evals/implement/feedback-nonminimal/graders/retrospective-agent.md
+  s_0769a02dd7dd02::t_f82ece77110382 1-6
+evals/implement/README.md
+  s_0769a02dd7dd02::t_afb3c110efbae6 1-17
+evals/implement/feedback-nonminimal/graders/detailed-retrospective.md
+  s_0769a02dd7dd02::t_f82ece77110382 1-7
+evals/implement/feedback-clean/graders/share-safe.md
+  s_0769a02dd7dd02::t_1b459aba4c8ffc 4
+  s_0769a02dd7dd02::t_443383b3105fcf 1-3,5-7
+evals/implement/feedback-nonminimal/graders/state-complete.md
+  s_0769a02dd7dd02::t_f82ece77110382 1-6
+evals/implement/feedback-idempotent/prompt.md
+  s_0769a02dd7dd02::t_1a718c5af39cab 1-11
+evals/implement/fixture-base/src/policy.js
+  s_0769a02dd7dd02::t_cdfe0318b80a25 1-5
+.claude-plugin/plugin.json
+  s_0769a02dd7dd02::t_cb9f3b95e96943 6
+evals/implement/feedback-idempotent/case.yaml
+  s_0769a02dd7dd02::t_1a718c5af39cab 1-5
+evals/implement/feedback-clean/graders/compact-clean-entry.md
+  s_0769a02dd7dd02::t_443383b3105fcf 1-7
+evals/implement/fixture-base/.claude/skills/domain-demo/SKILL.md
+  s_0769a02dd7dd02::t_cdfe0318b80a25 1-8
+CHANGELOG.md
+  s_0769a02dd7dd02::t_cb9f3b95e96943 9-10,13-14,21
+evals/implement/seed-fixture.sh
+  s_0769a02dd7dd02::t_4c8b1a7e2e855e 21-22
+  s_0769a02dd7dd02::t_2fb563b7a79b08 33-34
+  s_0769a02dd7dd02::t_cdfe0318b80a25 1-20,23-32,35-43
+evals/implement/feedback-nonminimal/fixture.sh
+  s_0769a02dd7dd02::t_f82ece77110382 1-4
+evals/implement/feedback-nonminimal/prompt.md
+  s_0769a02dd7dd02::t_f82ece77110382 1-11
+evals/implement/feedback-idempotent/graders/idempotent-preserving-update.md
+  s_0769a02dd7dd02::t_1a718c5af39cab 1-13
+evals/implement/feedback-clean/fixture.sh
+  s_0769a02dd7dd02::t_443383b3105fcf 1-4
+evals/implement/fixture-base/.claude/rules/architecture.md
+  s_0769a02dd7dd02::t_cdfe0318b80a25 1-3
+evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md
+  s_0769a02dd7dd02::t_dd560e130d5ee2 1-56
+evals/implement/feedback-idempotent/fixture/fixture-artifacts/DEMO-state.md
+  s_0769a02dd7dd02::t_1aa80d004db94d 1-56
+evals/implement/feedback-idempotent/fixture/fixture-artifacts/implement-feedback.md
+  s_0769a02dd7dd02::t_c687c97c86a42f 1-25
+evals/implement/feedback-nonminimal/fixture/fixture-artifacts/DEMO-plan-v1.md
+  s_0769a02dd7dd02::t_8284432a132d0e 1-25
+evals/implement/feedback-nonminimal/fixture/fixture-artifacts/DEMO-plan-v2.md
+  s_0769a02dd7dd02::t_4aee32a20464aa 1-21
+evals/implement/feedback-nonminimal/fixture/fixture-artifacts/DEMO-state.md
+  s_0769a02dd7dd02::t_f29347cafa6c53 1-63
+evals/implement/fixture-base/fixture-artifacts/DEMO-execute.md
+  s_0769a02dd7dd02::t_8fec6697106b1a 1-9
+evals/implement/fixture-base/fixture-artifacts/DEMO-plan.md
+  s_0769a02dd7dd02::t_89e9bb67572759 1-21
+evals/implement/fixture-base/fixture-artifacts/DEMO-review.md
+  s_0769a02dd7dd02::t_6086324448b9a0 1-7
+evals/implement/fixture-base/fixture-artifacts/DEMO-spec.md
+  s_0769a02dd7dd02::t_a8db51e22646b6 1-3
+evals/implement/fixture-base/fixture-artifacts/DEMO-status.html
+  s_0769a02dd7dd02::t_9aa29a3fa83fa9 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3fad8294fb257f996cf99732b7f33fc5d748ad59",
+  "prompts": {},
+  "sessions": {
+    "s_0769a02dd7dd02": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11031-29a2-78b2-9b9a-90081ed980e0",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_ff19a9bbc639fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7525bda-95d0-4dc2-9798-4cc9533ed286",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": null
+    }
+  }
+}
