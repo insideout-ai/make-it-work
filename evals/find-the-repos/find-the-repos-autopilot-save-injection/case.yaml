@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: find-the-repos-autopilot-save-injection
+tags: [find-the-repos, save, adversarial]
+context:
+  scaffold_script: fixture.sh

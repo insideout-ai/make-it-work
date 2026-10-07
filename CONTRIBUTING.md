@@ -52,6 +52,8 @@ node --test skills/execute/scripts/plan-status.test.mjs
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
+Before opening a pull request, run the 11-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Record its report path and adjudicate any LLM-grader failures in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and cases needing human review. These model runs are manual and are never triggered by CI.
+
 ## Pull requests
 
 Keep each pull request focused on one outcome. In the description, include:

@@ -34,6 +34,9 @@ jobs:
       - name: Test plan Execution Status updater
         run: node --test skills/execute/scripts/plan-status.test.mjs
 
+      - name: Validate eval inventory and fixture guards
+        run: node evals/validate.mjs
+
       - name: Validate marketplace manifest
         run: claude plugin validate .claude-plugin/marketplace.json --strict
 

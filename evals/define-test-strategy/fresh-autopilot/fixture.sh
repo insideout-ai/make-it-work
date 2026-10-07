@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../assert-disposable-cwd.sh"
 
 # Same go-deep-shaped project as extend-autopilot, but with NO existing
 # testing-strategy.md and NO existing tests at all — exercises Phase 1's
