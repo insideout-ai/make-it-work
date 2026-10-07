@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Local, opt-in smoke reporter. Git runs this once before each push invocation.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-push: Node.js is unavailable; smoke could not run. Push will proceed." >&2
+  exit 0
+fi
+
+source_commit="$(git rev-parse HEAD)"
+echo "pre-push: running smoke for committed HEAD $source_commit with your Claude Code sign-in." >&2
+echo "pre-push: results are advisory; this hook never blocks the push or PR." >&2
+
+set +e
+(
+  set -euo pipefail
+  snapshot_dir="$(mktemp -d)"
+  case "$snapshot_dir/" in
+    /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*) ;;
+    *) echo "pre-push: unexpected snapshot path $snapshot_dir" >&2; exit 1 ;;
+  esac
+  trap 'rm -rf -- "$snapshot_dir"' EXIT
+  mkdir "$snapshot_dir/repo"
+  git archive "$source_commit" | tar -x -C "$snapshot_dir/repo"
+  # Git exports repository-local variables to hooks. Clear them before
+  # initializing the snapshot or `git init` can rewrite the source repo.
+  for git_var in $(git rev-parse --local-env-vars); do
+    unset "$git_var"
+  done
+  cd "$snapshot_dir/repo"
+  git init -q -b eval-snapshot
+  git add -A
+  GIT_AUTHOR_NAME='Eval Snapshot' GIT_AUTHOR_EMAIL='eval@example.invalid' \
+  GIT_COMMITTER_NAME='Eval Snapshot' GIT_COMMITTER_EMAIL='eval@example.invalid' \
+    git -c core.hooksPath=/dev/null commit -q -m 'Committed plugin snapshot'
+  MIW_EVAL_SOURCE_COMMIT="$source_commit" \
+  MIW_EVAL_REPORT_ROOT="$repo_root/evals/results" \
+    node evals/run-suite.mjs smoke
+)
+smoke_status=$?
+set -e
+
+if [ "$smoke_status" -ne 0 ]; then
+  echo "pre-push: smoke reported a failure or could not complete (exit $smoke_status). Push proceeds; inspect the report before merging." >&2
+else
+  echo "pre-push: smoke completed without a machine-detected failure. Review pending human-check cases in the report." >&2
+fi
+exit 0

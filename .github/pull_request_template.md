@@ -26,6 +26,10 @@ Change type:
 
 Manual test and result:
 
+Smoke eval report (`node evals/run-suite.mjs smoke`):
+
+Failed or human-reviewed cases and disposition:
+
 <!-- Include a concise scenario and outcome. Remove private source code, credentials, and customer data. -->
 
 ## Compatibility and migration

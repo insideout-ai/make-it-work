@@ -1,11 +1,11 @@
 ---
-type: regex
-target: last_message
-pattern: "purely technical"
-match: not_contains
+type: llm
+focus: last_message
 weight: 1
 ---
 
-This ticket has clear business-logic content (snoozing a reminder), so the purely-technical /
-architecture.md fallback must never fire here. Contrast with `find-the-repos-technical-fallback`,
-where it should.
+PASS if the skill matched this snooze-reminder ticket against the repositories'
+product/use-case documentation. FAIL only if it instead used the
+`architecture.md` fallback for a purely technical ticket. A statement such as
+"the ticket isn't purely technical" describes why the fallback was NOT used
+and must PASS.

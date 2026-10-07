@@ -1,0 +1,7 @@
+{
+  "name": "make-it-work-end-to-end-fixture",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

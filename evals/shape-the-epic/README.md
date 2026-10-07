@@ -14,7 +14,12 @@ These are the two meaningfully distinct autopilot branches this skill's new boun
 bash evals/shape-the-epic/run-all.sh
 ```
 
-All three run fully through plain `claude plugin eval` — no `--dangerously-skip-permissions` needed for any of them. `run-all.sh` runs every case even if an earlier one scores imperfectly (so one weak case doesn't hide the rest), then exits non-zero overall if any case did.
+The per-skill `run-all.sh` uses plain `claude plugin eval` for all three cases
+and runs every case even if an earlier one scores imperfectly. In the shared
+maintainer smoke suite, the rich-input case instead uses a disposable headless
+run: a real plain-eval smoke denied the epic file write despite the declared
+`Write` grant. That run must be reviewed against its graders manually. Neither
+path requires `--dangerously-skip-permissions`.
 
 ## `.claude/`-exposure: why this skill is mostly plain-eval-testable
 

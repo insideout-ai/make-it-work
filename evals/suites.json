@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "smoke": [
+    "close-the-gaps-live-autopilot",
+    "extend-autopilot",
+    "execute-full-pass",
+    "find-the-repos-happy-path",
+    "fresh-onboarding",
+    "implement-feedback-clean",
+    "plan-the-work-happy-path",
+    "autopilot-bare",
+    "rr-full-pass",
+    "shape-the-epic-rich-input-autopilot",
+    "slice-the-epic-well-specified-epic-autopilot"
+  ],
+  "headless": [
+    "autopilot-bare",
+    "autopilot-full-info",
+    "execute-full-pass",
+    "execute-resume-inline",
+    "execute-stop-at-gate",
+    "fresh-autopilot",
+    "fresh-onboarding",
+    "implement-feedback-clean",
+    "implement-feedback-idempotent",
+    "implement-feedback-nonminimal",
+    "plan-the-work-happy-path",
+    "plan-the-work-plan-collision",
+    "plan-the-work-with-tests",
+    "repair-path",
+    "rr-full-fail",
+    "rr-full-pass",
+    "rr-scoped-explicit",
+    "shape-the-epic-rich-input-autopilot"
+  ],
+  "extraTools": {
+    "execute-resume-inline": ["Bash"],
+    "execute-stop-at-gate": ["Bash"],
+    "plan-the-work-happy-path": ["Bash"],
+    "plan-the-work-plan-collision": ["Bash"]
+  }
+}

@@ -1,5 +1,73 @@
 # Running this plugin's eval suites
 
+## Maintainer runs for pull requests and releases
+
+Use an existing, signed-in Claude Code installation. No API key or CI secret is
+needed. A maintainer starts these commands locally, or installs the versioned
+local pre-push hook to run smoke before each push. CI runs only
+`node evals/validate.mjs` and other credential-free checks.
+The runner checks `claude auth status` before starting; if this shell is not
+signed in, use `claude auth login` interactively and retry. It never requests
+or stores an API key.
+
+```sh
+node evals/run-suite.mjs smoke --dry-run  # inspect the 11 selected cases
+node evals/run-suite.mjs smoke            # before every PR
+node evals/run-suite.mjs full             # on demand and before a release
+node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # retry one case
+bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before every push
+```
+
+`smoke` exercises one representative case for each of the 11 public skills.
+The `implement` case covers completion feedback rather than the complete
+orchestrator; the latter is checked in the manual end-to-end release rehearsal.
+`full` discovers and runs every `case.yaml` in this tree (45 at the time this
+section was written). The shared inventory in `evals/suites.json` names the
+smoke cases and the cases that need a direct headless run. Adding a new case
+automatically adds it to `full`; adding a skill requires naming its smoke case.
+
+The commands run each case once. Smoke runs up to four isolated cases in
+parallel, in budget-limited waves; full regression remains sequential. The
+cumulative reported-usage limit is $12 for smoke and $45 for full. Override it with
+`--max-cost-usd=N`. Each run records the commit, Claude Code version, case
+results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
+`--dry-run` does not invoke Claude. Plain `claude plugin eval` cases are graded
+by the harness. Cases marked `headless` use a disposable fixture and produce a
+`transcript.jsonl`; a maintainer must inspect their output against the case's
+`graders/*.md` and record a pass or failure in the PR or release checklist.
+The machine summary labels these cases `review`, never `passed`; a zero exit
+code means no machine-detected failure, not that human review is complete.
+The runner never uses `--dangerously-skip-permissions`. A permission refusal is
+an incomplete case, not a pass; the case README documents its manual fallback.
+The optional Git hook invokes `smoke` once for every push command against a
+disposable snapshot of the committed HEAD, so unrelated worktree edits cannot
+affect the result. Reports stay under this checkout's ignored `evals/results/`.
+It reports failures but allows the push and does not enforce a PR rule. It does
+not run for other contributors until they install it. Human-review cases
+remain marked `review` even when the command exits zero, so inspect them
+before treating the run as a full pass. Each push incurs a new model run and
+usage. Parallel smoke should reduce wall time but not the number of cases or
+their total model usage. The historical 9–11 minute smoke runs were sequential;
+3–5 minutes in parallel is an estimate, not yet a measured result. Concurrent
+Claude sessions may encounter account rate limits, so inspect failed cases.
+The `shape-the-epic` smoke case uses the disposable headless path because its
+file write was denied in a real plain-eval smoke run despite `Write` being
+listed in `allowed_tools`.
+
+For a PR, include the smoke report path and note any failed or human-reviewed
+cases in the PR description. For a release, run `full` for the exact release
+commit and complete `docs/eval-release-checklist.md`. A failing LLM grader is
+an investigation trigger: read the transcript or generated file and record
+whether the skill failed or the grader misread valid output. Do not silently
+turn a failing score into a pass.
+
+Two recent complete 11-case sequential smoke runs reported $2.67 in 9m14s
+and $2.79 in 10m37s. Four-way concurrency is intended to shorten wall time
+without changing case count or materially changing usage, but it has not yet
+been measured against a real Claude run. Budget roughly $15–25 and 1–3 hours
+for the current full suite. New cases and reruns add to both. These are
+reported usage estimates, not a guaranteed invoice.
+
 Each skill with an eval suite has its own `evals/<skill-name>/` directory and its own `README.md` documenting exactly how to run that skill's cases (plain `claude plugin eval` vs. a manual `--dangerously-skip-permissions` run). This file documents conventions and known `claude plugin eval` quirks that apply across all of them.
 
 ## Case naming must be prefixed per skill

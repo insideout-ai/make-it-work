@@ -1,0 +1,8 @@
+{
+  "name": "make-it-work-release-check",
+  "description": "Local disposable marketplace for testing a committed make-it-work plugin release.",
+  "owner": { "name": "InsideOut AI" },
+  "plugins": [
+    { "name": "make-it-work", "source": "./plugins/make-it-work" }
+  ]
+}
