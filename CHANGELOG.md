@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `implement` now uses a deterministic feedback writer to count audit-log events, format minimal and non-minimal run blocks, and safely replace the matching run while preserving other feedback and user-authored text. Retrospective diagnosis and share-safe paraphrasing remain model-driven.
 
+## [4.4.0] - 2026-10-07
+
+### Added
+
+- Added a deterministic `implement` dashboard renderer and HTML template, with tests for workflow states, timing, artifact paths, and safe output handling. The skill now updates its dashboard by running the renderer from its state file.
+- Added a reusable eval environment wrapper that temporarily isolates symlink-containing Docker configuration and works around the macOS Git shim for Bash-granted evals. The `implement` and `run-regression` runners use it.
+
 ## [4.3.0] - 2026-10-06
 
 ### Added

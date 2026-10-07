@@ -23,6 +23,15 @@ Run all cases from the repository root:
 bash evals/implement/run-all.sh
 ```
 
+On macOS hosts where Docker Desktop has symlinks inside `~/.docker`, the runner
+temporarily points `~/.docker` at an empty config while the eval runs, then
+restores the original directory on exit or interruption. It refuses to start
+if Docker Desktop is running or if an earlier backup is present. When the only
+Git on `PATH` is macOS's `/usr/bin/git` shim, it also places a temporary copy
+of the Command Line Tools Git binary at `/opt/homebrew/bin/git` and removes it
+afterward. If the process is forcibly killed, inspect
+`~/.docker.claude-eval-backup` before running another eval.
+
 Each fixture script refuses to seed an existing Git repository. The cases require Bash because `implement` validates Git state and records real timestamps, and Agent because non-minimal feedback is deliberately analyzed in a fresh subagent.
 
 Loop-limit stops and post-terminal clarification are also covered by the skill's explicit eligibility and ordering contract. They remain manual scenarios because producing those states end-to-end requires replaying the capped review/fix loops rather than safely resuming a deterministic terminal fixture.
