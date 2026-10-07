@@ -1,5 +1,16 @@
 # `plan-the-work` autopilot smoke test
 
+Current runner note (2026-10-07): `happy-path` and `plan-collision` now use
+the scripted Execution Status updater and require `Bash` in model-driven evals.
+`bash evals/plan-the-work/run-all.sh` grants it through
+`evals/with-bash-eval-environment.sh`, which temporarily isolates this host's
+Docker configuration and restores it afterward. Historical notes below saying
+that Bash-granting evals cannot run here predate the wrapper. The protected
+`.claude/` decision-log write remains a separate limitation.
+The `with-tests` fixture resolves no autopilot choices, so its decision log
+may correctly be empty. The sandboxed model eval does not grade that file's
+on-disk presence; the permission-enabled manual run can still inspect it.
+
 Five cases exercising `skills/plan-the-work/SKILL.md`'s `--autopilot` flag:
 
 - **`negative-control`** — no `--autopilot`; confirms a hard-stop site (the mid-refinement
@@ -43,16 +54,15 @@ flag-on/flag-off comparison at the same site.
 bash evals/plan-the-work/run-all.sh
 ```
 
-`negative-control`, `plan-collision-negative-control`, `happy-path`, and `plan-collision` run fully
-automatically via `claude plugin eval`. `with-tests` needs real `Bash` (running the fixture's test
-suite) and currently cannot run through `claude plugin eval` on this machine (see
-below) — `run-all.sh` runs it manually via `--dangerously-skip-permissions`, the same way
-`evals/go-deep/run-all.sh` runs its two manual cases. Run `run-all.sh` yourself (via `!` in a Claude
-Code session, or directly in a shell/CI) — not something to hand to an agent, for the same reason
-`evals/go-deep/README.md` gives: an agent operating under this harness's own auto-mode safety net
-can't invoke or grant itself `--dangerously-skip-permissions`.
+All five cases run through `claude plugin eval`. The Bash-granting cases use
+`evals/with-bash-eval-environment.sh`; none use
+`--dangerously-skip-permissions`. Their scores appear in separate reports.
+The runner uses `--threshold 0` so a noisy grader does not prevent later
+cases from running; inspect the score breakdown rather than treating its exit
+status as a pass/fail gate. The manual path described below is only for
+checking on-disk `.claude/` log persistence.
 
-## Why `plan-the-work` needed less manual-bypass treatment than `go-deep`
+## Decision-log behavior and historical manual-bypass notes
 
 `plan-the-work` writes nothing under `.claude/` of its own accord — its real output is
 `make-it-work/<TICKET>-plan.md` (plus, in Step 5's test-writing sub-phase when a test framework is

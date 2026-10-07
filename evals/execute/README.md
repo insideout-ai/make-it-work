@@ -1,5 +1,15 @@
 # `execute` autopilot smoke test
 
+Current runner note (2026-10-07): `execute-stop-at-gate` and
+`execute-resume-inline` now invoke the scripted Execution Status updater, so
+their model-driven evals grant `Bash` through
+`evals/with-bash-eval-environment.sh`. Run `bash evals/execute/run-all.sh` for
+the current commands. Historical notes below about these cases needing no
+`Bash`, and about the Docker symlink preventing every Bash-granting eval,
+predate this change. The wrapper temporarily isolates that host's Docker
+configuration and restores it afterward; it does not bypass the protected
+`.claude/` decision-log write restriction.
+
 Four cases exercising `skills/execute/SKILL.md`'s `--autopilot` flag, against a
 tiny hand-authored "tiny-greeter" fixture project standing in for a real
 `plan-the-work` output (never chained from a live `plan-the-work` run — see
@@ -43,7 +53,21 @@ like what `plan-the-work` would have produced):
   execution (not just a discovery failure), and Phase 5's terminal success
   report.
 
-## Why this isn't one uniform `claude plugin eval` suite
+## Running the current eval suite
+
+```bash
+bash evals/execute/run-all.sh
+```
+
+All four cases run through `claude plugin eval`. The three cases that invoke
+Bash use `evals/with-bash-eval-environment.sh` to handle this host's Docker/Git
+sandbox limitations. The runner uses `--threshold 0` so it prints every
+case's result even if a grader fails; inspect the reports rather than
+treating its exit status as a pass/fail gate. Sandboxed runs grade attempted
+decision-log writes in their traces; on-disk `.claude/` persistence remains
+a separate permission-enabled manual check.
+
+## Historical manual-bypass notes
 
 `execute-negative-control`, `execute-stop-at-gate`, and `execute-resume-inline`
 are all plain-`claude plugin eval`-testable — `execute` itself writes nothing
