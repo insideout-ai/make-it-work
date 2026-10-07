@@ -1,0 +1,66 @@
+skills/execute/SKILL.md
+  s_8fff4b108dff1c::t_31ea4cc5eee778 36,86-87,95-107
+  s_8fff4b108dff1c::t_33913fda637e51 108
+evals/execute/execute-stop-at-gate/graders/attempted-log-payload.md
+  s_8fff4b108dff1c::t_4c60071e923de2 7-12,32-34
+evals/execute/README.md
+  s_8fff4b108dff1c::t_4c60071e923de2 3-13,57-71
+evals/execute/run-all.sh
+  s_8fff4b108dff1c::t_4c60071e923de2 2-5,12,14,24-26,31-33,37-41
+evals/plan-the-work/README.md
+  s_8fff4b108dff1c::t_4c60071e923de2 3-15,59-65,67
+CHANGELOG.md
+  s_8fff4b108dff1c::t_31ea4cc5eee778 12
+evals/execute/execute-resume-inline/graders/attempted-log-payload-backfill.md
+  s_8fff4b108dff1c::t_4c60071e923de2 7-13,24-26
+.github/workflows/validate-plugin.yml
+  s_8fff4b108dff1c::t_a30f9821abdab4 34-36
+CONTRIBUTING.md
+  s_8fff4b108dff1c::t_ecb8710478bb22 50
+evals/execute/execute-full-pass/graders/decision-log-content.md
+  s_8fff4b108dff1c::t_a628c29b95a03d 2-5,8-12
+evals/execute/execute-full-pass/graders/no-step-review-log.md
+  s_8fff4b108dff1c::t_8225ae4caaac97 1-10
+evals/execute/execute-resume-inline/graders/status-script-pause-used.md
+  s_8fff4b108dff1c::t_1796541b81ef7a 2-5
+evals/execute/execute-resume-inline/graders/status-script-progress-used.md
+  s_8fff4b108dff1c::t_a999d8ae5c9bbd 1-7
+evals/execute/execute-stop-at-gate/graders/status-script-mode-used.md
+  s_8fff4b108dff1c::t_30e885574d1540 1-7
+evals/execute/execute-stop-at-gate/graders/status-script-progress-used.md
+  s_8fff4b108dff1c::t_78a4b8e8832f73 1-7
+evals/plan-the-work/happy-path/graders/status-script-used.md
+  s_8fff4b108dff1c::t_f180cca8ac0a57 1-7
+evals/plan-the-work/plan-collision/graders/collision-decision-logged.md
+  s_8fff4b108dff1c::t_377adc6e050cb1 4,8-12
+evals/plan-the-work/plan-collision/graders/status-script-used.md
+  s_8fff4b108dff1c::t_cf4bf22df427e0 1-7
+evals/plan-the-work/run-all.sh
+  s_8fff4b108dff1c::t_af007e6669ee92 2,4-6,11-13,20-22,25,30,34-37,41-44,47-51
+evals/plan-the-work/with-tests/graders/plan-tests-field-recorded.md
+  s_8fff4b108dff1c::t_29720c96885793 2-4,8-13
+skills/execute/scripts/plan-status.mjs
+  s_8fff4b108dff1c::t_aa86d0ac318a22 1-159
+skills/execute/scripts/plan-status.test.mjs
+  s_8fff4b108dff1c::t_06372d6da45e97 1-110
+skills/plan-the-work/SKILL.md
+  s_8fff4b108dff1c::t_3e1f79627ba063 261-263,338,372
+skills/plan-the-work/references/plan-template.md
+  s_8fff4b108dff1c::t_baac5fb0ae7c8d 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8b3311e2812c19024a25b6edf578190cc3f044c1",
+  "prompts": {},
+  "sessions": {
+    "s_8fff4b108dff1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1116f-651f-7bf2-9428-3ad4ec21565e",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
