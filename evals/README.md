@@ -26,8 +26,9 @@ section was written). The shared inventory in `evals/suites.json` names the
 smoke cases and the cases that need a direct headless run. Adding a new case
 automatically adds it to `full`; adding a skill requires naming its smoke case.
 
-The commands run each case once, in order, with a cumulative reported-usage
-limit of $12 for smoke and $45 for full. Override that limit with
+The commands run each case once. Smoke runs up to four isolated cases in
+parallel, in budget-limited waves; full regression remains sequential. The
+cumulative reported-usage limit is $12 for smoke and $45 for full. Override it with
 `--max-cost-usd=N`. Each run records the commit, Claude Code version, case
 results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
 `--dry-run` does not invoke Claude. Plain `claude plugin eval` cases are graded
@@ -45,7 +46,10 @@ It reports failures but allows the push and does not enforce a PR rule. It does
 not run for other contributors until they install it. Human-review cases
 remain marked `review` even when the command exits zero, so inspect them
 before treating the run as a full pass. Each push incurs a new model run and
-usage.
+usage. Parallel smoke should reduce wall time but not the number of cases or
+their total model usage. The historical 9–11 minute smoke runs were sequential;
+3–5 minutes in parallel is an estimate, not yet a measured result. Concurrent
+Claude sessions may encounter account rate limits, so inspect failed cases.
 The `shape-the-epic` smoke case uses the disposable headless path because its
 file write was denied in a real plain-eval smoke run despite `Write` being
 listed in `allowed_tools`.
@@ -57,12 +61,12 @@ an investigation trigger: read the transcript or generated file and record
 whether the skill failed or the grader misread valid output. Do not silently
 turn a failing score into a pass.
 
-The stored reports provide a rough cost baseline: a representative 11-case
-sample reported $4.57 and 19 minutes, but included guard-only cases; 33 of
-the original 41 cases have recorded results totaling about $10.98 and 46
-minutes. Budget roughly $6–10 and 30–60 minutes for a meaningful smoke run,
-and $15–25 and 1–3 hours for the current full suite. New cases and reruns add
-to both. These are reported usage estimates, not a guaranteed invoice.
+Two recent complete 11-case sequential smoke runs reported $2.67 in 9m14s
+and $2.79 in 10m37s. Four-way concurrency is intended to shorten wall time
+without changing case count or materially changing usage, but it has not yet
+been measured against a real Claude run. Budget roughly $15–25 and 1–3 hours
+for the current full suite. New cases and reruns add to both. These are
+reported usage estimates, not a guaranteed invoice.
 
 Each skill with an eval suite has its own `evals/<skill-name>/` directory and its own `README.md` documenting exactly how to run that skill's cases (plain `claude plugin eval` vs. a manual `--dangerously-skip-permissions` run). This file documents conventions and known `claude plugin eval` quirks that apply across all of them.
 

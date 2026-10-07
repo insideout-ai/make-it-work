@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // A maintainer invokes this locally; CI must never run it.
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
+import { runBatches } from './run-batches.mjs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
@@ -13,6 +14,7 @@ const budgetArg = argv.find((arg) => arg.startsWith('--max-cost-usd='));
 const caseArg = argv.find((arg) => arg.startsWith('--case='));
 const requestedCase = caseArg?.slice('--case='.length);
 const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'smoke' ? 12 : 45;
+const concurrency = tier === 'smoke' ? 4 : 1;
 
 if (!['smoke', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
     (caseArg && !requestedCase) ||
@@ -63,14 +65,17 @@ const summary = {
   tier, requestedCase, startedAt: new Date().toISOString(),
   commit: process.env.MIW_EVAL_SOURCE_COMMIT || before.head,
   snapshotCommit: process.env.MIW_EVAL_SOURCE_COMMIT ? before.head : undefined,
-  claudeVersion: version.stdout.trim(), budgetUsd: budget, cases: [],
+  claudeVersion: version.stdout.trim(), budgetUsd: budget, concurrency, cases: [],
 };
-let cost = 0;
-
 function command(binary, args, cwd, timeoutSeconds) {
-  return spawnSync(binary, args, {
-    cwd, encoding: 'utf8', timeout: (timeoutSeconds + 30) * 1000,
-    maxBuffer: 64 * 1024 * 1024, env: process.env,
+  return new Promise((resolve) => {
+    execFile(binary, args, {
+      cwd, encoding: 'utf8', timeout: (timeoutSeconds + 30) * 1000,
+      maxBuffer: 64 * 1024 * 1024, env: process.env,
+    }, (error, stdout, stderr) => resolve({
+      status: error ? (typeof error.code === 'number' ? error.code : null) : 0,
+      error, stdout, stderr,
+    }));
   });
 }
 
@@ -98,7 +103,7 @@ async function runCase(item, remaining) {
   if (headless) {
     fixtureDir = await mkdtemp(path.join(os.tmpdir(), 'make-it-work-eval-'));
     if (item.scaffold) {
-      const fixture = command('bash', [path.join(item.dir, 'fixture.sh')], fixtureDir, 120);
+      const fixture = await command('bash', [path.join(item.dir, 'fixture.sh')], fixtureDir, 120);
       if (fixture.status !== 0) {
         await writeFile(path.join(caseReportDir, 'fixture-error.txt'), `${fixture.stdout}\n${fixture.stderr}`);
         return { name: item.name, skill: item.skill, mode: 'headless', costUsd: 0,
@@ -108,7 +113,7 @@ async function runCase(item, remaining) {
     const args = ['-p', prompt.body, '--plugin-dir', REPO_ROOT, '--allowedTools', ...tools,
       '--max-turns', String(prompt.maxTurns), '--max-budget-usd', remaining.toFixed(2),
       '--output-format', 'stream-json', '--verbose'];
-    result = command('claude', args, fixtureDir, prompt.timeoutSeconds);
+    result = await command('claude', args, fixtureDir, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'transcript.jsonl'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'stderr.txt'), result.stderr || '');
     try {
@@ -129,7 +134,7 @@ async function runCase(item, remaining) {
       '--trust-plugin', '--no-publish', '--threshold', '0', '--output-dir', caseReportDir,
       '--max-cost-usd', remaining.toFixed(2), '--allow-tools', ...tools];
     if (item.scaffold) args.push('--scaffold');
-    result = command('claude', args, REPO_ROOT, prompt.timeoutSeconds);
+    result = await command('claude', args, REPO_ROOT, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'runner-stdout.txt'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'runner-stderr.txt'), result.stderr || '');
     try {
@@ -155,24 +160,19 @@ async function runCase(item, remaining) {
     report: path.relative(REPO_ROOT, caseReportDir) };
 }
 
-process.stdout.write(`Running ${tier}: ${selected.length} cases, cost limit $${budget.toFixed(2)}.\n`);
+process.stdout.write(`Running ${tier}: ${selected.length} cases, ${concurrency} concurrent, cost limit $${budget.toFixed(2)}.\n`);
 process.stdout.write(`Reports: ${reportDir}\n`);
-for (const item of selected) {
-  if (cost >= budget) {
-    summary.stopped = `Cost limit reached before ${item.name}`;
-    break;
-  }
-  process.stdout.write(`→ ${item.name}\n`);
-  const entry = await runCase(item, budget - cost);
-  cost += entry.costUsd;
-  summary.cases.push(entry);
-  process.stdout.write(`  ${entry.status}; reported usage $${entry.costUsd.toFixed(2)}${entry.detail ? `; ${entry.detail}` : ''}\n`);
-  await writeFile(path.join(reportDir, 'summary.json'), JSON.stringify({ ...summary, costUsd: cost }, null, 2) + '\n');
-  if (/not logged in|authentication failed/i.test(entry.detail)) {
-    summary.stopped = `Authentication failed during ${item.name}`;
-    break;
-  }
-}
+const run = await runBatches(selected, {
+  concurrency, budget, runCase,
+  onStart: (item) => process.stdout.write(`→ ${item.name}\n`),
+  onResult: async (entry, cost) => {
+    summary.cases.push(entry);
+    process.stdout.write(`  ${entry.name}: ${entry.status}; reported usage $${entry.costUsd.toFixed(2)}${entry.detail ? `; ${entry.detail}` : ''}\n`);
+    await writeFile(path.join(reportDir, 'summary.json'), JSON.stringify({ ...summary, costUsd: cost }, null, 2) + '\n');
+  },
+});
+const { cost } = run;
+summary.stopped = run.stopped;
 const after = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('status', '--porcelain').stdout };
 summary.repoUnchanged = before.head === after.head && before.status === after.status;
 summary.completedAt = new Date().toISOString();
