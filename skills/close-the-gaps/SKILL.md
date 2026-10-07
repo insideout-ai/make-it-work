@@ -388,11 +388,11 @@ Finish by printing one line: `Context updated: <each file changed, with a one-li
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
 
-**Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided or Autonomous), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
+**Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided, Autonomous, or Autopilot), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
 
 **No offline mode** — ignore `--offline` and always use Phase 5A. (`implement` stops before calling this skill when a pending questions file exists.)
 
-**Questions** — every question this skill asks, from Phase 1's prompts to Phase 5A's waves, is asked live exactly as in a standalone run, at either autonomy level.
+**Questions** — Guided and Autonomous ask every question live exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and never ask live; return normally after a safe resolution or surface its documented hard-stop result to `implement`.
 
 **Return report** — end the output with these lines, then stop without suggesting next steps:
 

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const SKILLS = new Set([
   'close-the-gaps', 'define-test-strategy', 'execute', 'find-the-repos',
-  'go-deep', 'plan-the-work', 'review-the-pr', 'run-regression',
+  'go-deep', 'implement', 'plan-the-work', 'review-the-pr', 'run-regression',
   'shape-the-epic', 'slice-the-epic',
 ]);
 const KINDS = new Set(['askUserQuestion', 'checkpoint', 'open_text']);

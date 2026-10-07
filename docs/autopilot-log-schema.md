@@ -1,6 +1,6 @@
 # Autopilot decision-log schema
 
-Shared reference for the `**Decision log:**` section every `--autopilot`-enabled skill documents in its own `SKILL.md`. Each skill's own section states its own log filename and write-timing behavior (these differ per skill and stay there), then points here for the field shape, naming only its own deltas from the general shape below.
+Shared reference for the `**Decision log:**` section every `--autopilot`-enabled skill documents in its own `SKILL.md`. Each skill's own section states its own log filename and write-timing behavior (these differ per skill and stay there), then points here for the field shape, naming only its own deltas from the general shape below. `implement` uses this contract for orchestration-level decisions; its dispatched stage skills keep their own per-skill logs.
 
 ## Shared writer
 

@@ -23,7 +23,7 @@ const PHASE_VALUES = new Set([
   'context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval',
   'execute', 'review', 'fix-plan', 'final-sync', 'complete',
 ]);
-const AUTONOMY_VALUES = new Set(['guided', 'autonomous', 'pending']);
+const AUTONOMY_VALUES = new Set(['guided', 'autonomous', 'autopilot', 'pending']);
 const EXECUTION_MODE_VALUES = new Set(['none', 'subagent-driven', 'inline']);
 const INLINE_PAUSE_MODE_VALUES = new Set(['none', 'stop-after-each-step', 'run-straight-through']);
 const EXECUTION_VALUES = new Set([
@@ -86,7 +86,7 @@ const PHASE_INFO = {
 };
 
 const AUTONOMY_TOOLTIP =
-  'guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question and still stops at loop limits and at completion.';
+  'guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question. autopilot: resolves every documented safe default without prompting, creates a feature branch from the base branch, and stops with a recorded reason when required facts are missing or contradictory.';
 const PENDING_AUTONOMY_TOOLTIP =
   'not yet chosen — Context Check and/or Choose Autonomy are still running.';
 

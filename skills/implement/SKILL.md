@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → plan-the-work → execute → review-the-pr → final context sync — with saved, resumable workflow state, two autonomy levels (Guided, Autonomous), capped fix/replan loops, and local end-of-run workflow feedback. Never commits implementation changes, pushes, opens a PR, or uploads feedback. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
+description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → plan-the-work → execute → review-the-pr → final context sync — with saved, resumable workflow state, Guided, Autonomous, and unattended --autopilot modes, capped fix/replan loops, and local end-of-run workflow feedback. Never commits implementation changes, pushes, opens a PR, or uploads feedback. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
 disable-model-invocation: true
 ---
 
@@ -15,14 +15,25 @@ disable-model-invocation: true
 ## Usage
 
 ```
-/make-it-work:implement [TICKET-ID | path/to/spec.md]
+/make-it-work:implement [TICKET-ID | path/to/spec.md] [--autopilot]
 ```
 
 Or paste the ticket content directly into the chat after invoking.
 
+- **`--autopilot`** — strip this flag before resolving the ticket or spec path. It runs the complete existing ticket-delivery pipeline without `AskUserQuestion` calls, forwarding `--autopilot` to every dispatched stage. It never commits, pushes, opens a PR, invokes `go-deep` or `define-test-strategy`, or guesses through a missing/contradictory required fact; those cases checkpoint a `Stopped` state with an actionable reason.
 - **Ticket key or pasted content** — derive `<TICKET>` exactly as `close-the-gaps` Phase 1 does: the ticket ID; otherwise a kebab-case slug of the title; otherwise `spec-YYYY-MM-DD`.
 - **Spec path** — `<TICKET>` is the file name without its `-spec.md` suffix.
-- **No argument** — list `make-it-work/*-state.md` files whose `status` is not `Complete`. Exactly one → offer to resume it. Several → ask which one. None → ask the user for a ticket.
+- **No argument** — list `make-it-work/*-state.md` files whose `status` is not `Complete`. Exactly one → offer to resume it; under `--autopilot`, resume it only when its saved autonomy is `autopilot` and its workspace fingerprints still match. Several or none → ask the user; under `--autopilot`, stop with the matching no-safe-default reason.
+
+## Autopilot mode
+
+When invoked with `--autopilot`, construct every ordinary question/checkpoint payload exactly as the interactive path would, but do not call `AskUserQuestion` or wait. Set `autonomy: autopilot`, create `.claude/implement-autopilot-log.jsonl` fresh at the start of the run, and append each orchestration-level resolution with the shared schema in `docs/autopilot-log-schema.md`. Use `node "<base>/../../scripts/decision-log.mjs" init|append implement --root "<repo-root>"` in its own Bash call when Bash is available; a denied log write never blocks unrelated pipeline work.
+
+Auto-resolve only these safe defaults: create the suggested ticket-named feature branch when starting on the base branch; retain a clean resumable autopilot run's saved mode; continue with clear related/unrelated regression classification; choose sequential dispatch; and replan when the existing Autonomous rules already prescribe replan. Forward `--autopilot` to `close-the-gaps`, `plan-the-work`, `execute`, and the Review dispatch; `execute` forwards it to `run-regression` for its completion gate.
+
+Stop, record `chosen: null`, set `status: Stopped`, clear `current_activity`, regenerate the dashboard, and report the remediation when there is no safe default: no ticket or several resumable runs, detached HEAD, an existing completed/stopped run or standalone artifacts that would need a reuse/overwrite choice, changed worktree on resume, unresolved TBDs or plan blockers, uncertain regression ownership, an unavailable regression result, a review `Route: human` finding, or any stage's own hard stop. A normal terminal feedback retrospective never re-opens a successful run: write the best available share-safe diagnosis and retain material uncertainty in `openQuestions` rather than asking follow-ups.
+
+At the terminal report, summarize auto-resolved decisions and the implement log path in addition to the normal completion/stop summary.
 
 ---
 
@@ -37,7 +48,7 @@ The stage skills are siblings of this skill in the plugin. Take the `Base direct
 
 Read each one with the Read tool when its phase starts — **never** start them through the Skill tool; they are deliberately user-invoked only outside this orchestrator. Follow each skill's instructions including its `## When run by implement` section, passing the inputs that section names.
 
-- Refinement, planning, and execution run inline in this session, because they ask the user questions and `execute` dispatches its own per-step subagents.
+- Refinement, planning, and execution run inline in this session; under `--autopilot`, pass the flag so their own decision policies replace questions while `execute` dispatches its own per-step subagents.
 - Review runs in a fresh subagent, for an independent read of the change (see Review dispatch).
 
 If any of the four files is missing, stop and tell the user the exact path that could not be found. Do not improvise the stage.
@@ -57,7 +68,7 @@ The run's state lives in `make-it-work/<TICKET>-state.md`, next to the other pip
 ticket: <TICKET>
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | review | fix-plan | final-sync | complete
-autonomy: guided               # guided | autonomous | pending — pending only between state-file creation and Choose autonomy completing (see Start)
+autonomy: guided               # guided | autonomous | autopilot | pending — pending only between state-file creation and Choose autonomy completing (see Start)
 start_time: none                # ISO 8601 UTC timestamp captured as the first action of Start; never fabricated or backfilled
 execution_mode: none            # none | subagent-driven | inline — set once execute's Mode-selection phase runs
 inline_pause_mode: none         # none | stop-after-each-step | run-straight-through — set only when execution_mode is inline
@@ -163,7 +174,7 @@ Work through these checks in order; the first one that applies decides what happ
 
 1. **Branch guard**:
    - **`HEAD` is detached** → stop: tell the user to create or switch to a feature branch first. A run must never start on a detached HEAD — there is no branch for the work this run produces to live on.
-   - **Current branch equals `base`** → compute a suggested branch name: `<TICKET>`; if `git rev-parse --verify --quiet refs/heads/<TICKET>` resolves (the name is already taken), try `<TICKET>-2`, `<TICKET>-3`, … incrementing until one does not resolve, and use that instead. Then ask with `AskUserQuestion`: *"You're on `<base>` — proceed anyway, or should I create a feature branch for you?"*, with these options:
+   - **Current branch equals `base`** → compute a suggested branch name: `<TICKET>`; if `git rev-parse --verify --quiet refs/heads/<TICKET>` resolves (the name is already taken), try `<TICKET>-2`, `<TICKET>-3`, … incrementing until one does not resolve, and use that instead. Under `--autopilot`, choose `Create feature branch <suggested-name> (recommended)`, log that checkpoint, run `git switch -c <suggested-name>`, and stop with the command error if it fails — never proceed on the base branch. Otherwise ask with `AskUserQuestion`: *"You're on `<base>` — proceed anyway, or should I create a feature branch for you?"*, with these options:
      - Create feature branch `<suggested-name>` (recommended).
      - Proceed on `<base>` anyway.
      - Stop.
@@ -174,7 +185,7 @@ Work through these checks in order; the first one that applies decides what happ
 
      If the user picks **Stop**, stop here, exactly as today's hard stop did.
    - **Neither condition applies** → continue to the next Start check.
-2. **Completed run** — a state file exists with `status: Complete`, **or** with `status: Stopped` and `phase: context-check` → ask whether to start a new run (the state file is overwritten) or stop. A run that never got past Context Check produced no artifacts worth resuming, so it is treated the same as a completed run's own re-run prompt, not routed into Resume.
+2. **Completed run** — a state file exists with `status: Complete`, **or** with `status: Stopped` and `phase: context-check` → ask whether to start a new run (the state file is overwritten) or stop. Under `--autopilot`, stop rather than overwriting the state or artifacts. A run that never got past Context Check produced no artifacts worth resuming, so it is treated the same as a completed run's own re-run prompt, not routed into Resume.
 3. **Run in progress** — a state file exists with any other status → go to **Resume**.
 4. **Pending offline refinement** — `make-it-work/<TICKET>-questions.md` exists with `**Status:** Awaiting Answers` → create the state file with `phase: close-the-gaps`, `status: Paused`, `pause_reason: offline refinement pending`, a real captured timestamp in `start_time` (same capture rule as the Checkpoint rule's `Time` cell), and the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below), mentioning the dashboard's path once in this stop message; tell the user to finish `/make-it-work:close-the-gaps <that path>` and then run `implement` again; stop.
 5. **New run**:
@@ -182,8 +193,8 @@ Work through these checks in order; the first one that applies decides what happ
    - Create the state file with `phase: context-check`, `status: In Progress`, `autonomy: pending`, every other field at its template default (including `real_rows_from: 1`), and log the first Audit-log row: `From: start`, `To: context-check`, with an `Outcome / reason` summarizing whatever the branch guard just resolved (e.g. `New run created; branch <name> created per branch-guard choice` or `New run created; proceeding on <base>` — fold the branch-guard outcome into this one row's narrative; no separate row for it, since no state file existed while the branch guard ran).
    - Create the progress dashboard (`make-it-work/<TICKET>-status.html` — see Progress dashboard below) from those fields, and tell the user its path in the very first chat message of the run.
    - *Only then* run **Context check**. **If its outcome is "stop"** (no signal at all, or incomplete, per Context check's own Outcomes), set `status: Stopped` explicitly — not `Paused`: there is no mid-run point to resume into until the user has run `go-deep` externally and re-invokes `implement`, which is effectively a fresh attempt, not a resumable pause. Log this as the phase's own Audit-log row (`From`=`To`=`context-check`, `Outcome / reason`: the exact stop message shown to the user), regenerate the dashboard, then stop exactly as Context check's own Outcomes already specify.
-   - If Context check succeeds, run **Choose autonomy** — when autonomy is chosen, update the `autonomy` field from `pending` to the chosen value, log a decision row (`From`/`To` both `context-check`) reading `Decision: Autonomy level selected — <Guided|Autonomous>`, and regenerate the dashboard (per the Checkpoint rule).
-   - Then, exactly as today: if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase.
+   - If Context check succeeds, run **Choose autonomy** — when autonomy is chosen, update the `autonomy` field from `pending` to the chosen value, log a decision row (`From`/`To` both `context-check`) reading `Decision: Autonomy level selected — <Guided|Autonomous|Autopilot>`, and regenerate the dashboard (per the Checkpoint rule).
+   - Then, exactly as today: if `make-it-work/<TICKET>-spec.md` and/or `make-it-work/<TICKET>-plan.md` already exist from standalone runs, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Under `--autopilot`, stop rather than choosing between stale artifacts.
    - **Close out Context check explicitly** (new — this did not need stating before, since no state file existed at this point until now): once the reuse/redo decision above resolves, update `phase` to the actual starting phase (`close-the-gaps` for a fresh spec/plan, or `plan`/`execute` if reusing an existing one per the decision just made), and log the closing Audit-log row `context-check → <that phase>` with an outcome describing the decision, then regenerate the dashboard. This is what flips the pre-activated `context-check` dot from `current` to `passed`, exactly like any other phase's own closing row does.
 
 ---
@@ -207,12 +218,14 @@ Never run `go-deep` yourself.
 
 ## Choose autonomy
 
-Ask once, with a single `AskUserQuestion`, and save the answer to `autonomy`:
+Ask once, with a single `AskUserQuestion`, and save the answer to `autonomy`. When `--autopilot` is present, skip this question, save `autopilot`, and append the corresponding decision-log entry:
 
 - **Guided (Recommended)** — pauses for approval after the spec and after the plan, and for every human decision.
 - **Autonomous** — no approval gates, and replans automatically when the plan stops holding. It still asks every question a stage asks and every uncertain regression, and it stops at the loop limits and at completion.
 
-Offer only these two levels.
+- **Autopilot** — selected only by `--autopilot`; no approval or stage-question prompts. It uses the policy in Autopilot mode and stops safely when no documented default exists.
+
+Offer only Guided and Autonomous interactively.
 
 ---
 
@@ -220,16 +233,16 @@ Offer only these two levels.
 
 Compare the current `branch`, `head`, `worktree_fingerprint`, `spec_hash`, and `plan_hash` against the state file.
 
-- **Nothing changed, and the last log row closed its phase** (the last Audit-log row's `From` differs from its `To` — a trailing same-phase decision row, per the merged-log design, never counts as closing a phase) → show one line (current phase and autonomy level), offer to change the autonomy level, then continue at `phase`. This bucket never applies while `phase: context-check`, even when its one logged row (`start → context-check`) technically has `From ≠ To` — that row only records *entering* Context Check, and Context Check's own mandatory follow-on orchestration (Choose autonomy, the reuse/redo prompt, the closing row) may not have run yet; a `phase: context-check` state always falls to the next bucket instead.
+- **Nothing changed, and the last log row closed its phase** (the last Audit-log row's `From` differs from its `To` — a trailing same-phase decision row, per the merged-log design, never counts as closing a phase) → show one line (current phase and autonomy level), offer to change the autonomy level, then continue at `phase`. Under `--autopilot`, continue only if the saved autonomy is `autopilot`; otherwise stop rather than changing its mode. This bucket never applies while `phase: context-check`, even when its one logged row (`start → context-check`) technically has `From ≠ To` — that row only records *entering* Context Check, and Context Check's own mandatory follow-on orchestration (Choose autonomy, the reuse/redo prompt, the closing row) may not have run yet; a `phase: context-check` state always falls to the next bucket instead.
 - **Interrupted mid-`context-check`, mid-`close-the-gaps`, mid-`review`, or mid-`final-sync`, with nothing else changed** → these phases are safe to repeat: tell the user, then re-run that phase from its start. For `context-check` specifically, "from its start" means re-entering Start check #5 at its "run Context check" bullet and continuing through it exactly as a New run would — Choose autonomy (re-asking if `autonomy` is still `pending`), the reuse/redo prompt, and the explicit closing row/phase-update — since that orchestration lives in Start, not in a `## Phases` subsection of its own.
-- **Anything changed, or the run was interrupted mid-`plan`, mid-`fix-plan`, or mid-`execute`** (the phase started but has no closing log row) → list exactly what differs, then ask:
+- **Anything changed, or the run was interrupted mid-`plan`, mid-`fix-plan`, or mid-`execute`** (the phase started but has no closing log row) → list exactly what differs, then ask; under `--autopilot`, stop rather than choosing among Resume anyway, Redo, or Start over:
   - **Resume anyway** — re-record the fingerprints and continue. For an interrupted execute, run `execute` again; it resumes from its own Progress line.
   - **Redo the affected phase** — the earliest phase whose artifact changed; code changed outside the workflow → execute.
   - **Start over** — a new run for this ticket.
 
 An early-replan row (`review → plan` or `fix-plan → plan`) is an ordinary replan entry: it is logged in the same checkpoint that bumps `replans_used` and `plan_version`, so a state with `phase: plan` and that row last resumes at `plan` in replan mode, never as a stale fix-plan round. An interruption before the row was logged leaves `phase: fix-plan` (or `review`) with the counters untouched; it takes the buckets above, and the early-replan triggers are re-checked on re-entry.
 
-Ask this in both autonomy levels. Never assume a changed repository is still safe to resume.
+Ask this in both interactive autonomy levels. Never assume a changed repository is still safe to resume.
 
 **Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). This is the only migration Resume performs; it never touches a file that already has the key.
 
@@ -241,7 +254,7 @@ Each phase reads its stage skill (see Stage skills), passes the inputs that skil
 
 ### Close the gaps
 
-Follow `close-the-gaps` inline with the ticket, the autonomy level, and — when redoing the phase — the user's redo notes. From its return report, record `spec` and `spec_hash`, and add its `Context updated:` files to `context_updated`. If `TBD items` is above zero, that is a human decision: ask whether to resolve the TBD items now (re-run refinement on them) or proceed with them open.
+Follow `close-the-gaps` inline with the ticket, the autonomy level, and — when redoing the phase — the user's redo notes. Under `autopilot`, append `--autopilot` to the stage invocation. From its return report, record `spec` and `spec_hash`, and add its `Context updated:` files to `context_updated`. If `TBD items` is above zero, that is a human decision: ask whether to resolve the TBD items now (re-run refinement on them) or proceed with them open; under `autopilot`, stop rather than choosing.
 
 ### Spec approval (Guided only)
 
@@ -249,7 +262,7 @@ Show the spec path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 ### Plan
 
-Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Pass the user's redo notes too when redoing the phase. From its return report, record `plan` and `plan_hash`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table.
+Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Under `autopilot`, append `--autopilot` to the stage invocation. Pass the user's redo notes too when redoing the phase. From its return report, record `plan` and `plan_hash`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table; under `autopilot`, stop rather than choosing whether to proceed.
 
 ### Plan approval (Guided only)
 
@@ -257,7 +270,7 @@ Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 ### Execute
 
-Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Whenever the next not-yet-done step's own number is greater than `M − fix_plan_round_steps` (i.e. it belongs to the current fix-plan round's own added steps, not the original plan) — a plain comparison against numbers already in the state file, so this stays correct across an interrupted-and-resumed execute within the same round without depending on which Transition-table row most recently fired — also pass `fix_plan_dispatch`'s current value (`sequential` or `parallel`) as an additional input to `execute`. For the original plan's own steps (resume point at or below that boundary), never pass this input at all. While following it inline, after every per-step checkpoint it performs — under Subagent-Driven mode, the point where this session reviews a step's report and re-reads `## Execution Status → Progress` before dispatching the next step (`execute/SKILL.md`'s Phase 2 "reviewed between steps" pause point); under Inline mode, the point right after a step's own Progress-line update (`execute/SKILL.md`'s Phase 2 point 4) — also regenerate the dashboard immediately, before continuing to the next step, using the plan file's current `## Execution Status` Mode/Progress lines. Do not wait for the whole Execute phase to finish before the first of these regenerations. Also, when execution_mode or inline_pause_mode is first chosen for this plan version, record it in the state file's `execution_mode`/`inline_pause_mode` fields and log a decision row for it (per the decision-row-logging paragraph above) before the first per-step dispatch. Read its outcome lines:
+Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Under `autopilot`, append `--autopilot`, which also makes its completion gate invoke `run-regression --autopilot`. Whenever the next not-yet-done step's own number is greater than `M − fix_plan_round_steps` (i.e. it belongs to the current fix-plan round's own added steps, not the original plan) — a plain comparison against numbers already in the state file, so this stays correct across an interrupted-and-resumed execute within the same round without depending on which Transition-table row most recently fired — also pass `fix_plan_dispatch`'s current value (`sequential` or `parallel`) as an additional input to `execute`. For the original plan's own steps (resume point at or below that boundary), never pass this input at all. While following it inline, after every per-step checkpoint it performs — under Subagent-Driven mode, the point where this session reviews a step's report and re-reads `## Execution Status → Progress` before dispatching the next step (`execute/SKILL.md`'s Phase 2 "reviewed between steps" pause point); under Inline mode, the point right after a step's own Progress-line update (`execute/SKILL.md`'s Phase 2 point 4) — also regenerate the dashboard immediately, before continuing to the next step, using the plan file's current `## Execution Status` Mode/Progress lines. Do not wait for the whole Execute phase to finish before the first of these regenerations. Also, when execution_mode or inline_pause_mode is first chosen for this plan version, record it in the state file's `execution_mode`/`inline_pause_mode` fields and log a decision row for it (per the decision-row-logging paragraph above) before the first per-step dispatch. Read its outcome lines:
 
 - `Execute outcome:` → record `execution`.
 - `Discoveries:` → append to Context discoveries.
@@ -274,9 +287,9 @@ Classify every failing test that is not already listed under Known regressions:
 
 - **Related** — the plan names it (in a step's `**Tests:**` field or a `## Test Plan` row), it lives in a file listed in the plan's Affected Code, or its path carries one of the spec's use-case or domain tags (per the project's tag convention in `.claude/rules/testing-strategy.md`, when that file exists).
 - **Unrelated** — none of the above.
-- **Uncertain** — the evidence points both ways, or the failing test can't be identified. Ask the user about each one (related → fix it / unrelated → document it), in both autonomy levels.
+- **Uncertain** — the evidence points both ways, or the failing test can't be identified. Ask the user about each one (related → fix it / unrelated → document it) in both interactive autonomy levels; under `autopilot`, stop rather than classifying it.
 
-Append every unrelated test to Known regressions, and append the final related / unrelated split to the file `execute_report` names. Unrelated regressions are documented, never fixed in this run. In Guided, also show the final related/unrelated split and ask: **Fix the related ones** / **Treat all as unrelated and continue** / **Stop**.
+Append every unrelated test to Known regressions, and append the final related / unrelated split to the file `execute_report` names. Unrelated regressions are documented, never fixed in this run. In Guided, also show the final related/unrelated split and ask: **Fix the related ones** / **Treat all as unrelated and continue** / **Stop**. Autopilot follows the already-computed clear split without a second prompt.
 
 ### Review
 
@@ -313,6 +326,8 @@ See Final context sync below.
 ## Transition table
 
 Every transition is listed here. `—` means the outcome cannot occur at that level.
+
+For `autopilot`, use the Autonomous column only where it requires no human decision. The Autopilot mode policy overrides all rows that say to ask, pause, accept a manual walkthrough, or record a `Route: human` decision: checkpoint a `Stopped` state instead. Clear outcomes that already route automatically in Autonomous (execution pass, related/unrelated gate classification, fix/replan loops, and clean review) continue unattended.
 
 | Phase | Outcome | Guided | Autonomous |
 | --- | --- | --- | --- |
@@ -357,7 +372,7 @@ Every transition is listed here. `—` means the outcome cannot occur at that le
 
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
-- give the absolute path of `review-the-pr/SKILL.md` and say to follow it, including its `## When run by implement` section;
+- give the absolute path of `review-the-pr/SKILL.md` and say to follow it, including its `## When run by implement` section; when `autonomy: autopilot`, explicitly invoke it with `--autopilot`;
 - pass the ticket key, the spec path, the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list;
 - when `gate: none` (the completion gate was skipped per the `GATE_NO_RESULT` handling above), also pass a note that the automated gate was skipped and the plan's `## Test Plan` rows should be verified manually as part of the regression-safety pass;
 - ask it to return the chat summary, ending with the `Orchestrator outcome:` line.
@@ -403,7 +418,7 @@ Read `<base>/references/feedback.md` in full and follow it. The deterministic fe
 
 Use the writer's `inspect` result to decide whether the run is minimal. For a non-minimal run, dispatch the reference's fresh retrospective subagent and work from its structured diagnosis. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
 
-The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later.
+The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later. Under `autopilot`, do not ask the retrospective's optional clarification questions: preserve material uncertainty in the writer input's `openQuestions` and finish the terminal report.
 
 ---
 
@@ -431,7 +446,7 @@ End with: "Changes are uncommitted — review the working tree and commit when r
 - Never start on a detached HEAD. Never start on the base branch unless the user explicitly chose to proceed anyway at the branch guard.
 - Never run `go-deep`, and never start a stage skill through the Skill tool.
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.
-- Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking.
+- Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking — except when `--autopilot` invokes that stage's own documented autopilot resolution. Autopilot never resolves its documented hard stops.
 - Never fix a regression classified as unrelated.
 - Never upload or automatically submit `make-it-work/implement-feedback.md`, and never include the project identifiers forbidden by its feedback reference.
 - Never backfill `make-it-work/<TICKET>-status.html` for a run resumed with the file already missing — it is only ever created the first time a ticket's state file is created (Start → New run or Start → Pending offline refinement).
