@@ -347,7 +347,7 @@ Do not paste the full plan in chat unless the user asks.
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
 
-**Inputs** — the spec path, the run's autonomy level (Guided or Autonomous), the plan version `N`, optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
+**Inputs** — the spec path, the run's autonomy level (Guided, Autonomous, or Autopilot), the plan version `N`, optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
 
 **Initial mode** (`N = 1`) — write `make-it-work/<TICKET>-plan.md`. If it already exists, overwrite it without the overwrite / `-v2` / abort question; `implement` has already offered the user to reuse it. **With redo notes:** read the existing plan before overwriting it, treat the notes as constraints the new draft must satisfy, and handle the earlier draft's test files the same way replan mode does (reuse what is still valid; adjust or remove the rest as ordinary file edits).
 
@@ -375,7 +375,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 - The test-writing sub-phase runs exactly as in a standalone run; this skill never commits anything, under either invocation.
 - **Baseline blocked:** if Step 5 point 5 finds a regression test already failing, stop drafting and return `Blocked: pre-existing failing regression — <test file / name>`. When `implement` comes back with the user's decision ("call it out and proceed" or "stop"), apply it and continue.
-- **Questions:** every question this skill asks (Step 1b's scope split, Step 4.5's waves) is asked live, exactly as in a standalone run.
+- **Questions:** Guided and Autonomous ask every question live, exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and return its documented hard stop rather than prompting.
 - **Hand-offs:** skip Step 6's "Run `/make-it-work:execute` …" message and the plan-reviewer offer; `implement` decides what runs next.
 
 **Return report** — print Step 6's output block, with `Plan:` set to the path actually written (e.g. `make-it-work/<TICKET>-plan-v2.md`), followed by:

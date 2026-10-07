@@ -7,7 +7,7 @@ cd "$REPO_ROOT"
 
 bash "$REPO_ROOT/evals/with-bash-eval-environment.sh" bash -c '
   set -euo pipefail
-  for case_name in implement-feedback-clean implement-feedback-nonminimal implement-feedback-idempotent; do
+  for case_name in implement-feedback-clean implement-feedback-nonminimal implement-feedback-idempotent implement-autopilot-full; do
     echo "=== Running $case_name ==="
     claude plugin eval . --case "$case_name" --scaffold \
       --allow-tools Read Glob Grep Edit Write Bash Agent AskUserQuestion \

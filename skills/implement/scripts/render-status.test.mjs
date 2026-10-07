@@ -115,6 +115,17 @@ test('renders a fresh run with active Context Check and no timing paragraph', as
   assert.doesNotMatch(html, /Waiting on you:/);
 });
 
+test('accepts and describes fully autonomous autopilot runs', async (t) => {
+  const state = stateMarkdown({
+    fields: { autonomy: 'autopilot' },
+    rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New autopilot run created']],
+  });
+  const { html } = await renderFixture(t, state);
+
+  assert.match(html, /Autonomy: autopilot/);
+  assert.match(html, /resolves every documented safe default without prompting/);
+});
+
 test('renders pending offline refinement without activating a timeline dot', async (t) => {
   const state = stateMarkdown({
     fields: {

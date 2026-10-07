@@ -64,6 +64,7 @@ test('append requires init and rejects malformed existing JSONL without clobberi
 
 test('validates shared schema and skill-specific repo field', () => {
   assert.deepEqual(normalizeEntry({ ...checkpoint, chosen: null }, 'execute').chosen, null);
+  assert.equal(normalizeEntry(checkpoint, 'implement').site, 'review-pause');
   assert.equal(normalizeEntry({ ...checkpoint, repo: 'service-a' }, 'define-test-strategy').repo, 'service-a');
   assert.throws(() => normalizeEntry({ ...checkpoint, repo: 'service-a' }, 'execute'), /repo is allowed only/);
   assert.throws(() => normalizeEntry({ ...checkpoint, site: 'Review Pause' }, 'execute'), /lowercase slug/);

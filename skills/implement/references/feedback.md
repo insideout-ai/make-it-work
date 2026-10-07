@@ -109,7 +109,7 @@ It may name make-it-work phases and skills, counts, generic failure shapes, and 
 
 Write the provisional block with the script before asking anything. Ask one question at a time only when the answer could materially change the cause category, earliest preventable stage, owner, or recommendation. There is no numerical cap; stop when every remaining uncertainty is immaterial, the user says they do not know, or the user declines.
 
-After every answer, update the analysis JSON and rerun the writer to replace the same marked block. Record the sanitized question and answer in `clarifications`; never copy sensitive wording verbatim when a share-safe paraphrase is sufficient. If the session ends first, leave the run terminal and keep the unresolved question in `openQuestions`. Do not add a feedback-pending workflow state or resume path.
+After every answer, update the analysis JSON and rerun the writer to replace the same marked block. Record the sanitized question and answer in `clarifications`; never copy sensitive wording verbatim when a share-safe paraphrase is sufficient. If the session ends first, leave the run terminal and keep the unresolved question in `openQuestions`. During an `implement --autopilot` run, never ask a clarification question: write the best evidence-backed provisional diagnosis and put every material unresolved question in `openQuestions`. Do not add a feedback-pending workflow state or resume path.
 
 ## Non-minimal analysis input
 
