@@ -1,0 +1,72 @@
+skills/implement/references/feedback.md
+  s_136fb5584ef965::t_dc4cc1756849fa 112
+docs/autopilot-log-schema.md
+  s_136fb5584ef965::t_e518dbd09bbca4 3
+skills/implement/SKILL.md
+  s_136fb5584ef965::t_90e2b51cb7991a 196,257,265,273
+  s_136fb5584ef965::t_afd7d4e12cff9f 221,226-228,236,238,245
+  s_136fb5584ef965::t_15d69d03510d38 330-331
+  s_136fb5584ef965::t_5ab35125584f84 26-36,51,71,177,188,197
+  s_136fb5584ef965::t_64f778c2d17dba 290,292,375,421,449
+  s_136fb5584ef965::t_465d770b9a91e4 3,18,23
+scripts/decision-log.test.mjs
+  s_136fb5584ef965::t_cca57692e7dd58 67
+skills/close-the-gaps/SKILL.md
+  s_136fb5584ef965::t_2c056aa4161bed 391,395
+CHANGELOG.md
+  s_136fb5584ef965::t_9e9b67aa7ead01 12
+  s_136fb5584ef965::t_e518dbd09bbca4 11
+scripts/decision-log.mjs
+  s_136fb5584ef965::t_cca57692e7dd58 10
+skills/implement/scripts/render-status.test.mjs
+  s_136fb5584ef965::t_cca57692e7dd58 118-128
+README.md
+  s_136fb5584ef965::t_bba2d4ebb27906 142,146,178
+skills/plan-the-work/SKILL.md
+  s_136fb5584ef965::t_2c056aa4161bed 350,378
+skills/execute/SKILL.md
+  s_136fb5584ef965::t_3afa97ab975021 32,299-300
+  s_136fb5584ef965::t_2c056aa4161bed 353,359,363
+skills/implement/scripts/render-status.mjs
+  s_136fb5584ef965::t_cca57692e7dd58 26,89
+evals/implement/README.md
+  s_4a7a57b085b7ff::t_e7ba12efd0248f 8
+evals/implement/implement-autopilot-full/case.yaml
+  s_4a7a57b085b7ff::t_deb2f10d7b6cb1 1-5
+evals/implement/implement-autopilot-full/fixture.sh
+  s_4a7a57b085b7ff::t_10afb7eb534d7d 1-39
+evals/implement/implement-autopilot-full/graders/admin-policy.md
+  s_4a7a57b085b7ff::t_fba332b1960994 1-6
+evals/implement/implement-autopilot-full/graders/autopilot-log.md
+  s_4a7a57b085b7ff::t_2ec5c9df53259e 1-6
+evals/implement/implement-autopilot-full/graders/state-complete.md
+  s_4a7a57b085b7ff::t_f67f43afd0016c 1-6
+evals/implement/implement-autopilot-full/prompt.md
+  s_4a7a57b085b7ff::t_15479a556568c2 1-18
+evals/implement/run-all.sh
+  s_4a7a57b085b7ff::t_8c6cc1a45061ca 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "38a6633192823b51b592764343a132cd54a898a6",
+  "prompts": {},
+  "sessions": {
+    "s_136fb5584ef965": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11618-1a82-7252-b5a1-49d8f7803384",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_4a7a57b085b7ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11539-8e21-7c40-a7a6-5193f23ec124",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
