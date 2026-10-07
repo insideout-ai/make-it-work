@@ -1,0 +1,52 @@
+evals/run-regression/run-all.sh
+  s_8fff4b108dff1c::t_7297658c6f8099 10-13,47,50-52,58,67-68
+  s_8fff4b108dff1c::t_eb7ef180e77039 62-64
+  s_8fff4b108dff1c::t_404798317895b9 69
+evals/with-bash-eval-environment.sh
+  s_8fff4b108dff1c::t_eb7ef180e77039 92
+  s_8fff4b108dff1c::t_b97e0d50683fa2 1-91,93-97
+CHANGELOG.md
+  s_8fff4b108dff1c::t_8e749641f4c577 9-15
+skills/implement/SKILL.md
+  s_8fff4b108dff1c::t_944a8163c22d10 439
+  s_8fff4b108dff1c::t_683e2d72cd59e4 121-126,129-133,135,137
+.claude-plugin/plugin.json
+  s_8fff4b108dff1c::t_8e749641f4c577 6
+evals/implement/run-all.sh
+  s_8fff4b108dff1c::t_b97e0d50683fa2 8-16
+skills/implement/scripts/render-status.test.mjs
+  s_8fff4b108dff1c::t_8dfe65ac518a78 1-132,149-210,212-215,232-250
+  s_8fff4b108dff1c::t_d833349e547494 133-148
+  s_8fff4b108dff1c::t_b3dc8bb402a01a 211,216-231
+.github/workflows/validate-plugin.yml
+  s_8fff4b108dff1c::t_23edf09d30852a 25-27
+skills/implement/assets/status-template.html
+  s_8fff4b108dff1c::t_1e2155233fb7a6 1-123
+skills/implement/scripts/render-status.mjs
+  s_8fff4b108dff1c::t_57fcdf24ebf2a6 108,203
+  s_8fff4b108dff1c::t_e47b0d23d08c3f 1-12,19-26,36-107,109-164,169-189,191-202,204-227,234-238,243-261,263-588
+  s_8fff4b108dff1c::t_2e3bfc32f71c68 165-168,190,239-241,262
+  s_8fff4b108dff1c::t_ce9176af7981a0 13-18,27-35,228-233,242
+CONTRIBUTING.md
+  s_8fff4b108dff1c::t_1530c1b7d056d5 42
+evals/implement/README.md
+  s_8fff4b108dff1c::t_b97e0d50683fa2 15-23
+evals/run-regression/README.md
+  s_8fff4b108dff1c::t_eb7ef180e77039 70-71,74-75,84-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a806fcd1e80ca1a69900efb0ae7d0658457018a6",
+  "prompts": {},
+  "sessions": {
+    "s_8fff4b108dff1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1116f-651f-7bf2-9428-3ad4ec21565e",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
