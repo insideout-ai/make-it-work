@@ -4,16 +4,13 @@ focus: trace
 weight: 2
 ---
 
-`.claude/` is a protected path in this sandbox, so the attempt to write
-`.claude/execute-autopilot-log.jsonl` is expected to be refused (permission
-denied) — that refusal is not a failure to grade here. Find the attempted
-`Write` to a `file_path` ending in `execute-autopilot-log.jsonl`. A denied
-write may be present only in a `result` event's `permission_denials` array
-(`tool_name: "Write"`, with `tool_input.file_path` and `tool_input.content`),
-not as an ordinary assistant `tool_use` event. Judge that attempted `content`
-for its `"site":"inline-pause-mode-backfill"` line (this run's own one
-resolved site — this fixture's `Mode: Inline` plan has no other site to
-resolve before reaching it).
+Find the attempted decision-log entry for `"site":"inline-pause-mode-backfill"`
+(this fixture's `Mode: Inline` plan has no other site to resolve before
+reaching it). With Bash permitted, it may appear in a standalone Bash call to
+`decision-log.mjs write` or `append`; otherwise it may appear in a `Write`
+tool call's `content`. A denied write may appear only in a `result` event's
+`permission_denials` array. A permission denial is not itself a failure here:
+judge the JSON payload the model attempted to persist.
 
 That attempted content should satisfy ALL of the following:
 
@@ -24,6 +21,6 @@ That attempted content should satisfy ALL of the following:
 2. The line includes a `rationale` field (one sentence).
 3. `kind` is `"askUserQuestion"`.
 
-PASS only if all three hold. If neither a `Write` call nor a matching
+PASS only if all three hold. If no writer call, `Write` call, or matching
 `permission_denials` entry contains the attempted content, FAIL — the
 backfill must have been constructed and an attempt made to log it.

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs all four execute autopilot smoke-test cases through claude plugin eval.
 # Bash-granting cases use the guarded Docker/Git environment wrapper.
-# On-disk `.claude/` decision-log persistence still needs a separate
-# permission-enabled manual check; sandboxed evals grade attempted writes.
+# Sandboxed evals grade attempted decision-log writes; when a standalone
+# shared-writer call is permitted, they can grade on-disk persistence too.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -7,8 +7,9 @@ their model-driven evals grant `Bash` through
 the current commands. Historical notes below about these cases needing no
 `Bash`, and about the Docker symlink preventing every Bash-granting eval,
 predate this change. The wrapper temporarily isolates that host's Docker
-configuration and restores it afterward; it does not bypass the protected
-`.claude/` decision-log write restriction.
+configuration and restores it afterward. The shared decision-log writer may
+also succeed under the Bash grant when invoked in its own tool call; a denied
+`.claude/` write must not be retried through another path.
 
 Four cases exercising `skills/execute/SKILL.md`'s `--autopilot` flag, against a
 tiny hand-authored "tiny-greeter" fixture project standing in for a real
@@ -64,8 +65,8 @@ Bash use `evals/with-bash-eval-environment.sh` to handle this host's Docker/Git
 sandbox limitations. The runner uses `--threshold 0` so it prints every
 case's result even if a grader fails; inspect the reports rather than
 treating its exit status as a pass/fail gate. Sandboxed runs grade attempted
-decision-log writes in their traces; on-disk `.claude/` persistence remains
-a separate permission-enabled manual check.
+decision-log writes in their traces. When the shared writer is permitted,
+they can also grade on-disk `.claude/` persistence.
 
 ## Historical manual-bypass notes
 

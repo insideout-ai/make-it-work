@@ -5,8 +5,10 @@ the scripted Execution Status updater and require `Bash` in model-driven evals.
 `bash evals/plan-the-work/run-all.sh` grants it through
 `evals/with-bash-eval-environment.sh`, which temporarily isolates this host's
 Docker configuration and restores it afterward. Historical notes below saying
-that Bash-granting evals cannot run here predate the wrapper. The protected
-`.claude/` decision-log write remains a separate limitation.
+that Bash-granting evals cannot run here predate the wrapper. The shared
+decision-log writer may also succeed under the Bash grant when invoked in its
+own tool call; a denied `.claude/` write must not be retried through another
+path.
 The `with-tests` fixture resolves no autopilot choices, so its decision log
 may correctly be empty. The sandboxed model eval does not grade that file's
 on-disk presence; the permission-enabled manual run can still inspect it.

@@ -4,13 +4,12 @@ focus: trace
 weight: 2
 ---
 
-`.claude/` is a protected path in this sandbox, so the attempt to write
-`.claude/execute-autopilot-log.jsonl` is expected to be refused (permission
-denied) — that refusal is not a failure to grade here. Find the attempted
-`Write` to a `file_path` ending in `execute-autopilot-log.jsonl`. A denied
-write may be present only in a `result` event's `permission_denials` array
-(`tool_name: "Write"`, with `tool_input.file_path` and `tool_input.content`),
-not as an ordinary assistant `tool_use` event. Judge that attempted `content`.
+Find the attempted decision-log entry for `"site":"mode-choice"`. With Bash
+permitted, it may appear in a standalone Bash call to `decision-log.mjs write`
+or `append`; otherwise it may appear in a `Write` tool call's `content`. A
+denied write may appear only in a `result` event's `permission_denials` array.
+A permission denial is not itself a failure here: judge the JSON payload the
+model attempted to persist.
 
 That attempted content, for its `"site":"mode-choice"` line, should satisfy
 ALL of the following. Note: the `"question"` field's own text may legitimately
@@ -30,6 +29,6 @@ check 1; judge check 1 only against the `"options"` ARRAY itself, not the
 4. `"chosen"` names the Subagent-Driven option, not Inline and not "review
    the plan first".
 
-PASS only if all of 1-4 hold. If neither a `Write` call nor a matching
+PASS only if all of 1-4 hold. If no writer call, `Write` call, or matching
 `permission_denials` entry contains the attempted content, FAIL — the mode
 choice must have been constructed and an attempt made to log it.

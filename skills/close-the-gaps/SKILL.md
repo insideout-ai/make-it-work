@@ -37,6 +37,8 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 **Decision log:** write `.claude/close-the-gaps-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`); `multiSelect` is present but always `false` (this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead); `chosen` is therefore a string, the `open_text` free-text answer, or `null` — never an array. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`. `site` examples: `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
 
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied `.claude/` write.
+
 This file is a run artifact: never treat it as a Phase 3 "code finding," never embed it in a `*-questions.md` export, and never reference it from Phase 6's own `## Decision Log` table — the two logs serve different audiences (this one is for auditing the autopilot run itself; Phase 6's is part of the deliverable ticket).
 
 **Resolution table** (one row per interactive site, in the order they can appear):

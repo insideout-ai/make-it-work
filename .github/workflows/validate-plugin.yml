@@ -39,3 +39,6 @@ jobs:
 
       - name: Test implement feedback writer
         run: node --test skills/implement/scripts/write-feedback.test.mjs
+
+      - name: Test shared decision-log writer
+        run: node --test scripts/decision-log.test.mjs

@@ -5,9 +5,7 @@ exists: true
 weight: 1
 ---
 
-Note: `.claude/` is a protected path that no tool grant unblocks inside
-`claude plugin eval` — only `--dangerously-skip-permissions` does (see
-`evals/go-deep/README.md`'s equivalent finding). This grader only scores
-meaningfully on a manual `--dangerously-skip-permissions` run; treat it as
-a checklist item when reading a manual run's output directly, the same
-way `evals/go-deep`'s own log-existence graders are used.
+The shared writer can initialize this protected-path log in a Bash-granted
+eval when the sandbox allows it. If the grader fails, inspect the trace to
+distinguish a permission denial from a skill regression; do not retry a
+denied write through a different tool or path.

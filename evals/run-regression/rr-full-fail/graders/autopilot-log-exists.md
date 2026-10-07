@@ -5,6 +5,6 @@ exists: true
 weight: 1
 ---
 
-Checklist-only, same caveat as `rr-full-pass`'s identical grader: only
-meaningful on a manual `--dangerously-skip-permissions` run, since
-`.claude/` writes aren't unblocked by any `claude plugin eval` tool grant.
+Same permission caveat as `rr-full-pass`: inspect the trace if the protected
+log write is denied. A Bash-granted eval can grade this file when the shared
+writer's operation succeeds.
