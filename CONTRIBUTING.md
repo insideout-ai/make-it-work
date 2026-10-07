@@ -39,9 +39,11 @@ Do not bump the plugin version as part of an ordinary contribution. Maintainers 
 Run the same strict checks used by CI:
 
 ```sh
+node --test skills/implement/scripts/render-status.test.mjs
 claude plugin validate .claude-plugin/plugin.json --strict
 claude plugin validate skills --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
+node --test skills/implement/scripts/write-feedback.test.mjs
 git diff --check
 node --test skills/execute/scripts/plan-status.test.mjs
 ```
