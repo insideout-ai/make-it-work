@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-10-07
+
+### Added
+
+- Added a deterministic `implement` dashboard renderer and HTML template, with tests for workflow states, timing, artifact paths, and safe output handling. The skill now updates its dashboard by running the renderer from its state file.
+- Added a reusable eval environment wrapper that temporarily isolates symlink-containing Docker configuration and works around the macOS Git shim for Bash-granted evals. The `implement` and `run-regression` runners use it.
+
 ## [4.3.0] - 2026-10-06
 
 ### Added

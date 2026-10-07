@@ -67,13 +67,12 @@ exposure at all, but the one decision-log write does. Concretely:
   grader can only score meaningfully on a manual
   `--dangerously-skip-permissions` run (same reasoning as
   `define-test-strategy`'s single blocked-path case in the rollout spec) —
-  but their PASS/FAIL-determination graders don't touch `.claude/` and, on a
-  machine without the Docker issue below, should run fine as plain
-  `claude plugin eval --allow-tools Bash` cases, with only the log check
+  but their PASS/FAIL-determination graders don't touch `.claude/` and can
+  run via `claude plugin eval --allow-tools Bash`, with only the log check
   needing the manual follow-up.
 
-  **On this machine**, granting `Bash` to any `claude plugin eval` case fails
-  outright, before the agent even starts:
+  **On this machine**, granting `Bash` without preparing the environment
+  fails before the agent starts:
 
   ```
   error: the Docker (~/.docker, DOCKER_CONFIG) credential store on this
@@ -82,18 +81,12 @@ exposure at all, but the one decision-log write does. Concretely:
   the store's contents in one plain directory (its root may be a link)
   ```
 
-  This is the exact, known, unresolved, machine-specific issue the rollout
-  spec's §1.5 names — confirmed by reproducing it directly during this
-  work, not inferred. It is unrelated to `.claude/` protection and was
-  never resolved during `go-deep`'s own work (which never needed a Bash
-  grant at all, so never exercised this path). **It resurfaced here as
-  predicted** — this is the first skill in the rollout where it actually
-  matters, since `run-regression` is the only one whose core job is to run
-  real Bash commands.
-
-  Until this machine's `~/.docker` layout is fixed (or the suite runs on a
-  different machine/CI without it), run these three manually instead —
-  `run-all.sh` does this automatically as a fallback, or by hand:
+  `run-all.sh` now uses `evals/with-bash-eval-environment.sh` for these three
+  cases. The wrapper temporarily isolates the Docker config and uses a direct
+  Git binary if macOS's `/usr/bin/git` shim is the only one on `PATH`. It
+  restores the host state on exit or interruption. This does not change the
+  separate `.claude/` log-grading limitation. If a Bash-granted eval still
+  fails, the runner falls back to a manual headless run, or run one by hand:
 
   ```bash
   # Seed the fixture

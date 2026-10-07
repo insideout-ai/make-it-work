@@ -7,14 +7,10 @@
 # at all).
 #
 # rr-full-pass, rr-full-fail and rr-scoped-explicit need a Bash grant to
-# actually run the fixture's test suite. On THIS machine, granting Bash to
-# a `claude plugin eval` case fails outright — a known, pre-existing,
-# machine-specific issue (a symlink inside this machine's ~/.docker
-# credential store; see README.md and the top-level autopilot rollout
-# spec's §1.5) that has nothing to do with this skill or with `.claude/`
-# protection. This script tries the plain `claude plugin eval` path first
-# for those three cases and, only if that specific Docker/Bash error
-# appears, falls back to a manual headless run with
+# actually run the fixture's test suite. The shared environment wrapper
+# temporarily isolates this machine's symlink-containing Docker store and
+# bypasses the macOS Git shim for those evals. If an eval still fails, this
+# script falls back to a manual headless run with
 # --dangerously-skip-permissions, scoped to a disposable mktemp dir, with
 # a git-status diff (scoped to skills/run-regression/ and
 # evals/run-regression/ only, per this work's concurrency constraints) to
@@ -48,26 +44,28 @@ run_bash_case() {
   local scope_arg="$2"
 
   echo
-  echo "=== Trying $case_name via plain 'claude plugin eval' (Bash granted) ==="
+  echo "=== Trying $case_name via 'claude plugin eval' (Bash granted) ==="
   local out
   set +e
-  out="$(run_plain_eval "$case_name" Read Glob Grep Bash 2>&1)"
+  out="$(bash "$REPO_ROOT/evals/with-bash-eval-environment.sh" \
+    claude plugin eval . --case "$case_name" --eval-dir evals/run-regression \
+    --scaffold --allow-tools Read Glob Grep Bash --ablation none --runs 1 --trust-plugin --no-publish 2>&1)"
   local status=$?
   set -e
   echo "$out"
 
   if [ $status -eq 0 ]; then
-    echo "$case_name: plain claude plugin eval succeeded — no manual step needed on this machine."
+    echo "$case_name: claude plugin eval succeeded — no manual step needed on this machine."
     return
   fi
 
-  if echo "$out" | grep -q "Docker (~/.docker, DOCKER_CONFIG) credential store"; then
-    echo "$case_name: hit the known §1.5 Docker-credential-store Bash-grant issue (not a skill defect)."
-    echo "Falling back to a manual headless run with --dangerously-skip-permissions..."
-  else
-    echo "$case_name: plain claude plugin eval failed for a DIFFERENT reason than the known Docker issue."
-    echo "Falling back to the manual path anyway, but investigate the output above — it may be a real defect."
+  if [ "$status" -eq 69 ] || [ "$status" -eq 70 ]; then
+    echo "$case_name: eval environment could not be prepared or restored safely; stopping." >&2
+    return "$status"
   fi
+
+  echo "$case_name: claude plugin eval failed; investigate the output above — it may be a real defect."
+  echo "Falling back to a manual headless run with --dangerously-skip-permissions..."
 
   local run_dir
   run_dir=$(mktemp -d)
