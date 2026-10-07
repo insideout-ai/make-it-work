@@ -28,5 +28,8 @@ jobs:
       - name: Validate skills
         run: claude plugin validate skills --strict
 
+      - name: Test plan Execution Status updater
+        run: node --test skills/execute/scripts/plan-status.test.mjs
+
       - name: Validate marketplace manifest
         run: claude plugin validate .claude-plugin/marketplace.json --strict

@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `plan-the-work` and `execute` now use a deterministic script for the plan's `## Execution Status` bookkeeping: setting the step total, recording Mode and Inline pause mode, advancing verified progress, and correcting mistaken progress claims without hand-editing Markdown.
+
 ## [4.3.0] - 2026-10-06
 
 ### Added

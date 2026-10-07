@@ -256,6 +256,9 @@ This sub-phase runs per step, as each step is drafted, evaluated independently p
 
 Reproduce the exact structure in `references/plan-template.md` — keep every section (write "None" where empty rather than deleting it).
 
+The skeleton's `## Execution Status` block starts with `Step 0 of N complete`. Once the final numbered steps are known, resolve `<base>` to this skill's directory and set the concrete total with `node "<base>/../execute/scripts/plan-status.mjs" set-total --plan "<plan path>" --total <step count>`. Use this command for the initial plan and each new replan; never hand-edit the Progress line. It preserves Mode and the completed count and rejects a shrinking total. Do not choose Mode or advance Progress here; `execute` owns those decisions and updates.
+Run `set-total` as its own Bash tool call after the plan file has been saved; do not join it with a `.claude/` decision-log write or another command. If the script fails, correct the plan and rerun it before reporting the plan ready.
+
 **No Placeholders rule** — the plan must be execution-ready. Never write:
 
 - "TBD", "TODO", "implement later", "fill in details"
@@ -330,7 +333,7 @@ Then tell the user the plan is ready — this skill never drives step execution 
 
 **"Plan saved. Run `/make-it-work:execute <TICKET>` (or `/make-it-work:execute make-it-work/<TICKET>-plan.md`) when you're ready to implement it — it will ask you to choose Subagent-Driven or Inline execution the first time it runs, and a later re-run picks up wherever the last one left off."**
 
-Leave `## Execution Status` exactly as the skeleton wrote it (`Mode: Not yet chosen`, `Progress: Step 0 of N complete`). `execute` owns asking for Mode (once, the first time it runs against this plan) and owns updating both Mode and Progress from that point on — `plan-the-work` never edits this section after the initial skeleton, regardless of what the user says next.
+Leave `## Execution Status` with `Mode: Not yet chosen` and `Progress: Step 0 of <final step count> complete`, set through the status script above. `execute` owns asking for Mode (once, the first time it runs against this plan) and owns updating both Mode and Progress from that point on — `plan-the-work` never edits this section after setting its initial total, except in amend mode below.
 
 **Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (autopilot: see Autopilot Mode — declined automatically) (This is the only independent review the plan itself gets; `review-the-pr` later reviews the code, not the plan.)
 
@@ -364,7 +367,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 - Add any file a new step touches to Affected Code if it isn't listed yet, and add `**Amended for fix cycle <n> (<review | gate>):**` under the plan's header blockquote.
 - **Gate fix source:** each related failing test *is* the new step's progression test, and it is already red — record it in the step's `**Tests:**` field as `progression red — failing in the completion gate`, skip Step 5 point 5's baseline check for that test, and write no new test file for it (it already exists). Point 5 still applies to any other regression test the step names.
 - For a repo with no configured test framework the sub-phase doesn't apply: add one `## Test Plan` row per new step, naming the step, so `execute` can find that step's manual verification.
-- Then update **only** the total `M` in `## Execution Status → Progress` to the new step count — never the Mode line, never the completed count `N`. This is the one exception to "never edits `## Execution Status` after the skeleton", and it applies only in amend mode.
+- Then update **only** the total `M` in `## Execution Status → Progress` to the new step count with `node "<base>/../execute/scripts/plan-status.mjs" set-total --plan "<plan path>" --total <new step count>` — never the Mode line, never the completed count `N`. This is the one exception to "never edits `## Execution Status` after setting the initial total", and it applies only in amend mode.
 
 **All modes:**
 
