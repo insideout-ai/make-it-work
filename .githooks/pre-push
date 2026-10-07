@@ -25,6 +25,11 @@ set +e
   trap 'rm -rf -- "$snapshot_dir"' EXIT
   mkdir "$snapshot_dir/repo"
   git archive "$source_commit" | tar -x -C "$snapshot_dir/repo"
+  # Git exports repository-local variables to hooks. Clear them before
+  # initializing the snapshot or `git init` can rewrite the source repo.
+  for git_var in $(git rev-parse --local-env-vars); do
+    unset "$git_var"
+  done
   cd "$snapshot_dir/repo"
   git init -q -b eval-snapshot
   git add -A

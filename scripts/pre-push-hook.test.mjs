@@ -51,10 +51,13 @@ test('pre-push runs smoke once and propagates its result', async () => {
     await writeFile(mock, '#!/bin/sh\ntest ! -e uncommitted-marker || exit 99\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\nexit "$HOOK_TEST_EXIT"\n');
     await chmod(mock, 0o755);
     await writeFile(path.join(root, 'uncommitted-marker'), 'must not enter snapshot\n');
-    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, HOOK_TEST_LOG: log, HOOK_TEST_EXIT: '0' };
+    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`,
+      HOOK_TEST_LOG: log, HOOK_TEST_EXIT: '0', GIT_DIR: path.join(root, '.git'),
+      GIT_WORK_TREE: root, GIT_INDEX_FILE: path.join(root, '.git/index') };
     const passed = run('bash', ['.githooks/pre-push'], root, env);
     assert.equal(passed.status, 0);
     assert.equal((await readFile(log, 'utf8')).trim(), 'evals/run-suite.mjs smoke');
+    assert.equal(run('git', ['rev-parse', '--is-bare-repository'], root).stdout.trim(), 'false');
     const failed = run('bash', ['.githooks/pre-push'], root, { ...env, HOOK_TEST_EXIT: '7' });
     assert.equal(failed.status, 0);
     assert.match(failed.stderr, /Push proceeds/);
