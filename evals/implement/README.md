@@ -6,6 +6,17 @@ These cases resume a seeded `implement` run at `final-sync`, allowing the termin
 - `feedback-nonminimal` verifies Audit-log-based counting, retrospective analysis, skill attribution, share-safe output, and subagent dispatch after counters have reset.
 - `feedback-idempotent` verifies replacement of the matching run block while preserving older runs and user-authored text.
 
+The deterministic feedback writer has local fixture-backed tests for the same
+counting, formatting, and preservation rules. Run them without model calls:
+
+```sh
+node --test skills/implement/scripts/write-feedback.test.mjs
+```
+
+The model-driven cases remain useful for verifying that `implement` invokes
+the writer at the right terminal point and uses an independent retrospective
+agent for non-minimal runs.
+
 Run all cases from the repository root:
 
 ```sh

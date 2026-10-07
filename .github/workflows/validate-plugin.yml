@@ -30,3 +30,6 @@ jobs:
 
       - name: Validate marketplace manifest
         run: claude plugin validate .claude-plugin/marketplace.json --strict
+
+      - name: Test implement feedback writer
+        run: node --test skills/implement/scripts/write-feedback.test.mjs

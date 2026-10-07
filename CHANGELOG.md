@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `implement` now uses a deterministic feedback writer to count audit-log events, format minimal and non-minimal run blocks, and safely replace the matching run while preserving other feedback and user-authored text. Retrospective diagnosis and share-safe paraphrasing remain model-driven.
+
 ## [4.3.0] - 2026-10-06
 
 ### Added

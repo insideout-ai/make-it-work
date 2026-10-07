@@ -15,7 +15,7 @@ The terminal state-file write and dashboard regeneration happen first. Feedback 
 
 ## Stable run identity and safe updates
 
-Use the state file's real `start_time` verbatim as the run ID. A missing or `none` start time makes the run ineligible: report that feedback could not be recorded without a stable run ID, but leave the terminal workflow state unchanged.
+The feedback writer uses the state file's real `start_time` verbatim as the run ID. A missing or `none` start time makes the run ineligible: report its error, but leave the terminal workflow state unchanged.
 
 On first creation, begin the file exactly with:
 
@@ -36,22 +36,27 @@ Delimit each run with exact markers:
 <!-- /run:<start_time> -->
 ```
 
-- If that run's complete marker pair already exists, replace only the content from its opening marker through its closing marker.
-- Otherwise append the new block after the existing content.
-- Preserve the header, every other run block, and any user-authored text outside the matching markers.
-- If only one of the matching markers exists or their order is malformed, do not risk overwriting user content: append a fresh complete block and mention the malformed earlier marker in chat.
+The writer creates the header, formats the run block, and updates it atomically. It replaces only a unique, well-formed matching marker pair; otherwise it appends without altering existing text. It reports malformed or duplicate matching markers as a warning for the terminal summary.
 
 ## Decide whether the path was minimal
 
-Read the state file's Audit log chronologically. Do not infer history from the live `fix_cycle`, `review_cycle`, or `plan_version` fields, because replanning resets some of them.
+Resolve `<base>` to this skill's directory. After the terminal checkpoint and dashboard regeneration, inspect the state with:
 
-- A run is **non-minimal** when the log contains at least one transition whose `To` is `fix-plan`, or an explicit replan transition from `execute`, `review`, or `fix-plan` back to `plan`.
-- Count fix rounds from transitions into `fix-plan`, including a round that ultimately added no steps.
-- Count replans from those explicit replan transitions to `plan`.
-- Count review cycles from explicit `Review cycle <N>` Audit-log rows when they exist. Otherwise count transitions that enter `review` from another phase (`To: review`, `From` not `review`). Never use the current `review_cycle` field, which resets after a replan.
-- A run with none of those fix/replan transitions is **minimal**, even if an approval phase was redone or execution retried internally. Those behaviors are outside this feedback feature's first version.
+```sh
+node "<base>/scripts/write-feedback.mjs" inspect --state "make-it-work/<TICKET>-state.md"
+```
 
-Minimal runs get only the compact run block below. Do not dispatch retrospective analysis or ask feedback questions for them.
+For an exhausted fix, review, or replan limit stop, also pass `--limit-stop`; never pass it for any other stop. The script rejects ineligible state. Its JSON summary supplies `minimal`, the counts, and the ordered `events` (`kind` and Audit-log `row`). It reads the Audit log chronologically; never substitute the live counters, which can reset after replanning.
+
+The writer counts transitions into `fix-plan` (including zero-step rounds), explicit replans from execute/review/fix-plan back to plan, and review-cycle rows (falling back to transitions into review). A run with no fix or replan transitions is minimal, even if an approval was redone or execution retried internally.
+
+For a minimal run, write the compact block immediately:
+
+```sh
+node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>-state.md"
+```
+
+Do not dispatch retrospective analysis or ask feedback questions for a minimal run.
 
 ## Investigate a non-minimal run
 
@@ -102,64 +107,38 @@ It may name make-it-work phases and skills, counts, generic failure shapes, and 
 
 ## Clarification questions
 
-Write the provisional block before asking anything. Ask one question at a time only when the answer could materially change the cause category, earliest preventable stage, owner, or recommendation. There is no numerical cap; stop when every remaining uncertainty is immaterial, the user says they do not know, or the user declines.
+Write the provisional block with the script before asking anything. Ask one question at a time only when the answer could materially change the cause category, earliest preventable stage, owner, or recommendation. There is no numerical cap; stop when every remaining uncertainty is immaterial, the user says they do not know, or the user declines.
 
-After every answer, update the same marked block. Record the sanitized question and answer under `### User clarifications`; never copy sensitive wording verbatim when a share-safe paraphrase is sufficient. If the session ends first, leave the run terminal and keep the unresolved question under `### Open questions`. Do not add a feedback-pending workflow state or resume path.
+After every answer, update the analysis JSON and rerun the writer to replace the same marked block. Record the sanitized question and answer in `clarifications`; never copy sensitive wording verbatim when a share-safe paraphrase is sufficient. If the session ends first, leave the run terminal and keep the unresolved question in `openQuestions`. Do not add a feedback-pending workflow state or resume path.
 
-## Run-block templates
+## Non-minimal analysis input
 
-Minimal run:
+The retrospective subagent returns one share-safe JSON object. Create a uniquely named temporary JSON file under the gitignored `make-it-work/` directory, pass that file to the writer, and remove only that temporary file after a successful write. Never overwrite an existing file to stage this input. The model supplies only diagnosis and recommendations. The script derives counts, formats every heading and field, and preserves other runs:
 
-```markdown
-<!-- run:<start_time> -->
-## Run started <start_time>
-
-- Outcome: Complete | Stopped — loop limit
-- Minimal path: Yes
-- Fix rounds: 0
-- Replans: 0
-- Review cycles: <count>
-- Workflow feedback: No fix or replan round was needed.
-<!-- /run:<start_time> -->
+```json
+{
+  "events": [{
+    "kind": "Fix",
+    "row": 6,
+    "trigger": "Generic, share-safe trigger",
+    "rootCause": "planning gap",
+    "explanation": "Generic cause explanation",
+    "earliestStage": "plan-the-work",
+    "preventability": "likely",
+    "owner": "plan-the-work",
+    "improvement": "Specific generalizable improvement",
+    "confidence": "high"
+  }],
+  "recommendations": ["Deduplicated recommendation"],
+  "clarifications": [],
+  "openQuestions": []
+}
 ```
 
-Non-minimal run:
+`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, and the ticket ID, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write.
 
-```markdown
-<!-- run:<start_time> -->
-## Run started <start_time>
-
-- Outcome: Complete | Stopped — loop limit
-- Minimal path: No
-- Fix rounds: <count>
-- Replans: <count>
-- Review cycles: <count>
-
-### Extra-round analysis
-
-#### Event <n> — Fix | Replan
-
-- Trigger: <share-safe paraphrase>
-- Root cause: <category and explanation>
-- Earliest preventable stage: <phase or Not preventable>
-- Preventability: <likely | partial | unavoidable | unclear>
-- Workflow owner: <skill | project context | none | unclear>
-- Suggested improvement: <specific change | No workflow change recommended>
-- Confidence: <high | medium | low>
-
-### Consolidated recommendations
-
-- <deduplicated recommendation, or No workflow change recommended>
-
-### User clarifications
-
-- Question: <sanitized question>
-  Answer: <sanitized answer>
-
-### Open questions
-
-- <material unresolved question, or None>
-<!-- /run:<start_time> -->
+```sh
+node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>-state.md" --analysis "<temporary-analysis.json>"
 ```
 
-Omit `### User clarifications` when none were asked. Keep `### Open questions` for non-minimal runs and write `None` when the analysis is settled.
+Add `--limit-stop` for an eligible limit stop. The writer omits `### User clarifications` when none were asked and renders `None` under `### Open questions` when the list is empty. On any writer error, preserve the terminal workflow state and report the feedback failure.
