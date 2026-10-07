@@ -399,9 +399,9 @@ Run it only after either:
 - Completion has checkpointed `status: Complete` and regenerated the dashboard; or
 - Stop has checkpointed `status: Stopped` for an exhausted fix, review, or replan limit and regenerated the dashboard.
 
-Read `<base>/references/feedback.md` in full and follow it. It owns eligibility details, Audit-log counting, non-minimal root-cause analysis, share-safe redaction, clarification questions, and the idempotent update of `make-it-work/implement-feedback.md`.
+Read `<base>/references/feedback.md` in full and follow it. The deterministic feedback writer owns eligibility validation, Audit-log counting, block formatting, and idempotent updates of `make-it-work/implement-feedback.md`; the model still owns non-minimal root-cause analysis, share-safe paraphrasing, and clarification questions.
 
-For a non-minimal run, dispatch the reference's fresh retrospective subagent and work from its structured diagnosis. Write the provisional run block before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+Use the writer's `inspect` result to decide whether the run is minimal. For a non-minimal run, dispatch the reference's fresh retrospective subagent and work from its structured diagnosis. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
 
 The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later.
 

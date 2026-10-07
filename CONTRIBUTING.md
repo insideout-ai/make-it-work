@@ -43,6 +43,7 @@ node --test skills/implement/scripts/render-status.test.mjs
 claude plugin validate .claude-plugin/plugin.json --strict
 claude plugin validate skills --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
+node --test skills/implement/scripts/write-feedback.test.mjs
 git diff --check
 ```
 
