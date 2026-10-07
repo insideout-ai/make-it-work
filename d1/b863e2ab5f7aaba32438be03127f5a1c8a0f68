@@ -1,0 +1,43 @@
+CHANGELOG.md
+  s_557e0c4160de33::t_adc7153874fc67 13-19
+.claude-plugin/plugin.json
+  s_557e0c4160de33::t_3b62636ad34768 6
+.github/workflows/validate-plugin.yml
+  s_557e0c4160de33::t_ec52bc59c6a442 25-27
+CONTRIBUTING.md
+  s_557e0c4160de33::t_eab0e883d4b10a 42
+evals/implement/README.md
+  s_557e0c4160de33::t_4a7dedf0ea581f 26-34
+evals/implement/run-all.sh
+  s_557e0c4160de33::t_e063bc62dcb7de 8-16
+evals/run-regression/README.md
+  s_557e0c4160de33::t_ea3eb3ab8ab5f7 70-71,74-75,84-89
+evals/run-regression/run-all.sh
+  s_557e0c4160de33::t_e3bfddf046c644 10-13,47,50-52,58,62-64,67-69
+evals/with-bash-eval-environment.sh
+  s_557e0c4160de33::t_c51612409f41b4 1-97
+skills/implement/SKILL.md
+  s_557e0c4160de33::t_e4d71dc5cee947 121-126,129-133,135,137,439
+skills/implement/assets/status-template.html
+  s_557e0c4160de33::t_e0ea7bf52f0bc6 1-123
+skills/implement/scripts/render-status.mjs
+  s_557e0c4160de33::t_e72b7072b6a14d 1-588
+skills/implement/scripts/render-status.test.mjs
+  s_557e0c4160de33::t_e3faa53dd0d429 1-250
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d1b863e2ab5f7aaba32438be03127f5a1c8a0f68",
+  "prompts": {},
+  "sessions": {
+    "s_557e0c4160de33": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11549-4d24-77a0-9148-fc6f39a06e13",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
