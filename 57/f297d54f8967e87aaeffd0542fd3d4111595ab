@@ -1,0 +1,164 @@
+evals/find-the-repos/find-the-repos-autopilot-save-injection/fixture.sh
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-6
+evals/end-to-end/fixture.sh
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-20
+evals/run-regression/rr-unrelated-clones/prompt.md
+  s_4a7a57b085b7ff::t_669f96e3660b14 1-9
+evals/close-the-gaps/close-the-gaps-conflicting-answers/fixture.sh
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-8
+evals/end-to-end/forced-regression.test.js
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-6
+evals/end-to-end/fixture/test/policy.test.js
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-6
+evals/shape-the-epic/README.md
+  s_4a7a57b085b7ff::t_6293f79530aa47 17-22
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/shortlist-saved.md
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-10
+evals/assert-disposable-cwd.sh
+  s_4a7a57b085b7ff::t_18850d59703f23 1-5,13-18
+  s_4a7a57b085b7ff::t_30ce6fd49b4769 6-12
+docs/eval-release-checklist.md
+  s_4a7a57b085b7ff::t_113f7c4300908c 1-19
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/prompt.md
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-9
+evals/run-regression/rr-unrelated-clones/graders/asks-for-repo.md
+  s_4a7a57b085b7ff::t_669f96e3660b14 1-9
+CONTRIBUTING.md
+  s_4a7a57b085b7ff::t_113f7c4300908c 53-54
+evals/close-the-gaps/close-the-gaps-conflicting-answers/case.yaml
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-5
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/no-injection-followed.md
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-10
+evals/find-the-repos/find-the-repos-autopilot-save-injection/product-injected.md
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-16
+evals/end-to-end/fixture/package.json
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-7
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/fixture.sh
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-5
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/graders/stops-for-refinement.md
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-9
+evals/end-to-end/fixture/TICKET.md
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-10
+evals/end-to-end/clean-install.sh
+  s_4a7a57b085b7ff::t_832b153935e84b 1-38
+evals/find-the-repos/find-the-repos-autopilot-save-injection/prompt.md
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-9
+evals/end-to-end/README.md
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-42
+  s_4a7a57b085b7ff::t_e112cf827ae5b0 43-50
+evals/close-the-gaps/close-the-gaps-conflicting-answers/graders/no-spec.md
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-6
+evals/run-regression/rr-unrelated-clones/case.yaml
+  s_4a7a57b085b7ff::t_669f96e3660b14 1-5
+evals/go-deep/fresh-onboarding/graders/product-md-content.md
+  s_4a7a57b085b7ff::t_0e482de47e6797 7-10,16-17
+evals/go-deep/fresh-onboarding/graders/architecture-md-content.md
+  s_4a7a57b085b7ff::t_0e482de47e6797 7-10,15-17
+evals/end-to-end/local-marketplace.json
+  s_4a7a57b085b7ff::t_0309c5d1d0c56b 1-7
+evals/find-the-repos/find-the-repos-autopilot-save-injection/case.yaml
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-5
+evals/define-test-strategy/extend-autopilot/graders/claude-md-structure.md
+  s_4a7a57b085b7ff::t_0e482de47e6797 2-4,8-10
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/case.yaml
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-5
+evals/close-the-gaps/close-the-gaps-conflicting-answers/prompt.md
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-9
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/no-injected-file.md
+  s_4a7a57b085b7ff::t_aca01302d294f7 1-6
+.github/pull_request_template.md
+  s_4a7a57b085b7ff::t_113f7c4300908c 29-32
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/graders/no-plan.md
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-6
+evals/close-the-gaps/close-the-gaps-conflicting-answers/graders/conflict-requires-human.md
+  s_4a7a57b085b7ff::t_1b003e31b31e33 1-11
+evals/README.md
+  s_4a7a57b085b7ff::t_7ba64f307743e2 22,35-36
+  s_4a7a57b085b7ff::t_113f7c4300908c 3-7,11-15,17-18,23-34,37-38,42-51,53-56
+  s_4a7a57b085b7ff::t_17c3bea44ed808 16,39-41
+  s_4a7a57b085b7ff::t_bf2ae257ce0931 8-10
+  s_4a7a57b085b7ff::t_e112cf827ae5b0 19-21
+  s_4a7a57b085b7ff::t_fc339eca1a2b38 52
+evals/run-regression/rr-unrelated-clones/fixture.sh
+  s_4a7a57b085b7ff::t_669f96e3660b14 1-5
+evals/suites.json
+  s_4a7a57b085b7ff::t_0e482de47e6797 1-42
+evals/run-suite.mjs
+  s_4a7a57b085b7ff::t_3006aadc68eb98 4-5,101-102
+  s_4a7a57b085b7ff::t_17c3bea44ed808 13-14,18-21,31-36,62
+  s_4a7a57b085b7ff::t_8699ac96b90fe1 1-3,6,8-12,15-17,22-30,37-45,54-61,63-93,95,97-100,103-105,108,110-111,116,118-135,138-140,143,146-150,153-167,172-181
+  s_4a7a57b085b7ff::t_1d113b44d4f6e9 46-53,144-145,168-171
+  s_4a7a57b085b7ff::t_ed31992b01852b 94,96,151-152
+  s_4a7a57b085b7ff::t_7ba64f307743e2 112-113,117,136-137,141-142,182
+  s_8fff4b108dff1c::t_5e8b6ad953b895 7,106-107,109,114-115
+.github/workflows/validate-plugin.yml
+  s_4a7a57b085b7ff::t_dae22c230c6fff 37-39
+evals/close-the-gaps/close-the-gaps-live-autopilot/fixture.sh
+  s_4a7a57b085b7ff::t_41f3ba9cc9c100 4
+evals/close-the-gaps/close-the-gaps-negative-control/fixture.sh
+  s_4a7a57b085b7ff::t_0d6d1b13b01e02 4
+evals/close-the-gaps/close-the-gaps-offline-injection/fixture.sh
+  s_4a7a57b085b7ff::t_b06b6d31e5499b 4
+evals/close-the-gaps/close-the-gaps-stale-questions-file/fixture.sh
+  s_4a7a57b085b7ff::t_ba131daeb2e407 4
+evals/define-test-strategy/define-test-strategy-negative-control/fixture.sh
+  s_4a7a57b085b7ff::t_1b6a65f917c200 4
+evals/define-test-strategy/extend-autopilot/fixture.sh
+  s_4a7a57b085b7ff::t_75ef41552cdc8c 4
+evals/define-test-strategy/fresh-autopilot/fixture.sh
+  s_4a7a57b085b7ff::t_44a633cf117c2e 4
+evals/implement/feedback-clean/fixture.sh
+  s_4a7a57b085b7ff::t_777950daf2a0cb 4
+evals/implement/feedback-idempotent/fixture.sh
+  s_4a7a57b085b7ff::t_a185c1593cfeb5 4
+evals/implement/feedback-nonminimal/fixture.sh
+  s_4a7a57b085b7ff::t_13539f1d3b4c96 4
+evals/plan-the-work/happy-path/fixture.sh
+  s_4a7a57b085b7ff::t_c80660482dd6d2 4
+evals/plan-the-work/negative-control/fixture.sh
+  s_4a7a57b085b7ff::t_ab2e66b8e1f480 4
+evals/plan-the-work/plan-collision-negative-control/fixture.sh
+  s_4a7a57b085b7ff::t_7914fc1ebd2514 4
+evals/plan-the-work/plan-collision/fixture.sh
+  s_4a7a57b085b7ff::t_4d3fba8a74dbf5 4
+evals/plan-the-work/with-tests/fixture.sh
+  s_4a7a57b085b7ff::t_cc8243a9fda388 4
+evals/run-regression/rr-full-fail/fixture.sh
+  s_4a7a57b085b7ff::t_1ffd384e127027 4
+evals/run-regression/rr-full-pass/fixture.sh
+  s_4a7a57b085b7ff::t_b3f19cd4873420 4
+evals/run-regression/rr-negative-control/fixture.sh
+  s_4a7a57b085b7ff::t_f69556bf85bcfe 4
+evals/run-regression/rr-no-command-stop/fixture.sh
+  s_4a7a57b085b7ff::t_b2a36f9fb349b7 4
+evals/run-regression/rr-scoped-explicit/fixture.sh
+  s_4a7a57b085b7ff::t_b2dbb25421449e 4
+evals/run-regression/rr-scoped-unavailable/fixture.sh
+  s_4a7a57b085b7ff::t_ab3da2b4e19c52 4
+evals/validate.mjs
+  s_4a7a57b085b7ff::t_e3ee9fa56c7280 1-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "57f297d54f8967e87aaeffd0542fd3d4111595ab",
+  "prompts": {},
+  "sessions": {
+    "s_4a7a57b085b7ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11539-8e21-7c40-a7a6-5193f23ec124",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_8fff4b108dff1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1116f-651f-7bf2-9428-3ad4ec21565e",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
