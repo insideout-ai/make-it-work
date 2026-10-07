@@ -37,6 +37,9 @@ jobs:
       - name: Validate eval inventory and fixture guards
         run: node evals/validate.mjs
 
+      - name: Test local pre-push hook
+        run: node --test scripts/pre-push-hook.test.mjs
+
       - name: Validate marketplace manifest
         run: claude plugin validate .claude-plugin/marketplace.json --strict
 

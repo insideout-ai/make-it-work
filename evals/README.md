@@ -3,7 +3,8 @@
 ## Maintainer runs for pull requests and releases
 
 Use an existing, signed-in Claude Code installation. No API key or CI secret is
-needed. A maintainer starts these commands locally; CI runs only
+needed. A maintainer starts these commands locally, or installs the versioned
+local pre-push hook to run smoke before each push. CI runs only
 `node evals/validate.mjs` and other credential-free checks.
 The runner checks `claude auth status` before starting; if this shell is not
 signed in, use `claude auth login` interactively and retry. It never requests
@@ -14,6 +15,7 @@ node evals/run-suite.mjs smoke --dry-run  # inspect the 11 selected cases
 node evals/run-suite.mjs smoke            # before every PR
 node evals/run-suite.mjs full             # on demand and before a release
 node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # retry one case
+bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before every push
 ```
 
 `smoke` exercises one representative case for each of the 11 public skills.
@@ -36,6 +38,11 @@ The machine summary labels these cases `review`, never `passed`; a zero exit
 code means no machine-detected failure, not that human review is complete.
 The runner never uses `--dangerously-skip-permissions`. A permission refusal is
 an incomplete case, not a pass; the case README documents its manual fallback.
+The optional Git hook invokes `smoke` once for every push command and stops a
+push if the runner exits nonzero. It does not run for other contributors until
+they install it, and it does not enforce a PR rule. Human-review cases remain
+marked `review` even when the command exits zero, so inspect them before
+treating the run as a full pass. Each push incurs a new model run and usage.
 The `shape-the-epic` smoke case uses the disposable headless path because its
 file write was denied in a real plain-eval smoke run despite `Write` being
 listed in `allowed_tools`.

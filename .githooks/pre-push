@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Local, opt-in maintainer gate. Git runs this once before each push invocation.
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-push: Node.js is required for the smoke eval." >&2
+  exit 1
+fi
+
+echo "pre-push: running the 11-skill smoke eval with your Claude Code sign-in." >&2
+echo "pre-push: no API key or CI job is used; a failed run stops this push." >&2
+node evals/run-suite.mjs smoke
