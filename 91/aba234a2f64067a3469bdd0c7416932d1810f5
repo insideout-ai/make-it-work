@@ -1,0 +1,19 @@
+evals/define-test-strategy/extend-autopilot/graders/claude-md-structure.md
+  s_4a7a57b085b7ff::t_f0c73bc2dc6e06 4,8-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "91aba234a2f64067a3469bdd0c7416932d1810f5",
+  "prompts": {},
+  "sessions": {
+    "s_4a7a57b085b7ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11539-8e21-7c40-a7a6-5193f23ec124",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
