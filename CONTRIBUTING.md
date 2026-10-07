@@ -47,6 +47,7 @@ claude plugin validate .claude-plugin/marketplace.json --strict
 node --test skills/implement/scripts/write-feedback.test.mjs
 node --test scripts/decision-log.test.mjs
 git diff --check
+node --test skills/execute/scripts/plan-status.test.mjs
 ```
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.

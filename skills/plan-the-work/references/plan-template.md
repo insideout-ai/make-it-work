@@ -20,7 +20,7 @@ _This section is owned by `execute`, not `plan-the-work` — `plan-the-work` wri
 
 Do not invent a different execution strategy. Once chosen, update this line to the chosen mode.
 
-**Progress:** Step 0 of N complete. Update this line immediately after each step's Verify passes.
+**Progress:** Step 0 of N complete. `plan-the-work` replaces `N` with the final step count through `execute/scripts/plan-status.mjs set-total`; `execute` advances it through that script immediately after each step's Verify passes.
 
 ## Open Questions & Blockers
 
