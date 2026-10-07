@@ -1,0 +1,29 @@
+evals/README.md
+  s_4a7a57b085b7ff::t_d2d7434815ec25 41-48
+evals/run-suite.mjs
+  s_4a7a57b085b7ff::t_d2d7434815ec25 55-56,63-65
+scripts/pre-push-hook.test.mjs
+  s_4a7a57b085b7ff::t_d4ef9f33205fcb 21-25,51,53,59-60
+.githooks/pre-push
+  s_4a7a57b085b7ff::t_d2d7434815ec25 2,9-10,13-46
+evals/find-the-repos/find-the-repos-happy-path/graders/no-technical-fallback.md
+  s_4a7a57b085b7ff::t_d2d7434815ec25 2-3,7-11
+CONTRIBUTING.md
+  s_4a7a57b085b7ff::t_d2d7434815ec25 34-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "337879c15ff486d9fe63e8d4b254d9a753d2631d",
+  "prompts": {},
+  "sessions": {
+    "s_4a7a57b085b7ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11539-8e21-7c40-a7a6-5193f23ec124",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
