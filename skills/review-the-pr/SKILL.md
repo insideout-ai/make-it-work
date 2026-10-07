@@ -31,6 +31,8 @@ This skill uses no `AskUserQuestion` calls today — every interactive point is 
 
 **Decision log:** write `.claude/review-the-pr-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill never reaches `"askUserQuestion"`, so it omits `multiSelect`/`question`/`options` entirely; `kind` is only ever `"open_text"` or `"checkpoint"`, and `chosen` is therefore only ever the free-text answer (`open_text`), a short string describing what was confirmed (`checkpoint`), or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 0"`, `"Step 1"`. `site` examples: `"pr-link"`, `"requirements-source"`, `"branch-pair"`.
 
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the start-of-run timing and never use it to bypass a denied `.claude/` write.
+
 Log a line for every site above on every run, including a site skipped because its input was already supplied in the invocation — mark `chosen` accordingly (e.g. `"already provided in the invocation"`) so the log stays a complete, auditable record of the run rather than only the sites that needed a real decision.
 
 At the end of an autopilot run, print a short human-readable summary of the three resolutions above and the log file's path, so someone can audit the run afterward.

@@ -38,6 +38,8 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 **Decision log:** write `.claude/plan-the-work-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean, so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. No `repo` field — this skill has no per-repo-resolved site. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 1"`, `"Step 4"`, `"Step 4.5"`. `site` examples: `"existing-plan-collision"`, `"approach-gap"`, `"scope-check"`.
 
+When Bash is permitted, initialize this log in its own Bash tool call with `node "<base>/../../scripts/decision-log.mjs" init plan-the-work --root "<repo-root>"`, then use that writer's `append` command for each resolved site. Never combine a log call with investigation, testing, or another file write: a protected `.claude/` denial must not prevent substantive planning. If the log write is denied, do not retry it through another tool or path; continue planning. If Bash is unavailable, retain the existing Write/Edit behavior. Resolve `<base>` to this skill's directory; the shared writer contract is in `docs/autopilot-log-schema.md`.
+
 This file is a run artifact: never reference it from the plan itself, and never list it as an Affected Code entry.
 
 **Resolution table** (one row per interactive site, in the order they appear):

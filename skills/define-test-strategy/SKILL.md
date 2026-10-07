@@ -25,6 +25,8 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 **Decision log:** write `.claude/define-test-strategy-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean (this skill has real `multiSelect: true` sites), so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. This is also the one skill that carries the shared schema's `repo` field, since its autopilot-resolvable decisions can repeat once per repo within a single run: present whenever more than one repo is in scope, omitted for a single-repo run. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 0"`, `"Phase 3"`. `site` examples: `"decide-how-to-proceed"`, `"scaffold-confirm-multi"`.
 
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied `.claude/` write.
+
 If writing this log file is denied by the current environment (e.g. a sandboxed run with no `.claude/` write permission and no `--dangerously-skip-permissions`), note that fact plainly in the end-of-run summary below and continue the rest of the run regardless — never relocate the log to a path outside `.claude/`, and never let a denied log write abort or stall the phases that follow.
 
 **Resolution table** (one row per interactive site, in the order they appear):

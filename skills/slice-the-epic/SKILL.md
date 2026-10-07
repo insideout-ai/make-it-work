@@ -25,6 +25,8 @@ When invoked with `--autopilot`, still evaluate the "Understand the request" con
 
 **Decision log:** after the backlog has been produced — never before it, and never as a reason to delay or withhold the backlog — write `.claude/slice-the-epic-autopilot-log.jsonl` at repo root, overwritten fresh for this run (zero lines if the clarifying-question condition never fired). If the write is denied (e.g. a sandboxed environment that blocks `.claude/` writes), treat that as non-fatal: the backlog has already been delivered, so simply note the failed write in the end-of-run summary instead of stopping or retrying. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has exactly one possible site, always `kind: "open_text"`, so it omits `multiSelect`/`question`/`options` entirely and `chosen` is always the free-text best-guess answer, prefixed `[autopilot best-guess]` — there is no hard-stop here, so `chosen` never needs the `null` branch. Every line also still includes `rationale` (one sentence explaining the inference), per the shared schema's core fields. `phase` is always `"Understand the request"`; `site` is always `"missing-fact-clarification"`.
 
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for the post-deliverable flush only, in its own Bash tool call; never use it to bypass a denied `.claude/` write.
+
 **Resolution table:**
 
 | Site | `kind` | Autopilot resolution |

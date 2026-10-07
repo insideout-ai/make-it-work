@@ -2,6 +2,43 @@
 
 Shared reference for the `**Decision log:**` section every `--autopilot`-enabled skill documents in its own `SKILL.md`. Each skill's own section states its own log filename and write-timing behavior (these differ per skill and stay there), then points here for the field shape, naming only its own deltas from the general shape below.
 
+## Shared writer
+
+When Bash is already permitted for the run, use the shared writer instead of
+hand-building JSONL or editing existing lines. Invoke each writer command in
+its **own Bash tool call**, never joined with discovery, tests, or another
+file write: a denied `.claude/` operation must not prevent unrelated work in
+the same shell call. Resolve `<base>` to the active
+skill's directory and `<repo-root>` to the repo that owns the log:
+
+```sh
+node "<base>/../../scripts/decision-log.mjs" init <skill-name> --root "<repo-root>"
+node "<base>/../../scripts/decision-log.mjs" append <skill-name> --root "<repo-root>" <<'JSON'
+{"phase":"Phase 0","site":"mode-choice","kind":"askUserQuestion","question":"Which mode?","options":["Subagent-Driven (Recommended)","Inline"],"multiSelect":false,"chosen":"Subagent-Driven (Recommended)","rationale":"Autopilot picks the recommended option."}
+JSON
+```
+
+`init` creates an empty log for a new run. `append` accepts one decision object
+on stdin and requires that this run has already initialized the log. `write`
+accepts one object or an array on stdin and atomically replaces the whole log;
+use it for a skill that flushes decisions only after saving its deliverable, or
+for `execute`'s first resolved site before later `append` calls. `write` with
+`[]` creates the required empty log for a run with no resolved sites. The
+writer validates the schema, serializes one JSON object per line, preserves
+an existing log on malformed input, and rejects symlinked `.claude` paths.
+It does not infer a choice: the skill still constructs and selects each
+decision according to its own resolution table.
+
+This command does **not** bypass tool permissions. If Bash is unavailable,
+the skill may use its existing Write/Edit path for the same JSONL contract;
+do not request broader permissions solely to produce this log. If a write to
+the protected `.claude/` path is denied, do not retry through another tool or
+path. A denied log write says nothing about whether a later, unrelated Bash
+call (such as a test command) is allowed. Follow that skill's existing
+denied-log handling and continue or stop exactly as its own instructions
+require. Each skill's existing write timing
+(start-of-run, first resolved site, or post-deliverable) remains authoritative.
+
 ## Core fields (every skill, every line)
 
 - `phase` — the skill's own phase/step label for where this site lives, e.g. `"Phase 1"`, `"Step 4"`.

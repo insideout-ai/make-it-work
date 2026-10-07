@@ -28,11 +28,11 @@ harness's own auto-mode safety net can't invoke or grant itself.
 Unlike `go-deep`, `run-regression` writes **nothing to disk** under normal
 operation — the Phase 5 report is returned live, never persisted (see
 `SKILL.md`'s Phase 5). The *only* thing this skill ever writes to disk is
-`--autopilot`'s own decision log, `.claude/run-regression-autopilot-log.jsonl`
-— and that path is under the same protected `.claude/` directory `go-deep`
-already found: no tool grant (`Write`, `Edit`, or even `Bash` touching that
-path) unblocks writing there inside `claude plugin eval`; only
-`--dangerously-skip-permissions`, run manually, does.
+`--autopilot`'s own decision log, `.claude/run-regression-autopilot-log.jsonl`.
+That protected path may be denied by the eval sandbox. With a Bash grant,
+however, the shared `scripts/decision-log.mjs` writer has been observed to
+initialize the log successfully when invoked in its own tool call. A denial
+must not be retried through another tool or path.
 
 That puts `run-regression` in the middle category the top-level autopilot
 rollout spec describes (§2): most of its behavior needs **no** `.claude/`
@@ -41,7 +41,7 @@ exposure at all, but the one decision-log write does. Concretely:
 - **`rr-negative-control`, `rr-no-command-stop`, `rr-scoped-unavailable`** never
   need to run a test command or inspect the autopilot log to prove their point
   (a question still blocks; a missing command is never invented; an
-  unavailable gate still stops before touching `.claude/` at all). These run
+  unavailable gate still stops before any tests run). These run
   as plain `claude plugin eval` cases, no `Bash` grant, no manual step,
   verified for real (see "What was actually run" below):
 
@@ -63,13 +63,11 @@ exposure at all, but the one decision-log write does. Concretely:
   case here is prefixed `rr-`.)
 
 - **`rr-full-pass`, `rr-full-fail`, `rr-scoped-explicit`** need `Bash` to
-  actually run the fixture's test suite. Each one's `autopilot-log-exists.md`
-  grader can only score meaningfully on a manual
-  `--dangerously-skip-permissions` run (same reasoning as
-  `define-test-strategy`'s single blocked-path case in the rollout spec) —
-  but their PASS/FAIL-determination graders don't touch `.claude/` and can
-  run via `claude plugin eval --allow-tools Bash`, with only the log check
-  needing the manual follow-up.
+  actually run the fixture's test suite. Their `autopilot-log-exists.md`
+  graders are meaningful when the shared writer's log operation succeeds;
+  inspect the trace on a failure to distinguish a permission denial from a
+  skill regression. Their PASS/FAIL-determination graders do not depend on
+  `.claude/` and remain meaningful even if the log write is denied.
 
   **On this machine**, granting `Bash` without preparing the environment
   fails before the agent starts:
@@ -84,9 +82,9 @@ exposure at all, but the one decision-log write does. Concretely:
   `run-all.sh` now uses `evals/with-bash-eval-environment.sh` for these three
   cases. The wrapper temporarily isolates the Docker config and uses a direct
   Git binary if macOS's `/usr/bin/git` shim is the only one on `PATH`. It
-  restores the host state on exit or interruption. This does not change the
-  separate `.claude/` log-grading limitation. If a Bash-granted eval still
-  fails, the runner falls back to a manual headless run, or run one by hand:
+  restores the host state on exit or interruption. If a Bash-granted eval
+  still fails, the runner falls back to a manual headless run, or run one by
+  hand:
 
   ```bash
   # Seed the fixture

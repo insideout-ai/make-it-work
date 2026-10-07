@@ -25,6 +25,8 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 **Decision log:** write `.claude/go-deep-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean, so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. No `repo` field — this skill has no per-repo-resolved site. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 0"`, `"Phase 2"`. `site` examples: `"workflow-choice"`, `"staleness-window"`, `"per-question"`, `"confirm-scope"`.
 
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied `.claude/` write.
+
 This file is a run artifact: never add it to CLAUDE.md's Rules Files section, and never let the Phase 4 cross-tier dedup pass touch it.
 
 **Resolution table** (one row per interactive site, in the order they appear):
