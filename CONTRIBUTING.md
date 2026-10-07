@@ -31,10 +31,11 @@ Git hook once:
 bash scripts/install-pre-push-hook.sh
 ```
 
-The hook runs the 11-skill smoke suite with your existing Claude Code sign-in
-before each push. A machine-detected failure stops that push. It does not
-request an API key, run in CI, or add a PR merge requirement. Installation is
-local to your clone; the installer refuses to replace an existing hooks setup.
+The hook runs the 11-skill smoke suite against a disposable snapshot of the
+commit being pushed, using your existing Claude Code sign-in before each push.
+It reports failures but does not block the push or PR. It does not request an
+API key or run in CI. Installation is local to your clone; the installer
+refuses to replace an existing hooks setup.
 
 ## Repository structure
 

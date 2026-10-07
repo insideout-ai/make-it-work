@@ -38,11 +38,14 @@ The machine summary labels these cases `review`, never `passed`; a zero exit
 code means no machine-detected failure, not that human review is complete.
 The runner never uses `--dangerously-skip-permissions`. A permission refusal is
 an incomplete case, not a pass; the case README documents its manual fallback.
-The optional Git hook invokes `smoke` once for every push command and stops a
-push if the runner exits nonzero. It does not run for other contributors until
-they install it, and it does not enforce a PR rule. Human-review cases remain
-marked `review` even when the command exits zero, so inspect them before
-treating the run as a full pass. Each push incurs a new model run and usage.
+The optional Git hook invokes `smoke` once for every push command against a
+disposable snapshot of the committed HEAD, so unrelated worktree edits cannot
+affect the result. Reports stay under this checkout's ignored `evals/results/`.
+It reports failures but allows the push and does not enforce a PR rule. It does
+not run for other contributors until they install it. Human-review cases
+remain marked `review` even when the command exits zero, so inspect them
+before treating the run as a full pass. Each push incurs a new model run and
+usage.
 The `shape-the-epic` smoke case uses the disposable headless path because its
 file write was denied in a real plain-eval smoke run despite `Write` being
 listed in `allowed_tools`.

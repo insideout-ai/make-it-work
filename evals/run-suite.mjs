@@ -52,14 +52,17 @@ if (!loggedIn) {
 }
 
 const stamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
-const reportDir = path.join(EVAL_ROOT, 'results', `${tier}-${stamp}`);
+const reportRoot = process.env.MIW_EVAL_REPORT_ROOT || path.join(EVAL_ROOT, 'results');
+const reportDir = path.join(reportRoot, `${tier}-${stamp}`);
 await mkdir(reportDir, { recursive: true });
 const git = (...args) => spawnSync('git', ['-C', REPO_ROOT, ...args], { encoding: 'utf8' });
 const before = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('status', '--porcelain').stdout };
 const version = spawnSync('claude', ['--version'], { encoding: 'utf8' });
 if (version.status !== 0) throw new Error('Claude Code is not installed or available on PATH');
 const summary = {
-  tier, requestedCase, startedAt: new Date().toISOString(), commit: before.head,
+  tier, requestedCase, startedAt: new Date().toISOString(),
+  commit: process.env.MIW_EVAL_SOURCE_COMMIT || before.head,
+  snapshotCommit: process.env.MIW_EVAL_SOURCE_COMMIT ? before.head : undefined,
   claudeVersion: version.stdout.trim(), budgetUsd: budget, cases: [],
 };
 let cost = 0;
