@@ -4,11 +4,12 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.5.0] - 2026-10-07
 
 ### Added
 
-- Added a shared, schema-validating autopilot decision-log writer for all skills, with atomic init/append/replace operations and tests; each skill retains its existing log timing and permission behavior.
+- Added `/make-it-work:implement --autopilot`, an unattended ticket pipeline that forwards autopilot mode through refinement, planning, execution, regression, and review; it creates a ticket-named feature branch from the base branch, records orchestration decisions, and stops safely when required facts are missing or contradictory.
+- Added a shared, schema-validating autopilot decision-log writer for all autopilot-enabled skills, with atomic init/append/replace operations and tests; each skill retains its existing log timing and permission behavior.
 - `plan-the-work` and `execute` now use a deterministic script for the plan's `## Execution Status` bookkeeping: setting the step total, recording Mode and Inline pause mode, advancing verified progress, and correcting mistaken progress claims without hand-editing Markdown.
 - `implement` now uses a deterministic feedback writer to count audit-log events, format minimal and non-minimal run blocks, and safely replace the matching run while preserving other feedback and user-authored text. Retrospective diagnosis and share-safe paraphrasing remain model-driven.
 
