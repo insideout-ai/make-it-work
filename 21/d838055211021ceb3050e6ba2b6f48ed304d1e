@@ -1,0 +1,40 @@
+skills/implement/references/feedback.md
+  s_8fff4b108dff1c::t_a69ff1e600121a 116
+  s_8fff4b108dff1c::t_82eb024825951c 18,39,43,45-49,51-59,110-115,117-135,138,140-141,144
+CONTRIBUTING.md
+  s_8fff4b108dff1c::t_0bc29c343005c3 45
+skills/implement/scripts/write-feedback.mjs
+  s_8fff4b108dff1c::t_347eb0c58f5ff5 75,211,215,223
+  s_8fff4b108dff1c::t_d5996a70766d40 1-26,32-74,76-99,102-103,105-177,198,200-210,212-214,216-222,224-258
+  s_8fff4b108dff1c::t_28c305547e4eb3 100-101,104,178-197,199
+  s_8fff4b108dff1c::t_2fc04198b8e39f 27-31
+CHANGELOG.md
+  s_8fff4b108dff1c::t_9bc07844b18ef5 9-12
+skills/implement/SKILL.md
+  s_8fff4b108dff1c::t_82eb024825951c 584,586
+evals/implement/README.md
+  s_8fff4b108dff1c::t_347eb0c58f5ff5 9-19
+.github/workflows/validate-plugin.yml
+  s_8fff4b108dff1c::t_0bc29c343005c3 33-35
+skills/implement/scripts/write-feedback.test.mjs
+  s_8fff4b108dff1c::t_5ee13bec0490a2 1,3-10,12-99,103-106,110-139,153
+  s_8fff4b108dff1c::t_8d0ae599fb28e1 2,11,140-152
+  s_8fff4b108dff1c::t_a61685a530d75d 107-109
+  s_8fff4b108dff1c::t_28c305547e4eb3 100-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "21d838055211021ceb3050e6ba2b6f48ed304d1e",
+  "prompts": {},
+  "sessions": {
+    "s_8fff4b108dff1c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1116f-651f-7bf2-9428-3ad4ec21565e",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
