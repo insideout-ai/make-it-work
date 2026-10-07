@@ -1,0 +1,29 @@
+.githooks/pre-push
+  s_4a7a57b085b7ff::t_df331b57479522 1-15
+evals/README.md
+  s_4a7a57b085b7ff::t_df331b57479522 6-7,18,41-45
+scripts/install-pre-push-hook.sh
+  s_4a7a57b085b7ff::t_df331b57479522 1-22
+scripts/pre-push-hook.test.mjs
+  s_4a7a57b085b7ff::t_2c1d142ded716a 1-57
+CONTRIBUTING.md
+  s_4a7a57b085b7ff::t_df331b57479522 27-38,67
+.github/workflows/validate-plugin.yml
+  s_4a7a57b085b7ff::t_2c1d142ded716a 40-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "362375bf156244cf8515f6792d5e30ed62a41037",
+  "prompts": {},
+  "sessions": {
+    "s_4a7a57b085b7ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11539-8e21-7c40-a7a6-5193f23ec124",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
