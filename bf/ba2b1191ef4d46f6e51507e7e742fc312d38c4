@@ -1,0 +1,21 @@
+.githooks/pre-push
+  s_4a7a57b085b7ff::t_61ce58c2cf0c62 28-32
+scripts/pre-push-hook.test.mjs
+  s_4a7a57b085b7ff::t_61ce58c2cf0c62 54-56,60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bfba2b1191ef4d46f6e51507e7e742fc312d38c4",
+  "prompts": {},
+  "sessions": {
+    "s_4a7a57b085b7ff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11539-8e21-7c40-a7a6-5193f23ec124",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
