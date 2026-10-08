@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - CI runs all `implement` helper tests, and the smoke inventory covers the new public delivery skill.
+- `define-test-strategy` now keeps its added regression checklist item numbered from `1`; its smoke grader checks the required behavior without requiring a specific label.
 
 ## [4.5.0] - 2026-10-07
 
