@@ -209,6 +209,8 @@ This section applies only when `/make-it-work:implement` dispatches the review; 
 
 **Inputs** — the dispatch prompt provides: the ticket key, the spec path, the current plan path, the base branch, the literal `no PR`, the review cycle number, the list of known unrelated regressions (may be empty), and the list of decided findings (may be empty).
 
+When the prompt also provides a verification-ledger path, read it with the plan's AC traceability table. Check whether each claimed automated/manual verification has actual step evidence and call out unverified criteria in the report's coverage discussion; do not infer AC coverage from a passing full suite alone. This is an evidence review, not an instruction to rerun tests. The absence of the optional path on an older run changes nothing.
+
 **Skipped prompts** — do not run Step 0 (PR link), and skip Step 1's requirements question and its branch-pair confirmation. The requirements source is the provided spec plus plan, treated as authoritative exactly like user-provided requirements in Step 1.
 
 **Diff to review** — the work is not committed and there is no PR, so review the working tree against the base:
@@ -244,3 +246,5 @@ Orchestrator outcome: CLEAN | FIX_REQUIRED | REPLAN_REQUIRED | HUMAN_DECISION
 - Verdict **Request changes** → `REPLAN_REQUIRED` if any finding is `Route: replan`; otherwise `HUMAN_DECISION` if any is `Route: human`; otherwise `FIX_REQUIRED`.
 
 **No questions** — never ask the user anything in this mode. Anything that would need a question becomes a `Route: human` finding.
+
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `review-<N>.json` under `make-it-work/<TICKET>-handoffs/`. Use the actual saved Tier 1 review report as the `report` artifact. Record the current `review_cycle`, each actionable finding's id, route, stable code region, and `Introduced by fix of:` value (`null` for `none`); include the context gaps for final sync. Do not write this file for an older run. End the Tier 2 chat summary with `Handoff: <path>` after the `Orchestrator outcome:` line so `implement` can validate and route it.

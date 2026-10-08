@@ -4,6 +4,21 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.0] - 2026-10-08
+
+### Added
+
+- New `implement` runs use validated, versioned stage handoffs and a transition helper; older runs retain their original routing.
+- A content-bound final approval package shows the exact diffs, validation and review evidence, remaining caveats, and draft delivery text. Guided approval is invalidated by later changes.
+- Added the separate, explicitly approved `/make-it-work:deliver` command to commit, push, and create or update GitHub or Bitbucket Cloud PRs without changing `implement`'s uncommitted default.
+- Execute now records per-step verification, the existing completion gate result, and AC evidence in a durable ledger for new runs; Review and the final package use it without adding another validation phase.
+
+### Changed
+
+- CI runs all `implement` helper tests, and the smoke inventory covers the new public delivery skill.
+- `define-test-strategy` now keeps its added regression checklist item numbered from `1`; its smoke grader checks the required behavior without requiring a specific label.
+- `shape-the-epic` now explicitly flushes complete autopilot decisions through the shared log writer after saving the epic; its smoke grader accepts the documented write paths and checks the decision payload.
+
 ## [4.5.0] - 2026-10-07
 
 ### Added

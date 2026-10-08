@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "smoke": [
     "close-the-gaps-live-autopilot",
+    "deliver-no-package",
     "extend-autopilot",
     "execute-full-pass",
     "find-the-repos-happy-path",

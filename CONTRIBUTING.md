@@ -53,11 +53,10 @@ Do not bump the plugin version as part of an ordinary contribution. Maintainers 
 Run the same strict checks used by CI:
 
 ```sh
-node --test skills/implement/scripts/render-status.test.mjs
+node --test skills/implement/scripts/*.test.mjs
 claude plugin validate .claude-plugin/plugin.json --strict
 claude plugin validate skills --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
-node --test skills/implement/scripts/write-feedback.test.mjs
 node --test scripts/decision-log.test.mjs
 git diff --check
 node --test skills/execute/scripts/plan-status.test.mjs
@@ -65,7 +64,7 @@ node --test skills/execute/scripts/plan-status.test.mjs
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
-Before opening a pull request, run the 11-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and adjudicate any LLM-grader failures in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and cases needing human review. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
+Before opening a pull request, run the 12-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and adjudicate any LLM-grader failures in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and cases needing human review. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
 
 ## Pull requests
 
