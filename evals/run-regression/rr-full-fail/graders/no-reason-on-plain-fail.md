@@ -1,5 +1,6 @@
 ---
 type: llm
+focus: last_message
 weight: 2
 ---
 

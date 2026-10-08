@@ -29,13 +29,19 @@ This skill uses no `AskUserQuestion` calls today — every interactive point is 
 
 **Hard-stop exception:** no destructive action is flagged for this skill — autopilot never deletes, force-pushes, or discards anything. One caveat worth naming rather than silently assuming away: a re-run for the same ticket overwrites `make-it-work/{TICKET}-review.md` from a prior run, in **both** interactive and autopilot mode — the interactive path has no overwrite prompt either (Step 7's Output format section just says "Save to..."). Autopilot therefore removes no human gate that existed before it. This file is a regenerable analysis artifact, not hand-curated source of truth (unlike, say, a plan file), so this is not treated as the hard-stop destructive-action exception — just documented here so it isn't mistaken for an oversight. One missing-input stop remains unconditional under `--autopilot`: the Step 1 (Base) branch pair resolving to the same branch on both sides, since there is no diff to review in that case — see the resolution table below.
 
-**Decision log:** write `.claude/review-the-pr-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill never reaches `"askUserQuestion"`, so it omits `multiSelect`/`question`/`options` entirely; `kind` is only ever `"open_text"` or `"checkpoint"`, and `chosen` is therefore only ever the free-text answer (`open_text`), a short string describing what was confirmed (`checkpoint`), or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 0"`, `"Step 1"`. `site` examples: `"pr-link"`, `"requirements-source"`, `"branch-pair"`.
+**Decision log:** write `make-it-work/review-the-pr-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill never reaches `"askUserQuestion"`, so it omits `multiSelect`/`question`/`options` entirely; `kind` is only ever `"open_text"` or `"checkpoint"`, and `chosen` is therefore only ever the free-text answer (`open_text`), a short string describing what was confirmed (`checkpoint`), or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 0"`, `"Step 1"`. `site` examples: `"pr-link"`, `"requirements-source"`, `"branch-pair"`.
 
-When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the start-of-run timing and never use it to bypass a denied `.claude/` write.
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the start-of-run timing and never use it to bypass a denied log write.
 
 Log a line for every site above on every run, including a site skipped because its input was already supplied in the invocation — mark `chosen` accordingly (e.g. `"already provided in the invocation"`) so the log stays a complete, auditable record of the run rather than only the sites that needed a real decision.
 
 At the end of an autopilot run, print a short human-readable summary of the three resolutions above and the log file's path, so someone can audit the run afterward.
+
+Before that summary, verify that the required Tier 1 review file was actually
+saved at the path specified in Output format. A chat-only review is incomplete,
+including when the verdict is "Request changes" or no code edit is needed.
+If a write is denied, say that the durable review was not saved; do not claim
+the review deliverable is complete or bypass the denial.
 
 ## Overview
 
@@ -154,6 +160,10 @@ Deliver the review in **two tiers** — a durable, pasteable report in a file, a
 ### Tier 1 — Full report (file)
 
 Save to `make-it-work/{TICKET}-review.md` (create the `make-it-work/` folder at the repo root if it doesn't exist), or to the path the user specifies. PR-comment style — verdict first, then findings, no checklist boilerplate:
+
+The file write is a required step of every completed review. Save it before
+printing Tier 2, then confirm it exists; do not substitute the chat summary
+or a `ReportFindings` tool call for the report file.
 
 ```markdown
 ### Code review — {TICKET} (<branch>, <reviewed commit short-hash>)

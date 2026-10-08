@@ -15,7 +15,7 @@ The terminal state-file write and dashboard regeneration happen first. Feedback 
 
 ## Stable run identity and safe updates
 
-The feedback writer uses the state file's real `start_time` verbatim as the run ID. A missing or `none` start time makes the run ineligible: report its error, but leave the terminal workflow state unchanged.
+The feedback writer uses the state file's real `start_time` verbatim as the run ID and renders the immutable `plugin_version` captured when the run began. A missing or `none` start time makes the run ineligible: report its error, but leave the terminal workflow state unchanged. A legacy state without `plugin_version` is labelled `not captured (legacy run)`; never backfill it from the currently installed plugin.
 
 On first creation, begin the file exactly with:
 

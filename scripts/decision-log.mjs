@@ -93,7 +93,7 @@ function parseExisting(contents, skill) {
 
 async function checkedPath(root, skill, { createDirectory = true } = {}) {
   if (!SKILLS.has(skill)) fail(`Unknown skill: ${skill}`);
-  const directory = path.resolve(root, '.claude');
+  const directory = path.resolve(root, 'make-it-work');
   let stat;
   try { stat = await lstat(directory); }
   catch (error) {
@@ -102,7 +102,7 @@ async function checkedPath(root, skill, { createDirectory = true } = {}) {
     await mkdir(directory, { mode: 0o700 });
     stat = await lstat(directory);
   }
-  if (!stat.isDirectory() || stat.isSymbolicLink()) fail('.claude must be a real directory, not a symlink.');
+  if (!stat.isDirectory() || stat.isSymbolicLink()) fail('make-it-work must be a real directory, not a symlink.');
   const target = path.join(directory, `${skill}-autopilot-log.jsonl`);
   let targetStat;
   try { targetStat = await lstat(target); }

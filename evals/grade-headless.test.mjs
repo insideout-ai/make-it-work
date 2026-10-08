@@ -75,9 +75,9 @@ test('requires a final result in headless transcripts', () => {
     /No final result/);
 });
 
-test('parses every headless smoke grader definition', async () => {
+test('parses every headless grader definition', async () => {
   const { cases, suites } = await validateEvalTree();
-  for (const name of suites.headless.filter((item) => suites.smoke.includes(item))) {
+  for (const name of suites.headless) {
     const item = cases.find((entry) => entry.name === name);
     for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
       const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
@@ -85,4 +85,24 @@ test('parses every headless smoke grader definition', async () => {
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
   }
+});
+
+test('plan tests field accepts required evidence in either order', async () => {
+  const markdown = await readFile(path.join('evals', 'plan-the-work', 'with-tests',
+    'graders', 'plan-tests-field-recorded.md'), 'utf8');
+  const { pattern } = parseGrader(markdown, 'plan-tests-field-recorded.md');
+  const expression = new RegExp(pattern);
+  assert.match('**Tests:** src/tasks/createTask.test.js, npm test; red on whitespace and trim', expression);
+  assert.match('**Tests:** src/tasks/createTask.test.js, npm test; whitespace and trim confirmed red', expression);
+  assert.doesNotMatch('**Tests:** src/tasks/createTask.test.js, npm test; whitespace and trim', expression);
+});
+
+test('sparse epic turn-cap check accepts only a bounded summary', async () => {
+  const markdown = await readFile(path.join('evals', 'shape-the-epic',
+    'shape-the-epic-sparse-input-autopilot', 'graders', 'turn-cap-exercised.md'), 'utf8');
+  const { pattern } = parseGrader(markdown, 'turn-cap-exercised.md');
+  const expression = new RegExp(pattern);
+  assert.match('Part A: 3 self-answered turn(s) used (cap 6); exit: early (no open threads remaining)', expression);
+  assert.match('Part A: 6 self-answered turn(s) used (cap 6); exit: cap-reached (open threads: roles)', expression);
+  assert.doesNotMatch('Part A: 7 self-answered turn(s) used (cap 6); exit: early (no open threads remaining)', expression);
 });

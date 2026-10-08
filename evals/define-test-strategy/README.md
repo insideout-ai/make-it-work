@@ -8,7 +8,7 @@ Three cases exercising `skills/define-test-strategy/SKILL.md`'s `--autopilot` fl
 
 ## Running extend-autopilot and define-test-strategy-negative-control (fully automated)
 
-This skill's only `.claude/`-protected output is `.claude/rules/testing-strategy.md` — everything else (scaffolded tests, `CLAUDE.md` edits, the optional hook) lives outside `.claude/` and is plain-`claude plugin eval`-testable. The decision log (`.claude/define-test-strategy-autopilot-log.jsonl`) is *also* always under `.claude/` per the shared autopilot convention, so its write is denied too under plain eval — but the skill's Autopilot Mode section explicitly handles this (note the fact in the end-of-run summary, then keep going) rather than aborting, so the rest of the run still completes and grades normally.
+This skill's only `.claude/`-protected output is `.claude/rules/testing-strategy.md` — everything else (scaffolded tests, `CLAUDE.md` edits, the optional hook) lives outside `.claude/` and is plain-`claude plugin eval`-testable. The decision log (`make-it-work/define-test-strategy-autopilot-log.jsonl`) is *also* always under `.claude/` per the shared autopilot convention, so its write is denied too under plain eval — but the skill's Autopilot Mode section explicitly handles this (note the fact in the end-of-run summary, then keep going) rather than aborting, so the rest of the run still completes and grades normally.
 
 `extend-autopilot`'s fixture seeds a `testing-strategy.md` that is already complete and correct, so Phase 2 never needs to write to it in that case — the only `.claude/` write it ever attempts is the (expected-denied) decision log.
 
@@ -38,7 +38,7 @@ RUN_DIR=$(mktemp -d)
 
 # Verify: diff git status on the real repo before/after (must be identical),
 # then inspect $RUN_DIR's files — especially .claude/rules/testing-strategy.md
-# and .claude/define-test-strategy-autopilot-log.jsonl — by hand against
+# and make-it-work/define-test-strategy-autopilot-log.jsonl — by hand against
 # evals/define-test-strategy/fresh-autopilot/graders/*.md.
 ```
 
@@ -60,7 +60,7 @@ During implementation, `extend-autopilot` was run three times via `claude plugin
 - `CLAUDE.md`'s "Rules Files" section gained exactly one new row for `testing-strategy.md`, its two original rows untouched; the "After Any Feature Change" checklist gained exactly one new "Regression check" item, inserted *before* the original "Skill docs" item; the quick-lookup table and the opening SENTINEL line were both left byte-for-byte intact.
 - Phase 4's coverage report correctly classified all four use cases (covered / scaffolded-only / scaffolded-only / scaffolded-only) and correctly flagged the `notifications` domain as uncovered while not flagging `tasks`.
 - Phase 5's hook offer correctly auto-selected "No hook — CLAUDE.md instruction is enough" (the hard-stop exception) — no hook file was written.
-- The decision log write to `.claude/define-test-strategy-autopilot-log.jsonl` was denied by the sandbox, and the run **explicitly said so in its end-of-run summary and continued anyway** rather than aborting or relocating the log — confirming the Autopilot Mode section's graceful-degradation instruction actually works as written, not just as documented.
+- The decision log write to `make-it-work/define-test-strategy-autopilot-log.jsonl` was denied by the sandbox, and the run **explicitly said so in its end-of-run summary and continued anyway** rather than aborting or relocating the log — confirming the Autopilot Mode section's graceful-degradation instruction actually works as written, not just as documented.
 - As an incidental but reassuring finding: the model noticed the fixture's embedded `SENTINEL: ...` line read like a planted instruction and explicitly flagged it as suspicious rather than acting on it — it was never intended as a prompt-injection test, but it's a good sign that the fixture's incidental "SENTINEL" wording (copied from `go-deep`'s own fixture style) didn't get treated as a real instruction.
 
 ## A grader-tooling finding from this work (not a skill defect)

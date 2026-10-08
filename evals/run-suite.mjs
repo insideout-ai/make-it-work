@@ -7,21 +7,22 @@ import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
 import { gradeHeadlessCase } from './grade-headless.mjs';
+import { pluginEvalArgs } from './run-suite-args.mjs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
 const dryRun = argv.includes('--dry-run');
 const budgetArg = argv.find((arg) => arg.startsWith('--max-cost-usd='));
-const caseArg = argv.find((arg) => arg.startsWith('--case='));
-const requestedCase = caseArg?.slice('--case='.length);
+const caseArgs = argv.filter((arg) => arg.startsWith('--case='));
+const requestedCases = caseArgs.map((arg) => arg.slice('--case='.length));
 const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'smoke' ? 12 : 45;
 const concurrency = tier === 'smoke' ? 4 : 1;
 
 if (!['smoke', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
-    (caseArg && !requestedCase) ||
+    requestedCases.some((name) => !name) ||
     argv.some((arg, index) => index > 0 && arg !== '--dry-run' &&
       !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case='))) {
-  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME] [--max-cost-usd=N]\n');
+  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME ...] [--max-cost-usd=N]\n');
   process.exit(64);
 }
 
@@ -32,11 +33,13 @@ if (errors.length) {
 }
 const byName = new Map(cases.map((item) => [item.name, item]));
 const tierCases = tier === 'smoke' ? suites.smoke.map((name) => byName.get(name)) : cases;
-const selected = requestedCase ? tierCases.filter((item) => item.name === requestedCase) : tierCases;
-if (!selected.length) {
-  process.stderr.write(`Case ${requestedCase} is not in the ${tier} tier.\n`);
+const missingCases = requestedCases.filter((name) => !tierCases.some((item) => item.name === name));
+if (missingCases.length) {
+  process.stderr.write(`Case(s) ${missingCases.join(', ')} not in the ${tier} tier.\n`);
   process.exit(64);
 }
+const requestedSet = new Set(requestedCases);
+const selected = requestedCases.length ? tierCases.filter((item) => requestedSet.has(item.name)) : tierCases;
 if (dryRun) {
   for (const item of selected) {
     const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
@@ -63,7 +66,7 @@ const before = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('stat
 const version = spawnSync('claude', ['--version'], { encoding: 'utf8' });
 if (version.status !== 0) throw new Error('Claude Code is not installed or available on PATH');
 const summary = {
-  tier, requestedCase, startedAt: new Date().toISOString(),
+  tier, requestedCases, startedAt: new Date().toISOString(),
   commit: process.env.MIW_EVAL_SOURCE_COMMIT || before.head,
   snapshotCommit: process.env.MIW_EVAL_SOURCE_COMMIT ? before.head : undefined,
   claudeVersion: version.stdout.trim(), budgetUsd: budget, concurrency, cases: [],
@@ -139,10 +142,8 @@ async function runCase(item, remaining) {
       detail = error.message || result.error?.message || `Claude exited ${result.status ?? 'without a status'}`;
     }
   } else {
-    const args = ['plugin', 'eval', '.', '--case', item.name, '--ablation', 'none', '--runs', '1',
-      '--trust-plugin', '--no-publish', '--threshold', '0', '--output-dir', caseReportDir,
-      '--max-cost-usd', remaining.toFixed(2), '--allow-tools', ...tools];
-    if (item.scaffold) args.push('--scaffold');
+    const args = pluginEvalArgs({ name: item.name, caseReportDir, remaining,
+      tools, scaffold: item.scaffold });
     result = await command('claude', args, REPO_ROOT, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'runner-stdout.txt'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'runner-stderr.txt'), result.stderr || '');

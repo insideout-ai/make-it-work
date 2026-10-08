@@ -26,7 +26,7 @@ const question = {
 async function workspace(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'decision-log-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  return { root, log: path.join(root, '.claude', 'execute-autopilot-log.jsonl') };
+  return { root, log: path.join(root, 'make-it-work', 'execute-autopilot-log.jsonl') };
 }
 
 test('init creates a fresh empty log and append records ordered decisions', async (t) => {
@@ -48,14 +48,14 @@ test('write flushes a late batch and replaces a prior run atomically', async (t)
     [normalizeEntry(question, 'execute')]);
   await updateLog({ root, skill: 'execute', command: 'write', input: [] });
   assert.equal(await readFile(log, 'utf8'), '');
-  assert.deepEqual(await readdir(path.join(root, '.claude')), ['execute-autopilot-log.jsonl']);
+  assert.deepEqual(await readdir(path.join(root, 'make-it-work')), ['execute-autopilot-log.jsonl']);
 });
 
 test('append requires init and rejects malformed existing JSONL without clobbering it', async (t) => {
   const { root, log } = await workspace(t);
   await assert.rejects(updateLog({ root, skill: 'execute', command: 'append', input: checkpoint }),
     /initialize this run first/);
-  await mkdir(path.join(root, '.claude'));
+  await mkdir(path.join(root, 'make-it-work'));
   await writeFile(log, 'not json\n');
   await assert.rejects(updateLog({ root, skill: 'execute', command: 'append', input: checkpoint }),
     /Existing log line 1/);
@@ -76,14 +76,14 @@ test('validates shared schema and skill-specific repo field', () => {
   assert.throws(() => normalizeEntry(checkpoint, '../execute'), /Unknown skill/);
 });
 
-test('rejects symlinked .claude directory and log target', async (t) => {
+test('rejects symlinked make-it-work directory and log target', async (t) => {
   const { root, log } = await workspace(t);
   const elsewhere = await mkdtemp(path.join(os.tmpdir(), 'decision-log-other-'));
   t.after(() => rm(elsewhere, { recursive: true, force: true }));
-  await symlink(elsewhere, path.join(root, '.claude'));
+  await symlink(elsewhere, path.join(root, 'make-it-work'));
   await assert.rejects(updateLog({ root, skill: 'execute', command: 'init' }), /real directory/);
-  await rm(path.join(root, '.claude'));
-  await mkdir(path.join(root, '.claude'));
+  await rm(path.join(root, 'make-it-work'));
+  await mkdir(path.join(root, 'make-it-work'));
   await symlink(path.join(elsewhere, 'target'), log);
   await assert.rejects(updateLog({ root, skill: 'execute', command: 'write', input: [] }), /regular file/);
 });

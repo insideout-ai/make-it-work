@@ -7,7 +7,7 @@ Shared reference for the `**Decision log:**` section every `--autopilot`-enabled
 When Bash is already permitted for the run, use the shared writer instead of
 hand-building JSONL or editing existing lines. Invoke each writer command in
 its **own Bash tool call**, never joined with discovery, tests, or another
-file write: a denied `.claude/` operation must not prevent unrelated work in
+file write: a denied decision-log operation must not prevent unrelated work in
 the same shell call. Resolve `<base>` to the active
 skill's directory and `<repo-root>` to the repo that owns the log:
 
@@ -32,7 +32,7 @@ decision according to its own resolution table.
 This command does **not** bypass tool permissions. If Bash is unavailable,
 the skill may use its existing Write/Edit path for the same JSONL contract;
 do not request broader permissions solely to produce this log. If a write to
-the protected `.claude/` path is denied, do not retry through another tool or
+the decision-log write is denied, do not retry through another tool or
 path. A denied log write says nothing about whether a later, unrelated Bash
 call (such as a test command) is allowed. Follow that skill's existing
 denied-log handling and continue or stop exactly as its own instructions

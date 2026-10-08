@@ -95,7 +95,7 @@ colliding with another skill's identically-themed case, e.g.
 
 **One caveat even for these three plain-eval cases:** the shared autopilot
 convention (`autopilot-eval-rollout-spec.md` §1) fixes the decision log's path
-at `.claude/execute-autopilot-log.jsonl`, unconditionally, for every skill —
+at `make-it-work/execute-autopilot-log.jsonl`, unconditionally, for every skill —
 regardless of whether that skill's *other* outputs touch `.claude/`. Claude
 Code treats `.claude/` as a protected path everywhere; no tool grant or
 allowlist unblocks writing there outside `--dangerously-skip-permissions`
@@ -136,7 +136,7 @@ RUN_DIR=$(mktemp -d)
 # Verify: diff git status on the real repo before/after (must be identical —
 # run-all.sh does this automatically), then inspect $RUN_DIR's
 # src/greeting.js, make-it-work/DEMO-2-plan.md's Execution Status section,
-# and $RUN_DIR/.claude/execute-autopilot-log.jsonl by hand. Expect:
+# and $RUN_DIR/make-it-work/execute-autopilot-log.jsonl by hand. Expect:
 # greetFormally added, Mode resolved to Subagent-Driven, Progress "Step 1 of
 # 1 complete", a real `npm test` (or `node test.js`) run via run-regression,
 # Gate result: PASS, and Phase 5's final success report ("Changes are
@@ -184,7 +184,7 @@ inferred from grader output alone):
   `run-regression`'s fixed stop message, which `execute`'s Phase 4 then
   relayed verbatim and treated as a FAIL-equivalent stop. Phase 5's terminal
   success report was correctly never printed. The
-  `.claude/execute-autopilot-log.jsonl` write was refused by the sandbox
+  `make-it-work/execute-autopilot-log.jsonl` write was refused by the sandbox
   (expected); the model noticed the refusal, said so plainly in its summary
   instead of silently dropping it, and the run still reached its correct
   terminal state.
@@ -269,7 +269,7 @@ verified by directly running `node test.js` against it (fails as expected:
   plain `claude plugin eval` in this sandbox, not every site a run
   resolves.** `.claude/` is a protected path in this sandbox (see the
   caveat above), so only the very first attempted `Write` to
-  `.claude/execute-autopilot-log.jsonl` in a run is ever actually attempted
+  `make-it-work/execute-autopilot-log.jsonl` in a run is ever actually attempted
   and observable. Confirmed empirically: in `execute-stop-at-gate`'s real
   run, the very first attempted `Write` (the `mode-choice` line) was denied
   by the sandbox, and no further attempt to write/append that file appears

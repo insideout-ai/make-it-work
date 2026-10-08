@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Manually verifies .claude/shape-the-epic-autopilot-log.jsonl, the one file
+# Manually verifies make-it-work/shape-the-epic-autopilot-log.jsonl, the one file
 # this skill's autopilot run writes under `.claude/` — a path `claude plugin
 # eval`'s sandbox blocks even with explicit tool grants (see
 # evals/shape-the-epic/README.md and evals/go-deep/README.md for the
@@ -91,7 +91,7 @@ echo "Run dir:    $RUN_DIR"
 echo "Transcript: $TRANSCRIPT"
 echo
 echo "Now check by hand:"
-echo "  - $RUN_DIR/.claude/shape-the-epic-autopilot-log.jsonl exists and matches"
+echo "  - $RUN_DIR/make-it-work/shape-the-epic-autopilot-log.jsonl exists and matches"
 echo "    the schema in skills/shape-the-epic/SKILL.md's Autopilot Mode section"
 echo "    (one JSON object per line: phase, site, kind, chosen, rationale, ...;"
 echo "    for the sparse case, look for a 'part-a-cap-reached' site if the cap"

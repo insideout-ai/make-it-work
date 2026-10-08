@@ -46,7 +46,7 @@ run_case() {
   echo "$run_dir" > "/tmp/go-deep-${case_name}-rundir.txt"
   echo "$case_name run dir:   $run_dir"
   echo "$case_name transcript: $transcript"
-  echo "Check its files and .claude/go-deep-autopilot-log.jsonl against evals/go-deep/$case_name/graders/*.md"
+  echo "Check its files and make-it-work/go-deep-autopilot-log.jsonl against evals/go-deep/$case_name/graders/*.md"
 }
 
 run_case fresh-onboarding

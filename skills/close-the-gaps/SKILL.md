@@ -35,9 +35,9 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 2. **Phase 1 pending offline export** (`make-it-work/<TICKET-or-slug>-questions.md` exists with `**Status:** Awaiting Answers`). None of its three choices — resume it, overwrite it and continue this fresh session, or abort — carries a designated default anywhere in this skill's text, and one of them is destructive: overwriting discards a file that may hold previously recorded answers. Autopilot does not guess among the three. It prints the file's path and the three choices, then stops and requires a human. "Overwrite it and continue this fresh session" is named here as never auto-selectable on its own, independent of which of the other two choices a human later makes.
 3. **Phase 5C conflicting checkboxes** (more than one box checked for the same question, including a filled-in "Other:"). There is no safe way to infer which of two explicit, conflicting human selections was intended. Stop and show the user what was checked, exactly as the interactive path already does.
 
-**Decision log:** write `.claude/close-the-gaps-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`); `multiSelect` is present but always `false` (this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead); `chosen` is therefore a string, the `open_text` free-text answer, or `null` — never an array. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`. `site` examples: `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
+**Decision log:** write `make-it-work/close-the-gaps-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`); `multiSelect` is present but always `false` (this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead); `chosen` is therefore a string, the `open_text` free-text answer, or `null` — never an array. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`. `site` examples: `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
 
-When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied `.claude/` write.
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied log write.
 
 This file is a run artifact: never treat it as a Phase 3 "code finding," never embed it in a `*-questions.md` export, and never reference it from Phase 6's own `## Decision Log` table — the two logs serve different audiences (this one is for auditing the autopilot run itself; Phase 6's is part of the deliverable ticket).
 
@@ -57,7 +57,7 @@ This file is a run artifact: never treat it as a Phase 3 "code finding," never e
 
 Only the Phase 5A/5C `askUserQuestion` rows carry a `(Recommended)` label in this skill — do not invent one for the two Phase 1 checkpoints, which are hard-stops with nothing to auto-resolve, or for the Phase 5C conflicting-checkbox checkpoint.
 
-**Marking autopilot answers in the deliverable itself:** apply the marker convention from `docs/autopilot-log-schema.md` to Phase 6's `## Decision Log` table — append `_(autopilot)_` after a `(Recommended)`-resolved answer, keep the `[autopilot best-guess]` prefix on an `open_text` answer — so a reviewer reading the refined ticket alone, without `.claude/close-the-gaps-autopilot-log.jsonl`, can see which decisions weren't confirmed by a person. A question that was already answered unambiguously in an offline file before this run needs no marker — a human already decided it.
+**Marking autopilot answers in the deliverable itself:** apply the marker convention from `docs/autopilot-log-schema.md` to Phase 6's `## Decision Log` table — append `_(autopilot)_` after a `(Recommended)`-resolved answer, keep the `[autopilot best-guess]` prefix on an `open_text` answer — so a reviewer reading the refined ticket alone, without `make-it-work/close-the-gaps-autopilot-log.jsonl`, can see which decisions weren't confirmed by a person. A question that was already answered unambiguously in an offline file before this run needs no marker — a human already decided it.
 
 At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision (including any hard-stop that was hit) and the log file's path, so someone can audit the run afterward.
 
@@ -150,6 +150,10 @@ If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of askin
 
 Tell the user:
 > "I've analyzed the ticket and found [N] questions to resolve. I'll ask them in batches, grouped so you can navigate and revise answers within each batch before submitting."
+
+Emit this announcement with the actual question count before the first live
+question, even if the run must stop for answers and never writes a spec. Do
+not replace it with an unnumbered paraphrase.
 
 **Group the question list into waves before asking anything.** `AskUserQuestion` accepts up to 4 questions in a single call and renders them as navigable tabs the user can jump between and revise — but every question in that call is fixed and visible at once, so it only works for questions that don't depend on each other's answers.
 

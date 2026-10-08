@@ -44,10 +44,13 @@ export function inspectState(markdown, { limitStop = false } = {}) {
   if (!fieldBlock) fail('Missing state field block.');
   const fields = Object.fromEntries([...fieldBlock.matchAll(/^([a-z_]+):\s*(.*?)\s*$/gm)]
     .map((match) => [match[1], match[2]]));
-  const { ticket, status, phase, start_time: runId } = fields;
+  const { ticket, status, phase, start_time: runId, plugin_version: pluginVersion } = fields;
   if (!ticket || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Invalid ticket field.');
   if (!ISO_UTC.test(runId ?? '') || Number.isNaN(Date.parse(runId))) {
     fail('A real ISO 8601 UTC start_time is required for feedback.');
+  }
+  if (pluginVersion !== undefined && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(pluginVersion)) {
+    fail('plugin_version must be a semantic version when present.');
   }
   if (status === 'Complete') {
     if (phase !== 'complete' || limitStop) fail('Complete feedback requires phase: complete and no --limit-stop.');
@@ -93,6 +96,7 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     reviewCycles: explicitReviews || enteredReviews,
     events,
     ticket,
+    pluginVersion: pluginVersion ?? 'not captured (legacy run)',
   };
 }
 
@@ -147,7 +151,7 @@ function validateAnalysis(analysis, summary) {
 
 export function renderBlock(summary, analysis = null) {
   const prefix = `<!-- run:${summary.runId} -->\n## Run started ${summary.runId}\n\n` +
-    `- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
+    `- Plugin version: ${summary.pluginVersion}\n- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
     `- Fix rounds: ${summary.fixRounds}\n- Replans: ${summary.replans}\n` +
     `- Review cycles: ${summary.reviewCycles}\n`;
   if (summary.minimal) {

@@ -4,6 +4,20 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-10-08
+
+### Added
+
+- Added an `implement` dashboard checkpoint helper that keeps activity and step progress synchronized with the rendered status page, with rollback on render failure.
+- Added multi-case selection and argument tests to the local eval runner for bounded targeted regressions.
+
+### Changed
+
+- Autopilot decision logs now live under `make-it-work/` rather than `.claude/`; skill instructions, the shared writer, documentation, and evals use the same location.
+- `implement` feedback preserves the run's plugin version and records terminal outcomes more consistently.
+- Review, ticket-refinement, and regression-stop instructions make required reports and stop messages explicit.
+- Eval grading handles headless `implement`, zero-tool cases, cross-file evidence, and legitimate fixture variations without relying on manual review or brittle LLM judgments where deterministic checks suffice.
+
 ## [4.6.0] - 2026-10-08
 
 ### Added

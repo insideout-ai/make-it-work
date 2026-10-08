@@ -56,6 +56,7 @@ test('minimal run is counted from Audit log and written without analysis', async
   await writeFeedback(statePath);
   const feedback = await readFile(feedbackPath, 'utf8');
   assert.match(feedback, /Reporter: Anonymous/);
+  assert.match(feedback, /Plugin version: 4\.6\.0/);
   assert.match(feedback, /- Minimal path: Yes/);
   assert.match(feedback, /- Review cycles: 1/);
   assert.doesNotMatch(feedback, /Extra-round analysis|DEMO/);
@@ -73,6 +74,13 @@ test('non-minimal run counts reset cycles from history and formats structured di
   assert.match(feedback, /#### Event 2 — Replan/);
   assert.match(feedback, /- Root cause: planning gap/);
   assert.match(feedback, /### Open questions\n\n- None/);
+});
+
+test('feedback preserves the plugin version captured by the run', () => {
+  const state = inspectState(finish('```\nticket: DEMO\nstatus: In Progress\nphase: final-sync\nstart_time: 2026-01-01T10:00:00Z\nplugin_version: 4.6.0\npause_reason: none\n```\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | start | final-sync | Started |'));
+  assert.equal(state.pluginVersion, '4.6.0');
+  assert.match(renderBlock(state), /Plugin version: 4\.6\.0/);
+  assert.throws(() => inspectState(finish('```\nticket: DEMO\nstatus: In Progress\nphase: final-sync\nstart_time: 2026-01-01T10:00:00Z\nplugin_version: latest\npause_reason: none\n```\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | start | final-sync | Started |')), /plugin_version/);
 });
 
 test('same run replaces only its block and preserves user text and other runs', async (t) => {

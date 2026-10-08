@@ -9,7 +9,7 @@ Three cases exercising `skills/slice-the-epic/SKILL.md`'s `--autopilot` flag:
 `slice-the-epic` is simpler than `go-deep`'s pilot in one respect and the same in another:
 
 - **Simpler**: it has exactly one interactive site (a conditional clarifying question in "Understand the request" — see SKILL.md's Autopilot Mode section), no destructive-action analog, and it persists **no output file of its own** — the backlog is chat-output only. This was confirmed by reading the live `SKILL.md` in full before writing any grader: nothing in "Write the backlog" or "Wrap up" instructs saving to disk.
-- **Same**: the one thing it *does* write under autopilot — `.claude/slice-the-epic-autopilot-log.jsonl` — lands under `.claude/`, which `claude plugin eval`'s sandbox denies writing to regardless of tool grants (reconfirmed empirically for this exact binary version during this work — see "Re-confirming the `.claude/` write block" below). So the suite follows the same split `go-deep`'s README documents for `define-test-strategy`-shaped cases: run everything through plain `claude plugin eval`, and only reach for a manual, unsandboxed run to verify the log file's actual content.
+- **Same**: the one thing it *does* write under autopilot — `make-it-work/slice-the-epic-autopilot-log.jsonl` — lands under `.claude/`, which `claude plugin eval`'s sandbox denies writing to regardless of tool grants (reconfirmed empirically for this exact binary version during this work — see "Re-confirming the `.claude/` write block" below). So the suite follows the same split `go-deep`'s README documents for `define-test-strategy`-shaped cases: run everything through plain `claude plugin eval`, and only reach for a manual, unsandboxed run to verify the log file's actual content.
 
 ## A note on case names
 
@@ -44,7 +44,7 @@ Epic: Make the platform better for enterprise customers." \
   --plugin-dir /Users/ErezMo/make-it-work --allowedTools Write \
   --output-format stream-json --verbose > /tmp/slice-the-epic-ambiguous-transcript.jsonl
 
-cat "$RUN_DIR/.claude/slice-the-epic-autopilot-log.jsonl"
+cat "$RUN_DIR/make-it-work/slice-the-epic-autopilot-log.jsonl"
 ```
 
 Expect exactly one line: `phase: "Understand the request"`, `site: "missing-fact-clarification"`, `kind: "open_text"`, `chosen` starting with `[autopilot best-guess]`, and a one-sentence `rationale`.
@@ -55,7 +55,7 @@ This repo's own working tree is never touched by the above — it runs entirely 
 
 Before writing any case, two throwaway probes were run directly against this plugin (not kept in this suite):
 
-1. A trivial case asking the model to `Write` a file to `.claude/probe-autopilot-log.jsonl`, run via `claude plugin eval ... --allow-tools Write` — **denied**. The trace shows `"type":"system","subtype":"permission_denied"` with `"message":"Permission to use Write has been denied because Claude Code is running in don't ask mode."`
+1. A trivial case asking the model to `Write` a file to `make-it-work/probe-autopilot-log.jsonl`, run via `claude plugin eval ... --allow-tools Write` — **denied**. The trace shows `"type":"system","subtype":"permission_denied"` with `"message":"Permission to use Write has been denied because Claude Code is running in don't ask mode."`
 2. The same case, same grant, writing to `probe-root.txt` at the working-directory root instead — **succeeded**.
 
 This reconfirms `go-deep`'s finding holds for `claude plugin eval` specifically: no `--allow-tools` grant unblocks a `.claude/`-path write inside its sandbox. It does not hold for plain `claude -p` headless mode on this machine/version (see above) — that part of `go-deep`'s README may be stale or was specific to a different invocation shape.

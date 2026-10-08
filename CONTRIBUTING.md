@@ -43,7 +43,7 @@ refuses to replace an existing hooks setup.
 - `.claude-plugin/marketplace.json` defines the InsideOut AI marketplace listing.
 - `skills/<skill-name>/SKILL.md` contains each user-facing workflow.
 - `docs/` contains shared reference documentation for skill authors (e.g. the `--autopilot` decision-log schema), referenced from multiple skills' `SKILL.md` files rather than duplicated in each.
-- `scripts/decision-log.mjs` validates and writes the shared autopilot JSONL log when Bash and `.claude/` writes are permitted.
+- `scripts/decision-log.mjs` validates and writes the shared autopilot JSONL log under `make-it-work/` when Bash writes are permitted.
 - `.github/workflows/validate-plugin.yml` runs strict validation in CI.
 
 Do not bump the plugin version as part of an ordinary contribution. Maintainers update versions when preparing a release.

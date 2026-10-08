@@ -28,7 +28,7 @@ harness's own auto-mode safety net can't invoke or grant itself.
 Unlike `go-deep`, `run-regression` writes **nothing to disk** under normal
 operation — the Phase 5 report is returned live, never persisted (see
 `SKILL.md`'s Phase 5). The *only* thing this skill ever writes to disk is
-`--autopilot`'s own decision log, `.claude/run-regression-autopilot-log.jsonl`.
+`--autopilot`'s own decision log, `make-it-work/run-regression-autopilot-log.jsonl`.
 That protected path may be denied by the eval sandbox. With a Bash grant,
 however, the shared `scripts/decision-log.mjs` writer has been observed to
 initialize the log successfully when invoked in its own tool call. A denial
@@ -100,7 +100,7 @@ exposure at all, but the one decision-log write does. Concretely:
   # Verify: diff `git status --porcelain --ignored -- skills/run-regression evals/run-regression`
   # on the real repo before/after (must be identical — scope the diff to these two
   # paths only while other agents may be concurrently changing the rest of the tree),
-  # then inspect $RUN_DIR's final message and $RUN_DIR/.claude/run-regression-autopilot-log.jsonl.
+  # then inspect $RUN_DIR's final message and $RUN_DIR/make-it-work/run-regression-autopilot-log.jsonl.
   ```
 
   The `graders/*.md` files in each case directory still document exactly
@@ -129,7 +129,7 @@ this suite was held to the same bar `go-deep`'s `fresh-onboarding`/
 - **`rr-full-pass`** — via manual `--dangerously-skip-permissions` run.
   Confirmed `npm test` was discovered and run, `Gate result: PASS` was
   reported in the exact fixed-block shape, and — critically —
-  `.claude/run-regression-autopilot-log.jsonl` was created **empty** (0
+  `make-it-work/run-regression-autopilot-log.jsonl` was created **empty** (0
   bytes), confirming the "log always exists under `--autopilot`, even when
   zero interactive sites fire" design decision actually holds in practice.
 - **`rr-full-fail`** — via manual `--dangerously-skip-permissions` run.

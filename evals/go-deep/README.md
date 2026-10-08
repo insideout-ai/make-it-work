@@ -31,7 +31,7 @@ RUN_DIR=$(mktemp -d)
   --output-format stream-json --verbose > /tmp/transcript.jsonl)
 
 # Verify: diff git status on the real repo before/after (must be identical),
-# then inspect $RUN_DIR's files and $RUN_DIR/.claude/go-deep-autopilot-log.jsonl by hand.
+# then inspect $RUN_DIR's files and $RUN_DIR/make-it-work/go-deep-autopilot-log.jsonl by hand.
 ```
 
 The `graders/*.md` files in each case directory still document exactly what "correct" looks like (structure, cross-references, decision-log schema) — useful as a checklist even when run manually rather than through the eval harness's scoring.

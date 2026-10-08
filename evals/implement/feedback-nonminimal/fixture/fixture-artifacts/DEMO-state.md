@@ -6,6 +6,7 @@ status: In Progress
 phase: final-sync
 autonomy: autonomous
 start_time: 2026-01-02T10:00:00Z
+plugin_version: 4.6.0
 execution_mode: inline
 inline_pause_mode: run-straight-through
 spec: make-it-work/DEMO-spec.md

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Manually verifies .claude/close-the-gaps-autopilot-log.jsonl, the one file
+# Manually verifies make-it-work/close-the-gaps-autopilot-log.jsonl, the one file
 # this skill's autopilot run writes under `.claude/` — a path Claude Code
 # protects even with explicit tool grants, so it can't be checked through
 # plain `claude plugin eval` (see evals/close-the-gaps/README.md).
@@ -53,7 +53,7 @@ echo "Run dir:    $RUN_DIR"
 echo "Transcript: $TRANSCRIPT"
 echo
 echo "Now check by hand:"
-echo "  - $RUN_DIR/.claude/close-the-gaps-autopilot-log.jsonl exists and matches"
+echo "  - $RUN_DIR/make-it-work/close-the-gaps-autopilot-log.jsonl exists and matches"
 echo "    the schema in skills/close-the-gaps/SKILL.md's Autopilot Mode section"
 echo "    (one JSON object per line: phase, site, kind, chosen, rationale, ...)."
 echo "  - $RUN_DIR/make-it-work/TASK-77-spec.md against"

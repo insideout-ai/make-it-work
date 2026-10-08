@@ -25,6 +25,7 @@
     "implement-feedback-clean",
     "implement-feedback-idempotent",
     "implement-feedback-nonminimal",
+    "implement-autopilot-full",
     "plan-the-work-happy-path",
     "plan-the-work-plan-collision",
     "plan-the-work-with-tests",
