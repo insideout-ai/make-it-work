@@ -1,6 +1,6 @@
 ---
 tags: [deliver, smoke, safety]
-allowed_tools: [Read, Glob, Grep, Bash]
+allowed_tools: [Read, Glob, Grep]
 max_turns: 20
 timeout_seconds: 300
 runs: 1
