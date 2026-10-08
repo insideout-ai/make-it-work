@@ -1,0 +1,23 @@
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/decision-log-write-attempted.md
+  s_aa0f702846f60d::t_8d04fdbf6d66a0 2-3,6-14
+skills/shape-the-epic/SKILL.md
+  s_aa0f702846f60d::t_8d04fdbf6d66a0 52
+CHANGELOG.md
+  s_aa0f702846f60d::t_4b077b67679b1c 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ada88d3f2ac6ffc41235aea121be4e6e02a2d62b",
+  "prompts": {},
+  "sessions": {
+    "s_aa0f702846f60d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11b00-1691-7830-b578-02a19076fdd0",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
