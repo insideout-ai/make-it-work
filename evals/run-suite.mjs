@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
+import { gradeHeadlessCase } from './grade-headless.mjs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
@@ -38,7 +39,7 @@ if (!selected.length) {
 }
 if (dryRun) {
   for (const item of selected) {
-    const mode = suites.headless.includes(item.name) ? 'headless + human review' : 'plugin eval';
+    const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
     process.stdout.write(`${item.skill}\t${item.name}\t${mode}\n`);
   }
   process.stdout.write(`${selected.length} cases; budget $${budget.toFixed(2)}. No model invoked.\n`);
@@ -123,11 +124,19 @@ async function runCase(item, remaining) {
       if (!data) throw new Error('No final result in transcript');
       caseCost = Number(data.total_cost_usd ?? 0);
       if (result.status === 0 && !data.is_error && !result.error) {
-        status = 'review';
-        detail = 'Inspect transcript and fixture against this case’s graders';
+        const grading = await gradeHeadlessCase({
+          graderDir: path.join(item.dir, 'graders'), transcript: result.stdout,
+          fixtureDir, budgetUsd: Math.max(0, remaining - caseCost),
+        });
+        caseCost += grading.judgeCostUsd;
+        await writeFile(path.join(caseReportDir, 'grader-results.json'),
+          JSON.stringify(grading, null, 2) + '\n');
+        status = grading.passed ? 'passed' : 'failed';
+        detail = grading.passed ? '' : grading.verdicts.filter((entry) => !entry.passed)
+          .map((entry) => `${entry.name}: ${entry.detail}`).join('; ');
       } else detail = data.result || 'Claude returned an error';
-    } catch {
-      detail = result.error?.message || `Claude exited ${result.status ?? 'without a status'}`;
+    } catch (error) {
+      detail = error.message || result.error?.message || `Claude exited ${result.status ?? 'without a status'}`;
     }
   } else {
     const args = ['plugin', 'eval', '.', '--case', item.name, '--ablation', 'none', '--runs', '1',
@@ -148,9 +157,9 @@ async function runCase(item, remaining) {
       const judgeFailure = votes.some((vote) => !vote.passed);
       status = result.status !== 0 || data.partial || !evaluated || !arm || arm.error ||
         arm.skippedPaidGraders || votes.length !== evaluated.graders.length || hardFailure ? 'failed' :
-        judgeFailure ? 'review' : 'passed';
+        judgeFailure ? 'failed' : 'passed';
       detail = data.partialReason === 'auth_failed' ? 'Claude Code authentication failed' :
-        hardFailure ? 'Machine grader failed' : judgeFailure ? 'Review LLM grader verdicts' : '';
+        hardFailure ? 'Machine grader failed' : judgeFailure ? 'LLM grader failed' : '';
     } catch {
       detail = result.error?.message || `Eval exited ${result.status ?? 'without a report'}`;
     }
@@ -180,6 +189,5 @@ summary.costUsd = cost;
 await writeFile(path.join(reportDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
 if (!summary.repoUnchanged) process.stderr.write('ERROR: Plugin checkout changed during the run. Inspect it before trusting results.\n');
 const failed = summary.cases.filter((entry) => entry.status === 'failed').length;
-const review = summary.cases.filter((entry) => entry.status === 'review').length;
-process.stdout.write(`${summary.cases.length}/${selected.length} cases run; ${failed} failed; ${review} require human review; reported usage $${cost.toFixed(2)}.\n`);
+process.stdout.write(`${summary.cases.length}/${selected.length} cases run; ${failed} failed; reported usage $${cost.toFixed(2)}.\n`);
 if (failed || summary.stopped || summary.cases.length !== selected.length || !summary.repoUnchanged) process.exitCode = 1;

@@ -31,7 +31,7 @@ Git hook once:
 bash scripts/install-pre-push-hook.sh
 ```
 
-The hook runs the 11-skill smoke suite against a disposable snapshot of the
+The hook runs the 12-skill smoke suite against a disposable snapshot of the
 commit being pushed, using your existing Claude Code sign-in before each push.
 It reports failures but does not block the push or PR. It does not request an
 API key or run in CI. Installation is local to your clone; the installer
@@ -60,11 +60,12 @@ claude plugin validate .claude-plugin/marketplace.json --strict
 node --test scripts/decision-log.test.mjs
 git diff --check
 node --test skills/execute/scripts/plan-status.test.mjs
+node --test evals/grade-headless.test.mjs evals/run-batches.test.mjs
 ```
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
-Before opening a pull request, run the 12-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and adjudicate any LLM-grader failures in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and cases needing human review. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
+Before opening a pull request, run the 12-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and investigate any failed grader in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
 
 ## Pull requests
 
