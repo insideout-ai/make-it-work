@@ -1,0 +1,19 @@
+evals/deliver/deliver-no-package/prompt.md
+  s_aa0f702846f60d::t_21d70166398ab8 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "c6893f8e4371c2d3528bd79f56d64fc37b903e2f",
+  "prompts": {},
+  "sessions": {
+    "s_aa0f702846f60d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11b00-1691-7830-b578-02a19076fdd0",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
