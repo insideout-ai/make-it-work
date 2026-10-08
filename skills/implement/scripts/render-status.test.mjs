@@ -126,6 +126,25 @@ test('accepts and describes fully autonomous autopilot runs', async (t) => {
   assert.match(html, /resolves every documented safe default without prompting/);
 });
 
+test('accepts new handoff-enabled runs and legacy runs without the field', () => {
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
+  assert.equal(parseState(stateMarkdown({ rows })).fields.handoff_version, undefined);
+  assert.equal(parseState(stateMarkdown({ fields: { handoff_version: '1' }, rows })).fields.handoff_version, '1');
+  assert.throws(() => parseState(stateMarkdown({ fields: { handoff_version: '2' }, rows })), /Unsupported handoff_version/);
+  assert.equal(parseState(stateMarkdown({ fields: { verification_version: '1' }, rows })).fields.verification_version, '1');
+  assert.throws(() => parseState(stateMarkdown({ fields: { verification_version: '2' }, rows })), /Unsupported verification_version/);
+});
+
+test('shows final approval only for package-enabled runs', async (t) => {
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
+  const legacy = await renderFixture(t, stateMarkdown({ rows }));
+  assert.doesNotMatch(legacy.html, /class="phase-label[^"]*">Final Approval/);
+  const current = await renderFixture(t, stateMarkdown({ fields: { final_package_version: '1' }, rows }));
+  assert.match(current.html, /class="phase-label[^"]*">Final Approval/);
+  assert.equal((current.html.match(/phase-dot not-reached/g) ?? []).length, 7);
+  assert.throws(() => parseState(stateMarkdown({ fields: { phase: 'final-approval' }, rows })), /requires final_package_version/);
+});
+
 test('renders pending offline refinement without activating a timeline dot', async (t) => {
   const state = stateMarkdown({
     fields: {

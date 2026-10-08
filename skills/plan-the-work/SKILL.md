@@ -360,7 +360,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 - Directly under that line add `**Design reset:**` — a few sentences on what the previous plan modeled or assumed wrongly at the design level (not merely what failed or which findings were raised), and how this plan's model differs. Every new step must follow the new model.
 - A regression test that fails because of the previous version's uncommitted changes (it covers a file the previous plan changed, or a test that plan named) is **not** a pre-existing failure: do not return `Blocked:` for it — make the new plan bring it back to green.
 
-**Amend mode** (the current plan path plus one fix source: a review report with the user's decisions on any `Route: human` findings, or `execute`'s completion-gate report with the failing tests classified as related) — do not rewrite the plan:
+**Amend mode** (the current plan path plus one fix source: a review report with the user's decisions on any `Route: human` findings, `execute`'s completion-gate report with the failing tests classified as related, or `implement`'s developer-approved `make-it-work/<TICKET>-final-feedback.md`) — do not rewrite the plan:
 
 - Investigate only what each `Route: fix` finding, decided `Route: human` finding, or related failing test touches, using Step 4's discipline.
 - Append new steps after the last existing step, numbered `M+1` onward — one per finding that still needs a code change, or per small group of related findings; a finding the user accepted as-is gets no step, so a round can add zero steps — each in the Step 5 step template and each through the test-writing sub-phase (red test, left uncommitted).
@@ -388,3 +388,5 @@ Recommend replan: <reason>   ← only when applicable (amend mode, repeat offend
 ```
 
 Then stop.
+
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `plan-<N>.json` in `make-it-work/<TICKET>-handoffs/`. Use `PLAN_SAVED` for initial/replan mode or `FIX_PLAN_READY` for amend mode. Record the actual plan path, `mode`, numeric `steps_added` in amend mode (otherwise `null`), the `Recommend replan:` reason or `null`, and updated context paths. For a pre-existing failing regression that stops planning, emit a `blocked` handoff with `code: PRE_EXISTING_REGRESSION` and the exact test/reason, rather than claiming a completed plan. Do not write a handoff for an older run. End the chat report with `Handoff: <path>`.

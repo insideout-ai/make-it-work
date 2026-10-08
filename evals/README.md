@@ -11,14 +11,14 @@ signed in, use `claude auth login` interactively and retry. It never requests
 or stores an API key.
 
 ```sh
-node evals/run-suite.mjs smoke --dry-run  # inspect the 11 selected cases
+node evals/run-suite.mjs smoke --dry-run  # inspect the 12 selected cases
 node evals/run-suite.mjs smoke            # before every PR
 node evals/run-suite.mjs full             # on demand and before a release
 node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # retry one case
 bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before every push
 ```
 
-`smoke` exercises one representative case for each of the 11 public skills.
+`smoke` exercises one representative case for each of the 12 public skills.
 The `implement` case covers completion feedback rather than the complete
 orchestrator; the latter is checked in the manual end-to-end release rehearsal.
 `full` discovers and runs every `case.yaml` in this tree (45 at the time this

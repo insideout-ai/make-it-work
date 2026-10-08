@@ -21,7 +21,7 @@ const REQUIRED_FIELDS = [
 const STATUS_VALUES = new Set(['In Progress', 'Paused', 'Stopped', 'Complete']);
 const PHASE_VALUES = new Set([
   'context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval',
-  'execute', 'review', 'fix-plan', 'final-sync', 'complete',
+  'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete',
 ]);
 const AUTONOMY_VALUES = new Set(['guided', 'autonomous', 'autopilot', 'pending']);
 const EXECUTION_MODE_VALUES = new Set(['none', 'subagent-driven', 'inline']);
@@ -35,7 +35,7 @@ const FIX_DISPATCH_VALUES = new Set(['none', 'sequential', 'parallel']);
 const GATE_VALUES = new Set(['none', 'full-suite', 'scoped']);
 const CANONICAL_PHASES = new Set([
   'context-check', 'close-the-gaps', 'plan', 'execute', 'review', 'fix-plan',
-  'final-sync', 'complete',
+  'final-sync', 'final-approval', 'complete',
 ]);
 const BASELINE_PHASES = [
   'context-check', 'close-the-gaps', 'plan', 'execute', 'review', 'final-sync',
@@ -77,6 +77,11 @@ const PHASE_INFO = {
     label: 'Final Sync',
     skill: '',
     tooltip: 'updates the project\'s skills/docs to reflect what was actually built.',
+  },
+  'final-approval': {
+    label: 'Final Approval',
+    skill: '',
+    tooltip: 'shows the completed diff, validation evidence, and delivery drafts for final review.',
   },
   complete: {
     label: 'Complete',
@@ -223,6 +228,10 @@ export function parseState(markdown, statePath = '') {
     }
   }
   if (!STATUS_VALUES.has(fields.status)) fail(`Unsupported status: ${fields.status}`);
+  if (fields.handoff_version !== undefined && fields.handoff_version !== '1') fail(`Unsupported handoff_version: ${fields.handoff_version}`);
+  if (fields.final_package_version !== undefined && fields.final_package_version !== '1') fail(`Unsupported final_package_version: ${fields.final_package_version}`);
+  if (fields.verification_version !== undefined && fields.verification_version !== '1') fail(`Unsupported verification_version: ${fields.verification_version}`);
+  if (fields.phase === 'final-approval' && fields.final_package_version !== '1') fail('Final approval requires final_package_version: 1.');
   if (!PHASE_VALUES.has(fields.phase)) fail(`Unsupported phase: ${fields.phase}`);
   if (!AUTONOMY_VALUES.has(fields.autonomy)) fail(`Unsupported autonomy: ${fields.autonomy}`);
   if (!EXECUTION_MODE_VALUES.has(fields.execution_mode)) fail(`Unsupported execution_mode: ${fields.execution_mode}`);
@@ -292,7 +301,10 @@ function newSlot(phase, activationRow = null) {
 }
 
 export function buildTimeline(state) {
-  const slots = BASELINE_PHASES.map((phase) => newSlot(phase));
+  const phases = state.fields.final_package_version === '1'
+    ? [...BASELINE_PHASES.slice(0, -1), 'final-approval', 'complete']
+    : BASELINE_PHASES;
+  const slots = phases.map((phase) => newSlot(phase));
   const activatedPhases = new Set();
   let activeSlot = null;
 
@@ -472,7 +484,10 @@ function renderStatusBanner(state, timing) {
   const duration = timing
     ? `Real-timestamped portion of this run: ${timing.total}.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
     : 'Elapsed: unknown — no real start timestamp was captured for this run.';
-  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes are uncommitted — review the working tree and commit when ready. This ticket's artifacts (spec/plan/execute/review/state/dashboard) are in <code>make-it-work/</code> and aren't committed — delete them yourself whenever you're done referencing this run. <code>make-it-work/implement-feedback.md</code> is cumulative and separate from those ticket artifacts; keep it if you plan to review or share the workflow feedback.</p>`;
+  const artifacts = state.fields.final_package_version === '1'
+    ? 'spec/plan/execute/review/final package/state/dashboard'
+    : 'spec/plan/execute/review/state/dashboard';
+  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes are uncommitted — review the working tree and commit when ready. This ticket's artifacts (${artifacts}) are in <code>make-it-work/</code> and aren't committed — delete them yourself whenever you're done referencing this run. <code>make-it-work/implement-feedback.md</code> is cumulative and separate from those ticket artifacts; keep it if you plan to review or share the workflow feedback.</p>`;
 }
 
 function applyTemplate(template, replacements) {
@@ -507,6 +522,9 @@ export function renderStatus({ state, template, logoBase64, planStatus = null })
     PLAN_LINK: artifactLink(state.fields.plan, 'plan'),
     EXECUTE_LINK: artifactLink(state.fields.execute_report, 'execute_report'),
     REVIEW_LINK: reviewLink,
+    FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
+      ? artifactLink(`make-it-work/${state.fields.ticket}-final-package.md`, 'final_package')
+      : '<span class="none">Not yet created</span>',
     AUDIT_ROWS: renderAuditRows(state),
     SESSION_TIMING: renderSessionTiming(state, timing),
     REVIEW_CYCLE: String(state.reviewCycle),

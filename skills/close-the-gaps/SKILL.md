@@ -401,3 +401,5 @@ Spec: <path written in Phase 6>
 TBD items: <count>
 Context updated: <list from Phase 7 | none>
 ```
+
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `gaps-<N>.json` in `make-it-work/<TICKET>-handoffs/` using its schema. Use `SPEC_SAVED`, the actual spec path, the counted TBD items, and the paths updated in Phase 7. Do not write this file for an older run. End the chat report with `Handoff: <path>` so `implement` can validate it before advancing.

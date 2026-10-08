@@ -55,6 +55,8 @@ If any of the four files is missing, stop and tell the user the exact path that 
 
 The feedback retrospective's detailed contract is in `<base>/references/feedback.md`. Read it only after an eligible run has already reached its terminal state; ordinary in-progress phases do not need it.
 
+For runs with `handoff_version: 1`, also read `<base>/references/handoffs.md` before the first stage. Each stage produces the versioned JSON result described there. Validate it and run the read-only `handoff.mjs next` helper after the stage; use its action to select the next phase or question. The Transition table below still specifies the side effects of each route and remains the compatibility path for older runs.
+
 ---
 
 ## Workflow state
@@ -66,8 +68,11 @@ The run's state lives in `make-it-work/<TICKET>-state.md`, next to the other pip
 
 ```
 ticket: <TICKET>
+handoff_version: 1             # new runs use validated JSON handoffs; absent on older runs
 status: In Progress            # In Progress | Paused | Stopped | Complete
-phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | review | fix-plan | final-sync | complete
+phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | review | fix-plan | final-sync | final-approval | complete
+final_package_version: 1       # new runs build a content-bound final package; absent on older runs
+verification_version: 1        # new runs persist per-step and AC evidence; absent on older runs
 autonomy: guided               # guided | autonomous | autopilot | pending — pending only between state-file creation and Choose autonomy completing (see Start)
 start_time: none                # ISO 8601 UTC timestamp captured as the first action of Start; never fabricated or backfilled
 execution_mode: none            # none | subagent-driven | inline — set once execute's Mode-selection phase runs
@@ -244,17 +249,19 @@ An early-replan row (`review → plan` or `fix-plan → plan`) is an ordinary re
 
 Ask this in both interactive autonomy levels. Never assume a changed repository is still safe to resume.
 
-**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). This is the only migration Resume performs; it never touches a file that already has the key.
+**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default **except `handoff_version`, `final_package_version`, and `verification_version`** — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). Never add these version markers to an existing run: an older run continues with its original handoffs and completion path. This is the only migration Resume performs; it never touches a file that already has the key.
 
 ---
 
 ## Phases
 
-Each phase reads its stage skill (see Stage skills), passes the inputs that skill's `## When run by implement` section names, reads the stage's return report, then follows the Transition table.
+Each phase reads its stage skill (see Stage skills), passes the inputs that skill's `## When run by implement` section names, and reads the stage's return report. A `handoff_version: 1` run routes through the validated handoff helper below; an older run follows the Transition table directly.
+
+**Version 1 handoff routing:** pass `handoff_version: 1`, the current `plan_version`, and (for Review) `review_cycle` to every stage invocation. After `close-the-gaps`, `plan-the-work` (including amend mode), `execute`, or `review-the-pr` completes, read the new JSON handoff path from its return report. Validate the handoff with `<base>/scripts/handoff.mjs validate`, then call `handoff.mjs next` with the current state. Follow `<base>/references/handoffs.md` for options and follow-up calls. Never route from the prose outcome line alone in such a run. If validation or routing fails, checkpoint `Stopped` with the exact error and leave the current phase in place; on Resume, repair or rerun that phase and produce a new handoff. An absent handoff is an error, never a reason to fall back to prose. Do not increment a loop counter or advance a phase until the helper returns a valid route. The helper does not write the state or dashboard; this skill still performs the ordinary Checkpoint rule and all existing route side effects. Approval gates and decisions outside a completed stage continue under their existing instructions.
 
 ### Close the gaps
 
-Follow `close-the-gaps` inline with the ticket, the autonomy level, and — when redoing the phase — the user's redo notes. Under `autopilot`, append `--autopilot` to the stage invocation. From its return report, record `spec` and `spec_hash`, and add its `Context updated:` files to `context_updated`. If `TBD items` is above zero, that is a human decision: ask whether to resolve the TBD items now (re-run refinement on them) or proceed with them open; under `autopilot`, stop rather than choosing.
+Follow `close-the-gaps` inline with the ticket, the autonomy level, and — when redoing the phase — the user's redo notes. Under `autopilot`, append `--autopilot` to the stage invocation. For a version 1 run, record `spec` and `context_updated` from the validated handoff and route its `tbd_items` through the helper. For an older run, use the report's `Spec:`, `Context updated:`, and `TBD items:` lines and the original question rule. In either case record `spec_hash` from the actual spec file.
 
 ### Spec approval (Guided only)
 
@@ -262,7 +269,7 @@ Show the spec path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 ### Plan
 
-Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Under `autopilot`, append `--autopilot` to the stage invocation. Pass the user's redo notes too when redoing the phase. From its return report, record `plan` and `plan_hash`, and add its `Context updated:` files to `context_updated`. If it returns `Blocked:`, follow the Transition table; under `autopilot`, stop rather than choosing whether to proceed.
+Follow `plan-the-work` inline — initial mode while `plan_version = 1`, replan mode after a replan (with the previous plan path and the feedback path). Under `autopilot`, append `--autopilot` to the stage invocation. Pass the user's redo notes too when redoing the phase. For a version 1 run, record `plan` and `context_updated` from the validated handoff and route a baseline blocker through the helper. For an older run, use the report's `Plan:`, `Context updated:`, and `Blocked:` lines and the original Transition table. In either case record `plan_hash` from the actual plan file when one was completed.
 
 ### Plan approval (Guided only)
 
@@ -272,14 +279,14 @@ Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Under `autopilot`, append `--autopilot`, which also makes its completion gate invoke `run-regression --autopilot`. Whenever the next not-yet-done step's own number is greater than `M − fix_plan_round_steps` (i.e. it belongs to the current fix-plan round's own added steps, not the original plan) — a plain comparison against numbers already in the state file, so this stays correct across an interrupted-and-resumed execute within the same round without depending on which Transition-table row most recently fired — also pass `fix_plan_dispatch`'s current value (`sequential` or `parallel`) as an additional input to `execute`. For the original plan's own steps (resume point at or below that boundary), never pass this input at all. While following it inline, after every per-step checkpoint it performs — under Subagent-Driven mode, the point where this session reviews a step's report and re-reads `## Execution Status → Progress` before dispatching the next step (`execute/SKILL.md`'s Phase 2 "reviewed between steps" pause point); under Inline mode, the point right after a step's own Progress-line update (`execute/SKILL.md`'s Phase 2 point 4) — also regenerate the dashboard immediately, before continuing to the next step, using the plan file's current `## Execution Status` Mode/Progress lines. Do not wait for the whole Execute phase to finish before the first of these regenerations. Also, when execution_mode or inline_pause_mode is first chosen for this plan version, record it in the state file's `execution_mode`/`inline_pause_mode` fields and log a decision row for it (per the decision-row-logging paragraph above) before the first per-step dispatch. Read its outcome lines:
 
-- `Execute outcome:` → record `execution`.
-- `Discoveries:` → append to Context discoveries.
-- `Failing tests:` (on `GATE_FAILED`) → input to Gate triage.
-- Record `gate` from the `Mode:` line of the `run-regression` report block execute printed (`Full suite` → `full-suite`, `Scoped` → `scoped`).
+- For a version 1 run, read `outcome`, `discoveries`, `failing_tests`, and `gate` from the validated handoff and record the corresponding execution state; use `failing_tests` as Gate triage input. When `verification_version: 1`, also pass that marker, the ticket, plan version, and artifact root to `execute`. Read and validate its `artifacts.verification` path; a missing ledger is a stop, not a prose fallback.
+- For an older run, use `Execute outcome:`, `Discoveries:`, and `Failing tests:` from the prose report, and record `gate` from the `Mode:` line of the `run-regression` block (`Full suite` → `full-suite`, `Scoped` → `scoped`).
 
-Then save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>-execute.md`, overwriting any earlier one, and record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
+For an older run, save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>-execute.md`, overwriting any earlier one. For a `handoff_version: 1` run, `execute` saved that same report before writing its handoff; read it and do not overwrite it. In either case record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
 
-A missing or unreadable outcome line is treated as `EXECUTE_STOPPED`.
+A missing or unreadable outcome line is treated as `EXECUTE_STOPPED` only for an older run; a version 1 run treats an absent or invalid handoff as a validation error.
+
+If the developer accepts the existing `GATE_NO_RESULT` manual-walkthrough route in a `verification_version: 1` run, update only the ledger's `gate` to `mode: none`, `result: manual-accepted`, with the decision and actual manual walkthrough in `note`; keep ACs without passing manual step evidence marked `unverified`. Validate the ledger again. This records the existing decision, not a new validation phase or an inferred pass.
 
 ### Gate triage (on `GATE_FAILED`)
 
@@ -303,7 +310,7 @@ When proceeding to fix-plan, log the transition into it before starting amend-mo
 
 Then follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests).
 
-Immediately after amend-mode planning returns — before sizing, counting, or dispatching its steps — check its return report for a `Recommend replan:` line; if present, handle it per Early replan. If the user chooses to continue patching, or the replan limit is reached, carry on below.
+Immediately after amend-mode planning returns — before sizing, counting, or dispatching its steps — check the validated handoff's `recommend_replan` value in a version 1 run, or the report's `Recommend replan:` line in an older run. If present, handle it per Early replan. If the user chooses to continue patching, or the replan limit is reached, carry on below.
 
 Once amend-mode planning determines this round adds `Y` new steps, record `fix_plan_round_steps: Y` in the state file, and log it as a decision row (per the decision-row-logging paragraph above): `Decision: Fix round <N>: added <Y> steps covering <F> findings` (where `<N>` is this run's count of fix-plan rounds so far, i.e. `fix_cycle` after this round's own increment, and `<F>` is the count of findings this round addresses), then regenerate the dashboard again — this is what makes the step-progress annotation first appear.
 
@@ -315,11 +322,15 @@ At this same point, resolve `fix_plan_dispatch` on exactly one of these three pa
 
 Only the third path (an actual question asked, or actually auto-resolved from a real choice) gets a decision row — the first two paths are not a decision, since nothing was actually being chosen between. For the third path, log a decision row (per the decision-row-logging paragraph above): `Decision: Fix round <N> dispatch order: Sequential` or `Decision: Fix round <N> dispatch order: Parallel`. Regenerate the dashboard after resolving `fix_plan_dispatch` on any of the three paths.
 
-A round that adds no steps (every finding accepted as-is) does not set or log this — it already doesn't count against `fix_cycle` per the existing rule below. Do not add the mid-phase dashboard-regeneration instruction from `### Execute` to this phase section — `### Fix` covers only the planning sub-phase (drafting and sizing the round's new steps), which has no per-step loop of its own; the added steps' own per-step execution happens under `### Execute`, once routed there per `fix-plan → execute`, where that same mid-phase dashboard-regeneration instruction already applies. Afterwards record `plan_hash`, and re-record `head` and `worktree_fingerprint`. Increment `fix_cycle` only if steps were added — a round that adds none (every finding was accepted as-is) does not count against the limit. Then follow the Transition table: added steps → Execute (it resumes at the first added step); no steps → Review.
+A round that adds no steps (every finding accepted as-is) does not set or log this — it already doesn't count against `fix_cycle` per the existing rule below. Do not add the mid-phase dashboard-regeneration instruction from `### Execute` to this phase section — `### Fix` covers only the planning sub-phase (drafting and sizing the round's new steps), which has no per-step loop of its own; the added steps' own per-step execution happens under `### Execute`, once routed there per `fix-plan → execute`, where that same mid-phase dashboard-regeneration instruction already applies. Afterwards record `plan_hash`, and re-record `head` and `worktree_fingerprint`. Increment `fix_cycle` only if steps were added — a round that adds none (every finding was accepted as-is) does not count against the limit. For a version 1 run, route `FIX_PLAN_READY` through the helper; for an older run, follow the Transition table: added steps → Execute (it resumes at the first added step); no steps → Review.
 
 ### Final context sync
 
 See Final context sync below.
+
+### Final approval (new runs only)
+
+After Final context sync, runs with `final_package_version: 1` checkpoint `phase: final-approval` and follow the Final approval package section below. Older runs proceed directly to Completion.
 
 ---
 
@@ -358,7 +369,8 @@ For `autopilot`, use the Autonomous column only where it requires no human decis
 | fix-plan | amend-mode return carries `Recommend replan:`, `replans_used = 2` | the two rows below, with the audit row noting the replan limit was reached | same as Guided |
 | fix-plan | steps added | execute | execute |
 | fix-plan | no steps added (every finding accepted as-is) | review | review |
-| final-sync | done | complete | complete |
+| final-sync | done | final-approval for new runs; otherwise complete | final-approval for new runs; otherwise complete |
+| final-approval | package current and approved (Guided), or current (Autonomous/Autopilot) | complete | complete |
 
 **Early replan** — a fix-plan round is the wrong tool when a fix keeps breaking its own code path, so do not wait for `fix_cycle` to run out. The trigger is any of: a `FIX_REQUIRED` review where any finding is a repeat offender (its `Introduced by fix of:` names an earlier finding or fix step, i.e. is not `none`); a `FIX_REQUIRED` review whose findings land in the same function or file region as the immediately preceding review's (compare against the region list in the previous `→ fix-plan` entry row, see Fix); or a `Recommend replan:` line in `plan-the-work`'s amend-mode return report. The first two are checked when the review outcome is read; the third immediately after fix-plan returns, before its steps are sized, counted, or dispatched (see Fix). Guided asks with `AskUserQuestion` — **Replan (Recommended)** / **Continue patching** / **Stop** — showing the evidence; Autonomous replans without asking. In both, the Audit-log row for the transition states the trigger (the finding and its `Introduced by fix of:` value, the repeated region, or the `Recommend replan:` text). Pass that same evidence to the replan by appending it under a `## Repeat-offender evidence` heading to its feedback file (the review report, or `execute_report` when the fix source was a gate failure). Only while `replans_used < 2`; at the limit, fall back to the plain fix-plan rows and write "replan limit reached" in the row that enters fix-plan (or, after a `Recommend replan:`, in the row that proceeds with its steps).
 
@@ -373,11 +385,12 @@ For `autopilot`, use the Autonomous column only where it requires no human decis
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
 - give the absolute path of `review-the-pr/SKILL.md` and say to follow it, including its `## When run by implement` section; when `autonomy: autopilot`, explicitly invoke it with `--autopilot`;
-- pass the ticket key, the spec path, the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list;
+- pass the ticket key, the spec path, the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list; for a version 1 run also pass `handoff_version: 1`, `plan_version`, and the artifact root containing `make-it-work/`;
 - when `gate: none` (the completion gate was skipped per the `GATE_NO_RESULT` handling above), also pass a note that the automated gate was skipped and the plan's `## Test Plan` rows should be verified manually as part of the regression-safety pass;
-- ask it to return the chat summary, ending with the `Orchestrator outcome:` line.
+- for `verification_version: 1`, pass the verified `make-it-work/<TICKET>-verification-v<plan_version>.json` path. Ask Review to read it against the plan's AC traceability table, treating `unverified` rows as visible gaps rather than assuming the full-suite result proves them. Review does not rerun tests merely to populate evidence.
+- ask it to return the chat summary, ending with the `Orchestrator outcome:` line for an older run, or that line followed by `Handoff: <path>` for a version 1 run.
 
-Then read `make-it-work/<TICKET>-review.md`: record `review` from its `Orchestrator outcome:` line, and append the items under its `Context gaps (for final sync)` block to Context discoveries. A missing or unreadable outcome line is treated as `HUMAN_DECISION`, with the reason "review outcome unreadable".
+Then read `make-it-work/<TICKET>-review.md`. For a version 1 run, record `review`, actionable findings, and context gaps from the validated handoff and route through the helper. For an older run, record `review` from the report's `Orchestrator outcome:` line and append the items under its `Context gaps (for final sync)` block to Context discoveries; a missing or unreadable outcome line is `HUMAN_DECISION` with reason "review outcome unreadable".
 
 ---
 
@@ -403,6 +416,22 @@ Follow `go-deep`'s rules: UC skills describe what the user does and sees, domain
 
 Write the updates directly, without a confirmation step, at both autonomy levels. Add the files changed to `context_updated`.
 
+For a run with `final_package_version: 1`, checkpoint `final-sync → final-approval` after these updates and regenerate the dashboard. The package captures the finished tree, including these documentation changes. An older run follows its existing `final-sync → complete` transition.
+
+---
+
+## Final approval package
+
+This section applies only when the state has `final_package_version: 1`. It never commits, pushes, or opens a PR. The local helper is `<base>/scripts/final-package.mjs`.
+
+1. Resolve the exact affected repo roots from the plan's `## Affected Code` sections and the workspace service map. For one repo, use its git root. For more than one, pass each root explicitly; pass its base branch with a paired `--base` when the state's `base` does not apply to every repo. Do not add unrelated repos. If a repo or base is ambiguous, ask the developer (Autopilot: stop).
+2. Write `make-it-work/<TICKET>-final-draft.json` with `commit_message`, `pr_title`, and `pr_description`. Draft text summarizes the implemented behavior, acceptance-criteria coverage, validation, and notes for reviewers. It is a draft only; nothing is delivered externally. Keep secrets out.
+3. Run `node "<base>/scripts/final-package.mjs" build --root <artifact-root> --state <state-path> --draft <draft-path> --repo <repo-root> [--repo <other-root> ...] [--base <base-for-first-repo> --base <base-for-second-repo> ...]`. The helper writes `make-it-work/<TICKET>-final-package.md`, its JSON manifest, and one binary-safe diff per repo. It returns the package SHA-256. If it fails, stop with its specific error and repair the source; never claim that a package exists when build failed.
+4. Show the package path, changed paths, validation mode/result, review outcome, any known regressions or open nits, AC verification status when the ledger exists, and the full proposed commit and PR text. In Guided mode ask **Approve** / **Request changes** / **Stop**. Only an explicit Approve of this exact package hash permits `node "<base>/scripts/final-package.mjs" approve --root <artifact-root> --state <state-path> --hash <shown-hash>`. In Autonomous and Autopilot, create and verify the package without asking; changes remain local and uncommitted.
+5. Immediately before Completion, run `final-package.mjs check --root <artifact-root> --state <state-path> --require-approval` for Guided, or omit `--require-approval` for Autonomous/Autopilot. A failed check prevents Completion. A changed draft or package presentation requires rebuilding the package and, in Guided, asking again. A changed code, test, documentation, spec, plan, or validation artifact requires rerunning the affected Execute validation/Review/Final context sync work before rebuilding. The previous approval file may stay as history, but its old hash no longer approves the new package.
+
+On **Request changes**, save the developer's notes in `make-it-work/<TICKET>-final-feedback.md`. Draft-text-only feedback updates the draft, rebuilds the package, and returns to this gate. For implementation or documentation feedback, feed that file to `plan-the-work` in amend mode through the existing Fix path, then Execute, Review, Final context sync, and build a new package; the existing fix and review limits apply. Feedback that changes the approach or requirements uses the existing Replan route and its limit. On **Stop**, checkpoint the reason and wait for a new invocation. Resume in `final-approval` must run the helper's `check` before accepting any saved approval.
+
 ---
 
 ## Feedback retrospective
@@ -424,12 +453,14 @@ The feedback file is local working data. Never upload, submit, email, or post it
 
 ## Completion
 
-Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
+For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
 
 - **Implemented** — the plan's `## What This Changes`, in a sentence or two.
 - **Validation** — from `execute`'s final report: steps completed and the completion-gate mode and result, or `gate: none` with the manual Test Plan walkthrough when the user chose to continue without an automated gate.
 - **Known regressions** — each one, marked unrelated, stating plainly that they were documented, not fixed. Omit when there are none.
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
+- **Final package** — for a new run, its path and whether Guided approval was recorded; omit for older runs.
+- **Optional delivery** — if the developer wants a commit, push, and PR after this run, point to the separate `/make-it-work:deliver <TICKET>` command. Do not invoke it or treat final-package approval as delivery approval.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Replans used** — the count.
 - **Workflow feedback** — `make-it-work/implement-feedback.md`, stating whether this run was recorded as minimal or received a detailed retrospective. If feedback could not be written, state why instead.
