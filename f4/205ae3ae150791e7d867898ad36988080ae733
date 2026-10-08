@@ -1,0 +1,211 @@
+CHANGELOG.md
+  s_aa0f702846f60d::t_f90fcfb5656664 7-20
+evals/review-the-pr/autopilot-full-info/graders/autopilot-log-content.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/run-regression/rr-scoped-explicit/graders/scoped-result.md
+  s_aa0f702846f60d::t_941a350b0a16a1 3
+evals/run-suite-args.mjs
+  s_aa0f702846f60d::t_dc1f2f17eec7d4 1-8
+evals/close-the-gaps/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 5,41
+evals/close-the-gaps/manual-log-check.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 2,56
+skills/implement/scripts/write-feedback.mjs
+  s_45a5947ce8dfb9::t_6b0de021c2851b 47,52-54,99,154
+evals/run-regression/rr-full-fail/graders/autopilot-log-exists.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/plan-the-work/with-tests/graders/plan-tests-field-recorded.md
+  s_aa0f702846f60d::t_8e1c25ddb5022a 4,10-11
+evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md
+  s_45a5947ce8dfb9::t_8630128bbe863b 9
+skills/run-regression/SKILL.md
+  s_45a5947ce8dfb9::t_1ba5a2efe3c6f9 31
+  s_aa0f702846f60d::t_58e8b8e758b88f 264
+  s_45a5947ce8dfb9::t_f513194d46c449 29,217
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/no-injection-followed.md
+  s_aa0f702846f60d::t_8e1c25ddb5022a 8-13
+skills/execute/scripts/plan-status.mjs
+  s_8f690777368a16::t_e3dc319565d960 8-9,140-142,153
+evals/go-deep/fresh-onboarding/graders/autopilot-log-content.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/slice-the-epic/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 12,47,58
+skills/implement/SKILL.md
+  s_8f690777368a16::t_e2c6415308a37a 140,143,146-147,164
+  s_45a5947ce8dfb9::t_f513194d46c449 30
+  s_8f690777368a16::t_fc5968a05e4543 284
+  s_45a5947ce8dfb9::t_6b0de021c2851b 78,198,201,256
+evals/review-the-pr/autopilot-bare/graders/autopilot-log-exists.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+skills/execute/SKILL.md
+  s_45a5947ce8dfb9::t_441ecafa4d6817 107
+  s_8f690777368a16::t_fe1290f312f798 105,191,359
+  s_45a5947ce8dfb9::t_1ba5a2efe3c6f9 36
+  s_45a5947ce8dfb9::t_f513194d46c449 34
+  s_8f690777368a16::t_fc5968a05e4543 192,357
+  s_45a5947ce8dfb9::t_8854c8e7fe9e3d 358
+evals/define-test-strategy/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 11,41,63
+docs/autopilot-log-schema.md
+  s_45a5947ce8dfb9::t_1ba5a2efe3c6f9 10,35
+evals/define-test-strategy/extend-autopilot/graders/log-denial-handled-gracefully.md
+  s_aa0f702846f60d::t_4d7bb8cce15351 2-4,8-10
+evals/run-regression/rr-scoped-explicit/graders/autopilot-log-exists.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/close-the-gaps/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 20,33,41
+evals/run-regression/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 94
+evals/shape-the-epic/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 5,40
+skills/review-the-pr/SKILL.md
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 34
+  s_aa0f702846f60d::t_b8a5253eed4dcc 166
+  s_aa0f702846f60d::t_58e8b8e758b88f 40-45,164-165
+  s_45a5947ce8dfb9::t_f513194d46c449 32
+  s_45a5947ce8dfb9::t_20d0318704624b 167
+evals/define-test-strategy/extend-autopilot/graders/claude-md-structure.md
+  s_aa0f702846f60d::t_4d7bb8cce15351 2-4,8-10
+skills/define-test-strategy/SKILL.md
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 28,30
+  s_45a5947ce8dfb9::t_f513194d46c449 26
+evals/go-deep/fresh-onboarding/graders/product-md-content.md
+  s_aa0f702846f60d::t_50a247b476f674 8-12,17-18
+  s_aa0f702846f60d::t_8e1c25ddb5022a 19-23
+evals/run-regression/rr-full-pass/graders/autopilot-log-exists.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/go-deep/fresh-onboarding/graders/autopilot-log-exists.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/turn-cap-exercised.md
+  s_aa0f702846f60d::t_a9b1759c687548 2-4,8-11
+skills/close-the-gaps/SKILL.md
+  s_45a5947ce8dfb9::t_f513194d46c449 38,60
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 40
+  s_aa0f702846f60d::t_58e8b8e758b88f 154-157
+evals/run-suite.mjs
+  s_aa0f702846f60d::t_dc1f2f17eec7d4 10,145-146
+  s_aa0f702846f60d::t_17b110db6d616c 16-17,22,25,36-38,41-42,69
+evals/define-test-strategy/fresh-autopilot/graders/autopilot-log-content.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/review-the-pr/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 77,95,130,153
+evals/suites.json
+  s_aa0f702846f60d::t_b8a5253eed4dcc 28
+skills/implement/scripts/render-status.test.mjs
+  s_8f690777368a16::t_e2c6415308a37a 8,119-143
+  s_45a5947ce8dfb9::t_a088a2b199d410 163-164
+  s_8f690777368a16::t_fcfe9867ac044d 144
+evals/shape-the-epic/manual-log-check.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 2,94
+scripts/decision-log.mjs
+  s_45a5947ce8dfb9::t_441ecafa4d6817 96,105
+evals/run-suite-args.test.mjs
+  s_aa0f702846f60d::t_dc1f2f17eec7d4 1-16
+skills/implement/scripts/write-feedback.test.mjs
+  s_45a5947ce8dfb9::t_8630128bbe863b 59
+  s_45a5947ce8dfb9::t_a088a2b199d410 83
+  s_45a5947ce8dfb9::t_6b0de021c2851b 79-82
+  s_aa0f702846f60d::t_4bf484fd1f6ffe 84-85
+skills/plan-the-work/SKILL.md
+  s_45a5947ce8dfb9::t_1ba5a2efe3c6f9 41
+  s_45a5947ce8dfb9::t_f513194d46c449 39
+evals/implement/feedback-nonminimal/fixture/fixture-artifacts/DEMO-state.md
+  s_45a5947ce8dfb9::t_8630128bbe863b 9
+evals/implement/feedback-idempotent/fixture/fixture-artifacts/DEMO-state.md
+  s_45a5947ce8dfb9::t_8630128bbe863b 9
+evals/implement/feedback-clean/graders/compact-clean-entry.md
+  s_45a5947ce8dfb9::t_8630128bbe863b 7
+.claude-plugin/plugin.json
+  s_aa0f702846f60d::t_f90fcfb5656664 6
+evals/go-deep/repair-path/graders/autopilot-log-content.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/grade-headless.test.mjs
+  s_aa0f702846f60d::t_941a350b0a16a1 78,80
+  s_aa0f702846f60d::t_ea1a9d0ceba29d 99-108
+  s_aa0f702846f60d::t_c6832fe81080d8 89-98
+evals/plan-the-work/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 7
+skills/implement/scripts/render-status.mjs
+  s_45a5947ce8dfb9::t_6b0de021c2851b 234-236
+evals/execute/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 98,139,187,272
+skills/find-the-repos/SKILL.md
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 39
+  s_45a5947ce8dfb9::t_f513194d46c449 37
+skills/slice-the-epic/SKILL.md
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 26,28
+scripts/decision-log.test.mjs
+  s_45a5947ce8dfb9::t_441ecafa4d6817 29,51,58,79,83,85-86
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/turn-cap-respected.md
+  s_45a5947ce8dfb9::t_f513194d46c449 12
+evals/review-the-pr/autopilot-full-info/prompt.md
+  s_aa0f702846f60d::t_b8a5253eed4dcc 15-18
+skills/go-deep/SKILL.md
+  s_45a5947ce8dfb9::t_f513194d46c449 26
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 28
+evals/review-the-pr/autopilot-bare/graders/autopilot-log-content.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/run-regression/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 31,103,132
+evals/define-test-strategy/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 60
+evals/run-regression/rr-full-fail/graders/no-reason-on-plain-fail.md
+  s_aa0f702846f60d::t_941a350b0a16a1 3
+skills/implement/scripts/dashboard-checkpoint.mjs
+  s_8f690777368a16::t_e2c6415308a37a 1-78
+evals/plan-the-work/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 72,79,94,103,284,308
+skills/implement/references/feedback.md
+  s_45a5947ce8dfb9::t_6b0de021c2851b 18
+evals/review-the-pr/autopilot-full-info/graders/autopilot-log-exists.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/shape-the-epic/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 26,45,62,64
+evals/go-deep/README.md
+  s_45a5947ce8dfb9::t_f513194d46c449 34
+evals/implement/implement-autopilot-full/graders/autopilot-log.md
+  s_45a5947ce8dfb9::t_f513194d46c449 3
+evals/review-the-pr/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 13,44,65,81
+skills/shape-the-epic/SKILL.md
+  s_45a5947ce8dfb9::t_f513194d46c449 78
+  s_45a5947ce8dfb9::t_b554beb6f60c6e 50,52
+evals/go-deep/run-all.sh
+  s_45a5947ce8dfb9::t_f513194d46c449 49
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/decision-log-write-attempted.md
+  s_45a5947ce8dfb9::t_f513194d46c449 9
+CONTRIBUTING.md
+  s_45a5947ce8dfb9::t_441ecafa4d6817 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f4205ae3ae150791e7d867898ad36988080ae733",
+  "prompts": {},
+  "sessions": {
+    "s_45a5947ce8dfb9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11cc6-3e47-75e3-9303-d9564e6cef87",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_8f690777368a16": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11cba-9818-7950-960c-d59a3f6138db",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_aa0f702846f60d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11b00-1691-7830-b578-02a19076fdd0",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
