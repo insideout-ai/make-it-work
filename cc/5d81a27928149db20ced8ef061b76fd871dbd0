@@ -1,0 +1,23 @@
+evals/define-test-strategy/extend-autopilot/graders/claude-md-structure.md
+  s_aa0f702846f60d::t_7d8ad8f2a8a88b 2-3,7-13
+skills/define-test-strategy/SKILL.md
+  s_aa0f702846f60d::t_7d8ad8f2a8a88b 275
+CHANGELOG.md
+  s_aa0f702846f60d::t_1fed93b0515f72 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "cc5d81a27928149db20ced8ef061b76fd871dbd0",
+  "prompts": {},
+  "sessions": {
+    "s_aa0f702846f60d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11b00-1691-7830-b578-02a19076fdd0",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
