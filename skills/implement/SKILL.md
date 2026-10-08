@@ -218,14 +218,14 @@ Never run `go-deep` yourself.
 
 ## Choose autonomy
 
-Ask once, with a single `AskUserQuestion`, and save the answer to `autonomy`. When `--autopilot` is present, skip this question, save `autopilot`, and append the corresponding decision-log entry:
+Ask once, with a single `AskUserQuestion`, and save the answer to `autonomy`. When `--autopilot` is present, skip this question, save `autopilot`, and append the corresponding decision-log entry. Selecting **Autopilot** from this question has exactly the same effect as passing `--autopilot`.
 
 - **Guided (Recommended)** — pauses for approval after the spec and after the plan, and for every human decision.
 - **Autonomous** — no approval gates, and replans automatically when the plan stops holding. It still asks every question a stage asks and every uncertain regression, and it stops at the loop limits and at completion.
 
-- **Autopilot** — selected only by `--autopilot`; no approval or stage-question prompts. It uses the policy in Autopilot mode and stops safely when no documented default exists.
+- **Autopilot** — runs without approval or stage-question prompts. It uses the policy in Autopilot mode and stops safely when no documented default exists.
 
-Offer only Guided and Autonomous interactively.
+Offer all three options interactively. Keep **Guided (Recommended)** as the recommended default.
 
 ---
 
