@@ -1,0 +1,157 @@
+README.md
+  s_aa0f702846f60d::t_89b049170179af 152-153
+  s_aa0f702846f60d::t_62c0d506f1a749 148-149
+  s_aa0f702846f60d::t_f1292f8076142a 150-151
+  s_aa0f702846f60d::t_c721f0a8e12364 154-155,298
+  s_aa0f702846f60d::t_545ab16e736e77 312
+skills/review-the-pr/SKILL.md
+  s_aa0f702846f60d::t_98dd3c8e34346f 249-250
+  s_aa0f702846f60d::t_2a919fb60bb95c 212-213
+skills/implement/scripts/render-status.test.mjs
+  s_aa0f702846f60d::t_fdec4ea61aec99 129,136-137
+  s_aa0f702846f60d::t_97a723e351ea4d 130-133
+  s_aa0f702846f60d::t_6e20603fc892a3 138-147
+  s_aa0f702846f60d::t_2819d9b215343d 134-135
+skills/implement/scripts/deliver.mjs
+  s_aa0f702846f60d::t_5f0517e2dee7d7 106,213
+  s_aa0f702846f60d::t_36e4a5733dd31f 38,156
+  s_aa0f702846f60d::t_e19512d0352e27 41,110
+  s_aa0f702846f60d::t_ca39d32c1b97af 84,108-109,112,214
+  s_aa0f702846f60d::t_fa3e9673e0a73d 40
+  s_aa0f702846f60d::t_3241a13a6f747e 45,62,102,105,218,220,225
+  s_aa0f702846f60d::t_9469c45c00ce99 232-235
+  s_aa0f702846f60d::t_14e40563c720e5 200-205
+  s_aa0f702846f60d::t_43a9e550521673 1-37,39,42-44,46-61,63-83,85-101,103-104,107,111,113-126,130-155,157-199,206-212,215-217,219,221-224,226-231,236-286
+  s_aa0f702846f60d::t_1f8f41e6be1b43 127-129
+skills/deliver/SKILL.md
+  s_aa0f702846f60d::t_e65e5b668cf13b 1-18
+CHANGELOG.md
+  s_aa0f702846f60d::t_314ed057c30832 7-19
+evals/README.md
+  s_aa0f702846f60d::t_4fb26fd83ac36f 14,21
+evals/deliver/deliver-no-package/graders/stops-without-delivery.md
+  s_aa0f702846f60d::t_4fb26fd83ac36f 1-7
+skills/implement/scripts/deliver.test.mjs
+  s_aa0f702846f60d::t_76f0d655b4ea4c 43-44,69
+  s_aa0f702846f60d::t_b0a70b45ce7b53 74
+  s_aa0f702846f60d::t_94afcb12421a0a 110-130
+  s_aa0f702846f60d::t_6358493eda9fe1 3,77,90-107
+  s_aa0f702846f60d::t_cbf3d498829258 1-2,4-6,8-42,45-62,64-68,70-73,75-76,78-89,158
+  s_aa0f702846f60d::t_a482acacd43fea 7,108-109,131-157
+  s_aa0f702846f60d::t_97bac1bd6ab9f3 63
+evals/deliver/deliver-no-package/case.yaml
+  s_aa0f702846f60d::t_4fb26fd83ac36f 1-3
+skills/implement/scripts/handoff.test.mjs
+  s_aa0f702846f60d::t_d1a2585706c4ef 1,3-9,11-14,17-22,24-32,34,46-51,54-68,70-79,81,86-90,124
+  s_aa0f702846f60d::t_2967d38db53a20 2,94-121
+  s_aa0f702846f60d::t_95c62fa4b89111 38-45
+  s_aa0f702846f60d::t_ded98f377d4426 35-37
+  s_aa0f702846f60d::t_fdec4ea61aec99 52-53,69,92-93
+  s_aa0f702846f60d::t_f2dadebcd9f0b7 122-123
+  s_aa0f702846f60d::t_b8fb94f2104654 84-85
+  s_aa0f702846f60d::t_10890e0e9a5c35 10,15-16,82-83,91
+  s_aa0f702846f60d::t_edaa3544ea0539 23
+  s_aa0f702846f60d::t_37ccbafff26e9c 33
+  s_aa0f702846f60d::t_b8cab6a7e4b774 80
+evals/suites.json
+  s_aa0f702846f60d::t_4fb26fd83ac36f 5
+skills/implement/references/verification.md
+  s_aa0f702846f60d::t_d4ce44c6f1357b 1-34
+.claude-plugin/plugin.json
+  s_aa0f702846f60d::t_314ed057c30832 6
+skills/implement/scripts/verification.test.mjs
+  s_aa0f702846f60d::t_cc86739ae1f3f4 1,3-30,33,38-39
+  s_aa0f702846f60d::t_e55213ae86d1b5 2,31-32,34-37
+skills/execute/SKILL.md
+  s_aa0f702846f60d::t_6409dcb5901cdf 191-192,393-394
+  s_aa0f702846f60d::t_98dd3c8e34346f 391-392
+skills/implement/scripts/final-package.test.mjs
+  s_aa0f702846f60d::t_0d3ec15184b444 56,59,63-65
+  s_aa0f702846f60d::t_55995684c54b18 53,60-61,75-78
+  s_aa0f702846f60d::t_59897eb9d6d6c2 97-120
+  s_aa0f702846f60d::t_ea0bc840c30df6 1-52,54-55,57-58,62,66-74,79-96
+.github/workflows/validate-plugin.yml
+  s_aa0f702846f60d::t_90a86903fd534f 25-26
+evals/deliver/deliver-no-package/prompt.md
+  s_aa0f702846f60d::t_4fb26fd83ac36f 1-11
+skills/implement/references/handoffs.md
+  s_aa0f702846f60d::t_e26c085d0b4d64 5,49
+  s_aa0f702846f60d::t_5189b4fc25d0fb 33-34
+  s_aa0f702846f60d::t_bcd443fb945fec 1-4,6-32,35-48,50-51
+skills/close-the-gaps/SKILL.md
+  s_aa0f702846f60d::t_98dd3c8e34346f 404-405
+evals/deliver/README.md
+  s_aa0f702846f60d::t_4fb26fd83ac36f 1-5
+skills/implement/scripts/handoff.mjs
+  s_aa0f702846f60d::t_0e7f3877d36505 84-85,258
+  s_aa0f702846f60d::t_41d8718e8f3498 1-2,4-6,8-42,44-46,51-55,61-66,70-73,75,77-83,86-121,144-147,150,159-163,165,167-169,172-173,175,185-197,203-209,215-218,220-222,228-235,241,246-249,267-268,270-272,278-279,285-287,303-311,313-314,324-328,330-337
+  s_aa0f702846f60d::t_1a4f90e11e74fa 43,47-50,170-171,269
+  s_aa0f702846f60d::t_61941c6ce21325 123-128,139,149
+  s_aa0f702846f60d::t_0255ebe30f8315 164,166,178-181,198-202,210-214,223-227,236-240,242-245,254-257,263-266,273-274,276-277,280-284,288-302,312,329
+  s_aa0f702846f60d::t_4ce9dbd12929f5 177
+  s_aa0f702846f60d::t_624055b91860a5 251,275
+  s_aa0f702846f60d::t_5fbb4d97a1f5bd 122,148,174,315-318
+  s_aa0f702846f60d::t_b8cab6a7e4b774 261
+  s_aa0f702846f60d::t_e0423eee0d5860 130
+  s_aa0f702846f60d::t_de7828060ec9e9 7,74,76,129,131-138,219
+  s_aa0f702846f60d::t_5867a18b1d84a5 3,319-323
+  s_aa0f702846f60d::t_9f555e35c7f11b 56-60,176,182-184,250,252-253,259-260,262
+  s_aa0f702846f60d::t_6bd769c95484e3 67-69,140-143,151-158
+skills/plan-the-work/SKILL.md
+  s_aa0f702846f60d::t_0f58f0595cdc9a 363
+  s_aa0f702846f60d::t_98dd3c8e34346f 391-392
+skills/implement/scripts/verification.mjs
+  s_aa0f702846f60d::t_760a392f74c4fb 1-2,4-84,91-105,121
+  s_aa0f702846f60d::t_2724698e21e91b 88-90
+  s_aa0f702846f60d::t_1d280a532d8435 85-87
+  s_aa0f702846f60d::t_179992173fe0fb 3,106-120
+skills/implement/scripts/final-package.mjs
+  s_aa0f702846f60d::t_ab469610044d22 54
+  s_aa0f702846f60d::t_ae95c4db455336 1-8,10-53,55-66,68-79,81,90-122,124-125,127-133,148-159,163-170,173-180,182-206,210-231,233-237,239-248
+  s_aa0f702846f60d::t_b5d481cabc307a 123,171-172,181,207-209,238
+  s_aa0f702846f60d::t_eba771c9ae6a80 67,80,146-147,162
+  s_aa0f702846f60d::t_55cdf338a83b38 9,82-89,134-145,160-161
+  s_aa0f702846f60d::t_eeeff296495e93 126
+  s_aa0f702846f60d::t_d3458cecec1206 232
+CONTRIBUTING.md
+  s_aa0f702846f60d::t_92eee004f975d5 56
+  s_aa0f702846f60d::t_e4a88d5a9c293c 67
+skills/implement/assets/status-template.html
+  s_aa0f702846f60d::t_89351d81b90c3b 51,85
+skills/implement/SKILL.md
+  s_aa0f702846f60d::t_a96ce8470f8064 282,289
+  s_aa0f702846f60d::t_a76a24e87ad8cc 73-74,331-334,372-373
+  s_aa0f702846f60d::t_1e9798521a5fee 313,325
+  s_aa0f702846f60d::t_d5edc59d06c9f3 58-59,71
+  s_aa0f702846f60d::t_58ddf0cf232f7f 388,391
+  s_aa0f702846f60d::t_3a5de3883c4a33 390,430
+  s_aa0f702846f60d::t_edc2876480eded 419-429,431-434,456,462
+  s_aa0f702846f60d::t_6134d5a4faae6e 75,252
+  s_aa0f702846f60d::t_ce53c45e399cf0 463
+  s_aa0f702846f60d::t_6208fef0b29a4a 260,285
+  s_aa0f702846f60d::t_f4647b0f32ab2a 259
+  s_aa0f702846f60d::t_c475094833377c 264,272,283,287,393
+  s_aa0f702846f60d::t_567095ffaf6252 258
+  s_aa0f702846f60d::t_e1e87ab68e0639 284
+skills/implement/scripts/render-status.mjs
+  s_aa0f702846f60d::t_b27d2e4fc246ff 487-490
+  s_aa0f702846f60d::t_f418d82d9da254 233
+  s_aa0f702846f60d::t_89351d81b90c3b 24,38,81-85,232,234,304-307,525-527
+  s_aa0f702846f60d::t_6208fef0b29a4a 231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b8febcd7a59d379f198a4c4854aa88e44ddfdbb1",
+  "prompts": {},
+  "sessions": {
+    "s_aa0f702846f60d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11b00-1691-7830-b578-02a19076fdd0",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
