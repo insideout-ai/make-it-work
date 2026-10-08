@@ -1,0 +1,21 @@
+skills/implement/SKILL.md
+  s_136fb5584ef965::t_afc5e47ad907bf 221,226,228
+README.md
+  s_136fb5584ef965::t_afc5e47ad907bf 142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "62d959d1655e354deb1e12c75ed09078f3fd896c",
+  "prompts": {},
+  "sessions": {
+    "s_136fb5584ef965": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11618-1a82-7252-b5a1-49d8f7803384",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
