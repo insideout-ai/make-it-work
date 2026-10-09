@@ -1,0 +1,62 @@
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/open-items-populated.md
+  s_774761f34ed828::t_b1a714b99728f2 7,11
+skills/implement/scripts/write-feedback.test.mjs
+  s_774761f34ed828::t_59628d0d35b4b0 157-168
+  s_774761f34ed828::t_707563f4816bea 140-156
+evals/plan-the-work/negative-control/graders/mid-refinement-warning-reached.md
+  s_774761f34ed828::t_cb3ebb459aa311 3-4,7-8
+skills/close-the-gaps/SKILL.md
+  s_774761f34ed828::t_9579e34e4c9af1 284,323,333
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/turn-cap-exercised.md
+  s_774761f34ed828::t_6eac0a98201be6 4
+evals/plan-the-work/README.md
+  s_774761f34ed828::t_cb3ebb459aa311 170-173
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/epic-file-written.md
+  s_774761f34ed828::t_b1a714b99728f2 2-4,7-8
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/prompt.md
+  s_774761f34ed828::t_b1a714b99728f2 14-15
+evals/shape-the-epic/README.md
+  s_774761f34ed828::t_6eac0a98201be6 12
+  s_774761f34ed828::t_e6723c2141dabe 11,13
+evals/slice-the-epic/well-specified-epic-autopilot/graders/backlog-produced.md
+  s_774761f34ed828::t_217f5c28ebf80b 12
+skills/review-the-pr/SKILL.md
+  s_774761f34ed828::t_676e59ef1f3f62 34,38
+skills/implement/scripts/write-feedback.mjs
+  s_774761f34ed828::t_9ccc8b349318b6 22,26,96-101,109,115,123-125,129,131,149-153,156-157,161-162
+  s_774761f34ed828::t_d8946576b8071e 23-25
+skills/slice-the-epic/SKILL.md
+  s_774761f34ed828::t_c6a4bc5a93fa5e 42-43
+evals/slice-the-epic/README.md
+  s_774761f34ed828::t_e918352ffb35e4 30-31
+skills/implement/SKILL.md
+  s_774761f34ed828::t_54fc60753ecb5c 13-14
+  s_774761f34ed828::t_d4c01769b2487c 454
+skills/define-test-strategy/SKILL.md
+  s_774761f34ed828::t_ccfd74ad825b5b 208
+  s_774761f34ed828::t_3d63b934d4bbda 28-29,199
+skills/shape-the-epic/SKILL.md
+  s_774761f34ed828::t_a8c8afea582ee7 50,275
+  s_774761f34ed828::t_4e6dd7bd72fc89 52
+skills/implement/references/feedback.md
+  s_774761f34ed828::t_d4c01769b2487c 63-65
+  s_774761f34ed828::t_1a1cc525a3385e 110-111,142
+skills/execute/SKILL.md
+  s_774761f34ed828::t_54fc60753ecb5c 199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "426d5d877ed22c1193499b3264ea6a33732de6ca",
+  "prompts": {},
+  "sessions": {
+    "s_774761f34ed828": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11ec9-9b61-7531-8893-f003730cd786",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
