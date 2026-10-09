@@ -4,6 +4,20 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2026-10-08
+
+### Added
+
+- Added an `implement` dashboard checkpoint helper that keeps activity and step progress synchronized with the rendered status page, with rollback on render failure.
+- Added multi-case selection and argument tests to the local eval runner for bounded targeted regressions.
+
+### Changed
+
+- Autopilot decision logs now live under `make-it-work/` rather than `.claude/`; skill instructions, the shared writer, documentation, and evals use the same location.
+- `implement` feedback preserves the run's plugin version and records terminal outcomes more consistently.
+- Review, ticket-refinement, and regression-stop instructions make required reports and stop messages explicit.
+- Eval grading handles headless `implement`, zero-tool cases, cross-file evidence, and legitimate fixture variations without relying on manual review or brittle LLM judgments where deterministic checks suffice.
+
 ## [4.6.0] - 2026-10-08
 
 ### Added
@@ -18,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - CI runs all `implement` helper tests, and the smoke inventory covers the new public delivery skill.
 - `define-test-strategy` now keeps its added regression checklist item numbered from `1`; its smoke grader checks the required behavior without requiring a specific label.
 - `shape-the-epic` now explicitly flushes complete autopilot decisions through the shared log writer after saving the epic; its smoke grader accepts the documented write paths and checks the decision payload.
+- Smoke now automatically grades headless cases with local checks and tool-free semantic judges, reporting only pass or fail; missing judge results fail closed instead of requiring routine manual review.
 
 ## [4.5.0] - 2026-10-07
 

@@ -6,21 +6,23 @@ import os from 'node:os';
 import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
+import { gradeHeadlessCase } from './grade-headless.mjs';
+import { pluginEvalArgs } from './run-suite-args.mjs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
 const dryRun = argv.includes('--dry-run');
 const budgetArg = argv.find((arg) => arg.startsWith('--max-cost-usd='));
-const caseArg = argv.find((arg) => arg.startsWith('--case='));
-const requestedCase = caseArg?.slice('--case='.length);
+const caseArgs = argv.filter((arg) => arg.startsWith('--case='));
+const requestedCases = caseArgs.map((arg) => arg.slice('--case='.length));
 const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'smoke' ? 12 : 45;
 const concurrency = tier === 'smoke' ? 4 : 1;
 
 if (!['smoke', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
-    (caseArg && !requestedCase) ||
+    requestedCases.some((name) => !name) ||
     argv.some((arg, index) => index > 0 && arg !== '--dry-run' &&
       !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case='))) {
-  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME] [--max-cost-usd=N]\n');
+  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME ...] [--max-cost-usd=N]\n');
   process.exit(64);
 }
 
@@ -31,14 +33,16 @@ if (errors.length) {
 }
 const byName = new Map(cases.map((item) => [item.name, item]));
 const tierCases = tier === 'smoke' ? suites.smoke.map((name) => byName.get(name)) : cases;
-const selected = requestedCase ? tierCases.filter((item) => item.name === requestedCase) : tierCases;
-if (!selected.length) {
-  process.stderr.write(`Case ${requestedCase} is not in the ${tier} tier.\n`);
+const missingCases = requestedCases.filter((name) => !tierCases.some((item) => item.name === name));
+if (missingCases.length) {
+  process.stderr.write(`Case(s) ${missingCases.join(', ')} not in the ${tier} tier.\n`);
   process.exit(64);
 }
+const requestedSet = new Set(requestedCases);
+const selected = requestedCases.length ? tierCases.filter((item) => requestedSet.has(item.name)) : tierCases;
 if (dryRun) {
   for (const item of selected) {
-    const mode = suites.headless.includes(item.name) ? 'headless + human review' : 'plugin eval';
+    const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
     process.stdout.write(`${item.skill}\t${item.name}\t${mode}\n`);
   }
   process.stdout.write(`${selected.length} cases; budget $${budget.toFixed(2)}. No model invoked.\n`);
@@ -62,7 +66,7 @@ const before = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('stat
 const version = spawnSync('claude', ['--version'], { encoding: 'utf8' });
 if (version.status !== 0) throw new Error('Claude Code is not installed or available on PATH');
 const summary = {
-  tier, requestedCase, startedAt: new Date().toISOString(),
+  tier, requestedCases, startedAt: new Date().toISOString(),
   commit: process.env.MIW_EVAL_SOURCE_COMMIT || before.head,
   snapshotCommit: process.env.MIW_EVAL_SOURCE_COMMIT ? before.head : undefined,
   claudeVersion: version.stdout.trim(), budgetUsd: budget, concurrency, cases: [],
@@ -123,17 +127,23 @@ async function runCase(item, remaining) {
       if (!data) throw new Error('No final result in transcript');
       caseCost = Number(data.total_cost_usd ?? 0);
       if (result.status === 0 && !data.is_error && !result.error) {
-        status = 'review';
-        detail = 'Inspect transcript and fixture against this case’s graders';
+        const grading = await gradeHeadlessCase({
+          graderDir: path.join(item.dir, 'graders'), transcript: result.stdout,
+          fixtureDir, budgetUsd: Math.max(0, remaining - caseCost),
+        });
+        caseCost += grading.judgeCostUsd;
+        await writeFile(path.join(caseReportDir, 'grader-results.json'),
+          JSON.stringify(grading, null, 2) + '\n');
+        status = grading.passed ? 'passed' : 'failed';
+        detail = grading.passed ? '' : grading.verdicts.filter((entry) => !entry.passed)
+          .map((entry) => `${entry.name}: ${entry.detail}`).join('; ');
       } else detail = data.result || 'Claude returned an error';
-    } catch {
-      detail = result.error?.message || `Claude exited ${result.status ?? 'without a status'}`;
+    } catch (error) {
+      detail = error.message || result.error?.message || `Claude exited ${result.status ?? 'without a status'}`;
     }
   } else {
-    const args = ['plugin', 'eval', '.', '--case', item.name, '--ablation', 'none', '--runs', '1',
-      '--trust-plugin', '--no-publish', '--threshold', '0', '--output-dir', caseReportDir,
-      '--max-cost-usd', remaining.toFixed(2), '--allow-tools', ...tools];
-    if (item.scaffold) args.push('--scaffold');
+    const args = pluginEvalArgs({ name: item.name, caseReportDir, remaining,
+      tools, scaffold: item.scaffold });
     result = await command('claude', args, REPO_ROOT, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'runner-stdout.txt'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'runner-stderr.txt'), result.stderr || '');
@@ -148,9 +158,9 @@ async function runCase(item, remaining) {
       const judgeFailure = votes.some((vote) => !vote.passed);
       status = result.status !== 0 || data.partial || !evaluated || !arm || arm.error ||
         arm.skippedPaidGraders || votes.length !== evaluated.graders.length || hardFailure ? 'failed' :
-        judgeFailure ? 'review' : 'passed';
+        judgeFailure ? 'failed' : 'passed';
       detail = data.partialReason === 'auth_failed' ? 'Claude Code authentication failed' :
-        hardFailure ? 'Machine grader failed' : judgeFailure ? 'Review LLM grader verdicts' : '';
+        hardFailure ? 'Machine grader failed' : judgeFailure ? 'LLM grader failed' : '';
     } catch {
       detail = result.error?.message || `Eval exited ${result.status ?? 'without a report'}`;
     }
@@ -180,6 +190,5 @@ summary.costUsd = cost;
 await writeFile(path.join(reportDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
 if (!summary.repoUnchanged) process.stderr.write('ERROR: Plugin checkout changed during the run. Inspect it before trusting results.\n');
 const failed = summary.cases.filter((entry) => entry.status === 'failed').length;
-const review = summary.cases.filter((entry) => entry.status === 'review').length;
-process.stdout.write(`${summary.cases.length}/${selected.length} cases run; ${failed} failed; ${review} require human review; reported usage $${cost.toFixed(2)}.\n`);
+process.stdout.write(`${summary.cases.length}/${selected.length} cases run; ${failed} failed; reported usage $${cost.toFixed(2)}.\n`);
 if (failed || summary.stopped || summary.cases.length !== selected.length || !summary.repoUnchanged) process.exitCode = 1;

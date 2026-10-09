@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: { source: file, path: ".claude/review-the-pr-autopilot-log.jsonl" }
+focus: { source: file, path: "make-it-work/review-the-pr-autopilot-log.jsonl" }
 weight: 3
 ---
 

@@ -1,13 +1,10 @@
 ---
-type: llm
-focus: { source: file, path: "CLAUDE.md" }
+type: regex
+target: { source: file, path: "CLAUDE.md" }
+pattern: 'Before every commit:\s*\n1\.[^\n]*npm test[^\n]*\n2\.[^\n]*Skill docs[\s\S]*?\n3\.[^\n]*product\.md[\s\S]*?\n4\.[^\n]*Quick-lookup table[\s\S]*?\n5\.[^\n]*Planning-time creation trigger[\s\S]*?\n6\.[^\n]*Commit-time creation check'
 weight: 3
 ---
 
-Judge the "After Any Feature Change — CRITICAL" section of `CLAUDE.md`. PASS only if all of these hold:
-
-1. Under "Before every commit:", the first numbered checklist item instructs the reader to check regression or test-coverage status using the project's full-suite command, `npm test`. Equivalent wording is acceptable; do not require a specific bold label such as "Regression status".
-2. The original "Skill docs" item still follows that new item. The remaining original checklist items, including the quick-lookup table, remain in their original order and are not duplicated or removed.
-3. The numbered checklist starts at `1` and continues consecutively, without a `0` item or repeated numbers.
-
-FAIL if the regression/coverage check is absent, is not first, omits `npm test`, or replaces an existing checklist item.
+The first numbered checklist item names the full-suite command, and the five
+original items follow in order with consecutive numbers. A nested quick-lookup
+table may appear between items 4 and 5.

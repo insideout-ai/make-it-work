@@ -2,7 +2,7 @@
 # Runs all four close-the-gaps autopilot smoke-test cases via `claude plugin eval`.
 #
 # All four run fully automatically. close-the-gaps's only `.claude/` write is
-# its autopilot decision log (.claude/close-the-gaps-autopilot-log.jsonl),
+# its autopilot decision log (make-it-work/close-the-gaps-autopilot-log.jsonl),
 # which Claude Code blocks under plain `claude plugin eval` the same way it
 # blocks any `.claude/` write (see evals/go-deep/README.md for the underlying
 # finding). Everything else this skill writes (make-it-work/<TICKET>-questions.md,
@@ -38,6 +38,6 @@ do
 done
 
 echo "=== Done. See evals/close-the-gaps/README.md for the one manual check ==="
-echo "    (.claude/close-the-gaps-autopilot-log.jsonl itself — run:"
+echo "    (make-it-work/close-the-gaps-autopilot-log.jsonl itself — run:"
 echo "    bash evals/close-the-gaps/manual-log-check.sh )"
 exit "$overall_rc"

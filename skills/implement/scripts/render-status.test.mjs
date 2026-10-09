@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { generateDashboard, parseState } from './render-status.mjs';
+import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 
 const DEFAULT_FIELDS = {
   ticket: 'DEMO',
@@ -115,6 +116,32 @@ test('renders a fresh run with active Context Check and no timing paragraph', as
   assert.doesNotMatch(html, /Waiting on you:/);
 });
 
+test('dashboard checkpoint updates activity and its rendered snapshot together', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await writeFile(statePath, stateMarkdown({
+    fields: { current_activity: 'none' },
+    rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']],
+  }));
+
+  const outputPath = await checkpointDashboard(statePath, { activity: 'Inspecting project context.' });
+  const [state, html] = await Promise.all([readFile(statePath, 'utf8'), readFile(outputPath, 'utf8')]);
+  assert.match(state, /^current_activity: Inspecting project context\.$/m);
+  assert.match(html, /phase-activity">Inspecting project context\.<\/div>/);
+});
+
+test('dashboard checkpoint restores activity when rendering fails', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await writeFile(statePath, stateMarkdown({
+    fields: { phase: 'execute', plan: 'make-it-work/DEMO-plan.md', current_activity: 'none' },
+    rows: [['2026-01-01T10:00:00Z', 'start', 'execute', 'Execution started']],
+  }));
+
+  await assert.rejects(checkpointDashboard(statePath, { activity: 'Running a step.' }), /Could not read the plan required for timeline progress/);
+  assert.match(await readFile(statePath, 'utf8'), /^current_activity: none$/m);
+});
+
 test('accepts and describes fully autonomous autopilot runs', async (t) => {
   const state = stateMarkdown({
     fields: { autonomy: 'autopilot' },
@@ -133,6 +160,8 @@ test('accepts new handoff-enabled runs and legacy runs without the field', () =>
   assert.throws(() => parseState(stateMarkdown({ fields: { handoff_version: '2' }, rows })), /Unsupported handoff_version/);
   assert.equal(parseState(stateMarkdown({ fields: { verification_version: '1' }, rows })).fields.verification_version, '1');
   assert.throws(() => parseState(stateMarkdown({ fields: { verification_version: '2' }, rows })), /Unsupported verification_version/);
+  assert.equal(parseState(stateMarkdown({ fields: { plugin_version: '4.6.0' }, rows })).fields.plugin_version, '4.6.0');
+  assert.throws(() => parseState(stateMarkdown({ fields: { plugin_version: 'latest' }, rows })), /Unsupported plugin_version/);
 });
 
 test('shows final approval only for package-enabled runs', async (t) => {

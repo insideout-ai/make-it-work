@@ -2,7 +2,7 @@
 # Runs all three shape-the-epic autopilot smoke-test cases via `claude plugin eval`.
 #
 # All three run fully automatically. shape-the-epic's only `.claude/` write is
-# its autopilot decision log (.claude/shape-the-epic-autopilot-log.jsonl),
+# its autopilot decision log (make-it-work/shape-the-epic-autopilot-log.jsonl),
 # which Claude Code's `claude plugin eval` sandbox blocks regardless of tool
 # grants (see evals/go-deep/README.md for the underlying finding). Everything
 # else this skill writes — make-it-work/epic-[title]-[timestamp].md — is a
@@ -37,7 +37,7 @@ do
 done
 
 echo "=== Done. See evals/shape-the-epic/README.md for the one manual check ==="
-echo "    (.claude/shape-the-epic-autopilot-log.jsonl itself — run:"
+echo "    (make-it-work/shape-the-epic-autopilot-log.jsonl itself — run:"
 echo "    bash evals/shape-the-epic/manual-log-check.sh rich"
 echo "    bash evals/shape-the-epic/manual-log-check.sh sparse )"
 exit "$overall_rc"

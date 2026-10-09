@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: { source: file, path: ".claude/define-test-strategy-autopilot-log.jsonl" }
+focus: { source: file, path: "make-it-work/define-test-strategy-autopilot-log.jsonl" }
 weight: 3
 ---
 

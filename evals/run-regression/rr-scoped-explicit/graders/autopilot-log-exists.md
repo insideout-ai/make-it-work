@@ -1,6 +1,6 @@
 ---
 type: file_exists
-path: .claude/run-regression-autopilot-log.jsonl
+path: make-it-work/run-regression-autopilot-log.jsonl
 exists: true
 weight: 1
 ---

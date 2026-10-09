@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: { source: file, path: ".claude/go-deep-autopilot-log.jsonl" }
+focus: { source: file, path: "make-it-work/go-deep-autopilot-log.jsonl" }
 weight: 3
 ---
 

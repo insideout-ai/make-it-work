@@ -1,4 +1,4 @@
 ---
 type: file_exists
-path: .claude/go-deep-autopilot-log.jsonl
+path: make-it-work/go-deep-autopilot-log.jsonl
 ---

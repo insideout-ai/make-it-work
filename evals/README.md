@@ -32,30 +32,34 @@ cumulative reported-usage limit is $12 for smoke and $45 for full. Override it w
 `--max-cost-usd=N`. Each run records the commit, Claude Code version, case
 results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
 `--dry-run` does not invoke Claude. Plain `claude plugin eval` cases are graded
-by the harness. Cases marked `headless` use a disposable fixture and produce a
-`transcript.jsonl`; a maintainer must inspect their output against the case's
-`graders/*.md` and record a pass or failure in the PR or release checklist.
-The machine summary labels these cases `review`, never `passed`; a zero exit
-code means no machine-detected failure, not that human review is complete.
+by its harness. Cases marked `headless` use a disposable fixture and produce a
+`transcript.jsonl`; the runner grades their `graders/*.md` automatically.
+File, regex, and tool-use checks run locally. Semantic (`llm`) checks use a
+separate, tool-free Claude judge and count toward the same case and suite cost
+limits. That judge receives the relevant generated fixture file, final message,
+or normalized case transcript as evidence; do not run it with data that must
+stay local. Each headless case writes `grader-results.json` and returns `passed`
+only when every grader passes; an unavailable or invalid judge result is a
+failure, never an unreviewed success. Model responses and semantic verdicts
+can still vary between runs; automatic grading is not deterministic model
+behavior.
 The runner never uses `--dangerously-skip-permissions`. A permission refusal is
 an incomplete case, not a pass; the case README documents its manual fallback.
 The optional Git hook invokes `smoke` once for every push command against a
 disposable snapshot of the committed HEAD, so unrelated worktree edits cannot
 affect the result. Reports stay under this checkout's ignored `evals/results/`.
 It reports failures but allows the push and does not enforce a PR rule. It does
-not run for other contributors until they install it. Human-review cases
-remain marked `review` even when the command exits zero, so inspect them
-before treating the run as a full pass. Each push incurs a new model run and
-usage. Parallel smoke should reduce wall time but not the number of cases or
-their total model usage. The historical 9–11 minute smoke runs were sequential;
-3–5 minutes in parallel is an estimate, not yet a measured result. Concurrent
-Claude sessions may encounter account rate limits, so inspect failed cases.
+not run for other contributors until they install it. Each push incurs a new
+model run and usage. Automatic semantic grading adds judge calls and cost;
+parallel smoke should reduce wall time but not the number of model cases.
+Concurrent Claude sessions may encounter account rate limits, so inspect
+failed cases.
 The `shape-the-epic` smoke case uses the disposable headless path because its
 file write was denied in a real plain-eval smoke run despite `Write` being
 listed in `allowed_tools`.
 
-For a PR, include the smoke report path and note any failed or human-reviewed
-cases in the PR description. For a release, run `full` for the exact release
+For a PR, include the smoke report path and note any failed cases in the PR
+description. For a release, run `full` for the exact release
 commit and complete `docs/eval-release-checklist.md`. A failing LLM grader is
 an investigation trigger: read the transcript or generated file and record
 whether the skill failed or the grader misread valid output. Do not silently

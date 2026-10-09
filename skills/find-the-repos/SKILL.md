@@ -34,9 +34,9 @@ Or paste the ticket content directly into the chat after invoking.
 - Phase 2 point 3's underivable `<TICKET>` key (no argument, no branch-derivable key).
 - Phase 2 point 3's tracker-fetch failure (no local spec, fetch fails or is unavailable).
 
-**Decision log:** write `.claude/find-the-repos-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the start of the run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has only `"checkpoint"` sites (no `askUserQuestion` or `open_text`), so it omits `multiSelect`/`question`/`options` entirely and `chosen` is only ever a short string describing what was confirmed, or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 4"`. `site` example: `"shortlist-confirmation"`.
+**Decision log:** write `make-it-work/find-the-repos-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the start of the run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has only `"checkpoint"` sites (no `askUserQuestion` or `open_text`), so it omits `multiSelect`/`question`/`options` entirely and `chosen` is only ever a short string describing what was confirmed, or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 4"`. `site` example: `"shortlist-confirmation"`.
 
-When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the start-of-run timing and never use it to bypass a denied `.claude/` write.
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the start-of-run timing and never use it to bypass a denied log write.
 
 **Resolution table** (one row per interactive site, in the order they appear):
 

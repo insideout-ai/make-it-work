@@ -7,7 +7,7 @@ completed checklist with private transcripts or test-account data.
 - Plugin version and Claude Code version:
 - `node evals/validate.mjs` result:
 - `node evals/run-suite.mjs full` report path and reported usage:
-- All headless cases reviewed against their `graders/*.md`:
+- All headless cases automatically graded (record any failures and investigation):
 - Failing LLM graders, transcript evidence, and disposition:
 - Disposable end-to-end workflow result (including failure and resume):
 - Clean-install smoke result:

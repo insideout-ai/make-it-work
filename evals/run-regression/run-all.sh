@@ -91,7 +91,7 @@ run_bash_case() {
   echo "$run_dir" > "/tmp/run-regression-${case_name}-rundir.txt"
   echo "$case_name run dir:   $run_dir"
   echo "$case_name transcript: $transcript"
-  echo "Check its final message and $run_dir/.claude/run-regression-autopilot-log.jsonl against evals/run-regression/$case_name/graders/*.md"
+  echo "Check its final message and $run_dir/make-it-work/run-regression-autopilot-log.jsonl against evals/run-regression/$case_name/graders/*.md"
 }
 
 run_bash_case rr-full-pass full

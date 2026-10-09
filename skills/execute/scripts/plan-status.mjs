@@ -5,6 +5,8 @@ import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { checkpointDashboard } from '../../implement/scripts/dashboard-checkpoint.mjs';
+
 const MODE_TEXT = {
   'subagent-driven': '**Mode:** Subagent-Driven — dispatch a fresh subagent per step (via the Agent tool), reviewed between steps.',
   inline: "**Mode:** Inline — execute steps in this session, checkpointed after each step's Verify.",
@@ -135,6 +137,9 @@ export async function updatePlan(planPath, command, options = {}) {
   } finally {
     await unlink(temporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
+  if (options.dashboardState && ['complete-step', 'complete-batch'].includes(command)) {
+    await checkpointDashboard(options.dashboardState);
+  }
   return inspectPlan(updated);
 }
 
@@ -145,7 +150,7 @@ async function main() {
   const options = {};
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
-    if (!['--plan', '--mode', '--pause', '--total', '--step', '--through', '--completed'].includes(name)) fail('Unknown argument: ' + name);
+    if (!['--plan', '--mode', '--pause', '--total', '--step', '--through', '--completed', '--dashboard-state'].includes(name)) fail('Unknown argument: ' + name);
     if (options[name.slice(2)] !== undefined) fail('Duplicate argument: ' + name);
     options[name.slice(2)] = args[++index];
   }

@@ -31,7 +31,7 @@ Git hook once:
 bash scripts/install-pre-push-hook.sh
 ```
 
-The hook runs the 11-skill smoke suite against a disposable snapshot of the
+The hook runs the 12-skill smoke suite against a disposable snapshot of the
 commit being pushed, using your existing Claude Code sign-in before each push.
 It reports failures but does not block the push or PR. It does not request an
 API key or run in CI. Installation is local to your clone; the installer
@@ -43,7 +43,7 @@ refuses to replace an existing hooks setup.
 - `.claude-plugin/marketplace.json` defines the InsideOut AI marketplace listing.
 - `skills/<skill-name>/SKILL.md` contains each user-facing workflow.
 - `docs/` contains shared reference documentation for skill authors (e.g. the `--autopilot` decision-log schema), referenced from multiple skills' `SKILL.md` files rather than duplicated in each.
-- `scripts/decision-log.mjs` validates and writes the shared autopilot JSONL log when Bash and `.claude/` writes are permitted.
+- `scripts/decision-log.mjs` validates and writes the shared autopilot JSONL log under `make-it-work/` when Bash writes are permitted.
 - `.github/workflows/validate-plugin.yml` runs strict validation in CI.
 
 Do not bump the plugin version as part of an ordinary contribution. Maintainers update versions when preparing a release.
@@ -60,11 +60,12 @@ claude plugin validate .claude-plugin/marketplace.json --strict
 node --test scripts/decision-log.test.mjs
 git diff --check
 node --test skills/execute/scripts/plan-status.test.mjs
+node --test evals/grade-headless.test.mjs evals/run-batches.test.mjs
 ```
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
-Before opening a pull request, run the 12-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and adjudicate any LLM-grader failures in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and cases needing human review. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
+Before opening a pull request, run the 12-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and investigate any failed grader in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
 
 ## Pull requests
 

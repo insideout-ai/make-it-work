@@ -74,7 +74,7 @@ collides and silently runs go-deep's case too.)
 completion, which means running real `git diff`/`git branch -r`/`git show`
 commands (Step 1 — establishing the diff — is not optional; every real
 review needs it) and writing the autopilot decision log to
-`.claude/review-the-pr-autopilot-log.jsonl`. Two independent things block
+`make-it-work/review-the-pr-autopilot-log.jsonl`. Two independent things block
 doing this through `claude plugin eval` on this machine:
 
 1. **Granting `Bash` to a `claude plugin eval` case fails outright here.**
@@ -92,7 +92,7 @@ doing this through `claude plugin eval` on this machine:
    `go-deep` work and unchanged here: no tool grant unblocks writing there,
    in `claude plugin eval` or in plain headless mode; only
    `--dangerously-skip-permissions` does. The decision log
-   (`.claude/review-the-pr-autopilot-log.jsonl`) always lands there, by this
+   (`make-it-work/review-the-pr-autopilot-log.jsonl`) always lands there, by this
    rollout's own convention (spec §1), even though this skill's own normal
    output (`make-it-work/<TICKET>-review.md`) does not.
 
@@ -127,7 +127,7 @@ RUN_DIR=$(mktemp -d)
 # Verify: check the real repo's branch/HEAD and a scoped git status before
 # and after (run-all.sh does this for you), then inspect
 # $RUN_DIR/make-it-work/TASK-100-review.md and
-# $RUN_DIR/.claude/review-the-pr-autopilot-log.jsonl by hand.
+# $RUN_DIR/make-it-work/review-the-pr-autopilot-log.jsonl by hand.
 ```
 
 The `graders/*.md` files in each case directory still document exactly what
@@ -150,7 +150,7 @@ doesn't generalize). Both transcripts were read in full, not just graded:
   in as `src/tasks/completeTask.js`'s feature-branch content): ran
   `git branch -r`, `git log`, `git diff --name-only
   main...HEAD` via Bash, correctly resolved the diff, wrote
-  `.claude/review-the-pr-autopilot-log.jsonl` with exactly three lines
+  `make-it-work/review-the-pr-autopilot-log.jsonl` with exactly three lines
   matching the Autopilot Mode resolution table (`pr-link` → `open_text`,
   resolved to "no PR yet"; `requirements-source` → `open_text`, attempted a
   real Jira MCP lookup for `TASK-100` against this session's own configured

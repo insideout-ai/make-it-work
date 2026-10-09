@@ -57,7 +57,7 @@ fi
 echo "$run_dir" > /tmp/define-test-strategy-fresh-autopilot-rundir.txt
 echo "fresh-autopilot run dir:   $run_dir"
 echo "fresh-autopilot transcript: $transcript"
-echo "Check its files and .claude/define-test-strategy-autopilot-log.jsonl against evals/define-test-strategy/fresh-autopilot/graders/*.md"
+echo "Check its files and make-it-work/define-test-strategy-autopilot-log.jsonl against evals/define-test-strategy/fresh-autopilot/graders/*.md"
 
 echo
 echo "=== Done. ==="

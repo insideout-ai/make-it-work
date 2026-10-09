@@ -69,14 +69,14 @@ checking on-disk `.claude/` log persistence.
 `plan-the-work` writes nothing under `.claude/` of its own accord — its real output is
 `make-it-work/<TICKET>-plan.md` (plus, in Step 5's test-writing sub-phase when a test framework is
 configured, test files left uncommitted). The **only** thing this rollout adds under `.claude/` is
-the autopilot decision log itself, `.claude/plan-the-work-autopilot-log.jsonl` (per the shared
+the autopilot decision log itself, `make-it-work/plan-the-work-autopilot-log.jsonl` (per the shared
 spec's §1 convention) — so `plan-the-work` falls into the spec's §2 middle category ("one specific
 blocked path among otherwise-unblocked output"), the same category `define-test-strategy` is in
 for its `testing-strategy.md`.
 
 Verified directly (ran `happy-path` and `plan-collision` for real, via plain `claude plugin eval`,
 and read both full transcripts): in both runs, the model attempted the `Write` to
-`.claude/plan-the-work-autopilot-log.jsonl`, got a permission-denied result, did **not** retry or
+`make-it-work/plan-the-work-autopilot-log.jsonl`, got a permission-denied result, did **not** retry or
 stall, explicitly said so in its final chat summary ("the on-disk decision log ... couldn't be
 written — permission denied for `.claude/` under the current mode — so recording here instead"),
 and then correctly continued to a complete, correct plan file. So a single blocked `.claude/` write
@@ -91,7 +91,7 @@ and `plan-collision` both carry trace-regex graders (`filler-label-preserved-not
 `filler-never-chosen.md`, `recommended-option-chosen.md`, and, for `plan-collision`,
 `collision-decision-logged.md`) that check this directly — confirmed matching against both real
 runs' traces before being added. **Only the log file's on-disk persistence** (does
-`.claude/plan-the-work-autopilot-log.jsonl` actually get written, with correct permissions, at the
+`make-it-work/plan-the-work-autopilot-log.jsonl` actually get written, with correct permissions, at the
 real repo-root path) needs the manual `--dangerously-skip-permissions` path below.
 
 ```bash
@@ -100,7 +100,7 @@ RUN_DIR=$(mktemp -d)
 (cd "$RUN_DIR" && claude -p "/make-it-work:plan-the-work DEMO-200 --autopilot" \
   --plugin-dir /Users/ErezMo/make-it-work --dangerously-skip-permissions \
   --output-format stream-json --verbose > /tmp/transcript.jsonl)
-# then inspect $RUN_DIR/.claude/plan-the-work-autopilot-log.jsonl by hand.
+# then inspect $RUN_DIR/make-it-work/plan-the-work-autopilot-log.jsonl by hand.
 ```
 
 (Swap in `plan-collision/fixture.sh` and ticket `DEMO-300` to check that case's log file instead.)
@@ -281,7 +281,7 @@ whitespace-related test was actually added; an `llm` grader on the plan's `**Tes
 that step, confirming it names the real file/command and a correctly-reasoned progression-red state
 (this is a **Modify** row — `createTask` already exists and runs — so no stub signature should be
 written, and the red state should come from the new assertion failing against the *current*
-implementation); and the `.claude/plan-the-work-autopilot-log.jsonl` existence check, which only a
+implementation); and the `make-it-work/plan-the-work-autopilot-log.jsonl` existence check, which only a
 `--dangerously-skip-permissions` run can satisfy.
 
 **Not yet run for real** — this needs a human (or a different machine/CI) to invoke
@@ -305,7 +305,7 @@ change (no stub — this is a Modify row), and `git log` showing no new commit w
 `npm test` run in `$RUN_DIR` **fails**
 on the new whitespace-title test by design at that point (2 original tests passing, the new one
 red) — it should only turn fully green once a later `execute` step actually implements the trimming
-behavior, which this plan does not do; and `$RUN_DIR/.claude/plan-the-work-autopilot-log.jsonl`
+behavior, which this plan does not do; and `$RUN_DIR/make-it-work/plan-the-work-autopilot-log.jsonl`
 against the schema in `skills/plan-the-work/SKILL.md`'s Autopilot Mode section. As always, diff
 `git status` on the real repo before/after and confirm it's unchanged.
 

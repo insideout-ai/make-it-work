@@ -4,7 +4,7 @@
 # negative-control and plan-collision-negative-control need no Bash. Happy-path
 # and plan-collision use Bash to invoke the plan-status updater; the shared
 # environment wrapper handles this host's Docker/Git sandbox quirks. The one exception in each
-# autopilot case is the decision log itself (`.claude/plan-the-work-autopilot-log.jsonl`),
+# autopilot case is the decision log itself (`make-it-work/plan-the-work-autopilot-log.jsonl`),
 # which is always under the protected `.claude/` path — see README.md for how
 # to check it by hand.
 #
