@@ -4,6 +4,13 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.1] - 2026-10-09
+
+### Fixed
+
+- Tightened skill instructions for ticket refinement, test strategy, execution, implementation feedback, PR review, epic shaping, and story slicing after regression findings.
+- Corrected eval prompts and graders that could misclassify valid workflow output, and added feedback-writer validation tests.
+
 ## [4.7.0] - 2026-10-08
 
 ### Added
