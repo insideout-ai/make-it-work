@@ -11,3 +11,5 @@ runs: 1
 Epic title: Enterprise exports
 
 Idea: Make exports better for our enterprise customers.
+
+The current working directory is the project root for this run. Save the epic and decision log under its `make-it-work/` directory.

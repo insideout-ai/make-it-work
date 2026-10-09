@@ -196,7 +196,7 @@ For an `implement` run carrying `verification_version: 1`, read `../implement/re
 
 How points 1–4 above are actually carried out differs by the `Mode` Phase 0 point 3 resolved:
 
-**Subagent-Driven mode.** For each step, dispatch a single fresh subagent via the Agent tool to perform that one step:
+**Subagent-Driven mode.** For each numbered step, dispatch a single fresh subagent via the Agent tool to perform that one step. This includes a trailing manual verification or "Write tests" step with `**Files:** none`: its Test Plan walkthrough and Verify still belong to its own fresh subagent. The orchestrating session must not perform that step itself or mark it complete after inspecting an earlier subagent's work; only Inline mode executes a step in this session. Before Phase 4, confirm every step newly completed in this run has its own Agent dispatch (or belongs to an eligible concurrent batch of Agent dispatches). Then follow these dispatch rules:
 - Pass the executor tier Phase 0 point 5 computed for this plan as the subagent dispatch's `model` argument, so every step's subagent runs at the plan's recommended tier.
 - Give the subagent, as its prompt, everything it needs to complete points 1–4 above without needing to ask this session anything mid-step:
   - this step's own fields verbatim — **What to do**, **Files:**, **Verify**, and, when present, the step's own **Tests:** field (the exact scoped test command); when the step has no **Tests:** field, the relevant row(s) of the plan's shared `## Test Plan` table instead;

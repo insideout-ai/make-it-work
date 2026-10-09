@@ -8,6 +8,9 @@ Three cases exercising `skills/shape-the-epic/SKILL.md`'s `--autopilot` flag:
 
 These are the two meaningfully distinct autopilot branches this skill's new bounding policy has (early exit vs. cap-reached), mirroring `go-deep`'s pilot shape (one "nothing surprising" case, one "the interesting branch" case, one negative control) rather than a fixed case count.
 
+The sparse case declares its eval working directory as the project root. In the 2026-10-09 full run, the model guessed the parent `home` directory as the root and `Write` was denied. The earlier `epic-file-written` grader counted the attempted call as success. It now requires the matching "File created successfully" tool result, and the open-items judge evaluates only a saved epic. The turn-cap check accepts Markdown bold around `Part A:` without changing the required count and exit semantics.
+The turn-cap check also accepts natural `turn`/`turns` wording as well as the template's literal `turn(s)`; a later full run used "2 self-answered turns" while preserving the required cap and exit values.
+
 ## Running all three at once
 
 ```

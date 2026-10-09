@@ -60,7 +60,9 @@ Do not dispatch retrospective analysis or ask feedback questions for a minimal r
 
 ## Investigate a non-minimal run
 
-Dispatch one fresh general-purpose subagent for the retrospective. Give it this reference and the minimum available evidence needed from:
+The `inspect` result's `minimal: false` is a dispatch gate: call the Agent tool once to start a fresh general-purpose retrospective subagent **before** drafting analysis JSON or calling `write --analysis`. Evidence already read in this session, an apparently obvious cause, or a nearly finished terminal report does not waive this gate. The orchestrator may inspect and sanitize the returned JSON, but must not replace the subagent's diagnosis with its own. If dispatch is unavailable or fails, report that the feedback retrospective could not be completed; keep the workflow's terminal state and do not write an invented non-minimal diagnosis.
+
+Give that subagent this reference and the minimum available evidence needed from:
 
 - the state file and its complete Audit log;
 - the refined spec;
@@ -105,6 +107,8 @@ The cumulative feedback file must not contain:
 
 It may name make-it-work phases and skills, counts, generic failure shapes, and paraphrased causal evidence. Re-read the finished block specifically for forbidden identifiers before writing it.
 
+Before staging the analysis JSON, compare every text value with the source artifacts. Replace distinctive requirement labels and compound terms copied from those artifacts with a generic description of the behavior; for example, describe a missed rejection case without carrying over its named role or acceptance-path label. Keep the causal distinction, such as allowed versus rejected outcomes, while removing the source vocabulary. The writer also rejects compound terms copied from Audit-log prose, but the same review is still necessary for names appearing only in the spec, plan, or reports.
+
 ## Clarification questions
 
 Write the provisional block with the script before asking anything. Ask one question at a time only when the answer could materially change the cause category, earliest preventable stage, owner, or recommendation. There is no numerical cap; stop when every remaining uncertainty is immaterial, the user says they do not know, or the user declines.
@@ -135,7 +139,7 @@ The retrospective subagent returns one share-safe JSON object. Create a uniquely
 }
 ```
 
-`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, and the ticket ID, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write.
+`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
 
 ```sh
 node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>-state.md" --analysis "<temporary-analysis.json>"

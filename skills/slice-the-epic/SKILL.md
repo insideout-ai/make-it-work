@@ -39,6 +39,8 @@ At the end of an autopilot run, print a short summary: either the one auto-resol
 
 Work from the requirement the user provides. If they give a Jira or Confluence reference and a suitable connector is available, retrieve it. Ask one focused question only when a missing fact prevents a meaningful slice—for example, there is no identifiable outcome or the material combines unrelated initiatives. (autopilot: see Autopilot Mode)
 
+On the interactive path, request exactly one fact and then stop. A brief explanation or examples of possible answers are fine, but do not append another request, even as an optional "would also help" sentence. For a vague outcome such as "make the platform better for enterprise customers," ask which specific outcome the epic should deliver; infer secondary details such as the primary user after that answer arrives.
+
 Existing acceptance criteria may already reveal natural boundaries. Reuse those boundaries when they produce independently valuable slices.
 
 ## Choose an approach

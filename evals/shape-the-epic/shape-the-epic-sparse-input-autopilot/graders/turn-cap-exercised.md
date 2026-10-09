@@ -1,7 +1,7 @@
 ---
 type: regex
 target: last_message
-pattern: 'Part A: [0-6] self-answered turn\(s\) used \(cap 6\); exit: (?:early \(no open threads remaining\)|cap-reached \(open threads: [^)]+\))'
+pattern: 'Part A:\*{0,2}\s*[0-6] self-answered (?:turn\(s\)|turns?) used \(cap 6\); exit: (?:early \(no open threads remaining\)|cap-reached \(open threads: [^)]+\))'
 weight: 3
 ---
 
