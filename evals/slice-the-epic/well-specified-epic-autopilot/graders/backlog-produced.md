@@ -9,7 +9,7 @@ This is the full transcript of a `slice-the-epic --autopilot` run against a well
 PASS only if ALL of the following hold:
 1. The response states a selected slicing approach (functional, workflow, data, role, or technical-risk) before the backlog.
 2. It produces a backlog of multiple ordered slices, as a table or equivalent, each with acceptance criteria or completion evidence (Gherkin Given/When/Then for user-facing slices is expected here, since all five criteria describe user-facing behavior).
-3. It does NOT ask the user a clarifying question or otherwise pause — the epic was unambiguous, so autopilot should never have needed its best-guess fallback.
+3. It does NOT ask the user a clarifying question, pause, or use `[autopilot best-guess]` to qualify any backlog decision — the epic was unambiguous, so autopilot should never have needed its best-guess fallback. A final summary saying no assumptions were auto-resolved is fine, even if it names the marker while negating its use.
 4. It briefly wraps up (slice count, approach, recommended starting point).
 
 List any that fail, quoting the relevant part of the message.

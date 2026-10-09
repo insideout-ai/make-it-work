@@ -137,6 +137,35 @@ test('analysis mismatch and unsafe text fail without touching existing feedback'
   assert.equal(await readFile(feedbackPath, 'utf8'), 'User-owned text\n');
 });
 
+test('source-specific Audit terms must be paraphrased before feedback is written', async (t) => {
+  const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z');
+  const { statePath, feedbackPath } = await workspace(t, state);
+  const summary = inspectState(state);
+  assert.ok(summary.sourceCompounds.includes('denied-role'));
+  const analysis = diagnosis(summary);
+  analysis.events[0].trigger = 'The denied-role outcome was omitted from the plan';
+  await assert.rejects(writeFeedback(statePath, { analysis }), /paraphrase.*share-safe/);
+  await assert.rejects(readFile(feedbackPath, 'utf8'), { code: 'ENOENT' });
+
+  analysis.events[0].trigger = 'A required rejection outcome was omitted from the plan';
+  await writeFeedback(statePath, { analysis });
+  const feedback = await readFile(feedbackPath, 'utf8');
+  assert.match(feedback, /required rejection outcome/);
+  assert.doesNotMatch(feedback, /denied-role/);
+});
+
+test('workflow skill names in Audit prose remain valid feedback terms', async (t) => {
+  const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z')
+    .replace('Initial execution and gate passed', 'Initial run-regression gate passed');
+  const { statePath, feedbackPath } = await workspace(t, state);
+  const summary = inspectState(state);
+  assert.ok(!summary.sourceCompounds.includes('run-regression'));
+  const analysis = diagnosis(summary);
+  analysis.recommendations = ['Have run-regression verify coverage after the plan is approved'];
+  await writeFeedback(statePath, { analysis });
+  assert.match(await readFile(feedbackPath, 'utf8'), /run-regression verify coverage/);
+});
+
 test('explicit limit stop is accepted with matching terminal evidence', async (t) => {
   let state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
   state = state.replace('status: Complete', 'status: Stopped').replace('phase: complete', 'phase: review')

@@ -281,7 +281,7 @@ Resolve questions in two passes, since a conditional question can only be evalua
 
 **Pass 2 — conditional questions** ("Answer only if Q_n = X" label): process them in the order they appear in the file — Phase 5B always places a gating question before anything conditioned on it, so by the time you reach a conditional question here, the question it names already has a final status from earlier in this pass or from Pass 1.
 
-- If the question it names is itself `N/A — condition not met`, mark this question `N/A — condition not met` too, without evaluating its own condition — a question gated by a question that was never asked can't apply either. This propagates down a chain of any length.
+- If the question it names is itself `N/A — condition not met`, mark this question `N/A — condition not met` too, without evaluating its own condition — a question gated by a question that was never asked can't apply either. This propagates down a chain of any length. Exclude every such question from Phase 6's Decision Log as well.
 - Otherwise, check the now-resolved answer to the question it names: if it does **not** match the stated condition, mark this question `N/A — condition not met`. Do not ask it, do not re-verify its code finding, and do not include it in Phase 6's Decision Log — it was never actually asked.
 - If the gating answer **does** match, treat it exactly like an unconditional question: apply steps 1–3 above to it.
 
@@ -320,7 +320,7 @@ Scenario: [edge case or error case]
 ```
 ````
 
-4. **Append Decision Log** — always include this section when at least one question was asked in Phase 5, listing every question asked (in the order asked) and how it was resolved:
+4. **Append Decision Log** — always include this section when at least one question was asked in Phase 5, listing every applicable question actually asked (in the order asked) and how it was resolved. For an offline injection run, first filter the questions file against the final gating answers from Phase 5C: any question marked `N/A — condition not met` was never asked, even if it has a Q-number or an answer in the file, and must have no Decision Log row:
 
 ```
 ## Decision Log
@@ -330,7 +330,7 @@ Scenario: [edge case or error case]
 | [full question text as asked] | [gap type] | [option the user picked, verbatim — or "Skipped — see TBD"] |
 ```
 
-Include every question here, including skipped ones — the Decision Log is the complete record; TBD (below) is only the actionable follow-up list for skipped items. (autopilot: see Autopilot Mode — autopilot-resolved answers get an `_(autopilot)_` marker in the Answer column.)
+Include every applicable question here, including skipped ones — the Decision Log is the complete record of questions actually asked; TBD (below) is only the actionable follow-up list for skipped items. A condition-not-met question is neither asked nor skipped, so omit it from both sections. Before saving an offline-injection spec, check each Decision Log row against the final Phase 5C statuses and remove every `N/A — condition not met` row. (autopilot: see Autopilot Mode — autopilot-resolved answers get an `_(autopilot)_` marker in the Answer column.)
 
 5. **Append TBD section** — only if any questions were skipped:
 

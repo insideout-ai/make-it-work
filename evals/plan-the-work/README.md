@@ -167,8 +167,10 @@ checkpoint is a plain-text pause, not a tool call. (See "Why `negative-control` 
 the flag matters" above for why this case doesn't by itself prove `--autopilot` changes behavior.)
 
 Graders: `make-it-work/DEMO-100-plan.md` must **not** exist (Step 4's skeleton write happens after
-this checkpoint, so a genuinely-blocked run never creates it), and the trace must contain
-`mid-refinement` (the word `plan-the-work` uses when it surfaces this exact situation).
+this checkpoint, so a genuinely-blocked run never creates it), and the final message must warn
+that refinement is still pending. The grader accepts equivalent phrasing such as "still being refined"
+instead of requiring the exact words `mid-refinement`; a retained failing trace from the 2026-10-09
+full run showed the correct two-option pause with that alternate wording.
 
 Verified for real: ran via plain `claude plugin eval`, read the full trace. The model investigated
 with `Glob`/`Read` only (no `Bash`), found the unanswered questions file, and stopped with exactly

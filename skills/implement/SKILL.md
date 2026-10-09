@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 **Goal:** Take one ticket from request to a reviewed, context-synced implementation by running the existing stage skills in order. `implement` decides which phase runs next, runs that stage skill, interprets the outcome it reports, records the transition, enforces the loop limits, and performs the final context sync. It never redoes a stage's own reasoning — refinement belongs to `close-the-gaps`, planning to `plan-the-work`, implementation to `execute`, review to `review-the-pr`.
 
+**Pipeline checkpoint:** Before editing implementation code or tests, carry out Start's branch guard and create the ticket's workflow state and dashboard, then enter Context check. Follow the saved phase transitions and required stage skills through review and final sync. The size or apparent simplicity of a code change never waives a phase, handoff, log, or review. If a required stage cannot run, checkpoint its documented stop in the state instead of implementing the ticket directly. Do not report a ticket as complete merely because its code and tests pass; `status: Complete` requires the pipeline's terminal checks.
+
 ---
 
 ## Usage
@@ -449,7 +451,7 @@ Run it only after either:
 
 Read `<base>/references/feedback.md` in full and follow it. The deterministic feedback writer owns eligibility validation, Audit-log counting, block formatting, and idempotent updates of `make-it-work/implement-feedback.md`; the model still owns non-minimal root-cause analysis, share-safe paraphrasing, and clarification questions.
 
-Use the writer's `inspect` result to decide whether the run is minimal. For a non-minimal run, dispatch the reference's fresh retrospective subagent and work from its structured diagnosis. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+Use the writer's `inspect` result to decide whether the run is minimal. For a non-minimal run, the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
 
 The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later. Under `autopilot`, do not ask the retrospective's optional clarification questions: preserve material uncertainty in the writer input's `openQuestions` and finish the terminal report.
 

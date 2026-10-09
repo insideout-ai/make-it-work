@@ -19,6 +19,11 @@ const ROOT_CAUSES = new Set([
 const PREVENTABILITY = new Set(['likely', 'partial', 'unavoidable', 'unclear']);
 const CONFIDENCE = new Set(['high', 'medium', 'low']);
 const REPLAN_FROM = new Set(['execute', 'review', 'fix-plan']);
+const WORKFLOW_TERMS = new Set([
+  'close-the-gaps', 'define-test-strategy', 'find-the-repos', 'go-deep',
+  'plan-the-work', 'review-the-pr', 'run-regression', 'shape-the-epic',
+  'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval',
+]);
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
 function fail(message) { throw new Error(message); }
@@ -88,6 +93,12 @@ export function inspectState(markdown, { limitStop = false } = {}) {
   });
   const explicitReviews = rows.filter((row) => /\bReview cycle \d+\b/i.test(row.outcome)).length;
   const enteredReviews = rows.filter((row) => row.to === 'review' && row.from !== 'review').length;
+  // Distinctive compounds in Audit prose are often project terminology. They
+  // must be paraphrased in feedback rather than copied into a shareable file.
+  const sourceCompounds = [...new Set(rows.flatMap((row) =>
+    [...row.outcome.matchAll(/\b[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b/g)]
+      .map(([term]) => term.toLowerCase())
+      .filter((term) => !WORKFLOW_TERMS.has(term))))];
   return {
     runId, outcome: status === 'Complete' ? 'Complete' : 'Stopped — loop limit',
     minimal: events.length === 0,
@@ -95,12 +106,13 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     replans: events.filter((event) => event.kind === 'Replan').length,
     reviewCycles: explicitReviews || enteredReviews,
     events,
+    sourceCompounds,
     ticket,
     pluginVersion: pluginVersion ?? 'not captured (legacy run)',
   };
 }
 
-function safeLine(value, label, ticket) {
+function safeLine(value, label, ticket, sourceCompounds = []) {
   const escapedTicket = ticket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const ticketMention = new RegExp(`(?<![A-Za-z0-9])${escapedTicket}(?![A-Za-z0-9])`, 'i');
   if (typeof value !== 'string' || !value.trim() || /[\r\n<>`\\/]/.test(value) ||
@@ -108,12 +120,15 @@ function safeLine(value, label, ticket) {
       ticketMention.test(value)) {
     fail(`${label} must be one share-safe line without paths, markup, contact details, or the ticket ID.`);
   }
+  const copiedTerm = sourceCompounds.find((term) =>
+    new RegExp(`(?<![A-Za-z0-9])${term}(?![A-Za-z0-9])`, 'i').test(value));
+  if (copiedTerm) fail(`${label} copies project terminology from the Audit log; paraphrase it for share-safe feedback.`);
   return value.trim();
 }
 
-function safeLines(value, label, ticket) {
+function safeLines(value, label, ticket, sourceCompounds) {
   if (!Array.isArray(value)) fail(`${label} must be an array.`);
-  return value.map((item, index) => safeLine(item, `${label}[${index}]`, ticket));
+  return value.map((item, index) => safeLine(item, `${label}[${index}]`, ticket, sourceCompounds));
 }
 
 function validateAnalysis(analysis, summary) {
@@ -131,20 +146,20 @@ function validateAnalysis(analysis, summary) {
     if (!CONFIDENCE.has(event.confidence)) fail(`Invalid confidence in event ${index + 1}.`);
     return {
       ...event,
-      trigger: safeLine(event.trigger, 'trigger', summary.ticket),
-      explanation: safeLine(event.explanation, 'explanation', summary.ticket),
-      earliestStage: safeLine(event.earliestStage, 'earliestStage', summary.ticket),
-      owner: safeLine(event.owner, 'owner', summary.ticket),
-      improvement: safeLine(event.improvement, 'improvement', summary.ticket),
+      trigger: safeLine(event.trigger, 'trigger', summary.ticket, summary.sourceCompounds),
+      explanation: safeLine(event.explanation, 'explanation', summary.ticket, summary.sourceCompounds),
+      earliestStage: safeLine(event.earliestStage, 'earliestStage', summary.ticket, summary.sourceCompounds),
+      owner: safeLine(event.owner, 'owner', summary.ticket, summary.sourceCompounds),
+      improvement: safeLine(event.improvement, 'improvement', summary.ticket, summary.sourceCompounds),
     };
   });
-  const recommendations = safeLines(analysis.recommendations, 'recommendations', summary.ticket);
-  const openQuestions = safeLines(analysis.openQuestions, 'openQuestions', summary.ticket);
+  const recommendations = safeLines(analysis.recommendations, 'recommendations', summary.ticket, summary.sourceCompounds);
+  const openQuestions = safeLines(analysis.openQuestions, 'openQuestions', summary.ticket, summary.sourceCompounds);
   if (recommendations.length === 0) fail('At least one consolidated recommendation is required.');
   if (!Array.isArray(analysis.clarifications)) fail('clarifications must be an array.');
   const clarifications = analysis.clarifications.map((entry, index) => ({
-    question: safeLine(entry.question, `clarifications[${index}].question`, summary.ticket),
-    answer: safeLine(entry.answer, `clarifications[${index}].answer`, summary.ticket),
+    question: safeLine(entry.question, `clarifications[${index}].question`, summary.ticket, summary.sourceCompounds),
+    answer: safeLine(entry.answer, `clarifications[${index}].answer`, summary.ticket, summary.sourceCompounds),
   }));
   return { events, recommendations, openQuestions, clarifications };
 }
