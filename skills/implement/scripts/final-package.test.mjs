@@ -24,18 +24,18 @@ function stateMarkdown(ticket) {
   const fields = {
     ticket, handoff_version: '1', final_package_version: '1', status: 'In Progress', phase: 'final-approval',
     autonomy: 'guided', start_time: '2026-01-01T10:00:00Z', execution_mode: 'inline',
-    inline_pause_mode: 'run-straight-through', spec: `make-it-work/${ticket}-spec.md`, spec_hash: 'spec',
-    plan: `make-it-work/${ticket}-plan.md`, plan_version: '1', plan_hash: 'plan',
+    inline_pause_mode: 'run-straight-through', spec: `make-it-work/${ticket}/${ticket}-spec.md`, spec_hash: 'spec',
+    plan: `make-it-work/${ticket}/${ticket}-plan.md`, plan_version: '1', plan_hash: 'plan',
     execution: 'passed', review: 'clean', review_cycle: '1', fix_cycle: '0', fix_plan_round_steps: 'none',
     fix_plan_dispatch: 'none', replans_used: '0', gate: 'full-suite', pause_reason: 'none',
     branch: 'feature', base: 'main', head: 'abc123', worktree_fingerprint: 'fingerprint',
-    execute_report: `make-it-work/${ticket}-execute.md`, context_updated: 'none', current_activity: 'none',
+    execute_report: `make-it-work/${ticket}/${ticket}-execute.md`, context_updated: 'none', current_activity: 'none',
     real_rows_from: '1',
   };
   return `# Workflow state — ${ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | final-sync | final-approval | Context synced |\n`;
 }
 async function artifacts(root, ticket = 'DEMO') {
-  const dir = path.join(root, 'make-it-work');
+  const dir = path.join(root, 'make-it-work', ticket);
   await mkdir(dir, { recursive: true });
   for (const name of ['spec', 'plan', 'execute', 'review']) await writeFile(path.join(dir, `${ticket}-${name}.md`), `# ${name}\n`);
   const draft = path.join(dir, `${ticket}-final-draft.json`);
@@ -112,7 +112,7 @@ test('binds AC verification evidence into the final package', async (t) => {
   await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
   const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
-  assert.equal(pkg.evidence.verification.path, 'make-it-work/DEMO-verification-v1.json');
+  assert.equal(pkg.evidence.verification.path, 'make-it-work/DEMO/DEMO-verification-v1.json');
   assert.equal(pkg.acceptance[0].status, 'automated');
   assert.match(await readFile(built.package, 'utf8'), /AC1 works/);
   await writeFile(ledgerPath, JSON.stringify({ ...ledger, acceptance: [{ ...ledger.acceptance[0], status: 'unverified', step: null, note: 'Not checked' }] }));

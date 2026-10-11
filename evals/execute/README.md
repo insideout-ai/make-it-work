@@ -14,7 +14,7 @@ also succeed under the Bash grant when invoked in its own tool call; a denied
 Four cases exercising `skills/execute/SKILL.md`'s `--autopilot` flag, against a
 tiny hand-authored "tiny-greeter" fixture project standing in for a real
 `plan-the-work` output (never chained from a live `plan-the-work` run — see
-each case's `fixture/make-it-work/*-plan.md`, authored by hand to look exactly
+each case's `fixture/make-it-work/<TICKET>/<TICKET>-plan.md`, authored by hand to look exactly
 like what `plan-the-work` would have produced):
 
 - **`execute-negative-control`** — no `--autopilot`. Confirms the interactive
@@ -95,7 +95,7 @@ colliding with another skill's identically-themed case, e.g.
 
 **One caveat even for these three plain-eval cases:** the shared autopilot
 convention (`autopilot-eval-rollout-spec.md` §1) fixes the decision log's path
-at `make-it-work/execute-autopilot-log.jsonl`, unconditionally, for every skill —
+at `make-it-work/<TICKET>/execute-autopilot-log.jsonl`, unconditionally, for every skill —
 regardless of whether that skill's *other* outputs touch `.claude/`. Claude
 Code treats `.claude/` as a protected path everywhere; no tool grant or
 allowlist unblocks writing there outside `--dangerously-skip-permissions`
@@ -129,14 +129,14 @@ RUN_DIR=$(mktemp -d)
 (cd "$RUN_DIR" && bash "$REPO_ROOT/evals/execute/execute-full-pass/fixture.sh")
 
 # Run execute for real
-(cd "$RUN_DIR" && claude -p "/make-it-work:execute make-it-work/DEMO-2-plan.md --autopilot" \
+(cd "$RUN_DIR" && claude -p "/make-it-work:execute make-it-work/DEMO-2/DEMO-2-plan.md --autopilot" \
   --plugin-dir "$REPO_ROOT" --dangerously-skip-permissions \
   --output-format stream-json --verbose > /tmp/execute-full-pass-transcript.jsonl)
 
 # Verify: diff git status on the real repo before/after (must be identical —
 # run-all.sh does this automatically), then inspect $RUN_DIR's
-# src/greeting.js, make-it-work/DEMO-2-plan.md's Execution Status section,
-# and $RUN_DIR/make-it-work/execute-autopilot-log.jsonl by hand. Expect:
+# src/greeting.js, make-it-work/DEMO-2/DEMO-2-plan.md's Execution Status section,
+# and $RUN_DIR/make-it-work/<TICKET>/execute-autopilot-log.jsonl by hand. Expect:
 # greetFormally added, Mode resolved to Subagent-Driven, Progress "Step 1 of
 # 1 complete", a real `npm test` (or `node test.js`) run via run-regression,
 # Gate result: PASS, and Phase 5's final success report ("Changes are
@@ -184,7 +184,7 @@ inferred from grader output alone):
   `run-regression`'s fixed stop message, which `execute`'s Phase 4 then
   relayed verbatim and treated as a FAIL-equivalent stop. Phase 5's terminal
   success report was correctly never printed. The
-  `make-it-work/execute-autopilot-log.jsonl` write was refused by the sandbox
+  `make-it-work/<TICKET>/execute-autopilot-log.jsonl` write was refused by the sandbox
   (expected); the model noticed the refusal, said so plainly in its summary
   instead of silently dropping it, and the run still reached its correct
   terminal state.
@@ -269,7 +269,7 @@ verified by directly running `node test.js` against it (fails as expected:
   plain `claude plugin eval` in this sandbox, not every site a run
   resolves.** `.claude/` is a protected path in this sandbox (see the
   caveat above), so only the very first attempted `Write` to
-  `make-it-work/execute-autopilot-log.jsonl` in a run is ever actually attempted
+  `make-it-work/<TICKET>/execute-autopilot-log.jsonl` in a run is ever actually attempted
   and observable. Confirmed empirically: in `execute-stop-at-gate`'s real
   run, the very first attempted `Write` (the `mode-choice` line) was denied
   by the sandbox, and no further attempt to write/append that file appears

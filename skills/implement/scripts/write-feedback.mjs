@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { assertRunState } from './artifact-layout.mjs';
 import { fileURLToPath } from 'node:url';
 
 const HEADER = `# Implement workflow feedback
@@ -224,8 +225,9 @@ export async function writeFeedback(statePath, { analysis = null, limitStop = fa
   const state = await readFile(statePath, 'utf8');
   const summary = inspectState(state, { limitStop });
   if (path.basename(statePath) !== `${summary.ticket}-state.md`) fail('State filename and ticket field disagree.');
+  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, summary.ticket);
   const block = renderBlock(summary, analysis);
-  const outputPath = path.join(path.dirname(statePath), 'implement-feedback.md');
+  const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
   let existing = null;
   let mode;
   try {

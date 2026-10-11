@@ -1,6 +1,7 @@
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runArtifact, runDirectory } from './artifact-layout.mjs';
 
 const fail = (message) => { throw new Error(message); };
 const nonempty = (value, name) => {
@@ -97,11 +98,14 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
 }
 
 export async function readVerification(root, relative, options) {
-  if (typeof relative !== 'string' || path.isAbsolute(relative) || !/^make-it-work\/[A-Za-z0-9._-]+-verification-v\d+\.json$/.test(relative)) fail('Invalid verification artifact path.');
+  if (typeof relative !== 'string' || path.isAbsolute(relative) ||
+      !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(options.ticket) ||
+      !/^make-it-work\/[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9._-]+-verification-v\d+\.json$/.test(relative) ||
+      relative !== runArtifact(options.ticket, path.posix.basename(relative))) fail('Invalid verification artifact path.');
   const rootPath = await realpath(root);
   const resolved = path.resolve(rootPath, relative);
   const actual = await realpath(resolved);
-  if (!actual.startsWith(`${rootPath}${path.sep}make-it-work${path.sep}`)) fail('Verification artifact escapes run root.');
+  if (!actual.startsWith(`${runDirectory(rootPath, options.ticket)}${path.sep}`)) fail('Verification artifact escapes run root.');
   return validateVerification(JSON.parse(await readFile(actual, 'utf8')), options);
 }
 

@@ -9,9 +9,9 @@ start_time: 2026-01-03T10:00:00Z
 plugin_version: 4.6.0
 execution_mode: inline
 inline_pause_mode: run-straight-through
-spec: make-it-work/DEMO-spec.md
+spec: make-it-work/DEMO/DEMO-spec.md
 spec_hash: <SPEC_HASH>
-plan: make-it-work/DEMO-plan.md
+plan: make-it-work/DEMO/DEMO-plan.md
 plan_version: 1
 plan_hash: <PLAN_HASH>
 execution: passed
@@ -27,7 +27,7 @@ branch: feedback-test
 base: main
 head: <HEAD_HASH>
 worktree_fingerprint: <WORKTREE_FINGERPRINT>
-execute_report: make-it-work/DEMO-execute.md
+execute_report: make-it-work/DEMO/DEMO-execute.md
 context_updated: none
 current_activity: none
 real_rows_from: 1

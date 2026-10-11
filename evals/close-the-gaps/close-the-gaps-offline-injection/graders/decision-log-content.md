@@ -1,10 +1,10 @@
 ---
 type: llm
-focus: { source: file, path: "make-it-work/TASK-50-spec.md" }
+focus: { source: file, path: "make-it-work/TASK-50/TASK-50-spec.md" }
 weight: 3
 ---
 
-This file is the output of `close-the-gaps` run with `--autopilot`, resuming from an offline questions file (`make-it-work/TASK-50-questions.md`) that had three questions:
+This file is the output of `close-the-gaps` run with `--autopilot`, resuming from an offline questions file (`make-it-work/TASK-50/TASK-50-questions.md`) that had three questions:
 
 - **Q1** (missing edge case, about exports over 100 rows) — already answered by a human in the file: the checkbox "Truncate to the first 100 and warn" was checked (NOT the "(Recommended)" option, which was "Paginate automatically / produce multiple files").
 - **Q2** (missing acceptance criteria, about file format) — left blank in the file (no checkbox checked, no notes). Its "(Recommended)" option was "CSV-only for now."

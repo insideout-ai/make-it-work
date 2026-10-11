@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: { source: file, path: "make-it-work/SNOOZE-100-repos.md" }
+focus: { source: file, path: "make-it-work/SNOOZE-100/SNOOZE-100-repos.md" }
 weight: 3
 ---
 

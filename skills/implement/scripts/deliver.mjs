@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkFinalPackage } from './final-package.mjs';
 import { parseState } from './render-status.mjs';
+import { assertRunState, runDirectory } from './artifact-layout.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -31,7 +32,7 @@ async function atomicWrite(target, value) {
 }
 
 function paths(root, ticket) {
-  const base = path.join(root, 'make-it-work', `${ticket}-delivery`);
+  const base = path.join(runDirectory(root, ticket), `${ticket}-delivery`);
   return { plan: `${base}-plan.json`, preview: `${base}-plan.md`, journal: `${base}-progress.json`, lock: `${base}.lock` };
 }
 
@@ -69,8 +70,8 @@ async function targetTree(repo) {
 async function readContext(rootInput, stateInput) {
   const root = await realpath(rootInput);
   const statePath = await realpath(stateInput);
-  if (path.dirname(statePath) !== path.join(root, 'make-it-work')) fail('State must be in ROOT/make-it-work/.');
   const state = parseState(await readFile(statePath, 'utf8'), statePath);
+  assertRunState(root, statePath, state.fields.ticket);
   if (state.fields.status !== 'Complete' || state.fields.phase !== 'complete' || state.fields.final_package_version !== '1') {
     fail('Delivery requires a completed package-enabled run.');
   }
@@ -95,7 +96,7 @@ async function prepare(context) {
   try { await readFile(files.journal); fail('Delivery already started; use status or run to resume.'); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   const check = await checkFinalPackage(root, statePath, state.fields.autonomy === 'guided');
-  const pkg = JSON.parse(await readFile(path.join(root, 'make-it-work', `${state.fields.ticket}-final-package.json`), 'utf8'));
+  const pkg = JSON.parse(await readFile(path.join(runDirectory(root, state.fields.ticket), `${state.fields.ticket}-final-package.json`), 'utf8'));
   const repos = [];
   for (const original of pkg.repos) {
     const repo = { ...original };
@@ -119,17 +120,18 @@ async function prepare(context) {
 }
 
 async function verifyEvidence(context, plan) {
-  const pkgPath = path.join(context.root, 'make-it-work', `${plan.ticket}-final-package.json`);
+  const pkgPath = path.join(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-package.json`);
   const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
   if (sha(JSON.stringify(pkg)) !== plan.package_sha256) fail('Approved final package changed.');
+  const evidenceDirectory = runDirectory(context.root, plan.ticket);
   for (const item of [...Object.values(pkg.evidence), { path: pkg.draft_path, sha256: pkg.draft_sha256 }]) {
     const file = path.resolve(context.root, item.path);
-    if (!file.startsWith(`${context.root}${path.sep}make-it-work${path.sep}`)) fail(`Approved evidence path escaped: ${item.path}`);
+    if (!file.startsWith(`${evidenceDirectory}${path.sep}`)) fail(`Approved evidence path escaped: ${item.path}`);
     const actual = await realpath(file);
-    if (!actual.startsWith(`${context.root}${path.sep}make-it-work${path.sep}`) || sha(await readFile(actual)) !== item.sha256) fail(`Approved evidence changed: ${item.path}`);
+    if (!actual.startsWith(`${evidenceDirectory}${path.sep}`) || sha(await readFile(actual)) !== item.sha256) fail(`Approved evidence changed: ${item.path}`);
   }
   if (context.state.fields.autonomy === 'guided') {
-    const stamp = JSON.parse(await readFile(path.join(context.root, 'make-it-work', `${plan.ticket}-final-approval.json`), 'utf8'));
+    const stamp = JSON.parse(await readFile(path.join(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-approval.json`), 'utf8'));
     if (stamp.package_sha256 !== plan.package_sha256) fail('Final package approval changed.');
   }
 }

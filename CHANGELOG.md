@@ -4,6 +4,17 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.0] - 2026-10-11
+
+### Added
+
+- `implement` offers `deliver` as an optional final step, including in the completed HTML dashboard; delivery still requires separate approval.
+
+### Changed
+
+- New ticket runs save their spec, plan, state, dashboard, handoffs, verification, review, final package, delivery, and ticket-scoped decision logs under `make-it-work/<TICKET>/`. Existing flat artifacts are left in place and are not discovered by the new layout.
+- The dashboard refreshes during active runs and flags audit timestamps later than the state checkpoint; eval fixtures and graders use the ticket-scoped layout.
+
 ## [4.7.1] - 2026-10-09
 
 ### Fixed

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -88,8 +88,10 @@ Details.
 }
 
 async function workspace(t) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'render-status-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'render-status-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = path.join(root, 'make-it-work', 'DEMO');
+  await mkdir(directory, { recursive: true });
   return directory;
 }
 
@@ -111,8 +113,10 @@ test('renders a fresh run with active Context Check and no timing paragraph', as
 
   assert.match(html, /phase-dot current spinning[^>]+context-check:/);
   assert.match(html, /phase-activity">Checking project context\.<\/div>/);
+  assert.match(html, /<meta http-equiv="refresh" content="15">/);
   assert.doesNotMatch(html, /class="session-timing"/);
   assert.match(html, /\(first real timestamp\)/);
+  assert.match(html, /future relative to this device/);
   assert.doesNotMatch(html, /Waiting on you:/);
 });
 
@@ -134,7 +138,7 @@ test('dashboard checkpoint restores activity when rendering fails', async (t) =>
   const directory = await workspace(t);
   const statePath = path.join(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({
-    fields: { phase: 'execute', plan: 'make-it-work/DEMO-plan.md', current_activity: 'none' },
+    fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md', current_activity: 'none' },
     rows: [['2026-01-01T10:00:00Z', 'start', 'execute', 'Execution started']],
   }));
 
@@ -186,6 +190,7 @@ test('renders pending offline refinement without activating a timeline dot', asy
 
   assert.equal((html.match(/phase-dot not-reached/g) ?? []).length, 7);
   assert.doesNotMatch(html, /phase-dot current/);
+  assert.doesNotMatch(html, /<meta http-equiv="refresh"/);
   assert.match(html, /Waiting on you:<\/strong> offline refinement pending/);
 });
 
@@ -224,8 +229,9 @@ test('renders completion, approval annotations, fix history, and repeated review
   const state = stateMarkdown({
     fields: {
       status: 'Complete', phase: 'complete', autonomy: 'guided',
-      spec: 'make-it-work/DEMO-spec.md', plan: 'make-it-work/DEMO-plan.md',
-      execute_report: 'make-it-work/DEMO-execute.md', review: 'clean',
+      final_package_version: '1',
+      spec: 'make-it-work/DEMO/DEMO-spec.md', plan: 'make-it-work/DEMO/DEMO-plan.md',
+      execute_report: 'make-it-work/DEMO/DEMO-execute.md', review: 'clean',
       execution: 'passed', review_cycle: '2', fix_cycle: '1',
       fix_plan_round_steps: '2', pause_reason: 'none',
     },
@@ -233,13 +239,15 @@ test('renders completion, approval annotations, fix history, and repeated review
   });
   const { html } = await renderFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
 
-  assert.equal((html.match(/class="phase-step"/g) ?? []).length, 9);
+  assert.equal((html.match(/class="phase-step"/g) ?? []).length, 10);
   assert.equal((html.match(/Review \(review-the-pr\)/g) ?? []).length, 2);
   assert.match(html, /phase-mode">Approved as-is<\/div>/);
   assert.match(html, /phase-mode">Subagent-Driven · Step 2 of 2 complete<\/div>/);
   assert.match(html, /class="complete"><strong>Run complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
+  assert.match(html, /Optional next step:<\/strong> run <code>\/make-it-work:deliver DEMO<\/code> to prepare delivery\./);
+  assert.match(html, /explicit approval of the exact plan before any commit, push, or PR action/);
   assert.match(html, /Session timing: rows 1→13 above span 12m/);
-  assert.match(html, /href="DEMO-review\.md">make-it-work\/DEMO-review\.md<\/a>/);
+  assert.match(html, /href="DEMO-review\.md">make-it-work\/DEMO\/DEMO-review\.md<\/a>/);
   assert.match(html, /phase-dot passed[^>]+complete:/);
   assert.doesNotMatch(html, /phase-dot current/);
 });
@@ -267,6 +275,23 @@ test('marks legacy phase durations unavailable and escapes state-derived HTML', 
   assert.match(html, /everything before row 2 happened before any real timestamp was captured/);
 });
 
+test('withholds durations when audit timestamps are later than the state checkpoint', async (t) => {
+  const state = stateMarkdown({
+    fields: { phase: 'review' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
+      ['2026-01-01T10:01:00Z', 'context-check', 'execute', 'Execution started'],
+      ['2099-01-01T10:00:00Z', 'execute', 'review', 'Execution done'],
+    ],
+  });
+  const { html } = await renderFixture(t, state);
+
+  assert.match(html, /Timing unavailable: audit row 3 is later than the state file/);
+  assert.match(html, /timestamp later than state checkpoint/);
+  assert.match(html, /phase-duration">—<\/div>/);
+  assert.doesNotMatch(html, /Session timing: rows/);
+});
+
 test('rejects unsafe artifact paths', async (t) => {
   const markdown = stateMarkdown({
     fields: { spec: 'make-it-work/../secret.md' },
@@ -275,7 +300,7 @@ test('rejects unsafe artifact paths', async (t) => {
   const directory = await workspace(t);
   const statePath = path.join(directory, 'DEMO-state.md');
   await writeFile(statePath, markdown);
-  await assert.rejects(generateDashboard(statePath), /direct child of make-it-work/);
+  await assert.rejects(generateDashboard(statePath), /must be under make-it-work\/DEMO\//);
 });
 
 test('rejects malformed timestamps and ticket filename mismatches', () => {
@@ -295,7 +320,7 @@ test('renderer failure preserves an existing dashboard', async (t) => {
   const statePath = path.join(directory, 'DEMO-state.md');
   const outputPath = path.join(directory, 'DEMO-status.html');
   const state = stateMarkdown({
-    fields: { phase: 'execute', plan: 'make-it-work/DEMO-plan.md' },
+    fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
     rows: [
       ['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created'],
       ['2026-01-01T10:01:00Z', 'context-check', 'execute', 'Reuse plan'],

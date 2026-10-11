@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
+import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -99,7 +100,7 @@ async function atomicWrite(target, bytes) {
 }
 
 function names(root, ticket) {
-  const dir = path.join(root, 'make-it-work');
+  const dir = runDirectory(root, ticket);
   return {
     json: path.join(dir, textFileName(ticket, 'package.json')),
     md: path.join(dir, textFileName(ticket, 'package.md')),
@@ -119,22 +120,28 @@ function assertDraft(draft) {
 async function packageFromState(root, statePath, repoInputs, baseInputs, draftPath) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath);
   const f = state.fields;
+  assertRunState(root, statePath, f.ticket);
   if (f.final_package_version !== '1') fail('This run is not enabled for final packages.');
   if (!['final-approval', 'complete'].includes(f.phase) || f.review !== 'clean') fail('Final package requires completed context sync and clean review.');
   if (!repoInputs.length) fail('At least one affected repo is required.');
   if (baseInputs.length && baseInputs.length !== repoInputs.length) fail('Pass one --base for each --repo.');
-  const draftArtifact = await artifact(root, path.relative(root, await realpath(draftPath)));
+  const draftRelative = path.relative(root, await realpath(draftPath));
+  runArtifactName(draftRelative, f.ticket, 'Draft');
+  const draftArtifact = await artifact(root, draftRelative);
   const draft = assertDraft(JSON.parse(await readFile(path.resolve(root, draftArtifact.path), 'utf8')));
+  for (const [name, relative] of [['spec', f.spec], ['plan', f.plan], ['execute', f.execute_report]]) {
+    runArtifactName(relative, f.ticket, name);
+  }
   const evidence = {
     spec: await artifact(root, f.spec),
     plan: await artifact(root, f.plan),
     execute: await artifact(root, f.execute_report),
-    review: await artifact(root, `make-it-work/${f.ticket}-review.md`),
+    review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
   };
   let verification = null;
   if (f.verification_version === '1') {
     if (!['passed', 'gate-no-result'].includes(f.execution)) fail('Final package requires completed execution or an accepted manual gate.');
-    const relative = `make-it-work/${f.ticket}-verification-v${f.plan_version}.json`;
+    const relative = runArtifact(f.ticket, `${f.ticket}-verification-v${f.plan_version}.json`);
     verification = await readVerification(root, relative, {
       ticket: f.ticket, planVersion: Number(f.plan_version), plan: await readFile(path.resolve(root, f.plan), 'utf8'),
       outcome: f.execution === 'passed' ? 'PASSED' : 'GATE_NO_RESULT', requireComplete: true,
@@ -172,7 +179,7 @@ async function build(root, statePath, repos, bases, draftPath) {
   if (state.fields.phase !== 'final-approval') fail('Build is only allowed at final approval.');
   const result = await packageFromState(root, statePath, repos, bases, draftPath);
   const target = names(root, result.pkg.ticket);
-  for (const repo of result.repos) await atomicWrite(path.join(root, 'make-it-work', repo.diff_file), repo.diff);
+  for (const repo of result.repos) await atomicWrite(path.join(runDirectory(root, result.pkg.ticket), repo.diff_file), repo.diff);
   await atomicWrite(target.md, result.md);
   await atomicWrite(target.json, `${JSON.stringify(result.pkg, null, 2)}\n`);
   return { package: target.md, json: target.json, sha256: sha(JSON.stringify(result.pkg)) };
@@ -187,7 +194,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
   if (JSON.stringify(result.pkg) !== JSON.stringify(saved)) fail('Final package is stale; rebuild it and seek approval again.');
   if (await readFile(target.md, 'utf8') !== result.md) fail('Final package Markdown changed; rebuild it.');
   for (const repo of result.repos) {
-    const disk = await readFile(path.join(root, 'make-it-work', repo.diff_file));
+    const disk = await readFile(path.join(runDirectory(root, saved.ticket), repo.diff_file));
     if (sha(disk) !== repo.diff_sha256) fail(`Final diff changed: ${repo.name}.`);
   }
   const hash = sha(JSON.stringify(saved));
@@ -230,7 +237,8 @@ async function main(args) {
   }
   const root = await realpath(options.root);
   const state = await realpath(options.state);
-  if (path.dirname(state) !== path.join(root, 'make-it-work')) fail('State must be in ROOT/make-it-work/.');
+  const parsed = parseState(await readFile(state, 'utf8'), state);
+  assertRunState(root, state, parsed.fields.ticket);
   if (command === 'build') {
     if (!options.draft) fail('build requires --draft.');
     return build(root, state, options.repo, options.base, path.resolve(options.draft));

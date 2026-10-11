@@ -8,11 +8,11 @@ import test from 'node:test';
 import { decideNext, validateArtifacts, validateHandoff } from './handoff.mjs';
 
 const base = { version: 1, ticket: 'DEMO-1', plan_version: 1, status: 'done' };
-const gaps = (tbd = 0) => ({ ...base, stage: 'gaps', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO-1-spec.md' }, data: { tbd_items: tbd, context_updated: [] } });
-const plan = (mode = 'initial', steps = null, recommend = null) => ({ ...base, stage: 'plan', outcome: mode === 'amend' ? 'FIX_PLAN_READY' : 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO-1-plan.md' }, data: { mode, steps_added: steps, recommend_replan: recommend, context_updated: [] } });
-const execute = (outcome, failing = []) => ({ ...base, stage: 'execute', outcome, artifacts: { report: 'make-it-work/DEMO-1-execute.md' }, data: { discoveries: [], failing_tests: failing, gate: 'full-suite' } });
+const gaps = (tbd = 0) => ({ ...base, stage: 'gaps', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO-1/DEMO-1-spec.md' }, data: { tbd_items: tbd, context_updated: [] } });
+const plan = (mode = 'initial', steps = null, recommend = null) => ({ ...base, stage: 'plan', outcome: mode === 'amend' ? 'FIX_PLAN_READY' : 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO-1/DEMO-1-plan.md' }, data: { mode, steps_added: steps, recommend_replan: recommend, context_updated: [] } });
+const execute = (outcome, failing = []) => ({ ...base, stage: 'execute', outcome, artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md' }, data: { discoveries: [], failing_tests: failing, gate: 'full-suite' } });
 const finding = (id, route = 'fix', region = 'src/x.js:run', introduced = null) => ({ id, route, region, introduced_by_fix_of: introduced });
-const review = (outcome, findings = [], cycle = 1) => ({ ...base, stage: 'review', review_cycle: cycle, outcome, artifacts: { report: 'make-it-work/DEMO-1-review.md' }, data: { findings, context_gaps: [] } });
+const review = (outcome, findings = [], cycle = 1) => ({ ...base, stage: 'review', review_cycle: cycle, outcome, artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-review.md' }, data: { findings, context_gaps: [] } });
 const state = (phase, autonomy = 'guided', overrides = {}) => ({ fields: { ticket: 'DEMO-1', phase, autonomy, plan_version: '1', fix_cycle: '0', review_cycle: '1', replans_used: '0', ...overrides } });
 
 test('validates stage results and rejects contradictory outcomes', () => {
@@ -27,17 +27,17 @@ test('validates stage results and rejects contradictory outcomes', () => {
 test('validates real artifact files within the run root', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'implement-handoff-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'make-it-work'));
-  await writeFile(path.join(root, 'make-it-work/DEMO-1-spec.md'), 'spec');
+  await mkdir(path.join(root, 'make-it-work', 'DEMO-1'), { recursive: true });
+  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
   assert.equal((await validateArtifacts(gaps(), root)).status, 'done');
-  await assert.rejects(validateArtifacts({ ...gaps(), artifacts: { spec: '../make-it-work/DEMO-1-spec.md' } }, root), /escapes project root/);
+  await assert.rejects(validateArtifacts({ ...gaps(), artifacts: { spec: '../make-it-work/DEMO-1/DEMO-1-spec.md' } }, root), /must be under/);
   await assert.rejects(validateArtifacts(plan(), root), /ENOENT/);
-  await writeFile(path.join(root, 'make-it-work/DEMO-1-execute.md'), 'Execute outcome: PASSED\n');
+  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-execute.md'), 'Execute outcome: PASSED\n');
   assert.equal((await validateArtifacts(execute('PASSED'), root)).outcome, 'PASSED');
   await assert.rejects(validateArtifacts(execute('GUARDRAIL'), root), /disagrees with its Markdown report/);
-  const verified = { ...execute('PASSED'), artifacts: { report: 'make-it-work/DEMO-1-execute.md', verification: 'make-it-work/DEMO-1-verification-v1.json' } };
-  await writeFile(path.join(root, 'make-it-work/DEMO-1-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Happy path |\n');
-  await writeFile(path.join(root, 'make-it-work/DEMO-1-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO-1', plan_version: 1,
+  const verified = { ...execute('PASSED'), artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md', verification: 'make-it-work/DEMO-1/DEMO-1-verification-v1.json' } };
+  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Happy path |\n');
+  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO-1', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'full-suite', result: 'pass', note: 'Passed' },
     acceptance: [{ criterion: 'AC1', scenario: 'Happy path', status: 'automated', step: 1, note: 'Passed' }] }));
@@ -96,7 +96,7 @@ test('rejects stale or mismatched handoffs before routing', () => {
 test('CLI validates a handoff and routes it against a saved Markdown state', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'implement-handoff-cli-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const artifacts = path.join(root, 'make-it-work');
+  const artifacts = path.join(root, 'make-it-work', 'DEMO-1');
   const handoffs = path.join(artifacts, 'DEMO-1-handoffs');
   await mkdir(handoffs, { recursive: true });
   await writeFile(path.join(artifacts, 'DEMO-1-spec.md'), '# Spec\n');

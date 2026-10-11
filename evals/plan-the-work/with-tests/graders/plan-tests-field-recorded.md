@@ -1,6 +1,6 @@
 ---
 type: regex
-target: { source: file, path: "make-it-work/DEMO-400-plan.md" }
+target: { source: file, path: "make-it-work/DEMO-400/DEMO-400-plan.md" }
 pattern: '\*\*Tests:\*\*(?=[^\n]*src/tasks/createTask\.test\.js)(?=[^\n]*(?:npm test|node --test))(?=[^\n]*red)(?=[^\n]*(?:whitespace|trim))'
 weight: 3
 ---

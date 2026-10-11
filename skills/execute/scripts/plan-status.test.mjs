@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -10,14 +10,17 @@ import { changePlan, inspectPlan, updatePlan } from './plan-status.mjs';
 const SCRIPT = path.join(import.meta.dirname, 'plan-status.mjs');
 const TEMPLATE = path.resolve(import.meta.dirname, '../../plan-the-work/references/plan-template.md');
 const LEGACY_PLAN = path.resolve(import.meta.dirname, '../../../evals/implement/fixture-base/fixture-artifacts/DEMO-plan.md');
+const WORKFLOW_STATE = path.resolve(import.meta.dirname, '../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md');
 
 async function fixture() {
   return readFile(TEMPLATE, 'utf8');
 }
 
 async function workspace(t, contents) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'plan-status-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
+  const root = await mkdtemp(path.join(os.tmpdir(), 'plan-status-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = path.join(root, 'make-it-work', 'DEMO');
+  await mkdir(directory, { recursive: true });
   const planPath = path.join(directory, 'DEMO-plan.md');
   await writeFile(planPath, contents, { mode: 0o600 });
   return planPath;
@@ -101,6 +104,27 @@ test('CLI writes atomically, preserves file mode, and rejects symlink targets', 
   const link = planPath + '.link';
   await symlink(planPath, link);
   await assert.rejects(updatePlan(link, 'inspect'), /regular file/);
+});
+
+test('step completion refreshes a matching active dashboard without an explicit state path', async (t) => {
+  const plan = changePlan(changePlan(await fixture(), 'set-total', { total: '2' }), 'set-mode', { mode: 'subagent-driven' });
+  const initialPath = await workspace(t, plan);
+  const directory = path.dirname(initialPath);
+  const planPath = path.join(directory, 'DEMO-plan-v2.md');
+  await writeFile(planPath, plan);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const dashboardPath = path.join(directory, 'DEMO-status.html');
+  const state = (await readFile(WORKFLOW_STATE, 'utf8'))
+    .replaceAll('make-it-work/DEMO-', 'make-it-work/DEMO/DEMO-')
+    .replace('phase: final-sync', 'phase: execute')
+    .replace('plan: make-it-work/DEMO/DEMO-plan.md', 'plan: make-it-work/DEMO/DEMO-plan-v2.md')
+    .replace(/^\| [5-9] \|.*\n/gm, '');
+  await writeFile(statePath, state);
+  await writeFile(dashboardPath, 'stale dashboard');
+
+  await updatePlan(planPath, 'complete-step', { step: '1' });
+
+  assert.match(await readFile(dashboardPath, 'utf8'), /Subagent-Driven · Step 1 of 2 complete/);
 });
 
 test('CRLF plans retain their line endings', async () => {

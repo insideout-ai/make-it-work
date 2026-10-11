@@ -18,6 +18,8 @@ node "<base>/../../scripts/decision-log.mjs" append <skill-name> --root "<repo-r
 JSON
 ```
 
+For a ticket-scoped workflow, pass `--ticket "<TICKET>"` to every writer call. Its log lives in `make-it-work/<TICKET>/`; project-wide skills omit the option and keep their log directly in `make-it-work/`.
+
 `init` creates an empty log for a new run. `append` accepts one decision object
 on stdin and requires that this run has already initialized the log. `write`
 accepts one object or an array on stdin and atomically replaces the whole log;
@@ -25,7 +27,7 @@ use it for a skill that flushes decisions only after saving its deliverable, or
 for `execute`'s first resolved site before later `append` calls. `write` with
 `[]` creates the required empty log for a run with no resolved sites. The
 writer validates the schema, serializes one JSON object per line, preserves
-an existing log on malformed input, and rejects symlinked `.claude` paths.
+an existing log on malformed input, and rejects symlinked artifact directories.
 It does not infer a choice: the skill still constructs and selects each
 decision according to its own resolution table.
 

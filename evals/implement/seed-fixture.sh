@@ -19,7 +19,8 @@ esac
 
 cp -R "$SCRIPT_DIR/fixture-base/." .
 cp -R "$CASE_FIXTURE/fixture-artifacts/." fixture-artifacts/
-mv fixture-artifacts make-it-work
+mkdir -p make-it-work
+mv fixture-artifacts make-it-work/DEMO
 
 git init -q -b main
 git add -A
@@ -29,8 +30,8 @@ git commit -q -m "seed implement feedback fixture"
 git switch -q -c feedback-test
 
 HEAD_HASH="$(git rev-parse HEAD)"
-SPEC_HASH="$(git hash-object make-it-work/DEMO-spec.md)"
-PLAN_PATH="$(awk '/^plan: / { print $2; exit }' make-it-work/DEMO-state.md)"
+SPEC_HASH="$(git hash-object make-it-work/DEMO/DEMO-spec.md)"
+PLAN_PATH="$(awk '/^plan: / { print $2; exit }' make-it-work/DEMO/DEMO-state.md)"
 PLAN_HASH="$(awk 'BEGIN { skip=0 } /^## Execution Status$/ { skip=1; next } skip && /^## / { skip=0 } !skip { print }' "$PLAN_PATH" | git hash-object --stdin)"
 EMPTY_FINGERPRINT="$(git hash-object --stdin < /dev/null)"
 
@@ -39,5 +40,5 @@ sed -i.bak \
   -e "s/<SPEC_HASH>/$SPEC_HASH/g" \
   -e "s/<PLAN_HASH>/$PLAN_HASH/g" \
   -e "s/<WORKTREE_FINGERPRINT>/$EMPTY_FINGERPRINT/g" \
-  make-it-work/DEMO-state.md
-rm make-it-work/DEMO-state.md.bak
+  make-it-work/DEMO/DEMO-state.md
+rm make-it-work/DEMO/DEMO-state.md.bak

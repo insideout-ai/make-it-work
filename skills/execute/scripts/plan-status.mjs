@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { checkpointDashboard } from '../../implement/scripts/dashboard-checkpoint.mjs';
+import { parseState } from '../../implement/scripts/render-status.mjs';
 
 const MODE_TEXT = {
   'subagent-driven': '**Mode:** Subagent-Driven — dispatch a fresh subagent per step (via the Agent tool), reviewed between steps.',
@@ -123,6 +124,26 @@ export function changePlan(markdown, command, options = {}) {
   return before + lines.join(newline) + after;
 }
 
+async function dashboardStateForPlan(planPath) {
+  const filename = path.basename(planPath);
+  const match = filename.match(/^(.+)-plan(?:-v\d+)?\.md$/);
+  if (!match) return null;
+  const directory = path.dirname(path.resolve(planPath));
+  if (path.basename(directory) !== match[1] || path.basename(path.dirname(directory)) !== 'make-it-work') return null;
+  const statePath = path.join(directory, `${match[1]}-state.md`);
+  const dashboardPath = path.join(directory, `${match[1]}-status.html`);
+  try {
+    const [markdown, dashboard] = await Promise.all([readFile(statePath, 'utf8'), lstat(dashboardPath)]);
+    if (!dashboard.isFile()) return null;
+    const state = parseState(markdown, statePath);
+    return state.fields.status === 'In Progress' && state.fields.phase === 'execute' &&
+      state.fields.plan === `make-it-work/${match[1]}/${filename}` ? statePath : null;
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
 export async function updatePlan(planPath, command, options = {}) {
   const info = await lstat(planPath);
   if (!info.isFile()) fail('Plan path must be a regular file, not a symlink or directory.');
@@ -137,8 +158,9 @@ export async function updatePlan(planPath, command, options = {}) {
   } finally {
     await unlink(temporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
-  if (options.dashboardState && ['complete-step', 'complete-batch'].includes(command)) {
-    await checkpointDashboard(options.dashboardState);
+  if (['complete-step', 'complete-batch'].includes(command)) {
+    const dashboardState = options.dashboardState || await dashboardStateForPlan(planPath);
+    if (dashboardState) await checkpointDashboard(dashboardState);
   }
   return inspectPlan(updated);
 }

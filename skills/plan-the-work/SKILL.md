@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 **Role:** Act as a senior engineer turning an agreed spec into an implementation plan another engineer (or a subagent) can execute step by step.
 
-**Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/<TICKET>-plan.md`. **Write no production code here beyond the test files and the minimal stub signatures this plan's Steps record, needed to reach a valid runtime red state on any stack** — a later step implements the rest and executes the plan one atomic step at a time, so every step must be independently verifiable.
+**Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/<TICKET>/<TICKET>-plan.md`. **Write no production code here beyond the test files and the minimal stub signatures this plan's Steps record, needed to reach a valid runtime red state on any stack** — a later step implements the rest and executes the plan one atomic step at a time, so every step must be independently verifiable.
 
 This is the planning step of a pipeline: a spec already exists (e.g. from `close-the-gaps`), and after planning a separate step executes it, then `review-the-pr` reviews it.
 
@@ -34,11 +34,11 @@ This is the planning step of a pipeline: a spec already exists (e.g. from `close
 
 When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — option count, ordering, and the `(Recommended)` label rules all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
 
-**Hard-stop exception:** autopilot must never silently overwrite an existing plan file. If `make-it-work/<TICKET>-plan.md` already exists from a previous run, autopilot writes to the next unused `-v2` (then `-v3`, `-v4`, …) suffix instead of overwriting it — "overwrite" and "abort" are never auto-selected, since a free suffix is always available as a non-destructive alternative. Step 6's final output, and the `/make-it-work:execute` hint it prints, both name the actual resolved path explicitly (e.g. `make-it-work/PROJ-123-plan-v2.md`) — not the bare `<TICKET>`, since `execute <TICKET>` alone would resolve to the original file instead.
+**Hard-stop exception:** autopilot must never silently overwrite an existing plan file. If `make-it-work/<TICKET>/<TICKET>-plan.md` already exists from a previous run, autopilot writes to the next unused `-v2` (then `-v3`, `-v4`, …) suffix instead of overwriting it — "overwrite" and "abort" are never auto-selected, since a free suffix is always available as a non-destructive alternative. Step 6's final output, and the `/make-it-work:execute` hint it prints, both name the actual resolved path explicitly (e.g. `make-it-work/PROJ-123/PROJ-123-plan-v2.md`) — not the bare `<TICKET>`, since `execute <TICKET>` alone would resolve to the original file instead.
 
-**Decision log:** write `make-it-work/plan-the-work-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean, so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. No `repo` field — this skill has no per-repo-resolved site. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 1"`, `"Step 4"`, `"Step 4.5"`. `site` examples: `"existing-plan-collision"`, `"approach-gap"`, `"scope-check"`.
+**Decision log:** write `make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean, so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. No `repo` field — this skill has no per-repo-resolved site. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Step 1"`, `"Step 4"`, `"Step 4.5"`. `site` examples: `"existing-plan-collision"`, `"approach-gap"`, `"scope-check"`.
 
-When Bash is permitted, initialize this log in its own Bash tool call with `node "<base>/../../scripts/decision-log.mjs" init plan-the-work --root "<repo-root>"`, then use that writer's `append` command for each resolved site. Never combine a log call with investigation, testing, or another file write: a denied log write must not prevent substantive planning. If the log write is denied, do not retry it through another tool or path; continue planning. If Bash is unavailable, retain the existing Write/Edit behavior. Resolve `<base>` to this skill's directory; the shared writer contract is in `docs/autopilot-log-schema.md`.
+When Bash is permitted, initialize this log in its own Bash tool call with `node "<base>/../../scripts/decision-log.mjs" init plan-the-work --root "<repo-root>" --ticket "<TICKET>"`, then use that writer's `append` command with the same root and ticket for each resolved site. Never combine a log call with investigation, testing, or another file write: a denied log write must not prevent substantive planning. If the log write is denied, do not retry it through another tool or path; continue planning. If Bash is unavailable, retain the existing Write/Edit behavior. Resolve `<base>` to this skill's directory; the shared writer contract is in `docs/autopilot-log-schema.md`.
 
 This file is a run artifact: never reference it from the plan itself, and never list it as an Affected Code entry.
 
@@ -91,10 +91,10 @@ Otherwise determine the `<TICKET>` key:
 
 Then resolve the spec file **local-first, with an issue-tracker fallback**, using the first that exists:
 
-1. `make-it-work/<TICKET>-spec.md` — the output of `close-the-gaps` (richest spec; preferred).
+1. `make-it-work/<TICKET>/<TICKET>-spec.md` — the output of `close-the-gaps` (richest spec; preferred).
 2. `_specs/<TICKET>.md` — the output of a `/spec`-style step, if the project uses one.
 
-**If neither exists, check for a pending offline refinement before falling back to the tracker:** if `make-it-work/<TICKET>-questions.md` exists and its `**Status:**` marker is not `Answered` (i.e. it still reads `Awaiting Answers`), warn the user: "TICKET is mid-refinement — `make-it-work/<TICKET>-questions.md` has unanswered offline questions from `close-the-gaps`." and ask them to choose: **stop here and finish `close-the-gaps <path>` first** (recommended), or **proceed anyway** using whatever ticket content can be found below. Do not continue past this check silently (autopilot: see Autopilot Mode). If the file doesn't exist, or its status is `Answered`, continue below without asking anything.
+**If neither exists, check for a pending offline refinement before falling back to the tracker:** if `make-it-work/<TICKET>/<TICKET>-questions.md` exists and its `**Status:**` marker is not `Answered` (i.e. it still reads `Awaiting Answers`), warn the user: "TICKET is mid-refinement — `make-it-work/<TICKET>/<TICKET>-questions.md` has unanswered offline questions from `close-the-gaps`." and ask them to choose: **stop here and finish `close-the-gaps <path>` first** (recommended), or **proceed anyway** using whatever ticket content can be found below. Do not continue past this check silently (autopilot: see Autopilot Mode). If the file doesn't exist, or its status is `Answered`, continue below without asking anything.
 
 **If neither local spec file exists (or the user chose to proceed anyway above), fall back to the issue tracker:**
 
@@ -102,7 +102,7 @@ Then resolve the spec file **local-first, with an issue-tracker fallback**, usin
 
 3. Fetch the ticket via whatever MCP integration is available for this project's tracker (Jira, Linear, GitHub Issues, etc.), including comments. A refined spec is often **pasted into a ticket comment** — scan comments (newest first) and pick the one carrying refinement signals: Gherkin `Scenario:` blocks, an `Acceptance Criteria` list, or a `TBD` / `Open Questions` / `Resolved Items` section.
    - If several qualify, prefer the most recent.
-   - **Cache it locally:** write the chosen content to `make-it-work/<TICKET>-spec.md` so it's reviewable, diffable, and not re-fetched next run. Tell the user you did this.
+   - **Cache it locally:** write the chosen content to `make-it-work/<TICKET>/<TICKET>-spec.md` so it's reviewable, diffable, and not re-fetched next run. Tell the user you did this.
    - If the ticket has only a raw description with no refinement, tell the user: "No refined spec found locally or in the ticket comments. Run `close-the-gaps <TICKET>` to produce one." and stop (autopilot: see Autopilot Mode — remains a hard stop).
 4. If the fetch fails (no MCP access, ticket not found), tell the user to run `close-the-gaps <TICKET>` first and stop (autopilot: see Autopilot Mode — remains a hard stop).
 
@@ -154,7 +154,7 @@ Read whatever orientation docs and skills each affected repo actually has — it
 - **grep before read.** To locate a symbol, `grep -n` for it and Read only the matching window — never read a large file top-to-bottom hunting for a definition.
 - **Repos touched only to confirm a fact get grep-only treatment.** If you enter a repo just to answer "does X route through Y?" or "does function Z exist?", answer with a grep. Do NOT read that repo's onboarding docs (`CLAUDE.md`, `architecture.md`, `product.md`) — read those in depth only in repos that will actually change.
 - **Fork substantial exploration to a subagent.** When the investigation spans multiple files, multiple loaded skills, or multiple repos — an independently reviewable unit of work, not a single targeted lookup — dispatch it to a fresh subagent (the `Explore` or `general-purpose` agent type, via the Agent tool) and work from its returned report, rather than reading every file directly in this session. A single grep-and-confirm check stays inline, same as the bullet above.
-- **Write the skeleton early.** Before deep investigation, ensure a `make-it-work/` folder exists at the root (create it if it doesn't). Then check whether `make-it-work/<TICKET>-plan.md` already exists **from a previous run** — if it does, ask whether to overwrite, suffix (`-v2`), or abort, and resolve that before writing anything (autopilot: see Autopilot Mode). Once the target path is settled, write the skeleton with the sections you can already fill (Goal, Requirement Summary, Open Questions, a draft Affected Code table) **and the full `## Execution Status` block verbatim as given in Step 5's template — not an abbreviated form** — and mark unknowns `[INVESTIGATE: <question>]`. Then resolve only those markers. This caps scope and means a partial plan survives even if context runs out — including a died-mid-creation plan a fresh session later picks up cold, which is exactly why Execution Status must exist, in full, from the skeleton onward, not only once Step 5 fleshes the plan out.
+- **Write the skeleton early.** Before deep investigation, ensure a `make-it-work/<TICKET>/` directory exists at the root (create it if it doesn't). Then check whether `make-it-work/<TICKET>/<TICKET>-plan.md` already exists **from a previous run** — if it does, ask whether to overwrite, suffix (`-v2`), or abort, and resolve that before writing anything (autopilot: see Autopilot Mode). Once the target path is settled, write the skeleton with the sections you can already fill (Goal, Requirement Summary, Open Questions, a draft Affected Code table) **and the full `## Execution Status` block verbatim as given in Step 5's template — not an abbreviated form** — and mark unknowns `[INVESTIGATE: <question>]`. Then resolve only those markers. This caps scope and means a partial plan survives even if context runs out — including a died-mid-creation plan a fresh session later picks up cold, which is exactly why Execution Status must exist, in full, from the skeleton onward, not only once Step 5 fleshes the plan out.
 
 Read the actual code paths the spec implies will change across **all affected repos**. Use Grep/Glob/Read to confirm:
 
@@ -229,7 +229,7 @@ If no gap rises to this bar, say "No open planning questions — proceeding to d
 
 ## Step 5 — Draft the plan
 
-Fill in the skeleton you wrote in Step 4 at `make-it-work/<TICKET>-plan.md` (the folder and any overwrite/`-v2`/abort decision were already handled there). Flesh every section out to full detail.
+Fill in the skeleton you wrote in Step 4 at `make-it-work/<TICKET>/<TICKET>-plan.md` (the folder and any overwrite/`-v2`/abort decision were already handled there). Flesh every section out to full detail.
 
 Guidelines:
 
@@ -311,8 +311,8 @@ After saving and self-reviewing, respond with:
 
 ```
 Ticket: <TICKET>
-Spec: <resolved spec path — e.g. make-it-work/<TICKET>-spec.md, _specs/<TICKET>.md, or "fetched from ticket comment, cached to make-it-work/<TICKET>-spec.md">
-Plan: make-it-work/<TICKET>-plan.md
+Spec: <resolved spec path — e.g. make-it-work/<TICKET>/<TICKET>-spec.md, _specs/<TICKET>.md, or "fetched from ticket comment, cached to make-it-work/<TICKET>/<TICKET>-spec.md">
+Plan: make-it-work/<TICKET>/<TICKET>-plan.md
 Repositories: <comma-separated list>
 Assumptions: <count>
 Open questions: <count>
@@ -333,7 +333,7 @@ Tier, not a model name — map it to whatever model lineup the executor uses. `e
 
 Then tell the user the plan is ready — this skill never drives step execution itself, so it never asks the Subagent-Driven-vs-Inline question or touches `## Execution Status` beyond the skeleton it already wrote:
 
-**"Plan saved. Run `/make-it-work:execute <TICKET>` (or `/make-it-work:execute make-it-work/<TICKET>-plan.md`) when you're ready to implement it — it will ask you to choose Subagent-Driven or Inline execution the first time it runs, and a later re-run picks up wherever the last one left off."**
+**"Plan saved. Run `/make-it-work:execute <TICKET>` (or `/make-it-work:execute make-it-work/<TICKET>/<TICKET>-plan.md`) when you're ready to implement it — it will ask you to choose Subagent-Driven or Inline execution the first time it runs, and a later re-run picks up wherever the last one left off."**
 
 Leave `## Execution Status` with `Mode: Not yet chosen` and `Progress: Step 0 of <final step count> complete`, set through the status script above. `execute` owns asking for Mode (once, the first time it runs against this plan) and owns updating both Mode and Progress from that point on — `plan-the-work` never edits this section after setting its initial total, except in amend mode below.
 
@@ -349,18 +349,18 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **Inputs** — the spec path, the run's autonomy level (Guided, Autonomous, or Autopilot), the plan version `N`, optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
 
-**Initial mode** (`N = 1`) — write `make-it-work/<TICKET>-plan.md`. If it already exists, overwrite it without the overwrite / `-v2` / abort question; `implement` has already offered the user to reuse it. **With redo notes:** read the existing plan before overwriting it, treat the notes as constraints the new draft must satisfy, and handle the earlier draft's test files the same way replan mode does (reuse what is still valid; adjust or remove the rest as ordinary file edits).
+**Initial mode** (`N = 1`) — write `make-it-work/<TICKET>/<TICKET>-plan.md`. If it already exists, overwrite it without the overwrite / `-v2` / abort question; `implement` has already offered the user to reuse it. **With redo notes:** read the existing plan before overwriting it, treat the notes as constraints the new draft must satisfy, and handle the earlier draft's test files the same way replan mode does (reuse what is still valid; adjust or remove the rest as ordinary file edits).
 
 **Replan mode** (`N > 1`, with the previous plan path, a feedback path — the review report or `execute`'s saved report — and the decided findings list):
 
-- Write `make-it-work/<TICKET>-plan-v<N>.md`, without the overwrite / `-v2` / abort question.
+- Write `make-it-work/<TICKET>/<TICKET>-plan-v<N>.md`, without the overwrite / `-v2` / abort question.
 - Read the previous plan and the feedback in full before Step 4. Treat every failed assumption, `Route: replan` finding, `Route: fix` finding, decided `Route: human` finding, or `execute` stop as a constraint the new plan must resolve.
 - The working tree still contains the previous version's uncommitted implementation and test files. Investigate them as current code, and make every new step say explicitly what it keeps, changes, or removes. Reuse test files that are still valid (reference them in the new steps' `**Tests:**` fields); remove or adjust obsolete ones as ordinary file edits inside the new steps. Removals are ordinary file edits — never `git checkout`, `reset`, `restore`, or `stash`.
 - Add `**Replan of:** <previous plan path> — <one-line reason>` directly under the plan's header blockquote.
 - Directly under that line add `**Design reset:**` — a few sentences on what the previous plan modeled or assumed wrongly at the design level (not merely what failed or which findings were raised), and how this plan's model differs. Every new step must follow the new model.
 - A regression test that fails because of the previous version's uncommitted changes (it covers a file the previous plan changed, or a test that plan named) is **not** a pre-existing failure: do not return `Blocked:` for it — make the new plan bring it back to green.
 
-**Amend mode** (the current plan path plus one fix source: a review report with the user's decisions on any `Route: human` findings, `execute`'s completion-gate report with the failing tests classified as related, or `implement`'s developer-approved `make-it-work/<TICKET>-final-feedback.md`) — do not rewrite the plan:
+**Amend mode** (the current plan path plus one fix source: a review report with the user's decisions on any `Route: human` findings, `execute`'s completion-gate report with the failing tests classified as related, or `implement`'s developer-approved `make-it-work/<TICKET>/<TICKET>-final-feedback.md`) — do not rewrite the plan:
 
 - Investigate only what each `Route: fix` finding, decided `Route: human` finding, or related failing test touches, using Step 4's discipline.
 - Append new steps after the last existing step, numbered `M+1` onward — one per finding that still needs a code change, or per small group of related findings; a finding the user accepted as-is gets no step, so a round can add zero steps — each in the Step 5 step template and each through the test-writing sub-phase (red test, left uncommitted).
@@ -378,7 +378,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 - **Questions:** Guided and Autonomous ask every question live, exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and return its documented hard stop rather than prompting.
 - **Hand-offs:** skip Step 6's "Run `/make-it-work:execute` …" message and the plan-reviewer offer; `implement` decides what runs next.
 
-**Return report** — print Step 6's output block, with `Plan:` set to the path actually written (e.g. `make-it-work/<TICKET>-plan-v2.md`), followed by:
+**Return report** — print Step 6's output block, with `Plan:` set to the path actually written (e.g. `make-it-work/<TICKET>/<TICKET>-plan-v2.md`), followed by:
 
 ```
 Mode: initial | replan | amend
@@ -389,4 +389,4 @@ Recommend replan: <reason>   ← only when applicable (amend mode, repeat offend
 
 Then stop.
 
-**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `plan-<N>.json` in `make-it-work/<TICKET>-handoffs/`. Use `PLAN_SAVED` for initial/replan mode or `FIX_PLAN_READY` for amend mode. Record the actual plan path, `mode`, numeric `steps_added` in amend mode (otherwise `null`), the `Recommend replan:` reason or `null`, and updated context paths. For a pre-existing failing regression that stops planning, emit a `blocked` handoff with `code: PRE_EXISTING_REGRESSION` and the exact test/reason, rather than claiming a completed plan. Do not write a handoff for an older run. End the chat report with `Handoff: <path>`.
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `plan-<N>.json` in `make-it-work/<TICKET>/<TICKET>-handoffs/`. Use `PLAN_SAVED` for initial/replan mode or `FIX_PLAN_READY` for amend mode. Record the actual plan path, `mode`, numeric `steps_added` in amend mode (otherwise `null`), the `Recommend replan:` reason or `null`, and updated context paths. For a pre-existing failing regression that stops planning, emit a `blocked` handoff with `code: PRE_EXISTING_REGRESSION` and the exact test/reason, rather than claiming a completed plan. Do not write a handoff for an older run. End the chat report with `Handoff: <path>`.

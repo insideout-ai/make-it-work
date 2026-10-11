@@ -16,10 +16,10 @@ function stateMarkdown(phase = 'final-approval', status = 'In Progress') {
   const fields = {
     ticket: 'DEMO', handoff_version: '1', final_package_version: '1', status, phase,
     autonomy: 'guided', start_time: '2026-01-01T10:00:00Z', execution_mode: 'inline', inline_pause_mode: 'run-straight-through',
-    spec: 'make-it-work/DEMO-spec.md', spec_hash: 'spec', plan: 'make-it-work/DEMO-plan.md', plan_version: '1', plan_hash: 'plan',
+    spec: 'make-it-work/DEMO/DEMO-spec.md', spec_hash: 'spec', plan: 'make-it-work/DEMO/DEMO-plan.md', plan_version: '1', plan_hash: 'plan',
     execution: 'passed', review: 'clean', review_cycle: '1', fix_cycle: '0', fix_plan_round_steps: 'none', fix_plan_dispatch: 'none',
     replans_used: '0', gate: 'full-suite', pause_reason: 'none', branch: 'DEMO', base: 'main', head: 'abc',
-    worktree_fingerprint: 'fingerprint', execute_report: 'make-it-work/DEMO-execute.md', context_updated: 'none',
+    worktree_fingerprint: 'fingerprint', execute_report: 'make-it-work/DEMO/DEMO-execute.md', context_updated: 'none',
     current_activity: 'none', real_rows_from: '1',
   };
   return `# Workflow state — DEMO\n\n\`\`\`\n${Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | final-sync | final-approval | ready |\n`;
@@ -43,8 +43,8 @@ async function fixture(t) {
   git(repo, 'config', 'url.' + bare + '.insteadOf', 'https://github.com/example/service.git');
   git(repo, 'remote', 'set-url', 'origin', 'https://github.com/example/service.git');
   await writeFile(path.join(repo, 'code.txt'), 'after\n');
-  const artifacts = path.join(root, 'make-it-work');
-  await mkdir(artifacts);
+  const artifacts = path.join(root, 'make-it-work', 'DEMO');
+  await mkdir(artifacts, { recursive: true });
   for (const name of ['spec', 'plan', 'execute', 'review']) await writeFile(path.join(artifacts, `DEMO-${name}.md`), `# ${name}\n`);
   const draft = path.join(artifacts, 'DEMO-final-draft.json');
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO: Update code', pr_title: 'DEMO: Update code', pr_description: 'Verified change.' }));

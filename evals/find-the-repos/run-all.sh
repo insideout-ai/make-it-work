@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs all four find-the-repos smoke-test cases. find-the-repos has no autopilot mode and writes
-# nothing but make-it-work/*-repos.md (only after a human confirms the draft shortlist, which a
+# nothing but make-it-work/<TICKET>/<TICKET>-repos.md (only after a human confirms the draft shortlist, which a
 # one-shot headless run never reaches) — so unlike plan-the-work/shape-the-epic/etc., none of these
 # cases need Bash or --dangerously-skip-permissions; all four run fully through plain
 # `claude plugin eval`.

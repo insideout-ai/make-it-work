@@ -6,4 +6,4 @@ timeout_seconds: 600
 runs: 1
 ---
 
-/make-it-work:execute make-it-work/DEMO-1-plan.md
+/make-it-work:execute make-it-work/DEMO-1/DEMO-1-plan.md
