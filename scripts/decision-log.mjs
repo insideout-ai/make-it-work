@@ -91,7 +91,7 @@ function parseExisting(contents, skill) {
   });
 }
 
-async function checkedPath(root, skill, { createDirectory = true } = {}) {
+async function checkedPath(root, skill, { createDirectory = true, ticket = null } = {}) {
   if (!SKILLS.has(skill)) fail(`Unknown skill: ${skill}`);
   const directory = path.resolve(root, 'make-it-work');
   let stat;
@@ -103,14 +103,28 @@ async function checkedPath(root, skill, { createDirectory = true } = {}) {
     stat = await lstat(directory);
   }
   if (!stat.isDirectory() || stat.isSymbolicLink()) fail('make-it-work must be a real directory, not a symlink.');
-  const target = path.join(directory, `${skill}-autopilot-log.jsonl`);
+  let logDirectory = directory;
+  if (ticket !== null) {
+    if (typeof ticket !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Unsafe ticket for decision log.');
+    logDirectory = path.join(directory, ticket);
+    let runStat;
+    try { runStat = await lstat(logDirectory); }
+    catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      if (!createDirectory) fail('Log does not exist; initialize this run first.');
+      await mkdir(logDirectory, { mode: 0o700 });
+      runStat = await lstat(logDirectory);
+    }
+    if (!runStat.isDirectory() || runStat.isSymbolicLink()) fail('Ticket run directory must be a real directory, not a symlink.');
+  }
+  const target = path.join(logDirectory, `${skill}-autopilot-log.jsonl`);
   let targetStat;
   try { targetStat = await lstat(target); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (targetStat && (!targetStat.isFile() || targetStat.isSymbolicLink())) {
     fail('Decision log target must be a regular file, not a symlink.');
   }
-  return { directory, target, targetStat };
+  return { directory: logDirectory, target, targetStat };
 }
 
 async function atomicWrite(directory, target, content, mode) {
@@ -125,11 +139,11 @@ async function atomicWrite(directory, target, content, mode) {
   }
 }
 
-export async function updateLog({ root = process.cwd(), skill, command, input }) {
+export async function updateLog({ root = process.cwd(), skill, command, input, ticket = null }) {
   if (!['init', 'append', 'write'].includes(command)) fail(`Unknown command: ${command}`);
   const incoming = command === 'init' ? [] : normalizeEntries(input, skill, command);
   const { directory, target, targetStat } = await checkedPath(root, skill,
-    { createDirectory: command !== 'append' });
+    { createDirectory: command !== 'append', ticket });
   const mode = targetStat ? targetStat.mode & 0o777 : 0o600;
   if (command === 'init') {
     await atomicWrite(directory, target, '', mode);
@@ -154,12 +168,21 @@ async function readStdin() {
 
 async function main(args) {
   const [command, skill, ...rest] = args;
-  if (!command || !skill || (rest.length && (rest.length !== 2 || rest[0] !== '--root'))) {
-    fail('Usage: decision-log.mjs <init|append|write> <skill> [--root <repo-root>] (append/write read JSON from stdin).');
+  if (!command || !skill) {
+    fail('Usage: decision-log.mjs <init|append|write> <skill> [--root <repo-root>] [--ticket <TICKET>] (append/write read JSON from stdin).');
   }
-  const root = rest.length ? rest[1] : process.cwd();
+  const options = { root: process.cwd(), ticket: null };
+  const seen = new Set();
+  while (rest.length) {
+    const flag = rest.shift();
+    if (!['--root', '--ticket'].includes(flag) || !rest.length || seen.has(flag)) {
+      fail(`Invalid decision-log option: ${flag}`);
+    }
+    seen.add(flag);
+    options[flag.slice(2)] = rest.shift();
+  }
   const input = command === 'init' ? undefined : await readStdin();
-  await updateLog({ root, skill, command, input });
+  await updateLog({ ...options, skill, command, input });
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

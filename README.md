@@ -97,7 +97,7 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ### `/make-it-work:plan-the-work`
 
-Turns an agreed spec or refined ticket into an execution-ready implementation plan before any production code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected.
+Turns an agreed spec or refined ticket into an execution-ready implementation plan before any production code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>/<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected.
 
 Pass a ticket ID or a spec path, or let the skill derive the ticket from the current branch. Use it after `close-the-gaps` and before implementation so another engineer or agent can execute the work step by step without guessing.
 
@@ -133,6 +133,7 @@ flowchart TD
     Execute -- "tests failing or stuck" --> FixPlan["fix the plan"]
 
     Review -- "clean" --> FinalSync["Final context sync"] --> Complete(["Complete"])
+    Complete -. "optional" .-> Deliver["deliver: commit, push, PR"]
     Review -- "changes requested" --> FixPlan
 
     FixPlan -- "steps added" --> Execute
@@ -143,7 +144,7 @@ You choose the autonomy level at the start. **Guided** pauses for your approval 
 
 When review asks for fixes, or the final regression run breaks a test tied to the ticket's own requirements, the fixes are added to the plan as new test-first steps, and execution continues from there. Regressions unrelated to the ticket are documented in the summary, not fixed. A project without an automated test suite can continue with the plan's manual test walkthrough instead. Fix rounds are capped at 3 and reviews at 4 per plan version (one initial review plus one re-review per fix-plan round), and replans at 2 per run, so a run never loops indefinitely.
 
-Progress is saved to `make-it-work/<TICKET>-state.md` at every step, so running `implement` again resumes where it stopped — and if the repository changed in the meantime, it shows you what changed instead of assuming it's still safe to continue. Alongside it, a per-ticket progress dashboard (`make-it-work/<TICKET>-status.html`) is created when a run starts and refreshed at every checkpoint, so you can see the run's phase, cycle counts, transition history, and — whenever it's waiting on you — what to do next, without reading the raw state file. Interactive runs ask before starting on the base branch; autopilot creates the safe suggested feature branch instead. Neither mode commits implementation changes, pushes, or opens a PR.
+New runs keep their artifacts in `make-it-work/<TICKET>/`, with familiar `<TICKET>-` filenames inside. Progress is saved to `make-it-work/<TICKET>/<TICKET>-state.md` at every step, so running `implement` again resumes where it stopped — and if the repository changed in the meantime, it shows you what changed instead of assuming it's still safe to continue. Alongside it, a per-ticket progress dashboard (`make-it-work/<TICKET>/<TICKET>-status.html`) is created when a run starts and refreshed at every checkpoint, so you can see the run's phase, cycle counts, transition history, and — whenever it's waiting on you — what to do next, without reading the raw state file. Interactive runs ask before starting on the base branch; autopilot creates the safe suggested feature branch instead. Neither mode commits implementation changes, pushes, or opens a PR. Existing flat artifacts are left untouched; this version discovers nested runs only.
 
 New `implement` runs also save a small, versioned JSON result after each stage. A local validator checks the result and its artifacts, and a read-only transition helper selects the next phase from that result and the saved state. Runs started before this handoff format continue with their original reports and routing rules until they finish.
 
@@ -151,7 +152,7 @@ New runs also retain a verification ledger as Execute follows the existing test-
 
 After a clean review and final documentation sync, new runs build a local final-approval package containing the changed-file list, binary-safe diffs, validation and review evidence, known regressions and review nits, plus draft commit and PR text. Guided runs ask you to approve that exact package; Autonomous and Autopilot leave it ready for your later review. A changed working tree or evidence invalidates the package and any prior approval. The workflow still does not commit, push, or open a PR.
 
-If you want to publish a completed run, invoke `/make-it-work:deliver <TICKET>` separately. It previews the exact repositories, branches, paths, commit message, and PR text, then requires a new explicit approval before committing, pushing to `origin`, and creating or updating PRs. It supports GitHub (authenticated `gh` CLI) and Bitbucket Cloud (token supplied outside chat), tracks partial multi-repo progress for safe retries, and never merges or posts to Jira. Unsupported remotes and sensitive file paths require manual delivery.
+At completion, `implement` offers `/make-it-work:deliver <TICKET>` as a final optional next step. Nothing is delivered unless you explicitly opt in; `deliver` then previews the exact repositories, branches, paths, commit message, and PR text and requires a separate explicit approval before committing, pushing to `origin`, or creating or updating PRs. It supports GitHub (authenticated `gh` CLI) and Bitbucket Cloud (token supplied outside chat), tracks partial multi-repo progress for safe retries, and never merges or posts to Jira. Unsupported remotes and sensitive file paths require manual delivery.
 
 After a run completes, `implement` adds an anonymous, share-safe entry to the cumulative `make-it-work/implement-feedback.md` file. Clean runs get a compact entry; runs that needed fix or replan rounds get a retrospective that identifies where the workflow could improve, asking the user one clarification at a time only when the answer could change that diagnosis. The same happens when a run stops because a fix, review, or replan limit was exhausted. Feedback is written only after the workflow is already terminal, never changes its result, and is never uploaded automatically — review the file yourself before choosing whether to send it to the make-it-work owners.
 
@@ -177,7 +178,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:close-the-gaps TICKET-123 --offline            # Export gap-analysis questions to a file instead of asking live
-/make-it-work:close-the-gaps make-it-work/TICKET-123-questions.md  # Resume and inject answers from that file
+/make-it-work:close-the-gaps make-it-work/TICKET-123/TICKET-123-questions.md  # Resume and inject answers from that file
 /make-it-work:plan-the-work TICKET-123       # Turn a refined spec into an implementation plan
 /make-it-work:plan-the-work path/to/spec.md  # Plan from an explicit local spec
 /make-it-work:execute [TICKET-ID | path/to/plan.md]  # Execute a plan step by step, then run the completion gate
@@ -303,13 +304,13 @@ Unlike the other pipeline skills, which only read code and write review/planning
 
 `execute` goes further still: unlike `define-test-strategy` and `plan-the-work` above, which write test files but never the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — and, like `plan-the-work`, it never runs `git commit` on the user's behalf either; every change it makes is left uncommitted for you to review.
 
-Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
+Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>/<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
 
 `implement` changes the target project only through the stages it runs — `plan-the-work`'s uncommitted test files, `execute`'s uncommitted implementation — plus its own final context sync, which writes the project's skills and `.claude/rules` files directly. `close-the-gaps` and `plan-the-work` may also write those files directly at the end of a run, but only to record facts about the system as it already is, never the ticket's planned behavior.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection.
 
-Pipeline artifacts under `make-it-work/`—including specs, plans, handoffs, verification ledgers, review reports, final packages, delivery progress, and status dashboards—are working documents, not deliverables. Add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed. The cumulative `make-it-work/implement-feedback.md` file is also uncommitted working data, but it is not ticket-scoped: keep it when deleting stale ticket artifacts if you intend to review or manually share the workflow feedback.
+Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, handoffs, verification ledgers, review reports, final packages, delivery progress, and status dashboards—are working documents, not deliverables. Add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed. The cumulative `make-it-work/implement-feedback.md` file is also uncommitted working data, but it is not ticket-scoped: keep it when deleting a ticket directory if you intend to review or manually share the workflow feedback.
 
 ## Troubleshooting
 
@@ -317,10 +318,10 @@ Pipeline artifacts under `make-it-work/`—including specs, plans, handoffs, ver
 - **Claude Code loads an older version:** update both the marketplace and the plugin using the commands above, then reload plugins.
 - **A ticket ID cannot be found:** configure an issue-tracker integration or invoke `close-the-gaps` without an ID and paste the ticket content.
 - **An offline questions file is stuck pending:** re-invoke `close-the-gaps` with that file's path to inject the answers and resume, or invoke the ticket again and choose to overwrite it and start fresh.
-- **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123-spec.md`.
+- **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123/TICKET-123-spec.md`.
 - **`review-the-pr` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.
 - **`implement` says the project context is incomplete:** run `/make-it-work:go-deep` and choose its "Repair existing docs" mode, then run `implement` again.
-- **`implement` stopped mid-run:** read the stop reason in chat, in `make-it-work/<TICKET>-state.md` (`pause_reason`), or in `make-it-work/<TICKET>-status.html`'s "Waiting on you" section, address it, and run `implement` again — it resumes from the saved phase.
+- **`implement` stopped mid-run:** read the stop reason in chat, in `make-it-work/<TICKET>/<TICKET>-state.md` (`pause_reason`), or in `make-it-work/<TICKET>/<TICKET>-status.html`'s "Waiting on you" section, address it, and run `implement` again — it resumes from the saved phase.
 - **The plugin is installed twice:** remove or disable one copy in `/plugin` and keep the marketplace channel you want to follow.
 
 If the problem persists, [open a GitHub issue](https://github.com/insideout-ai/make-it-work/issues) with your Claude Code version, installation channel, and the relevant error message.

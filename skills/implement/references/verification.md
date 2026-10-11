@@ -2,7 +2,7 @@
 
 This applies only when the run state has `verification_version: 1`. Older runs and standalone `execute` keep their current reports. No new tests or validation phase are introduced.
 
-`execute` maintains `make-it-work/<TICKET>-verification-v<plan_version>.json`. Start a new file for each replan version; resume and fix steps in the same plan version update the same file. It is local run data. Use this shape:
+`execute` maintains `make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json`. Start a new file for each replan version; resume and fix steps in the same plan version update the same file. It is local run data. Use this shape:
 
 ```json
 {
@@ -29,6 +29,6 @@ At terminal Execute, fill `acceptance` with one row for **every** pair in the pl
 
 After every step entry and after the terminal gate/AC update, run:
 
-`node "<implement-base>/scripts/verification.mjs" check --root <artifact-root> --file make-it-work/<TICKET>-verification-v<plan_version>.json --ticket <TICKET> --plan-version <plan_version> [--plan <plan-path> --outcome <Execute-outcome>]`
+`node "<implement-base>/scripts/verification.mjs" check --root <artifact-root> --file make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json --ticket <TICKET> --plan-version <plan_version> [--plan <plan-path> --outcome <Execute-outcome>]`
 
 Use `--plan` and `--outcome` on a terminal Execute result. The helper validates the schema, cross-checks AC evidence against step checks and the plan's traceability table, and rejects a gate/outcome disagreement. It does not run tests or mutate any file. A nonzero check blocks Progress or handoff as applicable; repair actual evidence or rerun the check.

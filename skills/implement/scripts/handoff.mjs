@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
+import { runArtifactName, runDirectory } from './artifact-layout.mjs';
 
 const STAGES = {
   gaps: ['SPEC_SAVED'],
@@ -120,6 +121,7 @@ export async function validateArtifacts(handoff, root) {
   const h = validateHandoff(handoff);
   if (h.status !== 'done') return h;
   const rootPath = await realpath(root);
+  const directory = runDirectory(rootPath, h.ticket);
   const expectedNames = {
     gaps: [`${h.ticket}-spec.md`],
     plan: [`${h.ticket}-plan.md`, `${h.ticket}-plan-v${h.plan_version}.md`],
@@ -128,11 +130,12 @@ export async function validateArtifacts(handoff, root) {
   };
   for (const [kind, artifact] of Object.entries(h.artifacts)) {
     if (path.isAbsolute(artifact)) fail(`Artifact path must be relative: ${artifact}`);
+    runArtifactName(artifact, h.ticket, kind);
     if (kind === 'verification') {
       const expected = `${h.ticket}-verification-v${h.plan_version}.json`;
       if (path.basename(artifact) !== expected) fail(`Verification artifact does not match ticket and plan version: ${artifact}`);
       const planName = h.plan_version === 1 ? `${h.ticket}-plan.md` : `${h.ticket}-plan-v${h.plan_version}.md`;
-      const plan = await readFile(path.join(rootPath, 'make-it-work', planName), 'utf8');
+      const plan = await readFile(path.join(directory, planName), 'utf8');
       await readVerification(rootPath, artifact, { ticket: h.ticket, planVersion: h.plan_version, plan, outcome: h.outcome });
       continue;
     }
@@ -144,9 +147,9 @@ export async function validateArtifacts(handoff, root) {
     const resolved = path.resolve(rootPath, artifact);
     if (!resolved.startsWith(`${rootPath}${path.sep}`)) fail(`Artifact escapes project root: ${artifact}`);
     const relative = path.relative(rootPath, resolved);
-    if (!relative.startsWith(`make-it-work${path.sep}`)) fail(`Artifact must be under make-it-work/: ${artifact}`);
+    if (!relative.startsWith(`make-it-work${path.sep}${h.ticket}${path.sep}`)) fail(`Artifact must be under the ticket run directory: ${artifact}`);
     const actual = await realpath(resolved);
-    if (!actual.startsWith(`${rootPath}${path.sep}make-it-work${path.sep}`)) fail(`Artifact symlink escapes run artifacts: ${artifact}`);
+    if (!actual.startsWith(`${directory}${path.sep}`)) fail(`Artifact symlink escapes run artifacts: ${artifact}`);
     if (!(await stat(resolved)).isFile()) fail(`Artifact is not a file: ${artifact}`);
     if (h.stage === 'execute' || h.stage === 'review') {
       const report = await readFile(actual, 'utf8');
@@ -312,9 +315,9 @@ async function main(args) {
     fail('Usage: handoff.mjs validate|next --handoff PATH --root PROJECT_ROOT [--state PATH] [--previous-review PATH] [--related-failures N] [--choice CHOICE]');
   }
   const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root);
-  const expectedDirectory = path.resolve(options.root, 'make-it-work', `${h.ticket}-handoffs`);
+  const expectedDirectory = path.join(runDirectory(path.resolve(options.root), h.ticket), `${h.ticket}-handoffs`);
   if (path.dirname(path.resolve(options.handoff)) !== expectedDirectory || !new RegExp(`^${h.stage}-[1-9]\\d*\\.json$`).test(path.basename(options.handoff))) {
-    fail(`Handoff path must be make-it-work/${h.ticket}-handoffs/${h.stage}-<N>.json.`);
+    fail(`Handoff path must be make-it-work/${h.ticket}/${h.ticket}-handoffs/${h.stage}-<N>.json.`);
   }
   const currentNumber = Number(path.basename(options.handoff).match(/-(\d+)\.json$/)[1]);
   const numbers = (await readdir(expectedDirectory))

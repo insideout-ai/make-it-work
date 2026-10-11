@@ -27,7 +27,7 @@ all four cases run fully through plain `claude plugin eval`.
 
 All four pause at a checkpoint before writing anything under `make-it-work/` — `happy-path` and
 `technical-fallback` at Phase 4's shortlist confirmation, `single-repo-refusal` and
-`unrelated-clones` even earlier, in Phase 1. None of them ever reach `make-it-work/<TICKET>-repos.md`
+`unrelated-clones` even earlier, in Phase 1. None of them ever reach `make-it-work/<TICKET>/<TICKET>-repos.md`
 in a one-shot headless run; every case has a `file_exists`/`exists: false` grader confirming that
 file is never written before a human has had the chance to confirm or adjust the draft.
 
@@ -58,7 +58,7 @@ Fixture: a workspace root (no `.git` of its own) with a `CLAUDE.md` naming six s
 Graders: `notifications-service` reported Definite with real reasoning; `tasks-api` reported
 Possible with topical-only reasoning; both `billing-service` and `archive-service` explicitly
 flagged; `analytics-service` and `legacy-worker` each confirmed absent from both match tiers; the
-"purely technical" fallback phrase never appears; `make-it-work/SNOOZE-100-repos.md` does not
+"purely technical" fallback phrase never appears; `make-it-work/SNOOZE-100/SNOOZE-100-repos.md` does not
 exist; the final message reads as a genuine, unanswered confirmation checkpoint.
 
 **Verified for real**, via plain `claude plugin eval` (no Bash granted, `--judge-model sonnet`), 10
@@ -84,7 +84,7 @@ content any `product.md` could plausibly match.
 
 Graders: the purely-technical framing and the architecture.md-based-fallback statement are both
 present; `payments-api` reported as a match with reasoning naming its `winston` dependency;
-`notifications-service` confirmed absent from the match list; `make-it-work/CVE-UPGRADE-200-repos.md`
+`notifications-service` confirmed absent from the match list; `make-it-work/CVE-UPGRADE-200/CVE-UPGRADE-200-repos.md`
 does not exist.
 
 **Verified for real**, via plain `claude plugin eval`, 12 turns, all 4 graders passed. Final message
@@ -99,7 +99,7 @@ re-derived from `plan-the-work`'s Step 1a layout, which that skill treats as an 
 single-repo project and proceeds on. `find-the-repos` must do the opposite.
 
 Graders: the message clearly refuses ("nothing to shortlist") before Phase 2; no `Definite Match`
-heading ever appears; `make-it-work/TICKET-900-repos.md` does not exist.
+heading ever appears; `make-it-work/TICKET-900/TICKET-900-repos.md` does not exist.
 
 **Verified for real**, via plain `claude plugin eval`, 5 turns, all 3 graders passed. Final message:
 "Phase 1 result: ... is a git repo (project root), and its parent ... has no workspace-root
@@ -113,7 +113,7 @@ Fixture: a workspace root with no `.git` of its own and no `CLAUDE.md`, holding 
 (`repo-alpha`, `repo-beta`) each with their own `.git` — clones with no unifying documentation.
 
 Graders: the message asks which repo(s) to check, naming both candidates, rather than guessing; no
-`Definite Match` heading appears; `make-it-work/TICKET-910-repos.md` does not exist.
+`Definite Match` heading appears; `make-it-work/TICKET-910/TICKET-910-repos.md` does not exist.
 
 **Verified for real**, via plain `claude plugin eval`, 11 turns, all 3 graders passed. Final
 message: "I found two repos (`repo-alpha`, `repo-beta`) as sibling clones ... but there's no
@@ -135,7 +135,7 @@ check against `TICKET-910-spec.md` — `repo-alpha`, `repo-beta`, or both?"
 - Doesn't cover the user adjusting the draft shortlist before confirming (adding/removing a repo at
   Phase 4) — only that the confirmation checkpoint itself is genuinely reached and nothing is
   auto-saved past it.
-- Doesn't cover the actual post-confirmation save (`make-it-work/<TICKET>-repos.md`'s file content
+- Doesn't cover the actual post-confirmation save (`make-it-work/<TICKET>/<TICKET>-repos.md`'s file content
   and shape) at all, since no case here ever supplies the human confirmation a one-shot headless run
   stops short of. A manual, interactive run (or a scripted follow-up turn answering "yes, save it")
   would be needed to verify the save step itself — not attempted here, mirroring how this suite

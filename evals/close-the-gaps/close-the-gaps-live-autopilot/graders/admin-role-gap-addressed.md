@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: { source: file, path: "make-it-work/TASK-77-spec.md" }
+focus: { source: file, path: "make-it-work/TASK-77/TASK-77-spec.md" }
 weight: 2
 ---
 

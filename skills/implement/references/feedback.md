@@ -43,7 +43,7 @@ The writer creates the header, formats the run block, and updates it atomically.
 Resolve `<base>` to this skill's directory. After the terminal checkpoint and dashboard regeneration, inspect the state with:
 
 ```sh
-node "<base>/scripts/write-feedback.mjs" inspect --state "make-it-work/<TICKET>-state.md"
+node "<base>/scripts/write-feedback.mjs" inspect --state "make-it-work/<TICKET>/<TICKET>-state.md"
 ```
 
 For an exhausted fix, review, or replan limit stop, also pass `--limit-stop`; never pass it for any other stop. The script rejects ineligible state. Its JSON summary supplies `minimal`, the counts, and the ordered `events` (`kind` and Audit-log `row`). It reads the Audit log chronologically; never substitute the live counters, which can reset after replanning.
@@ -53,7 +53,7 @@ The writer counts transitions into `fix-plan` (including zero-step rounds), expl
 For a minimal run, write the compact block immediately:
 
 ```sh
-node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>-state.md"
+node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md"
 ```
 
 Do not dispatch retrospective analysis or ask feedback questions for a minimal run.
@@ -142,7 +142,7 @@ The retrospective subagent returns one share-safe JSON object. Create a uniquely
 `events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
 
 ```sh
-node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>-state.md" --analysis "<temporary-analysis.json>"
+node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --analysis "<temporary-analysis.json>"
 ```
 
 Add `--limit-stop` for an eligible limit stop. The writer omits `### User clarifications` when none were asked and renders `None` under `### Open questions` when the list is empty. On any writer error, preserve the terminal workflow state and report the feedback failure.

@@ -32,12 +32,12 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 **Hard-stop exceptions — never auto-resolved, even in autopilot mode:**
 
 1. **Phase 1 ticket-fetch failure with nothing pasted.** If a tracker fetch fails and no ticket content was ever supplied, autopilot cannot fabricate a ticket. Stop and require a human to paste the content.
-2. **Phase 1 pending offline export** (`make-it-work/<TICKET-or-slug>-questions.md` exists with `**Status:** Awaiting Answers`). None of its three choices — resume it, overwrite it and continue this fresh session, or abort — carries a designated default anywhere in this skill's text, and one of them is destructive: overwriting discards a file that may hold previously recorded answers. Autopilot does not guess among the three. It prints the file's path and the three choices, then stops and requires a human. "Overwrite it and continue this fresh session" is named here as never auto-selectable on its own, independent of which of the other two choices a human later makes.
+2. **Phase 1 pending offline export** (`make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` exists with `**Status:** Awaiting Answers`). None of its three choices — resume it, overwrite it and continue this fresh session, or abort — carries a designated default anywhere in this skill's text, and one of them is destructive: overwriting discards a file that may hold previously recorded answers. Autopilot does not guess among the three. It prints the file's path and the three choices, then stops and requires a human. "Overwrite it and continue this fresh session" is named here as never auto-selectable on its own, independent of which of the other two choices a human later makes.
 3. **Phase 5C conflicting checkboxes** (more than one box checked for the same question, including a filled-in "Other:"). There is no safe way to infer which of two explicit, conflicting human selections was intended. Stop and show the user what was checked, exactly as the interactive path already does.
 
-**Decision log:** write `make-it-work/close-the-gaps-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`); `multiSelect` is present but always `false` (this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead); `chosen` is therefore a string, the `open_text` free-text answer, or `null` — never an array. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`. `site` examples: `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
+**Decision log:** write `make-it-work/<TICKET-or-slug>/close-the-gaps-autopilot-log.jsonl` when Phase 1 resolves the ticket or slug, overwritten fresh for this autopilot run (it describes that run only). If a ticket fetch fails before a ticket or slug can be resolved, stop without creating a ticket-scoped log and include the hard-stop in the chat summary. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`); `multiSelect` is present but always `false` (this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead); `chosen` is therefore a string, the `open_text` free-text answer, or `null` — never an array. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`. `site` examples: `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
 
-When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied log write.
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` with `--ticket "<TICKET-or-slug>"` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied log write.
 
 This file is a run artifact: never treat it as a Phase 3 "code finding," never embed it in a `*-questions.md` export, and never reference it from Phase 6's own `## Decision Log` table — the two logs serve different audiences (this one is for auditing the autopilot run itself; Phase 6's is part of the deliverable ticket).
 
@@ -57,9 +57,9 @@ This file is a run artifact: never treat it as a Phase 3 "code finding," never e
 
 Only the Phase 5A/5C `askUserQuestion` rows carry a `(Recommended)` label in this skill — do not invent one for the two Phase 1 checkpoints, which are hard-stops with nothing to auto-resolve, or for the Phase 5C conflicting-checkbox checkpoint.
 
-**Marking autopilot answers in the deliverable itself:** apply the marker convention from `docs/autopilot-log-schema.md` to Phase 6's `## Decision Log` table — append `_(autopilot)_` after a `(Recommended)`-resolved answer, keep the `[autopilot best-guess]` prefix on an `open_text` answer — so a reviewer reading the refined ticket alone, without `make-it-work/close-the-gaps-autopilot-log.jsonl`, can see which decisions weren't confirmed by a person. A question that was already answered unambiguously in an offline file before this run needs no marker — a human already decided it.
+**Marking autopilot answers in the deliverable itself:** apply the marker convention from `docs/autopilot-log-schema.md` to Phase 6's `## Decision Log` table — append `_(autopilot)_` after a `(Recommended)`-resolved answer, keep the `[autopilot best-guess]` prefix on an `open_text` answer — so a reviewer reading the refined ticket alone, without `make-it-work/<TICKET-or-slug>/close-the-gaps-autopilot-log.jsonl`, can see which decisions weren't confirmed by a person. A question that was already answered unambiguously in an offline file before this run needs no marker — a human already decided it.
 
-At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision (including any hard-stop that was hit) and the log file's path, so someone can audit the run afterward.
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision (including any hard-stop that was hit) and the log file's path if one was created, so someone can audit the run afterward.
 
 ---
 
@@ -74,7 +74,7 @@ Otherwise, ingest the ticket as usual:
 - Extract: ticket ID, summary, description, acceptance criteria, linked tickets, and any attachments or comments.
 - Record the **source**: either "Fetched from `<tracker>` issue `<ID>`" or "Pasted directly, no tracker ticket" — Phase 5B will embed this so Phase 5C can later check for ticket drift.
 - Derive `<TICKET-or-slug>`: the ticket ID if there is one; otherwise a kebab-case slug of the title; otherwise `spec-YYYY-MM-DD` — the same rule Phase 6 uses for its own output filename. Reuse this one value for the rest of this phase, for Phase 5B's export filename, and for Phase 6's final spec filename, so all three always agree.
-- **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
+- **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
 - Note whether `--offline` was passed in the arguments — carry this forward as a session flag for Phase 5 to check.
 - Acknowledge to the user: "Loaded ticket [ID]: [summary]. Starting analysis..."
 
@@ -194,7 +194,7 @@ Build the **complete** question list up front — every wave, not just Wave 1 �
 2. For each question, enumerate every later-wave question that depends on it, for each of its own options, **recursively** — a question two or three waves deep (e.g. a chain like Trigger → Detect → Reinvoke) is still written out, chained through its own immediate gating question rather than only checked against Wave 1. Write each dependent question directly after the question it depends on, so the file's order always presents a gating question before anything conditioned on it. Label each with the exact condition under which it applies (see template below). If a later question's wording or options cannot be enumerated without an answer that doesn't exist yet (e.g. it depends on free text with no fixed set of branches), do not force it into the file — record it instead under a `## Follow-up Needed After This Round` section at the end of the file, in plain language; Phase 5C resolves it live rather than exporting a second file.
 3. Do not call `AskUserQuestion`. Do not ask anything in chat.
 
-Write the file to `make-it-work/<TICKET-or-slug>-questions.md` (the same base name Phase 1 derived and Phase 6 will use), using this template:
+Write the file to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` (the same base name Phase 1 derived and Phase 6 will use), using this template:
 
 ```markdown
 # Offline Questions — <TICKET-or-slug>
@@ -287,13 +287,13 @@ Resolve questions in two passes, since a conditional question can only be evalua
 
 **Resolve any `## Follow-up Needed After This Round` items live**, the same way as step 3 above, now that every gating answer from both passes is known — do not export a second file for these. (autopilot: see Autopilot Mode — resolved as `open_text`.)
 
-Once every applicable question has a final answer, proceed to **Phase 6** exactly as today, using the answers gathered here (whether from the file or live) as if Phase 5A had produced them. Only **after** Phase 6 has saved `make-it-work/<TICKET-or-slug>-spec.md`, update this file's status line to `**Status:** Answered — superseded by make-it-work/<TICKET-or-slug>-spec.md`. If the session ends before Phase 6 finishes, leave the status as `Awaiting Answers` — a later run must not mistake an incomplete session for a finished one.
+Once every applicable question has a final answer, proceed to **Phase 6** exactly as today, using the answers gathered here (whether from the file or live) as if Phase 5A had produced them. Only **after** Phase 6 has saved `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md`, update this file's status line to `**Status:** Answered — superseded by make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md`. If the session ends before Phase 6 finishes, leave the status as `Awaiting Answers` — a later run must not mistake an incomplete session for a finished one.
 
 ---
 
 ## Phase 6 — Refined Ticket Output
 
-Generate the final ticket and save it to `make-it-work/<TICKET-or-slug>-spec.md` (create the `make-it-work/` folder at the repo root if it doesn't exist) — the same value derived in Phase 1, so this filename always agrees with Phase 5B's export filename.
+Generate the final ticket and save it to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md` (create the `make-it-work/<TICKET-or-slug>/` directory at the repo root if it doesn't exist) — the same value derived in Phase 1, so this filename always agrees with Phase 5B's export filename.
 
 ### Output structure
 
@@ -406,4 +406,4 @@ TBD items: <count>
 Context updated: <list from Phase 7 | none>
 ```
 
-**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `gaps-<N>.json` in `make-it-work/<TICKET>-handoffs/` using its schema. Use `SPEC_SAVED`, the actual spec path, the counted TBD items, and the paths updated in Phase 7. Do not write this file for an older run. End the chat report with `Handoff: <path>` so `implement` can validate it before advancing.
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `gaps-<N>.json` in `make-it-work/<TICKET>/<TICKET>-handoffs/` using its schema. Use `SPEC_SAVED`, the actual spec path, the counted TBD items, and the paths updated in Phase 7. Do not write this file for an older run. End the chat report with `Handoff: <path>` so `implement` can validate it before advancing.

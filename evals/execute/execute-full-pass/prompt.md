@@ -6,4 +6,4 @@ timeout_seconds: 1800
 runs: 1
 ---
 
-/make-it-work:execute make-it-work/DEMO-2-plan.md --autopilot
+/make-it-work:execute make-it-work/DEMO-2/DEMO-2-plan.md --autopilot

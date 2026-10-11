@@ -51,6 +51,16 @@ test('write flushes a late batch and replaces a prior run atomically', async (t)
   assert.deepEqual(await readdir(path.join(root, 'make-it-work')), ['execute-autopilot-log.jsonl']);
 });
 
+test('ticket-scoped logs stay in the ticket directory', async (t) => {
+  const { root } = await workspace(t);
+  const nested = path.join(root, 'make-it-work', 'DEMO-1', 'execute-autopilot-log.jsonl');
+  await updateLog({ root, skill: 'execute', command: 'init', ticket: 'DEMO-1' });
+  await updateLog({ root, skill: 'execute', command: 'append', ticket: 'DEMO-1', input: checkpoint });
+  assert.deepEqual(JSON.parse((await readFile(nested, 'utf8')).trim()), normalizeEntry(checkpoint, 'execute'));
+  assert.deepEqual(await readdir(path.join(root, 'make-it-work')), ['DEMO-1']);
+  await assert.rejects(updateLog({ root, skill: 'execute', command: 'init', ticket: '../other' }), /Unsafe ticket/);
+});
+
 test('append requires init and rejects malformed existing JSONL without clobbering it', async (t) => {
   const { root, log } = await workspace(t);
   await assert.rejects(updateLog({ root, skill: 'execute', command: 'append', input: checkpoint }),

@@ -27,16 +27,16 @@ Or paste the ticket content directly into the chat after invoking.
 
 ## Autopilot Mode
 
-**Hard-stop exception:** no destructive action exists in this skill — `find-the-repos` only reads repo documentation and saves a shortlist file; it never deletes or overwrites anything but its own regenerable `make-it-work/<TICKET>-repos.md` output. Five sites nonetheless remain unconditional stops under `--autopilot`, because autopilot cannot safely infer an answer for any of them:
+**Hard-stop exception:** no destructive action exists in this skill — `find-the-repos` only reads repo documentation and saves a shortlist file; it never deletes or overwrites anything but its own regenerable `make-it-work/<TICKET>/<TICKET>-repos.md` output. Five sites nonetheless remain unconditional stops under `--autopilot`, because autopilot cannot safely infer an answer for any of them:
 - Phase 1 point 1's single-repo-with-no-workspace refusal ("nothing to shortlist").
 - Phase 1 point 2's ambiguous repo pick among unrelated clones with no unifying doc.
 - Phase 1 point 3's "Could not identify the project root" message.
 - Phase 2 point 3's underivable `<TICKET>` key (no argument, no branch-derivable key).
 - Phase 2 point 3's tracker-fetch failure (no local spec, fetch fails or is unavailable).
 
-**Decision log:** write `make-it-work/find-the-repos-autopilot-log.jsonl` at repo root, created fresh (truncated to empty) at the start of the run. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has only `"checkpoint"` sites (no `askUserQuestion` or `open_text`), so it omits `multiSelect`/`question`/`options` entirely and `chosen` is only ever a short string describing what was confirmed, or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 4"`. `site` example: `"shortlist-confirmation"`.
+**Decision log:** write `make-it-work/<TICKET>/find-the-repos-autopilot-log.jsonl`, created fresh (truncated to empty) when the ticket is known. Pass `--ticket "<TICKET>"` to the shared writer. For a Phase 1 or Phase 2 hard-stop before any ticket can be resolved, stop without creating a ticket-scoped log and describe the stop in chat. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill has only `"checkpoint"` sites (no `askUserQuestion` or `open_text`), so it omits `multiSelect`/`question`/`options` entirely and `chosen` is only ever a short string describing what was confirmed, or `null` for a site that stopped rather than resolving. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 4"`. `site` example: `"shortlist-confirmation"`.
 
-When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the start-of-run timing and never use it to bypass a denied log write.
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve the ticket-resolution timing and never use it to bypass a denied log write.
 
 **Resolution table** (one row per interactive site, in the order they appear):
 
@@ -83,7 +83,7 @@ Resolve the ticket using this precedence — matching `plan-the-work`'s Step 1b,
    - Otherwise, derive it from `git branch --show-current` in the resolved workspace root's current repo (e.g. `feature/PROJ-123-add-x` → `PROJ-123`).
    - If neither yields a key, ask the user for the ticket key or an explicit spec path, and stop until they answer — never proceed with an undefined `<TICKET>`. (autopilot: see Autopilot Mode)
 
-   Once a key is known, look first for `make-it-work/<TICKET>-spec.md` at the resolved workspace root — this is `close-the-gaps`'s own output, and reading it if it already exists means matching against the richest, already-refined description of the ticket rather than a raw one. If that file doesn't exist, fetch the ticket via whatever issue-tracker MCP integration is configured for this project. If the fetch fails (no access, tool unavailable, ticket not found), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content. (autopilot: see Autopilot Mode)
+   Once a key is known, look first for `make-it-work/<TICKET>/<TICKET>-spec.md` at the resolved workspace root — this is `close-the-gaps`'s own output, and reading it if it already exists means matching against the richest, already-refined description of the ticket rather than a raw one. If that file doesn't exist, fetch the ticket via whatever issue-tracker MCP integration is configured for this project. If the fetch fails (no access, tool unavailable, ticket not found), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content. (autopilot: see Autopilot Mode)
 
 **Deriving `<TICKET>` when there is no ticket key.** Steps 1 and 2 above can both supply ticket content without ever supplying a `<TICKET>` key — an explicit spec file's name may not be a key, and pasted content may have none. When that happens, derive `<TICKET>` the same way `close-the-gaps` already does: a kebab-case slug of the ticket's title (or first line, if it has no clear title), or, if no usable title exists either, a dated fallback (e.g. `2026-09-30-find-the-repos`). Use this derived value everywhere `<TICKET>` appears below; the local-cache lookup in step 3 doesn't apply in this case, since there was no key to look one up by.
 
@@ -125,7 +125,7 @@ Wait for explicit confirmation before doing anything else. (autopilot: see Autop
 Once the shortlist is confirmed:
 
 1. **Report a chat summary** of the final shortlist, including each match's 1–2 sentences of reasoning.
-2. **Save it** to `make-it-work/<TICKET>-repos.md` (create the `make-it-work/` folder at the resolved workspace root if it doesn't exist), with this shape:
+2. **Save it** to `make-it-work/<TICKET>/<TICKET>-repos.md` (create the `make-it-work/<TICKET>/` directory at the resolved workspace root if it doesn't exist), with this shape:
 
 ```markdown
 # Repo Shortlist — <TICKET>

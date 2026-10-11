@@ -2,7 +2,7 @@
 
 This contract applies only inside `/make-it-work:implement` runs whose state file has `handoff_version: 1`. Standalone skills keep their existing reports. Runs created before this field existed continue using their original handoff and transition instructions until they finish; never add the field to an old run during Resume.
 
-The Markdown spec, plan, execute report, and review report remain the human-readable record. After a stage finishes or reaches a hard stop, create `make-it-work/<TICKET>-handoffs/` if needed and write one small JSON handoff there. Name files `<stage>-<N>.json`, where `N` is one higher than the greatest existing number for that stage, starting at 1. Never overwrite a handoff: a redo or fix cycle gets a new file. The state file remains the source of truth for the current phase and loop counters. A handoff records the stage's result, not a second copy of workflow state.
+The Markdown spec, plan, execute report, and review report remain the human-readable record. After a stage finishes or reaches a hard stop, create `make-it-work/<TICKET>/<TICKET>-handoffs/` if needed and write one small JSON handoff there. Name files `<stage>-<N>.json`, where `N` is one higher than the greatest existing number for that stage, starting at 1. Never overwrite a handoff: a redo or fix cycle gets a new file. The state file remains the source of truth for the current phase and loop counters. A handoff records the stage's result, not a second copy of workflow state.
 
 All handoffs have:
 
@@ -14,7 +14,7 @@ All handoffs have:
   "plan_version": 1,
   "status": "done | blocked | needs_input",
   "outcome": "stage-specific outcome",
-  "artifacts": { "spec | plan | report": "make-it-work/DEMO-1-….md" },
+  "artifacts": { "spec | plan | report": "make-it-work/DEMO-1/DEMO-1-….md" },
   "data": {}
 }
 ```
@@ -30,13 +30,13 @@ Stage-specific `done` fields:
 | execute | `PASSED`, `GUARDRAIL`, `RETRY_LIMIT`, `GATE_FAILED`, `GATE_NO_RESULT`, `EXECUTE_STOPPED` | `discoveries` (strings), `failing_tests` (test names/paths, required and nonempty for `GATE_FAILED`), `gate` (`none`, `full-suite`, `scoped`) |
 | review | `CLEAN`, `FIX_REQUIRED`, `REPLAN_REQUIRED`, `HUMAN_DECISION` | `findings` (see below), `context_gaps` (strings) |
 
-For a run with `verification_version: 1`, a `done` Execute handoff also has `artifacts.verification: make-it-work/<TICKET>-verification-v<plan_version>.json`. The validator checks the ledger's schema, gate outcome, and AC rows against the plan's traceability table. Older runs omit it. See `verification.md` for the ledger contract.
+For a run with `verification_version: 1`, a `done` Execute handoff also has `artifacts.verification: make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json`. The validator checks the ledger's schema, gate outcome, and AC rows against the plan's traceability table. Older runs omit it. See `verification.md` for the ledger contract.
 
 Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route": "fix | replan | human", "region": "path:symbol or function", "introduced_by_fix_of": "#N or step N" | null }`. Use a stable region label across rounds. `CLEAN` has no actionable findings; minor nits remain in the Markdown review. The validator derives the expected outcome from the finding routes and rejects a disagreement.
 
 ## After each stage
 
-1. Finish the normal Markdown artifact and chat report. For Execute, first save the terminal report to `make-it-work/<TICKET>-execute.md`, as `implement` already does.
+1. Finish the normal Markdown artifact and chat report. For Execute, first save the terminal report to `make-it-work/<TICKET>/<TICKET>-execute.md`, as `implement` already does.
 2. Write the JSON handoff using the actual artifact paths and current plan/review counters. These JSON files are local run data under the same ignored `make-it-work/` directory as the other artifacts.
 3. Run `node "<implement-base>/scripts/handoff.mjs" validate --handoff <path> --root <artifact-root>`. The artifact root is the directory containing `make-it-work/`, not necessarily a service repo. On validation failure, correct the result or report a blocked run; never route from invalid JSON.
 4. Run `node "<implement-base>/scripts/handoff.mjs" next --handoff <path> --root <artifact-root> --state <state-file>`. It reads state and artifacts but writes nothing. Use its JSON `action` as the routing decision:

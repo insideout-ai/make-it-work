@@ -26,13 +26,13 @@ test('checks actual step and AC evidence against plan traceability', () => {
 test('checks a ledger file stays inside the run root', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'verification-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'make-it-work'));
-  await writeFile(path.join(root, 'make-it-work/DEMO-verification-v1.json'), JSON.stringify(ledger()));
-  const planPath = path.join(root, 'make-it-work/DEMO-plan.md');
+  await mkdir(path.join(root, 'make-it-work', 'DEMO'), { recursive: true });
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-verification-v1.json'), JSON.stringify(ledger()));
+  const planPath = path.join(root, 'make-it-work/DEMO/DEMO-plan.md');
   await writeFile(planPath, plan);
-  assert.equal((await readVerification(root, 'make-it-work/DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1, plan, outcome: 'PASSED' })).ticket, 'DEMO');
+  assert.equal((await readVerification(root, 'make-it-work/DEMO/DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1, plan, outcome: 'PASSED' })).ticket, 'DEMO');
   const cli = path.resolve('skills/implement/scripts/verification.mjs');
-  const result = JSON.parse(execFileSync(process.execPath, [cli, 'check', '--root', root, '--file', 'make-it-work/DEMO-verification-v1.json',
+  const result = JSON.parse(execFileSync(process.execPath, [cli, 'check', '--root', root, '--file', 'make-it-work/DEMO/DEMO-verification-v1.json',
     '--ticket', 'DEMO', '--plan-version', '1', '--plan', planPath, '--outcome', 'PASSED'], { encoding: 'utf8' }));
   assert.equal(result.valid, true);
   await assert.rejects(readVerification(root, '../DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1 }), /Invalid verification artifact path/);

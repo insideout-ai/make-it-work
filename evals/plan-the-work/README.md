@@ -24,7 +24,7 @@ Five cases exercising `skills/plan-the-work/SKILL.md`'s `--autopilot` flag:
 - **`happy-path`** — autopilot, no test framework configured in the fixture repo. Exercises the
   Step 4.5 `AskUserQuestion` "how"-gap resolution (an `Approach` gap, deliberately planted in the
   fixture's spec) and a full run through to Step 6's final output.
-- **`plan-collision`** — autopilot, with a pre-existing `make-it-work/DEMO-300-plan.md` already in
+- **`plan-collision`** — autopilot, with a pre-existing `make-it-work/DEMO-300/DEMO-300-plan.md` already in
   the fixture. Exercises the one named hard-stop exception: autopilot must never overwrite an
   existing plan file, and resolves the collision by writing to a `-v2` suffix instead.
 - **`with-tests`** — autopilot, with a real configured test framework (Node's built-in
@@ -67,16 +67,16 @@ checking on-disk `.claude/` log persistence.
 ## Decision-log behavior and historical manual-bypass notes
 
 `plan-the-work` writes nothing under `.claude/` of its own accord — its real output is
-`make-it-work/<TICKET>-plan.md` (plus, in Step 5's test-writing sub-phase when a test framework is
+`make-it-work/<TICKET>/<TICKET>-plan.md` (plus, in Step 5's test-writing sub-phase when a test framework is
 configured, test files left uncommitted). The **only** thing this rollout adds under `.claude/` is
-the autopilot decision log itself, `make-it-work/plan-the-work-autopilot-log.jsonl` (per the shared
+the autopilot decision log itself, `make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl` (per the shared
 spec's §1 convention) — so `plan-the-work` falls into the spec's §2 middle category ("one specific
 blocked path among otherwise-unblocked output"), the same category `define-test-strategy` is in
 for its `testing-strategy.md`.
 
 Verified directly (ran `happy-path` and `plan-collision` for real, via plain `claude plugin eval`,
 and read both full transcripts): in both runs, the model attempted the `Write` to
-`make-it-work/plan-the-work-autopilot-log.jsonl`, got a permission-denied result, did **not** retry or
+`make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl`, got a permission-denied result, did **not** retry or
 stall, explicitly said so in its final chat summary ("the on-disk decision log ... couldn't be
 written — permission denied for `.claude/` under the current mode — so recording here instead"),
 and then correctly continued to a complete, correct plan file. So a single blocked `.claude/` write
@@ -91,7 +91,7 @@ and `plan-collision` both carry trace-regex graders (`filler-label-preserved-not
 `filler-never-chosen.md`, `recommended-option-chosen.md`, and, for `plan-collision`,
 `collision-decision-logged.md`) that check this directly — confirmed matching against both real
 runs' traces before being added. **Only the log file's on-disk persistence** (does
-`make-it-work/plan-the-work-autopilot-log.jsonl` actually get written, with correct permissions, at the
+`make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl` actually get written, with correct permissions, at the
 real repo-root path) needs the manual `--dangerously-skip-permissions` path below.
 
 ```bash
@@ -100,7 +100,7 @@ RUN_DIR=$(mktemp -d)
 (cd "$RUN_DIR" && claude -p "/make-it-work:plan-the-work DEMO-200 --autopilot" \
   --plugin-dir /Users/ErezMo/make-it-work --dangerously-skip-permissions \
   --output-format stream-json --verbose > /tmp/transcript.jsonl)
-# then inspect $RUN_DIR/make-it-work/plan-the-work-autopilot-log.jsonl by hand.
+# then inspect $RUN_DIR/make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl by hand.
 ```
 
 (Swap in `plan-collision/fixture.sh` and ticket `DEMO-300` to check that case's log file instead.)
@@ -154,7 +154,7 @@ does.
 
 ### `negative-control`
 
-Fixture: a single-repo project with `make-it-work/DEMO-100-questions.md` present and still
+Fixture: a single-repo project with `make-it-work/DEMO-100/DEMO-100-questions.md` present and still
 `**Status:** Awaiting Answers` (an unanswered `close-the-gaps` offline export), no
 `DEMO-100-spec.md`. Invoked without `--autopilot`.
 
@@ -166,7 +166,7 @@ sandbox (which `evals/go-deep/README.md` notes is itself environment-dependent),
 checkpoint is a plain-text pause, not a tool call. (See "Why `negative-control` alone doesn't prove
 the flag matters" above for why this case doesn't by itself prove `--autopilot` changes behavior.)
 
-Graders: `make-it-work/DEMO-100-plan.md` must **not** exist (Step 4's skeleton write happens after
+Graders: `make-it-work/DEMO-100/DEMO-100-plan.md` must **not** exist (Step 4's skeleton write happens after
 this checkpoint, so a genuinely-blocked run never creates it), and the final message must warn
 that refinement is still pending. The grader accepts equivalent phrasing such as "still being refined"
 instead of requiring the exact words `mid-refinement`; a retained failing trace from the 2026-10-09
@@ -180,21 +180,21 @@ never writing a plan file. Both graders passed.
 ### `plan-collision-negative-control`
 
 Fixture: identical to `plan-collision` below (a pre-existing, sentinel-marked
-`make-it-work/DEMO-300-plan.md`). Invoked **without** `--autopilot`.
+`make-it-work/DEMO-300/DEMO-300-plan.md`). Invoked **without** `--autopilot`.
 
-Graders: `make-it-work/DEMO-300-plan-v2.md` must **not** exist; the original file's sentinel must
+Graders: `make-it-work/DEMO-300/DEMO-300-plan-v2.md` must **not** exist; the original file's sentinel must
 still be present (untouched); the trace must contain "overwrite" (case-insensitive) — the word the
 interactive collision question uses.
 
 Verified for real: ran via plain `claude plugin eval`, read the final message in the trace. The
 model's last message was:
 
-> I found an existing plan file at `make-it-work/DEMO-300-plan.md` from a previous run (it's
+> I found an existing plan file at `make-it-work/DEMO-300/DEMO-300-plan.md` from a previous run (it's
 > explicitly marked stale/placeholder). Before I write the real plan, how would you like to handle
 > it?
 >
-> 1. **Overwrite** `make-it-work/DEMO-300-plan.md` with the new plan
-> 2. **Write to a new file** `make-it-work/DEMO-300-plan-v2.md`, leaving the old one untouched
+> 1. **Overwrite** `make-it-work/DEMO-300/DEMO-300-plan.md` with the new plan
+> 2. **Write to a new file** `make-it-work/DEMO-300/DEMO-300-plan-v2.md`, leaving the old one untouched
 > 3. **Abort** this planning run
 >
 > ... Let me know your choice on the file collision and I'll proceed.
@@ -204,7 +204,7 @@ model's last message was:
 
 ### `happy-path`
 
-Fixture: a single-repo project with a `close-the-gaps`-style `make-it-work/DEMO-200-spec.md`
+Fixture: a single-repo project with a `close-the-gaps`-style `make-it-work/DEMO-200/DEMO-200-spec.md`
 (`**Status:** Answered`) whose "Open implementation note" deliberately leaves an `Approach` gap
 open — two existing cross-cutting patterns already coexist in the fixture's source
 (`src/events/taskEvents.js`'s event-based pattern vs. `src/notifications/sendReminder.js`'s direct
@@ -235,16 +235,16 @@ placeholders, concrete file/function names throughout, and a correct `## Test Pl
 
 ### `plan-collision`
 
-Fixture: a single-repo project with `make-it-work/DEMO-300-spec.md` (a small, low-ambiguity ticket
-— add a `cancelTask` function) **and** a pre-existing `make-it-work/DEMO-300-plan.md` already
+Fixture: a single-repo project with `make-it-work/DEMO-300/DEMO-300-spec.md` (a small, low-ambiguity ticket
+— add a `cancelTask` function) **and** a pre-existing `make-it-work/DEMO-300/DEMO-300-plan.md` already
 present, containing a distinctive sentinel comment and placeholder content marking it as stale.
 Invoked with `--autopilot`.
 
-Graders: `make-it-work/DEMO-300-plan-v2.md` exists; the original `DEMO-300-plan.md` still contains
+Graders: `make-it-work/DEMO-300/DEMO-300-plan-v2.md` exists; the original `DEMO-300-plan.md` still contains
 its sentinel string unmodified (proves it was never touched, let alone overwritten); an `llm`
 grader on the `-v2` file confirms it's a genuine fresh plan for the real ticket, not a copy of the
 stale placeholder; a trace regex confirms the printed `execute` hint names the resolved path in
-context — `execute make-it-work/DEMO-300-plan-v2\.md`, deliberately tighter than a bare
+context — `execute make-it-work/DEMO-300/DEMO-300-plan-v2\.md`, deliberately tighter than a bare
 `DEMO-300-plan-v2\.md` match (which would trivially pass from the `Write` tool call's own
 `file_path` argument alone, without actually checking the printed hint text); plus the same three
 decision-log-schema trace graders `happy-path` has, and one more
@@ -252,15 +252,15 @@ decision-log-schema trace graders `happy-path` has, and one more
 
 Verified for real: ran via plain `claude plugin eval`, read the full generated `-v2` plan content
 (embedded in the `llm` grader's evidence) and the trace's decision-log `Write` attempt. The model
-detected the collision at Step 4, chose `"write to make-it-work/DEMO-300-plan-v2.md"` (never
+detected the collision at Step 4, chose `"write to make-it-work/DEMO-300/DEMO-300-plan-v2.md"` (never
 "overwrite", never "abort"), left the original file's sentinel and stale-marker text completely
 intact, and produced a complete, correct, placeholder-free plan for the real ticket at the `-v2`
-path, printing `Run /make-it-work:execute make-it-work/DEMO-300-plan-v2.md` (not the bare ticket
+path, printing `Run /make-it-work:execute make-it-work/DEMO-300/DEMO-300-plan-v2.md` (not the bare ticket
 key) in its final summary. All 9 graders passed.
 
 ### `with-tests`
 
-Fixture: a single-repo project with `make-it-work/DEMO-400-spec.md`, a currently-passing regression
+Fixture: a single-repo project with `make-it-work/DEMO-400/DEMO-400-spec.md`, a currently-passing regression
 test (`src/tasks/createTask.test.js`), and a real configured test framework (`"test": "node
 --test"` — Node's built-in runner with its default recursive test-file discovery, chosen so the
 fixture needs no `npm install`/network access).  Invoked with `--autopilot`.
@@ -283,7 +283,7 @@ whitespace-related test was actually added; an `llm` grader on the plan's `**Tes
 that step, confirming it names the real file/command and a correctly-reasoned progression-red state
 (this is a **Modify** row — `createTask` already exists and runs — so no stub signature should be
 written, and the red state should come from the new assertion failing against the *current*
-implementation); and the `make-it-work/plan-the-work-autopilot-log.jsonl` existence check, which only a
+implementation); and the `make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl` existence check, which only a
 `--dangerously-skip-permissions` run can satisfy.
 
 **Not yet run for real** — this needs a human (or a different machine/CI) to invoke
@@ -301,13 +301,13 @@ RUN_DIR=$(mktemp -d)
   --output-format stream-json --verbose > /tmp/plan-the-work-with-tests-transcript.jsonl)
 ```
 
-Then check: `make-it-work/DEMO-400-plan.md`'s `**Tests:**` field for the step that changes
+Then check: `make-it-work/DEMO-400/DEMO-400-plan.md`'s `**Tests:**` field for the step that changes
 `createTask`; `git status` in `$RUN_DIR` showing the new test file as an uncommitted working-tree
 change (no stub — this is a Modify row), and `git log` showing no new commit was made for it; that
 `npm test` run in `$RUN_DIR` **fails**
 on the new whitespace-title test by design at that point (2 original tests passing, the new one
 red) — it should only turn fully green once a later `execute` step actually implements the trimming
-behavior, which this plan does not do; and `$RUN_DIR/make-it-work/plan-the-work-autopilot-log.jsonl`
+behavior, which this plan does not do; and `$RUN_DIR/make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl`
 against the schema in `skills/plan-the-work/SKILL.md`'s Autopilot Mode section. As always, diff
 `git status` on the real repo before/after and confirm it's unchanged.
 

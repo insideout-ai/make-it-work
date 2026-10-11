@@ -1,6 +1,6 @@
 ---
 type: regex
-target: { source: file, path: "make-it-work/DEMO-1-plan.md" }
+target: { source: file, path: "make-it-work/DEMO-1/DEMO-1-plan.md" }
 pattern: "\\*\\*Inline pause mode:\\*\\* Run straight through"
 weight: 3
 ---

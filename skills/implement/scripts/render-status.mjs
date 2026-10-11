@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
-import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -360,20 +361,13 @@ export function formatDuration(milliseconds) {
   return parts.join(' ');
 }
 
-function validateArtifactPath(value, field) {
+function validateArtifactPath(value, field, ticket) {
   if (value === 'none') return null;
-  if (!value.startsWith('make-it-work/')) {
-    fail(`Field "${field}" must be "none" or a make-it-work/ artifact path.`);
-  }
-  const relative = value.slice('make-it-work/'.length);
-  if (!relative || relative !== path.posix.basename(relative) || relative.includes('..')) {
-    fail(`Field "${field}" must point to a direct child of make-it-work/.`);
-  }
-  return relative;
+  return runArtifactName(value, ticket, `Field "${field}"`);
 }
 
-function artifactLink(value, field) {
-  const relative = validateArtifactPath(value, field);
+function artifactLink(value, field, ticket) {
+  const relative = validateArtifactPath(value, field, ticket);
   if (!relative) return '<span class="none">Not yet created</span>';
   return `<a href="${escapeHtml(relative)}">${escapeHtml(value)}</a>`;
 }
@@ -392,7 +386,7 @@ function slotState(slot, activeSlot, status) {
   return 'failed';
 }
 
-function renderTimeline(state, timeline, planStatus) {
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom) {
   const { slots, activeSlot } = timeline;
   const activated = slots.filter((slot) => slot.activationRow);
 
@@ -435,7 +429,8 @@ function renderTimeline(state, timeline, planStatus) {
       const activatedIndex = activated.indexOf(slot);
       const next = activated[activatedIndex + 1];
       if (next) {
-        const duration = slot.activationRow.number < state.realRowsFrom || next.activationRow.number < state.realRowsFrom
+        const duration = slot.activationRow.number < state.realRowsFrom || next.activationRow.number < state.realRowsFrom ||
+          next.activationRow.number >= invalidTimestampFrom
           ? '—'
           : formatDuration(next.activationRow.epoch - slot.activationRow.epoch);
         pieces.push(`  <div class="phase-duration">${duration}</div>`);
@@ -451,27 +446,34 @@ function renderTimeline(state, timeline, planStatus) {
   }).join('\n');
 }
 
-function timingDetails(state) {
-  if (state.audit.length < 2 || state.realRowsFrom > state.audit.length) return null;
+function timingDetails(state, invalidTimestampFrom) {
+  if (state.audit.length < 2 || state.realRowsFrom > state.audit.length || Number.isFinite(invalidTimestampFrom)) return null;
   const first = state.audit[state.realRowsFrom - 1];
   const last = state.audit.at(-1);
   return { total: formatDuration(last.epoch - first.epoch), first, last };
 }
 
-function renderAuditRows(state) {
+function renderAuditRows(state, invalidTimestampFrom) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
     if (row.number === state.realRowsFrom) {
       duration = ' <span class="step-duration" title="First row with a real captured timestamp — no real predecessor to measure from.">(first real timestamp)</span>';
+    } else if (row.number >= invalidTimestampFrom) {
+      duration = ' <span class="timestamp-warning">(duration unavailable)</span>';
     } else if (row.number > state.realRowsFrom) {
       const previous = state.audit[row.number - 2];
       duration = ` <span class="step-duration">(+${formatDuration(row.epoch - previous.epoch)})</span>`;
     }
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(row.outcome)}${duration}</td></tr>`;
+    const warning = row.number === invalidTimestampFrom
+      ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(row.outcome)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
-function renderSessionTiming(state, timing) {
+function renderSessionTiming(state, timing, invalidTimestampFrom) {
+  if (Number.isFinite(invalidTimestampFrom)) {
+    return `<p class="session-timing">Timing unavailable: audit row ${invalidTimestampFrom} is later than the state file's checkpoint time. Durations from that row onward cannot be trusted.</p>`;
+  }
   if (!timing) return '';
   const legacy = state.realRowsFrom > 1
     ? ` This is not the full session duration — everything before row ${state.realRowsFrom} happened before any real timestamp was captured.`
@@ -479,18 +481,23 @@ function renderSessionTiming(state, timing) {
   return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of real captured time.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
 }
 
-function renderStatusBanner(state, timing) {
+function renderStatusBanner(state, timing, invalidTimestampFrom) {
   if (state.fields.status === 'Paused' || state.fields.status === 'Stopped') {
     return `<p class="next-action"><strong>Waiting on you:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
   }
   if (state.fields.status !== 'Complete') return '';
-  const duration = timing
+  const duration = Number.isFinite(invalidTimestampFrom)
+    ? 'Elapsed unavailable — an audit timestamp is later than the state checkpoint.'
+    : timing
     ? `Real-timestamped portion of this run: ${timing.total}.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
     : 'Elapsed: unknown — no real start timestamp was captured for this run.';
   const artifacts = state.fields.final_package_version === '1'
     ? 'spec/plan/execute/review/final package/state/dashboard'
     : 'spec/plan/execute/review/state/dashboard';
-  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes are uncommitted — review the working tree and commit when ready. This ticket's artifacts (${artifacts}) are in <code>make-it-work/</code> and aren't committed — delete them yourself whenever you're done referencing this run. <code>make-it-work/implement-feedback.md</code> is cumulative and separate from those ticket artifacts; keep it if you plan to review or share the workflow feedback.</p>`;
+  const delivery = state.fields.final_package_version === '1'
+    ? ` <strong>Optional next step:</strong> run <code>/make-it-work:deliver ${escapeHtml(state.fields.ticket)}</code> to prepare delivery. It still requires your explicit approval of the exact plan before any commit, push, or PR action.`
+    : '';
+  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes are uncommitted — review the working tree and commit when ready.${delivery} This ticket's artifacts (${artifacts}) are in <code>make-it-work/${escapeHtml(state.fields.ticket)}/</code> and aren't committed — delete that directory yourself whenever you're done referencing this run. <code>make-it-work/implement-feedback.md</code> is cumulative and separate from those ticket artifacts; keep it if you plan to review or share the workflow feedback.</p>`;
 }
 
 function applyTemplate(template, replacements) {
@@ -503,33 +510,34 @@ function applyTemplate(template, replacements) {
   return output;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity }) {
   const timeline = buildTimeline(state);
   const needsPlan = timeline.slots.some((slot) => slot.activationRow && (
     slot.phase === 'fix-plan' || (slot === timeline.activeSlot && slot.phase === 'execute')
   ));
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
-  const timing = timingDetails(state);
+  const timing = timingDetails(state, invalidTimestampFrom);
   const reviewLink = state.fields.review === 'not-started'
     ? '<span class="none">Not yet created</span>'
-    : artifactLink(`make-it-work/${state.fields.ticket}-review.md`, 'review');
+    : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`), 'review', state.fields.ticket);
   const replacements = {
     TICKET: escapeHtml(state.fields.ticket),
+    AUTO_REFRESH: state.fields.status === 'In Progress' ? '<meta http-equiv="refresh" content="15">' : '',
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus),
-    STATUS_BANNER: renderStatusBanner(state, timing),
-    SPEC_LINK: artifactLink(state.fields.spec, 'spec'),
-    PLAN_LINK: artifactLink(state.fields.plan, 'plan'),
-    EXECUTE_LINK: artifactLink(state.fields.execute_report, 'execute_report'),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom),
+    STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom),
+    SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
+    PLAN_LINK: artifactLink(state.fields.plan, 'plan', state.fields.ticket),
+    EXECUTE_LINK: artifactLink(state.fields.execute_report, 'execute_report', state.fields.ticket),
     REVIEW_LINK: reviewLink,
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
-      ? artifactLink(`make-it-work/${state.fields.ticket}-final-package.md`, 'final_package')
+      ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
-    AUDIT_ROWS: renderAuditRows(state),
-    SESSION_TIMING: renderSessionTiming(state, timing),
+    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
+    SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     REVIEW_CYCLE: String(state.reviewCycle),
     FIX_CYCLE: String(state.fixCycle),
     REPLANS_USED: String(state.replansUsed),
@@ -539,26 +547,29 @@ export function renderStatus({ state, template, logoBase64, planStatus = null })
   return applyTemplate(template, replacements);
 }
 
-function resolvedPlanPath(statePath, planField) {
-  const relative = validateArtifactPath(planField, 'plan');
+function resolvedPlanPath(statePath, planField, ticket) {
+  const relative = validateArtifactPath(planField, 'plan', ticket);
   return relative ? path.join(path.dirname(statePath), relative) : null;
 }
 
 export async function generateDashboard(statePath) {
   const absoluteStatePath = path.resolve(statePath);
-  const [stateMarkdown, template, logo] = await Promise.all([
+  const [stateMarkdown, stateInfo, template, logo] = await Promise.all([
     readFile(absoluteStatePath, 'utf8'),
+    stat(absoluteStatePath),
     readFile(TEMPLATE_PATH, 'utf8'),
     readFile(LOGO_PATH, 'utf8'),
   ]);
   const state = parseState(stateMarkdown, absoluteStatePath);
+  assertRunState(path.dirname(path.dirname(path.dirname(absoluteStatePath))), absoluteStatePath, state.fields.ticket);
+  const invalidTimestampFrom = state.audit.find((row) => row.epoch > stateInfo.mtimeMs + 60_000)?.number ?? Infinity;
   const timeline = buildTimeline(state);
   const needsPlan = timeline.slots.some((slot) => slot.activationRow && (
     slot.phase === 'fix-plan' || (slot === timeline.activeSlot && slot.phase === 'execute')
   ));
   let planStatus = null;
   if (needsPlan) {
-    const planPath = resolvedPlanPath(absoluteStatePath, state.fields.plan);
+    const planPath = resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket);
     if (!planPath) fail('Timeline requires plan progress, but the state plan field is none.');
     let planMarkdown;
     try {
@@ -570,7 +581,7 @@ export async function generateDashboard(statePath) {
   }
   const logoBase64 = logo.trim();
   if (!logoBase64 || !/^[A-Za-z0-9+/=]+$/.test(logoBase64)) fail('Logo asset is empty or invalid base64.');
-  const html = renderStatus({ state, template, logoBase64, planStatus });
+  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {
@@ -586,7 +597,7 @@ export async function generateDashboard(statePath) {
 function parseArgs(argv) {
   if (argv.length === 1 && (argv[0] === '--help' || argv[0] === '-h')) return { help: true };
   if (argv.length !== 2 || argv[0] !== '--state' || !argv[1]) {
-    fail('Usage: node render-status.mjs --state make-it-work/<TICKET>-state.md');
+    fail('Usage: node render-status.mjs --state make-it-work/<TICKET>/<TICKET>-state.md');
   }
   return { statePath: argv[1] };
 }
@@ -594,7 +605,7 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    process.stdout.write('Usage: node render-status.mjs --state make-it-work/<TICKET>-state.md\n');
+    process.stdout.write('Usage: node render-status.mjs --state make-it-work/<TICKET>/<TICKET>-state.md\n');
     return;
   }
   const outputPath = await generateDashboard(args.statePath);

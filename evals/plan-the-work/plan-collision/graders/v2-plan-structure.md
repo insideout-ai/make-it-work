@@ -1,11 +1,11 @@
 ---
 type: llm
-focus: { source: file, path: "make-it-work/DEMO-300-plan-v2.md" }
+focus: { source: file, path: "make-it-work/DEMO-300/DEMO-300-plan-v2.md" }
 weight: 3
 ---
 
 This is the output of an unattended ("autopilot") run of a skill called `plan-the-work`, for
-ticket DEMO-300, run a second time after a stale `make-it-work/DEMO-300-plan.md` already existed
+ticket DEMO-300, run a second time after a stale `make-it-work/DEMO-300/DEMO-300-plan.md` already existed
 from a prior run. Autopilot's designated policy for this collision is: never overwrite or abort,
 always write to the next free `-v2` (or higher) suffix instead.
 

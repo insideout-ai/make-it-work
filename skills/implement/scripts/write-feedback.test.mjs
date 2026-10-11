@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -41,9 +41,12 @@ function diagnosis(summary) {
 }
 
 async function workspace(t, state) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'implement-feedback-test-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-feedback-test-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = path.join(root, 'make-it-work');
+  const runDirectory = path.join(directory, 'DEMO');
+  await mkdir(runDirectory, { recursive: true });
+  const statePath = path.join(runDirectory, 'DEMO-state.md');
   await writeFile(statePath, state);
   return { directory, statePath, feedbackPath: path.join(directory, 'implement-feedback.md') };
 }
@@ -120,7 +123,7 @@ test('ineligible stop and missing run ID cannot write', async (t) => {
   await assert.rejects(writeFeedback(statePath, { limitStop: true }), /limit\/cap\/exhausted evidence/);
   await writeFile(statePath, complete.replace('start_time: 2026-01-01T10:00:00Z', 'start_time: none'));
   await assert.rejects(writeFeedback(statePath), /start_time/);
-  assert.deepEqual(await readdir(directory), ['DEMO-state.md']);
+  assert.deepEqual(await readdir(directory), ['DEMO']);
 });
 
 test('analysis mismatch and unsafe text fail without touching existing feedback', async (t) => {
@@ -132,7 +135,7 @@ test('analysis mismatch and unsafe text fail without touching existing feedback'
   analysis.events[0].row = 7;
   await assert.rejects(writeFeedback(statePath, { analysis }), /must match/);
   analysis.events[0].row = 6;
-  analysis.events[0].trigger = 'See make-it-work/DEMO-spec.md';
+  analysis.events[0].trigger = 'See make-it-work/DEMO/DEMO-spec.md';
   await assert.rejects(writeFeedback(statePath, { analysis }), /share-safe/);
   assert.equal(await readFile(feedbackPath, 'utf8'), 'User-owned text\n');
 });
@@ -182,7 +185,7 @@ test('CLI inspect is read-only and CLI write emits the summary', async (t) => {
   const inspect = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', statePath], { encoding: 'utf8' });
   assert.equal(inspect.status, 0, inspect.stderr);
   assert.equal(JSON.parse(inspect.stdout).minimal, true);
-  assert.deepEqual(await readdir(directory), ['DEMO-state.md']);
+  assert.deepEqual(await readdir(directory), ['DEMO']);
   const write = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', statePath], { encoding: 'utf8' });
   assert.equal(write.status, 0, write.stderr);
   assert.equal(JSON.parse(write.stdout).outputPath, feedbackPath);
