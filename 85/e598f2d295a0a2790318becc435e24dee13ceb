@@ -1,0 +1,341 @@
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/spec-exists.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/decision-log-table-present.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/implement/feedback-idempotent/fixture/fixture-artifacts/DEMO-state.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 12,14,30
+evals/find-the-repos/find-the-repos-happy-path/graders/no-autosave-before-confirmation.md
+  s_5029e44f9c3f87::t_7ceafb654009f0 3
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/spec-not-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/execute/execute-full-pass/prompt.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 9
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/gherkin-keyword-spacing.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/execute/execute-resume-inline/graders/mode-unchanged-inline.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-full-info/graders/review-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-conflicting-answers/prompt.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 9
+evals/plan-the-work/plan-collision/graders/original-plan-untouched.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/execute/execute-resume-inline/graders/progress-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+skills/implement/scripts/handoff.mjs
+  s_5029e44f9c3f87::t_136e9b87d8efac 8
+  s_5029e44f9c3f87::t_9f7fcabe10605f 124,133,138,150,152,318,320
+docs/autopilot-log-schema.md
+  s_5029e44f9c3f87::t_657518be035435 21-22
+  s_5029e44f9c3f87::t_a622839c930f5c 30
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/admin-role-gap-addressed.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/implement/feedback-clean/graders/state-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/implement/feedback-idempotent/graders/state-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-bare/graders/autopilot-log-exists.md
+  s_5029e44f9c3f87::t_e21cc1d7af153a 3
+skills/find-the-repos/SKILL.md
+  s_5029e44f9c3f87::t_90dd648493dbd7 37,39
+  s_5029e44f9c3f87::t_657518be035435 30,86,128
+evals/review-the-pr/autopilot-full-info/graders/autopilot-log-content.md
+  s_5029e44f9c3f87::t_e21cc1d7af153a 3
+skills/implement/scripts/handoff.test.mjs
+  s_5029e44f9c3f87::t_da9ab76d117f30 30,33,99
+  s_5029e44f9c3f87::t_9f0650155bce5c 11-13,15,31,35,38-40
+skills/implement/scripts/final-package.test.mjs
+  s_5029e44f9c3f87::t_da9ab76d117f30 38
+  s_5029e44f9c3f87::t_bac7e290de6923 27-28,32,115
+evals/execute/execute-stop-at-gate/graders/mode-resolved-subagent-driven.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+skills/implement/scripts/verification.mjs
+  s_5029e44f9c3f87::t_13d02bd8cbfab2 4,101-104,108
+skills/implement/assets/status-template.html
+  s_4bafe3b9b86165::t_fa0549b389a55e 5
+  s_4bafe3b9b86165::t_c3a83112d7dbfc 16,122-128
+evals/close-the-gaps/close-the-gaps-conflicting-answers/graders/no-spec.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/plan-the-work/negative-control/graders/plan-not-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/run-all.sh
+  s_5029e44f9c3f87::t_fedd7a8e1b3850 13,44,65,81
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 7
+evals/find-the-repos/find-the-repos-single-repo-refusal/graders/no-repos-file-written.md
+  s_5029e44f9c3f87::t_7ceafb654009f0 3
+skills/implement/references/feedback.md
+  s_5029e44f9c3f87::t_9310ae30e3560e 46,56,145
+evals/implement/feedback-nonminimal/graders/state-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+skills/implement/scripts/artifact-layout.mjs
+  s_5029e44f9c3f87::t_a69418ef75a55a 1-10,12-32
+  s_5029e44f9c3f87::t_608591815d9036 11
+evals/close-the-gaps/close-the-gaps-negative-control/graders/spec-not-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/find-the-repos/find-the-repos-technical-fallback/graders/no-autosave-before-confirmation.md
+  s_5029e44f9c3f87::t_7ceafb654009f0 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/autopilot-markers-present.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 12,14,30
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/no-repos-file-written.md
+  s_5029e44f9c3f87::t_7ceafb654009f0 3
+skills/implement/scripts/deliver.test.mjs
+  s_5029e44f9c3f87::t_da9ab76d117f30 46-47
+  s_5029e44f9c3f87::t_bac7e290de6923 19,22
+skills/execute/scripts/plan-status.mjs
+  s_5029e44f9c3f87::t_7d025f454a5882 140
+  s_4bafe3b9b86165::t_188011847acac0 9,127-131,133-139,141-146,161-163
+  s_5029e44f9c3f87::t_55798996778086 132
+evals/plan-the-work/plan-collision/graders/v2-plan-structure.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3,8
+evals/implement/implement-autopilot-full/graders/autopilot-log.md
+  s_5029e44f9c3f87::t_25ff4989e1f562 3
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/status-still-awaiting.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/gherkin-scenarios-present.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-bare/graders/review-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-bare/graders/autopilot-log-content.md
+  s_5029e44f9c3f87::t_e21cc1d7af153a 3
+evals/find-the-repos/run-all.sh
+  s_5029e44f9c3f87::t_28dcf5bcd49b04 3
+skills/implement/scripts/verification.test.mjs
+  s_5029e44f9c3f87::t_da9ab76d117f30 29
+  s_5029e44f9c3f87::t_bac7e290de6923 30-31,33,35
+evals/close-the-gaps/close-the-gaps-offline-injection/prompt.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 9
+evals/plan-the-work/happy-path/graders/plan-file-exists.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-full-info/graders/autopilot-log-exists.md
+  s_5029e44f9c3f87::t_e21cc1d7af153a 3
+evals/find-the-repos/README.md
+  s_5029e44f9c3f87::t_7ceafb654009f0 61,87,102,116
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 30,138
+skills/implement/scripts/render-status.mjs
+  s_4bafe3b9b86165::t_531c68a8c7bcb7 4,389,432-433,449-450,456,461-462,467-469,473-476,484,489-491,513,520,530-531,539-540,557,559,565,584
+  s_5029e44f9c3f87::t_636bf18f592ea6 497-499
+  s_5029e44f9c3f87::t_eaff02bab1a7ff 7,364,366,369-370,523,532-534,537,550-551,564,572,600
+  s_5029e44f9c3f87::t_a622839c930f5c 500,608
+  s_4bafe3b9b86165::t_fa0549b389a55e 526
+skills/execute/SKILL.md
+  s_5029e44f9c3f87::t_9a8e12251cbf69 34
+  s_5029e44f9c3f87::t_9310ae30e3560e 27,47,75,337,357,396,398
+  s_5029e44f9c3f87::t_c732e4b42d92ac 36
+  s_4bafe3b9b86165::t_188011847acac0 105
+evals/close-the-gaps/run-all.sh
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 8-9
+  s_5029e44f9c3f87::t_0dcc0895cd13be 5,41
+skills/execute/scripts/plan-status.test.mjs
+  s_5029e44f9c3f87::t_b72deeb8534ccc 3,20-23
+  s_4bafe3b9b86165::t_99e41e2bda6eef 13,109-117,119,121-127
+  s_5029e44f9c3f87::t_33a24ed7ae5c43 118,120
+  s_2de2ff8c339eb3::t_91c7cabc6cb118 128-129
+skills/implement/scripts/deliver.mjs
+  s_5029e44f9c3f87::t_0b1d9b148075b7 11,35,74,99,123,134
+  s_5029e44f9c3f87::t_aed25990abfb74 126,129,131
+skills/implement/scripts/write-feedback.mjs
+  s_5029e44f9c3f87::t_824f34497e37d3 6,228
+  s_5029e44f9c3f87::t_8b9531f8f5ecd9 230
+skills/implement/scripts/write-feedback.test.mjs
+  s_5029e44f9c3f87::t_b72deeb8534ccc 3
+  s_5029e44f9c3f87::t_bac7e290de6923 138
+  s_5029e44f9c3f87::t_33a24ed7ae5c43 126,188
+  s_5029e44f9c3f87::t_da9ab76d117f30 44-49
+evals/execute/execute-full-pass/graders/progress-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/execute/execute-stop-at-gate/graders/progress-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/implement/feedback-nonminimal/fixture/fixture-artifacts/DEMO-state.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 12,14,30
+skills/implement/references/verification.md
+  s_5029e44f9c3f87::t_9310ae30e3560e 5,32
+evals/execute/execute-negative-control/prompt.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 9
+evals/execute/execute-stop-at-gate/prompt.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 9
+skills/deliver/SKILL.md
+  s_5029e44f9c3f87::t_67c260214ce9bf 9
+  s_5029e44f9c3f87::t_9310ae30e3560e 13-14
+evals/execute/execute-negative-control/graders/mode-still-unresolved.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+skills/implement/SKILL.md
+  s_5029e44f9c3f87::t_74ae3e8d633dc4 28,32,66,476
+  s_5029e44f9c3f87::t_9310ae30e3560e 125,140,145,148,200,205,208,286,291,396,399,434-435,439,489
+  s_5029e44f9c3f87::t_67c260214ce9bf 469
+evals/implement/seed-fixture.sh
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 33-34,43-44
+  s_5029e44f9c3f87::t_bcf65e787dbc96 22-23
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/halt-explained.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 7,12
+evals/execute/README.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 132,138
+  s_5029e44f9c3f87::t_28dcf5bcd49b04 17
+  s_5029e44f9c3f87::t_0dcc0895cd13be 98,139,187,272
+CHANGELOG.md
+  s_5029e44f9c3f87::t_a622839c930f5c 8,13-15,17
+  s_5029e44f9c3f87::t_119be8a4365bad 7,9-12,16
+evals/plan-the-work/happy-path/graders/approach-gap-resolved.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/execute/execute-resume-inline/prompt.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 9
+skills/review-the-pr/SKILL.md
+  s_5029e44f9c3f87::t_9a8e12251cbf69 32,38
+  s_5029e44f9c3f87::t_657518be035435 162
+  s_5029e44f9c3f87::t_c732e4b42d92ac 34
+  s_5029e44f9c3f87::t_9310ae30e3560e 30,200,260
+evals/plan-the-work/plan-collision/graders/original-plan-not-overwritten.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/implement/implement-autopilot-full/graders/state-complete.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/plan-the-work/README.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 27,70,157,169,183,185,192,196-197,207,238-239,243,247,255,258,263,304
+  s_5029e44f9c3f87::t_0dcc0895cd13be 72,79,94,103,286,310
+evals/plan-the-work/plan-collision/graders/v2-plan-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+skills/implement/scripts/render-status.test.mjs
+  s_5029e44f9c3f87::t_b72deeb8534ccc 2,91-94,303
+  s_5029e44f9c3f87::t_f24d7ad1ba9f04 242
+  s_5029e44f9c3f87::t_636bf18f592ea6 232,247-248
+  s_4bafe3b9b86165::t_fa0549b389a55e 116,193
+  s_5029e44f9c3f87::t_33a24ed7ae5c43 250
+  s_4bafe3b9b86165::t_c3a83112d7dbfc 119
+  s_4bafe3b9b86165::t_0f13ad0f34653a 278-294
+  s_5029e44f9c3f87::t_bac7e290de6923 141,233-234,323
+evals/close-the-gaps/manual-log-check.sh
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 59
+  s_5029e44f9c3f87::t_8f30c4bc2e80cd 2,56
+skills/implement/scripts/final-package.mjs
+  s_5029e44f9c3f87::t_8d87b8d7845129 132-134
+  s_5029e44f9c3f87::t_e78db04ba036c8 10,103,123,128-130,139,144,182,197,240-241
+skills/implement/references/handoffs.md
+  s_5029e44f9c3f87::t_9310ae30e3560e 5,33,39
+  s_5029e44f9c3f87::t_a622839c930f5c 17
+evals/execute/execute-full-pass/graders/mode-resolved-subagent-driven.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+skills/close-the-gaps/SKILL.md
+  s_5029e44f9c3f87::t_9310ae30e3560e 35,77,197,290,409
+  s_5029e44f9c3f87::t_c732e4b42d92ac 40,296
+  s_5029e44f9c3f87::t_68dc3fa7fec02b 62
+  s_5029e44f9c3f87::t_90dd648493dbd7 38,60
+evals/close-the-gaps/README.md
+  s_5029e44f9c3f87::t_0dcc0895cd13be 20,33,41
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 6-7
+evals/plan-the-work/plan-collision-negative-control/graders/original-untouched.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-bare/graders/review-content.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/review-the-pr/autopilot-full-info/graders/review-content.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+scripts/decision-log.mjs
+  s_5029e44f9c3f87::t_55798996778086 175,178,181
+  s_5029e44f9c3f87::t_8fa50725499669 94,106-120,127,142,146,171-174,176-177,179-180,182,185
+skills/plan-the-work/SKILL.md
+  s_5029e44f9c3f87::t_9a8e12251cbf69 37,39
+  s_5029e44f9c3f87::t_c732e4b42d92ac 41,157
+  s_5029e44f9c3f87::t_9310ae30e3560e 11,94,97,105,232,314-315,336,352,356,363,381,392
+evals/close-the-gaps/close-the-gaps-conflicting-answers/fixture.sh
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 6
+evals/execute/execute-negative-control/graders/progress-unchanged.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/plan-the-work/plan-collision-negative-control/graders/v2-not-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/graders/no-plan.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+README.md
+  s_5029e44f9c3f87::t_a622839c930f5c 147,313
+  s_5029e44f9c3f87::t_4a1a709a43afd6 100,181,307,321,324
+  s_5029e44f9c3f87::t_67c260214ce9bf 136,155
+evals/execute/execute-resume-inline/graders/inline-pause-mode-backfilled.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/spec-exists.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/plan-the-work/plan-the-work-mid-refinement-autopilot/graders/stops-for-refinement.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 8
+evals/plan-the-work/with-tests/graders/plan-tests-field-recorded.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-stale-questions-file/graders/stale-file-survives.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/questions-file-superseded.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3-4
+evals/review-the-pr/negative-control/graders/review-not-created.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/decision-log-content.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3,7
+evals/review-the-pr/README.md
+  s_5029e44f9c3f87::t_fedd7a8e1b3850 77,95,130,153
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 97,129
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/no-tbd-section.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 3
+evals/plan-the-work/plan-collision/graders/execute-hint-names-v2.md
+  s_5029e44f9c3f87::t_9c2f5bbd76e0c8 4,10
+evals/plan-the-work/run-all.sh
+  s_5029e44f9c3f87::t_0dcc0895cd13be 7
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/shortlist-saved.md
+  s_5029e44f9c3f87::t_7ceafb654009f0 3
+scripts/decision-log.test.mjs
+  s_5029e44f9c3f87::t_27e6c865019e98 54-63
+.claude-plugin/plugin.json
+  s_5029e44f9c3f87::t_119be8a4365bad 6
+.gitignore
+  s_5029e44f9c3f87::t_00fab1862ddee6 1
+evals/close-the-gaps/close-the-gaps-offline-injection/fixture/make-it-work/TASK-50/TASK-50-questions.md
+  s_5029e44f9c3f87::t_0c25537837ce4a 1-69
+evals/close-the-gaps/close-the-gaps-stale-questions-file/fixture/make-it-work/TASK-99/TASK-99-questions.md
+  s_5029e44f9c3f87::t_1d6efc736df351 1-43
+evals/execute/execute-full-pass/fixture/make-it-work/DEMO-2/DEMO-2-plan.md
+  s_5029e44f9c3f87::t_bd0fd05ae14d81 1-121
+evals/execute/execute-negative-control/fixture/make-it-work/DEMO-1/DEMO-1-plan.md
+  s_5029e44f9c3f87::t_6b3458bcec052c 1-128
+evals/execute/execute-resume-inline/fixture/make-it-work/DEMO-1/DEMO-1-plan.md
+  s_5029e44f9c3f87::t_3ad33af23edeee 1-126
+evals/execute/execute-stop-at-gate/fixture/make-it-work/DEMO-1/DEMO-1-plan.md
+  s_5029e44f9c3f87::t_cacc7fc8322850 1-128
+evals/plan-the-work/happy-path/fixture/make-it-work/DEMO-200/DEMO-200-spec.md
+  s_5029e44f9c3f87::t_ee48892f540433 1-37
+evals/plan-the-work/negative-control/fixture/make-it-work/DEMO-100/DEMO-100-questions.md
+  s_5029e44f9c3f87::t_61de0a21f3fc1d 1-15
+evals/plan-the-work/plan-collision-negative-control/fixture/make-it-work/DEMO-300/DEMO-300-plan.md
+  s_5029e44f9c3f87::t_67a435287ffbc7 1-18
+evals/plan-the-work/plan-collision-negative-control/fixture/make-it-work/DEMO-300/DEMO-300-spec.md
+  s_5029e44f9c3f87::t_2260e19fe35c9e 1-28
+evals/plan-the-work/plan-collision/fixture/make-it-work/DEMO-300/DEMO-300-plan.md
+  s_5029e44f9c3f87::t_8e591c2378e2c3 1-18
+evals/plan-the-work/plan-collision/fixture/make-it-work/DEMO-300/DEMO-300-spec.md
+  s_5029e44f9c3f87::t_f913d68c2f1f1e 1-28
+evals/plan-the-work/with-tests/fixture/make-it-work/DEMO-400/DEMO-400-spec.md
+  s_5029e44f9c3f87::t_17f34a863cbeae 1-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "85e598f2d295a0a2790318becc435e24dee13ceb",
+  "prompts": {},
+  "sessions": {
+    "s_2de2ff8c339eb3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8780ccd7-d54d-4012-92a0-02d0cdfe05e0",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_4bafe3b9b86165": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12274-e4d4-7b61-8ee3-5113681041e1",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_5029e44f9c3f87": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a12256-dafc-7833-8d2a-83c1c0cf7b40",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
