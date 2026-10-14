@@ -4,6 +4,14 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0] - 2026-10-14
+
+### Changed
+
+- `implement` asks for autonomy before the branch decision. Choosing Autopilot interactively now creates the suggested branch without another prompt; choosing the suggested branch in Guided or Autonomous creates it immediately, while a separate choice accepts a custom name.
+- After a package-enabled run completes, `implement` asks whether to prepare delivery even in Autopilot. Delivery remains a separate workflow and still requires approval of its exact plan before committing, pushing, or creating a PR.
+- The dashboard shows Deliver as an optional step after Complete, keeps the final package in the artifact grid, shortens the completion banner, and gives cumulative workflow feedback its own note.
+
 ## [4.8.0] - 2026-10-11
 
 ### Added

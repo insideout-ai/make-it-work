@@ -1,6 +1,6 @@
 ---
 tags: [implement, autopilot]
-allowed_tools: [Read, Glob, Grep, Edit, Write, Bash, Agent, Skill]
+allowed_tools: [Read, Glob, Grep, Edit, Write, Bash, Agent, Skill, AskUserQuestion]
 max_turns: 200
 timeout_seconds: 2400
 runs: 1
@@ -15,4 +15,4 @@ Acceptance criteria:
 - Members remain allowed.
 - Guests remain denied.
 
-Complete the unattended workflow. Do not ask questions, commit, push, or open a PR.
+Complete implementation unattended. Once the run is marked Complete, offer the optional delivery question required by the skill. Do not answer it on the user's behalf, commit, push, or open a PR.
