@@ -175,6 +175,7 @@ test('shows final approval only for package-enabled runs', async (t) => {
   const current = await renderFixture(t, stateMarkdown({ fields: { final_package_version: '1' }, rows }));
   assert.match(current.html, /class="phase-label[^"]*">Final Approval/);
   assert.equal((current.html.match(/phase-dot not-reached/g) ?? []).length, 7);
+  assert.doesNotMatch(current.html, /phase-step optional-step/);
   assert.throws(() => parseState(stateMarkdown({ fields: { phase: 'final-approval' }, rows })), /requires final_package_version/);
 });
 
@@ -239,15 +240,20 @@ test('renders completion, approval annotations, fix history, and repeated review
   });
   const { html } = await renderFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
 
-  assert.equal((html.match(/class="phase-step"/g) ?? []).length, 10);
+  assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 11);
   assert.equal((html.match(/Review \(review-the-pr\)/g) ?? []).length, 2);
   assert.match(html, /phase-mode">Approved as-is<\/div>/);
   assert.match(html, /phase-mode">Subagent-Driven · Step 2 of 2 complete<\/div>/);
   assert.match(html, /class="complete"><strong>Run complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
-  assert.match(html, /Optional next step:<\/strong> run <code>\/make-it-work:deliver DEMO<\/code> to prepare delivery\./);
-  assert.match(html, /explicit approval of the exact plan before any commit, push, or PR action/);
+  assert.match(html, /class="phase-step optional-step"[\s\S]*class="phase-dot optional"[^>]+Optional delivery:/);
+  assert.match(html, /class="phase-label">Deliver<\/div>[\s\S]*class="phase-mode">Optional<\/div>/);
+  assert.doesNotMatch(html, /Optional next step:/);
+  assert.match(html, /class="feedback-note"/);
+  assert.match(html, /make-it-work\/implement-feedback\.md/);
+  assert.match(html, /href="DEMO-final-package\.md" title="make-it-work\/DEMO\/DEMO-final-package\.md">DEMO-final-package\.md<\/a>/);
+  assert.doesNotMatch(html, /spec\/plan\/execute\/review\/final package\/state\/dashboard/);
   assert.match(html, /Session timing: rows 1→13 above span 12m/);
-  assert.match(html, /href="DEMO-review\.md">make-it-work\/DEMO\/DEMO-review\.md<\/a>/);
+  assert.match(html, /href="DEMO-review\.md" title="make-it-work\/DEMO\/DEMO-review\.md">DEMO-review\.md<\/a>/);
   assert.match(html, /phase-dot passed[^>]+complete:/);
   assert.doesNotMatch(html, /phase-dot current/);
 });

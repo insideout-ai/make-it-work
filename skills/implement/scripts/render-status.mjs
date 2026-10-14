@@ -369,7 +369,7 @@ function validateArtifactPath(value, field, ticket) {
 function artifactLink(value, field, ticket) {
   const relative = validateArtifactPath(value, field, ticket);
   if (!relative) return '<span class="none">Not yet created</span>';
-  return `<a href="${escapeHtml(relative)}">${escapeHtml(value)}</a>`;
+  return `<a href="${escapeHtml(relative)}" title="${escapeHtml(value)}">${escapeHtml(relative)}</a>`;
 }
 
 function renderList(items) {
@@ -390,7 +390,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom) {
   const { slots, activeSlot } = timeline;
   const activated = slots.filter((slot) => slot.activationRow);
 
-  return slots.map((slot, index) => {
+  const steps = slots.map((slot, index) => {
     const info = PHASE_INFO[slot.phase];
     const dotState = slotState(slot, activeSlot, state.fields.status);
     const isActive = slot === activeSlot;
@@ -443,7 +443,11 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom) {
     }
     pieces.push('</div>');
     return pieces.join('\n');
-  }).join('\n');
+  });
+  if (state.fields.status === 'Complete' && state.fields.final_package_version === '1') {
+    steps.push('<div class="phase-step optional-step">\n  <div class="line"></div>\n  <div class="phase-dot optional" title="Optional delivery: prepare a separate delivery plan. Commits, pushes, and PRs require approval of that exact plan."></div>\n  <div class="phase-label">Deliver</div>\n  <div class="phase-mode">Optional</div>\n</div>');
+  }
+  return steps.join('\n');
 }
 
 function timingDetails(state, invalidTimestampFrom) {
@@ -491,13 +495,7 @@ function renderStatusBanner(state, timing, invalidTimestampFrom) {
     : timing
     ? `Real-timestamped portion of this run: ${timing.total}.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
     : 'Elapsed: unknown — no real start timestamp was captured for this run.';
-  const artifacts = state.fields.final_package_version === '1'
-    ? 'spec/plan/execute/review/final package/state/dashboard'
-    : 'spec/plan/execute/review/state/dashboard';
-  const delivery = state.fields.final_package_version === '1'
-    ? ` <strong>Optional next step:</strong> run <code>/make-it-work:deliver ${escapeHtml(state.fields.ticket)}</code> to prepare delivery. It still requires your explicit approval of the exact plan before any commit, push, or PR action.`
-    : '';
-  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes are uncommitted — review the working tree and commit when ready.${delivery} This ticket's artifacts (${artifacts}) are in <code>make-it-work/${escapeHtml(state.fields.ticket)}/</code> and aren't committed — delete that directory yourself whenever you're done referencing this run. <code>make-it-work/implement-feedback.md</code> is cumulative and separate from those ticket artifacts; keep it if you plan to review or share the workflow feedback.</p>`;
+  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes remain local and uncommitted.</p>`;
 }
 
 function applyTemplate(template, replacements) {
@@ -536,6 +534,9 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
+    FEEDBACK_NOTE: state.fields.status === 'Complete'
+      ? '<p class="feedback-note"><strong>Workflow feedback:</strong> <code>make-it-work/implement-feedback.md</code> is separate from this ticket’s artifacts and accumulates across runs. Keep it if you want to review or share it.</p>'
+      : '',
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     REVIEW_CYCLE: String(state.reviewCycle),
