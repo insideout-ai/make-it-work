@@ -1,0 +1,49 @@
+evals/implement/README.md
+  s_8196737b8af015::t_7eeb2c811f411f 8
+skills/implement/assets/status-template.html
+  s_8196737b8af015::t_c43e357c15227e 5,27,69,85
+  s_8196737b8af015::t_16ef039074e851 48
+  s_8196737b8af015::t_e23dcd014b2c7a 45-46,63,97
+skills/implement/SKILL.md
+  s_8196737b8af015::t_cc9ecbf9875e88 79,183,204,249,251
+  s_8196737b8af015::t_0cbec2375c39ac 184-191,201-202,207,210-211
+  s_8196737b8af015::t_225d23f4b52309 208
+  s_8196737b8af015::t_4c0737b737127d 192-193,197
+  s_8196737b8af015::t_cc3239b5b93123 203
+  s_8196737b8af015::t_95885eeb92ddc0 78,156,158,173,176-177
+  s_8196737b8af015::t_ed3381b7057046 32
+  s_8196737b8af015::t_ea3bc395ac8555 25
+  s_8196737b8af015::t_e81df9786bb6e5 234,250,353
+  s_8196737b8af015::t_4b00ad53837cfe 477-479
+README.md
+  s_8196737b8af015::t_54b34d788108ab 143,155
+CHANGELOG.md
+  s_8196737b8af015::t_54b34d788108ab 7-14
+skills/implement/scripts/render-status.mjs
+  s_8196737b8af015::t_868319e169ffe7 393,446-450,498,537-539
+  s_8196737b8af015::t_e0995cbc151e9c 372
+.claude-plugin/plugin.json
+  s_8196737b8af015::t_54b34d788108ab 6
+evals/implement/implement-autopilot-full/prompt.md
+  s_8196737b8af015::t_7eeb2c811f411f 3,18
+skills/implement/scripts/render-status.test.mjs
+  s_8196737b8af015::t_00d2c6a6fff6cc 243,248-252,254
+  s_8196737b8af015::t_f89cf870e9be55 178
+  s_8196737b8af015::t_e0995cbc151e9c 253,256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "653b93ebc18e1241ceb08a9bc688698401d4fac1",
+  "prompts": {},
+  "sessions": {
+    "s_8196737b8af015": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13923-4546-7523-9017-004d545e7584",
+        "model": "gpt-6-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
