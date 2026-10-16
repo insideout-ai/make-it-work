@@ -1,7 +1,8 @@
 ---
-type: tool_used
-tool: Write
-input_match: "make-it-work/epic-[a-z0-9-]+-\\d{8}-\\d{4}\\.md"
-min: 1
+type: regex
+target: trace
+pattern: 'File created successfully at: [^\n]*make-it-work/epic-[a-z0-9-]+-\d{8}-\d{4}(?:-\d+)?\.md'
 weight: 3
 ---
+
+Require successful file creation, not just an attempted Write call.

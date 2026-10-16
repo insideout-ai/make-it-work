@@ -5,7 +5,6 @@ pattern: 'Part A:\*{0,2}\s*[0-6] self-answered (?:turn\(s\)|turns?) used \(cap 6
 weight: 3
 ---
 
-The final summary must report 0–6 self-answered Phase 2A turns and identify
-whether the interview exited early or reached the cap. The other graders
-verify that an epic was written without waiting for a human and that sparse
-input remains visible as open items or best guesses in the finished document.
+The unattended discovery interview retains its six-open-text-turn cap and
+reports the actual exit. Unknown facts stay open. The other graders require a
+saved epic; there must be no post-interview category-draft approval round.

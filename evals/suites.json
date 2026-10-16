@@ -33,7 +33,10 @@
     "rr-full-fail",
     "rr-full-pass",
     "rr-scoped-explicit",
-    "shape-the-epic-rich-input-autopilot"
+    "shape-the-epic-rich-input-autopilot",
+    "shape-the-epic-technical-debt-outcomes",
+    "shape-the-epic-technical-debt-sparse",
+    "shape-the-epic-discovery-interview"
   ],
   "extraTools": {
     "execute-resume-inline": ["Bash"],

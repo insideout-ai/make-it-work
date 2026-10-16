@@ -4,6 +4,19 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.0] - 2026-10-15
+
+### Added
+
+- `shape-the-epic` offers Product and Technical-debt modes, with mode-specific categories, acceptance criteria, and output sections.
+- Interactive epic shaping supports category selection through two multi-select questions; the discovery interview and gap-check focus on those selections, while unselected categories are marked Not assessed.
+
+### Changed
+
+- Epic shaping preserves the discovery interview and generates the complete draft directly afterward for consolidated feedback, removing the category-by-category content approval round.
+- Technical-debt epics center on outcome-based acceptance criteria, evidence, verification, and scope boundaries. Ownership is outside the skill's scope; material agreed technical constraints and external dependencies are optional, and implementation planning is deferred unless explicitly requested or essential to an agreed constraint.
+- Epic-shaping guidance is split into shared workflow and mode-specific references. Autopilot retains bounded discovery and post-deliverable decision logging, defaults to all categories when no subset is supplied, and logs checkbox selections as arrays without section-approval entries.
+
 ## [4.9.0] - 2026-10-14
 
 ### Changed
