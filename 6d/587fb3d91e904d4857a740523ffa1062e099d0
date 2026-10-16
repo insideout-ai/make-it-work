@@ -1,0 +1,106 @@
+evals/find-the-repos/find-the-repos-happy-path/graders/no-technical-fallback.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-revise-report/prompt.md
+  s_23842d5dad9505::t_24684619014218 1-16
+evals/find-the-repos/find-the-repos-revise-report/fixture.sh
+  s_23842d5dad9505::t_24684619014218 1-5
+evals/find-the-repos/find-the-repos-technical-fallback/graders/compact-terminal.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 1-11
+evals/find-the-repos/find-the-repos-large-workspace/graders/no-separate-draft.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 4
+evals/find-the-repos/find-the-repos-confirm-pending/fixture.sh
+  s_23842d5dad9505::t_aa708cc4bd79cf 7
+evals/find-the-repos/find-the-repos-revise-report/graders/comments-applied-in-place.md
+  s_23842d5dad9505::t_24684619014218 1-19
+skills/find-the-repos/SKILL.md
+  s_23842d5dad9505::t_a1c15424957566 170
+  s_23842d5dad9505::t_0fea32c13ba1eb 3,19,23,44,78,80,90,134,160,162,164,166,168,172,174,176,178-190,194,234
+evals/suites.json
+  s_23842d5dad9505::t_24684619014218 30
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-a-definite-match.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-technical-fallback/graders/technical-fallback-stated.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-technical-fallback/graders/notifications-service-not-matched.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/default-all-without-grouping.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 12,18-20
+CHANGELOG.md
+  s_23842d5dad9505::t_24684619014218 20,22
+evals/find-the-repos/find-the-repos-happy-path/graders/excluded-repos-flagged.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-large-workspace/graders/verify-and-finish.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 3,7,11-12
+evals/find-the-repos/find-the-repos-technical-fallback/graders/pending-report-saved.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 4
+evals/find-the-repos/find-the-repos-happy-path/graders/confirmation-checkpoint-reached.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 7-11,13-16
+evals/find-the-repos/README.md
+  s_23842d5dad9505::t_24684619014218 3,7,10,12,15-17,30,36,49-51,61
+evals/find-the-repos/find-the-repos-catalog-workspace/graders/catalog-and-code-only-routing.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 11
+evals/find-the-repos/find-the-repos-happy-path/graders/ripple-effect-not-matched.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-confirm-pending/pending-report.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 2,54-57
+evals/find-the-repos/find-the-repos-happy-path/graders/cross-repo-note-not-matched.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-catalog-workspace/graders/compact-terminal.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 1-18
+evals/find-the-repos/find-the-repos-catalog-workspace/graders/owner-conflict-and-external-gap.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 3,7
+evals/find-the-repos/find-the-repos-confirm-pending/prompt.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 12-13
+evals/find-the-repos/find-the-repos-confirm-pending/graders/no-separate-draft.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 1-6
+evals/find-the-repos/find-the-repos-revise-report/graders/report-exists.md
+  s_23842d5dad9505::t_24684619014218 1-6
+evals/find-the-repos/find-the-repos-revise-report/graders/no-separate-draft.md
+  s_23842d5dad9505::t_24684619014218 1-6
+evals/find-the-repos/find-the-repos-happy-path/graders/pending-report-preserved.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 3,7,10
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/report-saved.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 4
+evals/find-the-repos/find-the-repos-large-workspace/graders/report-saved.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 4
+evals/find-the-repos/find-the-repos-large-workspace/graders/compact-terminal.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 1-12
+evals/find-the-repos/find-the-repos-revise-report/case.yaml
+  s_23842d5dad9505::t_24684619014218 1-5
+evals/find-the-repos/find-the-repos-evidence-drilldown/graders/possibly-existing-implementation.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 8
+evals/find-the-repos/run-all.sh
+  s_23842d5dad9505::t_24684619014218 28-29
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-b-possible-match.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-technical-fallback/graders/payments-api-matched.md
+  s_23842d5dad9505::t_e1a52c3510f976 3
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/no-separate-draft.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 4
+evals/find-the-repos/find-the-repos-confirm-pending/graders/confirm-without-new-questions.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 7-8,12-15
+evals/find-the-repos/find-the-repos-evidence-drilldown/graders/assessment-and-external-systems.md
+  s_23842d5dad9505::t_aa708cc4bd79cf 8,18-23
+evals/find-the-repos/find-the-repos-large-workspace/graders/all-forty-assessed.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 10
+evals/find-the-repos/find-the-repos-happy-path/graders/no-separate-draft.md
+  s_23842d5dad9505::t_9cd20b93fa5fb7 3
+README.md
+  s_23842d5dad9505::t_a0b692a03a208e 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "6d587fb3d91e904d4857a740523ffa1062e099d0",
+  "prompts": {},
+  "sessions": {
+    "s_23842d5dad9505": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13f6f-a4e3-78d0-af05-eb14bc8c1c85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
