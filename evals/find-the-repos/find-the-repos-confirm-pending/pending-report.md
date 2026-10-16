@@ -1,5 +1,5 @@
 # Repo Shortlist — off-cycle-date-controls
-Status: Draft — awaiting confirmation
+Status: Pending review
 Ticket identity: provisional slug from Off-cycle date controls
 Related keys: MARV-45441 — independent
 
@@ -51,3 +51,7 @@ External systems named in the ticket, not in workspace: Payments and payroll-sum
 ## Excluded
 
 None
+
+## Reviewer Notes
+
+Keep external work visible until the service repos can be assessed.

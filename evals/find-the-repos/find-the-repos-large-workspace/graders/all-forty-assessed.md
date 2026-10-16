@@ -7,7 +7,7 @@ weight: 3
 The launch folder contains forty sibling git repos and a supplied spec, but no
 root grouping metadata. PASS if it defaults to all forty without a scope
 question, runs bounded code assessment covering repo-01 through repo-40, and
-keeps an assessment row for every repo in the pending draft. Searching a parent
+keeps an assessment row for every repo in the single Pending review report. Searching a parent
 path across all repo source trees is acceptable; sampling only early repos is
 not. Inventorying names or reading README files alone is not code assessment.
 

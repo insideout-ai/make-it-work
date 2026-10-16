@@ -1,6 +1,6 @@
 ---
 name: find-the-repos
-description: "Route a ticket across a multi-repo workspace using exact-concept code searches, docs, and relevant domain/use-case skills. Lead with existing implementation, report evidence-backed tiers, source-based owners, and external coverage gaps. Save a pending draft and confirm before finalizing. Use before ticket refinement or implementation planning."
+description: "Route a ticket across a multi-repo workspace using code, docs, and relevant context skills. Maintain one reviewable report with evidence-backed tiers, owners, existing implementation, and external gaps; show only Definite repos, owners, and evidence types in the terminal. Use before ticket refinement or implementation planning."
 disable-model-invocation: true
 ---
 
@@ -16,11 +16,11 @@ Act as the routing step before ticket refinement or planning. Identify the repos
 
 Accept an explicit file, a primary ticket key, pasted content, or no argument. With no argument, derive an applicable current-branch key or collect missing input as described below. Interactive runs wait at unresolved intake and final-shortlist confirmation; --autopilot uses the policy below.
 
-If the user explicitly confirms an identified existing pending draft, resume Phase 4 from that draft before starting a new intake or matching pass.
+If the user comments on or confirms an identified existing report, resume Phase 4 from that file before starting a new intake or matching pass.
 
 ## Autopilot Mode
 
-Read local metadata, documentation, skills, and code; write only this skill's report/draft/log artifacts. Preserve these unconditional stops:
+Read local metadata, documentation, skills, and code; write only this skill's single Markdown report and optional decision log. Preserve these unconditional stops:
 
 - A single repo with no identified multi-repo workspace: nothing to shortlist.
 - No usable workspace root or candidate list can be identified.
@@ -41,7 +41,7 @@ Resolve selection and confirmation as checkpoint sites. Auto-confirm the complet
 | Phase 2 | Tracker fetch fails and no local content exists | Stop and request pasted content or a file. |
 | Phase 4 | Shortlist confirmation | Auto-confirm after collecting evidence; mark the final artifact Auto-confirmed. |
 
-When Bash is permitted, invoke each shared log-writer command in its own call. Do not bypass a denied log write or let it prevent delivering the shortlist. Summarize automatic decisions and report the log path or write limitation at completion.
+When Bash is permitted, invoke each shared log-writer command in its own call. Do not bypass a denied log write or let it prevent delivering the shortlist. Record automatic decisions and the log path or write limitation in the report, not an expanded terminal summary.
 
 ## Phase 1 — Workspace Detection and Combined Intake
 
@@ -75,9 +75,9 @@ When input is missing, reuse Phase 1's combined intake rather than adding a sepa
 
 A key explicitly supplied as this ticket's identifier, in its own title/heading, or in a clearly labeled primary-ticket field can be used as <TICKET>. A key mentioned as independent, related, blocked-by, parent, or dependency is a reference, not this ticket's identity. For example, **MARV-45441 (independent)** must not become the report ID. Record related keys with their stated relationship.
 
-If content has no identifiable primary key, derive a **provisional** kebab-case slug from its title/first line, or a dated fallback if no usable title exists. Label `Ticket identity: provisional slug` in draft/final reports. This is a local artifact ID, not an invented tracker key. Do not silently reuse an unrelated branch key. Ask for a real key only when multiple plausible primary keys cannot be distinguished, content must be fetched, or the user requires a canonical tracker-linked deliverable. Missing a key alone does not block content-based routing; autopilot uses a provisional slug when identity is ambiguous but content is available.
+If content has no identifiable primary key, derive a **provisional** kebab-case slug from its title/first line, or a dated fallback if no usable title exists. Label `Ticket identity: provisional slug` in the report. This is a local artifact ID, not an invented tracker key. Do not silently reuse an unrelated branch key. Ask for a real key only when multiple plausible primary keys cannot be distinguished, content must be fetched, or the user requires a canonical tracker-linked deliverable. Missing a key alone does not block content-based routing; autopilot uses a provisional slug when identity is ambiguous but content is available.
 
-A real key can replace the slug later. Record the previous provisional ID and use the canonical key for subsequent artifacts. If confirmation is still pending, save a pending draft under the new key; supplying a key is not shortlist confirmation. Preserve old artifacts unless the user requests a rename. If renaming is requested, move only this skill's report/draft/log to non-conflicting paths, not a whole ticket directory containing other work. Do not overwrite an existing canonical report on an identity conflict; resolve that conflict with the user.
+A real key can replace the slug later. Update identity metadata in the same report and record the previous provisional ID; supplying a key is not shortlist confirmation. Keep the established report path unless the user requests a rename, rather than creating a second report under the new key. If renaming is requested, move only this skill's report/log to non-conflicting paths, not a whole ticket directory containing other work. Do not overwrite an existing canonical report on an identity conflict; resolve that conflict with the user.
 
 ## Phase 3 — Implementation Check, Matching, and Evidence
 
@@ -87,7 +87,7 @@ Run the exact-concept check first, then complete the assessment with docs, skill
 
 Extract the ticket's proposed identifiers, field/payload names, exact checkbox/UI label, and central endpoints/operations. Before the documentation pass, search **every present candidate** for those terms and read small contexts around precise hits. Prefer Grep with structured pattern/path/glob arguments; use 3d's shell fallback only when needed.
 
-If substantive code already defines/uses the exact concept, immediately tell the user **Existing or partial implementation found — verify and finish**, with source pointers, before continuing deeper investigation. Make this finding the headline of the draft, final report, and final chat. State which requested pieces have evidence and which remain unverified; do not infer that most/all of the ticket is done from a few hits. If no exact names/labels were supplied or no supporting code was found, say so without claiming absence. Later findings update the headline.
+If substantive code already defines/uses the exact concept, lead the report with **Existing or partial implementation found — verify and finish**, with source pointers. State which requested pieces have evidence and which remain unverified; do not infer that most/all of the ticket is done from a few hits. If no exact names/labels were supplied or no supporting code was found, record that without claiming absence. Later findings update the report headline. Keep the terminal output to Phase 4's compact format rather than narrating implementation findings there.
 
 Compare hits with the requested state: an existing affected component is not itself an implemented change. For example, finding an older dependency version identifies upgrade scope, not evidence the requested upgrade is already done.
 
@@ -131,7 +131,7 @@ For each present candidate, read catalog-info.yaml `spec.owner` / `spec.system`,
 
 Keep catalog accountability separate from CODEOWNERS review rules. Do not assume differently spelled group/team references are aliases or all patterns identify one repo owner. If root and .github CODEOWNERS disagree, show both rules and flag **owner evidence conflict**. Show differing catalog ownership separately as a potential discrepancy rather than silently choosing a team. Do not claim a root rule is the effective hosted-platform rule without verifying that interpretation.
 
-Include an **Owner / owner evidence** assessment-table column. Unknown/conflicting owners are routing limitations, not grounds to exclude a code-matched repo. Do not ask owner side questions while shortlist confirmation is pending.
+Include an **Owner / owner evidence** assessment-table column in the report. Keep provenance and conflicts there; the terminal shows only the deduplicated owner identifiers. Unknown/conflicting owners are routing limitations, not grounds to exclude a code-matched repo. Do not ask owner side questions while shortlist confirmation is pending.
 
 ### 3g — Final tiers and implementation observations
 
@@ -157,29 +157,41 @@ For named systems absent locally, state **what cannot be assessed and where the 
 
 Include a coverage/handoff table: requested operation/behavior, local evidence or gap, external system if applicable, and next action. Prioritize central uncovered work in the headline/handoff alongside existing implementation. A named-external-systems line alone is insufficient. Routing remains incomplete while central work is unassessed; never imply the local shortlist covers the entire ticket in that case.
 
-## Phase 4 — Preserve the Draft, Confirm, and Finalize
+## Phase 4 — Maintain One Report and Present a Compact Summary
 
-Present **implementation headline and handoff first**, followed by central coverage/external gaps, Definite/Possible matches with pointers, and the assessment table/implementation observations. Each candidate gets a row, including No match, Excluded, and unavailable repos, with actual docs/skills, searches, owner evidence, provenance, and limitations.
+Keep the full assessment in one Markdown report: **implementation headline and handoff first**, followed by central coverage/external gaps, Definite/Possible matches with pointers, and the assessment table/implementation observations. Each candidate gets a report row, including No match, Excluded, and unavailable repos, with actual docs/skills, searches, owner evidence, provenance, and limitations. Do not mirror these detailed sections into the terminal.
 
-### One pending confirmation
+### One file throughout review
 
-Before asking for confirmation in interactive mode, save `make-it-work/<TICKET>/<TICKET>-repos.draft.md`, marked **Draft — awaiting confirmation**. Link it and ask once whether to confirm/adjust the shortlist. Do not write/overwrite `<TICKET>-repos.md` until confirmation. If draft saving fails, present the full draft in chat and explicitly state confirmation is pending; do not claim it was saved.
+Save `make-it-work/<TICKET>/<TICKET>-repos.md` under the resolved workspace root from the first assessment onward. Interactive runs mark it **Pending review** and ask once whether to confirm/adjust it. Comments, revisions, and confirmation all update this same file; never create a separate `.draft.md`, confirmed copy, or revision-suffixed report. If the user identifies an existing report (including a legacy draft path), continue editing that file instead of creating a counterpart. If saving fails, report the failure briefly with the compact table; do not dump the full report into the terminal or claim it was saved/confirmed.
 
-Maintain one pending confirmation linked to the current draft. Answer intervening user questions, then briefly remind them the shortlist is pending. Do not open optional owner/external-system side-question threads; record those unknowns in the artifact. An unambiguous instruction to confirm/save the current shortlist is confirmation: finalize without asking again. A status request, viewing the draft, or silence is not confirmation.
+Maintain one pending confirmation linked to the current report. Answer intervening user questions, then briefly remind them the shortlist is pending. Do not open optional owner/external-system side-question threads; record those unknowns in the report. An unambiguous instruction to confirm/save the current shortlist is confirmation: update its status to **Confirmed** in place without asking again. A status request, viewing the report, or silence is not confirmation. Autopilot writes the same report with **Auto-confirmed** after assessment.
 
-If the user explicitly identifies an existing pending draft and confirms it, read that draft, verify its identity/scope matches the request, and resume finalization. Do not repeat intake or reopen owner questions. Reassess only changed inputs or requested additions.
+Before updating an existing report, read the current file from disk, verify its identity/scope, and preserve user edits/annotations and unrelated content. Do not overwrite it from a cached earlier version. Do not repeat intake or reopen owner questions. Reassess only changed inputs or requested additions.
 
-Honor removals/tier adjustments. Assess user-added repos and gather pointers before updating the draft; flag unsupported additions separately. Maintain one current pending draft and request confirmation of materially changed content, not repeated approval of unchanged content.
+Honor removals/tier adjustments in the same report. Assess user-added repos and gather pointers before updating it; flag unsupported additions separately. Material revisions return it to **Pending review** unless the user explicitly confirms those revisions. Request confirmation of changed content, not repeated approval of unchanged content.
 
-### Confirmed output
+### Terminal output
 
-On confirmation, save `make-it-work/<TICKET>/<TICKET>-repos.md` under the resolved workspace root. Use **Confirmed** for explicit human confirmation and **Auto-confirmed** under autopilot. Mark any saved pending draft as superseded by the final artifact. Autopilot can save the final report directly after assessment.
+After assessment or revision, show **one table containing only Definite repos**, with exactly these columns:
 
-Final chat retains the implementation headline, verify-and-finish handoff where relevant, match pointers, central uncovered operations, and actionable external routing. Use this shape:
+| Repo | Owner(s) | Evidence |
+|---|---|---|
+| <Definite repo> | <deduplicated owner identifiers, or Unknown> | <one or more of: product.md, architecture.md, context skills, code> |
+
+Evidence is multi-valued: include only the listed types that actually support the match, not every source inspected. Domain/use-case skills map to **context skills**; substantive implementation/configuration evidence maps to **code**. A zero-hit search is not supporting code evidence. Use **—** if none of these four types applies (for example, a README-only match); retain the actual pointer in the report rather than inventing a type.
+
+Owner(s) lists names/handles only, not catalog/CODEOWNERS paths, rules, provenance, or conflict explanations. If sources disagree, include their distinct relevant identifiers without implying a resolved owner; explain the conflict only in the report. Do not infer aliases or invent owners.
+
+Do not show Possible/No match/Excluded/unavailable repos, source pointers, implementation headlines, external-system summaries, or additional tables/lists in the terminal. Those stay in the report. Add only a short report link/status line and, when pending, one concise confirm-or-comment prompt. If there are no Definite repos, leave the table body empty and say **No Definite repos identified**; do not promote Possible repos or add a fake repo row. Intake questions and direct answers to user follow-up questions are not assessment summaries and can use concise prose as needed.
+
+### Full report structure
+
+Use this shape in the single output file, not as terminal output:
 
 ```markdown
 # Repo Shortlist — <TICKET>
-Status: <Draft — awaiting confirmation | Confirmed | Auto-confirmed>
+Status: <Pending review | Confirmed | Auto-confirmed>
 Ticket identity: <primary key and source | provisional slug; previous ID if replaced>
 Related keys: <key and stated relationship; or None>
 
@@ -219,4 +231,4 @@ External systems named in the ticket, not in workspace: <names, unassessed scope
 - **<repo>** — <no usable docs and no relevant code hits>.
 ```
 
-Keep all sections; use None for empty match/exclusion lists and None observed for implementation observations. The table still includes unavailable/No match candidates and flags on positive matches. For purely technical tickets, note architecture.md as the primary documentation alongside skills/code. Never present a pending draft as confirmed, a zero hit as proof of absence, or existing code as proof of ticket completion.
+Keep all report sections; use None for empty match/exclusion lists and None observed for implementation observations. The assessment table still includes unavailable/No match candidates and flags on positive matches. For purely technical tickets, note architecture.md as the primary documentation alongside skills/code. Never present a Pending review report as confirmed, a zero hit as proof of absence, or existing code as proof of ticket completion.

@@ -5,7 +5,7 @@ weight: 3
 ---
 
 PASS if the run's first implementation search precedes the product/skill
-drill-down, and both the saved shortlist and chat summary lead with existing
+drill-down, and the saved shortlist leads with existing
 or partial implementation / verify-and-finish, with pointers: backend/src/offCycles.ts
 already declares allowPayoutDateChange and payoutDate plus the update route;
 mf-cp-payroll/src/OffCycleEditor.ts already maps the permission bit to checkbox

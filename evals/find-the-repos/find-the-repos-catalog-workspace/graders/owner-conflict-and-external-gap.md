@@ -1,10 +1,10 @@
 ---
 type: llm
-focus: trace
+focus: { source: file, path: "make-it-work/off-cycle-date-controls/off-cycle-date-controls-repos.md" }
 weight: 3
 ---
 
-Judge the saved shortlist and final chat. PASS only if backend's catalog owner
+Judge the saved shortlist. PASS only if backend's catalog owner
 group:default/payroll-api and the disagreement between root CODEOWNERS
 @acme/legacy-api and .github/CODEOWNERS @acme/payroll-api are visible with source
 pointers, not silently collapsed into one verified owner. No owner question

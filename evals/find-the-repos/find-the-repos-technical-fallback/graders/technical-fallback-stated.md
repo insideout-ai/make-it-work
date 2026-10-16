@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: last_message
+focus: { source: file, path: "make-it-work/CVE-UPGRADE-200/CVE-UPGRADE-200-repos.md" }
 weight: 3
 ---
 

@@ -9,5 +9,5 @@ runs: 1
 /make-it-work:find-the-repos
 
 Confirm and save the current shortlist in
-make-it-work/off-cycle-date-controls/off-cycle-date-controls-repos.draft.md.
-This is the pending draft from our previous turn. No changes are requested.
+make-it-work/off-cycle-date-controls/off-cycle-date-controls-repos.md.
+This is the pending report from our previous turn. No changes are requested.
