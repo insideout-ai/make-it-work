@@ -10,5 +10,6 @@ Judge whether `tasks-api` is reported as a **Possible** match (not Definite), wi
 reasoning noting only topical/partial overlap (it owns tasks and overdue status, but has no
 reminder-snooze use case of its own).
 
-PASS only if `tasks-api` appears under Possible Matches with that kind of reasoning. FAIL if it's
-missing entirely, or listed under Definite Matches instead.
+PASS only if `tasks-api` appears under Possible Matches with that reasoning and
+a file/section pointer. FAIL if it is missing, Definite without new supporting
+evidence, or has no evidence pointer. Keep the zero-hit code search visible.

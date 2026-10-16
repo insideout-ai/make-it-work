@@ -13,5 +13,7 @@ silently picking one.
 Judge whether the message asks the user which of the discovered repos (naming `repo-alpha` and/or
 `repo-beta`) to check, instead of proceeding on its own guess.
 
-PASS if it clearly asks this question and stops. FAIL if it picks a repo on its own, proceeds to a
-Definite/Possible shortlist, or refuses outright instead of asking which to check.
+PASS if it offers both sibling repos as the recommended all-repos choice and
+allows a subset, then waits. This interactive run already supplies a spec path,
+so it must not demand the ticket again. FAIL if it silently selects a subset,
+matches before the scope choice, or refuses solely for missing root CLAUDE.md.

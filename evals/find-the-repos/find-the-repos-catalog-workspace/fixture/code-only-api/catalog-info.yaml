@@ -1,0 +1,9 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: code-only-api
+spec:
+  type: service
+  lifecycle: production
+  system: payroll
+  owner: group:default/payroll-core

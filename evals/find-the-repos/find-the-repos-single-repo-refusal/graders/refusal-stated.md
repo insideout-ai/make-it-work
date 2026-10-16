@@ -4,10 +4,11 @@ focus: last_message
 weight: 3
 ---
 
-This is a single git repo with no parent-level workspace-root orientation file tying it to any
-sibling repos — there is nothing to shortlist between. `find-the-repos`'s Phase 1 is required to
-refuse in exactly this situation, rather than trivially "matching" the one repo it's sitting in
-(a deliberate divergence from how `plan-the-work` handles the same layout).
+This is a single git repo with no identified workspace or alternative grouping
+evidence tying it to siblings — there is nothing to shortlist between. Phase 1 must
+refuse rather than trivially matching the one repo. Missing a root CLAUDE.md
+alone would not justify refusal if catalog/workspace grouping were available;
+none is available in this fixture.
 
 Judge whether the message clearly tells the user there is nothing to shortlist / no workspace was
 found, and stops — without presenting a Definite/Possible/Excluded shortlist of any kind.

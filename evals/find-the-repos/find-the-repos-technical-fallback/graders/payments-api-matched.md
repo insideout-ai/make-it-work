@@ -11,5 +11,7 @@ Judge whether `payments-api` is reported as a match (Definite or Possible — ei
 acceptable here), with reasoning that references its `architecture.md` and the `winston`
 dependency specifically (not a generic or unexplained inclusion).
 
-PASS if `payments-api` appears as a match with that kind of reasoning. FAIL if it's missing, or
-included with no reference to its actual `winston` dependency.
+PASS if `payments-api` appears as a match with that reasoning and an exact
+file/section pointer. The bounded code/config search must inspect package.json,
+which declares winston 2.4.0, as evidence alongside architecture.md. FAIL if
+missing, unsupported, or the mandatory code/config search was skipped.

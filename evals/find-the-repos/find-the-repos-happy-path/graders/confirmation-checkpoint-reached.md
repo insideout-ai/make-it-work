@@ -4,13 +4,15 @@ focus: last_message
 weight: 2
 ---
 
-`find-the-repos` has no autopilot mode — Phase 4 requires presenting the draft shortlist and
-waiting for the user's explicit confirmation before saving anything.
+This run does not request --autopilot. Phase 4 requires presenting the draft
+shortlist with an assessment-evidence table, saving a pending draft, and waiting
+for explicit confirmation before saving the final report.
 
 Judge whether this final message reads as a genuine, unanswered checkpoint — it presents a draft
-shortlist and is waiting for the user to confirm or adjust it — rather than a report of a shortlist
-that was already saved to a file.
+shortlist and waits for the user to confirm or adjust it. A saved pending draft
+is expected; that must not be confused with a confirmed final report.
 
-PASS if the message is clearly still waiting on the user (plain text question, or an
-AskUserQuestion-style prompt — either is fine). FAIL if it states or implies the shortlist was
-already saved, or if it reads as a completed report with nothing left to confirm.
+PASS if it links the pending draft, presents the table, and has one pending
+confirmation (plain text or structured). FAIL if it claims final confirmation,
+omits the table, or opens optional owner/external side questions instead of
+keeping that one confirmation pending.

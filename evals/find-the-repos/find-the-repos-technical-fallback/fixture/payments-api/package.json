@@ -1,0 +1,7 @@
+{
+  "name": "payments-api",
+  "private": true,
+  "dependencies": {
+    "winston": "2.4.0"
+  }
+}

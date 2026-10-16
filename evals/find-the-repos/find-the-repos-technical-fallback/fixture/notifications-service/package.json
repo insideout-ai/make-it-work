@@ -1,0 +1,7 @@
+{
+  "name": "notifications-service",
+  "private": true,
+  "dependencies": {
+    "pino": "8.0.0"
+  }
+}

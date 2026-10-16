@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: find-the-repos-confirm-pending
+tags: [find-the-repos, confirmation]
+context:
+  scaffold_script: fixture.sh
