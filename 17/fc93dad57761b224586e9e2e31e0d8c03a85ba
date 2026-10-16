@@ -1,0 +1,187 @@
+evals/find-the-repos/find-the-repos-evidence-drilldown/case.yaml
+  s_23842d5dad9505::t_91ebe60ce875bd 1-5
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/backend/.github/CODEOWNERS
+  s_23842d5dad9505::t_7f1f1bea28aab8 1
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/backend/CLAUDE.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-6
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/checkbox-ui/catalog-info.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+evals/find-the-repos/find-the-repos-happy-path/graders/confirmation-checkpoint-reached.md
+  s_23842d5dad9505::t_8915442f350884 8-9,12-13,15-18
+  s_23842d5dad9505::t_f758c15066fe87 7
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-b-possible-match.md
+  s_23842d5dad9505::t_f758c15066fe87 13-15
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/backend/.claude/skills/uc-update-payroll/SKILL.md
+  s_23842d5dad9505::t_6f0cdfb457bb35 1-5
+  s_23842d5dad9505::t_91ebe60ce875bd 6-12
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/analytics-service/.claude/rules/product.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-6
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/payments-api/package.json
+  s_23842d5dad9505::t_f758c15066fe87 1-7
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/backend/src/offCycles.ts
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-11
+evals/find-the-repos/find-the-repos-confirm-pending/prompt.md
+  s_23842d5dad9505::t_712d9923c0adb6 1-13
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-a-definite-match.md
+  s_23842d5dad9505::t_f758c15066fe87 8,14-17
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/mf-cp-payroll/.claude/skills/uc-edit-off-cycle/SKILL.md
+  s_23842d5dad9505::t_6f0cdfb457bb35 1-5
+  s_23842d5dad9505::t_91ebe60ce875bd 6-12
+evals/find-the-repos/find-the-repos-evidence-drilldown/graders/assessment-and-external-systems.md
+  s_23842d5dad9505::t_365b61b23d790b 3,6-8
+  s_23842d5dad9505::t_91ebe60ce875bd 1-2,4-5,9-20
+evals/find-the-repos/find-the-repos-happy-path/graders/excluded-repos-flagged.md
+  s_23842d5dad9505::t_f758c15066fe87 8,12-15,17-18
+evals/find-the-repos/README.md
+  s_23842d5dad9505::t_17c2fc5da17ae7 3,7,13-15,28,34,38,45,47,49,55
+  s_23842d5dad9505::t_6d5e9fbacb4537 1,4-6,8-12,16-25,27,29-30,35-37,40-44,46,48,50-53
+  s_23842d5dad9505::t_5e84d8e462bedf 39
+  s_23842d5dad9505::t_594e35a9aee394 54
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/stale-ui/CLAUDE.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-6
+evals/find-the-repos/find-the-repos-confirm-pending/pending-draft.md
+  s_23842d5dad9505::t_712d9923c0adb6 1-53
+evals/find-the-repos/find-the-repos-evidence-drilldown/prompt.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-9
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/words-only/catalog-info.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+skills/find-the-repos/SKILL.md
+  s_23842d5dad9505::t_e8bdce1348a1f3 3,9,17,23,25-28,30,32,34,36-42,44,46,48,53-54,56,58,60,62,64,66-68,70,72,74,76,80,82,84,86,88,92,94,96,98-102,104,106,108,110,112,114,116,118,120,122,124,126,128,130,132,134,136,138-142,144,146-167,170-176,180-182,184-185,187,189-193,195,199,203-205,211,213,217,220
+  s_23842d5dad9505::t_4c643382f17737 50,52,78
+  s_23842d5dad9505::t_6854ed340d521f 90-91
+  s_23842d5dad9505::t_04c935ef80a5ec 93,95,97,103,105,107,109,111,113,115,117,119,121,123,125,127,129,201,206-210,212,215
+  s_23842d5dad9505::t_8915442f350884 168-169
+  s_23842d5dad9505::t_712d9923c0adb6 19
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/summary-viewer/catalog-info.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/mf-cp-payroll/CLAUDE.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-6
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/shortlist-saved.md
+  s_23842d5dad9505::t_f758c15066fe87 9-12
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/code-only-api/.github/CODEOWNERS
+  s_23842d5dad9505::t_7f1f1bea28aab8 1
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/checkbox-ui/.github/CODEOWNERS
+  s_23842d5dad9505::t_7f1f1bea28aab8 1
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/stale-ui/.claude/skills/domain-payroll/SKILL.md
+  s_23842d5dad9505::t_91ebe60ce875bd 6-12
+  s_23842d5dad9505::t_6f0cdfb457bb35 1-5
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/analytics-service/src/counts.ts
+  s_23842d5dad9505::t_91ebe60ce875bd 1-3
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/backend/CODEOWNERS
+  s_23842d5dad9505::t_7f1f1bea28aab8 1
+evals/find-the-repos/find-the-repos-confirm-pending/fixture.sh
+  s_23842d5dad9505::t_712d9923c0adb6 1-7
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/code-only-api/src/schema.ts
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-8
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/checkbox-ui/src/controls.ts
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-8
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/asks-which-repos.md
+  s_23842d5dad9505::t_8915442f350884 16-19
+evals/find-the-repos/find-the-repos-combined-intake/case.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-5
+evals/find-the-repos/find-the-repos-technical-fallback/fixture/notifications-service/package.json
+  s_23842d5dad9505::t_f758c15066fe87 1-7
+evals/find-the-repos/find-the-repos-catalog-workspace/graders/provisional-not-related-key.md
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-11
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/mf-cp-payroll/.claude/skills/domain-off-cycle/SKILL.md
+  s_23842d5dad9505::t_91ebe60ce875bd 6-11
+  s_23842d5dad9505::t_6f0cdfb457bb35 1-5
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/stale-ui/.claude/skills/uc-edit-payroll/SKILL.md
+  s_23842d5dad9505::t_91ebe60ce875bd 6-11
+  s_23842d5dad9505::t_6f0cdfb457bb35 1-5
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/health-probe/catalog-info.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/stale-ui/.claude/rules/product.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-7
+evals/find-the-repos/run-all.sh
+  s_23842d5dad9505::t_06db2e1ff91d85 2-4,11-21
+  s_23842d5dad9505::t_712d9923c0adb6 23-27
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture.sh
+  s_23842d5dad9505::t_91ebe60ce875bd 1-22
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/backend/.claude/rules/product.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-9
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/backend/src/offCycles.ts
+  s_23842d5dad9505::t_91ebe60ce875bd 1-13
+evals/find-the-repos/find-the-repos-catalog-workspace/prompt.md
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-22
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/backend/catalog-info.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+evals/find-the-repos/find-the-repos-confirm-pending/case.yaml
+  s_23842d5dad9505::t_712d9923c0adb6 1-5
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/health-probe/src/probe.ts
+  s_23842d5dad9505::t_7f1f1bea28aab8 1
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/mf-cp-payroll/README.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-3
+evals/find-the-repos/find-the-repos-combined-intake/prompt.md
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/CLAUDE.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-11
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/mf-cp-payroll/src/OffCycleEditor.ts
+  s_23842d5dad9505::t_91ebe60ce875bd 1-10
+evals/find-the-repos/find-the-repos-evidence-drilldown/graders/possibly-existing-implementation.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-6,10-17
+  s_23842d5dad9505::t_8915442f350884 7-9
+evals/find-the-repos/find-the-repos-single-repo-refusal/graders/refusal-stated.md
+  s_23842d5dad9505::t_8915442f350884 7-11
+evals/suites.json
+  s_23842d5dad9505::t_712d9923c0adb6 26-28
+  s_23842d5dad9505::t_365b61b23d790b 25
+evals/find-the-repos/find-the-repos-evidence-drilldown/graders/drilldown-and-code-assessment.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-18
+evals/find-the-repos/find-the-repos-happy-path/graders/pending-draft-preserved.md
+  s_23842d5dad9505::t_8915442f350884 1-10
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/words-only/src/tags.ts
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-2
+evals/find-the-repos/find-the-repos-combined-intake/fixture.sh
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-3,5
+  s_23842d5dad9505::t_712d9923c0adb6 4
+evals/find-the-repos/find-the-repos-combined-intake/graders/one-intake-request.md
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-13
+CHANGELOG.md
+  s_23842d5dad9505::t_4f2c580aeefd79 19-20
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/stale-ui/src/reports.ts
+  s_23842d5dad9505::t_91ebe60ce875bd 1-3
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/backend/.claude/skills/domain-payroll/SKILL.md
+  s_23842d5dad9505::t_91ebe60ce875bd 6-16
+  s_23842d5dad9505::t_6f0cdfb457bb35 1-5
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/no-info/src/probe.ts
+  s_23842d5dad9505::t_91ebe60ce875bd 1
+evals/find-the-repos/find-the-repos-catalog-workspace/graders/catalog-and-code-only-routing.md
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-19
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/code-only-api/catalog-info.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-9
+evals/find-the-repos/find-the-repos-catalog-workspace/case.yaml
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-5
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture/summary-viewer/src/totals.ts
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-3
+evals/find-the-repos/find-the-repos-evidence-drilldown/graders/tiers-and-provenance.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-23
+evals/find-the-repos/find-the-repos-catalog-workspace/graders/owner-conflict-and-external-gap.md
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-19
+evals/find-the-repos/find-the-repos-technical-fallback/graders/payments-api-matched.md
+  s_23842d5dad9505::t_f758c15066fe87 14-17
+evals/find-the-repos/find-the-repos-evidence-drilldown/fixture/OFFCYCLE-321-spec.md
+  s_23842d5dad9505::t_91ebe60ce875bd 1-11
+evals/find-the-repos/find-the-repos-catalog-workspace/fixture.sh
+  s_23842d5dad9505::t_7f1f1bea28aab8 1-15
+evals/find-the-repos/find-the-repos-confirm-pending/graders/confirm-without-new-questions.md
+  s_23842d5dad9505::t_712d9923c0adb6 1-15
+README.md
+  s_23842d5dad9505::t_590a03c6b19c9a 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "17fc93dad57761b224586e9e2e31e0d8c03a85ba",
+  "prompts": {},
+  "sessions": {
+    "s_23842d5dad9505": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13f6f-a4e3-78d0-af05-eb14bc8c1c85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
