@@ -17,8 +17,8 @@ fi
 cp -R "$SCRIPT_DIR/fixture/." .
 
 # No .git at the root, and deliberately no CLAUDE.md / workspace-root orientation file here either
-# — just two sibling repos with their own .git and no unifying doc, so Phase 1 must ask which
-# repo(s) to check rather than guessing.
+# — just two sibling repos with their own .git and no unifying doc. Launching from this
+# folder establishes the boundary: assess both by default, without a selection question.
 for repo in repo-alpha repo-beta; do
   (
     cd "$repo"

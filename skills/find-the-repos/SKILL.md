@@ -27,7 +27,7 @@ Read local metadata, documentation, skills, and code; write only this skill's re
 - No ticket content, explicit primary key, or applicable branch key is available.
 - No local ticket content exists and tracker fetching is unavailable or fails.
 
-A missing workspace-root CLAUDE.md is not a stop. Use Phase 1's alternative grouping signals. If launched from a folder of sibling git repos without grouping metadata, select **all sibling repos** provisionally and log that scope assumption. Do not infer ticket relevance from shared owners or sibling location.
+A missing workspace-root CLAUDE.md is not a stop. Use Phase 1's workspace boundary and default-all policy, just as in interactive mode. Without grouping metadata, record that relatedness is unverified. Do not infer ticket relevance from shared owners or sibling location.
 
 Resolve selection and confirmation as checkpoint sites. Auto-confirm the completed assessment, not before collecting evidence. Missing owner information and external-code access remain visible unknowns, not side-question loops. A provisional slug is valid when content lacks a primary key.
 
@@ -36,7 +36,7 @@ Resolve selection and confirmation as checkpoint sites. Auto-confirm the complet
 | Phase | Site | Resolution |
 |---|---|---|
 | Phase 1 | Isolated single repo or unresolved workspace | Stop with the specific reason. |
-| Phase 1 | Sibling selection without grouping metadata | Select all immediate sibling git repos in scope; record that relatedness is unverified. |
+| Phase 1 | Default scope without grouping metadata | Assess all immediate sibling git repos in the resolved workspace; record that relatedness is unverified. |
 | Phase 1/2 | Combined scope/ticket intake with no ticket content or derivable key | Stop and request both missing inputs together where applicable. |
 | Phase 2 | Tracker fetch fails and no local content exists | Stop and request pasted content or a file. |
 | Phase 4 | Shortlist confirmation | Auto-confirm after collecting evidence; mark the final artifact Auto-confirmed. |
@@ -53,9 +53,11 @@ Accept grouping evidence available locally or explicitly supplied by the user, r
 - A .workspace or editor workspace configuration listing repos; read it as data, do not execute it.
 - Sibling catalog-info.yaml files sharing a Backstage `spec.system` or `spec.owner`, or shared team ownership corroborated by CODEOWNERS/repo guidance.
 
-Grouping selects assessment scope; it does not prove any repo implements the ticket. From a multi-repo folder with clear grouping, use the described/grouped repos and summarize the scope. Without grouping metadata, offer **All N sibling repos with .git (Recommended)** and an explicit subset option. Interactive runs wait for that choice; autopilot uses the policy above. A genuine single repo with no workspace still stops before ticket ingestion/tracker lookup. If no root can be identified, explain where to launch or ask for a workspace path.
+**Default to all repos in the resolved workspace**, in both interactive and autopilot modes. Grouping can define that boundary but does not prove ticket relevance. When launched from a multi-repo folder, all immediate sibling git repos are the default even without grouping metadata; note that their relatedness is unverified. Respect an explicit user restriction by repo names or a supported system/team grouping. Summarize the count and scope (for example, "Found 40 repositories; I'll assess all of them"), without requiring approval or printing a long selection list. Repo count alone must never trigger a selection question or justify silently sampling the workspace. Keep Phase 3's searches bounded per repo and read only relevant linked skills.
 
-Before asking for scope, inspect the invocation/session for ticket content, a file path, or a primary key without fetching a tracker. If both scope and ticket input are missing, ask **one combined intake question**: name the sibling repos, recommend all, and request a key, pasted content, or spec path in the same answer. If grouping already resolves scope, state which repos will be checked while asking for the ticket once. A reply supplying only one missing part resolves that part; do not ask for it again. Do not start matching without ticket content.
+A genuine single repo with no workspace still stops before ticket ingestion/tracker lookup. If the workspace boundary is genuinely ambiguous (not merely missing root metadata), ask which workspace/path to use. Use **AskUserQuestion when available** for genuine enumerable choices, such as two plausible workspace roots, or when the user explicitly requests narrowing. For a large workspace, offer a small number of meaningful groups or accept repo names instead of a repo-by-repo checkbox list. Fall back to a concise plain-text question if the tool is unavailable. Do not ask "all or subset?" in the normal default-all flow.
+
+Inspect the invocation/session for ticket content, a file path, or a primary key without fetching a tracker. When only ticket input is missing, state the all-repo scope and ask only for the key, pasted content, or spec path. This is free-text input, not a multiple-choice question about how the user plans to provide it. If the workspace boundary also needs clarification, collect both missing inputs in the same intake exchange. Preserve resolved scope/ticket input across replies; never ask for it again merely because another part is missing. Do not start matching without ticket content.
 
 Flag repos named by grouping metadata but absent on disk. Present repos remain candidates without product.md or skills. Phase 3 may add another local repo specifically referenced as implementing the same concept, not from generic service links. Do not clone or inspect repos outside the resolved workspace; route missing external work explicitly.
 

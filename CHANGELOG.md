@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Epic-shaping guidance is split into shared workflow and mode-specific references. Autopilot retains bounded discovery and post-deliverable decision logging, defaults to all categories when no subset is supplied, and logs checkbox selections as arrays without section-approval entries.
 - `find-the-repos` drills into relevant domain/use-case skills and runs bounded code searches in every candidate, including repos without `product.md`. Shortlists include evidence pointers, assessment methods, possible existing implementation, and ticket-named external systems; concept-specific cross-repo references can extend discovery while generic service links cannot.
 - Repo routing now starts with an exact implementation check and leads with verify-and-finish findings. It accepts catalog/workspace grouping signals, combines missing scope/ticket intake, distinguishes primary and related ticket keys, reports owner-source conflicts and external coverage gaps, and preserves a pending draft until one confirmation finalizes it.
+- Repo routing assesses all repos in the resolved workspace by default, including large sibling-repo folders without grouping metadata. AskUserQuestion is reserved for genuine workspace ambiguity or explicit narrowing, not a mandatory repo-selection round; missing ticket content is requested directly.
 
 ## [4.9.0] - 2026-10-14
 

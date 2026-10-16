@@ -26,6 +26,7 @@
     "find-the-repos-catalog-workspace",
     "find-the-repos-combined-intake",
     "find-the-repos-confirm-pending",
+    "find-the-repos-large-workspace",
     "implement-feedback-clean",
     "implement-feedback-idempotent",
     "implement-feedback-nonminimal",

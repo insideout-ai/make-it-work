@@ -24,4 +24,5 @@ node evals/run-suite.mjs full \
   --case=find-the-repos-evidence-drilldown \
   --case=find-the-repos-catalog-workspace \
   --case=find-the-repos-combined-intake \
-  --case=find-the-repos-confirm-pending --max-cost-usd=6
+  --case=find-the-repos-confirm-pending \
+  --case=find-the-repos-large-workspace --max-cost-usd=6
