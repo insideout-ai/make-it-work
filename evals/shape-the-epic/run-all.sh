@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
-# Runs all three shape-the-epic autopilot smoke-test cases via `claude plugin eval`.
-#
-# All three run fully automatically. shape-the-epic's only `.claude/` write is
-# its autopilot decision log (make-it-work/shape-the-epic-autopilot-log.jsonl),
-# which Claude Code's `claude plugin eval` sandbox blocks regardless of tool
-# grants (see evals/go-deep/README.md for the underlying finding). Everything
-# else this skill writes — make-it-work/epic-[title]-[timestamp].md — is a
-# normal, unblocked path, so the three cases below verify the skill's actual
-# behavior in full. Only the decision log's own existence/schema needs a
-# manual run outside the eval sandbox — see evals/shape-the-epic/README.md and
-# evals/shape-the-epic/manual-log-check.sh for that command.
+# Runs the three Product cases via plugin eval, then technical-debt and discovery
+# cases through the shared disposable headless runner. Requires signed-in
+# Claude Code. See README.md for sandbox limitations and artifact inspection.
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,7 +28,20 @@ do
   echo
 done
 
-echo "=== Done. See evals/shape-the-epic/README.md for the one manual check ==="
+for case_name in \
+  shape-the-epic-technical-debt-outcomes \
+  shape-the-epic-technical-debt-sparse \
+  shape-the-epic-discovery-interview
+do
+  node evals/run-suite.mjs full --case="$case_name" --max-cost-usd=3
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "WARNING: $case_name exited $rc (see its report above)"
+    overall_rc=1
+  fi
+done
+
+echo "=== Done. See evals/shape-the-epic/README.md for log inspection ==="
 echo "    (make-it-work/shape-the-epic-autopilot-log.jsonl itself — run:"
 echo "    bash evals/shape-the-epic/manual-log-check.sh rich"
 echo "    bash evals/shape-the-epic/manual-log-check.sh sparse )"

@@ -61,9 +61,9 @@ Use it directly during day-to-day development to check a change against the regr
 
 ### `/make-it-work:shape-the-epic`
 
-Acts as a senior product coach to help you write a complete, elaboration-ready epic for any work management tool (Jira, Azure DevOps, Linear, Shortcut). Runs five structured phases — context ingestion, discovery interview, internal analysis, criterion-by-criterion validation, and epic generation — covering value proposition, target users & permissions, KPIs, use cases with Gherkin acceptance criteria, rollout plan, and definition of done.
+Shapes an epic for any work management tool (Jira, Azure DevOps, Linear, Shortcut) in **Product** or **Technical-debt** mode. Choose the readiness categories to focus on, then work through the discovery interview and gap-check. After the interview, it generates the complete Markdown epic directly for consolidated feedback, without a category-by-category content approval round. Real unknowns remain scoped TBDs; unselected categories are marked **Not assessed**.
 
-Use it when writing or improving a product epic, fleshing out a feature idea for engineering, or whenever you need to turn a rough concept into a spec that's ready for elaboration.
+Product mode covers value proposition, users and permissions, KPIs, use cases, rollout, and completion. Technical-debt mode centers on evidence and impact, desired outcomes, testable acceptance criteria, verification, and scope boundaries. Material agreed constraints or external dependencies are optional. The skill does not collect ownership; implementation planning is outside the default technical-debt epic. `--autopilot` resolves selection and interview questions unattended and adds an audit log.
 
 ---
 
@@ -77,7 +77,7 @@ Use it when a ticket or epic feels too big and needs to become sprint-sized stor
 
 ### `/make-it-work:find-the-repos`
 
-`find-the-repos` shortlists which repo(s) in a multi-repo workspace a ticket actually affects, before that ticket has even been assigned to one. It matches the ticket against each candidate repo's `product.md` — or, for a purely technical ticket with no business-logic content to match, each repo's `architecture.md` instead — and reports the result as **definite** and **possible** confidence tiers, never silently dropping a possible match in favor of a single "best" answer. It presents the draft shortlist — which you can adjust — and waits for your explicit confirmation before saving it.
+`find-the-repos` first checks whether the ticket's exact identifiers, endpoints, and UI labels already exist, leading the report with **verify and finish** when implementation is found. It then shortlists repos using docs, domain/use-case skills, and bounded code searches; specific code evidence can establish **Definite** even without docs. Workspace detection accepts catalog metadata, repo lists, and workspace configs as well as CLAUDE.md. It assesses **all repos by default**, even in a large sibling-repo workspace without grouping metadata; no repo-selection round is required. You can explicitly narrow the scope. Genuine workspace/scope choices use AskUserQuestion when available, without giant checkbox lists. One report, `<TICKET>-repos.md`, holds all assessment details, ownership sources/conflicts, and external routing; comments, revisions, and confirmation update that same file. The terminal shows only a compact **Definite repos / Owner(s) / Evidence** table, with supporting types `product.md`, `architecture.md`, `context skills`, and/or `code`, plus a report link and review prompt. Pasted tickets can use a provisional slug without borrowing related ticket keys.
 
 Unlike the fixed `close-the-gaps → plan-the-work → execute → review-the-pr` pipeline, `find-the-repos` ships standalone: nothing else in this plugin calls it yet. Run it on its own, before that pipeline starts, whenever a ticket's home repo isn't already obvious.
 

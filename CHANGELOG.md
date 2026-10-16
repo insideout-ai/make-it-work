@@ -20,6 +20,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `define-test-strategy` no longer scaffolds placeholder tests, adds a regression-check item to the `CLAUDE.md` "After Any Feature Change" checklist, or offers a git hook. Path-based (file-name) UC/domain tagging is replaced by `@covers` comments.
 
+## [4.10.0] - 2026-10-15
+
+### Added
+
+- `shape-the-epic` offers Product and Technical-debt modes, with mode-specific categories, acceptance criteria, and output sections.
+- Interactive epic shaping supports category selection through two multi-select questions; the discovery interview and gap-check focus on those selections, while unselected categories are marked Not assessed.
+
+### Changed
+
+- Epic shaping preserves the discovery interview and generates the complete draft directly afterward for consolidated feedback, removing the category-by-category content approval round.
+- Technical-debt epics center on outcome-based acceptance criteria, evidence, verification, and scope boundaries. Ownership is outside the skill's scope; material agreed technical constraints and external dependencies are optional, and implementation planning is deferred unless explicitly requested or essential to an agreed constraint.
+- Epic-shaping guidance is split into shared workflow and mode-specific references. Autopilot retains bounded discovery and post-deliverable decision logging, defaults to all categories when no subset is supplied, and logs checkbox selections as arrays without section-approval entries.
+- `find-the-repos` drills into relevant domain/use-case skills and runs bounded code searches in every candidate, including repos without `product.md`. Shortlists include evidence pointers, assessment methods, possible existing implementation, and ticket-named external systems; concept-specific cross-repo references can extend discovery while generic service links cannot.
+- Repo routing now starts with an exact implementation check and leads the report with verify-and-finish findings. It accepts catalog/workspace grouping signals, combines missing scope/ticket intake, distinguishes primary and related ticket keys, and reports owner-source conflicts and external coverage gaps.
+- Repo routing assesses all repos in the resolved workspace by default, including large sibling-repo folders without grouping metadata. AskUserQuestion is reserved for genuine workspace ambiguity or explicit narrowing, not a mandatory repo-selection round; missing ticket content is requested directly.
+- Repo routing maintains one `<TICKET>-repos.md` file through review, comments, and confirmation, updating its status in place instead of creating draft/final copies. Terminal summaries contain only a Definite-repo table with owner identifiers and supporting evidence types; full evidence, other tiers, ownership provenance/conflicts, and handoff details stay in the report.
+
 ## [4.9.0] - 2026-10-14
 
 ### Changed

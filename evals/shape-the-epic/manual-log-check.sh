@@ -1,30 +1,14 @@
 #!/usr/bin/env bash
-# Manually verifies make-it-work/shape-the-epic-autopilot-log.jsonl, the one file
-# this skill's autopilot run writes under `.claude/` — a path `claude plugin
-# eval`'s sandbox blocks even with explicit tool grants (see
-# evals/shape-the-epic/README.md and evals/go-deep/README.md for the
-# underlying finding), so it can't be checked through plain
-# `claude plugin eval`.
+# Generates a disposable autopilot run for inspecting the epic and audit log.
+# Previous plugin-eval runs denied log writes; this helper uses plain headless
+# Claude with explicit tool grants. See README.md for current expectations.
 #
 # Usage: bash evals/shape-the-epic/manual-log-check.sh [rich|sparse]
 #   rich   (default) — reuses shape-the-epic-rich-input-autopilot's prompt.
-#   sparse           — reuses shape-the-epic-sparse-input-autopilot's prompt,
-#                       the one more likely to actually exercise the 6-turn
-#                       cap (see that case's own graders).
+#   sparse           — reuses shape-the-epic-sparse-input-autopilot's prompt.
 #
-# Unlike go-deep's equivalent script, this does NOT need
-# --dangerously-skip-permissions: a direct probe during this suite's
-# implementation showed that plain headless mode (`claude -p ... --allowedTools
-# Write`, no --dangerously-skip-permissions) CAN write under `.claude/` in this
-# environment — only `claude plugin eval`'s own sandbox blocks it. This matches
-# evals/slice-the-epic/README.md's identical finding for that skill. This is a
-# discrepancy with evals/go-deep/README.md's claim that "no permission grant or
-# tool allowlist unblocks writing there, in claude plugin eval or in plain
-# headless mode" — if this ever stops holding in some other environment, fall
-# back to the go-deep-style manual path instead: add
-# --dangerously-skip-permissions below (run by a human — an agent operating
-# under this harness's own auto-mode safety net can't invoke or grant that
-# flag to itself).
+# Requires signed-in Claude Code. A denied log write remains non-fatal; do not
+# broaden permissions or retry through another tool merely to create the log.
 #
 # Scope is a disposable mktemp dir only; this script diffs this repo's git
 # status before/after to confirm nothing leaked into it, and refuses to run
@@ -92,9 +76,11 @@ echo "Transcript: $TRANSCRIPT"
 echo
 echo "Now check by hand:"
 echo "  - $RUN_DIR/make-it-work/shape-the-epic-autopilot-log.jsonl exists and matches"
-echo "    the schema in skills/shape-the-epic/SKILL.md's Autopilot Mode section"
+echo "    the schema linked from skills/shape-the-epic/references/autopilot.md"
 echo "    (one JSON object per line: phase, site, kind, chosen, rationale, ...;"
-echo "    for the sparse case, look for a 'part-a-cap-reached' site if the cap"
-echo "    was hit, and confirm no entry's Part 2A turn count exceeds 6)."
+echo "    an empty file is valid when no automatic resolution was needed)."
+echo "  - Mode/focus selection and discovery entries match the actual resolutions."
+echo "  - The Part A summary reports 0–6 open-text turns and the actual exit."
+echo "  - No category-draft approval entries or post-interview approval loop."
 echo "  - \$(ls $RUN_DIR/make-it-work/epic-*.md) against"
 echo "    evals/shape-the-epic/shape-the-epic-${CASE}-input-autopilot/graders/*.md."

@@ -4,13 +4,13 @@ focus: last_message
 weight: 2
 ---
 
-`find-the-repos` has no autopilot mode — Phase 4 requires presenting the draft shortlist and
-waiting for the user's explicit confirmation before saving anything.
+PASS if the terminal message contains exactly one concise Repo / Owner(s) /
+Evidence table with only notifications-service, Unknown owners (no ownership
+sources exist here), and product.md as supporting evidence. Its zero-hit code
+search must not earn a code tag. Possible tasks-api and other repos belong in
+the report only. Do not require prose explaining the match in the terminal.
 
-Judge whether this final message reads as a genuine, unanswered checkpoint — it presents a draft
-shortlist and is waiting for the user to confirm or adjust it — rather than a report of a shortlist
-that was already saved to a file.
-
-PASS if the message is clearly still waiting on the user (plain text question, or an
-AskUserQuestion-style prompt — either is fine). FAIL if it states or implies the shortlist was
-already saved, or if it reads as a completed report with nothing left to confirm.
+Allow a short link/status line for SNOOZE-100-repos.md and one pending
+confirm-or-comment prompt. FAIL if it claims human confirmation, links a
+separate .draft.md file, prints detailed assessment/ownership source paths,
+additional tables/lists, or starts optional owner/external side questions.

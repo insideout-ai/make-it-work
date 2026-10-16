@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: last_message
+focus: { source: file, path: "make-it-work/SNOOZE-100/SNOOZE-100-repos.md" }
 weight: 3
 ---
 

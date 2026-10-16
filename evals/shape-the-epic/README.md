@@ -1,88 +1,57 @@
-# `shape-the-epic` autopilot smoke test
+# Shape the Epic evaluations
 
-Three cases exercising `skills/shape-the-epic/SKILL.md`'s `--autopilot` flag:
+The suite covers mode/focus selection, the discovery interview, direct epic generation after the interview, unattended logging, and outcome-focused technical-debt content. The post-interview category-draft approval phase is removed; the interview remains part of the normal workflow.
 
-- **`shape-the-epic-rich-input-autopilot`** — a detailed, PRD-style epic idea ("Saved Search Alerts") supplied entirely up front: users, KPIs, edge cases, rollout, and definition of done are all already stated. This should let Phase 2 Part A's self-interview exit early, well inside the 6-turn cap, and exercises the normal Phase 2 → 5 flow end to end, including all 7 of Phase 4's criteria being auto-resolved via their `(Recommended)` option without ever calling the real `AskUserQuestion` tool.
-- **`shape-the-epic-sparse-input-autopilot`** — a deliberately vague one-liner idea ("Make exports better for our enterprise customers" — no users, outcome, KPIs, or scope stated). This is designed to exercise Phase 2 Part A's 6-turn cap and its cap-reached fallback: autopilot must self-answer several turns with `[autopilot best-guess]`, never exceed 6, and — whether it exits early or hits the cap — still produce a complete epic with any genuinely unresolved threads visible as Open Items / flagged Decision Log rows, rather than stalling or silently dropping them.
-- **`shape-the-epic-negative-control`** — the same rich "Saved Search Alerts" idea as the first case, without `--autopilot`. Confirms the interactive path still opens with one question and waits, rather than self-interviewing and producing a finished epic unattended.
+## Cases
 
-These are the two meaningfully distinct autopilot branches this skill's new bounding policy has (early exit vs. cap-reached), mirroring `go-deep`'s pilot shape (one "nothing surprising" case, one "the interesting branch" case, one negative control) rather than a fixed case count.
+- `shape-the-epic-rich-input-autopilot`: detailed Product context resolves selection and discovery unattended, then produces the full epic without section approvals. Existing answers can make discovery exit early. Product permissions, metrics, Gherkin criteria, and the supplied rollout decision are preserved.
+- `shape-the-epic-sparse-input-autopilot`: vague Product context exercises bounded discovery and produces a complete draft with meaningful unknowns and provisional interpretations visible instead of invented facts.
+- `shape-the-epic-negative-control`: without `--autopilot`, the run asks for the missing mode/focus choice or discovery input and waits. It must not bypass the interview, generate an epic yet, or create an autopilot audit log.
+- `shape-the-epic-technical-debt-outcomes`: a supplied completed interview and review scope lead directly to normal epic generation without another interview or category-approval round. Three outcomes, a material privacy constraint, and an explicit approval criterion are preserved. The case rejects inferred responsibility, incidental-tool dependencies, and candidate implementation designs.
+- `shape-the-epic-technical-debt-sparse`: qualitative CI-delay evidence goes through unattended discovery and produces a draft with scoped measurement TBDs. The case rejects invented metrics, ownership questions, implementation plans, and optional-section readiness blockers.
+- `shape-the-epic-discovery-interview`: a normal run with mode and focus already supplied asks one relevant discovery question and waits, without requiring an explicit interview opt-in or another selection step.
 
-The sparse case declares its eval working directory as the project root. In the 2026-10-09 full run, the model guessed the parent `home` directory as the root and `Write` was denied. The earlier `epic-file-written` grader counted the attempted call as success. It now requires the matching "File created successfully" tool result, and the open-items judge evaluates only a saved epic. The turn-cap check accepts Markdown bold around `Part A:` without changing the required count and exit semantics.
-The turn-cap check also accepts natural `turn`/`turns` wording as well as the template's literal `turn(s)`; a later full run used "2 self-answered turns" while preserving the required cap and exit values.
+Autopilot discovery retains its six-open-text-turn cap and exit summary. Only the category-draft approval graders have been retired. Content readiness is distinct from human approval. An empty autopilot log is valid only when supplied mode, focus, and interview context already resolved every site.
 
-## Running all three at once
+## Running
 
-```
+Use an existing signed-in Claude Code installation. Check `claude auth status` first; model evaluation is unavailable when the shell is signed out.
+
+Run all six cases sequentially:
+
+```sh
 bash evals/shape-the-epic/run-all.sh
 ```
 
-The per-skill `run-all.sh` uses plain `claude plugin eval` for all three cases
-and runs every case even if an earlier one scores imperfectly. In the shared
-maintainer smoke suite, the rich-input case instead uses a disposable headless
-run: a real plain-eval smoke denied the epic file write despite the declared
-`Write` grant. That run must be reviewed against its graders manually. Neither
-path requires `--dangerously-skip-permissions`.
+The per-skill script uses disposable headless runs for the technical-debt and discovery cases, and the existing plain plugin-eval path for the Product cases. It runs every case even after a failure. For a single case, use the shared runner:
 
-## `.claude/`-exposure: why this skill is mostly plain-eval-testable
-
-Per the rollout spec's facts table, `shape-the-epic` writes only to `make-it-work/epic-[title]-[YYYYMMDD-HHMM].md` — a normal, unblocked path. Adding `--autopilot` adds exactly one `.claude/`-protected path: the decision log, `make-it-work/shape-the-epic-autopilot-log.jsonl` (per the shared autopilot convention — see `skills/shape-the-epic/SKILL.md`'s Autopilot Mode section). That puts this skill in the same "one specific blocked path among otherwise-unblocked output" bucket as `define-test-strategy` and `close-the-gaps`, not the "substantially under `.claude/`" bucket `go-deep` was in.
-
-Run each case like this:
-
-```
-claude plugin eval . --case shape-the-epic-rich-input-autopilot --allow-tools Write Edit Read AskUserQuestion \
-  --ablation none --runs 1 --trust-plugin --no-publish
+```sh
+node evals/run-suite.mjs full --case=shape-the-epic-technical-debt-outcomes --max-cost-usd=3
+node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot --max-cost-usd=3
 ```
 
-(swap the case name for the other two). `AskUserQuestion` is listed in `allowed_tools` for every case even though autopilot shouldn't call it — same reasoning as `go-deep`/`close-the-gaps`: if the model deviates and calls it anyway, we want that visible as a grader failure (`no-askuserquestion` scores 0), not an unrelated tool-denial error. `Edit` and `Read` are granted alongside `Write` because a real run (see "What was verified by hand" below) showed the model naturally wants both — `Edit` to patch a gap it catches in its own draft before finalizing (a real self-correction was observed during implementation, not a hypothetical), and `Read` to re-read the file it just wrote before declaring the run done. Denying either would risk an unrelated tool-denial failure instead of a genuine grader signal. `Bash` is deliberately **not** granted: the model also reached for it (to `mkdir` the output directories and to shell out to `date` for the filename's timestamp) in a real run, but granting `Bash` to a `claude plugin eval` case hit an unrelated, unresolved, machine-specific blocker during the `go-deep` pilot (a Docker-credential-store symlink causes the eval harness to refuse the whole case outright — see the rollout spec's §1.5 and `evals/go-deep/README.md`). Both of `Bash`'s uses here are non-essential: `Write` already creates parent directories on its own, and without `Bash`'s `date` the model just picks the date from its own context instead — harmless for grading, since no grader in this suite depends on the filename's timestamp being exactly "now" (see the next section). None of the three cases need a `fixture.sh`/`scaffold_script` — like `slice-the-epic`, this skill has no repo dependency (facts table: "none"), so the "fixture" is just the epic idea embedded directly in each case's `prompt.md`.
+The shared smoke suite uses a disposable headless run for the rich Product case because its epic write was denied in a previous plain plugin-eval run despite the Write grant. The new cases are also registered as headless. Reports include the transcript, fixture location, and grader verdicts under ignored `evals/results/`. Never treat a denied artifact write as a successful draft.
 
-## Why the timestamped output filename doesn't need `file_exists`
+All cases grant Write, Edit, Read, and AskUserQuestion. Autopilot resolves selection and discovery without invoking AskUserQuestion. Normal interview cases ask the user and wait; the completed-interview case reuses the supplied answers and proceeds to drafting. No case grants Bash or bypasses tool permissions.
 
-Phase 5 saves to `make-it-work/epic-[title]-[YYYYMMDD-HHMM].md` — the timestamp makes the exact path unpredictable, so none of this suite's graders assert a fixed path with `file_exists`. (This also sidesteps a reliability issue `define-test-strategy`'s suite found with `file_exists` reporting false negatives for files that demonstrably exist — see `evals/define-test-strategy/README.md`.) Instead:
-- `epic-file-written` is a `tool_used` grader on `Write` with `input_match` against the filename *pattern* (`make-it-work/epic-[a-z0-9-]+-\d{8}-\d{4}\.md`), which doesn't care about the exact timestamp.
-- Content/structure checks (`epic-structure-sections`, `open-items-populated`, `phase4-fully-conducted`) are `llm` graders with `focus: trace`, which can find and read the `Write` call's actual content inside the transcript regardless of its path.
+## Artifact and logging checks
 
-## Why one check still needs a manual run (and why it doesn't need `--dangerously-skip-permissions` here)
+The filename includes a timestamp, so graders inspect the successful Write result and its content rather than assuming a fixed path. Ignore denied attempts when judging the saved epic. Numeric collision suffixes are allowed.
 
-Claude Code's `claude plugin eval` sandbox blocks any `.claude/`-path write regardless of tool grants (confirmed during the `go-deep` work and reconfirmed here) — so the plain-eval runs above verify everything this skill actually produces as a deliverable (the epic file, Phase 4's full validation loop, the turn-cap summary line), but **cannot** verify that `make-it-work/shape-the-epic-autopilot-log.jsonl` itself gets created with the right schema; that write is silently denied in the sandbox.
+Autopilot saves the epic before attempting `make-it-work/shape-the-epic-autopilot-log.jsonl`. A denied log write is non-fatal and must not trigger retries through other tools or paths. Log entries follow the shared schema and describe actual automatic resolutions of mode selection, category selection, and discovery/gap-check questions. Category-selection entries use multiSelect with chosen-label arrays. There are no category-draft approval entries.
 
-Unlike `go-deep`, verifying it here does **not** require `--dangerously-skip-permissions`. A direct probe during this suite's implementation showed that plain headless mode (`claude -p ... --allowedTools Write`, with no `--dangerously-skip-permissions`) **can** write under `.claude/` in this environment — only `claude plugin eval`'s own sandbox blocks it. This matches `evals/slice-the-epic/README.md`'s identical finding for that skill, and is a discrepancy with `evals/go-deep/README.md`'s claim that "no permission grant or tool allowlist unblocks writing there, in `claude plugin eval` or in plain headless mode" (worth a look by whoever owns that doc; out of scope to edit here since `go-deep`'s files aren't part of this task). If this ever stops holding in some other environment, fall back to the `go-deep`-style manual path instead (add `--dangerously-skip-permissions`, run by a human).
+To inspect actual log files outside the plugin-eval sandbox, the existing helper runs in its own disposable directory:
 
-To verify the log for real:
-
-```bash
-bash evals/shape-the-epic/manual-log-check.sh rich     # reuses the rich-input fixture
-bash evals/shape-the-epic/manual-log-check.sh sparse   # reuses the sparse-input fixture (more likely to exercise the cap)
+```sh
+cd /private/tmp
+bash /absolute/path/to/make-it-work/evals/shape-the-epic/manual-log-check.sh rich
+bash /absolute/path/to/make-it-work/evals/shape-the-epic/manual-log-check.sh sparse
 ```
 
-This was run during implementation for both `rich` and `sparse` — see "What was verified by hand" below. It is *not* something that needs to be handed to a human: it uses a plain tool grant (`--allowedTools Write AskUserQuestion`), not `--dangerously-skip-permissions`, so nothing here is blocked by this harness's own auto-mode safety net. Each run is scoped to its own disposable `mktemp` dir and diffs this repo's `git status` before/after to confirm nothing leaked into it; the script also refuses to run at all if its own cwd is somehow this plugin's real checkout (defense in depth, even though it runs no `git` commands itself).
+Replace the absolute checkout path. The helper refuses to run from the plugin checkout, grants only the listed tools, and compares repository status before and after. These commands do not require permission-bypass flags. Do not claim a live evaluation was run based only on credential-free validation.
 
-**One environment quirk found while building this:** running the `rich` and `sparse` manual checks *concurrently* (two `claude -p` processes started at the same moment, both pointed at the same `--plugin-dir`) caused one of the two runs to see a stale/partial skill list from the plugin loader (it reported only 3 unrelated skills available, not `shape-the-epic`) — a plugin-loading race, not a skill defect. Running them sequentially (one after the other, as `manual-log-check.sh` is meant to be invoked) did not reproduce this. If you ever run both in parallel yourself, rerun whichever one reports `shape-the-epic` as "not available."
+## Interpreting results
 
-## What was verified by hand (not just graded) — and two real defects this caught
+Inspect the successful saved artifact and transcript when an LLM grader fails. Prior runs showed judge variance on long traces and occasional plugin-loading failures; those findings do not establish that the revised workflow passes. The current cases must be rerun against the changed instructions.
 
-`manual-log-check.sh rich` was run for real via plain headless mode, and the full transcript plus `make-it-work/shape-the-epic-autopilot-log.jsonl` and the saved epic file were read byte-for-byte (not just graded), across several separate real runs during implementation. This caught two genuine skill-behavior defects, both now fixed in `skills/shape-the-epic/SKILL.md`:
-
-1. **Decision-log write ordering.** The first real `claude plugin eval` run showed the model trying to flush `make-it-work/shape-the-epic-autopilot-log.jsonl` immediately after Phase 4 finished — *before* Phase 5 had written the epic. The write was correctly denied (expected, sandboxed `.claude/`), but the model then went looking for a Bash/shell workaround instead of continuing, and the epic was **never written** (`Write called 0x`). Fixed by making `SKILL.md` explicit: accumulate the log in memory, write it only *after* the epic is saved, and treat a denied write as non-fatal (note it in the summary, never retry or search for a workaround). Re-running confirmed the fix: the epic is now written first in every run, and a denied log write is correctly logged as a one-line note rather than derailing anything.
-2. **Phase 4 narration being silently condensed.** After fix #1, some runs collapsed Phase 4's required per-criterion "What I understood / My proposal" block into a one-line "Accept (Recommended) ✅" summary, or skipped narrating it in chat entirely (reasoning through all 7 criteria internally and jumping straight to the files). The actual *content* was still correct in these cases (confirmed via the saved epic file), but the audit trail that Autopilot Mode is supposed to provide wasn't there in the transcript. Fixed by making the block's presence explicitly mandatory in three places in `SKILL.md` (the top-of-file phase-order rule, the Phase 4 instruction itself, and the Autopilot Mode resolution table), framed as equivalent to skipping Phase 4 outright if omitted.
-
-Both fixes were verified against real re-runs, not just reasoned about. Byte-level inspection (via `--keep-temp` and the eval harness's own `aggregate-result.json`, which embeds the full raw trace even without `--keep-temp`) was done on at least six separate successful runs across both fixtures, confirming in every case: the decision log's schema is correct (`phase`, `site`, `kind`, `chosen`, `rationale`; only `askUserQuestion`/`open_text` kinds, no `checkpoint`), the epic file has the complete fixed section structure, KPIs carry `Measured by:` lines, use cases carry fenced `gherkin` blocks, and the end-of-run summary prints the exact `Part A: N self-answered turn(s) used (cap 6); exit: ...` line `SKILL.md` specifies. The real repo (`/Users/ErezMo/make-it-work`) was confirmed untouched (`git status --porcelain --ignored` identical before/after) on every run.
-
-**A grader-tooling finding, not a skill defect:** `claude plugin eval` sometimes shows a second, malformed `Write` attempt at an incorrectly-nested or absolute path (e.g. `make-it-work/make-it-work/epic-....md` instead of `make-it-work/epic-....md`), which the sandbox correctly denies (visible as a `permission_denials` entry, not an actual file). This is harmless — the real, successful write always lands at the correct path — but it confused the `epic-structure-sections` LLM grader into sometimes judging the wrong (denied) attempt's content. The grader prompt was updated to explicitly tell the judge to find the `tool_result` that says "File created successfully" and ignore any denied attempt. A second, unrelated grader bug was also found and fixed: `epic-structure-sections` originally said the document "ends with" the Readiness Checklist, which contradicts `SKILL.md`'s own template (a `## Decision Log` section correctly comes after it) — a stronger judge (`sonnet`) was correctly and consistently failing this literal mismatch where the default judge was more lenient about it.
-
-## Observed judge/model variance (same class of issue other suites in this rollout already document)
-
-Even after both fixes above, repeated runs of `shape-the-epic-rich-input-autopilot` and `shape-the-epic-sparse-input-autopilot` show real score variance across repeated `--runs`, mostly concentrated in the two long, multi-criteria `llm` graders (`epic-structure-sections`, `phase4-fully-conducted`). Across roughly a dozen real runs gathered during implementation (mixing the default `haiku` judge and `--judge-model sonnet`), scores ranged from a clean 1.00 to as low as 0.57, with no single judge model proving uniformly reliable — `sonnet` was *more* consistent at catching the two real grader bugs above, but still showed its own occasional false negatives afterward. Every transcript actually read by hand during this work showed correct underlying skill behavior; the variance traces to two things, in roughly this order of impact:
-
-1. **Genuine model non-determinism in narration thoroughness.** Despite the Phase 4 block being made explicitly mandatory (see defect #2 above), at least one post-fix run still condensed it. This is a real, if infrequent, residual risk of prompt-based "always do X in the transcript" instructions — not something further prompt tuning fully eliminates. The resulting epic file content was still correct in every such case; only the audit-trail narration was thin.
-2. **LLM-judge unreliability on long `focus: trace` checks.** This is the same class of issue `evals/define-test-strategy/README.md` and `evals/slice-the-epic/README.md` already document for this rollout — grading a multi-criteria checklist against content embedded deep inside a large, JSON-escaped trace is inherently less reliable than grading short, focused chat prose. `turn-cap-respected`/`turn-cap-exercised` (shorter, `focus: last_message`-adjacent) were consistently far more stable than the two structure/content checks.
-
-**Practical implication:** don't treat one imperfect `claude plugin eval` score as proof of a skill regression for this suite. Read the actual transcript (or the saved epic file, or the decision log) by hand before concluding anything is broken — exactly as this implementation did. `--judge-model sonnet` and `--runs 3+` are recommended for anyone re-running this suite, but neither is a complete fix for the variance; eyeballing real output remains the ground truth, same as the lesson already recorded in this rollout's other suites.
-
-## Known gaps in this suite (by design, not oversight)
-
-- Doesn't cover Phase 2 Part A's "Something else — I'll describe it" escape or its reflect-back comprehension check — both are unreachable under autopilot by design (autopilot never selects "Something else"), so there's nothing to exercise there.
-- Doesn't separately exercise every one of Phase 4's 7 criteria types (Validate draft / Missing content / Clarify intent / Set target / Scope decision) with a dedicated fixture for each — the two fixtures between them exercise a realistic mix (rich input leans "Validate draft" across the board; sparse input leans "Missing content"), not an exhaustive one.
-- The sparse fixture was designed to force `open_text` best-guess turns (and thus visibly exercise the 6-turn cap's counting), but in practice autopilot is also allowed to construct `askUserQuestion`-style multiple-choice turns for almost any topic, however vague — and real runs show it sometimes resolves the entire vague prompt that way, meaning the cap-counting mechanism itself (as opposed to the cap-respecting *invariant*, which every run does satisfy) isn't always visibly exercised by this fixture. `turn-cap-exercised`'s criteria were adjusted to accept either outcome as correct rather than assuming the fixture reliably forces one specific branch.
-- `AskUserQuestion`'s availability is itself environment-dependent inside `claude plugin eval` sandboxes (see `evals/go-deep/README.md`'s note); this skill's autopilot path never calls it on the happy path anyway, so this mainly affects how `shape-the-epic-negative-control` behaves once it reaches a question it can't resolve unattended.
+The suite covers interview entry and a supplied completed-interview handoff, but not a full multi-turn live interview or consolidated revision. It does not yet exercise collision handling, an explicitly requested design appendix, or backlog identifiers requested by the user.

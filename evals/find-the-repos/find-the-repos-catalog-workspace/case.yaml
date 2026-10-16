@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: find-the-repos-catalog-workspace
+tags: [find-the-repos, metadata, routing]
+context:
+  scaffold_script: fixture.sh

@@ -1,0 +1,9 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: checkbox-ui
+spec:
+  type: website
+  lifecycle: production
+  system: payroll
+  owner: group:default/payroll-web

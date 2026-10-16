@@ -11,6 +11,6 @@ PASS only if ALL of the following hold:
 2. Target Users & Permissions includes a markdown table with Role / Can View / Can Act columns for at least the "job seeker" role.
 3. KPIs & Success Metrics includes at least one KPI with a "Measured by:" line.
 4. Use Cases & Requirements includes at least one use case written as "As a ... I want ... so that ..." with a fenced ```gherkin``` Given/When/Then block.
-5. A "Readiness Checklist" appears (after Open Items & Out of Scope, followed by a final "## Decision Log" section — the skill's template puts Decision Log last, so do not fail for content appearing after the checklist) containing the 8 fixed checklist items from the skill's template, with most items checked `[x]` given how complete the PM's input was (a couple of `[ ]` items are acceptable if something was genuinely left open, but do not fail solely for that).
+5. A Readiness Checklist follows Open Items & Out of Scope, and a Decision Log follows the checklist. The checks reflect applicable content readiness, not human approval or a fixed number of checks. Material unknowns or unconfirmed assumptions affecting acceptance remain unresolved. The document is identified as a draft pending review.
 
 List any of 1-5 that fail.

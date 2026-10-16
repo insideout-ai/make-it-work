@@ -1,33 +1,29 @@
 #!/usr/bin/env bash
-# Runs all four find-the-repos smoke-test cases. find-the-repos has no autopilot mode and writes
-# nothing but make-it-work/<TICKET>/<TICKET>-repos.md (only after a human confirms the draft shortlist, which a
-# one-shot headless run never reaches) — so unlike plan-the-work/shape-the-epic/etc., none of these
-# cases need Bash or --dangerously-skip-permissions; all four run fully through plain
-# `claude plugin eval`.
+# Runs interactive checkpoints and unattended evidence/save cases. Requires
+# signed-in Claude Code and approval for external model usage. No permission
+# bypass flags are used. The evidence case uses the disposable headless runner.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
-echo "=== 1/4: happy-path ==="
-claude plugin eval . --case find-the-repos-happy-path --scaffold --allow-tools Write Edit \
-  --ablation none --runs 1 --trust-plugin --no-publish --judge-model sonnet
+for case_name in \
+  find-the-repos-happy-path \
+  find-the-repos-technical-fallback \
+  find-the-repos-single-repo-refusal \
+  find-the-repos-unrelated-clones \
+  find-the-repos-autopilot-save-injection
+do
+  claude plugin eval . --case "$case_name" --scaffold \
+    --allow-tools Read Glob Grep Write Edit AskUserQuestion \
+    --ablation none --runs 1 --trust-plugin --no-publish --judge-model sonnet
+done
 
-echo
-echo "=== 2/4: technical-fallback ==="
-claude plugin eval . --case find-the-repos-technical-fallback --scaffold --allow-tools Write Edit \
-  --ablation none --runs 1 --trust-plugin --no-publish --judge-model sonnet
-
-echo
-echo "=== 3/4: single-repo-refusal ==="
-claude plugin eval . --case find-the-repos-single-repo-refusal --scaffold --allow-tools Write Edit \
-  --ablation none --runs 1 --trust-plugin --no-publish --judge-model sonnet
-
-echo
-echo "=== 4/4: unrelated-clones ==="
-claude plugin eval . --case find-the-repos-unrelated-clones --scaffold --allow-tools Write Edit \
-  --ablation none --runs 1 --trust-plugin --no-publish --judge-model sonnet
-
-echo
-echo "=== Done. ==="
+node evals/run-suite.mjs full \
+  --case=find-the-repos-evidence-drilldown \
+  --case=find-the-repos-catalog-workspace \
+  --case=find-the-repos-combined-intake \
+  --case=find-the-repos-confirm-pending \
+  --case=find-the-repos-large-workspace \
+  --case=find-the-repos-revise-report --max-cost-usd=6

@@ -1,14 +1,14 @@
 ---
 type: llm
-focus: last_message
+focus: trace
 weight: 3
 ---
 
-This is the final message of a `shape-the-epic` run **without** `--autopilot`, given the same rich "Saved Search Alerts" epic idea used in the autopilot fixture.
+This is a normal run without `--autopilot`, with detailed Saved Search Alerts context but no selected mode or review categories. The interview and focus selection remain part of the normal workflow.
 
 PASS only if ALL of the following hold:
-1. The message asks the PM a question (either a plain-text Phase 2 Part A opening question, or a structured `AskUserQuestion`-style numbered-option presentation) rather than presenting a finished epic.
-2. The message does not contain epic deliverable content — no "## What & Why", "## Decision Log", or "Readiness Checklist" sections.
-3. The message does not claim to have saved any file under `make-it-work/`.
+1. The run asks for the missing mode or review-scope choice, or a relevant discovery question, and waits for the user rather than self-answering.
+2. It does not save or present a complete epic before the outstanding selection/interview steps are resolved.
+3. It does not show drafted category content for Accept/Refine/Replace approval. Selection and discovery questions are allowed and expected; they are not the removed post-interview confirmation round.
 
-List any of 1-3 that fail, quoting the relevant text.
+List any failures with evidence.
