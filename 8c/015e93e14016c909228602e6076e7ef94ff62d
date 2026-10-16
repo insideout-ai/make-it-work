@@ -1,0 +1,58 @@
+evals/find-the-repos/find-the-repos-large-workspace/graders/verify-and-finish.md
+  s_23842d5dad9505::t_497cf74839cfdc 4,7-12
+CHANGELOG.md
+  s_23842d5dad9505::t_e31712fe377dfc 21
+evals/find-the-repos/find-the-repos-large-workspace/fixture/common/README.md
+  s_23842d5dad9505::t_497cf74839cfdc 1-3
+evals/find-the-repos/find-the-repos-large-workspace/fixture.sh
+  s_23842d5dad9505::t_497cf74839cfdc 1-22
+evals/find-the-repos/find-the-repos-large-workspace/case.yaml
+  s_23842d5dad9505::t_497cf74839cfdc 1-5
+evals/find-the-repos/find-the-repos-large-workspace/fixture/LARGE-400-spec.md
+  s_23842d5dad9505::t_497cf74839cfdc 1-5
+evals/find-the-repos/find-the-repos-large-workspace/prompt.md
+  s_23842d5dad9505::t_497cf74839cfdc 1-9
+evals/find-the-repos/find-the-repos-unrelated-clones/fixture.sh
+  s_23842d5dad9505::t_e31712fe377dfc 20-21
+evals/find-the-repos/run-all.sh
+  s_23842d5dad9505::t_497cf74839cfdc 27-28
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/pending-draft-saved.md
+  s_23842d5dad9505::t_e31712fe377dfc 1-6
+evals/suites.json
+  s_23842d5dad9505::t_497cf74839cfdc 29
+evals/find-the-repos/README.md
+  s_23842d5dad9505::t_497cf74839cfdc 10,14,16,29,35,46
+  s_23842d5dad9505::t_64c7a5a78c2cf2 47
+evals/find-the-repos/find-the-repos-combined-intake/graders/one-intake-request.md
+  s_23842d5dad9505::t_e31712fe377dfc 8-12
+skills/find-the-repos/SKILL.md
+  s_23842d5dad9505::t_e31712fe377dfc 30,39,56,58-60
+evals/find-the-repos/find-the-repos-large-workspace/graders/no-final-before-confirmation.md
+  s_23842d5dad9505::t_497cf74839cfdc 2-4
+evals/find-the-repos/find-the-repos-large-workspace/graders/pending-draft-saved.md
+  s_23842d5dad9505::t_497cf74839cfdc 1-6
+evals/find-the-repos/find-the-repos-unrelated-clones/graders/default-all-without-grouping.md
+  s_23842d5dad9505::t_e31712fe377dfc 1-17
+evals/find-the-repos/find-the-repos-large-workspace/fixture/export.ts
+  s_23842d5dad9505::t_497cf74839cfdc 1-3
+evals/find-the-repos/find-the-repos-large-workspace/graders/all-forty-assessed.md
+  s_23842d5dad9505::t_497cf74839cfdc 1-19
+README.md
+  s_23842d5dad9505::t_6fd819c069dc16 80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8c015e93e14016c909228602e6076e7ef94ff62d",
+  "prompts": {},
+  "sessions": {
+    "s_23842d5dad9505": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13f6f-a4e3-78d0-af05-eb14bc8c1c85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
