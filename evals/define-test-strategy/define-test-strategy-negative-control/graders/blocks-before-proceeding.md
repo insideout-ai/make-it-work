@@ -4,4 +4,16 @@ focus: last_message
 weight: 3
 ---
 
-Judge whether this message shows the `define-test-strategy` skill stopping to ask the user how to proceed (e.g. "Extend existing strategy file" vs "Re-check coverage only", or an equivalent Phase 1 decision prompt) — WITHOUT having already scaffolded any test file or reported a finished coverage report. Answer PASS if the message is a genuine unanswered question/checkpoint. Answer FAIL if the message instead reports that test files were scaffolded, `CLAUDE.md` was edited, or Phase 3/4/5 work was completed.
+This fixture holds old-version `define-test-strategy` outputs
+(`.claude/rules/testing-strategy.md`, path-tagged tests, a placeholder test,
+and the old `CLAUDE.md` Rules Files row and checklist item), and the skill ran
+without `--autopilot`.
+
+Judge whether this message shows the skill stopping to ask the user before
+writing anything — either at the Phase 1 prior-output question (for example
+"Refresh / migrate" vs "Stop — change nothing", or an equivalent refresh/migrate
+decision) or at the Phase 2 test-location confirmation. Answer PASS if the
+message is a genuine unanswered question or checkpoint of that kind. Answer
+FAIL if it instead reports that `@covers` tags were written, that the
+test-strategy skill or `CLAUDE.md` was written, that the old rule file was
+deleted, or that a finished coverage report was produced.

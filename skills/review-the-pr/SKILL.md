@@ -92,6 +92,7 @@ The `CLAUDE.md` skill-loading gate applies to reviews. Before judging any change
 1. Open `CLAUDE.md` and locate the skill-loading gate section — it contains a mapping table of code areas → skills. Match each changed file path against that table and load every skill listed for it.
 2. If `CLAUDE.md` has no explicit table, fall back to heuristics: any `uc-*` skill whose name matches the feature area touched, and any `domain-*` skill whose description covers the changed component.
 3. **Enumerate every UC that flows through the changed code — don't stop at the one the ticket names.** For each `domain-*` skill you loaded, read its list of the `uc-*` skills that use that domain (each domain skill enumerates them), and load **every** UC on that list. Cross-check that list against the User Journey Chains in `product.md` and the Functional Domains table in `architecture.md` so no flow is missed. This is especially critical when the diff touches shared infrastructure (services, utilities, models, enums, factories used by several flows): each of those UCs is a regression candidate, and you cannot spot the regression in Step 4 without its skill loaded here.
+4. **Read `.claude/skills/test-strategy/SKILL.md` when it exists** — its `## Tag Convention`, `## How to Scan`, and `## Test Locations` drive Step 4's tag checks. The touched UCs and domains come from the plan's `## Domains/UCs Touched` when implement passes a plan; otherwise from the diff and the skills loaded above. If only the old `.claude/rules/testing-strategy.md` exists, don't read it; note in the Coverage line that `define-test-strategy` should be re-run. With no strategy skill, skip Step 4's two tag checks.
 
 **What each skill type provides:**
 
@@ -119,7 +120,10 @@ Then hunt for the quieter regressions:
 - **Single-row DB reads**: any query feeding one record (`result[0]`) needs a soft-delete filter and a deterministic `ORDER BY ... LIMIT 1`. Compare with sibling queries in the same file — the codebase usually has a correctly-guarded sibling to point at.
 - **Source migrations**: when a diff changes where a value comes from (one field/table/config → another), the new source's empty/null/format space is different from the old one's. Trace **every downstream consumer** of the migrated value and check what happens when the new source yields empty, null, or absent — especially sentinel helpers whose behavior flips between `""` and `null`. A value the old source guaranteed non-empty may now arrive empty and silently flip a business decision.
 - **Cache keys and scoping**: cached lookups must be keyed by everything that varies the result.
-- **Tests**: new logic branches without unit tests, and tests deleted alongside behavior that still exists.
+- **Tests**: new logic branches without unit tests, and tests deleted alongside behavior that still exists. With a strategy skill loaded in Step 2, also flag:
+  - A test added/changed for a touched UC/domain with no `@covers` line — Minor.
+  - A touched UC/domain left with no tagged test in any `## Test Locations` entry (scan per `## How to Scan`) — Minor.
+  - Tests in other repos are checked by scan only.
 - **Off-checklist hunt**: the checks above are a floor, not a ceiling. After completing them, re-read the diff once more asking only *"what else goes wrong for real inputs?"* — new utilities and helpers deserve the same scrutiny as the flows that call them. Findings from this pass meet the same evidence bar as everything else.
 
 ## Step 5 — Coding-standards pass
@@ -207,7 +211,7 @@ When there are **no findings**, say so plainly in both tiers — `Verdict: Appro
 **Severity**:
 - **Critical** — must fix before merge: wrong data sent to an external system, undocumented business-rule change, state-machine/constraint violation, security/PCI exposure. Critical requires that the impact *matters to the business* per product.md, the UC skills, or the requirements. When the impact hinges on a business tolerance documented nowhere, report it as a **question to the author** with a provisional severity — not a Critical verdict.
 - **Major** — should fix: real defect with a narrower blast radius, misleading logs/reasons/rejection reasons, lint suppressions, missing tests for new logic branches, unrelated changes that alter behavior.
-- **Minor** — polish: type hygiene (`any`, missing explicit types) unless it demonstrably hides a defect in this diff, typos in messages, log-format inconsistencies, import order, DRY suggestions.
+- **Minor** — polish: type hygiene (`any`, missing explicit types) unless it demonstrably hides a defect in this diff, typos in messages, log-format inconsistencies, import order, DRY suggestions, untagged test for a touched UC/domain, touched UC/domain left with no tagged test.
 
 **Causal-chain citation**: when a finding's impact runs through *unchanged* code — an exception caught by a generic handler, a downstream consumer, a shared utility — cite the whole chain, not just the diff line: the changed line that introduces the behavior AND the unchanged handler/consumer where the consequence materializes (`file:line` for each). The author must be able to verify the claim without re-tracing it.
 
@@ -257,4 +261,4 @@ Orchestrator outcome: CLEAN | FIX_REQUIRED | REPLAN_REQUIRED | HUMAN_DECISION
 
 **No questions** — never ask the user anything in this mode. Anything that would need a question becomes a `Route: human` finding.
 
-**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `review-<N>.json` under `make-it-work/<TICKET>/<TICKET>-handoffs/`. Use the actual saved Tier 1 review report as the `report` artifact. Record the current `review_cycle`, each actionable finding's id, route, stable code region, and `Introduced by fix of:` value (`null` for `none`); include the context gaps for final sync. Do not write this file for an older run. End the Tier 2 chat summary with `Handoff: <path>` after the `Orchestrator outcome:` line so `implement` can validate and route it.
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `review-<N>.json` under `make-it-work/<TICKET>/<TICKET>-handoffs/`. Use the actual saved Tier 1 review report as the `report` artifact. Record the current `review_cycle`, each actionable finding's id, route, stable code region, and `Introduced by fix of:` value (`null` for `none`); include the context gaps for final sync. The Minor test-tag findings from Step 4 stay out of `findings`, so a Minor-only review remains `CLEAN`. Do not write this file for an older run. End the Tier 2 chat summary with `Handoff: <path>` after the `Orchestrator outcome:` line so `implement` can validate and route it.

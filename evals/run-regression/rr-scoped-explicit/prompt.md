@@ -6,4 +6,4 @@ timeout_seconds: 300
 runs: 1
 ---
 
-/make-it-work:run-regression --autopilot domain-velocity
+/make-it-work:run-regression --autopilot velocity-app:domain-velocity

@@ -27,7 +27,7 @@ Stage-specific `done` fields:
 | --- | --- | --- |
 | gaps | `SPEC_SAVED` | `tbd_items` (integer), `context_updated` (path strings) |
 | plan | `PLAN_SAVED` for initial/replan; `FIX_PLAN_READY` for amend | `mode` (`initial`, `replan`, `amend`), `steps_added` (integer for amend, otherwise `null`), `recommend_replan` (reason string or `null`), `context_updated` (path strings) |
-| execute | `PASSED`, `GUARDRAIL`, `RETRY_LIMIT`, `GATE_FAILED`, `GATE_NO_RESULT`, `EXECUTE_STOPPED` | `discoveries` (strings), `failing_tests` (test names/paths, required and nonempty for `GATE_FAILED`), `gate` (`none`, `full-suite`, `scoped`) |
+| execute | `PASSED`, `GUARDRAIL`, `RETRY_LIMIT`, `GATE_FAILED`, `GATE_NO_RESULT`, `EXECUTE_STOPPED` | `discoveries` (strings), `failing_tests` (test names/paths, required and nonempty for `GATE_FAILED`), `gate` (`none`, `full-suite`, `scoped`, `scoped+full`) |
 | review | `CLEAN`, `FIX_REQUIRED`, `REPLAN_REQUIRED`, `HUMAN_DECISION` | `findings` (see below), `context_gaps` (strings) |
 
 For a run with `verification_version: 1`, a `done` Execute handoff also has `artifacts.verification: make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json`. The validator checks the ledger's schema, gate outcome, and AC rows against the plan's traceability table. Older runs omit it. See `verification.md` for the ledger contract.
