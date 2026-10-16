@@ -122,3 +122,7 @@ test('CLI validates a handoff and routes it against a saved Markdown state', asy
   await writeFile(path.join(handoffs, 'gaps-2.json'), JSON.stringify(gaps()));
   assert.throws(() => execFileSync(process.execPath, [cli, 'validate', '--handoff', handoffPath, '--root', root], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /stale/);
 });
+
+test('validates an execute handoff with the scoped+full gate', () => {
+  assert.equal(validateHandoff({ ...execute('PASSED'), data: { ...execute('PASSED').data, gate: 'scoped+full' } }).data.gate, 'scoped+full');
+});

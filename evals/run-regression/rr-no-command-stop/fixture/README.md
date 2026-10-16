@@ -2,7 +2,7 @@
 
 A tiny project with `build` and `lint` package.json scripts but
 deliberately **no test script**, no `Makefile`, no CI config under
-`.github/workflows/`, and no `.claude/rules/testing-strategy.md`. This
+`.github/workflows/`, and no test-strategy skill (`.claude/skills/test-strategy/SKILL.md`). This
 means Phase 1 cannot discover a full-suite test command from either
 source and must hit the Stop-and-ask fallback.
 

@@ -1,7 +1,0 @@
-{
-  "name": "rr-scoped-unavailable-fixture",
-  "private": true,
-  "scripts": {
-    "test": "node --test"
-  }
-}

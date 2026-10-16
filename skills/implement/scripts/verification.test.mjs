@@ -37,3 +37,8 @@ test('checks a ledger file stays inside the run root', async (t) => {
   assert.equal(result.valid, true);
   await assert.rejects(readVerification(root, '../DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1 }), /Invalid verification artifact path/);
 });
+
+test('accepts a scoped+full verification gate', () => {
+  const scoped = { ...ledger(), gate: { mode: 'scoped+full', result: 'pass', note: 'scoped then full suite passed' } };
+  assert.equal(validateVerification(scoped, { ticket: 'DEMO', planVersion: 1, plan, outcome: 'PASSED' }).gate.mode, 'scoped+full');
+});

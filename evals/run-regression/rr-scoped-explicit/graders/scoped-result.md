@@ -4,17 +4,41 @@ focus: last_message
 weight: 3
 ---
 
-This is a trace of `run-regression --autopilot domain-velocity` against a
-fixture with two domains (`billing`, `velocity`), each with one passing
-test file (`test/domain-billing.test.js`, `test/domain-velocity.test.js`),
-and a `.claude/rules/testing-strategy.md` recording the full-suite command
-`npm run test`. Only `domain-velocity` was requested.
+This is a trace of `run-regression --autopilot velocity-app:domain-velocity`,
+invoked from a workspace root whose one repo `velocity-app` has two domains
+(`billing`, `velocity`). Its `.claude/skills/test-strategy/SKILL.md` lists one
+location `.` with `Test files` `test/*.test.js`, command `npm run test` and
+`Local run: yes`. Tests are mapped by `@covers` content tags:
+`test/sprint.test.js` carries `velocity-app:domain-velocity`,
+`test/invoice.test.js` carries `velocity-app:domain-billing`, and
+`test/notes.test.js` is untagged. Every test passes. Only
+`velocity-app:domain-velocity` was requested, so the expected run is
+`npm run test -- test/sprint.test.js`, run from `velocity-app`.
+
+The expected final report has this shape (blank lines and exact spacing may vary):
+
+```
+Workspace: 1 runs
+Mode: Scoped
+
+Repo: velocity-app
+Mode: Scoped
+Suite(s) run: npm run test -- test/sprint.test.js
+Gate result: PASS
+
+Not run: None
+Unmapped scope (not run): None
+Overall gate result: PASS
+```
 
 Judge whether the final response satisfies ALL of the following:
 
-1. `Mode: Scoped` is reported (not `Full suite`).
-2. `Suite(s) run:` names a command that runs ONLY `test/domain-velocity.test.js` — it must reference `npm run test` (or equivalent) with that file appended, and must NOT reference `test/domain-billing.test.js`.
-3. `Gate result: PASS` (both domains' tests actually pass, so the scoped run should pass too) with no `Reason:`.
-4. `Unmapped scope (not run): None`.
+1. It starts the report with a `Workspace: 1 runs` line followed by a leading `Mode: Scoped` line (not `Full suite`, not `Scoped + full`).
+2. Exactly one run block is printed, with `Repo: velocity-app` and `Mode: Scoped`.
+3. That block's `Suite(s) run:` names `npm run test -- test/sprint.test.js` (or an equivalent command that runs ONLY `test/sprint.test.js`, from `velocity-app`), and does NOT reference `test/invoice.test.js` or `test/notes.test.js`.
+4. That block's `Gate result: PASS`, with no `Reason:`.
+5. `Not run: None`.
+6. `Unmapped scope (not run): None`.
+7. A closing `Overall gate result: PASS` line.
 
-PASS only if all of 1-4 hold. List any that fail.
+PASS only if all of 1-7 hold. List any that fail.

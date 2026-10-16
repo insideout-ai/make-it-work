@@ -17,7 +17,7 @@ All four run fully through plain `claude plugin eval` — no `--dangerously-skip
 
 ## `.claude/`-exposure: why this skill is mostly plain-eval-testable
 
-Before this work, `close-the-gaps` wrote nothing under `.claude/` at all. Adding `--autopilot` adds exactly one such path: the decision log, `make-it-work/<TICKET>/close-the-gaps-autopilot-log.jsonl` (per the shared convention — see `skills/close-the-gaps/SKILL.md`'s Autopilot Mode section). Everything else the skill writes — `make-it-work/<TICKET>/<TICKET>-questions.md`, `make-it-work/<TICKET>/<TICKET>-spec.md` — is a normal, unblocked path. That puts this skill in the "one specific blocked path among otherwise-unblocked output" bucket (the same bucket `define-test-strategy` is in for its `.claude/rules/testing-strategy.md`), not the "substantially under `.claude/`" bucket `go-deep` was in.
+Before this work, `close-the-gaps` wrote nothing under `.claude/` at all. Adding `--autopilot` adds exactly one such path: the decision log, `make-it-work/<TICKET>/close-the-gaps-autopilot-log.jsonl` (per the shared convention — see `skills/close-the-gaps/SKILL.md`'s Autopilot Mode section). Everything else the skill writes — `make-it-work/<TICKET>/<TICKET>-questions.md`, `make-it-work/<TICKET>/<TICKET>-spec.md` — is a normal, unblocked path. That puts this skill in the "one specific blocked path among otherwise-unblocked output" bucket (the same bucket `define-test-strategy` is in for its `.claude/skills/test-strategy/SKILL.md`), not the "substantially under `.claude/`" bucket `go-deep` was in.
 
 Run each case like this:
 

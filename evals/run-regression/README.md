@@ -1,22 +1,27 @@
 # `run-regression` autopilot smoke test
 
-Six cases exercising `skills/run-regression/SKILL.md`'s `--autopilot` flag
+Eight cases exercising `skills/run-regression/SKILL.md`'s `--autopilot` flag
 and its underlying full-suite/scoped-mode logic:
 
 | Case | Invocation | Exercises |
 |---|---|---|
 | `rr-negative-control` | `/make-it-work:run-regression` (no `--autopilot`) | The Phase 0 mode-choice question still blocks unattended, independent of what its eventual autopilot default turns out to be. |
 | `rr-no-command-stop` | `--autopilot full` | Phase 1's stop-and-ask fallback when no full-suite command is discoverable — the one site explicitly exempted from the general "best-guess" autopilot rule (never invent a test command). |
-| `rr-scoped-unavailable` | `--autopilot domain-velocity` | Phase 2's scoped-mode availability gate (no `testing-strategy.md`) firing even with an explicit, otherwise-valid scope token. |
+| `rr-scoped-unavailable` | `--autopilot velocity-app:domain-velocity` | Phase 2's scoped-mode availability gate firing even with an explicit, otherwise-valid scope token: the prefix resolves to `velocity-app/` under a one-repo workspace root, and that repo has no `.claude/skills/test-strategy/SKILL.md`. |
 | `rr-full-pass` | `--autopilot full` | The full happy path: discover `npm test` via `package.json`, run it, report `Gate result: PASS`. |
 | `rr-full-fail` | `--autopilot full` | A plain exit-code `FAIL` (no `Reason:`), with the captured output tail shown. |
-| `rr-scoped-explicit` | `--autopilot domain-velocity` | Full scoped-mode machinery: `testing-strategy.md` + `product.md`/`architecture.md` as the inventory, tag-substring file matching, the `npm run <script> -- <files>` passthrough rule, and that an unrequested domain's tests are never touched. |
+| `rr-scoped-explicit` | `--autopilot velocity-app:domain-velocity` | Full scoped-mode machinery from a workspace root: `<repo>:` prefix resolution to `velocity-app/`, its `.claude/skills/test-strategy/SKILL.md` + `product.md`/`architecture.md` as the inventory, the strategy's `## How to Scan` `@covers` content-tag grep (an untagged file that mentions velocity in plain text is never selected), the `npm run <script> -- <files>` passthrough rule, the token-run report grammar, and that an unrequested domain's tests are never touched. |
+| `rr-cross-repo` | `--autopilot payments-api:UC-08 ledger-api:UC-08 full:payments-api full:ledger-api` | A mixed multi-prefix run over the shared `evals/fixtures/multi-repo-workspace/`: tests in another repo (`qa-automation`) selected by content tag, a `ci-only` location reported under `Not run:`, `full:<repo>` runs (including a repo with no tests), a `UC-080` decoy never selected, and `Overall gate result: FAIL` from the intentionally failing ledger test. |
+| `rr-unrelated-clones` | `--autopilot full` | Phase 0's repo-ambiguity stop: two unrelated clones with no workspace orientation file, so the run must ask which repo to test rather than pick one. |
 
-## Running all six at once
+## Running the original six at once
 
 ```
 bash evals/run-regression/run-all.sh
 ```
+
+`run-all.sh` covers the six original cases; run `rr-cross-repo` and
+`rr-unrelated-clones` through `node evals/run-suite.mjs` (see `evals/README.md`).
 
 Run it yourself (via `!` in a Claude Code session, or directly in a shell/CI)
 — `rr-full-pass`/`rr-full-fail`/`rr-scoped-explicit` may fall back to
@@ -95,7 +100,7 @@ exposure at all, but the one decision-log write does. Concretely:
   (cd "$RUN_DIR" && claude -p "/make-it-work:run-regression --autopilot full" \
     --plugin-dir /path/to/make-it-work --dangerously-skip-permissions \
     --output-format stream-json --verbose > /tmp/transcript.jsonl)
-  # (rr-scoped-explicit uses --autopilot domain-velocity instead of --autopilot full)
+  # (rr-scoped-explicit uses --autopilot velocity-app:domain-velocity instead of --autopilot full)
 
   # Verify: diff `git status --porcelain --ignored -- skills/run-regression evals/run-regression`
   # on the real repo before/after (must be identical — scope the diff to these two
@@ -108,7 +113,7 @@ exposure at all, but the one decision-log write does. Concretely:
 
 ## What was actually run and verified (not just graded)
 
-All six cases were run for real during this work and their full output was
+The six original cases were run for real during this work and their full output was
 read by hand — a grader passing isn't proof the skill behaves correctly, so
 this suite was held to the same bar `go-deep`'s `fresh-onboarding`/
 `repair-path` manual runs were:
@@ -124,8 +129,10 @@ this suite was held to the same bar `go-deep`'s `fresh-onboarding`/
   a `Gate result:` line.
 - **`rr-scoped-unavailable`** — via plain `claude plugin eval`. Confirmed the
   availability gate fired immediately (before any token validation) because
-  `.claude/rules/testing-strategy.md` was absent, with the exact stop
-  message and no `Gate result:` line.
+  the repo's strategy file was absent, with the exact stop message and no
+  `Gate result:` line. (Recorded for the earlier single-repo layout; the case
+  now resolves the `velocity-app:` prefix to `velocity-app/` and checks for
+  `.claude/skills/test-strategy/SKILL.md` there — re-run to re-confirm.)
 - **`rr-full-pass`** — via manual `--dangerously-skip-permissions` run.
   Confirmed `npm test` was discovered and run, `Gate result: PASS` was
   reported in the exact fixed-block shape, and — critically —
@@ -136,11 +143,21 @@ this suite was held to the same bar `go-deep`'s `fresh-onboarding`/
   Confirmed `Gate result: FAIL` with no `Reason:` bracket and the real
   `node --test` assertion failure shown in the captured output tail.
 - **`rr-scoped-explicit`** — via manual `--dangerously-skip-permissions`
-  run. Confirmed the agent read `testing-strategy.md`'s `## Commands`
-  section, constructed `npm run test -- test/domain-velocity.test.js`
-  (correctly inserting `--` for the `npm run` wrapper per Phase 3's
-  passthrough rule), ran only that one file, never touched
-  `test/domain-billing.test.js`, and reported `Gate result: PASS`.
+  run, against the earlier single-repo, path-tag layout: the agent
+  constructed the scoped `npm run test -- <file>` command (correctly
+  inserting `--` for the `npm run` wrapper per Phase 3's passthrough rule),
+  ran only the velocity file, never touched the billing file, and reported
+  `Gate result: PASS`. The case now runs from a workspace root: the
+  `velocity-app:` prefix resolves to `velocity-app/`, the strategy's
+  `## How to Scan` grep selects `test/sprint.test.js` by its
+  `@covers velocity-app:domain-velocity` content tag (not by path), and the
+  expected report is the token-run grammar (`Workspace: 1 runs`,
+  `Mode: Scoped`, one block running `npm run test -- test/sprint.test.js`
+  from `velocity-app`, `Not run: None`, `Unmapped scope (not run): None`,
+  `Overall gate result: PASS`). Not yet re-run live against this layout.
+- **`rr-cross-repo`** — not yet run live; its graders document the expected
+  mixed-prefix report (`Mode: Scoped + full`, the `ci-only` and
+  `no tests in repo` `Not run:` entries, no decoy, overall FAIL).
 
 In every manual run, `git status --porcelain --ignored -- skills/run-regression
 evals/run-regression` was diffed before/after and found identical — the real
@@ -148,17 +165,18 @@ repo (within this work's scope) was never touched.
 
 ## Known gaps in this suite (by design, not oversight)
 
-- The two genuinely-ambiguous-repo sites (Phase 0: unrelated clones with no
-  unifying doc; an ambiguous workspace-repo target for a scoped run) aren't
-  covered — both resolve to "stop and require a human" in `--autopilot`
-  (no safe default to infer), and exercising them needs a multi-repo/
-  multi-clone fixture shape this smoke suite doesn't build.
+- Of the two genuinely-ambiguous-repo sites, only the unrelated-clones stop
+  is covered (`rr-unrelated-clones`). The other — the no-argument Scoped
+  picker's repo pick at a workspace root — is unreachable under
+  `--autopilot`, and token runs need no pick, since each `<repo>:` prefix
+  names its repo.
 - The combined domain/UC candidate-list confirmation (Phase 0, reached only
   when "Scoped" is chosen with no tokens) is unreachable under `--autopilot`
   today, since the mode-choice site above it always stops first — see
   `SKILL.md`'s Autopilot Mode resolution table.
-- Multi-repo (workspace) mode isn't covered — every fixture here is a plain
-  single-repo project.
+- Bare-`full` multi-repo (workspace) mode isn't covered. Token runs across
+  repos are covered by `rr-cross-repo`, and `rr-scoped-*` run from a
+  one-repo workspace root.
 - `AskUserQuestion`'s availability is itself environment-dependent —
   unreachable inside `claude plugin eval` sandboxes (confirmed above), same
   as `go-deep` found. Not a blocker for this skill's own behavior.

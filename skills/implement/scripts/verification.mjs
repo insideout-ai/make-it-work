@@ -52,7 +52,7 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
   }
   if (value.gate !== null) {
     exactKeys(value.gate, ['mode', 'result', 'note'], 'verification gate');
-    if (!['none', 'full-suite', 'scoped'].includes(value.gate.mode) || !['pass', 'fail', 'no-result', 'manual-accepted'].includes(value.gate.result)) fail('Invalid verification gate.');
+    if (!['none', 'full-suite', 'scoped', 'scoped+full'].includes(value.gate.mode) || !['pass', 'fail', 'no-result', 'manual-accepted'].includes(value.gate.result)) fail('Invalid verification gate.');
     nonempty(value.gate.note, 'verification gate note');
     if (value.gate.mode !== 'none' && value.gate.result === 'manual-accepted') fail('Manual acceptance requires gate mode none.');
   }

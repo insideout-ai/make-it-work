@@ -92,7 +92,7 @@ fix_cycle: 0                   # fix-plan rounds for the current plan version (l
 fix_plan_round_steps: none      # step count added by the current fix-plan round; reset to none when a new fix-plan round begins
 fix_plan_dispatch: none         # none | sequential | parallel — dispatch order for the current fix-plan round's own added steps; reset to none when a new fix-plan round begins; never set for the original plan's own steps
 replans_used: 0                # limit 2 per run
-gate: none                     # none | full-suite | scoped
+gate: none                     # none | full-suite | scoped | scoped+full
 pause_reason: none
 branch: <current branch>
 base: <base branch>
@@ -225,6 +225,13 @@ Outcomes:
 - **Some signals, but incomplete** → stop, list exactly which pieces are missing, and point the user to `go-deep`'s "Repair existing docs" mode.
 - **Complete** → continue.
 
+Test strategy (never stops the run, at any autonomy level): check the same root, and when it is a workspace root, each repo directory under it. Name every repo that lacks `.claude/skills/test-strategy/SKILL.md`:
+
+- **Missing** → warn: "No test-strategy skill — run `/make-it-work:define-test-strategy` for cross-repo tests and scoped gates."
+- **Only `.claude/rules/testing-strategy.md`** → do not read it; warn: "Old test-strategy rule found — re-run `/make-it-work:define-test-strategy` to migrate it." Treat the repo as having no strategy.
+
+Show any warning with Context check's outcome and record it in the closing context-check Audit-log row.
+
 Never run `go-deep` yourself.
 
 ---
@@ -287,8 +294,8 @@ Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **S
 
 Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Under `autopilot`, append `--autopilot`, which also makes its completion gate invoke `run-regression --autopilot`. For a participating dashboard, pass the exact state-file path `make-it-work/<TICKET>/<TICKET>-state.md` as execute's dashboard state path; if this is an older resumed run with no dashboard, omit it to preserve the no-backfill rule. `execute` owns the required render immediately after every durable step/batch Progress advance, so the same execution session that verified the step cannot dispatch the next one with a stale dashboard. Whenever the next not-yet-done step's own number is greater than `M − fix_plan_round_steps` (i.e. it belongs to the current fix-plan round's own added steps, not the original plan) — a plain comparison against numbers already in the state file, so this stays correct across an interrupted-and-resumed execute within the same round without depending on which Transition-table row most recently fired — also pass `fix_plan_dispatch`'s current value (`sequential` or `parallel`) as an additional input to `execute`. For the original plan's own steps (resume point at or below that boundary), never pass this input at all. Also, when execution_mode or inline_pause_mode is first chosen for this plan version, record it in the state file's `execution_mode`/`inline_pause_mode` fields and log a decision row for it (per the decision-row-logging paragraph above) before the first per-step dispatch. Read its outcome lines:
 
-- For a version 1 run, read `outcome`, `discoveries`, `failing_tests`, and `gate` from the validated handoff and record the corresponding execution state; use `failing_tests` as Gate triage input. When `verification_version: 1`, also pass that marker, the ticket, plan version, and artifact root to `execute`. Read and validate its `artifacts.verification` path; a missing ledger is a stop, not a prose fallback.
-- For an older run, use `Execute outcome:`, `Discoveries:`, and `Failing tests:` from the prose report, and record `gate` from the `Mode:` line of the `run-regression` block (`Full suite` → `full-suite`, `Scoped` → `scoped`).
+- For a version 1 run, read `outcome`, `discoveries`, `failing_tests`, and `gate` (`full-suite` or `scoped+full`) from the validated handoff and record the corresponding execution state; use `failing_tests` as Gate triage input. When `verification_version: 1`, also pass that marker, the ticket, plan version, and artifact root to `execute`. Read and validate its `artifacts.verification` path; a missing ledger is a stop, not a prose fallback.
+- For an older run, use `Execute outcome:`, `Discoveries:`, and `Failing tests:` from the prose report, and record `gate` from the `run-regression` report's leading `Mode:` line (`Full suite` → `full-suite`, `Scoped` → `scoped`, `Scoped + full` → `scoped+full`).
 
 For an older run, save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>/<TICKET>-execute.md`, overwriting any earlier one. For a `handoff_version: 1` run, `execute` saved that same report before writing its handoff; read it and do not overwrite it. In either case record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
 
@@ -300,11 +307,12 @@ If the developer accepts the existing `GATE_NO_RESULT` manual-walkthrough route 
 
 Classify every failing test that is not already listed under Known regressions:
 
-- **Related** — the plan names it (in a step's `**Tests:**` field or a `## Test Plan` row), it lives in a file listed in the plan's Affected Code, or its path carries one of the spec's use-case or domain tags (per the project's tag convention in `.claude/rules/testing-strategy.md`, when that file exists).
+- **Related** — the plan names it (in a step's `**Tests:**` field or a `## Test Plan` row), it lives in a file listed in the plan's Affected Code, or the file contains a `@covers` token listed in the plan's `## Domains/UCs Touched` (match per the test-strategy skill's `## Tag Convention`).
 - **Unrelated** — none of the above.
+- Suites under `Not run:` are never triaged.
 - **Uncertain** — the evidence points both ways, or the failing test can't be identified. Ask the user about each one (related → fix it / unrelated → document it) in both interactive autonomy levels; under `autopilot`, stop rather than classifying it.
 
-Append every unrelated test to Known regressions, and append the final related / unrelated split to the file `execute_report` names. Unrelated regressions are documented, never fixed in this run. In Guided, also show the final related/unrelated split and ask: **Fix the related ones** / **Treat all as unrelated and continue** / **Stop**. Autopilot follows the already-computed clear split without a second prompt.
+Append every unrelated test to Known regressions as a bullet `- <repo>: <file> — <test>`, and append the final related / unrelated split to the file `execute_report` names. Unrelated regressions are documented, never fixed in this run. In Guided, also show the final related/unrelated split and ask: **Fix the related ones** / **Treat all as unrelated and continue** / **Stop**. Autopilot follows the already-computed clear split without a second prompt.
 
 ### Review
 
@@ -411,7 +419,7 @@ Runs only after review comes back `CLEAN`. Its job is to make the project's know
 - The full change: `git diff $(git merge-base <base> HEAD)` plus untracked files, excluding `make-it-work/`.
 - Context discoveries collected during the run (from `execute` and from review's context gaps).
 - The spec and the current plan.
-- The documentation items of the project's `CLAUDE.md` "After Any Feature Change" checklist and its quick-lookup table — not its test-running or commit-time items.
+- The documentation items of the project's `CLAUDE.md` "After Any Feature Change" checklist and its quick-lookup table — not its commit-time items.
 
 **For each piece of changed or newly learned behavior, choose one:**
 
@@ -432,8 +440,9 @@ For a run with `final_package_version: 1`, checkpoint `final-sync → final-appr
 
 This section applies only when the state has `final_package_version: 1`. It never commits, pushes, or opens a PR. The local helper is `<base>/scripts/final-package.mjs`.
 
-1. Resolve the exact affected repo roots from the plan's `## Affected Code` sections and the workspace service map. For one repo, use its git root. For more than one, pass each root explicitly; pass its base branch with a paired `--base` when the state's `base` does not apply to every repo. Do not add unrelated repos. If a repo or base is ambiguous, ask the developer (Autopilot: stop).
+1. Resolve the exact affected repo roots from every `## Affected Code` section, including `(test scope only)` sections with that suffix stripped, and the workspace service map. Find each `<repo>` root the way `execute` finds a Tests line's repo root. Leave out a test-scope repo with no changed paths (`git -C <repo> status --porcelain -- . ':!make-it-work'` is empty): do not branch it or pass its `--repo`, and say so in the package summary. Each repo's base follows the Base branch rule in that repo. For one repo, use its git root. For more than one, pass each root explicitly; pass its base branch with a paired `--base` when the state's `base` does not apply to every repo. Do not add unrelated repos. If a repo or base is ambiguous, ask the developer (Autopilot: stop).
 2. Write `make-it-work/<TICKET>/<TICKET>-final-draft.json` with `commit_message`, `pr_title`, and `pr_description`. Draft text summarizes the implemented behavior, acceptance-criteria coverage, validation, and notes for reviewers. It is a draft only; nothing is delivered externally. Keep secrets out.
+   For each remaining test-scope repo still on its base branch, apply the Branch guard rules (Start check 4) to that repo: the suggested name computed in that repo (`git -C <repo> rev-parse --verify --quiet refs/heads/<name>`), the same `AskUserQuestion` without **Proceed on `<base>` anyway** (Autopilot: create and switch, logged), using `git -C <repo> switch -c <name>`. **Stop** checkpoints `status: Stopped` in `final-approval`. Uncommitted test edits carry over to the new branch. This satisfies `deliver`'s non-base-branch check.
 3. Run `node "<base>/scripts/final-package.mjs" build --root <artifact-root> --state <state-path> --draft <draft-path> --repo <repo-root> [--repo <other-root> ...] [--base <base-for-first-repo> --base <base-for-second-repo> ...]`. The helper writes `make-it-work/<TICKET>/<TICKET>-final-package.md`, its JSON manifest, and one binary-safe diff per repo. It returns the package SHA-256. If it fails, stop with its specific error and repair the source; never claim that a package exists when build failed.
 4. Show the package path, changed paths, validation mode/result, review outcome, any known regressions or open nits, AC verification status when the ledger exists, and the full proposed commit and PR text. In Guided mode ask **Approve** / **Request changes** / **Stop**. Only an explicit Approve of this exact package hash permits `node "<base>/scripts/final-package.mjs" approve --root <artifact-root> --state <state-path> --hash <shown-hash>`. In Autonomous and Autopilot, create and verify the package without asking; changes remain local and uncommitted.
 5. Immediately before Completion, run `final-package.mjs check --root <artifact-root> --state <state-path> --require-approval` for Guided, or omit `--require-approval` for Autonomous/Autopilot. A failed check prevents Completion. A changed draft or package presentation requires rebuilding the package and, in Guided, asking again. A changed code, test, documentation, spec, plan, or validation artifact requires rerunning the affected Execute validation/Review/Final context sync work before rebuilding. The previous approval file may stay as history, but its old hash no longer approves the new package.

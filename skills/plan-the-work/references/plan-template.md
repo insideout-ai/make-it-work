@@ -4,7 +4,7 @@ Template for `plan-the-work`'s `### Plan structure` step. Reproduce this exact s
 
 # Plan for <TICKET> — <feature-title>
 
-> **Spec:** `<resolved spec path>` · **Target branch:** `<branch>` · **For executors:** complete steps in order unless a step is marked **parallel**; do not proceed past a step until its **Verify** passes; do not edit files not listed in Affected Code.
+> **Spec:** `<resolved spec path>` · **Target branch:** `<branch>` · **For executors:** complete steps in order unless a step is marked **parallel**; do not proceed past a step until its **Verify** passes; do not edit files not listed in Affected Code; files under a `(test scope only)` section are editable test files only.
 
 ## What This Changes
 
@@ -53,13 +53,19 @@ Key design decisions. Explain _why_ — alternatives considered and why rejected
 
 ## Affected Code
 
-### `<repo-name>`  <!-- one section per affected repo; a single-repo plan has just one -->
+### `<repo-name>`  <!-- one section per affected repo; a single-repo plan has just one; a test-only repo uses ### `<repo-name>` (test scope only), added only when a step writes tests there -->
 
 | File | Change | Summary |
 | --- | --- | --- |
 | `path/to/file` | New / Modify / Delete | One-line description |
 
 **Indirect impact:** callers, consumers, or downstream services affected by the above.
+
+## Domains/UCs Touched
+
+One line per product repo — `execute`'s gate reads this section:
+
+- `` `<repo>`: `<repo>:UC-<id>`, `<repo>:domain-<name>` `` — or `` `<repo>`: None — <reason> ``
 
 ## Codebase Gaps
 
@@ -105,15 +111,15 @@ Stop and flag if any fail before writing code.
 
 **Verify:** type-check/build passes with no new errors; _(specific observable check)_.
 
-**Tests:** for a single-repo step (or a step whose Affected Code table lists one in-scope repo): `<file path(s)>, <exact command>, <confirmed state: "progression red — <reason>" / "regression passing">` — or, for an exempt step, `Exempt — <one-line reason>`. For a step whose Affected Code table lists more than one repo, one line per repo, since point 9 above requires each in-scope repo to get its own entry: `<repo-name>: <file path(s)>, <exact command>, <confirmed state>` (repeated per repo, each on its own line) — an out-of-scope repo (no test framework, per point 1) is simply omitted from this field, since its scenarios already live in that repo's own `## Test Plan` rows instead.
+**Tests:** one line per in-scope repo (including any `(test scope only)` repo the step writes tests in), since point 9 above requires each in-scope repo to get its own entry: `<repo>: <file path(s)> [<layer>], <exact command>, <confirmed state>`, where the confirmed state is one of `progression red — <reason>` / `regression passing` / `regression not runnable locally — <reason>` / `progression written — not runnable locally (<reason>)` — or, for an exempt step, `Exempt — <reason>`. New tests carry a `@covers` line. An out-of-scope repo (no test-strategy location and no framework configured, per point 1) is simply omitted from this field, since its scenarios already live in that repo's own `## Test Plan` rows instead.
 
 ### Step N — Write tests
 
-_Only used for a repo where the per-step test-writing sub-phase's applicability gate (point 1 of the `### Writing and confirming each step's tests` subsection above) found no test framework configured — omit this step for a repo where a framework was found and tests were written per step instead. In a multi-repo plan with mixed framework availability across repos, this step still applies, scoped to whichever repo(s) lack a framework; in a single-repo plan with no framework, it covers the whole plan. When used, this is always the last step before Definition of Done._ Write the tests listed in the Test Plan for that repo. **Verify:** test suite passes; coverage on new files meets the project's bar.
+_Only used for a repo where the per-step test-writing sub-phase's applicability gate (point 1 of the `### Writing and confirming each step's tests` subsection above) found no test-strategy location and no framework configured — omit this step for a repo where a strategy location or framework was found and tests were written per step instead. In a multi-repo plan with mixed framework availability across repos, this step still applies, scoped to whichever repo(s) lack a framework; in a single-repo plan with no framework, it covers the whole plan. When used, this is always the last step before Definition of Done._ Write the tests listed in the Test Plan for that repo. **Verify:** test suite passes; coverage on new files meets the project's bar.
 
 ## Test Plan
 
-For a repo where the per-step test-writing sub-phase applies (a test framework is configured there), this section is a derived summary aggregating what each step's `**Tests:**` field already recorded for that repo — not a place to author new tests for it — and each such scenario row should reference which step its test came from. For a repo where no framework is configured, this section is instead the one place new test scenarios for that repo are authored directly, exactly as `plan-the-work` did before this sub-phase existed. A multi-repo plan may contain both kinds of row side by side.
+For a repo where the per-step test-writing sub-phase applies (a test-strategy location or a test framework is configured there), this section is a derived summary aggregating what each step's `**Tests:**` field already recorded for that repo — not a place to author new tests for it — and each such scenario row should reference which step its test came from. For a repo with no test-strategy location and no framework configured, this section is instead the one place new test scenarios for that repo are authored directly, exactly as `plan-the-work` did before this sub-phase existed. A multi-repo plan may contain both kinds of row side by side.
 
 | Scenario | Type | File / command |
 | --- | --- | --- |
@@ -131,10 +137,10 @@ For a repo where the per-step test-writing sub-phase applies (a test framework i
 ## Definition of Done
 
 - [ ] All ACs mapped to implementation + tests
-- [ ] Test suite passes (no skipped/pending)
+- [ ] Test suite passes (no skipped/pending), or suites reported not run with reason
 - [ ] Type-check / build / lint pass
 - [ ] All **Verify** checkpoints green
-- [ ] For every repo where the per-step test-writing sub-phase applies, every step's **Tests:** field is resolved — a test-required step's progression test is confirmed red and its regression test confirmed passing (or, once execution completes, confirmed green); no step's field is still an unaddressed placeholder. For any repo where no framework is configured, its `## Test Plan` rows and conditional `### Step N — Write tests` step cover it instead.
+- [ ] For every repo where the per-step test-writing sub-phase applies, every step's **Tests:** field is resolved — a test-required step's progression test is confirmed red and its regression test confirmed passing (or, once execution completes, confirmed green); no step's field is still an unaddressed placeholder. For any repo with no test-strategy location and no framework configured, its `## Test Plan` rows and conditional `### Step N — Write tests` step cover it instead.
 - [ ] Open questions resolved or escalated (owner named)
 - [ ] Logging and error handling at the correct layers
 - [ ] Security and authorization reviewed

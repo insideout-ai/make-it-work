@@ -118,3 +118,25 @@ test('binds AC verification evidence into the final package', async (t) => {
   await writeFile(ledgerPath, JSON.stringify({ ...ledger, acceptance: [{ ...ledger.acceptance[0], status: 'unverified', step: null, note: 'Not checked' }] }));
   assert.throws(() => run('check', root, state), /stale/);
 });
+
+test('builds with matching scoped+full gate modes and rejects a mismatch', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-scoped-full-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  const oldState = await readFile(state, 'utf8');
+  await writeFile(state, oldState.replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1').replace('gate: full-suite', 'gate: scoped+full'));
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  const ledger = { version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
+    gate: { mode: 'scoped+full', result: 'pass', note: 'Scoped then full suite passed' },
+    acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] };
+  const ledgerPath = path.join(dir, 'DEMO-verification-v1.json');
+  await writeFile(ledgerPath, JSON.stringify(ledger));
+  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.equal(pkg.validation.mode, 'scoped+full');
+  await writeFile(ledgerPath, JSON.stringify({ ...ledger, gate: { ...ledger.gate, mode: 'scoped' } }));
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /disagrees with state/);
+});

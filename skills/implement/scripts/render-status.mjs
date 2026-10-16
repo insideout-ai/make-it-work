@@ -33,7 +33,7 @@ const EXECUTION_VALUES = new Set([
 ]);
 const REVIEW_VALUES = new Set(['not-started', 'clean', 'fix-required', 'replan-required', 'human-decision']);
 const FIX_DISPATCH_VALUES = new Set(['none', 'sequential', 'parallel']);
-const GATE_VALUES = new Set(['none', 'full-suite', 'scoped']);
+const GATE_VALUES = new Set(['none', 'full-suite', 'scoped', 'scoped+full']);
 const CANONICAL_PHASES = new Set([
   'context-check', 'close-the-gaps', 'plan', 'execute', 'review', 'fix-plan',
   'final-sync', 'final-approval', 'complete',

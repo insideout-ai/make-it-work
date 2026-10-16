@@ -14,7 +14,7 @@ const STAGES = {
   review: ['CLEAN', 'FIX_REQUIRED', 'REPLAN_REQUIRED', 'HUMAN_DECISION'],
 };
 const ROUTES = new Set(['fix', 'replan', 'human']);
-const MODES = new Set(['none', 'full-suite', 'scoped']);
+const MODES = new Set(['none', 'full-suite', 'scoped', 'scoped+full']);
 
 function fail(message) { throw new Error(message); }
 function object(value, name) {
