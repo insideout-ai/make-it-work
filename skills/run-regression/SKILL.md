@@ -55,7 +55,7 @@ Reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **sin
 1. **`.git` exists here.** This repo is a project root. Then:
    - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`).
    - Otherwise → **single-repo project**, root is here — even if the parent happens to contain other, unrelated repos.
-2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to run against, rather than guessing. (autopilot: see Autopilot Mode)
+2. **No `.git` here, but subdirectories have their own `.git`.** Detect them by matching a file inside each, e.g. Glob `*/.git/HEAD`: Glob returns only files, so a pattern naming just a directory never matches. If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to run against, rather than guessing. (autopilot: see Autopilot Mode)
 3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop.
 
 A bare `full` (Phase 1) iterates every repo in a detected workspace. The step 2 ask above applies only to a bare `full` and to the no-argument path; a token run uses detection only to find the workspace root, since each prefix resolves its own repo.

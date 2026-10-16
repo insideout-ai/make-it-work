@@ -122,7 +122,7 @@ A sibling test file references the target repo when it contains any of:
 
 Search with `grep -rlI --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work`, restricted to files that look like tests: the path contains `test` or `spec`, or the file matches the sibling's test runner config.
 
-The target repo is always in the list, and always row 1 of `## Test Locations` — the template's literal `none` row when it holds no tests. It cannot be removed.
+The target repo is always in the list, and always row 1 of `## Test Locations` — the template's literal `none` row only when it has neither test files nor test tooling (a repo with a test script but no tests yet records that command). It cannot be removed.
 
 Confirm the list with the user before anything is written; they may remove or add locations (autopilot: see Autopilot Mode):
 - **1 candidate** → one `AskUserQuestion` call (`multiSelect: true`) with that location plus `{ label: "Add another location", description: "Name a test location this search missed." }`, since a question needs two options.
@@ -131,7 +131,7 @@ Confirm the list with the user before anything is written; they may remove or ad
 
 In autopilot, `chosen` is every candidate location's label, never `Add another location`.
 
-For each confirmed location in another repo, check that repo for the Phase 0 go-deep signals. If none is found, print exactly: "go-deep has not been run in `<repo>`; run it there for better domain context". Repeat it in the end summary, and continue.
+For each confirmed location in another repo, check that repo for the Phase 0 go-deep signals, including a repo that only holds tests (e.g. a QA repo). If none is found, print exactly: "go-deep has not been run in `<repo>`; run it there for better domain context". Repeat it in the end summary, and continue.
 
 ## Phase 3 — Per-Location Analysis
 
