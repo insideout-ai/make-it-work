@@ -1,7 +1,0 @@
-{
-  "name": "rr-scoped-explicit-fixture",
-  "private": true,
-  "scripts": {
-    "test": "node --test"
-  }
-}

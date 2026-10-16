@@ -3,7 +3,7 @@
   "smoke": [
     "close-the-gaps-live-autopilot",
     "deliver-no-package",
-    "extend-autopilot",
+    "dts-migrate-autopilot",
     "execute-full-pass",
     "find-the-repos-happy-path",
     "fresh-onboarding",
@@ -17,6 +17,8 @@
   "headless": [
     "autopilot-bare",
     "autopilot-full-info",
+    "dts-migrate-autopilot",
+    "dts-multi-repo",
     "execute-full-pass",
     "execute-resume-inline",
     "execute-stop-at-gate",
@@ -36,6 +38,7 @@
     "plan-the-work-plan-collision",
     "plan-the-work-with-tests",
     "repair-path",
+    "rr-cross-repo",
     "rr-full-fail",
     "rr-full-pass",
     "rr-scoped-explicit",

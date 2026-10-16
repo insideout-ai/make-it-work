@@ -1,7 +1,7 @@
 # Tiny Greeter (with tests)
 
 A minimal greeting helper with a real, if tiny, test framework: a plain `node`
-script run via `npm test`. No `.claude/rules/testing-strategy.md` exists, so
+script run via `npm test`. No `.claude/skills/test-strategy/SKILL.md` exists, so
 `run-regression`'s discovery falls through to `package.json`'s `test` script
 (package.json scripts / Makefile / CI-config discovery order).
 

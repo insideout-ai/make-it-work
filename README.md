@@ -45,15 +45,15 @@ The skills produced are also useful outside Claude Code. Product managers can re
 
 ### `/make-it-work:define-test-strategy`
 
-`define-test-strategy` bootstraps a per-project test strategy and an initial regression baseline: a `.claude/rules/testing-strategy.md` file documenting the project's test layers, a coverage decision tree, and example commands per layer, plus scaffolded placeholder tests for the confirmed-uncovered critical flows from `go-deep`'s use-case list. It establishes a UC/domain test-tagging convention with a re-runnable coverage-check mode, so you can re-invoke it later to see which use cases or domains still have no mapped tests, and it wires enforcement into the project's `CLAUDE.md` — adding a regression-check item to the "After Any Feature Change" checklist, with an optional git hook offered on top.
+`define-test-strategy` is the onboarding step after `go-deep`: it builds one repo's test-strategy skill, `.claude/skills/test-strategy/SKILL.md`. The skill records where that repo's tests live — including in other repos, such as a separate QA automation repo — how to run each suite and what it needs (env vars, services, CI-only suites), and where new tests of each layer belong. It tags existing tests with repo-qualified `@covers <repo>:UC-<id> <repo>:domain-<name>` comments, left uncommitted for you to review, and adds a single `/test-strategy` row to the `CLAUDE.md` Skills Reference. It ends with a coverage report computed live from those tags; re-run it and choose "Coverage report only" any time for a fresh view.
 
-Run it once per project, right after `go-deep` — the same way `go-deep` itself is run once to bootstrap the knowledge base. It requires `go-deep` to have already run in the target project: if it hasn't, the skill stops and tells you to run `go-deep` first.
+Run it once in each repo, right after `go-deep`; pass `[repo]` to onboard a repo from a workspace root. If `go-deep` hasn't run there, it offers to run it first, or to continue with tagging left pending. Projects onboarded with an older version are migrated on the next run: the old `.claude/rules/testing-strategy.md` content is carried into the new skill, path-based tags become `@covers` comments, the old `CLAUDE.md` rule row and regression checklist item are removed, and leftover placeholder tests are listed for you to delete.
 
 ---
 
 ### `/make-it-work:run-regression`
 
-`run-regression` runs a project's regression suite - the full suite, or scoped to specific domains and use cases named from `go-deep`'s vocabulary (e.g. `domain-velocity`, `UC-08`). It discovers the full-suite command from `define-test-strategy`'s generated `.claude/rules/testing-strategy.md` when that file exists, falling back to `package.json`/`Makefile`/CI discovery otherwise - the same way `plan-the-work` already discovers build and lint commands. Scaffolded placeholder tests never block a run, and results are reported live in chat, with nothing persisted to disk.
+`run-regression` runs a project's regression suite - the full suite, one repo's suite (`full:<repo>`), or the tests tagged with repo-qualified use-case and domain tokens (e.g. `payments-api:UC-08`, `payments-api:domain-velocity`). One call can mix tokens for several repos. It reads each repo's test-strategy skill for its test locations, commands and prerequisites, finds tagged tests by grepping their `@covers` comments across every location (including other repos), and falls back to `package.json`/`Makefile`/CI discovery for the full suite when a repo has no strategy. A bare `full` runs each repo's own suite only. Suites that can't run locally (CI-only, missing env vars or services, no tests in the repo) are reported as not run, never as failures. Results are reported live in chat, with nothing persisted to disk.
 
 Use it directly during day-to-day development to check a change against the regression suite, full or scoped. It's also the shared implementation `execute` calls as its completion gate at the end of a plan, instead of writing its own test-running logic.
 
@@ -97,7 +97,7 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ### `/make-it-work:plan-the-work`
 
-Turns an agreed spec or refined ticket into an execution-ready implementation plan before any production code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>/<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected.
+Turns an agreed spec or refined ticket into an execution-ready implementation plan before any production code is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>/<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected. With a test-strategy skill, new tests go where the strategy says, tagged with `@covers`, and a QA repo that receives them joins the plan as test scope. The plan also records the domains and use cases it touches for the regression gate.
 
 Pass a ticket ID or a spec path, or let the skill derive the ticket from the current branch. Use it after `close-the-gaps` and before implementation so another engineer or agent can execute the work step by step without guessing.
 
@@ -105,7 +105,7 @@ Pass a ticket ID or a spec path, or let the skill derive the ticket from the cur
 
 ### `/make-it-work:execute`
 
-Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate — full-suite today, with the groundwork in place for a future scoped mode once plans record which domains/use-cases they touch — and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
+Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate — the tests tagged with the plan's touched domains/use-cases in every repo, plus the full suite of each repo the plan changes, or just the full suite when the plan records no tokens or none of their repos has a test strategy — and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
 
 Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `plan-the-work` to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr` pipeline.
 
@@ -113,7 +113,7 @@ Pass a ticket ID or a path to a plan file, or let the skill derive the ticket fr
 
 ### `/make-it-work:review-the-pr`
 
-Acts as a reviewer grounded in the project's own documentation instead of generic intuition. Runs three passes - business correctness against the `uc-*` skills, regression safety against the `domain-*` skills and architectural constraints, and coding standards against `CLAUDE.md` - then a docs-sync check to confirm skills were updated alongside behavior. Emits a verdict-first, evidence-dense report, both as a pasteable file and a scannable chat summary.
+Acts as a reviewer grounded in the project's own documentation instead of generic intuition. Runs three passes - business correctness against the `uc-*` skills, regression safety against the `domain-*` skills and architectural constraints, and coding standards against `CLAUDE.md` - then a docs-sync check to confirm skills were updated alongside behavior. A new or changed test for a touched use case or domain with no `@covers` tag is flagged as Minor. Emits a verdict-first, evidence-dense report, both as a pasteable file and a scannable chat summary.
 
 Use it to review a pull request or diff in any repo that keeps the `go-deep` knowledge base (`CLAUDE.md` plus `uc-*`/`domain-*` skills and `.claude/rules` docs).
 
@@ -170,8 +170,8 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ```
 /make-it-work:go-deep                        # Scaffold full project docs from scratch
-/make-it-work:define-test-strategy           # Bootstrap a test strategy and regression baseline once per project
-/make-it-work:run-regression [full | domain-<name> | UC-<id> ...]  # Run the regression suite, full or scoped
+/make-it-work:define-test-strategy [repo]    # Build a repo's test-strategy skill and tag its tests; run once per repo
+/make-it-work:run-regression [full | full:<repo> | <repo>:UC-<id> | <repo>:domain-<name> ...]  # Run the regression suite, full or scoped
 /make-it-work:shape-the-epic                 # Write a complete epic from scratch or improve an existing one
 /make-it-work:slice-the-epic                 # Slice a large requirement into sprint-sized Gherkin user stories
 /make-it-work:find-the-repos TICKET-123  # Shortlist which repo(s) in a multi-repo workspace a ticket affects
@@ -247,7 +247,7 @@ Run `/reload-plugins` or restart Claude Code after updating.
 
 ## Example workflows
 
-Onboard an established repository, create its project knowledge base, and bootstrap its test strategy:
+Onboard an established repository, create its project knowledge base, and define its test strategy (run both in each repo):
 
 ```text
 /make-it-work:go-deep
@@ -279,7 +279,7 @@ Refine a ticket, then turn the agreed spec into an implementation plan:
 Run a scoped regression check against the domain you're actively working on:
 
 ```text
-/make-it-work:run-regression domain-velocity
+/make-it-work:run-regression payments-api:domain-velocity
 ```
 
 Review the current pull request against the repository's documented product behavior and architecture:
@@ -298,11 +298,11 @@ Run the whole pipeline for a ticket, from refinement to a reviewed, context-sync
 
 This plugin contains Markdown-based skills and local helper scripts for progress, feedback, validated stage handoffs, final packages, and optional delivery. It bundles no MCP servers or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow; `run-regression` additionally runs the target project's own already-configured test command via Bash. `implement` also maintains the local `make-it-work/implement-feedback.md` retrospective file, but never uploads or submits it. Only the separate, explicitly approved `deliver` command commits or performs remote writes (push and PR creation/update).
 
-Unlike the other pipeline skills, which only read code and write review/planning artifacts under `make-it-work/`, `define-test-strategy` also writes directly into the target project itself: it generates `.claude/rules/testing-strategy.md`, scaffolds placeholder test files into the project's existing test directories, and edits the project's `CLAUDE.md` (its "Rules Files" list and "After Any Feature Change" checklist). If you opt in to its optional hook offer, it additionally writes a git hook file into the project's hook-manager location (e.g. `.husky/` or `.git/hooks/`) that runs the full test suite before every commit or push.
+Unlike the other pipeline skills, which only read code and write review/planning artifacts under `make-it-work/`, `define-test-strategy` also writes directly into the target project itself: it generates `.claude/skills/test-strategy/SKILL.md`, adds `@covers` tag comments to existing test files — possibly in other repos that hold this repo's tests — left uncommitted, and adds a `/test-strategy` row to the `CLAUDE.md` Other Skills table. When migrating an older setup, it also deletes `.claude/rules/testing-strategy.md` and removes that file's `CLAUDE.md` Rules Files row and its regression checklist item. It never commits, and never deletes placeholder tests left by older versions; it only lists them.
 
 `plan-the-work` also writes directly into the target project itself when a test framework is configured there: it writes per-step progression and regression test files — including minimal, clearly-marked stub signatures where needed to reach a valid runtime red state — and leaves them uncommitted in the working tree, exactly like `execute`'s own changes. Projects with no test framework configured are unaffected; `plan-the-work` falls back to its prior behavior of only writing planning artifacts under `make-it-work/`.
 
-`execute` goes further still: unlike `define-test-strategy` and `plan-the-work` above, which write test files but never the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — and, like `plan-the-work`, it never runs `git commit` on the user's behalf either; every change it makes is left uncommitted for you to review.
+`execute` goes further still: unlike `define-test-strategy` (which edits test files only to add tags) and `plan-the-work` above, which never write the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — and, like `plan-the-work`, it never runs `git commit` on the user's behalf either; every change it makes is left uncommitted for you to review.
 
 Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>/<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
 

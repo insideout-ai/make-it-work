@@ -338,3 +338,10 @@ test('renderer failure preserves an existing dashboard', async (t) => {
   await assert.rejects(generateDashboard(statePath), /Could not read the plan required/);
   assert.equal(await readFile(outputPath, 'utf8'), 'sentinel');
 });
+
+test('accepts and renders the scoped+full gate', async (t) => {
+  const state = stateMarkdown({ fields: { gate: 'scoped+full' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']] });
+  assert.equal(parseState(state).fields.gate, 'scoped+full');
+  const { html } = await renderFixture(t, state);
+  assert.match(html, /DEMO/);
+});

@@ -4,6 +4,22 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `define-test-strategy` is now a per-repo onboarding step after `go-deep` that takes an optional `[repo]` argument and offers to run `go-deep` first. It writes the repo's `.claude/skills/test-strategy/SKILL.md` — test locations across repos (such as a QA repo), commands, run prerequisites, and where new tests go — adds repo-qualified `@covers` comment tags to existing tests, uncommitted, adds one `/test-strategy` row to the `CLAUDE.md` Other Skills table, and reports coverage from a live tag scan. Projects onboarded with an older version must re-run `define-test-strategy` to migrate; until they do, consumers ignore the old `.claude/rules/testing-strategy.md` and scoped regression runs are unavailable.
+- `run-regression` takes repo-prefixed tokens (`<repo>:UC-<id>`, `<repo>:domain-<name>`) for several repos in one call, plus `full:<repo>`, under one overall gate result. It finds tagged tests by grepping `@covers` comments across every test location, and reports suites that can't run locally, or repos with no tests, as not run rather than failed. A bare `full` still runs only each repo's own suite.
+- `plan-the-work` writes new tests where the test-strategy skill says, tagged with `@covers`, adds a repo that only receives tests (such as a QA repo) to Affected Code as `(test scope only)`, and records the plan's tokens in a new `## Domains/UCs Touched` section.
+- `execute`'s completion gate runs the plan's tagged tests plus the full suite of every product repo it changes, recorded as `scoped+full`, and falls back to the full suite when the plan has no tokens or no strategy; its report lists suites that were not run.
+- `implement` triages gate failures using the plan's `@covers` tokens, warns (without stopping) when a repo has no test-strategy skill or only the old rule file, accepts the `scoped+full` gate in its state, handoffs, ledger and dashboard, and branches and packages a test-scope repo with the product repos when it has changes.
+- `review-the-pr` reports a new or changed test with no `@covers` tag for a touched use case or domain, and a touched one left with no tagged test, as Minor findings.
+- `go-deep` keeps the `CLAUDE.md` Other Skills table on fresh onboarding and ignores its rows and the test-strategy skill in repair checks.
+
+### Removed
+
+- `define-test-strategy` no longer scaffolds placeholder tests, adds a regression-check item to the `CLAUDE.md` "After Any Feature Change" checklist, or offers a git hook. Path-based (file-name) UC/domain tagging is replaced by `@covers` comments.
+
 ## [4.10.0] - 2026-10-15
 
 ### Added

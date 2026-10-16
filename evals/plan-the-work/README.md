@@ -72,7 +72,7 @@ configured, test files left uncommitted). The **only** thing this rollout adds u
 the autopilot decision log itself, `make-it-work/<TICKET>/plan-the-work-autopilot-log.jsonl` (per the shared
 spec's §1 convention) — so `plan-the-work` falls into the spec's §2 middle category ("one specific
 blocked path among otherwise-unblocked output"), the same category `define-test-strategy` is in
-for its `testing-strategy.md`.
+for its `.claude/skills/test-strategy/SKILL.md`.
 
 Verified directly (ran `happy-path` and `plan-collision` for real, via plain `claude plugin eval`,
 and read both full transcripts): in both runs, the model attempted the `Write` to

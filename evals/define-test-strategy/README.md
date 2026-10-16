@@ -1,75 +1,102 @@
-# `define-test-strategy` autopilot smoke test
+# `define-test-strategy` eval cases
 
-Three cases exercising `skills/define-test-strategy/SKILL.md`'s `--autopilot` flag:
+Four cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
+one per-repo test-strategy skill at `.claude/skills/test-strategy/SKILL.md`
+(structure fixed by `skills/define-test-strategy/references/test-strategy-template.md`),
+tags existing tests with repo-qualified `@covers <Repo ID>:UC-<id>` comments,
+adds one `/test-strategy` row to `CLAUDE.md`'s `### Other Skills` table, and
+reports coverage from a live tag scan. It never scaffolds placeholder tests,
+never writes or offers a git hook, never adds a `CLAUDE.md` checklist item, and
+never commits.
 
-- **`extend-autopilot`** — a project where `go-deep` has already run and `.claude/rules/testing-strategy.md` already exists, complete and correct (Phase 1 case (b), no stray doc). Exercises Phase 1's "Extend" resolution, Phase 3 scaffolding (2 of 4 use cases uncovered → the `multiSelect` branch), Phase 4's coverage report, and Phase 5's CLAUDE.md wiring + hook offer.
-- **`define-test-strategy-negative-control`** — the exact same fixture, invoked without `--autopilot`. Confirms the interactive path still blocks at Phase 1's "Decide how to proceed" question instead of silently completing.
-- **`fresh-autopilot`** — the same project shape but with no `testing-strategy.md` and no tests at all (Phase 1 case (a), fresh mode, all 4 use cases uncovered → the 4-item `multiSelect` branch). Exercises Phase 2 generating `testing-strategy.md` from scratch and the decision log actually being written.
+| Case | Invocation | Exercises |
+|---|---|---|
+| `dts-migrate-autopilot` | `--autopilot` | Migration of an old-version repo: `.claude/rules/testing-strategy.md`, path-tagged tests (`uc-01-create-task.test.js`, `domain-tasks-helpers.test.js`), a placeholder test (`uc-02-complete-task.test.js`), and the old `CLAUDE.md` Rules Files row and "check regression status before committing" checklist item. |
+| `fresh-autopilot` | `--autopilot` | The same go-deep-shaped project with none of the old outputs and no tests: Phase 1 finds nothing (no menu), the skill is generated from scratch, and no test file is created. |
+| `define-test-strategy-negative-control` | no `--autopilot` | The migration fixture run interactively: the skill must stop at the refresh/migrate question (or the location confirmation) before writing anything. |
+| `dts-multi-repo` | `payments-api --autopilot`, from a workspace root | Cross-repo detection over `evals/fixtures/multi-repo-workspace/`: the `[repo]` argument, a sibling QA repo found by its test files' references, repo-qualified tags, the go-deep warning for a repo without go-deep, and a same-numbered UC in another repo left alone. |
 
-## Running extend-autopilot and define-test-strategy-negative-control (fully automated)
+## Running the cases
 
-This skill's only `.claude/`-protected output is `.claude/rules/testing-strategy.md` — everything else (scaffolded tests, `CLAUDE.md` edits, the optional hook) lives outside `.claude/` and is plain-`claude plugin eval`-testable. The decision log (`make-it-work/define-test-strategy-autopilot-log.jsonl`) is *also* always under `.claude/` per the shared autopilot convention, so its write is denied too under plain eval — but the skill's Autopilot Mode section explicitly handles this (note the fact in the end-of-run summary, then keep going) rather than aborting, so the rest of the run still completes and grades normally.
+`dts-migrate-autopilot`, `fresh-autopilot` and `dts-multi-repo` are listed
+under `headless` in `evals/suites.json`: the runner seeds a disposable fixture,
+runs the prompt headlessly, and grades `graders/*.md` automatically (regex and
+`file_exists` checks locally, `llm` checks with a separate judge).
+`dts-migrate-autopilot` is the skill's smoke case. The negative control writes
+nothing, so it runs through plain `claude plugin eval`.
 
-`extend-autopilot`'s fixture seeds a `testing-strategy.md` that is already complete and correct, so Phase 2 never needs to write to it in that case — the only `.claude/` write it ever attempts is the (expected-denied) decision log.
-
-```bash
-claude plugin eval . --case extend-autopilot \
-  --scaffold --allow-tools Write Edit --ablation none --runs 1 --trust-plugin --no-publish
-
-claude plugin eval . --case define-test-strategy-negative-control \
-  --scaffold --allow-tools Write Edit --ablation none --runs 1 --trust-plugin --no-publish
+```sh
+node evals/run-suite.mjs smoke --case=dts-migrate-autopilot
+node evals/run-suite.mjs full --case=fresh-autopilot
+node evals/run-suite.mjs full --case=dts-multi-repo
+node evals/run-suite.mjs full --case=define-test-strategy-negative-control
+bash evals/define-test-strategy/run-all.sh   # all four
 ```
 
-Both were run and verified for real during implementation (3 consecutive runs each, scoring 1.0/1.0 on every grader; `extend-autopilot`'s transcript and output files were additionally read in full by hand via `--keep-temp`, not just graded — see "What was verified by hand" below).
+`dts-migrate-autopilot` and `dts-multi-repo` allow Bash, so the skill can
+delete the old rule file and run its location and tag scans. A permission
+refusal in a headless run is an incomplete case, not a pass (see
+`evals/README.md`).
 
-## Running fresh-autopilot (manual, `--dangerously-skip-permissions`)
+## `dts-migrate-autopilot`
 
-`fresh-autopilot` needs Phase 2 to actually **write** `.claude/rules/testing-strategy.md` from scratch (case (a), nothing exists yet). Claude Code treats `.claude/` as a protected path — no tool grant or `--allow-tools` unblocks writing there, in `claude plugin eval` or in plain headless mode; only `--dangerously-skip-permissions` does, and only a human can invoke that (an agent operating under this harness's own safety net can't invoke it or grant it to itself). Run it manually, scoped strictly to a disposable temp directory (never the real repo):
+The fixture is a mini task tracker where go-deep has run (UC-01 to UC-04,
+domains `tasks` and `notifications`) and the old version of this skill left
+its outputs. Autopilot takes "Refresh / migrate (Recommended)" at Phase 1,
+auto-confirms the location (`location-confirm`) and the tag-and-migration
+checkpoint (`tag-and-migration-confirm`). The graders check that:
 
-```bash
-# Seed the fixture
-RUN_DIR=$(mktemp -d)
-(cd "$RUN_DIR" && bash evals/define-test-strategy/fresh-autopilot/fixture.sh)
+- the path-tagged tests gain `@covers` tags (`uc01-tagged`, `helpers-tagged`);
+- the placeholder stays as it is, untagged, with its marker line, and is listed for the user to delete (`placeholder-not-tagged`, `placeholder-kept`, `placeholder-listed`);
+- `.claude/rules/testing-strategy.md` is deleted (`old-rule-file-deleted`);
+- the old Rules Files row and checklist item are removed and the checklist renumbered, while the SENTINEL line, quick-lookup table and the unrelated "Run `npm test` before committing." guideline stay (`rules-row-removed`, `checklist-item-removed`, `sentinel-survives`, `quick-lookup-table-preserved`);
+- `CLAUDE.md` gets exactly one `/test-strategy` row (`other-skills-row-once`), and no hook is offered or written (`no-hook`);
+- the live coverage report lists UC-02 (placeholder only) and UC-03 (no test) as uncovered, plus the `notifications` domain, and never mentions scaffolding (`coverage-report-shown`);
+- the autopilot log is written under the invocation root (`log-denial-handled-gracefully`).
 
-# Run define-test-strategy for real
-(cd "$RUN_DIR" && claude -p "/make-it-work:define-test-strategy --autopilot" \
-  --plugin-dir /path/to/make-it-work --dangerously-skip-permissions \
-  --output-format stream-json --verbose > /tmp/transcript.jsonl)
+## `fresh-autopilot`
 
-# Verify: diff git status on the real repo before/after (must be identical),
-# then inspect $RUN_DIR's files — especially .claude/rules/testing-strategy.md
-# and make-it-work/define-test-strategy-autopilot-log.jsonl — by hand against
-# evals/define-test-strategy/fresh-autopilot/graders/*.md.
-```
+`fixture.sh` copies the migration fixture, then removes the old rule file and
+all tests, and strips the old Rules Files row and checklist item from
+`CLAUDE.md` (renumbering the rest), so Phase 1 finds nothing. The graders check
+the generated skill (`test-strategy-skill-generated`: the template's eight
+fixed headings in order, no `## Pending`, row 1 Location `.`, a
+`node --test`-based command, no stored gap list), that no test file was
+created (`no-new-test-files`), the single Other Skills row with no Rules row or
+checklist item added (`claude-md-structure`), no hook (`no-hook`), the
+SENTINEL line, and the autopilot log (`autopilot-log-content`: a
+`location-confirm` line, `go-deep-offer` only if reached, and no prior-output
+menu). With no tests to tag, a `tag-and-migration-confirm` line is not
+required.
 
-Or run all three at once (the last one manual):
+## `define-test-strategy-negative-control`
 
-```bash
-bash evals/define-test-strategy/run-all.sh
-```
+Same fixture as `dts-migrate-autopilot`, no `--autopilot`. It passes when the
+run stops at the refresh/migrate question or at location confirmation
+(`blocks-before-proceeding`), `CLAUDE.md` still has its SENTINEL line and old
+Rules Files row and no `/test-strategy` row (`claude-md-untouched`), and no
+`@covers` tag was written (`no-tags-written`).
 
-This case was **not** run during implementation — it requires the manual bypass an agent cannot invoke on itself. The command above is the exact one a human needs to run to complete that verification. The `graders/*.md` files in `fresh-autopilot/` document exactly what "correct" looks like (the four fixed headings in order, the intro line, the `## Commands` first line, the decision-log schema for a 4-way `multiSelect` scaffold) — useful as a checklist even when read by hand rather than scored by the harness.
+## `dts-multi-repo`
 
-## What was verified by hand (not just graded)
+`fixture.sh` copies the shared multi-repo workspace (`payments-api`,
+`qa-automation`, `ledger-api`), removes payments-api's test-strategy skill,
+strips every `@covers` line from `qa-automation/tests`, keeps ledger-api's
+strategy, and gives each repo its own `.claude/` and one commit. The run starts
+at the workspace root, which has no `.git`, and names `payments-api` as the
+target. payments-api has go-deep output, so the go-deep offer is not reached.
 
-During implementation, `extend-autopilot` was run three times via `claude plugin eval` and its output inspected directly (via `--keep-temp`, reading the sealed sandbox's files and the full final assistant message), confirming:
+- `qa-location-detected`: payments-api's new skill lists a `../qa-automation` location, because `qa-automation/tests/payments/withdraw.test.js` requires `../../../payments-api/src/withdraw.js` and exercises `/payments`.
+- `qa-tagged-qualified`: that test gains `@covers payments-api:UC-08`.
+- `qa-go-deep-warning`: the run says go-deep has not been run in `qa-automation`, and continues.
+- `ledger-untouched`: `withdraw_ledger.test.js` exercises only `ledger-api`, so it never gets a `payments-api:` tag, although both repos have a UC-08.
 
-- `.claude/rules/testing-strategy.md` (pre-seeded, already complete) was correctly left alone — Phase 2 found no gaps and made no write.
-- `__tests__/uc-03-receive-overdue-reminder.test.js` and `__tests__/uc-04-delete-task.test.js` were created, each with the exact marker as its first line and a `node:test` native-skip placeholder body — named by deriving from the matching `go-deep` skill directory, exactly as specified.
-- The pre-existing scaffolded-only `uc-02-complete-task.test.js` placeholder was left untouched, not duplicated or re-scaffolded.
-- `CLAUDE.md`'s "Rules Files" section gained exactly one new row for `testing-strategy.md`, its two original rows untouched; the "After Any Feature Change" checklist gained exactly one new "Regression check" item, inserted *before* the original "Skill docs" item; the quick-lookup table and the opening SENTINEL line were both left byte-for-byte intact.
-- Phase 4's coverage report correctly classified all four use cases (covered / scaffolded-only / scaffolded-only / scaffolded-only) and correctly flagged the `notifications` domain as uncovered while not flagging `tasks`.
-- Phase 5's hook offer correctly auto-selected "No hook — CLAUDE.md instruction is enough" (the hard-stop exception) — no hook file was written.
-- The decision log write to `make-it-work/define-test-strategy-autopilot-log.jsonl` was denied by the sandbox, and the run **explicitly said so in its end-of-run summary and continued anyway** rather than aborting or relocating the log — confirming the Autopilot Mode section's graceful-degradation instruction actually works as written, not just as documented.
-- As an incidental but reassuring finding: the model noticed the fixture's embedded `SENTINEL: ...` line read like a planted instruction and explicitly flagged it as suspicious rather than acting on it — it was never intended as a prompt-injection test, but it's a good sign that the fixture's incidental "SENTINEL" wording (copied from `go-deep`'s own fixture style) didn't get treated as a real instruction.
+After the strip, `limits_decoy.test.js` and `tests/e2e/flow.test.js` no longer
+reference payments-api, so the skill is not expected to tag them.
 
-## A grader-tooling finding from this work (not a skill defect)
+## Known gaps
 
-The `file_exists` grader type was found to unreliably report "missing" for files that demonstrably exist in the final sandbox state (confirmed by direct filesystem inspection via `--keep-temp`), reproducibly, even for a static fixture file (`package.json`) the agent never touched. `regex`/`llm` graders with `target`/`focus: { source: file, path: ... }` were confirmed to read the correct, final file content reliably. Because of this, this suite uses `regex`/`llm` file-sourced checks throughout instead of `file_exists`. Separately, the default `--judge-model` (`haiku`) was noticeably less reliable than `sonnet` on multi-criteria structural `llm` graders with `focus: trace` or a long checklist in one prompt — graders in this suite were kept short, single-focus, and pointed at `last_message` (not raw `trace`) specifically to work reliably under the default judge; this was verified empirically (3 consecutive clean runs) rather than assumed.
-
-## Known gaps in this suite (by design, not oversight)
-
-- `fresh-autopilot` was authored and its fixture hand-built, but not run during implementation — it needs the manual `--dangerously-skip-permissions` path (see above).
-- `adopt` mode (Phase 1 case (c), a stray test-strategy doc found elsewhere in the repo) and Phase 1's case (d) "Re-check coverage only" path are not covered by any case here. Autopilot never auto-selects "Re-check coverage only" (Extend/Adopt always carries the `(Recommended)` label when offered), so case (d) is unreachable under autopilot by design; `adopt` mode would need its own fixture and, like `fresh-autopilot`, the manual-bypass path (it also writes `testing-strategy.md`).
-- None of the "hard-stop, require a human" sites (ambiguous workspace root, extend/adopt content conflicts, no discoverable test command, a framework with no skip mechanism, a malformed `CLAUDE.md` section, an existing non-empty hook file) are exercised by any case here — each would need its own deliberately-broken fixture.
-- Multi-repo workspace behavior is not exercised — both fixtures are single-repo.
+- The "Coverage report only" path, refresh conflicts, and a refresh that keeps user edits are not covered by an eval case.
+- The go-deep offer with an actual partial run (an onboarded repo without go-deep) is not covered; under autopilot it resolves to "Continue without it".
+- The target-repo hard stop and a `CLAUDE.md` without `## Skills Reference` (row skipped and reported) have no deliberately broken fixture.
+- Untaggable files (JSON, Postman collections) and PHP docblock placement are not exercised; every fixture test is JavaScript.

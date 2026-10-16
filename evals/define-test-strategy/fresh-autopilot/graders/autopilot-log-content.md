@@ -4,15 +4,21 @@ focus: { source: file, path: "make-it-work/define-test-strategy-autopilot-log.js
 weight: 3
 ---
 
-This file should be a JSONL log (one JSON object per line) of autopilot decisions made while running `define-test-strategy` in **fresh** mode (case (a): nothing existed before this run, so Phase 1's "Decide how to proceed" menu is never shown — fresh mode proceeds straight to Phase 2 with no site to log there) against a fixture with 4 use cases (UC-01 through UC-04), all uncovered before this run, and a `node --test` stack with no hook manager present.
+This file should be a JSONL log (one JSON object per line) of autopilot
+decisions made while running `define-test-strategy --autopilot` in **fresh**
+mode against a single-repo fixture where go-deep has run and no test-strategy
+output or tests exist. Phase 1 therefore finds nothing and shows no
+prior-output menu, Phase 2 detects one location (the repo itself, `.`), and
+there are no tests to tag.
 
 Judge whether the log satisfies ALL of the following:
 
-1. Every line is valid JSON with at least `phase`, `site`, `kind`, and `chosen` fields.
-2. There is NO line with `site` naming the Phase 1 "decide how to proceed" menu — that site is never reached in fresh mode, so no log entry should exist for it.
-3. There is a Phase 3 scaffold-confirmation line with `kind: "askUserQuestion"`, `multiSelect: true`, and `chosen` as a JSON array containing all 4 use cases (UC-01 through UC-04) — fresh mode means all 4 are uncovered, and autopilot selects every surfaced use case.
-4. There is a Phase 4 line choosing to show the coverage report (`chosen` naming something like "Show coverage gaps now").
-5. There is a Phase 5 hook-offer line whose `chosen` is "No hook — CLAUDE.md instruction is enough" (or textually equivalent) — never "Also scaffold a real git hook".
-6. No line anywhere has `chosen` equal to "Also scaffold a real git hook" or any value indicating a hook file was written.
+1. Every line is valid JSON with at least `phase`, `site`, `kind`, `chosen` and `rationale` fields.
+2. There is a Phase 2 line with `site` `"location-confirm"` whose `chosen` selects the repo's own location (`.` or an equivalent label) and does not choose "Add another location".
+3. If a line with `site` `"go-deep-offer"` exists, its `chosen` is "Continue without it". (go-deep has run here, so this site should not normally be reached; its absence is fine.)
+4. There is no line for a Phase 1 prior-output menu (for example a `site` naming the prior-output, refresh or migrate menu), since fresh mode never shows it.
+5. No line records a git hook choice or a placeholder test being scaffolded.
 
-PASS only if all of 1-6 hold. List any that fail, quoting the relevant line(s).
+A `tag-and-migration-confirm` line is neither required nor forbidden.
+
+PASS only if all of 1-5 hold. List any that fail, quoting the relevant line(s).

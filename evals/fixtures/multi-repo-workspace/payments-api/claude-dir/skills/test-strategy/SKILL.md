@@ -1,0 +1,96 @@
+---
+name: test-strategy
+description: "Test strategy for `payments-api`: where its tests live (including other repos), how to run them and what they need, where new tests go, and the `@covers` tag convention. Read before planning, writing, running, or reviewing tests for this repo."
+---
+
+# Test Strategy — payments-api
+
+This is a starting point, seeded by `define-test-strategy` — extend and edit it as the project's test approach evolves; it is not a finished document.
+
+## Repo ID
+
+`payments-api` — the basename of this repo's git toplevel directory at onboarding.
+
+Tags use this ID. If this repo is cloned under a different directory name, tags stop matching — clone it as `payments-api`.
+
+## Test Locations
+
+Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself; if this repo holds no tests, it is the literal row `| . | payments-api | none | none | none | . |`.
+
+| Location | Repo | Layers | Test files | Full-suite command | Run from |
+| --- | --- | --- | --- | --- | --- |
+| . | payments-api | unit | test/**/*.test.js | npm test | . |
+| ../qa-automation/tests/payments | qa-automation | behavior | **/*.test.js | npm test -- | ../qa-automation |
+| ../qa-automation/tests/e2e | qa-automation | e2e | **/*.test.js | npm test -- | ../qa-automation |
+
+## Layers
+
+Only layers whose tooling is present in a listed location.
+
+| Layer | For | Not for | Location | Example command |
+| --- | --- | --- | --- | --- |
+| Unit | Pure withdrawal and limit logic in `src/` | HTTP behavior, cross-service flows | `.` | `npm test -- test/limits.test.js` |
+| Behavior | `/payments` endpoint behavior, exercised from the QA repo | Pure function edge cases | `../qa-automation/tests/payments` | `npm test -- tests/payments/withdraw.test.js` (from `../qa-automation`) |
+| E2E | Full withdrawal flow against the deployed stack | Anything checkable without the stack | `../qa-automation/tests/e2e` | `npm test -- tests/e2e/flow.test.js` (from `../qa-automation`, CI only) |
+
+## Run Prerequisites
+
+One `###` subsection per row of `## Test Locations`, headed by that row's `Location`. Write `None` where a bullet is empty. `Local run:` is exactly one of `yes`, `ci-only`, `slow` or `flaky` — consumers read it literally.
+
+### .
+
+- **Env vars:** None
+- **Services:** None
+- **Credentials:** None
+- **How to start:** None
+- **Local run:** yes
+
+### ../qa-automation/tests/payments
+
+- **Env vars:** None
+- **Services:** None
+- **Credentials:** None
+- **How to start:** None
+- **Local run:** yes
+
+### ../qa-automation/tests/e2e
+
+- **Env vars:** None
+- **Services:** None
+- **Credentials:** None
+- **How to start:** CI deploys the full stack before this suite runs.
+- **Local run:** ci-only
+
+## Where New Tests Go
+
+| Layer | Repo | Directory | File naming |
+| --- | --- | --- | --- |
+| Unit | `payments-api` | `test/` | `<module>.test.js` |
+| Behavior | `qa-automation` | `../qa-automation/tests/payments/` | `<flow>.test.js` |
+| E2E | `qa-automation` | `../qa-automation/tests/e2e/` | `<flow>.test.js` |
+
+## Coverage Decision Guidance
+
+Which layer a change needs. Use only layers listed in `## Layers`.
+
+- Pure withdrawal or velocity-limit logic → Unit
+- New or changed `/payments` endpoint behavior → Behavior
+- Change to the end-to-end withdrawal flow across services → E2E
+
+## Tag Convention
+
+- **Form:** `@covers payments-api:UC-<id> payments-api:domain-<name>`, written as a single-line comment in the file's own comment syntax, directly above the test or suite it covers.
+- **Qualified tokens:** every token is repo-qualified. `<id>` and `<name>` come verbatim from go-deep's skill directory names.
+- **Several tokens:** a line may carry several tokens. A suite-level tag covers the whole suite.
+- **Placeholders:** placeholder or skipped-scaffold files are never tagged.
+- **Untaggable files:** files with no single-line comment form (e.g. JSON, Postman collections) are listed as untaggable and never edited.
+- **PHP:** put the `//` tag line above any docblock, never inside it — PHPUnit parses `@covers` in docblocks.
+
+## How to Scan
+
+- Run once per row of `## Test Locations`, from this repo's root:
+  `grep -rlIiE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work '@covers([[:space:]].*)?[[:space:]]<repo>:<tag>([[:space:]]|$)' <Location>`
+- Filter the output to paths matching that row's `Test files` glob.
+- Before substituting, escape regex metacharacters in `<repo>`, and replace each `-` in `<repo>` and `<tag>` with `[-_]`.
+- The matched files are the tests for that tag.
+- Coverage gaps are always computed this way, live. Never store a gap list in this file.

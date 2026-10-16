@@ -312,10 +312,12 @@ verified by directly running `node test.js` against it (fails as expected:
   repo, missing project root, underivable ticket key, "No plan found") —
   each is a flat stop-and-tell with no option set to resolve, identical under
   both modes, so there is no autopilot-specific behavior to exercise.
-- Doesn't cover a multi-repo workspace plan, or the scoped-mode branch of
-  Phase 4's completion gate (today unreachable in practice per `SKILL.md`'s
-  own Phase 4 "Resolving scope" section, since no current `plan-the-work`
-  output ever populates a "Domains/UCs Touched" field).
+- Doesn't cover a multi-repo workspace plan, or the scoped+full branch of
+  Phase 4's completion gate. Per `SKILL.md`'s Phase 4 "Resolving scope"
+  section, that branch is reachable when the plan's `## Domains/UCs Touched`
+  lists tokens and a repo named by their prefixes has
+  `.claude/skills/test-strategy/SKILL.md`; these fixtures have neither, so
+  they exercise only the full-suite gate.
 - `execute-full-pass` depends on `node` being on `PATH` wherever it's run
   manually — a dependency of this fixture's chosen tiny test framework, not
   of `execute` itself.

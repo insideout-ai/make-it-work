@@ -1,0 +1,7 @@
+{
+  "name": "velocity-app",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
