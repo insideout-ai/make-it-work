@@ -45,6 +45,44 @@ test('grades local checks and semantic checks without a review status', async (t
   assert.equal(graded.judgeCostUsd, 0.02);
 });
 
+test('passes an explicit judge model to the semantic judge', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
+  const graderDir = path.join(root, 'graders');
+  await mkdir(graderDir);
+  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  const models = [];
+  const judge = async (prompt, options) => {
+    models.push(options.model);
+    return { stdout: JSON.stringify({ total_cost_usd: 0.01,
+      structured_output: { verdict: 'PASS', reason: 'Gate is PASS' } }) };
+  };
+  await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1, judge,
+    judgeModel: 'claude-sonnet-5-5' });
+  await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1, judge });
+  assert.deepEqual(models, ['claude-sonnet-5-5', undefined]);
+});
+
+test('retries a judge process failure once but never a FAIL verdict', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
+  const graderDir = path.join(root, 'graders');
+  await mkdir(graderDir);
+  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  const verdict = (value) => ({ stdout: JSON.stringify({ total_cost_usd: 0.01,
+    structured_output: { reason: 'checked', verdict: value } }) });
+  let calls = 0;
+  let graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1,
+    judge: async () => (++calls === 1 ? { error: new Error('Command failed'), stdout: '', stderr: '' } : verdict('PASS')) });
+  assert.equal(calls, 2);
+  assert.equal(graded.passed, true);
+  calls = 0;
+  graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1,
+    judge: async () => { calls += 1; return verdict('FAIL'); } });
+  assert.equal(calls, 1);
+  assert.equal(graded.passed, false);
+});
+
 test('fails closed on an ungradable semantic check', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });

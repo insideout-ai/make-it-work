@@ -27,6 +27,8 @@ When invoked with `--autopilot`, still **construct** every question/options payl
 
 When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied log write.
 
+Append each decision as it is resolved, not at the end. If writing this log is denied, say so in the end-of-run summary and continue the run; never relocate the log.
+
 This file is a run artifact: never add it to CLAUDE.md's Rules Files section, and never let the Phase 4 cross-tier dedup pass touch it.
 
 **Resolution table** (one row per interactive site, in the order they appear):
@@ -48,7 +50,7 @@ This file is a run artifact: never add it to CLAUDE.md's Rules Files section, an
 
 Only the Phase 0 workflow choice and Phase 2 entries carry a `(Recommended)` label in this skill; Phase 0's repair-selection and staleness-window entries don't — do not invent a `(Recommended)` label or a `Skip`-last option on those two.
 
-At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision and the log file's path, so someone can audit the run afterward.
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision and the log file's path, plus the files written (name the decision log among them when it was written) and any blocked paths (see Write blocked), so someone can audit the run afterward.
 
 ## Phase 0 — Prior-Run Detection
 
@@ -137,6 +139,10 @@ After the last question: "All questions answered. Confirming scope..."
 - **Phase 6 — Final Review:** Run cross-reference consistency check and present summary. **Checkpoint: user confirms all cross-references resolve and file inventory is complete.** (autopilot: see Autopilot Mode)
 
 **Checkpoint discipline:** Never proceed past a workflow checkpoint without explicit user confirmation (autopilot: see Autopilot Mode).
+
+**How to write:** create and change files only with the Write and Edit tools, never with shell redirection, heredocs, `tee`, `cp` or `mv`. The decision-log writer in `docs/autopilot-log-schema.md` is the one exception.
+
+**Write blocked:** if a write is denied or fails (e.g. the environment protects `.claude/`), never retry it through another tool (including Bash) or path, and don't print the file in chat. Keep going: write every file that is still allowed (`CLAUDE.md`, then the `.claude/rules/` files, then each Phase 5 skill) and record each blocked path. The end-of-run summary lists the files written, the blocked paths and the phases completed, and asks the user to re-run after allowing writes there.
 
 ## The 3-tier structure to create:
 

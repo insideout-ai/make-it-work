@@ -60,7 +60,7 @@ Reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **sin
 
 A bare `full` (Phase 1) iterates every repo in a detected workspace. The step 2 ask above applies only to a bare `full` and to the no-argument path; a token run uses detection only to find the workspace root, since each prefix resolves its own repo.
 
-**Finding a token's repo.** A token's prefix (`<repo>` in `<repo>:UC-08`, `<repo>:domain-velocity` or `full:<repo>`) names a repo. It is cwd's git toplevel when that directory's basename matches `<repo>`; otherwise a same-named subdirectory of cwd; otherwise a same-named subdirectory of the detected workspace root. If none exists, the repo is not found.
+**Finding a token's repo.** A token's prefix (`<repo>` in `<repo>:UC-08`, `<repo>:domain-velocity` or `full:<repo>`) names a repo. It is cwd's git toplevel when that directory's basename matches `<repo>`; otherwise a same-named subdirectory of cwd; otherwise a same-named subdirectory of the detected workspace root. If none exists, the repo is not found. Check for a directory by matching a file inside it (e.g. Glob `<repo>/*` or `<repo>/.git/HEAD`): Glob returns only files, so a pattern naming just the directory never matches.
 
 For token runs, group tokens by prefix. For each prefix, find the repo as above (`repo not found` is a validation reason for that prefix's tokens), read its `.claude/skills/test-strategy/SKILL.md`, and use every location in its `## Test Locations`. Each prefix is one group of runs; Phase 2 onward handles its scope tokens, and Phase 1 handles its `full:<repo>` token.
 

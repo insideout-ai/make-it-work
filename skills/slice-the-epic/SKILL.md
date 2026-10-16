@@ -33,7 +33,7 @@ When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` 
 |---|---|---|
 | Missing-fact clarification (fires only when there is no identifiable outcome, or the material combines unrelated initiatives) | `open_text` | State the best-guess assumption inline, prefixed `[autopilot best-guess]`, and proceed with slicing on that assumption rather than waiting for an answer. |
 
-At the end of an autopilot run, print a short summary: either the one auto-resolved assumption and the log file's path, or a one-line note that no clarifying question was needed this run (and whether the log write itself succeeded).
+At the end of an autopilot run, print a short summary: either the one auto-resolved assumption and the log file's path, or a one-line note that no clarifying question was needed this run (and whether the log write itself succeeded). Non-blocking details the requirement leaves open (for example, a range cap or a file format) go in an **Open questions** list after the backlog. They are not auto-resolved assumptions: do not label them "Assumption" or mention them in this summary.
 
 ## Understand the request
 

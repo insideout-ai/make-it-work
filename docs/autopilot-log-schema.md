@@ -18,6 +18,8 @@ node "<base>/../../scripts/decision-log.mjs" append <skill-name> --root "<repo-r
 JSON
 ```
 
+If the shell refuses a writer command because of its text (a safety check on the inline JSON, not a denied write), write the same JSON payload with the Write tool to `<repo-root>/make-it-work/.decision-log-input.json` and re-run the same command with `--input "<that path>"` instead of the heredoc. The writer reads and then deletes that file. Never write the log file itself directly.
+
 For a ticket-scoped workflow, pass `--ticket "<TICKET>"` to every writer call. Its log lives in `make-it-work/<TICKET>/`; project-wide skills omit the option and keep their log directly in `make-it-work/`.
 
 `init` creates an empty log for a new run. `append` accepts one decision object

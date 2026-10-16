@@ -155,33 +155,50 @@ export async function updateLog({ root = process.cwd(), skill, command, input, t
   return target;
 }
 
+function parseInput(text) {
+  if (Buffer.byteLength(text) > MAX_INPUT_BYTES) fail('Decision input exceeds 256 KiB.');
+  if (!text.trim()) fail('Expected a JSON decision object or array on stdin.');
+  try { return JSON.parse(text); }
+  catch (error) { fail(`Invalid decision JSON: ${error.message}`); }
+}
+
 async function readStdin() {
   let text = '';
   for await (const chunk of process.stdin) {
     text += chunk;
     if (Buffer.byteLength(text) > MAX_INPUT_BYTES) fail('Decision input exceeds 256 KiB.');
   }
-  if (!text.trim()) fail('Expected a JSON decision object or array on stdin.');
-  try { return JSON.parse(text); }
-  catch (error) { fail(`Invalid decision JSON: ${error.message}`); }
+  return parseInput(text);
+}
+
+// For shells that refuse an inline JSON heredoc: the payload is written to a file first,
+// read here, and removed once parsed so it never lingers beside the log.
+async function readInputFile(file) {
+  const text = await readFile(file, 'utf8');
+  const input = parseInput(text);
+  await unlink(file);
+  return input;
 }
 
 async function main(args) {
   const [command, skill, ...rest] = args;
   if (!command || !skill) {
-    fail('Usage: decision-log.mjs <init|append|write> <skill> [--root <repo-root>] [--ticket <TICKET>] (append/write read JSON from stdin).');
+    fail('Usage: decision-log.mjs <init|append|write> <skill> [--root <repo-root>] [--ticket <TICKET>] [--input <file>] (append/write read JSON from --input or stdin).');
   }
   const options = { root: process.cwd(), ticket: null };
+  let inputFile = null;
   const seen = new Set();
   while (rest.length) {
     const flag = rest.shift();
-    if (!['--root', '--ticket'].includes(flag) || !rest.length || seen.has(flag)) {
+    if (!['--root', '--ticket', '--input'].includes(flag) || !rest.length || seen.has(flag)) {
       fail(`Invalid decision-log option: ${flag}`);
     }
     seen.add(flag);
-    options[flag.slice(2)] = rest.shift();
+    if (flag === '--input') inputFile = rest.shift();
+    else options[flag.slice(2)] = rest.shift();
   }
-  const input = command === 'init' ? undefined : await readStdin();
+  const input = command === 'init' ? undefined :
+    inputFile ? await readInputFile(inputFile) : await readStdin();
   await updateLog({ ...options, skill, command, input });
 }
 
