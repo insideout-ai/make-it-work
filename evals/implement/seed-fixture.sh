@@ -21,6 +21,10 @@ cp -R "$SCRIPT_DIR/fixture-base/." .
 cp -R "$CASE_FIXTURE/fixture-artifacts/." fixture-artifacts/
 mkdir -p make-it-work
 mv fixture-artifacts make-it-work/DEMO
+# Project-wide feedback lives beside the ticket folders, where write-feedback.mjs writes it.
+if [ -f make-it-work/DEMO/implement-feedback.md ]; then
+  mv make-it-work/DEMO/implement-feedback.md make-it-work/implement-feedback.md
+fi
 
 git init -q -b main
 git add -A

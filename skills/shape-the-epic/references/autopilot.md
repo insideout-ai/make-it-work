@@ -39,7 +39,7 @@ When Bash is permitted, use the shared writer in its own Bash tool call, passing
 node "<skill-dir>/../../scripts/decision-log.mjs" write shape-the-epic --root "<project-root>"
 ```
 
-If the supplied mode, focus, and interview context already resolve every site, an empty log is valid: pass `[]` to the writer. When Bash is unavailable, use one Write call to the same log path with complete JSONL (an empty file for an empty array). Do not hand-build a log with shell redirection. If the log write is denied, report it as non-fatal and finish normally; do not retry or switch tools to bypass the denial. The already-saved epic remains the deliverable.
+If the supplied mode, focus, and interview context already resolve every site, an empty log is valid: pass `[]` to the writer. Only when Bash is not among your tools at all, use one Write call to the same log path with complete JSONL (an empty file for an empty array). Do not hand-build a log with shell redirection. A shell that refuses one writer command because of its text (e.g. "Contains brace with quote character") does not make Bash unavailable: Write the same JSON payload to `<repo-root>/make-it-work/.decision-log-input.json`, then re-run the same writer command with `--input "<that path>"` in place of the heredoc. Never Write the log file itself in that case. If the log write is denied, report it as non-fatal and finish normally; do not retry or switch tools to bypass the denial. The already-saved epic remains the deliverable.
 
 Phase 4 creates a new epic, adding a numeric suffix if a timestamped filename already exists. This does not grant permission to overwrite an existing epic or publish a ticket. There is no destructive hard-stop site and no need for `chosen: null`.
 

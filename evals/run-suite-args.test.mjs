@@ -9,6 +9,24 @@ test('omits --allow-tools when a case has no allowed tools', () => {
   assert.deepEqual(args.slice(-2), ['--max-cost-usd', '2.00']);
 });
 
+test('leaves the case model to plugin eval when none is given', () => {
+  const args = pluginEvalArgs({ name: 'deliver-no-package', caseReportDir: '/tmp/report',
+    remaining: 2, tools: [], scaffold: false });
+  assert.equal(args.includes('--model'), false);
+});
+
+test('passes an explicit case model through', () => {
+  const args = pluginEvalArgs({ name: 'deliver-no-package', caseReportDir: '/tmp/report',
+    remaining: 2, tools: [], scaffold: false, model: 'claude-sonnet-5-5' });
+  assert.equal(args[args.indexOf('--model') + 1], 'claude-sonnet-5-5');
+});
+
+test('passes an explicit judge model through', () => {
+  const args = pluginEvalArgs({ name: 'find-the-repos-happy-path', caseReportDir: '/tmp/report',
+    remaining: 2, tools: [], scaffold: false, judgeModel: 'claude-sonnet-5-5' });
+  assert.equal(args[args.indexOf('--judge-model') + 1], 'claude-sonnet-5-5');
+});
+
 test('passes allowed tools and scaffold for a Bash-enabled case', () => {
   const args = pluginEvalArgs({ name: 'implement-autopilot-full', caseReportDir: '/tmp/report',
     remaining: 5, tools: ['Read', 'Bash'], scaffold: true });

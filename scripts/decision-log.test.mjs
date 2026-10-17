@@ -98,6 +98,24 @@ test('rejects symlinked make-it-work directory and log target', async (t) => {
   await assert.rejects(updateLog({ root, skill: 'execute', command: 'write', input: [] }), /regular file/);
 });
 
+test('CLI reads JSON from an --input file and removes it after use', async (t) => {
+  const { root, log } = await workspace(t);
+  let result = spawnSync(process.execPath, [SCRIPT, 'init', 'execute', '--root', root], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const payload = path.join(root, 'make-it-work', '.decision-log-input.json');
+  await writeFile(payload, JSON.stringify(question));
+  result = spawnSync(process.execPath, [SCRIPT, 'append', 'execute', '--root', root, '--input', payload],
+    { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal((await readFile(log, 'utf8')).trim().split('\n').length, 1);
+  await assert.rejects(stat(payload));
+  await writeFile(payload, '{bad json');
+  result = spawnSync(process.execPath, [SCRIPT, 'append', 'execute', '--root', root, '--input', payload],
+    { encoding: 'utf8' });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Invalid decision JSON/);
+});
+
 test('CLI reads JSON from stdin and leaves invalid input untouched', async (t) => {
   const { root, log } = await workspace(t);
   let result = spawnSync(process.execPath, [SCRIPT, 'init', 'execute', '--root', root], { encoding: 'utf8' });

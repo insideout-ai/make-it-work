@@ -1,6 +1,6 @@
 ---
 tags: [go-deep, smoke]
-allowed_tools: [Read, Glob, Grep, AskUserQuestion, Agent, TodoWrite, TaskCreate, TaskUpdate]
+allowed_tools: [Read, Glob, Grep, Write, Edit, Bash, AskUserQuestion, Agent, TodoWrite, TaskCreate, TaskUpdate]
 max_turns: 150
 timeout_seconds: 1800
 runs: 1

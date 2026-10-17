@@ -59,7 +59,7 @@ A genuine single repo with no workspace still stops before ticket ingestion/trac
 
 Inspect the invocation/session for ticket content, a file path, or a primary key without fetching a tracker. When only ticket input is missing, state the all-repo scope and ask only for the key, pasted content, or spec path. This is free-text input, not a multiple-choice question about how the user plans to provide it. If the workspace boundary also needs clarification, collect both missing inputs in the same intake exchange. Preserve resolved scope/ticket input across replies; never ask for it again merely because another part is missing. Do not start matching without ticket content.
 
-Flag repos named by grouping metadata but absent on disk. Present repos remain candidates without product.md or skills. Phase 3 may add another local repo specifically referenced as implementing the same concept, not from generic service links. Do not clone or inspect repos outside the resolved workspace; route missing external work explicitly.
+Repos named by grouping metadata but absent on disk remain candidates: give each a `Not assessed / unavailable` row in the Assessment Evidence table with **absent on disk** in Flags / provenance; a mention in the External systems line alone is not enough. Present repos remain candidates without product.md or skills. Phase 3 may add another local repo specifically referenced as implementing the same concept, not from generic service links. Do not clone or inspect repos outside the resolved workspace; route missing external work explicitly.
 
 ## Phase 2 — Ticket Ingestion and Identity
 
@@ -99,7 +99,7 @@ For every present candidate:
 
 - Read `.claude/rules/product.md` when available and compare its use cases/domains with the ticket.
 - Read the repo's CLAUDE.md skills table. A relevant entry warrants a provisional Possible drill-down even when the product overview omits the specific concept.
-- Without product.md, use README.md/CLAUDE.md if present; missing docs never prevent a code-only match.
+- Without product.md, use README.md/CLAUDE.md if present and record **no product.md** in that repo's Flags / provenance cell, whatever its tier; missing docs never prevent a code-only match.
 - For a purely technical ticket, state that distinction and use architecture.md as the primary document, resolving its path from repo guidance (commonly .claude/rules/architecture.md). Skills/code checks still apply if it is missing.
 - Record missing, unavailable, stale, or contradictory sources instead of treating them as evidence of no involvement.
 
@@ -138,9 +138,9 @@ Include an **Owner / owner evidence** assessment-table column in the report. Kee
 Use combined evidence rather than a keyword score:
 
 - **Definite:** a specific use case/skill maps the concept, or substantive code defines/uses a ticket-specific identifier, endpoint, payload field, or exact UI label. That code-only evidence is sufficient without product.md, README, or skills; no docs corroboration is required. Context must rule out unrelated/comment/test-only mentions. Definite means repo involvement, not feature completeness.
-- **Possible:** partial/topical overlap, a generic term without specific corroboration, test/mock-only clues, a specific implementation reference awaiting confirmation, or material uncertainty/conflict. Generic words such as payroll or Payments do not establish Definite without corroborating behavior, identifiers, or docs.
+- **Possible:** partial/topical overlap (including a repo that owns data or state the ticket's acceptance criteria explicitly reference or constrain, e.g. "must not change the task's status", so its owners can confirm no change is needed), a generic term without specific corroboration, test/mock-only clues, a specific implementation reference awaiting confirmation, or material uncertainty/conflict. Generic words such as payroll or Payments do not establish Definite without corroborating behavior, identifiers, or docs.
 - **No match:** assessed sources do not establish direct involvement; retain the row.
-- **Excluded:** no usable repo docs and no relevant code hits after the bounded search. Missing product.md/architecture.md alone never excludes.
+- **Excluded:** no repo docs at all (no product.md, README.md, or CLAUDE.md) and no relevant code hits after the bounded search. A repo whose README/CLAUDE.md fallback was read and found unrelated is **No match**, not Excluded. Missing product.md/architecture.md alone never excludes.
 - **Not assessed / unavailable:** missing checkout or incomplete/denied assessment; explain rather than turning missing access into No match.
 
 Keep every Possible match even when another repo is Definite. A repo without product.md and with specific code evidence carries **no product.md; code-matched**. Fallback-doc-only matches name their source.
@@ -179,11 +179,11 @@ After assessment or revision, show **one table containing only Definite repos**,
 |---|---|---|
 | <Definite repo> | <deduplicated owner identifiers, or Unknown> | <one or more of: product.md, architecture.md, context skills, code> |
 
-Evidence is multi-valued: include only the listed types that actually support the match, not every source inspected. Domain/use-case skills map to **context skills**; substantive implementation/configuration evidence maps to **code**. A zero-hit search is not supporting code evidence. Use **—** if none of these four types applies (for example, a README-only match); retain the actual pointer in the report rather than inventing a type.
+Evidence is multi-valued: include only the listed types that actually support the match, not every source inspected. Domain/use-case skills map to **context skills**; substantive implementation/configuration evidence maps to **code**. A zero-hit search is not supporting code evidence. Use **—** if none of these four types applies (for example, a README-only match); retain the actual pointer in the report rather than inventing a type. A product.md (or architecture.md) use case that maps the ticket concept is that evidence type on its own; code or skill corroboration is not required. Never use **—** for a repo made Definite by one of these four types, and do not explain the Evidence cell in prose; pointers stay in the report.
 
 Owner(s) lists names/handles only, not catalog/CODEOWNERS paths, rules, provenance, or conflict explanations. If sources disagree, include their distinct relevant identifiers without implying a resolved owner; explain the conflict only in the report. Do not infer aliases or invent owners.
 
-Do not show Possible/No match/Excluded/unavailable repos, source pointers, implementation headlines, external-system summaries, or additional tables/lists in the terminal. Those stay in the report. Add only a short report link/status line and, when pending, one concise confirm-or-comment prompt. If there are no Definite repos, leave the table body empty and say **No Definite repos identified**; do not promote Possible repos or add a fake repo row. Intake questions and direct answers to user follow-up questions are not assessment summaries and can use concise prose as needed.
+Do not show Possible/No match/Excluded/unavailable repos, source pointers, implementation headlines, external-system summaries, or additional tables/lists in the terminal. Those stay in the report. Add only a short report link/status line and, when pending, one concise confirm-or-comment prompt, such as "Confirm this shortlist, or comment to change it." The prompt never names or suggests other repos; those stay in the report. Print nothing before the table: no scope or progress line such as how many repos were found or assessed. If there are no Definite repos, leave the table body empty and say **No Definite repos identified**; do not promote Possible repos or add a fake repo row. Intake questions and direct answers to user follow-up questions are not assessment summaries and can use concise prose as needed.
 
 ### Full report structure
 
@@ -228,7 +228,7 @@ External systems named in the ticket, not in workspace: <names, unassessed scope
 
 ## Excluded
 
-- **<repo>** — <no usable docs and no relevant code hits>.
+- **<repo>** — <no repo docs at all and no relevant code hits>.
 ```
 
 Keep all report sections; use None for empty match/exclusion lists and None observed for implementation observations. The assessment table still includes unavailable/No match candidates and flags on positive matches. For purely technical tickets, note architecture.md as the primary documentation alongside skills/code. Never present a Pending review report as confirmed, a zero hit as proof of absence, or existing code as proof of ticket completion.

@@ -30,7 +30,7 @@ Pick the most useful unresolved thread; do not ask every prompt:
 
 For **Users & permissions**, draft separate Internal Users and Customer Users tables where applicable, with `Role | Can View | Can Act`. Keep known roles even when permissions are unknown; mark unknown cells TBD. Do not invent customer roles for an internal-only feature.
 
-For **KPIs & metrics**, give each KPI a threshold and a `Measured by:` line identifying the event or data point required. Include a baseline when supplied; mark missing values as open rather than inventing them. Add an `Additional Data Requirements` subsection for agreed needs such as audit logs, retention, or event capture that do not serve a particular KPI. Write `None noted.` if none were identified; do not add requirements speculatively.
+For **KPIs & metrics**, give each KPI a threshold and a `Measured by:` line identifying the event or data point required. Write each KPI as its own list item with that line under it, never as a table. Include a baseline when supplied; mark missing values as open rather than inventing them. Add an `Additional Data Requirements` subsection for agreed needs such as audit logs, retention, or event capture that do not serve a particular KPI. Write `None noted.` if none were identified; do not add requirements speculatively.
 
 ## Use cases and acceptance criteria
 
