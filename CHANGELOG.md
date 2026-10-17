@@ -4,7 +4,12 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.11.0] - 2026-10-17
+
+### Added
+
+- `evals/run-suite.mjs` takes optional `--model=ID` and `--judge-model=ID` flags, so every case and every semantic grader can run on a model the account can use.
+- `scripts/decision-log.mjs` accepts `--input <file>` for shells that refuse the inline-JSON heredoc; the payload file is read, then deleted.
 
 ### Changed
 
@@ -15,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `implement` triages gate failures using the plan's `@covers` tokens, warns (without stopping) when a repo has no test-strategy skill or only the old rule file, accepts the `scoped+full` gate in its state, handoffs, ledger and dashboard, and branches and packages a test-scope repo with the product repos when it has changes.
 - `review-the-pr` reports a new or changed test with no `@covers` tag for a touched use case or domain, and a touched one left with no tagged test, as Minor findings.
 - `go-deep` keeps the `CLAUDE.md` Other Skills table on fresh onboarding and ignores its rows and the test-strategy skill in repair checks.
+- `define-test-strategy` and `go-deep` write files only with the Write and Edit tools. When a `.claude/` write is blocked they keep going and report the blocked paths; `define-test-strategy` prints the generated skill verbatim, keeps the old rule file and leaves `CLAUDE.md` unchanged. A repo with a test script but no tests yet records its command instead of the `none` row, and the go-deep warning covers test-only repos.
+- `run-regression` finds repo directories by matching a file inside them, so read-only runs detect sibling repos and prefixed repos reliably.
+- `find-the-repos` keeps a row for repos absent on disk, tiers README-only repos as No match rather than Excluded, treats a repo whose state the acceptance criteria constrain as Possible, and limits terminal output to the table, a report link and a fixed confirm prompt.
+- `slice-the-epic` lists non-blocking open details as Open questions rather than assumptions; `shape-the-epic` writes each KPI as a list item and uses the decision-log `--input` fallback when the shell refuses the heredoc.
+- Headless eval cases grade either the written or the blocked `.claude/` outcome, since headless runs can't write there. Semantic graders reason before their verdict, take the best two of three votes, and retry a crashed judge once.
 
 ### Removed
 
