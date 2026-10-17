@@ -39,7 +39,7 @@ results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
 by its harness. Cases marked `headless` use a disposable fixture and produce a
 `transcript.jsonl`; the runner grades their `graders/*.md` automatically.
 File, regex, and tool-use checks run locally. Semantic (`llm`) checks use a
-separate, tool-free Claude judge and count toward the same case and suite cost
+separate, tool-free Claude judge that takes the best two of three votes and count toward the same case and suite cost
 limits. That judge receives the relevant generated fixture file, final message,
 or normalized case transcript as evidence; do not run it with data that must
 stay local. Each headless case writes `grader-results.json` and returns `passed`

@@ -53,7 +53,30 @@ Check `git status` on this repo before and after (it must not change). Then chec
 
 ## `repair-path`
 
-The fixture is a prior go-deep run with `domain-notifications` referenced in `CLAUDE.md` and `architecture.md` but missing from `.claude/skills/`. Its graders still expect `.claude/skills/domain-notifications/SKILL.md` to be created, so it has the same `.claude/` limitation as `fresh-onboarding`, and its prompt does not yet allow `Write`, `Edit` or `Bash`. It has not been reworked for the blocked path. Until it is, check it by hand with `run-all.sh` or the commands above, using `repair-path/fixture.sh`, against `repair-path/graders/*.md`.
+The fixture is a prior go-deep run ("Mini Task Tracker" with `CLAUDE.md`, both rules files and every skill except one) and a single backdated commit, so the staleness re-scan flags nothing. `domain-notifications` is referenced in `CLAUDE.md`'s Skills Reference and `architecture.md`'s Functional Domains table but missing from `.claude/skills/`. `CLAUDE.md` carries a `SENTINEL:` sentence that the repair must not remove. Its prompt allows `Write`, `Edit` and `Bash`, so the decision log and any `CLAUDE.md` edit can be written and the shared decision-log writer can run. The repair's only `.claude/` write is the missing skill, which a headless run normally can't create. The graders check:
+
+- the decision log was written and has a Phase 0 `workflow-choice` line choosing "Repair existing docs" (`autopilot-log-written`, regex);
+- `CLAUDE.md` still has the `SENTINEL:` sentence (`sentinel-survives`, regex);
+- the log chose "Repair existing docs (Recommended)", selected the Missing skills repair, reported zero stale skills for the staleness window, and never chose "Run fresh onboarding" (`autopilot-log-content`);
+- the run identified `domain-notifications` as missing and either wrote `.claude/skills/domain-notifications/SKILL.md`, or tried to, was denied, didn't get around the denial through another tool or path, and named the path as blocked with re-run advice (`missing-skill-handled`, `focus: trace`);
+- the `.claude/` writes are all written or all blocked, and the end-of-run summary matches the transcript: the decision log written, every written file listed, every blocked path reported as blocked, and which repairs or phases completed (`writes-reported`, `focus: trace`).
+
+### Manual full-write check
+
+```sh
+RUN_DIR=$(mktemp -d)
+(cd "$RUN_DIR" && bash "$REPO/evals/go-deep/repair-path/fixture.sh")
+(cd "$RUN_DIR" && claude -p "/make-it-work:go-deep --autopilot" \
+  --plugin-dir "$REPO" --dangerously-skip-permissions \
+  --output-format stream-json --verbose > "$RUN_DIR.transcript.jsonl")
+```
+
+Check `git status` on this repo before and after (it must not change). Then check in `$RUN_DIR`:
+
+- [ ] `.claude/skills/domain-notifications/SKILL.md` exists, with `name: domain-notifications` and a `description` in its frontmatter, within the domain size target (60–120 lines, 500 max), and covers `src/notifications/sendReminder.js` (the reminder shape, overdue check and admin escalation flag) without code snippets or ASCII diagrams.
+- [ ] `CLAUDE.md`'s Skills Reference still lists `domain-notifications` with `src/notifications/` as its key code area, and every skill named there, in `architecture.md`'s Functional Domains table and in `product.md`'s use-case table has a matching `.claude/skills/` directory.
+- [ ] `CLAUDE.md` still has the `SENTINEL:` sentence, and no other existing skill or rules file was rewritten (`git status` in `$RUN_DIR` shows only the new skill, the decision log and any cross-reference edits).
+- [ ] The decision log meets `autopilot-log-content`.
 
 ## Known gaps in this suite (by design, not oversight)
 

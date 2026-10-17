@@ -42,7 +42,7 @@ test('grades local checks and semantic checks without a review status', async (t
     budgetUsd: 1, judge });
   assert.equal(graded.passed, true);
   assert.equal(graded.verdicts.length, 4);
-  assert.equal(graded.judgeCostUsd, 0.02);
+  assert.equal(graded.judgeCostUsd, 0.04); // two agreeing votes
 });
 
 test('passes an explicit judge model to the semantic judge', async (t) => {
@@ -60,10 +60,10 @@ test('passes an explicit judge model to the semantic judge', async (t) => {
   await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1, judge,
     judgeModel: 'claude-sonnet-5-5' });
   await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1, judge });
-  assert.deepEqual(models, ['claude-sonnet-5-5', undefined]);
+  assert.deepEqual(models, ['claude-sonnet-5-5', 'claude-sonnet-5-5', undefined, undefined]);
 });
 
-test('retries a judge process failure once but never a FAIL verdict', async (t) => {
+test('retries a crashed judge process and decides by best two of three votes', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
   const graderDir = path.join(root, 'graders');
@@ -71,16 +71,26 @@ test('retries a judge process failure once but never a FAIL verdict', async (t) 
   await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const verdict = (value) => ({ stdout: JSON.stringify({ total_cost_usd: 0.01,
     structured_output: { reason: 'checked', verdict: value } }) });
-  let calls = 0;
-  let graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1,
-    judge: async () => (++calls === 1 ? { error: new Error('Command failed'), stdout: '', stderr: '' } : verdict('PASS')) });
-  assert.equal(calls, 2);
-  assert.equal(graded.passed, true);
-  calls = 0;
-  graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1,
-    judge: async () => { calls += 1; return verdict('FAIL'); } });
-  assert.equal(calls, 1);
-  assert.equal(graded.passed, false);
+  const grade = async (answers) => {
+    let calls = 0;
+    const graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd: 1,
+      judge: async () => answers[calls++] });
+    return { calls, graded };
+  };
+  const crash = { error: new Error('Command failed'), stdout: '', stderr: '' };
+  // A crashed process is retried, then two agreeing votes decide.
+  let run = await grade([crash, verdict('PASS'), verdict('PASS')]);
+  assert.equal(run.calls, 3);
+  assert.equal(run.graded.passed, true);
+  // A stray FAIL is outvoted.
+  run = await grade([verdict('FAIL'), verdict('PASS'), verdict('PASS')]);
+  assert.equal(run.calls, 3);
+  assert.equal(run.graded.passed, true);
+  assert.match(run.graded.verdicts[0].detail, /judge votes: FAIL PASS PASS/);
+  // Two FAILs decide without a third vote.
+  run = await grade([verdict('FAIL'), verdict('FAIL')]);
+  assert.equal(run.calls, 2);
+  assert.equal(run.graded.passed, false);
 });
 
 test('fails closed on an ungradable semantic check', async (t) => {
