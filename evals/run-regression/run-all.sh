@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs all six run-regression autopilot smoke-test cases.
+# Runs the original six run-regression autopilot smoke-test cases.
+# rr-cross-repo and rr-unrelated-clones run via `node evals/run-suite.mjs full`.
 #
 # rr-negative-control, rr-no-command-stop and rr-scoped-unavailable run
 # fully automatically via `claude plugin eval` (no Bash grant needed — see
@@ -96,7 +97,7 @@ run_bash_case() {
 
 run_bash_case rr-full-pass full
 run_bash_case rr-full-fail full
-run_bash_case rr-scoped-explicit domain-velocity
+run_bash_case rr-scoped-explicit velocity-app:domain-velocity
 
 echo
 echo "=== Done. Manual-path run dirs (if any) are saved to /tmp/run-regression-<case>-rundir.txt ==="
