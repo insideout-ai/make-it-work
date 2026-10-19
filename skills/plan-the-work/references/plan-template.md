@@ -71,6 +71,14 @@ One line per product repo — `execute`'s gate reads this section:
 
 What is currently absent and must be added as part of this ticket (validations, tests, logging/error handling, relevant tech debt).
 
+## Verification Policy
+
+Copy the resolved testing-readiness choices supplied by `implement`, one row per affected product repo. `Mode` is `automated` or `manual`; `Decision` is `configured`, `user`, `project-policy`, or `autonomy-default`. Manual mode permits only `user` or `project-policy`, with the decision reference in Reason. Proposed/pending tooling cannot be marked automated. When no policy was resolved (standalone or legacy planning), write `None` instead of inventing authorization; existing gate behavior then applies.
+
+| Repo | Mode | Decision | Reason |
+| --- | --- | --- | --- |
+| <repo-name> | <mode> | <decision source> | <readiness decision or policy reference> |
+
 ## Risks
 
 | Risk | Severity | Mitigation | Residual severity |
@@ -90,13 +98,13 @@ A smaller, independently-shippable first phase that lowers residual risk (e.g. a
 
 ## Pre-flight
 
-The "Working tree clean" check below applies once, before planning starts — the uncommitted test files (and any New-row stub signatures) the test-writing sub-phase produces as planning proceeds (see the `### Writing and confirming each step's tests` subsection above) are an expected, intentional deviation from a clean tree, not a Pre-flight violation.
+The working-tree check applies before planning starts. Setup files supplied by `implement`'s testing readiness are an accepted baseline: name them here and in Affected Code. Test files and New-row stub signatures written during planning are also intentional uncommitted changes. Neither requires discarding work to obtain a clean tree.
 
 Stop and flag if any fail before writing code.
 
 - [ ] On the correct branch, branched from `<base>`
 - [ ] Build passes on the unmodified branch (clean baseline)
-- [ ] Working tree clean (`git status`), no unresolved conflicts
+- [ ] Working tree clean or accepted setup baseline listed (`git status`); no unresolved conflicts
 - [ ] _(project-specific prereqs)_
 
 ## Steps
@@ -113,20 +121,22 @@ Stop and flag if any fail before writing code.
 
 **Tests:** one line per in-scope repo (including any `(test scope only)` repo the step writes tests in), since point 9 above requires each in-scope repo to get its own entry: `<repo>: <file path(s)> [<layer>], <exact command>, <confirmed state>`, where the confirmed state is one of `progression red — <reason>` / `regression passing` / `regression not runnable locally — <reason>` / `progression written — not runnable locally (<reason>)` — or, for an exempt step, `Exempt — <reason>`. New tests carry a `@covers` line. An out-of-scope repo (no test-strategy location and no framework configured, per point 1) is simply omitted from this field, since its scenarios already live in that repo's own `## Test Plan` rows instead.
 
-### Step N — Write tests
+### Step N — Verify manual scenarios
 
-_Only used for a repo where the per-step test-writing sub-phase's applicability gate (point 1 of the `### Writing and confirming each step's tests` subsection above) found no test-strategy location and no framework configured — omit this step for a repo where a strategy location or framework was found and tests were written per step instead. In a multi-repo plan with mixed framework availability across repos, this step still applies, scoped to whichever repo(s) lack a framework; in a single-repo plan with no framework, it covers the whole plan. When used, this is always the last step before Definition of Done._ Write the tests listed in the Test Plan for that repo. **Verify:** test suite passes; coverage on new files meets the project's bar.
+_Include for explicitly manual repos or legacy no-framework repos. Omit when every repo uses automated tests. This is the final numbered step before Definition of Done._ Walk through the relevant Test Plan scenarios against the running behavior, including nearby regression paths, and record observed results. **Verify:** each named manual scenario was actually performed and matched its expected observation; required build/lint/type checks also pass. Missing access or an unperformed scenario stops verification. This step neither installs a runner nor claims an automated suite passed.
 
 ## Test Plan
 
 For a repo where the per-step test-writing sub-phase applies (a test-strategy location or a test framework is configured there), this section is a derived summary aggregating what each step's `**Tests:**` field already recorded for that repo — not a place to author new tests for it — and each such scenario row should reference which step its test came from. For a repo with no test-strategy location and no framework configured, this section is instead the one place new test scenarios for that repo are authored directly, exactly as `plan-the-work` did before this sub-phase existed. A multi-repo plan may contain both kinds of row side by side.
 
-| Scenario | Type | File / command |
-| --- | --- | --- |
-| Happy path | Unit | … |
-| _(edge case)_ | Unit | … |
-| _(failure scenario — DB error, downstream timeout)_ | Unit | … |
-| _(regression — existing flow that must keep working)_ | Integration | … |
+Use unique Scenario names. With an explicit verification policy, include the Repo column below. Manual repos use Type `Manual`, and File / command describes setup, actions, expected observations and the originating step. Without a policy, the older three-column `Scenario | Type | File / command` format remains valid.
+
+| Scenario | Repo | Type | File / command |
+| --- | --- | --- | --- |
+| Happy path | <repo-name> | Unit | … |
+| _(edge case)_ | <repo-name> | Unit | … |
+| _(failure scenario — DB error, downstream timeout)_ | <repo-name> | Unit | … |
+| _(regression — existing flow that must keep working)_ | <repo-name> | Manual | <setup; actions; expected observation; step> |
 
 **AC traceability:**
 
@@ -140,7 +150,7 @@ For a repo where the per-step test-writing sub-phase applies (a test-strategy lo
 - [ ] Test suite passes (no skipped/pending), or suites reported not run with reason
 - [ ] Type-check / build / lint pass
 - [ ] All **Verify** checkpoints green
-- [ ] For every repo where the per-step test-writing sub-phase applies, every step's **Tests:** field is resolved — a test-required step's progression test is confirmed red and its regression test confirmed passing (or, once execution completes, confirmed green); no step's field is still an unaddressed placeholder. For any repo with no test-strategy location and no framework configured, its `## Test Plan` rows and conditional `### Step N — Write tests` step cover it instead.
+- [ ] For every automated repo, every step's **Tests:** field is resolved — progression red and regression passing at planning time, or confirmed green after execution. Manual/legacy no-framework repos have concrete Test Plan scenarios and the final manual verification step instead. Every manually selected repo has observed evidence for its scenarios; automated regression limitations remain explicit.
 - [ ] Open questions resolved or escalated (owner named)
 - [ ] Logging and error handling at the correct layers
 - [ ] Security and authorization reviewed

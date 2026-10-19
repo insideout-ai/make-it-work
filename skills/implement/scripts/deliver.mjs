@@ -2,13 +2,14 @@
 
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, open, readFile, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, open, readFile, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkFinalPackage } from './final-package.mjs';
-import { parseState } from './render-status.mjs';
+import { generateDashboard, parseState } from './render-status.mjs';
 import { assertRunState, runDirectory } from './artifact-layout.mjs';
+import { deliveryPaths } from './delivery-progress.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -31,9 +32,53 @@ async function atomicWrite(target, value) {
   await rename(temporary, target);
 }
 
-function paths(root, ticket) {
-  const base = path.join(runDirectory(root, ticket), `${ticket}-delivery`);
-  return { plan: `${base}-plan.json`, preview: `${base}-plan.md`, journal: `${base}-progress.json`, lock: `${base}.lock` };
+async function loadProgress(context) {
+  try {
+    const progress = JSON.parse(await readFile(context.files.journal, 'utf8'));
+    if (progress.version !== 1 || !progress.repos || typeof progress.repos !== 'object' || Array.isArray(progress.repos)
+        || (progress.ticket && progress.ticket !== context.state.fields.ticket)) fail('Invalid delivery progress.');
+    return progress;
+  } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+}
+
+async function refreshDashboard(context) {
+  const dashboard = path.join(path.dirname(context.statePath), `${context.state.fields.ticket}-status.html`);
+  try { await stat(dashboard); }
+  catch (error) { if (error.code === 'ENOENT') return; throw error; }
+  await generateDashboard(context.statePath);
+}
+
+async function saveProgress(context, progress) {
+  progress.version = 1;
+  progress.ticket = context.state.fields.ticket;
+  progress.updated_at = new Date().toISOString();
+  await atomicWrite(context.files.journal, progress);
+  try { await refreshDashboard(context); }
+  catch (error) { fail(`Delivery progress was saved, but dashboard refresh failed: ${error.message}`); }
+}
+
+async function lifecycle(context, action) {
+  const prior = await loadProgress(context);
+  if (action === 'offer' && prior) { await refreshDashboard(context); return prior; }
+  if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {
+    fail('Delivery already started; inspect its progress instead of changing its offer.');
+  }
+  const progress = { version: 1, repos: {}, ...prior, status: action === 'offer' ? 'offered' : 'declined', activity: null, error: null };
+  if (action === 'offer') progress.offered_at = new Date().toISOString();
+  else progress.declined_at = new Date().toISOString();
+  await saveProgress(context, progress);
+  return progress;
+}
+
+async function recordFailure(context, error, onlyUnstarted = false) {
+  const progress = await loadProgress(context) ?? { version: 1, repos: {} };
+  if (onlyUnstarted && (!['offered', 'awaiting-approval', 'declined', undefined].includes(progress.status) || Object.keys(progress.repos).length)) return;
+  const partial = Object.values(progress.repos).some((repo) => repo.commit || repo.pushed || repo.pr);
+  progress.status = partial ? 'partial' : 'failed';
+  progress.error = error.message;
+  progress.activity = null;
+  progress.stopped_at = new Date().toISOString();
+  await saveProgress(context, progress);
 }
 
 export function parseRemote(remote) {
@@ -75,7 +120,7 @@ async function readContext(rootInput, stateInput) {
   if (state.fields.status !== 'Complete' || state.fields.phase !== 'complete' || state.fields.final_package_version !== '1') {
     fail('Delivery requires a completed package-enabled run.');
   }
-  return { root, statePath, state, files: paths(root, state.fields.ticket) };
+  return { root, statePath, state, files: deliveryPaths(root, state.fields.ticket) };
 }
 
 function preview(plan) {
@@ -93,8 +138,10 @@ function preview(plan) {
 
 async function prepare(context) {
   const { root, statePath, state, files } = context;
-  try { await readFile(files.journal); fail('Delivery already started; use status or run to resume.'); }
-  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const prior = await loadProgress(context);
+  if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {
+    fail('Delivery already started; use status or run to resume.');
+  }
   const check = await checkFinalPackage(root, statePath, state.fields.autonomy === 'guided');
   const pkg = JSON.parse(await readFile(path.join(runDirectory(root, state.fields.ticket), `${state.fields.ticket}-final-package.json`), 'utf8'));
   const repos = [];
@@ -116,6 +163,9 @@ async function prepare(context) {
   const hash = sha(JSON.stringify(plan));
   await writeFile(files.preview, preview(plan));
   await atomicWrite(files.plan, plan);
+  await saveProgress(context, { version: 1, ticket: state.fields.ticket, plan_sha256: hash,
+    expected_repos: repos.map((repo) => repo.name), repos: {}, status: 'awaiting-approval',
+    ...(prior?.offered_at ? { offered_at: prior.offered_at } : {}), prepared_at: new Date().toISOString(), activity: null, error: null });
   return { plan: files.preview, sha256: hash, repos: repos.map(({ name, branch, base, remote }) => ({ name, branch, base, remote })) };
 }
 
@@ -185,32 +235,50 @@ export async function pullRequest(repo, draft) {
 
 async function run(context, expectedHash) {
   const { files } = context;
-  const plan = JSON.parse(await readFile(files.plan, 'utf8'));
-  if (sha(JSON.stringify(plan)) !== expectedHash || plan.ticket !== context.state.fields.ticket) fail('Delivery plan hash or ticket mismatch.');
-  if (await readFile(files.preview, 'utf8') !== preview(plan)) fail('Delivery preview changed. Prepare a new plan.');
-  await verifyEvidence(context, plan);
+  let plan;
+  try {
+    plan = JSON.parse(await readFile(files.plan, 'utf8'));
+    if (sha(JSON.stringify(plan)) !== expectedHash || plan.ticket !== context.state.fields.ticket) fail('Delivery plan hash or ticket mismatch.');
+    if (await readFile(files.preview, 'utf8') !== preview(plan)) fail('Delivery preview changed. Prepare a new plan.');
+    await verifyEvidence(context, plan);
+  } catch (error) {
+    await recordFailure(context, error, true).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
+    throw error;
+  }
   const lock = await open(files.lock, 'wx').catch((error) => {
     if (error.code === 'EEXIST') fail(`Delivery already running or interrupted; inspect ${files.lock} before retrying.`);
     throw error;
   });
   try {
-    let progress;
-    try { progress = JSON.parse(await readFile(files.journal, 'utf8')); }
-    catch (error) { if (error.code !== 'ENOENT') throw error; }
-    if (!progress) {
+    let progress = await loadProgress(context);
+    const hadActions = progress && Object.keys(progress.repos).length > 0;
+    if (progress?.plan_sha256 && progress.plan_sha256 !== expectedHash) fail('Delivery progress belongs to a different plan.');
+    if (!hadActions) {
       await checkFinalPackage(context.root, context.statePath, context.state.fields.autonomy === 'guided');
+    }
+    progress ??= { version: 1, repos: {} };
+    progress.plan_sha256 = expectedHash;
+    progress.expected_repos = plan.repos.map((repo) => repo.name);
+    progress.status = 'running';
+    progress.activity = 'Checking delivery prerequisites.';
+    progress.error = null;
+    progress.approved_at ??= new Date().toISOString();
+    if (!hadActions) progress.started_at ??= new Date().toISOString();
+    delete progress.completed_at;
+    delete progress.stopped_at;
+    await saveProgress(context, progress);
+    if (!hadActions) {
       for (const repo of plan.repos) {
         if (repo.provider === 'github') {
           command('gh', ['--version']);
           command('gh', ['auth', 'status']);
         } else token();
       }
-      progress = { version: 1, plan_sha256: expectedHash, repos: {} };
-      await atomicWrite(files.journal, progress);
     }
-    if (progress.plan_sha256 !== expectedHash) fail('Delivery progress belongs to a different plan.');
     for (const repo of plan.repos) {
       const item = progress.repos[repo.name] ?? {};
+      progress.activity = `Checking ${repo.name}.`;
+      await saveProgress(context, progress);
       if (utf8(git(repo.path, ['symbolic-ref', '--quiet', '--short', 'HEAD']).stdout) !== repo.branch) fail(`Branch changed in ${repo.name}.`);
       if (utf8(git(repo.path, ['config', '--get', 'remote.origin.url']).stdout) !== repo.remote) fail(`Origin changed in ${repo.name}.`);
       if (utf8(git(repo.path, ['remote', 'get-url', '--push', '--all', 'origin']).stdout) !== repo.push_url) fail(`Origin push transport changed in ${repo.name}.`);
@@ -225,8 +293,14 @@ async function run(context, expectedHash) {
             fail(`Staged paths exceed approved paths in ${repo.name}.`);
           }
           if (git(repo.path, ['diff', '--cached', '--quiet'], { allowFailure: true }).status !== 0) {
+            progress.activity = `Committing ${repo.name}.`;
+            await saveProgress(context, progress);
             git(repo.path, ['commit', '-m', plan.draft.commit_message]);
             head = utf8(git(repo.path, ['rev-parse', 'HEAD']).stdout);
+            item.commit = head;
+            progress.repos[repo.name] = item;
+            progress.activity = `Validating the commit in ${repo.name}.`;
+            await saveProgress(context, progress);
           }
         }
         if (utf8(git(repo.path, ['rev-parse', 'HEAD^{tree}']).stdout) !== repo.target_tree) fail(`Commit or hook changed approved tree in ${repo.name}; nothing was pushed for this repo.`);
@@ -237,22 +311,37 @@ async function run(context, expectedHash) {
         }
         item.commit = head;
         progress.repos[repo.name] = item;
-        await atomicWrite(files.journal, progress);
+        await saveProgress(context, progress);
       } else if (head !== item.commit || utf8(git(repo.path, ['rev-parse', 'HEAD^{tree}']).stdout) !== repo.target_tree) {
         fail(`Committed content changed in ${repo.name}.`);
       }
+      if (utf8(git(repo.path, ['rev-parse', 'HEAD^']).stdout) !== repo.head
+          || utf8(git(repo.path, ['log', '-1', '--format=%B']).stdout) !== plan.draft.commit_message.trim()) {
+        fail(`Unrecognized commit in ${repo.name}; inspect it before retrying.`);
+      }
       const remoteHead = utf8(git(repo.path, ['ls-remote', '--heads', 'origin', `refs/heads/${repo.branch}`]).stdout).split(/\s+/)[0];
       if (!item.pushed) {
+        progress.activity = `Pushing ${repo.name}.`;
+        await saveProgress(context, progress);
         if (remoteHead !== item.commit) git(repo.path, ['push', 'origin', `refs/heads/${repo.branch}:refs/heads/${repo.branch}`]);
         item.pushed = item.commit;
-        await atomicWrite(files.journal, progress);
+        await saveProgress(context, progress);
       } else if (remoteHead !== item.pushed) fail(`Remote branch changed in ${repo.name}.`);
       if (!item.pr) {
+        progress.activity = `Opening or updating the pull request for ${repo.name}.`;
+        await saveProgress(context, progress);
         item.pr = await pullRequest(repo, plan.draft);
-        await atomicWrite(files.journal, progress);
+        await saveProgress(context, progress);
       }
     }
+    progress.status = 'delivered';
+    progress.activity = null;
+    progress.completed_at = new Date().toISOString();
+    await saveProgress(context, progress);
     return { delivered: true, progress: files.journal, repos: progress.repos };
+  } catch (error) {
+    await recordFailure(context, error).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
+    throw error;
   } finally {
     await lock.close();
     await unlink(files.lock);
@@ -267,11 +356,18 @@ async function main(args) {
     if (!['--root', '--state', '--hash'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
     options[flag.slice(2)] = args.shift();
   }
-  if (!['prepare', 'run', 'status'].includes(action) || !options.root || !options.state) {
-    fail('Usage: deliver.mjs prepare|run|status --root ROOT --state STATE [--hash PLAN_SHA256]');
+  if (!['offer', 'decline', 'prepare', 'run', 'status'].includes(action) || !options.root || !options.state) {
+    fail('Usage: deliver.mjs offer|decline|prepare|run|status --root ROOT --state STATE [--hash PLAN_SHA256]');
   }
   const context = await readContext(options.root, options.state);
-  if (action === 'prepare') return prepare(context);
+  if (action === 'offer' || action === 'decline') return lifecycle(context, action);
+  if (action === 'prepare') {
+    try { return await prepare(context); }
+    catch (error) {
+      await recordFailure(context, error, true).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
+      throw error;
+    }
+  }
   if (action === 'status') {
     try { return JSON.parse(await readFile(context.files.journal, 'utf8')); }
     catch (error) { if (error.code === 'ENOENT') return { started: false }; throw error; }

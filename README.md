@@ -47,6 +47,8 @@ The skills produced are also useful outside Claude Code. Product managers can re
 
 `define-test-strategy` is the onboarding step after `go-deep`: it builds one repo's test-strategy skill, `.claude/skills/test-strategy/SKILL.md`. The skill records where that repo's tests live — including in other repos, such as a separate QA automation repo — how to run each suite and what it needs (env vars, services, CI-only suites), and where new tests of each layer belong. It tags existing tests with repo-qualified `@covers <repo>:UC-<id> <repo>:domain-<name>` comments, left uncommitted for you to review, and adds a single `/test-strategy` row to the `CLAUDE.md` Skills Reference. It ends with a coverage report computed live from those tags; re-run it and choose "Coverage report only" any time for a fresh view.
 
+For repos without test tooling, it also proposes an initial setup based on the actual stack, architecture and use cases: tools/layers, placement, proposed commands and first coverage priorities. Recommendations stay separate from configured commands. This skill does not install tooling or create tests.
+
 Run it once in each repo, right after `go-deep`; pass `[repo]` to onboard a repo from a workspace root. If `go-deep` hasn't run there, it offers to run it first, or to continue with tagging left pending. Projects onboarded with an older version are migrated on the next run: the old `.claude/rules/testing-strategy.md` content is carried into the new skill, path-based tags become `@covers` comments, the old `CLAUDE.md` rule row and regression checklist item are removed, and leftover placeholder tests are listed for you to delete.
 
 ---
@@ -69,7 +71,9 @@ Product mode covers value proposition, users and permissions, KPIs, use cases, r
 
 ### `/make-it-work:slice-the-epic`
 
-Slices a requirement, epic, ticket, or user story into small, independently deliverable increments, and writes each slice as a proper Gherkin (Given/When/Then) user story. Picks a slicing technique (functional, workflow, data, user role, or technical-risk slicing), sizes each slice to half a sprint or less, and orders them by risk.
+Offers 2–3 tailored slicing techniques or combinations, recommends one, and lets you choose before generating the backlog. Each slice has a stable ID and acceptance criteria or technical completion evidence, with a default sizing guideline of half a sprint when team expectations are unknown.
+
+Saves every slice in `make-it-work/slices-[epic-title]-[timestamp].md`, together with a Mermaid dependency map, a readable dependency table, and recommended implementation stages. Distinguishes hard prerequisites from preferred sequencing, identifies parallel work, and proposes an MVP boundary. `--autopilot` selects and logs the recommended approach.
 
 Use it when a ticket or epic feels too big and needs to become sprint-sized stories. Tell Claude things like "this ticket is too large," "break this into smaller pieces," or "help me write user stories for this epic," or invoke it directly with `/make-it-work:slice-the-epic`.
 
@@ -123,6 +127,8 @@ Use it to review a pull request or diff in any repo that keeps the `go-deep` kno
 
 Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, then runs `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
 
+Before planning, new runs resolve testing readiness for each affected repo. Existing tooling is discovered and its strategy generated/refreshed. With no tooling, Guided offers minimal automated setup or manual verification; Autonomous and Autopilot establish the recommended minimal setup unless manual verification was explicitly selected. Setup includes a real passing behavior test, and its files become the planning baseline. A failed setup cannot silently switch to manual mode. The plan records each repo's verification policy; all-manual execution can complete with observed scenario/AC evidence and `VERIFIED_MANUALLY`, while mixed execution requires both manual evidence and each automated repo's full suite. Manual completion is reported as such, with automated regression unavailable. Older resumed runs keep their original gate behavior.
+
 ```mermaid
 flowchart TD
     Start(["/make-it-work:implement TICKET"]) --> Gaps["close-the-gaps"]
@@ -153,6 +159,8 @@ New runs also retain a verification ledger as Execute follows the existing test-
 After a clean review and final documentation sync, new runs build a local final-approval package containing the changed-file list, binary-safe diffs, validation and review evidence, known regressions and review nits, plus draft commit and PR text. Guided runs ask you to approve that exact package; Autonomous and Autopilot leave it ready for your later review. A changed working tree or evidence invalidates the package and any prior approval. The workflow still does not commit, push, or open a PR.
 
 At completion of a package-enabled run, `implement` always asks whether to prepare delivery, including in Autopilot. Skipping or leaving that question unanswered does not change the completed result. Opting in starts the separate `/make-it-work:deliver <TICKET>` workflow, which previews the exact repositories, branches, paths, commit message, and PR text and requires a separate explicit approval before committing, pushing to `origin`, or creating or updating PRs. The dashboard shows Deliver as an optional step after Complete; its completion banner stays focused on the implementation result. Delivery supports GitHub (authenticated `gh` CLI) and Bitbucket Cloud (token supplied outside chat), tracks partial multi-repo progress for safe retries, and never merges or posts to Jira. Unsupported remotes and sensitive file paths require manual delivery.
+
+The same dashboard follows delivery through the choice, approval, running, partial/failed, and delivered states. The helper refreshes existing HTML at delivery checkpoints and shows each repo's actual commit, push and PR results with links; the implementation remains Complete with its original timing. The page polls while delivery is pending or running, then stops on a terminal delivery result. Selecting Not now records that delivery was not requested. Older delivery journals are supported by regenerating the HTML once; an already-open page from the older renderer needs one reload afterward. Delivery never creates a dashboard for an older run that did not have one.
 
 After a run completes, `implement` adds an anonymous, share-safe entry to the cumulative `make-it-work/implement-feedback.md` file. Clean runs get a compact entry; runs that needed fix or replan rounds get a retrospective that identifies where the workflow could improve, asking the user one clarification at a time only when the answer could change that diagnosis. The same happens when a run stops because a fix, review, or replan limit was exhausted. Feedback is written only after the workflow is already terminal, never changes its result, and is never uploaded automatically — review the file yourself before choosing whether to send it to the make-it-work owners.
 

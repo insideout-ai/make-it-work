@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
+import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -138,13 +139,18 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     execute: await artifact(root, f.execute_report),
     review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
   };
+  if (f.testing_readiness !== undefined) {
+    runArtifactName(f.testing_readiness, f.ticket, 'Testing readiness');
+    evidence.testing_readiness = await artifact(root, f.testing_readiness);
+    testingPolicy(await readFile(path.resolve(root, f.plan), 'utf8'), { required: true });
+  }
   let verification = null;
   if (f.verification_version === '1') {
-    if (!['passed', 'gate-no-result'].includes(f.execution)) fail('Final package requires completed execution or an accepted manual gate.');
+    if (!['passed', 'verified-manually', 'gate-no-result'].includes(f.execution)) fail('Final package requires completed execution or an accepted manual gate.');
     const relative = runArtifact(f.ticket, `${f.ticket}-verification-v${f.plan_version}.json`);
     verification = await readVerification(root, relative, {
       ticket: f.ticket, planVersion: Number(f.plan_version), plan: await readFile(path.resolve(root, f.plan), 'utf8'),
-      outcome: f.execution === 'passed' ? 'PASSED' : 'GATE_NO_RESULT', requireComplete: true,
+      outcome: f.execution === 'passed' ? 'PASSED' : f.execution === 'verified-manually' ? 'VERIFIED_MANUALLY' : 'GATE_NO_RESULT', requireComplete: true,
     });
     if (f.execution === 'gate-no-result' && verification.gate.result !== 'manual-accepted') fail('The no-result gate requires an explicit manual acceptance.');
     if (verification.gate.mode !== f.gate) fail('Verification gate mode disagrees with state.');

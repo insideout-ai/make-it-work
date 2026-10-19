@@ -1,5 +1,10 @@
 # `execute` autopilot smoke test
 
+`execute-manual-policy` additionally exercises an explicit manual policy with
+no configured test command. It observes the real helper's role/output behavior,
+requires both numbered steps and the scenario/AC evidence ledger, and completes
+with manual verification instead of an automated gate or a late fallback stop.
+
 Current runner note (2026-10-07): `execute-stop-at-gate` and
 `execute-resume-inline` now invoke the scripted Execution Status updater, so
 their model-driven evals grant `Bash` through

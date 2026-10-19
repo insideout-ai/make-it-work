@@ -6,11 +6,12 @@ import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
 import { runArtifactName, runDirectory } from './artifact-layout.mjs';
+import { testingPolicy } from './testing-policy.mjs';
 
 const STAGES = {
   gaps: ['SPEC_SAVED'],
   plan: ['PLAN_SAVED', 'FIX_PLAN_READY'],
-  execute: ['PASSED', 'GUARDRAIL', 'RETRY_LIMIT', 'GATE_FAILED', 'GATE_NO_RESULT', 'EXECUTE_STOPPED'],
+  execute: ['PASSED', 'VERIFIED_MANUALLY', 'GUARDRAIL', 'RETRY_LIMIT', 'GATE_FAILED', 'GATE_NO_RESULT', 'EXECUTE_STOPPED'],
   review: ['CLEAN', 'FIX_REQUIRED', 'REPLAN_REQUIRED', 'HUMAN_DECISION'],
 };
 const ROUTES = new Set(['fix', 'replan', 'human']);
@@ -95,6 +96,7 @@ export function validateHandoff(input) {
     stringList(data.discoveries, 'handoff.data.discoveries');
     stringList(data.failing_tests, 'handoff.data.failing_tests');
     if (!MODES.has(data.gate)) fail('Invalid execution gate.');
+    if (h.outcome === 'VERIFIED_MANUALLY' && (data.gate !== 'none' || !artifacts.verification)) fail('Manual completion requires gate none and a verification artifact.');
     if (h.outcome === 'GATE_FAILED' && data.failing_tests.length === 0) {
       fail('GATE_FAILED requires identified failing tests; use needs_input if they are unknown.');
     }
@@ -136,7 +138,8 @@ export async function validateArtifacts(handoff, root) {
       if (path.basename(artifact) !== expected) fail(`Verification artifact does not match ticket and plan version: ${artifact}`);
       const planName = h.plan_version === 1 ? `${h.ticket}-plan.md` : `${h.ticket}-plan-v${h.plan_version}.md`;
       const plan = await readFile(path.join(directory, planName), 'utf8');
-      await readVerification(rootPath, artifact, { ticket: h.ticket, planVersion: h.plan_version, plan, outcome: h.outcome });
+      const verification = await readVerification(rootPath, artifact, { ticket: h.ticket, planVersion: h.plan_version, plan, outcome: h.outcome });
+      if (verification.gate && verification.gate.mode !== h.data.gate) fail('Handoff gate disagrees with verification evidence.');
       continue;
     }
     if (!expectedNames[h.stage].includes(path.basename(artifact))) fail(`Artifact filename does not match ${h.stage} and ticket: ${artifact}`);
@@ -221,6 +224,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   if (h.stage === 'execute') {
     if (fields.verification_version === '1' && !h.artifacts.verification) fail('New Execute runs require a verification artifact.');
     if (h.outcome === 'PASSED') return outcome('phase', 'Execution passed.', { phase: 'review' });
+    if (h.outcome === 'VERIFIED_MANUALLY') return outcome('phase', 'Manual verification completed; automated regression unavailable.', { phase: 'review' });
     if (h.outcome === 'GUARDRAIL' || h.outcome === 'RETRY_LIMIT') {
       if (autopilot) return outcome('stop', `Execution stopped at ${h.outcome}.`);
       if (guided) return ask(`Execution stopped at ${h.outcome}.`, {
@@ -327,6 +331,9 @@ async function main(args) {
   if (command === 'validate') return { valid: true, ticket: h.ticket, stage: h.stage, outcome: h.outcome ?? h.status };
   if (!options.state) fail('next requires --state.');
   const state = parseState(await readFile(options.state, 'utf8'), options.state);
+  if (h.stage === 'plan' && h.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
+    testingPolicy(await readFile(path.resolve(options.root, h.artifacts.plan), 'utf8'), { required: true });
+  }
   const previous = options['previous-review'] ? JSON.parse(await readFile(options['previous-review'], 'utf8')) : null;
   const related = options['related-failures'] === undefined ? null : Number(options['related-failures']);
   return decideNext(state, h, { previousReview: previous, relatedFailures: related, choice: options.choice });

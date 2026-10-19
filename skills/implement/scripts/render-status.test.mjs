@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -244,7 +245,7 @@ test('renders completion, approval annotations, fix history, and repeated review
   assert.equal((html.match(/Review \(review-the-pr\)/g) ?? []).length, 2);
   assert.match(html, /phase-mode">Approved as-is<\/div>/);
   assert.match(html, /phase-mode">Subagent-Driven · Step 2 of 2 complete<\/div>/);
-  assert.match(html, /class="complete"><strong>Run complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
+  assert.match(html, /class="complete"><strong>Implementation complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
   assert.match(html, /class="phase-step optional-step"[\s\S]*class="phase-dot optional"[^>]+Optional delivery:/);
   assert.match(html, /class="phase-label">Deliver<\/div>[\s\S]*class="phase-mode">Optional<\/div>/);
   assert.doesNotMatch(html, /Optional next step:/);
@@ -344,4 +345,90 @@ test('accepts and renders the scoped+full gate', async (t) => {
   assert.equal(parseState(state).fields.gate, 'scoped+full');
   const { html } = await renderFixture(t, state);
   assert.match(html, /DEMO/);
+});
+
+function completedState() {
+  return stateMarkdown({
+    fields: { status: 'Complete', phase: 'complete', autonomy: 'guided', final_package_version: '1', review: 'clean', execution: 'passed' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'final-sync', 'Syncing'],
+      ['2026-01-01T10:01:00Z', 'final-sync', 'complete', 'Implementation complete'],
+    ],
+  });
+}
+
+async function deliveryFixture(t, { status, repos = {}, names = ['api'], legacy = false, error = null } = {}) {
+  const rendered = await renderFixture(t, completedState());
+  const plan = { version: 1, ticket: 'DEMO', repos: names.map((name) => ({ name, provider: 'github', owner: 'example', repo: name })) };
+  const progress = { version: 1, plan_sha256: createHash('sha256').update(JSON.stringify(plan)).digest('hex'), repos,
+    ...(!legacy ? { status, error, started_at: '2026-01-01T10:02:00Z', updated_at: '2026-01-01T10:04:00Z',
+      ...(['delivered', 'failed', 'partial'].includes(status) ? { completed_at: '2026-01-01T10:04:00Z' } : {}) } : {}) };
+  await writeFile(path.join(rendered.directory, 'DEMO-delivery-plan.json'), JSON.stringify(plan));
+  await writeFile(path.join(rendered.directory, 'DEMO-delivery-progress.json'), JSON.stringify(progress));
+  const statePath = path.join(rendered.directory, 'DEMO-state.md');
+  await generateDashboard(statePath);
+  return { ...rendered, statePath, html: await readFile(rendered.outputPath, 'utf8') };
+}
+
+const deliveredRepo = (name = 'api') => ({ commit: 'a'.repeat(40), pushed: 'a'.repeat(40), pr: { url: `https://github.com/example/${name}/pull/1`, action: 'created' } });
+
+test('completion keeps polling through delivery choice and approval without reopening implementation', async (t) => {
+  const initial = await renderFixture(t, completedState());
+  assert.match(initial.html, /<meta http-equiv="refresh"/);
+  const awaiting = await deliveryFixture(t, { status: 'awaiting-approval' });
+  assert.match(awaiting.html, /phase-mode">Awaiting approval/);
+  assert.match(awaiting.html, /<meta http-equiv="refresh"/);
+  assert.match(awaiting.html, /phase-dot passed[^>]+complete:/);
+  const running = await deliveryFixture(t, { status: 'running', repos: { api: { commit: 'a'.repeat(40) } } });
+  assert.match(running.html, /phase-dot current spinning[^>]+Optional delivery: Running/);
+  assert.match(running.html, /Not pushed/);
+  assert.doesNotMatch(running.html, /Changes remain local and uncommitted/);
+  assert.equal(await readFile(running.statePath, 'utf8'), completedState());
+});
+
+test('delivered dashboard shows commit and PR links, stops polling and preserves implementation timing', async (t) => {
+  const { html, statePath } = await deliveryFixture(t, { status: 'delivered', repos: { api: deliveredRepo() } });
+  assert.match(html, /phase-dot passed[^>]+Optional delivery: Delivered/);
+  assert.match(html, /Changes committed and pushed; pull requests opened or updated/);
+  assert.match(html, /href="https:\/\/github.com\/example\/api\/commit\/a{40}"/);
+  assert.match(html, /href="https:\/\/github.com\/example\/api\/pull\/1"/);
+  assert.match(html, /Real-timestamped portion of this run: 1m\./);
+  assert.match(html, /phase-mode">Delivered<\/div>[\s\S]*phase-duration">2m/);
+  assert.doesNotMatch(html, /http-equiv="refresh"|Changes remain local and uncommitted/);
+  assert.equal(await readFile(statePath, 'utf8'), completedState());
+});
+
+test('partial multi-repo delivery retains completed results and the failed repo instead of a false complete', async (t) => {
+  const { html } = await deliveryFixture(t, { status: 'partial', names: ['api', 'ui'],
+    repos: { api: deliveredRepo(), ui: { commit: 'b'.repeat(40), pushed: 'b'.repeat(40) } }, error: 'PR creation failed for ui' });
+  assert.match(html, /phase-mode">Partially delivered/);
+  assert.match(html, /PR creation failed for ui/);
+  assert.match(html, /<td>ui<\/td>[\s\S]*<td>Pushed<\/td><td>Not created/);
+  assert.match(html, /href="https:\/\/github.com\/example\/api\/pull\/1"/);
+  assert.doesNotMatch(html, /http-equiv="refresh"|Changes remain local and uncommitted/);
+  const failed = await deliveryFixture(t, { status: 'failed', error: 'Missing delivery credentials' });
+  assert.match(failed.html, /Delivery failed/);
+  assert.match(failed.html, /phase-mode">Failed/);
+});
+
+test('legacy journals are inferred using every planned repo and invalid records never claim delivery', async (t) => {
+  const complete = await deliveryFixture(t, { legacy: true, repos: { api: deliveredRepo() } });
+  assert.match(complete.html, /phase-mode">Delivered/);
+  const partial = await deliveryFixture(t, { legacy: true, names: ['api', 'ui'], repos: { api: deliveredRepo() } });
+  assert.match(partial.html, /phase-mode">Partially delivered/);
+  const invalid = await deliveryFixture(t, { status: 'delivered', repos: {} });
+  assert.match(invalid.html, /Status unavailable/);
+  assert.doesNotMatch(invalid.html, /Changes committed and pushed/);
+});
+
+test('declining delivery stops refresh; delivery strings and external links are escaped', async (t) => {
+  const declined = await deliveryFixture(t, { status: 'declined' });
+  assert.match(declined.html, /phase-mode">Not requested/);
+  assert.doesNotMatch(declined.html, /http-equiv="refresh"/);
+  const escaped = await deliveryFixture(t, { status: 'partial', names: ['<script>'],
+    repos: { '<script>': { commit: 'c'.repeat(40), pr: { id: 3, url: 'javascript:alert(1)' } } }, error: '<img src=x onerror=alert(1)>' });
+  assert.match(escaped.html, /&lt;script&gt;/);
+  assert.match(escaped.html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(escaped.html, /Created \(link unavailable\)/);
+  assert.doesNotMatch(escaped.html, /href="javascript:|<img src=x/);
 });

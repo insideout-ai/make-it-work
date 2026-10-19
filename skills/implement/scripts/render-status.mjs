@@ -5,6 +5,7 @@ import { readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
+import { readDelivery } from './delivery-progress.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -28,7 +29,7 @@ const AUTONOMY_VALUES = new Set(['guided', 'autonomous', 'autopilot', 'pending']
 const EXECUTION_MODE_VALUES = new Set(['none', 'subagent-driven', 'inline']);
 const INLINE_PAUSE_MODE_VALUES = new Set(['none', 'stop-after-each-step', 'run-straight-through']);
 const EXECUTION_VALUES = new Set([
-  'not-started', 'running', 'passed', 'guardrail', 'retry-limit', 'gate-failed',
+  'not-started', 'running', 'passed', 'verified-manually', 'guardrail', 'retry-limit', 'gate-failed',
   'gate-no-result', 'stopped',
 ]);
 const REVIEW_VALUES = new Set(['not-started', 'clean', 'fix-required', 'replan-required', 'human-decision']);
@@ -386,7 +387,14 @@ function slotState(slot, activeSlot, status) {
   return 'failed';
 }
 
-function renderTimeline(state, timeline, planStatus, invalidTimestampFrom) {
+const DELIVERY_LABELS = {
+  'not-started': 'Optional', offered: 'Awaiting choice', 'awaiting-approval': 'Awaiting approval',
+  running: 'Running', partial: 'Partially delivered', failed: 'Failed', delivered: 'Delivered',
+  declined: 'Not requested', unknown: 'Status unavailable',
+};
+const DELIVERY_PENDING = new Set(['not-started', 'offered', 'awaiting-approval', 'running']);
+
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery) {
   const { slots, activeSlot } = timeline;
   const activated = slots.filter((slot) => slot.activationRow);
 
@@ -445,7 +453,13 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom) {
     return pieces.join('\n');
   });
   if (state.fields.status === 'Complete' && state.fields.final_package_version === '1') {
-    steps.push('<div class="phase-step optional-step">\n  <div class="line"></div>\n  <div class="phase-dot optional" title="Optional delivery: prepare a separate delivery plan. Commits, pushes, and PRs require approval of that exact plan."></div>\n  <div class="phase-label">Deliver</div>\n  <div class="phase-mode">Optional</div>\n</div>');
+    const status = delivery?.status ?? 'not-started';
+    const dot = status === 'delivered' ? 'passed' : ['failed', 'partial', 'unknown'].includes(status) ? 'failed'
+      : status === 'running' ? 'current spinning' : status === 'awaiting-approval' ? 'current' : 'optional';
+    const symbol = status === 'delivered' ? '✓' : dot === 'failed' ? '✗' : '';
+    const duration = delivery?.startedAt && delivery.completedAt
+      ? `<div class="phase-duration">${formatDuration(Math.max(0, Date.parse(delivery.completedAt) - Date.parse(delivery.startedAt)))}</div>` : '';
+    steps.push(`<div class="phase-step optional-step">\n  <div class="line"></div>\n  <div class="phase-dot ${dot}" title="Optional delivery: ${escapeHtml(DELIVERY_LABELS[status])}. Commits, pushes, and PRs require approval of the exact delivery plan.">${symbol}</div>\n  <div class="phase-label">Deliver</div>\n  <div class="phase-mode">${DELIVERY_LABELS[status]}</div>\n${duration}</div>`);
   }
   return steps.join('\n');
 }
@@ -485,7 +499,7 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of real captured time.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
 }
 
-function renderStatusBanner(state, timing, invalidTimestampFrom) {
+function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
   if (state.fields.status === 'Paused' || state.fields.status === 'Stopped') {
     return `<p class="next-action"><strong>Waiting on you:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
   }
@@ -495,7 +509,30 @@ function renderStatusBanner(state, timing, invalidTimestampFrom) {
     : timing
     ? `Real-timestamped portion of this run: ${timing.total}.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
     : 'Elapsed: unknown — no real start timestamp was captured for this run.';
-  return `<p class="complete"><strong>Run complete.</strong> ${duration} Changes remain local and uncommitted.</p>`;
+  const deliveryText = {
+    offered: 'Delivery decision pending. Changes remain local and uncommitted.',
+    'awaiting-approval': 'Delivery awaits approval of its exact plan. Changes remain local and uncommitted.',
+    running: 'Delivery is running; repository progress is shown below.',
+    partial: 'Delivery stopped after partial progress; see the repository results below.',
+    failed: 'Delivery failed; see the recorded error and repository progress below.',
+    delivered: 'Changes committed and pushed; pull requests opened or updated.',
+    declined: 'Delivery was not requested. Changes remain local and uncommitted.',
+    unknown: 'Delivery status is unavailable; inspect the delivery records below.',
+  }[delivery?.status] ?? 'Changes remain local and uncommitted.';
+  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}</p>`;
+}
+
+function renderDeliveryDetails(delivery, ticket) {
+  if (!delivery || ['not-started', 'offered', 'declined'].includes(delivery.status)) return '';
+  const link = (url, label) => url
+    ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>` : escapeHtml(label);
+  const rows = delivery.repos.map((repo) => `<tr><td>${escapeHtml(repo.name)}</td><td>${repo.commit ? link(repo.commitUrl, repo.commit.slice(0, 12)) : 'Not committed'}</td><td>${repo.pushed ? 'Pushed' : 'Not pushed'}</td><td>${repo.pr ? link(repo.pr, 'View pull request') : repo.prRecorded ? 'Created (link unavailable)' : 'Not created'}</td></tr>`).join('\n');
+  return `<section class="delivery-details" aria-label="Delivery progress"><h2>Delivery — ${DELIVERY_LABELS[delivery.status]}</h2>
+${delivery.activity ? `<p>${escapeHtml(delivery.activity)}</p>` : ''}
+${delivery.error ? `<p class="next-action">${escapeHtml(delivery.error)}</p>` : ''}
+${delivery.updatedAt ? `<p class="delivery-updated">Last updated: <span class="ts" data-ts="${escapeHtml(delivery.updatedAt)}"></span></p>` : ''}
+${rows ? `<table><tr><th>Repository</th><th>Commit</th><th>Push</th><th>Pull request</th></tr>${rows}</table>` : ''}
+<p class="delivery-records"><a href="${encodeURIComponent(ticket)}-delivery-plan.md">Delivery plan</a> · <a href="${encodeURIComponent(ticket)}-delivery-progress.json">Progress record</a></p></section>`;
 }
 
 function applyTemplate(template, replacements) {
@@ -508,7 +545,7 @@ function applyTemplate(template, replacements) {
   return output;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null }) {
   const timeline = buildTimeline(state);
   const needsPlan = timeline.slots.some((slot) => slot.activationRow && (
     slot.phase === 'fix-plan' || (slot === timeline.activeSlot && slot.phase === 'execute')
@@ -521,12 +558,14 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`), 'review', state.fields.ticket);
   const replacements = {
     TICKET: escapeHtml(state.fields.ticket),
-    AUTO_REFRESH: state.fields.status === 'In Progress' ? '<meta http-equiv="refresh" content="15">' : '',
+    AUTO_REFRESH: state.fields.status === 'In Progress' || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
+      ? '<meta http-equiv="refresh" content="15">' : '',
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom),
-    STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
+    STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
+    DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
     PLAN_LINK: artifactLink(state.fields.plan, 'plan', state.fields.ticket),
     EXECUTE_LINK: artifactLink(state.fields.execute_report, 'execute_report', state.fields.ticket),
@@ -582,7 +621,9 @@ export async function generateDashboard(statePath) {
   }
   const logoBase64 = logo.trim();
   if (!logoBase64 || !/^[A-Za-z0-9+/=]+$/.test(logoBase64)) fail('Logo asset is empty or invalid base64.');
-  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom });
+  const delivery = state.fields.status === 'Complete' && state.fields.final_package_version === '1'
+    ? await readDelivery(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
+  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {

@@ -1,6 +1,6 @@
 # `define-test-strategy` eval cases
 
-Four cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
+Five cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
 one per-repo test-strategy skill at `.claude/skills/test-strategy/SKILL.md`
 (structure fixed by `skills/define-test-strategy/references/test-strategy-template.md`),
 tags existing tests with repo-qualified `@covers <Repo ID>:UC-<id>` comments,
@@ -179,6 +179,10 @@ Then check in `$RUN_DIR`:
 - [ ] `ledger-api/.claude/skills/test-strategy/SKILL.md` is unchanged, and `withdraw_ledger.test.js` has no `payments-api:` tag.
 
 ## Known gaps
+
+`dts-no-tooling` removes the fresh fixture's configured runner and checks that
+the skill writes an actionable, repo-specific Recommended Setup while retaining
+`none` in active fields and installing/creating no tooling or tests.
 
 - The "Coverage report only" path, refresh conflicts, and a refresh that keeps user edits are not covered by an eval case.
 - The go-deep offer with an actual partial run (an onboarded repo without go-deep) is not covered; under autopilot it resolves to "Continue without it".

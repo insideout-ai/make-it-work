@@ -4,6 +4,18 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `slice-the-epic` offers 2–3 tailored slicing approaches with a recommendation and waits for the user's selection. It saves all stories in a Markdown file with stable slice IDs, a Mermaid dependency map, a relationship table, and staged implementation guidance identifying prerequisites, parallel work, and a proposed MVP boundary.
+
+### Changed
+
+- The implementation dashboard now follows the separate delivery workflow through approval, running, partial failure and completion using its delivery journal. Delivery checkpoints refresh existing HTML, expose per-repo commit/PR links and actual push results, retain implementation timing/Complete status, and remove stale uncommitted claims. Older journals can be displayed without rerunning delivery.
+- Repos without test tooling receive a repo-specific proposed setup from `define-test-strategy`. New `implement` runs resolve testing readiness before planning, configure a minimal verified setup by default in Autonomous/Autopilot, or retain explicitly selected manual verification. Plans record per-repo verification policies; execution, review and final packages preserve actual automated/manual evidence, with `VERIFIED_MANUALLY` available for fully verified all-manual plans and no automatic downgrade of an unavailable automated gate.
+- Story-slicing autopilot selects and logs the recommended technique, preserves explicit user choices, and flushes its decision log after delivering the saved backlog.
+
 ## [4.11.0] - 2026-10-17
 
 ### Added

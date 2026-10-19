@@ -6,6 +6,8 @@ These cases resume a seeded `implement` run at `final-sync`, allowing the termin
 - `feedback-nonminimal` verifies Audit-log-based counting, retrospective analysis, skill attribution, share-safe output, and subagent dispatch after counters have reset.
 - `feedback-idempotent` verifies replacement of the matching run block while preserving older runs and user-authored text.
 - `implement-autopilot-full` starts from `main` and verifies the unattended implementation path creates a feature branch, records autopilot state/logging, implements the requested policy, and reaches a clean terminal state before the optional delivery offer.
+- `implement-no-tooling` starts without a test strategy, tests or configured command. It checks readiness/setup before planning, a real baseline behavior test, strategy generation, retained setup changes, and automated implementation/gate completion.
+- `implement-empty-strategy` starts with an existing generated `none` strategy. It checks activation after verified setup rather than keeping stale facts through refresh, while preserving an unrelated user-written Team note.
 
 The deterministic feedback writer has local fixture-backed tests for the same
 counting, formatting, and preservation rules. Run them without model calls:

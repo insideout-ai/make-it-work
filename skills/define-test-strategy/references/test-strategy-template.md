@@ -1,6 +1,6 @@
 # Test Strategy Template
 
-Template for the file `define-test-strategy` generates at `.claude/skills/test-strategy/SKILL.md` in the onboarded repo. Reproduce this exact structure; never rename or reorder headings — consumers locate sections by exact heading text. Keep every fixed section, writing `None` where empty rather than deleting it. `## Pending` is the only optional section: include it only on a partial run.
+Template for the file `define-test-strategy` generates at `.claude/skills/test-strategy/SKILL.md` in the onboarded repo. Reproduce this exact structure; never rename or reorder fixed headings — consumers locate sections by exact heading text. Keep every fixed section, writing `None` where empty rather than deleting it. After `## How to Scan`, include `## Recommended Setup` when automated tooling is absent, and `## Pending` only on a partial run.
 
 Replace every `<placeholder>`. `<Repo ID>` is the value written under `## Repo ID`.
 
@@ -86,6 +86,12 @@ Which layer a change needs. Use only layers listed in `## Layers`.
 - Before substituting, escape regex metacharacters in `<repo>`, and replace each `-` in `<repo>` and `<tag>` with `[-_]`.
 - The matched files are the tests for that tag.
 - Coverage gaps are always computed this way, live. Never store a gap list in this file.
+
+## Recommended Setup
+
+_Include only when no usable automated setup exists. This section is a proposal, not runnable configuration._
+
+<repo-specific evidence, recommended tools/layers, proposed setup changes and commands, external-boundary handling, initial coverage priorities, and the first real behavior test, per recommend-initial-setup.md>
 
 ## Pending
 

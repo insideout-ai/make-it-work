@@ -140,3 +140,31 @@ test('builds with matching scoped+full gate modes and rejects a mismatch', async
   await writeFile(ledgerPath, JSON.stringify({ ...ledger, gate: { ...ledger.gate, mode: 'scoped' } }));
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /disagrees with state/);
 });
+
+test('packages an explicitly manual completion without claiming automated PASS', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-manual-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(state, stateMarkdown('DEMO').replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1')
+    .replace('execution: passed', 'execution: verified-manually').replace('gate: full-suite', 'gate: none')
+    .replace('context_updated: none', 'testing_readiness: make-it-work/DEMO/DEMO-testing-readiness.md\ncontext_updated: none'));
+  await writeFile(path.join(dir, 'DEMO-testing-readiness.md'), '# Readiness\n\nUser selected manual verification before planning.\n');
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User deferred setup |\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| Happy path | app | Manual | Start app; perform action; observe result |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  const evidence = { version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'manual', subject: 'Happy path', command: null, result: 'pass', note: 'Observed expected behavior' }] }],
+    gate: { mode: 'none', result: 'manual-accepted', note: 'Manual policy selected before planning; automated regression unavailable' },
+    acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'manual', step: 1, note: 'Observed expected behavior' }] };
+  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify(evidence));
+  await writeFile(draft, JSON.stringify({ commit_message: 'DEMO Add feature', pr_title: 'DEMO: Add feature', pr_description: 'Manual scenarios verified; automated regression unavailable.' }));
+  run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.deepEqual(pkg.validation, { mode: 'none', result: 'manual-accepted' });
+  assert.equal(pkg.acceptance[0].status, 'manual');
+  assert.equal(pkg.evidence.testing_readiness.path, 'make-it-work/DEMO/DEMO-testing-readiness.md');
+  assert.equal(run('check', root, state).current, true);
+  await writeFile(path.join(dir, 'DEMO-testing-readiness.md'), '# Readiness changed\n');
+  assert.throws(() => run('check', root, state), /stale/);
+  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ ...evidence, acceptance: [{ ...evidence.acceptance[0], status: 'unverified', step: null }] }));
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /every acceptance criterion/);
+});

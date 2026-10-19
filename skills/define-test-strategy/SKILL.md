@@ -1,6 +1,6 @@
 ---
 name: define-test-strategy
-description: "Onboarding step run after go-deep, once per repo: builds that repo's test-strategy skill (`.claude/skills/test-strategy/SKILL.md`) — where its tests live across repos, how to run them, what they need, where new tests go — tags existing tests with repo-qualified `@covers` comments, migrates the old rules-file version, and reports live coverage. Use when onboarding a repo's tests or refreshing its test strategy."
+description: "Onboards or refreshes a repo's test-strategy skill: discovers test locations, layers, commands and prerequisites, recommends an initial setup when tooling is absent, tags existing tests with repo-qualified @covers comments, migrates old outputs, and reports live coverage."
 disable-model-invocation: true
 ---
 
@@ -122,7 +122,7 @@ A sibling test file references the target repo when it contains any of:
 
 Search with `grep -rlI --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work`, restricted to files that look like tests: the path contains `test` or `spec`, or the file matches the sibling's test runner config.
 
-The target repo is always in the list, and always row 1 of `## Test Locations` — the template's literal `none` row only when it has neither test files nor test tooling (a repo with a test script but no tests yet records that command). It cannot be removed.
+The target repo is always in the list, and always row 1 of `## Test Locations`. Use the template's literal `none` row only when it has neither test files nor configured test tooling. When tooling exists but tests do not, record the configured layers, file pattern and command; do not invent an existing test file for an example command. The target repo cannot be removed.
 
 Confirm the list with the user before anything is written; they may remove or add locations (autopilot: see Autopilot Mode):
 - **1 candidate** → one `AskUserQuestion` call (`multiSelect: true`) with that location plus `{ label: "Add another location", description: "Name a test location this search missed." }`, since a question needs two options.
@@ -147,6 +147,8 @@ For each confirmed location, collect what each template section needs. Phase 5 w
   - UI component rendering or local behavior → component
   - API contract (request/response shape, endpoint signature) → contract
   - cross-service or end-to-end flow → behavior
+
+When no usable automated test setup exists in the confirmed locations, read `<base>/references/recommend-initial-setup.md`. Add the resulting repo-specific proposal under `## Recommended Setup`, after `## How to Scan`. Keep proposed tools, commands and directories out of the active sections above until configured. If there are no active layers, write plain `None` under Layers, Where New Tests Go, and Coverage Decision Guidance; do not create synthetic "None" table rows or put a proposed directory there. This skill recommends setup; installing tooling and writing the first real test belong to implementation, including `implement`'s testing-readiness step.
 
 ## Phase 4 — Tag Mapping, Migration Confirmation, Tagging
 
@@ -174,9 +176,11 @@ For each confirmed location, collect what each template section needs. Phase 5 w
 Write `.claude/skills/test-strategy/SKILL.md` in the target repo from the template, using what Phases 2-4 collected.
 
 - **Fresh** → write the file from the template, frontmatter included.
+- **No usable automated setup** → include `## Recommended Setup` per Phase 3. On refresh, preserve user edits to a prior proposal under the same conflict rule. Once a setup is configured, identify which recommendations are fulfilled and retain any user-written future recommendations as notes; never activate an unconfigured layer.
 - **Refresh** → read the existing file in full first.
   - Keep user-written content under every heading, and every heading after `## How to Scan` other than `## Pending`.
   - Fill gaps: add newly detected locations, layers, prerequisites and targets. Update detected facts the file states differently only after the conflict rule below.
+  - **Verified setup by implement:** when the caller supplies its selected automated policy, saved pre-setup strategy, exact setup changes and a successful real-test command/result, replace the corresponding old `none`/no-tooling facts with that verified configuration. This includes locations, layers, commands, prerequisites, destinations and decision guidance; identify fulfilled recommendations as configured. These are facts deliberately changed by the authorized setup, not unresolved refresh conflicts. Preserve unrelated user content and constraints; this exception cannot override a user's testing policy or activate unverified tooling. Without that supplied evidence, the normal conflict rule still applies.
   - **Conflict:** when existing content contradicts a new finding, quote both versions, name the heading, and ask which to keep (autopilot: see Autopilot Mode). Never resolve one silently.
 - **Migration** (the old rule file is in the migration set) → read `.claude/rules/testing-strategy.md` and carry its content into the new skill by meaning, not by heading text. Treat it as user-written content, under the same conflict rule:
 
@@ -230,9 +234,14 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 - the confirmed locations, each with its repo;
 - go-deep warnings: the Phase 2 sentence, repeated per repo, and, in partial mode, that tagging is pending go-deep for `<Repo ID>`;
 - full-suite commands written as `none`;
+- when tooling is absent, the recommended initial setup, why it fits this repo, and that it is proposed rather than configured;
 - the tag edits per repo, uncommitted, for the user to review and commit;
 - untaggable files;
 - migration removals: path tags converted, the old rule file deleted (or kept, and why), and the `CLAUDE.md` row and checklist item removed;
 - placeholder files left for the user to delete;
 - the `CLAUDE.md` change: the `/test-strategy` row added, updated, or already present — or no `## Skills Reference` found;
 - under autopilot, the log path, whether the log was written, and every auto-resolved site, per Autopilot Mode.
+
+## When run by implement
+
+`implement` may follow this skill inline during testing readiness to inventory or refresh an affected repo. It passes the target repo, invocation/artifact root, and autonomy. After verified setup it also passes the selected automated policy, saved pre-setup strategy, exact setup changes and actual successful test result for Phase 5's narrow activation rule. Under Autopilot apply this skill's `--autopilot` policy, including its own decision log; under other modes retain the normal questions. Do not run go-deep inline in this context: its absence means a partial run. Return the generated skill path, active commands or `none`, recommended setup if needed, and files changed. `implement` owns setup decisions and tooling changes, and refreshes this skill after setup succeeds. This inventory has no stage handoff of its own.

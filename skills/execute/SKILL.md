@@ -1,6 +1,6 @@
 ---
 name: execute
-description: "Implements a plan `plan-the-work` produced, step by step: writes each step's code, re-runs that step's named test(s) to green with a 5-attempt retry limit before escalating, and applies the test-vs-product-behavior guardrail — halting the entire plan on a real product-behavior question rather than guessing. Once every step is green, runs `run-regression` as a completion gate. This is the execute step of the spec → plan-the-work → execute → review-the-pr pipeline. Use when implementing a plan that plan-the-work already wrote."
+description: "Implements a plan step by step, verifies named tests or explicit manual scenarios, enforces the product-behavior guardrail and five-attempt retry limit, and completes with the plan's automated regression gate or validated manual evidence. Use when executing a plan that plan-the-work already wrote."
 disable-model-invocation: true
 ---
 
@@ -73,7 +73,7 @@ At the end of an autopilot run that reaches a terminal report (Phase 3's report,
      - If the argument is empty, derive the key from `git branch --show-current` in the current (or most recently modified) repo, e.g. `feature/PROJ-123-add-x` → `PROJ-123`.
      - If no argument was given and no key can be derived from the branch (e.g. on `main` or a branch that doesn't encode a key), do not proceed with an undefined `<TICKET>`: ask the user for the ticket key or an explicit plan path, and stop until they answer (autopilot: see Autopilot Mode — this is an unconditional stop).
    - Once a `<TICKET>` is known, resolve `make-it-work/<TICKET>/<TICKET>-plan.md`. If it does not exist, tell the user: "No plan found at `make-it-work/<TICKET>/<TICKET>-plan.md`. Run `/make-it-work:plan-the-work` first." and stop (autopilot: see Autopilot Mode — this is an unconditional stop).
-   - Read the resolved plan file in full before proceeding.
+   - Read the resolved plan file in full before proceeding. If it has a concrete `## Verification Policy` table, read `<base>/references/verification-policy.md` and validate it before making changes. Its explicit gate/evidence rules replace the legacy gate selection below; retry, guardrail, ordering and Progress rules still apply.
 
 3. **Resolve Execution Status → Mode** — read the plan file's `## Execution Status → Mode` line.
    - **If it reads "Not yet chosen"**, ask the user to choose, before doing anything else — even if you were only handed this file with no memory of it being created — using the same two options `plan-the-work`'s own Step 6 offers. Call `AskUserQuestion` with `multiSelect: false` and exactly these two options (autopilot: see Autopilot Mode):
@@ -166,7 +166,7 @@ This phase does the actual implementation work. It drives the plan forward from 
 
 The plan's `## Steps` section numbers its steps 1 through `M`, where `M` is the same `M` that appears in `## Execution Status → Progress` ("Step N of M complete"). This phase's job is not finished, and control does not pass to **Phase 4**, until step `M` itself — the highest-numbered step in the plan, whatever its own heading calls it — has been implemented, had its tests confirmed passing, and had Progress updated to read "Step M of M complete." The only way to leave this phase before that point is the early exit described in the per-step procedure below: a Phase 1 stop condition (guardrail or retry limit) firing on some step, which hands control to Phase 3 instead — never a routine step completion, and never simply reaching a step that looks like a wrap-up.
 
-This holds regardless of what kind of step `M` is. A plan `plan-the-work` writes for a repo with no configured test framework ends with a trailing step titled something like "Write tests," whose own body says it is "always the last step before Definition of Done" and whose "tests" are the manual scenario walkthroughs in the plan's shared `## Test Plan` table rather than an automated command. That trailing step is not a wrap-up, a formality, or a separate phase outside this loop — it is step `M`, and this loop executes it exactly the way it executes every other step: implement what its **What to do** describes (here, working through the Test Plan's rows), run its Verify check, and update Progress once it passes. Do not treat reaching a step titled "Write tests" as a signal that the loop is effectively done and can be skipped, summarized, or waved through without actually performing its Verify — `Progress` cannot reach "Step M of M complete" by any other means, and skipping it would leave Progress permanently short of "M of M" even though every ordinary implementation step is green.
+This holds regardless of what kind of step `M` is. A plan with manual verification ends with "Verify manual scenarios" (older plans may call it "Write tests"). This is a numbered execution step: perform its Test Plan walkthroughs against actual behavior, run its Verify checks, record observed evidence, and then update Progress. It cannot be skipped or treated as a wrap-up. Do not claim an automated test suite passed when the step verifies manual scenarios.
 
 Concretely: if Phase 0 point 4 determined the resume point is step `N+1`, this phase's loop begins at step `N+1` and continues, step by step, up to and including step `M`. If `N+1` already equals `M` (only the last step remains), this phase still runs — it performs step `M` itself, the same as any other step; it is never skipped just because it is also the final step. The loop only ends, successfully, once step `M`'s own Progress update ("Step M of M complete") has been written to the plan file. Ending the loop earlier — for any reason other than a Phase 1 stop condition firing — is not a valid outcome of this phase. Once Progress reads "Step M of M complete," this phase's work is done — proceed to Phase 4 (the completion gate).
 
@@ -190,7 +190,7 @@ For every step from the resume point through step `M`, inclusive, perform these 
 
 **Implement dashboard checkpoint.** When this run received an `implement` dashboard state path (see **When run by implement**), append `--dashboard-state "<dashboard state path>"` to the `plan-status.mjs complete-step` command that a single-step subagent runs, or to the orchestrator's `complete-batch` command for a real batch. The status command writes Progress and renders the dashboard in one required checkpoint; do not run a separate best-effort render afterward. If that command fails — including a renderer failure — do not relay completion, dispatch another step, or proceed to the completion gate; return `EXECUTE_STOPPED` with the exact error so `implement` can checkpoint the stop. A standalone `execute` run, and an older `implement` run which did not supply a dashboard state path, has no dashboard to refresh and omits this option.
 
-For an `implement` run carrying `verification_version: 1`, read `../implement/references/verification.md` before dispatching the first step. Its one-step evidence write and validator call sit between passing Verify and the Progress update in point 4; "before doing anything else" means before the next implementation step, not before recording required evidence. On resume, validate that each already-complete step has an entry before dispatch. Pass the artifact root, ledger path, and contract to a single-step subagent so it records and validates its own entry before Progress. For a true concurrent batch, subagents report the actual checks but do not write the shared ledger; after all pass, the orchestrating session records and validates all batch entries before its one Progress update. On batch failure, leave Progress and the ledger at their pre-batch values. Legacy and standalone runs do not create this ledger.
+For an `implement` run carrying `verification_version: 1`, or any plan with a concrete verification policy, read `../implement/references/verification.md` before dispatching the first step. Its one-step evidence write and validator call sit between passing Verify and the Progress update in point 4; "before doing anything else" means before the next implementation step, not before recording required evidence. On resume, validate that each already-complete step has an entry before dispatch. Pass the artifact root, ledger path, and contract to a single-step subagent so it records and validates its own entry before Progress. For a true concurrent batch, subagents report the actual checks but do not write the shared ledger; after all pass, the orchestrating session records and validates all batch entries before its one Progress update. On batch failure, leave Progress and the ledger at their pre-batch values. Legacy runs without either opt-in keep their original reports.
 
 ### Dispatch mechanics, by mode
 
@@ -278,6 +278,8 @@ Once either report above has been delivered, this run of `execute` is finished �
 
 ## Phase 4 — Completion gate
 
+**Resolved-policy path:** when the plan has a concrete `## Verification Policy` table, follow `references/verification-policy.md` for scope and completion. All-manual plans can finish with `VERIFIED_MANUALLY` and validated observed evidence; mixed plans require both their selected automated suites and manual scenarios. The rest of this phase is the legacy path for plans without an explicit policy.
+
 Phase 4 is reached in exactly two ways: normally, once Phase 2's loop finishes step `M` and writes "Step M of M complete" to `## Execution Status → Progress`; or directly, on a fresh invocation of `execute`, when Phase 0 point 4 finds Progress already reading "Step M of M complete" — every implementation/test step was already done by an earlier run — and routes straight here without re-running Phase 2 at all. Either way, this phase runs exactly once per invocation of `execute` that reaches it: it is a single, whole-plan-level check, not a per-step action, and it is never reached following a Phase 3 report (per Phase 3's own "terminal outcome" rule).
 
 ### Where this runs: never dispatched, mode-independent
@@ -324,7 +326,7 @@ The closing `Not run:` and `Unmapped scope (not run)` lines list suites and toke
 
 ## Phase 5 — Final report
 
-Phase 5 is reached only when Phase 4's completion gate reads `PASS` (`Gate result: PASS` for a single-repo run, or `Overall gate result: PASS` for a workspace or token run) — never any other way. It performs exactly one action: print the fixed report block below, filling in every bracketed field, and the run ends there.
+Phase 5 is reached only when Phase 4's automated completion gate reads `PASS` (`Gate result: PASS` for a single-repo run, or `Overall gate result: PASS` for a workspace or token run). Explicit all-manual plans finish with the separate report in `references/verification-policy.md`. For automated or mixed plans, print the fixed report block below and include a separate manual-evidence line when applicable.
 
 Print, verbatim in shape, filling in every bracketed field:
 
@@ -352,7 +354,7 @@ This report is one of exactly three distinct, mutually exclusive ways a run of `
 2. **Phase 4's completion-gate FAIL report** — printed when every step passed but `run-regression`'s gate itself comes back FAIL (or never produces a result line at all). Per Phase 4's own instructions, a run that ends this way prints `run-regression`'s full report verbatim and stops there; it never falls through to this Phase 5 report in the same run.
 3. **This Phase 5 report** — printed only when every step passed *and* the completion gate came back PASS. This is the sole successful, fully-terminal outcome of a run of `execute`.
 
-Every run of `execute` ends in exactly one of these three ways. Do not print this Phase 5 report alongside either of the other two, and do not print it as a partial or interim status — once printed, the run is finished.
+The explicit-policy manual terminal report is a fourth successful terminal path, with outcome `VERIFIED_MANUALLY`. Print only the applicable terminal report, never an automated PASS for an all-manual plan.
 
 ## When run by implement
 
@@ -379,7 +381,7 @@ A Mode line that already records a mode is used as-is, in both levels.
 **Outcome lines** — after whichever terminal report this run printed, end the output with:
 
 ```
-Execute outcome: PASSED | GUARDRAIL | RETRY_LIMIT | GATE_FAILED | GATE_NO_RESULT | EXECUTE_STOPPED
+Execute outcome: PASSED | VERIFIED_MANUALLY | GUARDRAIL | RETRY_LIMIT | GATE_FAILED | GATE_NO_RESULT | EXECUTE_STOPPED
 Discoveries: <reusable facts about the existing system noticed while implementing | none>
 Failing tests: <<repo>: <file> / test names from run-regression's captured output tail — <repo> from the failing block's Repo: line | unknown>   ← GATE_FAILED only
 ```
@@ -389,6 +391,7 @@ Map the run's terminal report to exactly one value:
 | Terminal report | `Execute outcome` |
 | --- | --- |
 | Phase 5 final report | `PASSED` |
+| Explicit all-manual policy, manual terminal report with validated evidence | `VERIFIED_MANUALLY` |
 | Phase 3, Case 1 — Guardrail fired | `GUARDRAIL` |
 | Phase 3, Case 2 — Retry limit reached | `RETRY_LIMIT` |
 | Phase 4, gate result `FAIL` | `GATE_FAILED` |
@@ -397,6 +400,6 @@ Map the run's terminal report to exactly one value:
 
 `Discoveries` records facts about the system *as it already was* — for example an undocumented caller or an invariant the code enforces — never the changes this run made; `implement` uses them in its final context sync.
 
-**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, save the complete terminal report and outcome lines to `make-it-work/<TICKET>/<TICKET>-execute.md` (the path `implement` already uses), then read `../implement/references/handoffs.md` and write a new `execute-<N>.json` under `make-it-work/<TICKET>/<TICKET>-handoffs/`. Its `report` artifact is that saved report. Include the actual gate mode (`data.gate`: `full-suite`, or `scoped+full` for Phase 4's tags + full gate), discoveries, and identified failing test paths/names. If a `GATE_FAILED` report cannot identify any failing test, emit `needs_input` with the missing-evidence question instead of a false completed result. Do not write a handoff for an older run. End the chat output with `Handoff: <path>`; `implement` reads the saved report rather than overwriting it in this mode.
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, save the complete terminal report and outcome lines to `make-it-work/<TICKET>/<TICKET>-execute.md` (the path `implement` already uses), then read `../implement/references/handoffs.md` and write a new `execute-<N>.json` under `make-it-work/<TICKET>/<TICKET>-handoffs/`. Its `report` artifact is that saved report. Include the actual gate mode (`data.gate`: `full-suite`, `scoped+full`, or `none` for `VERIFIED_MANUALLY`), discoveries, and identified failing test paths/names. If a `GATE_FAILED` report cannot identify any failing test, emit `needs_input` with the missing-evidence question instead of a false completed result. Do not write a handoff for an older run. End the chat output with `Handoff: <path>`; `implement` reads the saved report rather than overwriting it in this mode.
 
 **Verification evidence** — for `verification_version: 1`, maintain the versioned ledger described in `../implement/references/verification.md`. At Phase 4's terminal gate result, record its actual mode/result without rerunning it (`gate.mode`: `full-suite`, or `scoped+full` for Phase 4's tags + full gate). At any terminal Execute outcome, map every row in the plan's existing AC traceability table to actual passing step evidence or mark it unverified, then run the verification helper with `--plan` and `--outcome`. Do this before writing the handoff. Include `artifacts.verification: make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json` in a `done` Execute handoff. A missing or invalid ledger is a stopped run to repair on resume, never an inferred pass.
