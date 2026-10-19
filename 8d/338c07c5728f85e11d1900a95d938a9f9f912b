@@ -1,0 +1,41 @@
+evals/go-deep/fresh-onboarding/graders/claude-md-structure.md
+  s_64687f9e264533::t_892a9222c72a5f 13-15,17
+.claude-plugin/plugin.json
+  s_64687f9e264533::t_89579173dab238 6
+README.md
+  s_64687f9e264533::t_892a9222c72a5f 36-37
+  s_64687f9e264533::t_c2090ec7635c34 42-43
+evals/go-deep/README.md
+  s_64687f9e264533::t_892a9222c72a5f 32,49,51,78
+  s_64687f9e264533::t_5c06e70c9621ec 34,81-87
+  s_64687f9e264533::t_2dd860e6f769aa 88
+skills/go-deep/SKILL.md
+  s_64687f9e264533::t_7be7a231441aaa 74-81,101,163,187,193,205-206,237,243-244,246,256,275,281
+  s_64687f9e264533::t_50fc0d639c13c4 17,20-21,23-27,29-31,33-38,41,64,70,105,120,128,130,132,162,166,168
+  s_64687f9e264533::t_5c06e70c9621ec 164-165
+  s_64687f9e264533::t_c2090ec7635c34 22,28,32
+CHANGELOG.md
+  s_64687f9e264533::t_89579173dab238 7-8,13-14,18-21
+evals/go-deep/repair-path/graders/missing-skill-handled.md
+  s_64687f9e264533::t_892a9222c72a5f 22
+evals/go-deep/fresh-onboarding/graders/autopilot-log-content.md
+  s_64687f9e264533::t_5c06e70c9621ec 13
+docs/autopilot-log-schema.md
+  s_64687f9e264533::t_5c06e70c9621ec 50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8d338c07c5728f85e11d1900a95d938a9f9f912b",
+  "prompts": {},
+  "sessions": {
+    "s_64687f9e264533": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a153d4-17bb-7422-b599-243d2babcff4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
