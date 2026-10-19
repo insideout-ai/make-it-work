@@ -1,0 +1,135 @@
+evals/go-deep/fresh-onboarding/graders/claude-md-structure.md
+  s_b735332565022c::t_2abb1406c1ccdd 13,15
+evals/grade-headless.test.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 45-93
+.claude-plugin/plugin.json
+  s_b735332565022c::t_2abb1406c1ccdd 6
+scripts/decision-log.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 158-164,171-180,186,189,193,197-198,200-201
+evals/define-test-strategy/fresh-autopilot/graders/test-strategy-skill-generated.md
+  s_b735332565022c::t_2abb1406c1ccdd 3,7-12,14-19,21-26,28
+evals/go-deep/README.md
+  s_b735332565022c::t_2abb1406c1ccdd 5-7,10-12,15,17,19,21-24,27,29-37,39-41,43-45,47-71,74-79
+evals/slice-the-epic/well-specified-epic-autopilot/graders/backlog-with-gherkin.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-8
+  s_b735332565022c::t_6567cb73e6dac7 9
+scripts/decision-log.test.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 101-118
+evals/run-suite.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 16-19,26,28-30,124,137,151
+evals/run-suite-args.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 1,7-8
+skills/run-regression/SKILL.md
+  s_b735332565022c::t_2abb1406c1ccdd 58,63
+evals/define-test-strategy/fresh-autopilot/prompt.md
+  s_b735332565022c::t_2abb1406c1ccdd 3
+evals/go-deep/fresh-onboarding/graders/autopilot-log-written.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-10
+skills/define-test-strategy/references/test-strategy-template.md
+  s_b735332565022c::t_2abb1406c1ccdd 32
+evals/find-the-repos/find-the-repos-happy-path/graders/billing-service-fallback-assessed.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-7
+evals/find-the-repos/find-the-repos-happy-path/graders/repo-b-possible-match.md
+  s_b735332565022c::t_2abb1406c1ccdd 10-12
+docs/autopilot-log-schema.md
+  s_b735332565022c::t_2abb1406c1ccdd 21-22
+evals/define-test-strategy/dts-migrate-autopilot/graders/claude-md-consistent.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-24
+evals/define-test-strategy/fresh-autopilot/graders/claude-md-consistent.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-18
+evals/go-deep/fresh-onboarding/graders/claude-md-written.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-11
+evals/go-deep/fresh-onboarding/prompt.md
+  s_b735332565022c::t_2abb1406c1ccdd 3
+evals/go-deep/repair-path/graders/autopilot-log-written.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-11
+evals/implement/seed-fixture.sh
+  s_b735332565022c::t_2abb1406c1ccdd 24-27
+evals/README.md
+  s_b735332565022c::t_2abb1406c1ccdd 32-36,42
+evals/slice-the-epic/README.md
+  s_b735332565022c::t_2abb1406c1ccdd 29-30
+  s_b735332565022c::t_6567cb73e6dac7 31
+  s_b735332565022c::t_c3edebdf6bc74d 32
+evals/find-the-repos/find-the-repos-happy-path/graders/pending-report-preserved.md
+  s_b735332565022c::t_2abb1406c1ccdd 10
+skills/find-the-repos/SKILL.md
+  s_b735332565022c::t_2abb1406c1ccdd 62,102,141,143,182,186,231
+skills/go-deep/SKILL.md
+  s_b735332565022c::t_2abb1406c1ccdd 30-31,53,76,143-145
+  s_b735332565022c::t_353178f315aa53 146
+skills/define-test-strategy/SKILL.md
+  s_b735332565022c::t_2abb1406c1ccdd 53-54,134,197,201,233
+evals/find-the-repos/find-the-repos-happy-path/graders/archive-service-flagged-absent.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-7
+skills/slice-the-epic/SKILL.md
+  s_b735332565022c::t_6567cb73e6dac7 41
+  s_b735332565022c::t_e60edb19caffe8 42
+skills/shape-the-epic/references/autopilot.md
+  s_b735332565022c::t_2abb1406c1ccdd 42
+evals/define-test-strategy/fresh-autopilot/graders/no-new-test-files.md
+  s_b735332565022c::t_2abb1406c1ccdd 14-17
+evals/define-test-strategy/README.md
+  s_b735332565022c::t_2abb1406c1ccdd 23-25,37-71,79-80,84-88,90-107,113-136,154-156,158,166-179
+  s_b735332565022c::t_91cd967bb1c516 180
+evals/define-test-strategy/dts-migrate-autopilot/graders/migration-consistent.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-22
+evals/go-deep/repair-path/graders/autopilot-log-content.md
+  s_b735332565022c::t_2abb1406c1ccdd 13
+evals/go-deep/repair-path/graders/missing-skill-handled.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-22
+evals/go-deep/repair-path/graders/writes-reported.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-20
+evals/slice-the-epic/well-specified-epic-autopilot/graders/approach-stated.md
+  s_b735332565022c::t_2abb1406c1ccdd 4,7
+  s_b735332565022c::t_6567cb73e6dac7 9
+CHANGELOG.md
+  s_b735332565022c::t_2abb1406c1ccdd 19-27,35-39
+  s_b735332565022c::t_af031780d352ce 9-12,17-18
+evals/run-suite-args.test.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 12-29
+evals/define-test-strategy/dts-migrate-autopilot/graders/outcome-reported.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-22
+evals/define-test-strategy/run-all.sh
+  s_b735332565022c::t_2abb1406c1ccdd 4-8
+evals/slice-the-epic/well-specified-epic-autopilot/graders/dependency-map-and-flow.md
+  s_b735332565022c::t_6567cb73e6dac7 1-7
+evals/define-test-strategy/dts-migrate-autopilot/graders/log-denial-handled-gracefully.md
+  s_b735332565022c::t_2abb1406c1ccdd 2-3,7-15
+evals/define-test-strategy/fresh-autopilot/graders/pointer-consistent.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-20
+evals/slice-the-epic/well-specified-epic-autopilot/graders/no-clarifying-pause.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-9
+evals/go-deep/fresh-onboarding/graders/writes-reported.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-21
+evals/run-regression/run-all.sh
+  s_b735332565022c::t_2abb1406c1ccdd 2-3,100
+evals/go-deep/repair-path/prompt.md
+  s_b735332565022c::t_2abb1406c1ccdd 3
+evals/define-test-strategy/dts-multi-repo/graders/qa-location-detected.md
+  s_b735332565022c::t_2abb1406c1ccdd 3,7-12,14-21
+evals/grade-headless.mjs
+  s_b735332565022c::t_2abb1406c1ccdd 124-125,128-129,131,133,136-137,144,162-163,165-200
+evals/slice-the-epic/well-specified-epic-autopilot/graders/wrap-up-present.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-9
+evals/define-test-strategy/dts-migrate-autopilot/graders/generated-skill-delivered.md
+  s_b735332565022c::t_2abb1406c1ccdd 1-20
+skills/shape-the-epic/references/product.md
+  s_b735332565022c::t_2abb1406c1ccdd 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3417b4bfa2738cbed0878b359fae46637a09b374",
+  "prompts": {},
+  "sessions": {
+    "s_b735332565022c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14a6f-00c3-7d42-ae41-e8c79764b4df",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
