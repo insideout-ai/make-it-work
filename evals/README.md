@@ -29,13 +29,17 @@ automatically adds it to `full`; adding a skill requires naming its smoke case.
 The commands run each case once. Smoke runs up to four isolated cases in
 parallel, in budget-limited waves; full regression remains sequential. The
 cumulative reported-usage limit is $12 for smoke and $45 for full. Override it with
-`--max-cost-usd=N`. Each run records the commit, Claude Code version, case
+`--max-cost-usd=N`. Pass `--model=ID` to run every case on that model (both
+`claude plugin eval` and headless cases); without it each uses its own default,
+which fails if your account can't use it. Pass `--judge-model=ID` to grade `llm`
+checks with that model instead of the default `haiku`, which has been seen voting
+FAIL on correct multi-part reports. Each run records the commit, Claude Code version, case
 results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
 `--dry-run` does not invoke Claude. Plain `claude plugin eval` cases are graded
 by its harness. Cases marked `headless` use a disposable fixture and produce a
 `transcript.jsonl`; the runner grades their `graders/*.md` automatically.
 File, regex, and tool-use checks run locally. Semantic (`llm`) checks use a
-separate, tool-free Claude judge and count toward the same case and suite cost
+separate, tool-free Claude judge that takes the best two of three votes and count toward the same case and suite cost
 limits. That judge receives the relevant generated fixture file, final message,
 or normalized case transcript as evidence; do not run it with data that must
 stay local. Each headless case writes `grader-results.json` and returns `passed`

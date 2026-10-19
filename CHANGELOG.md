@@ -6,10 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `slice-the-epic` offers 2–3 tailored slicing approaches with a recommendation and waits for the user's selection. It saves all stories in a Markdown file with stable slice IDs, a Mermaid dependency map, a relationship table, and staged implementation guidance identifying prerequisites, parallel work, and a proposed MVP boundary.
+
 ### Changed
 
 - The implementation dashboard now follows the separate delivery workflow through approval, running, partial failure and completion using its delivery journal. Delivery checkpoints refresh existing HTML, expose per-repo commit/PR links and actual push results, retain implementation timing/Complete status, and remove stale uncommitted claims. Older journals can be displayed without rerunning delivery.
 - Repos without test tooling receive a repo-specific proposed setup from `define-test-strategy`. New `implement` runs resolve testing readiness before planning, configure a minimal verified setup by default in Autonomous/Autopilot, or retain explicitly selected manual verification. Plans record per-repo verification policies; execution, review and final packages preserve actual automated/manual evidence, with `VERIFIED_MANUALLY` available for fully verified all-manual plans and no automatic downgrade of an unavailable automated gate.
+- Story-slicing autopilot selects and logs the recommended technique, preserves explicit user choices, and flushes its decision log after delivering the saved backlog.
+
+## [4.11.0] - 2026-10-17
+
+### Added
+
+- `evals/run-suite.mjs` takes optional `--model=ID` and `--judge-model=ID` flags, so every case and every semantic grader can run on a model the account can use.
+- `scripts/decision-log.mjs` accepts `--input <file>` for shells that refuse the inline-JSON heredoc; the payload file is read, then deleted.
+
+### Changed
+
 - `define-test-strategy` is now a per-repo onboarding step after `go-deep` that takes an optional `[repo]` argument and offers to run `go-deep` first. It writes the repo's `.claude/skills/test-strategy/SKILL.md` — test locations across repos (such as a QA repo), commands, run prerequisites, and where new tests go — adds repo-qualified `@covers` comment tags to existing tests, uncommitted, adds one `/test-strategy` row to the `CLAUDE.md` Other Skills table, and reports coverage from a live tag scan. Projects onboarded with an older version must re-run `define-test-strategy` to migrate; until they do, consumers ignore the old `.claude/rules/testing-strategy.md` and scoped regression runs are unavailable.
 - `run-regression` takes repo-prefixed tokens (`<repo>:UC-<id>`, `<repo>:domain-<name>`) for several repos in one call, plus `full:<repo>`, under one overall gate result. It finds tagged tests by grepping `@covers` comments across every test location, and reports suites that can't run locally, or repos with no tests, as not run rather than failed. A bare `full` still runs only each repo's own suite.
 - `plan-the-work` writes new tests where the test-strategy skill says, tagged with `@covers`, adds a repo that only receives tests (such as a QA repo) to Affected Code as `(test scope only)`, and records the plan's tokens in a new `## Domains/UCs Touched` section.
@@ -17,6 +32,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `implement` triages gate failures using the plan's `@covers` tokens, warns (without stopping) when a repo has no test-strategy skill or only the old rule file, accepts the `scoped+full` gate in its state, handoffs, ledger and dashboard, and branches and packages a test-scope repo with the product repos when it has changes.
 - `review-the-pr` reports a new or changed test with no `@covers` tag for a touched use case or domain, and a touched one left with no tagged test, as Minor findings.
 - `go-deep` keeps the `CLAUDE.md` Other Skills table on fresh onboarding and ignores its rows and the test-strategy skill in repair checks.
+- `define-test-strategy` and `go-deep` write files only with the Write and Edit tools. When a `.claude/` write is blocked they keep going and report the blocked paths; `define-test-strategy` prints the generated skill verbatim, keeps the old rule file and leaves `CLAUDE.md` unchanged. A repo with a test script but no tests yet records its command instead of the `none` row, and the go-deep warning covers test-only repos.
+- `run-regression` finds repo directories by matching a file inside them, so read-only runs detect sibling repos and prefixed repos reliably.
+- `find-the-repos` keeps a row for repos absent on disk, tiers README-only repos as No match rather than Excluded, treats a repo whose state the acceptance criteria constrain as Possible, and limits terminal output to the table, a report link and a fixed confirm prompt.
+- `slice-the-epic` lists non-blocking open details as Open questions rather than assumptions; `shape-the-epic` writes each KPI as a list item and uses the decision-log `--input` fallback when the shell refuses the heredoc.
+- Headless eval cases grade either the written or the blocked `.claude/` outcome, since headless runs can't write there. Semantic graders reason before their verdict, take the best two of three votes, and retry a crashed judge once.
 
 ### Removed
 
@@ -28,7 +48,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `shape-the-epic` offers Product and Technical-debt modes, with mode-specific categories, acceptance criteria, and output sections.
 - Interactive epic shaping supports category selection through two multi-select questions; the discovery interview and gap-check focus on those selections, while unselected categories are marked Not assessed.
-- `slice-the-epic` offers 2–3 tailored slicing approaches with a recommendation and waits for the user's selection. It saves all stories in a Markdown file with stable slice IDs, a Mermaid dependency map, a relationship table, and staged implementation guidance identifying prerequisites, parallel work, and a proposed MVP boundary.
 
 ### Changed
 
@@ -39,7 +58,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Repo routing now starts with an exact implementation check and leads the report with verify-and-finish findings. It accepts catalog/workspace grouping signals, combines missing scope/ticket intake, distinguishes primary and related ticket keys, and reports owner-source conflicts and external coverage gaps.
 - Repo routing assesses all repos in the resolved workspace by default, including large sibling-repo folders without grouping metadata. AskUserQuestion is reserved for genuine workspace ambiguity or explicit narrowing, not a mandatory repo-selection round; missing ticket content is requested directly.
 - Repo routing maintains one `<TICKET>-repos.md` file through review, comments, and confirmation, updating its status in place instead of creating draft/final copies. Terminal summaries contain only a Definite-repo table with owner identifiers and supporting evidence types; full evidence, other tiers, ownership provenance/conflicts, and handoff details stay in the report.
-- Story-slicing autopilot selects and logs the recommended technique, preserves explicit user choices, and flushes its decision log after delivering the saved backlog.
 
 ## [4.9.0] - 2026-10-14
 

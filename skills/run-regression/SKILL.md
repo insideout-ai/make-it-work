@@ -55,12 +55,12 @@ Reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **sin
 1. **`.git` exists here.** This repo is a project root. Then:
    - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`).
    - Otherwise → **single-repo project**, root is here — even if the parent happens to contain other, unrelated repos.
-2. **No `.git` here, but subdirectories have their own `.git`.** If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to run against, rather than guessing. (autopilot: see Autopilot Mode)
+2. **No `.git` here, but subdirectories have their own `.git`.** Detect them by matching a file inside each, e.g. Glob `*/.git/HEAD`: Glob returns only files, so a pattern naming just a directory never matches. If a workspace-root orientation file ties them together → multi-repo workspace, root is here. If they are just unrelated clones with no unifying doc → ask the user which repo (or workspace) to run against, rather than guessing. (autopilot: see Autopilot Mode)
 3. **None of these resolve** → tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." and stop.
 
 A bare `full` (Phase 1) iterates every repo in a detected workspace. The step 2 ask above applies only to a bare `full` and to the no-argument path; a token run uses detection only to find the workspace root, since each prefix resolves its own repo.
 
-**Finding a token's repo.** A token's prefix (`<repo>` in `<repo>:UC-08`, `<repo>:domain-velocity` or `full:<repo>`) names a repo. It is cwd's git toplevel when that directory's basename matches `<repo>`; otherwise a same-named subdirectory of cwd; otherwise a same-named subdirectory of the detected workspace root. If none exists, the repo is not found.
+**Finding a token's repo.** A token's prefix (`<repo>` in `<repo>:UC-08`, `<repo>:domain-velocity` or `full:<repo>`) names a repo. It is cwd's git toplevel when that directory's basename matches `<repo>`; otherwise a same-named subdirectory of cwd; otherwise a same-named subdirectory of the detected workspace root. If none exists, the repo is not found. Check for a directory by matching a file inside it (e.g. Glob `<repo>/*` or `<repo>/.git/HEAD`): Glob returns only files, so a pattern naming just the directory never matches.
 
 For token runs, group tokens by prefix. For each prefix, find the repo as above (`repo not found` is a validation reason for that prefix's tokens), read its `.claude/skills/test-strategy/SKILL.md`, and use every location in its `## Test Locations`. Each prefix is one group of runs; Phase 2 onward handles its scope tokens, and Phase 1 handles its `full:<repo>` token.
 

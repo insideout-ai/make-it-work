@@ -29,7 +29,7 @@ Tags use this ID. If this repo is cloned under a different directory name, tags 
 
 ## Test Locations
 
-Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. If it has configured tooling but no tests yet, record its layers, configured pattern and command. Only when it has neither test files nor configured test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
+Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. When it has test tooling (a test runner or a test script) but no test files yet, still record its layers, `Test files` glob and full-suite command, since new tests go there. Only when it has neither test files nor test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
 
 | Location | Repo | Layers | Test files | Full-suite command | Run from |
 | --- | --- | --- | --- | --- | --- |

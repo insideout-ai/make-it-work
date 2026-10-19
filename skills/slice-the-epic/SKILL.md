@@ -38,6 +38,8 @@ When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` 
 
 At the end, summarize the selected approach, any auto-resolved assumption, the backlog file path, and whether the log write succeeded. Preserve any best-guess prefix in the saved artifact's assumptions, and mark its approach selection `_(autopilot)_`.
 
+Non-blocking details the requirement leaves open (for example, a range cap or a file format) go in an **Open questions** list after the backlog. They are not auto-resolved assumptions: do not label them "Assumption" or mention them in this summary.
+
 ## Understand the request
 
 Work from the requirement the user provides. If they give a Jira or Confluence reference and a suitable connector is available, retrieve it. Ask one focused question only when a missing fact prevents a meaningful slice—for example, there is no identifiable outcome or the material combines unrelated initiatives. (autopilot: see Autopilot Mode)

@@ -26,6 +26,10 @@ The log graders inspect the actual `make-it-work/slice-the-epic-autopilot-log.js
 
 The artifact write must precede the log flush. A denied backlog write must be reported honestly and the complete Markdown delivered in chat; a denied log write is non-fatal and must not be retried through another tool. A missing actual log still fails its file-focused grader, making the environment limitation visible rather than treating an attempted write as proof of a valid saved log.
 
+The well-specified case checks best-guess use within the `no-clarifying-pause` rubric. A separate trace-wide absence regex produced a false failure on 2026-10-09 because the final summary correctly said that no assumptions were auto-resolved with `[autopilot best-guess]`; the marker appeared only inside that negated statement.
+
+**Observed judge variance:** repeated false failures on valid backlogs led to splitting `backlog-produced` into focused graders: `approach-stated`, `backlog-with-gherkin`, `no-clarifying-pause` and `wrap-up-present`. Keep those focused checks; the separate `dependency-map-and-flow` grader covers the new artifact's relationship consistency.
+
 ## Coverage limits
 
 These checks do not exercise every slicing technique, a user-selected custom combination, or a cyclic dependency proposal. Treat model-judge failures as investigation triggers: inspect the transcript and artifact before attributing a failure to the skill or grader.

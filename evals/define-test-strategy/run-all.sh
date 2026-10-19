@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Runs all four define-test-strategy eval cases.
 #
-# dts-migrate-autopilot, fresh-autopilot and dts-multi-repo write the
-# test-strategy skill under `.claude/skills/test-strategy/`, tag existing
-# tests and edit CLAUDE.md, so they run on the disposable headless path with
-# automatic grading (they are listed under `headless` in evals/suites.json).
+# dts-migrate-autopilot, fresh-autopilot and dts-multi-repo tag existing
+# tests and write a decision log, so they run on the disposable headless path
+# with automatic grading (they are listed under `headless` in evals/suites.json).
+# Headless runs cannot write under `.claude/`, so they grade the skill's
+# blocked-write path; the full-write checks are manual (see README.md).
 #
 # define-test-strategy-negative-control writes nothing (it must stop at the
 # first question), so it runs through plain `claude plugin eval`.

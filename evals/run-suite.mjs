@@ -13,16 +13,21 @@ const argv = process.argv.slice(2);
 const tier = argv[0];
 const dryRun = argv.includes('--dry-run');
 const budgetArg = argv.find((arg) => arg.startsWith('--max-cost-usd='));
+const modelArg = argv.find((arg) => arg.startsWith('--model='));
+const model = modelArg?.slice('--model='.length);
+const judgeModelArg = argv.find((arg) => arg.startsWith('--judge-model='));
+const judgeModel = judgeModelArg?.slice('--judge-model='.length);
 const caseArgs = argv.filter((arg) => arg.startsWith('--case='));
 const requestedCases = caseArgs.map((arg) => arg.slice('--case='.length));
 const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'smoke' ? 12 : 45;
 const concurrency = tier === 'smoke' ? 4 : 1;
 
 if (!['smoke', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
-    requestedCases.some((name) => !name) ||
+    requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
     argv.some((arg, index) => index > 0 && arg !== '--dry-run' &&
-      !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case='))) {
-  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME ...] [--max-cost-usd=N]\n');
+      !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case=') && !arg.startsWith('--model=') &&
+      !arg.startsWith('--judge-model='))) {
+  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME ...] [--max-cost-usd=N] [--model=ID] [--judge-model=ID]\n');
   process.exit(64);
 }
 
@@ -116,7 +121,7 @@ async function runCase(item, remaining) {
     }
     const args = ['-p', prompt.body, '--plugin-dir', REPO_ROOT, '--allowedTools', ...tools,
       '--max-turns', String(prompt.maxTurns), '--max-budget-usd', remaining.toFixed(2),
-      '--output-format', 'stream-json', '--verbose'];
+      '--output-format', 'stream-json', '--verbose', ...(model ? ['--model', model] : [])];
     result = await command('claude', args, fixtureDir, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'transcript.jsonl'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'stderr.txt'), result.stderr || '');
@@ -129,7 +134,7 @@ async function runCase(item, remaining) {
       if (result.status === 0 && !data.is_error && !result.error) {
         const grading = await gradeHeadlessCase({
           graderDir: path.join(item.dir, 'graders'), transcript: result.stdout,
-          fixtureDir, budgetUsd: Math.max(0, remaining - caseCost),
+          fixtureDir, budgetUsd: Math.max(0, remaining - caseCost), judgeModel,
         });
         caseCost += grading.judgeCostUsd;
         await writeFile(path.join(caseReportDir, 'grader-results.json'),
@@ -143,7 +148,7 @@ async function runCase(item, remaining) {
     }
   } else {
     const args = pluginEvalArgs({ name: item.name, caseReportDir, remaining,
-      tools, scaffold: item.scaffold });
+      tools, scaffold: item.scaffold, model, judgeModel });
     result = await command('claude', args, REPO_ROOT, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'runner-stdout.txt'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'runner-stderr.txt'), result.stderr || '');

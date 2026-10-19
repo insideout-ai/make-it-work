@@ -50,6 +50,8 @@ Only the Phase 0 go-deep offer and the Phase 1 prior-output menu carry a `(Recom
 
 At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision — including any site that stopped rather than resolving, and whether the decision log itself was written successfully — and the log file's path, so someone can audit the run afterward.
 
+**How to write files:** in every phase, create and change files only with the Write and Edit tools, never with shell redirection, heredocs, `tee`, `cp` or `mv`. Delete a file only after its replacement was written that way. The decision-log writer in `docs/autopilot-log-schema.md` is the one exception.
+
 ## Phase 0 — Target Repo and Prerequisite
 
 ### Resolve the target repo
@@ -129,7 +131,7 @@ Confirm the list with the user before anything is written; they may remove or ad
 
 In autopilot, `chosen` is every candidate location's label, never `Add another location`.
 
-For each confirmed location in another repo, check that repo for the Phase 0 go-deep signals. If none is found, print exactly: "go-deep has not been run in `<repo>`; run it there for better domain context". Repeat it in the end summary, and continue.
+For each confirmed location in another repo, check that repo for the Phase 0 go-deep signals, including a repo that only holds tests (e.g. a QA repo). If none is found, print exactly: "go-deep has not been run in `<repo>`; run it there for better domain context". Repeat it in the end summary, and continue.
 
 ## Phase 3 — Per-Location Analysis
 
@@ -192,10 +194,11 @@ Write `.claude/skills/test-strategy/SKILL.md` in the target repo from the templa
 
   Write the new skill first. Only after that write succeeds, delete `.claude/rules/testing-strategy.md`. If the write fails, keep the old file and say so in the summary.
 - **Partial** → write `## Pending`, and write `## Tag Convention` and `## How to Scan` exactly as the template gives them, with only `<Repo ID>` filled in. A run that is not partial removes any `## Pending` left by an earlier partial run.
+- **Write blocked** → if writing `.claude/skills/test-strategy/SKILL.md` is denied or fails (e.g. the environment protects `.claude/`), never write it anywhere else. Print the full generated file in chat, verbatim from its front matter to its last line, in one fenced block, so the user can save it once writes there are allowed. Never replace it with a summary or a list of its sections. When only your final message is shown (a non-interactive run), put that block in the final message, before the summary. Keep the old rule file, skip Phase 6, and continue with Phase 7.
 
 ## Phase 6 — CLAUDE.md Pointer and Migration Clean-Up
 
-Edit only the target repo's `CLAUDE.md`.
+Edit only the target repo's `CLAUDE.md`. Run this phase only when Phase 5 wrote the skill: otherwise the pointer would name a missing skill, and the clean-up would orphan a rule file that is still in place.
 
 1. **Pointer.** In `## Skills Reference`, ensure an `### Other Skills` table (`Skill | Topic | Load when...`) exists, placed after the section's existing tables, holding exactly one `/test-strategy` row:
    `| /test-strategy | Test locations (incl. other repos), commands, prerequisites, new-test targets, @covers tags | Planning, writing, running, or reviewing tests |`
@@ -227,7 +230,7 @@ Scan with the Repo ID under the existing skill's `## Repo ID` (on a fresh run it
 
 After the coverage report, print a summary of the run (on the "Coverage report only" path, state that nothing was written):
 
-- the skill path written;
+- the skill path written — or, when the write was blocked, that path, its full content in one fenced block (in this message if it was not printed earlier in it), that the old rule file and `CLAUDE.md` were left unchanged, and to re-run after allowing writes there;
 - the confirmed locations, each with its repo;
 - go-deep warnings: the Phase 2 sentence, repeated per repo, and, in partial mode, that tagging is pending go-deep for `<Repo ID>`;
 - full-suite commands written as `none`;
