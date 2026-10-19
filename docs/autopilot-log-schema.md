@@ -47,7 +47,7 @@ require. Each skill's existing write timing
 
 - `phase` — the skill's own phase/step label for where this site lives, e.g. `"Phase 1"`, `"Step 4"`.
 - `site` — a short slug identifying the specific site, e.g. `"wave-1-q2"`, `"mode-choice"`.
-- `kind` — which of this skill's own interactive-site kinds fired: `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a plain-text pause point was auto-confirmed or auto-stopped), or `"open_text"` (a non-enumerable question was self-answered). Not every skill exercises all three — each skill's own Decision log section states which subset of this enum applies to it.
+- `kind` — which of this skill's own interactive-site kinds fired: `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a workflow approval point was auto-confirmed or auto-stopped, whether interactive runs display it through a question tool or plain text), or `"open_text"` (a non-enumerable question was self-answered). Not every skill exercises all three — each skill's own Decision log section states which subset of this enum applies to it.
 - `chosen` — the resolved value, in whichever of these shapes the site's `kind` (and, for `askUserQuestion`, `multiSelect`) produces:
   - a string (the chosen option's label), for a single-select `askUserQuestion` or a `checkpoint`,
   - an array of strings, for an `askUserQuestion` with `multiSelect: true`,

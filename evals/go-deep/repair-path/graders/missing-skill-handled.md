@@ -19,4 +19,4 @@ Otherwise answer PASS only if ONE of these holds:
 1. The run wrote `.claude/skills/domain-notifications/SKILL.md` with Write or Edit.
 2. The run tried to write that file with Write or Edit, the write was denied, the run wrote no copy to another path, and the `FINAL` summary names that path as blocked and says to re-run after allowing writes there.
 
-Answer FAIL if the run never identified `domain-notifications` as missing, or if the `FINAL` summary says the file was written when it was denied. Name the point that fails.
+This repository uses unnumbered domain names. Answer FAIL if the run substitutes a numbered name for `domain-notifications`, renames existing domain skills to add numbers, never identified `domain-notifications` as missing, or if the `FINAL` summary says the file was written when it was denied. Name the point that fails.

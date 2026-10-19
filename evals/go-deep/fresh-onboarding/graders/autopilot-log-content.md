@@ -10,7 +10,7 @@ Judge whether the log satisfies ALL of the following:
 
 1. Every line is valid JSON with at least `phase`, `site`, `kind`, and `chosen` fields.
 2. Every line with `kind: "askUserQuestion"` has an `options` array with between 2 and 4 entries.
-3. Among lines with `kind: "askUserQuestion"` AND `phase: "Phase 2"`: the last option's label is exactly `"Skip — clear from code"`, and the first option's label ends with `"(Recommended)"`.
+3. Among lines with `kind: "askUserQuestion"` AND `phase: "Phase 2"`: the last option's label is exactly `"Use your best judgment"`, and the first option's label ends with `"(Recommended)"`.
 4. Any line with `multiSelect: true` has `chosen` as a JSON array, not a plain string.
 5. **At least one line has `kind: "askUserQuestion"` AND `phase: "Phase 2"`.** This is a hard requirement — if no such line exists, FAIL regardless of the other checks, since it means the fixture's deliberate ambiguity (whether this tiny project has one user role or two) never actually got exercised.
 6. No line anywhere has `chosen` equal to `"Run fresh onboarding"`.
