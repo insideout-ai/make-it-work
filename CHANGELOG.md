@@ -4,7 +4,7 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.12.0] - 2026-10-19
 
 ### Added
 
@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The implementation dashboard now follows the separate delivery workflow through approval, running, partial failure and completion using its delivery journal. Delivery checkpoints refresh existing HTML, expose per-repo commit/PR links and actual push results, retain implementation timing/Complete status, and remove stale uncommitted claims. Older journals can be displayed without rerunning delivery.
 - Repos without test tooling receive a repo-specific proposed setup from `define-test-strategy`. New `implement` runs resolve testing readiness before planning, configure a minimal verified setup by default in Autonomous/Autopilot, or retain explicitly selected manual verification. Plans record per-repo verification policies; execution, review and final packages preserve actual automated/manual evidence, with `VERIFIED_MANUALLY` available for fully verified all-manual plans and no automatic downgrade of an unavailable automated gate.
 - Story-slicing autopilot selects and logs the recommended technique, preserves explicit user choices, and flushes its decision log after delivering the saved backlog.
+- `go-deep` uses numbered question-tool checkpoints for scope, documentation foundations, sample skills, and final acceptance, with approval, revision, and pause choices. Repair confirmations use the same interaction; unanswered prompts remain pending, and hosts without a permitted question tool receive an explicit confirmation prompt. Autopilot keeps its existing resolution and decision-log behavior.
+- Fresh onboarding creates domain skills with stable numbered names such as `domain-01-authentication`, assigns IDs before parallel creation, and carries them through documentation tables and cross-references. Existing repositories keep their naming convention without migration or renaming; generated `CLAUDE.md` instructions preserve that convention when future feature work adds domains.
+- Updated go-deep documentation and eval criteria for the checkpoint interaction, numbered domains, and repairs of existing unnumbered skills.
 
 ## [4.11.0] - 2026-10-17
 

@@ -29,9 +29,9 @@ REPO=/path/to/make-it-work
 The fixture is "Mini Task Tracker": a `package.json`, a README, and source for task management, notifications and a small user model, with no `CLAUDE.md` and no `.claude/`. Its prompt allows `Write`, `Edit` and `Bash`, so `CLAUDE.md` and the decision log can be written and the shared decision-log writer can run. The graders check:
 
 - `CLAUDE.md` was written, with a `Skills Reference` heading (`claude-md-written`, regex);
-- `CLAUDE.md` has the Skill Loading Gate before Quick Reference, a Rules Files section, Domain and Use Case Skills tables, and After Any Feature Change as its last section (`claude-md-structure`);
+- `CLAUDE.md` has the Skill Loading Gate before Quick Reference, a Rules Files section, Domain and Use Case Skills tables, and After Any Feature Change as its last section. Domain skills have unique numbered names starting at `01`, a matching ID column, and a maintenance instruction that preserves IDs when adding domains (`claude-md-structure`);
 - the decision log was written and has a Phase 3 Confirm Scope `checkpoint` line (`autopilot-log-written`, regex);
-- the log's lines follow the schema, it has at least one Phase 2 `askUserQuestion` line with `(Recommended)` first and `Skip — clear from code` last, and nothing chose "Run fresh onboarding" (`autopilot-log-content`);
+- the log's lines follow the schema, it has at least one Phase 2 `askUserQuestion` line with `(Recommended)` first and `Use your best judgment` last, and nothing chose "Run fresh onboarding" (`autopilot-log-content`);
 - the `.claude/` writes are all written or all blocked, no blocked path is written through another tool, and the end-of-run summary matches the transcript: `CLAUDE.md` and the log written, the `.claude/rules/` and `.claude/skills/` files reported as written or as blocked (with a re-run after allowing writes), and which phases completed (`writes-reported`, `focus: trace`). go-deep is not expected to print blocked files in chat; there are too many.
 
 ### Manual full-write check
@@ -46,9 +46,9 @@ RUN_DIR=$(mktemp -d)
 
 Check `git status` on this repo before and after (it must not change). Then check in `$RUN_DIR`:
 
-- [ ] `.claude/rules/architecture.md` exists, uses tables and bullets rather than long prose, and has a Functional Domains table with columns `Domain | Purpose | Key Components | Key Functions`. It lists task management and notifications, optionally a user-model domain for `src/models/user.js`, and nothing unrelated.
+- [ ] `.claude/rules/architecture.md` exists, uses tables and bullets rather than long prose, and has a Functional Domains table with columns `ID | Domain | Purpose | Key Components | Key Functions`. Its IDs match CLAUDE.md's Domain Skills table. It lists task management and notifications, optionally a user-model domain for `src/models/user.js`, and nothing unrelated.
 - [ ] `.claude/rules/product.md` exists and has a use-case table with columns `ID | Use Case | Actor | Trigger | Domains`. It lists create a task, complete a task and receive an overdue reminder, optionally Create User, and nothing unsupported. Its Domains values cover task management and notifications (a separate user domain is fine).
-- [ ] `.claude/skills/` has one `domain-*/SKILL.md` per Functional Domains row and one `uc-{id}-{kebab-case-name}/SKILL.md` per use case, and every skill named in `CLAUDE.md`'s Skills Reference has a matching directory.
+- [ ] `.claude/skills/` has one `domain-{id}-{kebab-case-name}/SKILL.md` per Functional Domains row and one `uc-{id}-{kebab-case-name}/SKILL.md` per use case. IDs, directory names, frontmatter names, and all cross-references agree with the inventory confirmed before creation; every skill named in `CLAUDE.md`'s Skills Reference has a matching directory.
 - [ ] `CLAUDE.md`'s Rules Files section lists both rules files, and the decision log meets `autopilot-log-content`.
 
 ## `repair-path`
@@ -75,8 +75,16 @@ Check `git status` on this repo before and after (it must not change). Then chec
 
 - [ ] `.claude/skills/domain-notifications/SKILL.md` exists, with `name: domain-notifications` and a `description` in its frontmatter, within the domain size target (60–120 lines, 500 max), and covers `src/notifications/sendReminder.js` (the reminder shape, overdue check and admin escalation flag) without code snippets or ASCII diagrams.
 - [ ] `CLAUDE.md`'s Skills Reference still lists `domain-notifications` with `src/notifications/` as its key code area, and every skill named there, in `architecture.md`'s Functional Domains table and in `product.md`'s use-case table has a matching `.claude/skills/` directory.
-- [ ] `CLAUDE.md` still has the `SENTINEL:` sentence, and no other existing skill or rules file was rewritten (`git status` in `$RUN_DIR` shows only the new skill, the decision log and any cross-reference edits).
+- [ ] `CLAUDE.md` still has the `SENTINEL:` sentence, no domain was renamed to add a number, and no other existing skill or rules file was rewritten (`git status` in `$RUN_DIR` shows only the new skill, the decision log and any cross-reference edits).
 - [ ] The decision log meets `autopilot-log-content`.
+
+## Interactive checkpoint review
+
+In a disposable representative project, run `/make-it-work:go-deep` interactively. Phase 2 should ask only unresolved questions, offering `Use your best judgment` last for multiple-choice questions. Confirm that Phases 3–6 show numbered review checkpoints through the available question tool, with the review material and next action visible before each question. Phase 6 should report consistency and inventory checks before asking for acceptance.
+
+At a checkpoint, choose `Request changes`: only the current material should be revised and the same checkpoint should return. Choose `Pause here` and resume: the run should return to the pending checkpoint. Dismissing or leaving a question unanswered must not start the next phase. If no permitted question tool exists, the run should end its turn with `Waiting for your confirmation` and the same choices. On a prior-run fixture, check the same interaction for Phase 0's file-impact and repair pre-write confirmations; the file-impact question must name files that would be replaced.
+
+Autopilot must continue without question-tool calls, keep approval sites logged as `checkpoint`, and never choose fresh onboarding. The headless smoke cases cannot demonstrate that the interactive question UI is visible; verify that part in an interactive session.
 
 ## Known gaps in this suite (by design, not oversight)
 

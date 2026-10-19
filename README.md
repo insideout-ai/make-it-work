@@ -33,9 +33,13 @@ Part of what `go-deep` builds is a hard enforcement rule in CLAUDE.md: before ev
 
 Run `go-deep` once when you onboard a project.
 
+Fresh projects get numbered domain skills such as `domain-01-authentication`, alongside numbered UC skills. IDs stay stable as domains are added. Existing projects retain their domain naming convention, including unnumbered names; go-deep does not migrate or rename them. The generated CLAUDE.md tells future feature work how to name new domains using that convention.
+
 **What the code can't tell you**
 
 During `go-deep`, Claude asks targeted questions so the how and what files capture what can't be learned from reading the code alone - giving Claude the full picture of the project, not just its structure.
+
+Interactive runs use question prompts for four review checkpoints: scope, documentation foundations, sample skills, and final acceptance. Each shows what to review and what happens next, with choices to approve, request changes, or pause. Repair confirmations use the same pattern. If a question tool is unavailable, the run stops with an explicit "Waiting for your confirmation" prompt; `--autopilot` keeps its unattended behavior.
 
 The questioning phase reveals what Claude misunderstands about your code - surfacing domain concepts not obvious from reading files, business rules that live only in developers' heads, and assumptions baked into the architecture that were never written down. Answering those questions produces documentation no static analysis tool can generate: the *why* behind the *what*.
 
