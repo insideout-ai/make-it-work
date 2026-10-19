@@ -121,8 +121,50 @@ test('CLI validates a handoff and routes it against a saved Markdown state', asy
   assert.equal(next.phase, 'spec-approval');
   await writeFile(path.join(handoffs, 'gaps-2.json'), JSON.stringify(gaps()));
   assert.throws(() => execFileSync(process.execPath, [cli, 'validate', '--handoff', handoffPath, '--root', root], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /stale/);
+  const planHandoff = path.join(handoffs, 'plan-1.json');
+  await writeFile(planHandoff, JSON.stringify(plan()));
+  await writeFile(path.join(artifacts, 'DEMO-1-plan.md'), '# Plan without a verification policy\n');
+  const stateText = `# Workflow state — DEMO-1\n\n\`\`\`\n${Object.entries({ ...fields, phase: 'plan', testing_readiness: 'none' }).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | close-the-gaps | plan | Spec ready |\n`;
+  await writeFile(statePath, stateText);
+  assert.throws(() => execFileSync(process.execPath, [cli, 'next', '--handoff', planHandoff, '--root', root, '--state', statePath], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /requires a Verification Policy/);
+  await writeFile(path.join(artifacts, 'DEMO-1-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing runner |\n');
+  assert.equal(JSON.parse(execFileSync(process.execPath, [cli, 'next', '--handoff', planHandoff, '--root', root, '--state', statePath], { encoding: 'utf8' })).phase, 'plan-approval');
 });
 
 test('validates an execute handoff with the scoped+full gate', () => {
   assert.equal(validateHandoff({ ...execute('PASSED'), data: { ...execute('PASSED').data, gate: 'scoped+full' } }).data.gate, 'scoped+full');
+});
+
+test('manual execution routes to review in every mode but missing automated results still stop autopilot', () => {
+  const manual = { ...execute('VERIFIED_MANUALLY'),
+    artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md', verification: 'make-it-work/DEMO-1/DEMO-1-verification-v1.json' },
+    data: { discoveries: [], failing_tests: [], gate: 'none' } };
+  for (const autonomy of ['guided', 'autonomous', 'autopilot']) assert.equal(decideNext(state('execute', autonomy), manual).phase, 'review');
+  assert.throws(() => validateHandoff({ ...manual, data: { ...manual.data, gate: 'full-suite' } }), /gate none/);
+  assert.throws(() => validateHandoff({ ...manual, artifacts: execute('PASSED').artifacts }), /verification artifact/);
+  assert.equal(decideNext(state('execute', 'autopilot'), execute('GATE_NO_RESULT')).action, 'stop');
+});
+
+test('manual artifact validation binds the report, selected plan policy, observations and gate', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'manual-handoff-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'make-it-work', 'DEMO-1');
+  await mkdir(dir, { recursive: true });
+  const manual = { ...execute('VERIFIED_MANUALLY'),
+    artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md', verification: 'make-it-work/DEMO-1/DEMO-1-verification-v1.json' },
+    data: { discoveries: [], failing_tests: [], gate: 'none' } };
+  const manualPlan = '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User deferred setup |\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| Happy path | app | Manual | Start app; save; observe record |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Happy path |\n';
+  const evidence = { version: 1, ticket: 'DEMO-1', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'manual', subject: 'Happy path', command: null, result: 'pass', note: 'Observed saved record' }] }],
+    gate: { mode: 'none', result: 'manual-accepted', note: 'Selected manual policy; observed scenarios' },
+    acceptance: [{ criterion: 'AC1', scenario: 'Happy path', status: 'manual', step: 1, note: 'Observed saved record' }] };
+  await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan);
+  await writeFile(path.join(dir, 'DEMO-1-execute.md'), 'Execute outcome: VERIFIED_MANUALLY\n');
+  await writeFile(path.join(dir, 'DEMO-1-verification-v1.json'), JSON.stringify(evidence));
+  assert.equal((await validateArtifacts(manual, root)).outcome, 'VERIFIED_MANUALLY');
+  await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan.replace('manual | user', 'automated | configured'));
+  await assert.rejects(validateArtifacts(manual, root), /all-manual policy/);
+  await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan);
+  await writeFile(path.join(dir, 'DEMO-1-verification-v1.json'), JSON.stringify({ ...evidence, gate: { mode: 'full-suite', result: 'pass', note: 'Reported suite' } }));
+  await assert.rejects(validateArtifacts(manual, root), /accepted manual gate/);
 });

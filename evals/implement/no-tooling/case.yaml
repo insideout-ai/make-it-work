@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-no-tooling
+tags: [implement, no-tooling]
+context:
+  scaffold_script: fixture.sh

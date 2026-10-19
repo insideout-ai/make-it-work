@@ -18,6 +18,8 @@
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .session-timing { font-size: 0.75rem; color: #888; }
+  .delivery-details { margin: 1.25rem 0; }
+  .delivery-updated, .delivery-records { font-size: 0.85rem; color: #596773; }
 
   .header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
   .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
@@ -85,6 +87,7 @@
 <p class="timeline-scroll-hint">Scroll the timeline to see later steps.</p>
 
 {{STATUS_BANNER}}
+{{DELIVERY_STATUS}}
 
 <h2>Artifacts</h2>
 <div class="artifact-grid">

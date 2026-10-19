@@ -225,6 +225,8 @@ This section applies only when `/make-it-work:implement` dispatches the review; 
 
 When the prompt also provides a verification-ledger path, read it with the plan's AC traceability table. Check whether each claimed automated/manual verification has actual step evidence and call out unverified criteria in the report's coverage discussion; do not infer AC coverage from a passing full suite alone. This is an evidence review, not an instruction to rerun tests. The absence of the optional path on an older run changes nothing.
 
+When the plan has `## Verification Policy`, review its per-repo choices alongside that evidence. For manual repos, check the concrete actions/observations and nearby regression scenarios; automated coverage remains unavailable even after successful manual verification. An unperformed manual scenario or a missing AC observation is a verification gap, not evidence of success. Mixed policies require both automated results and manual observations. Proposals in a strategy's `## Recommended Setup` are not installed tooling or executed tests.
+
 **Skipped prompts** — do not run Step 0 (PR link), and skip Step 1's requirements question and its branch-pair confirmation. The requirements source is the provided spec plus plan, treated as authoritative exactly like user-provided requirements in Step 1.
 
 **Diff to review** — the work is not committed and there is no PR, so review the working tree against the base:

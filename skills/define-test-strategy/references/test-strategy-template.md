@@ -1,6 +1,6 @@
 # Test Strategy Template
 
-Template for the file `define-test-strategy` generates at `.claude/skills/test-strategy/SKILL.md` in the onboarded repo. Reproduce this exact structure; never rename or reorder headings — consumers locate sections by exact heading text. Keep every fixed section, writing `None` where empty rather than deleting it. `## Pending` is the only optional section: include it only on a partial run.
+Template for the file `define-test-strategy` generates at `.claude/skills/test-strategy/SKILL.md` in the onboarded repo. Reproduce this exact structure; never rename or reorder fixed headings — consumers locate sections by exact heading text. Keep every fixed section, writing `None` where empty rather than deleting it. After `## How to Scan`, include `## Recommended Setup` when automated tooling is absent, and `## Pending` only on a partial run.
 
 Replace every `<placeholder>`. `<Repo ID>` is the value written under `## Repo ID`.
 
@@ -29,7 +29,7 @@ Tags use this ID. If this repo is cloned under a different directory name, tags 
 
 ## Test Locations
 
-Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself; if this repo holds no tests, it is the literal row `| . | <Repo ID> | none | none | none | . |`.
+Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. If it has configured tooling but no tests yet, record its layers, configured pattern and command. Only when it has neither test files nor configured test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
 
 | Location | Repo | Layers | Test files | Full-suite command | Run from |
 | --- | --- | --- | --- | --- | --- |
@@ -86,6 +86,12 @@ Which layer a change needs. Use only layers listed in `## Layers`.
 - Before substituting, escape regex metacharacters in `<repo>`, and replace each `-` in `<repo>` and `<tag>` with `[-_]`.
 - The matched files are the tests for that tag.
 - Coverage gaps are always computed this way, live. Never store a gap list in this file.
+
+## Recommended Setup
+
+_Include only when no usable automated setup exists. This section is a proposal, not runnable configuration._
+
+<repo-specific evidence, recommended tools/layers, proposed setup changes and commands, external-boundary handling, initial coverage priorities, and the first real behavior test, per recommend-initial-setup.md>
 
 ## Pending
 

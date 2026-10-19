@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The implementation dashboard now follows the separate delivery workflow through approval, running, partial failure and completion using its delivery journal. Delivery checkpoints refresh existing HTML, expose per-repo commit/PR links and actual push results, retain implementation timing/Complete status, and remove stale uncommitted claims. Older journals can be displayed without rerunning delivery.
+- Repos without test tooling receive a repo-specific proposed setup from `define-test-strategy`. New `implement` runs resolve testing readiness before planning, configure a minimal verified setup by default in Autonomous/Autopilot, or retain explicitly selected manual verification. Plans record per-repo verification policies; execution, review and final packages preserve actual automated/manual evidence, with `VERIFIED_MANUALLY` available for fully verified all-manual plans and no automatic downgrade of an unavailable automated gate.
 - `define-test-strategy` is now a per-repo onboarding step after `go-deep` that takes an optional `[repo]` argument and offers to run `go-deep` first. It writes the repo's `.claude/skills/test-strategy/SKILL.md` — test locations across repos (such as a QA repo), commands, run prerequisites, and where new tests go — adds repo-qualified `@covers` comment tags to existing tests, uncommitted, adds one `/test-strategy` row to the `CLAUDE.md` Other Skills table, and reports coverage from a live tag scan. Projects onboarded with an older version must re-run `define-test-strategy` to migrate; until they do, consumers ignore the old `.claude/rules/testing-strategy.md` and scoped regression runs are unavailable.
 - `run-regression` takes repo-prefixed tokens (`<repo>:UC-<id>`, `<repo>:domain-<name>`) for several repos in one call, plus `full:<repo>`, under one overall gate result. It finds tagged tests by grepping `@covers` comments across every test location, and reports suites that can't run locally, or repos with no tests, as not run rather than failed. A bare `full` still runs only each repo's own suite.
 - `plan-the-work` writes new tests where the test-strategy skill says, tagged with `@covers`, adds a repo that only receives tests (such as a QA repo) to Affected Code as `(test scope only)`, and records the plan's tokens in a new `## Domains/UCs Touched` section.
@@ -26,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `shape-the-epic` offers Product and Technical-debt modes, with mode-specific categories, acceptance criteria, and output sections.
 - Interactive epic shaping supports category selection through two multi-select questions; the discovery interview and gap-check focus on those selections, while unselected categories are marked Not assessed.
+- `slice-the-epic` offers 2–3 tailored slicing approaches with a recommendation and waits for the user's selection. It saves all stories in a Markdown file with stable slice IDs, a Mermaid dependency map, a relationship table, and staged implementation guidance identifying prerequisites, parallel work, and a proposed MVP boundary.
 
 ### Changed
 
@@ -36,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Repo routing now starts with an exact implementation check and leads the report with verify-and-finish findings. It accepts catalog/workspace grouping signals, combines missing scope/ticket intake, distinguishes primary and related ticket keys, and reports owner-source conflicts and external coverage gaps.
 - Repo routing assesses all repos in the resolved workspace by default, including large sibling-repo folders without grouping metadata. AskUserQuestion is reserved for genuine workspace ambiguity or explicit narrowing, not a mandatory repo-selection round; missing ticket content is requested directly.
 - Repo routing maintains one `<TICKET>-repos.md` file through review, comments, and confirmation, updating its status in place instead of creating draft/final copies. Terminal summaries contain only a Definite-repo table with owner identifiers and supporting evidence types; full evidence, other tiers, ownership provenance/conflicts, and handoff details stay in the report.
+- Story-slicing autopilot selects and logs the recommended technique, preserves explicit user choices, and flushes its decision log after delivering the saved backlog.
 
 ## [4.9.0] - 2026-10-14
 

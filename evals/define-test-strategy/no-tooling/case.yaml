@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-no-tooling
+tags: [define-test-strategy, no-tooling]
+context:
+  scaffold_script: fixture.sh

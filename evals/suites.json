@@ -19,7 +19,9 @@
     "autopilot-full-info",
     "dts-migrate-autopilot",
     "dts-multi-repo",
+    "dts-no-tooling",
     "execute-full-pass",
+    "execute-manual-policy",
     "execute-resume-inline",
     "execute-stop-at-gate",
     "fresh-autopilot",
@@ -34,6 +36,8 @@
     "implement-feedback-idempotent",
     "implement-feedback-nonminimal",
     "implement-autopilot-full",
+    "implement-no-tooling",
+    "implement-empty-strategy",
     "plan-the-work-happy-path",
     "plan-the-work-plan-collision",
     "plan-the-work-with-tests",
@@ -45,7 +49,9 @@
     "shape-the-epic-rich-input-autopilot",
     "shape-the-epic-technical-debt-outcomes",
     "shape-the-epic-technical-debt-sparse",
-    "shape-the-epic-discovery-interview"
+    "shape-the-epic-discovery-interview",
+    "slice-the-epic-well-specified-epic-autopilot",
+    "slice-the-epic-ambiguous-epic-autopilot"
   ],
   "extraTools": {
     "execute-resume-inline": ["Bash"],
