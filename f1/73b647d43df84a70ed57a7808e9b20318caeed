@@ -1,0 +1,229 @@
+evals/implement/no-tooling/prompt.md
+  s_b735332565022c::t_cf3313d4f8edc0 1-15
+skills/execute/SKILL.md
+  s_b735332565022c::t_07ac0bf397e312 3,329,357
+  s_b735332565022c::t_e51b795ae5a974 193
+  s_b735332565022c::t_856a8f88c88d4e 76,169,281-282,384,394,403
+evals/define-test-strategy/no-tooling/case.yaml
+  s_b735332565022c::t_cf3313d4f8edc0 1-5
+skills/slice-the-epic/SKILL.md
+  s_23842d5dad9505::t_457e3f78a5eeb0 114
+  s_5cde86570c8e22::t_2d707146431ee5 9,17-18,22,24,26-28,37,39,51,59-63,91-113,115-120,122,126
+evals/slice-the-epic/well-specified-epic-autopilot/graders/log-write-attempted.md
+  s_5cde86570c8e22::t_2540ba0ce4e349 4
+evals/execute/execute-manual-policy/fixture.sh
+  s_b735332565022c::t_7d4c3f7fadaee7 1-9
+skills/deliver/SKILL.md
+  s_b735332565022c::t_0feb856a926803 16,20-23
+skills/implement/scripts/render-status.test.mjs
+  s_b735332565022c::t_fa7ace6a45d4cb 248
+  s_b735332565022c::t_e68720f7b3a951 2,349-434
+evals/execute/execute-manual-policy/fixture/src/policy.js
+  s_b735332565022c::t_7d4c3f7fadaee7 1-5
+skills/implement/SKILL.md
+  s_b735332565022c::t_0feb856a926803 152,493
+  s_b735332565022c::t_07ac0bf397e312 269,289
+  s_b735332565022c::t_9945eb9b2760dc 25,34,50,57,89-90,230,232-233,290,301,374,410,481
+  s_b735332565022c::t_e51b795ae5a974 213
+skills/implement/assets/status-template.html
+  s_b735332565022c::t_390addf3daac9d 21-22,90
+evals/implement/no-tooling/fixture.sh
+  s_b735332565022c::t_cf3313d4f8edc0 1-9
+evals/implement/no-tooling/graders/state-complete.md
+  s_b735332565022c::t_cf3313d4f8edc0 1-6
+skills/implement/scripts/testing-policy.test.mjs
+  s_b735332565022c::t_ffbee2f65d7cab 5,39,49
+  s_b735332565022c::t_07ac0bf397e312 1-4,6-38,40-48,50-71
+evals/implement/no-tooling/graders/readiness-and-completion.md
+  s_b735332565022c::t_55b0a90279dd6f 3
+  s_b735332565022c::t_cf3313d4f8edc0 1-2,4-18
+evals/suites.json
+  s_b735332565022c::t_78ca2c15d98c54 24
+  s_5cde86570c8e22::t_16d2ddc7a613c1 53-54
+  s_b735332565022c::t_8857ef9e6a3e82 40
+  s_b735332565022c::t_cf3313d4f8edc0 22,39
+  s_b735332565022c::t_b5f989c76e6f6d 52
+skills/review-the-pr/SKILL.md
+  s_b735332565022c::t_856a8f88c88d4e 228-229
+evals/define-test-strategy/no-tooling/graders/no-install-or-tests.md
+  s_b735332565022c::t_55b0a90279dd6f 3
+  s_b735332565022c::t_cf3313d4f8edc0 1-2,4-10
+evals/define-test-strategy/no-tooling/prompt.md
+  s_b735332565022c::t_cf3313d4f8edc0 1-9
+evals/implement/empty-strategy/fixture.sh
+  s_b735332565022c::t_8857ef9e6a3e82 1-10
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/log-write-attempted.md
+  s_5cde86570c8e22::t_2540ba0ce4e349 4
+skills/implement/scripts/final-package.test.mjs
+  s_b735332565022c::t_3eab5efc069383 143-149,153-163,165,168-170
+  s_b735332565022c::t_d6a8b17b9cf694 150-152,164,166-167
+evals/execute/execute-manual-policy/case.yaml
+  s_b735332565022c::t_7d4c3f7fadaee7 1-5
+evals/execute/execute-manual-policy/graders/progress-complete.md
+  s_b735332565022c::t_7d4c3f7fadaee7 1-6
+evals/define-test-strategy/no-tooling/graders/proposal-vs-active.md
+  s_b735332565022c::t_cf3313d4f8edc0 1-9,12-17
+  s_b735332565022c::t_d6a8b17b9cf694 10-11
+evals/implement/no-tooling/case.yaml
+  s_b735332565022c::t_cf3313d4f8edc0 1-5
+README.md
+  s_b735332565022c::t_e51b795ae5a974 50-51,130
+  s_b735332565022c::t_fa7ace6a45d4cb 163-164
+  s_5cde86570c8e22::t_8e09c8dc7ee906 74-76
+  s_b735332565022c::t_51a3c09ffa1089 131
+skills/define-test-strategy/references/recommend-initial-setup.md
+  s_b735332565022c::t_58394f2b16c94b 1-16
+skills/implement/references/testing-readiness.md
+  s_b735332565022c::t_9945eb9b2760dc 1-6,8-17,19-23,25-40,42-43
+  s_b735332565022c::t_8857ef9e6a3e82 18
+  s_b735332565022c::t_cf3313d4f8edc0 7,24
+  s_b735332565022c::t_07ac0bf397e312 41
+evals/execute/execute-manual-policy/graders/manual-completion.md
+  s_b735332565022c::t_7d4c3f7fadaee7 1-2,4-14
+  s_b735332565022c::t_55b0a90279dd6f 3
+evals/define-test-strategy/README.md
+  s_b735332565022c::t_cf3313d4f8edc0 3,99-101
+  s_b735332565022c::t_436b0d8b2e0c69 102
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/approach-decision-logged.md
+  s_5cde86570c8e22::t_16d2ddc7a613c1 1-7
+skills/implement/references/verification.md
+  s_b735332565022c::t_856a8f88c88d4e 3,26-28
+  s_b735332565022c::t_cf3313d4f8edc0 30
+  s_b735332565022c::t_a2bcdf6896a02e 29
+skills/implement/scripts/verification.mjs
+  s_b735332565022c::t_b7760bab8a0433 55,60-71,73,116-122
+  s_b735332565022c::t_e51b795ae5a974 114-115
+  s_b735332565022c::t_7d4c3f7fadaee7 72
+  s_b735332565022c::t_d577fe331d1099 5,59,96,101-102,113,123
+skills/implement/scripts/handoff.mjs
+  s_b735332565022c::t_7d4c3f7fadaee7 9,334-336
+  s_b735332565022c::t_d577fe331d1099 14,99,141-142,227
+skills/plan-the-work/references/plan-template.md
+  s_b735332565022c::t_17eb3b587a64c1 74-81,101,107,124,126,132-139,153
+evals/slice-the-epic/approach-selection/prompt.md
+  s_5cde86570c8e22::t_8e09c8dc7ee906 1-13
+evals/define-test-strategy/no-tooling/fixture.sh
+  s_b735332565022c::t_cf3313d4f8edc0 1-8
+skills/implement/scripts/handoff.test.mjs
+  s_b735332565022c::t_55b0a90279dd6f 124-126,128-131
+  s_b735332565022c::t_3eab5efc069383 137-170
+  s_b735332565022c::t_6d3e17afebd1bc 127
+evals/execute/execute-manual-policy/fixture/package.json
+  s_b735332565022c::t_7d4c3f7fadaee7 1-5
+skills/implement/scripts/render-status.mjs
+  s_b735332565022c::t_fa7ace6a45d4cb 522
+  s_b735332565022c::t_d577fe331d1099 32
+  s_b735332565022c::t_390addf3daac9d 8,390-397,456-462,502,512-521,523-528,530-535,548,561-562,566-568,624-626
+  s_b735332565022c::t_0feb856a926803 529
+evals/slice-the-epic/approach-selection/case.yaml
+  s_5cde86570c8e22::t_8e09c8dc7ee906 1-3
+evals/implement/no-tooling/fixture/package.json
+  s_b735332565022c::t_cf3313d4f8edc0 1-5
+evals/slice-the-epic/well-specified-epic-autopilot/graders/approach-decision-logged.md
+  s_5cde86570c8e22::t_16d2ddc7a613c1 1-7
+skills/implement/scripts/deliver.mjs
+  s_b735332565022c::t_6b7e56feb3bc22 5,10,12,35-79,81,123,141-144,166-168,253-256,258-267,269-270,280-281,296-297,300-303,314,318-321,324-325,328,331-332,334,337-340,342-344,359-360,363-370
+  s_b735332565022c::t_fa7ace6a45d4cb 80,268
+  s_b735332565022c::t_0feb856a926803 238-247
+evals/execute/README.md
+  s_b735332565022c::t_55b0a90279dd6f 3-7
+skills/execute/references/verification-policy.md
+  s_b735332565022c::t_cf3313d4f8edc0 14
+  s_b735332565022c::t_b7760bab8a0433 7
+  s_b735332565022c::t_856a8f88c88d4e 1-6,8-13,15-29
+skills/implement/references/handoffs.md
+  s_b735332565022c::t_856a8f88c88d4e 30,35
+  s_b735332565022c::t_74a84365d85986 36
+evals/implement/empty-strategy/prompt.md
+  s_b735332565022c::t_8857ef9e6a3e82 1-15
+skills/implement/scripts/deliver.test.mjs
+  s_b735332565022c::t_fa7ace6a45d4cb 157-158,208-214,216-249
+  s_b735332565022c::t_8b0d2b971c9d08 8,29,57,62,67,71-74,80,84-85,88,92-99,106,110,125-133,137,152-156,162-207
+  s_b735332565022c::t_77f7a1d152f346 215
+skills/plan-the-work/SKILL.md
+  s_b735332565022c::t_17eb3b587a64c1 243,251,357,384
+evals/implement/empty-strategy/case.yaml
+  s_b735332565022c::t_8857ef9e6a3e82 1-5
+evals/slice-the-epic/README.md
+  s_5cde86570c8e22::t_2540ba0ce4e349 25
+  s_5cde86570c8e22::t_d9dc504a53537e 1,3,5-8,10,12,14-16,19,21,23,27,29,31
+skills/implement/scripts/verification.test.mjs
+  s_b735332565022c::t_3eab5efc069383 15-21,52-71,73-74,79
+  s_b735332565022c::t_b7760bab8a0433 72,75-78
+skills/define-test-strategy/SKILL.md
+  s_b735332565022c::t_8857ef9e6a3e82 181,244
+  s_b735332565022c::t_d6a8b17b9cf694 149
+  s_b735332565022c::t_58394f2b16c94b 3,123,150,177,234,241-243
+evals/implement/empty-strategy/fixture/empty-strategy.md
+  s_b735332565022c::t_8857ef9e6a3e82 1-52
+evals/execute/execute-manual-policy/prompt.md
+  s_b735332565022c::t_7d4c3f7fadaee7 1-13
+evals/execute/execute-manual-policy/fixture/make-it-work/MANUAL-1/MANUAL-1-plan.md
+  s_b735332565022c::t_7d4c3f7fadaee7 1-78
+evals/implement/README.md
+  s_b735332565022c::t_8857ef9e6a3e82 10
+  s_b735332565022c::t_cf3313d4f8edc0 9
+evals/implement/empty-strategy/graders/state-complete.md
+  s_b735332565022c::t_8857ef9e6a3e82 1-6
+skills/implement/scripts/delivery-progress.mjs
+  s_b735332565022c::t_b91539759b0437 1,3-23,25-34,36-38,40-41,43-52,54-79
+  s_b735332565022c::t_390addf3daac9d 2,24
+  s_b735332565022c::t_fa7ace6a45d4cb 53
+  s_b735332565022c::t_0feb856a926803 35,39,42
+skills/define-test-strategy/references/test-strategy-template.md
+  s_b735332565022c::t_58394f2b16c94b 3,32
+  s_b735332565022c::t_9945eb9b2760dc 90-95
+evals/deliver/README.md
+  s_b735332565022c::t_fa7ace6a45d4cb 5-10
+evals/slice-the-epic/well-specified-epic-autopilot/graders/backlog-produced.md
+  s_5cde86570c8e22::t_8e09c8dc7ee906 7,10-11,14
+evals/slice-the-epic/approach-selection/graders/choice-before-backlog.md
+  s_5cde86570c8e22::t_8e09c8dc7ee906 1-11
+evals/implement/empty-strategy/graders/activate-verified-setup.md
+  s_b735332565022c::t_8857ef9e6a3e82 1-16
+CHANGELOG.md
+  s_b735332565022c::t_e51b795ae5a974 12
+  s_5cde86570c8e22::t_8e09c8dc7ee906 31,42
+  s_b735332565022c::t_fa7ace6a45d4cb 11
+skills/implement/scripts/final-package.mjs
+  s_b735332565022c::t_55b0a90279dd6f 10,142-146
+  s_b735332565022c::t_d577fe331d1099 149,153
+skills/implement/scripts/testing-policy.mjs
+  s_b735332565022c::t_e51b795ae5a974 43
+  s_b735332565022c::t_ffbee2f65d7cab 44
+  s_b735332565022c::t_d577fe331d1099 1-42,45-94
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/best-guess-and-backlog.md
+  s_5cde86570c8e22::t_8e09c8dc7ee906 7,11,13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f173b647d43df84a70ed57a7808e9b20318caeed",
+  "prompts": {},
+  "sessions": {
+    "s_23842d5dad9505": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13f6f-a4e3-78d0-af05-eb14bc8c1c85",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_5cde86570c8e22": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13e4a-58ec-77d1-9f60-c7fd0fcc31fc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_b735332565022c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a14a6f-00c3-7d42-ae41-e8c79764b4df",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
