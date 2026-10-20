@@ -1,0 +1,172 @@
+skills/define-test-strategy/references/strategy-discussion.md
+  s_a919a8b62e9ddf::t_8ab00fe0131fb3 1-8,11-22,27-31,33-39,41-43,45-51,53-54,56
+  s_a919a8b62e9ddf::t_40dd72f04a440d 9-10,23-26,32,40,44,52,55
+  s_a919a8b62e9ddf::t_5aac46c4661aa6 57-59
+evals/define-test-strategy/strategy-mixed-autopilot/fixture.sh
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-8
+evals/define-test-strategy/strategy-api-autopilot/graders/strategy-defaults-logged.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-15
+evals/define-test-strategy/selected-layers/fixture.sh
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-10
+evals/define-test-strategy/strategy-api-autopilot/fixture/package.json
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-7
+skills/plan-the-work/SKILL.md
+  s_a919a8b62e9ddf::t_23ae87db0bfcdc 167,242
+  s_a919a8b62e9ddf::t_7bda20eb1c306e 251
+  s_a919a8b62e9ddf::t_52128cb77c71f6 252
+evals/define-test-strategy/run-all.sh
+  s_a919a8b62e9ddf::t_3eef981cd2c086 2
+  s_a919a8b62e9ddf::t_d5a496e0024194 18
+  s_a919a8b62e9ddf::t_b60edb0904d918 4-6,14-16
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 17
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/src/lib/lineTotal.test.js
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-6
+evals/define-test-strategy/no-tooling/graders/proposal-vs-active.md
+  s_a919a8b62e9ddf::t_7bda20eb1c306e 10-15
+  s_a919a8b62e9ddf::t_6824145bbc6924 3,8-9,22-28
+evals/define-test-strategy/strategy-mixed-autopilot/prompt.md
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-12
+evals/define-test-strategy/strategy-mixed-interactive/graders/scope-before-unit-priorities.md
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-19
+evals/define-test-strategy/selected-layers/strategy.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-84
+evals/define-test-strategy/fresh-autopilot/graders/strategy-with-existing-runner.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-12,14-15
+  s_a919a8b62e9ddf::t_7bda20eb1c306e 13
+evals/define-test-strategy/strategy-mixed-interactive/fixture.sh
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-5
+evals/define-test-strategy/selected-layers/case.yaml
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-5
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/functions/platformClient.ts
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-13
+evals/plan-the-work/planned-layer/spec.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-20
+evals/plan-the-work/planned-layer/prompt.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-9
+CHANGELOG.md
+  s_a919a8b62e9ddf::t_df7ee7b91224d5 7-20
+evals/define-test-strategy/README.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 3,18,24,29,48,201
+  s_a919a8b62e9ddf::t_3eef981cd2c086 19-21,28,34,42-45,49,52,136,200,202-203,206-207
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 22-23,35,46-47,204-205
+evals/define-test-strategy/strategy-mixed-interactive/prompt.md
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-15
+evals/define-test-strategy/strategy-api-autopilot/fixture/schema.sql
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-3
+evals/define-test-strategy/selected-layers/prompt.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-12
+evals/plan-the-work/README.md
+  s_a919a8b62e9ddf::t_fb129364905abe 3-9
+evals/define-test-strategy/strategy-interactive/prompt.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-14
+evals/define-test-strategy/coverage-only/strategy.md
+  s_a919a8b62e9ddf::t_3eef981cd2c086 1-56
+evals/define-test-strategy/coverage-only/fixture.sh
+  s_a919a8b62e9ddf::t_3eef981cd2c086 1-9
+evals/plan-the-work/planned-layer/case.yaml
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-5
+evals/define-test-strategy/selected-layers/graders/selected-layers-projected.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-23
+evals/suites.json
+  s_a919a8b62e9ddf::t_d5a496e0024194 25,48
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 24
+  s_a919a8b62e9ddf::t_6824145bbc6924 23
+  s_a919a8b62e9ddf::t_3eef981cd2c086 26
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/CLAUDE.md
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-18
+evals/define-test-strategy/strategy-api-autopilot/graders/risk-based-strategy.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-19
+  s_a919a8b62e9ddf::t_7bda20eb1c306e 20-24
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/README.md
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-17
+evals/define-test-strategy/coverage-only/case.yaml
+  s_a919a8b62e9ddf::t_3eef981cd2c086 1-5
+evals/define-test-strategy/strategy-api-autopilot/case.yaml
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-5
+evals/define-test-strategy/strategy-api-autopilot/fixture/src/server.mjs
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-28
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/src/PurchaseForm.jsx
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-31
+evals/plan-the-work/planned-layer/fixture.sh
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-11
+evals/define-test-strategy/strategy-api-autopilot/fixture/CLAUDE.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-16
+evals/define-test-strategy/strategy-api-autopilot/prompt.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-9
+evals/plan-the-work/planned-layer/graders/missing-selected-layer-surfaces.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-16
+evals/define-test-strategy/strategy-api-autopilot/fixture.sh
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-8
+evals/define-test-strategy/strategy-interactive/case.yaml
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-5
+README.md
+  s_a919a8b62e9ddf::t_7bda20eb1c306e 54
+.claude-plugin/plugin.json
+  s_a919a8b62e9ddf::t_df7ee7b91224d5 6
+skills/define-test-strategy/references/test-strategy-template.md
+  s_a919a8b62e9ddf::t_8ab00fe0131fb3 3,12,96-99,101,112-115,117,120
+  s_a919a8b62e9ddf::t_40dd72f04a440d 100,102-111,116
+  s_a919a8b62e9ddf::t_2e886eb778efe5 32
+  s_a919a8b62e9ddf::t_5aac46c4661aa6 41,43-48,64-68,72,76
+evals/define-test-strategy/coverage-only/graders/report-without-discussion.md
+  s_a919a8b62e9ddf::t_3eef981cd2c086 1-14
+evals/define-test-strategy/strategy-mixed-autopilot/case.yaml
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-5
+evals/define-test-strategy/strategy-mixed-interactive/case.yaml
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-5
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/package.json
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-8
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/functions/approvePurchase.ts
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-20
+evals/plan-the-work/planned-layer/strategy.md
+  s_a919a8b62e9ddf::t_d5a496e0024194 1-63
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/src/lib/lineTotal.js
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-3
+skills/implement/SKILL.md
+  s_a919a8b62e9ddf::t_7bda20eb1c306e 291-292
+skills/run-regression/SKILL.md
+  s_a919a8b62e9ddf::t_23ae87db0bfcdc 116-117
+evals/define-test-strategy/strategy-interactive/fixture.sh
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-5
+evals/define-test-strategy/strategy-interactive/graders/discuss-before-writing.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-15
+evals/define-test-strategy/strategy-api-autopilot/fixture/README.md
+  s_a919a8b62e9ddf::t_6824145bbc6924 1-10
+evals/define-test-strategy/coverage-only/prompt.md
+  s_a919a8b62e9ddf::t_3eef981cd2c086 1-12
+evals/define-test-strategy/strategy-mixed-autopilot/graders/target-versus-first-phase.md
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-24
+skills/define-test-strategy/SKILL.md
+  s_a919a8b62e9ddf::t_2e886eb778efe5 130
+  s_a919a8b62e9ddf::t_6824145bbc6924 162
+  s_a919a8b62e9ddf::t_8ab00fe0131fb3 3,47-49,54,158-161,163-165,167,196,198,258,268
+  s_a919a8b62e9ddf::t_3eef981cd2c086 21-22
+  s_a919a8b62e9ddf::t_fb129364905abe 203
+  s_a919a8b62e9ddf::t_5aac46c4661aa6 145,149-150,156,168,197,200
+  s_a919a8b62e9ddf::t_40dd72f04a440d 166
+  s_a919a8b62e9ddf::t_219bcd16b576d7 157
+evals/define-test-strategy/strategy-mixed-autopilot/fixture/vite.config.js
+  s_a919a8b62e9ddf::t_3df2fdfe42e56d 1-3
+skills/define-test-strategy/references/recommend-initial-setup.md
+  s_a919a8b62e9ddf::t_8ab00fe0131fb3 3,8
+  s_a919a8b62e9ddf::t_5aac46c4661aa6 16
+skills/implement/references/testing-readiness.md
+  s_a919a8b62e9ddf::t_8ab00fe0131fb3 10
+  s_a919a8b62e9ddf::t_23ae87db0bfcdc 9,11-12,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "039c57b7c33c59c36746e9482336014d283d30b1",
+  "prompts": {},
+  "sessions": {
+    "s_a919a8b62e9ddf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a157f3-ebde-72e0-88d4-78381f3ccf7d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
