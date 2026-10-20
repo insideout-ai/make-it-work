@@ -4,6 +4,20 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.13.0] - 2026-10-20
+
+### Added
+
+- `define-test-strategy` discusses repo-specific test layers, boundaries, coverage priorities, execution and adoption before saving the strategy. It distinguishes current coverage, target coverage and the first adoption phase, asks focused questions with recommendations and tradeoffs, and records decision sources, assumptions and deferred risks. Autopilot resolves and logs defaults while preserving explicit user choices; coverage-report-only skips the discussion.
+- Focused evaluations cover no-tooling proposals, existing runners without tests, mixed React/Deno applications, interactive scope decisions, coverage-only runs, refresh of saved layer selections and planning with a required layer awaiting setup.
+
+### Changed
+
+- Generated strategies list every configured or selected layer in `Layers`, `Where New Tests Go` and `Coverage Decision Guidance`, with `configured`, `planned` or `deferred` status and explicit prerequisites. Intended test destinations can be recorded before directories or tooling exist; runnable commands and `Test Locations` continue to reflect actual configuration.
+- Strategy refresh upgrades old configured-only tables using saved user decisions. A consistency check prevents selected layers from disappearing, and verified setup promotes only the established layers while preserving other planned/deferred choices.
+- Planning and implementation readiness identify missing setup for required selected layers even when another test runner is configured. Regression runs use configured commands, and older strategies without status columns retain their previous interpretation.
+- Strategy recommendations treat missing tooling as a prerequisite to discuss, keep production refactoring separate from setup, and avoid testing detached copies of production logic as a substitute for backend coverage.
+
 ## [4.12.0] - 2026-10-19
 
 ### Added

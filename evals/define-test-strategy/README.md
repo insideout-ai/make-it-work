@@ -1,6 +1,6 @@
 # `define-test-strategy` eval cases
 
-Five cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
+Eleven cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
 one per-repo test-strategy skill at `.claude/skills/test-strategy/SKILL.md`
 (structure fixed by `skills/define-test-strategy/references/test-strategy-template.md`),
 tags existing tests with repo-qualified `@covers <Repo ID>:UC-<id>` comments,
@@ -15,26 +15,41 @@ never commits.
 | `fresh-autopilot` | `--autopilot` | The same go-deep-shaped project with none of the old outputs and no tests: Phase 1 finds nothing (no menu), the skill is generated from scratch, and no test file is created. |
 | `define-test-strategy-negative-control` | no `--autopilot` | The migration fixture run interactively: the skill must stop at the refresh/migrate question (or the location confirmation) before writing anything. |
 | `dts-multi-repo` | `payments-api --autopilot`, from a workspace root | Cross-repo detection over `evals/fixtures/multi-repo-workspace/`: the `[repo]` argument, a sibling QA repo found by its test files' references, repo-qualified tags, the go-deep warning for a repo without go-deep, and a same-numbered UC in another repo left alone. |
+| `dts-no-tooling` | `--autopilot` | No configured tooling: selected layers/destinations are planned, while Test Locations and runnable commands remain `none`. |
+| `dts-strategy-api-autopilot` | `--autopilot` | Database-backed API: recommend layers from persistence risks, distinguish real/mocked boundaries, log strategy defaults, and keep unknown database access explicit. |
+| `dts-strategy-interactive` | no `--autopilot` | Recommend an approach, ask one material question with tradeoffs about test database access, and wait before writing. Target and locations are already confirmed. |
+| `dts-coverage-only` | explicit coverage-only choice | An existing strategy with no tests: report coverage without discussion or writes, preserving saved decisions. |
+| `dts-strategy-mixed-autopilot` | `--autopilot` | React/Deno app with Vitest helper tests: separate current, target and initial coverage; discuss missing prerequisites; avoid treating duplicated logic or unperformed manual checks as backend verification. |
+| `dts-strategy-mixed-interactive` | no `--autopilot` | Same mixed app: ask about consequential coverage/environment choices before narrowing the discussion to unit-test priorities. |
+| `dts-selected-layers` | `--autopilot` refresh | Saved unit-plus-component decision with old configured-only tables: project Component planned into layer/destination/guidance sections while preserving active commands and user notes. |
 
 ## Running the cases
 
-`dts-migrate-autopilot`, `fresh-autopilot` and `dts-multi-repo` are listed
+`dts-migrate-autopilot`, `fresh-autopilot`, `dts-multi-repo`, `dts-no-tooling`,
+`dts-strategy-api-autopilot`, `dts-strategy-mixed-autopilot`, `dts-selected-layers` and `dts-coverage-only` are listed
 under `headless` in `evals/suites.json`: the runner seeds a disposable fixture,
 runs the prompt headlessly, and grades `graders/*.md` automatically (regex
 checks locally, `llm` checks with a separate judge, which runs only when every
 regex check passes).
-`dts-migrate-autopilot` is the skill's smoke case. The negative control writes
-nothing, so it runs through plain `claude plugin eval`.
+`dts-migrate-autopilot` is the skill's smoke case. The negative control and
+interactive strategy cases run through plain `claude plugin eval`.
 
 ```sh
 node evals/run-suite.mjs smoke --case=dts-migrate-autopilot
 node evals/run-suite.mjs full --case=fresh-autopilot
 node evals/run-suite.mjs full --case=dts-multi-repo
 node evals/run-suite.mjs full --case=define-test-strategy-negative-control
-bash evals/define-test-strategy/run-all.sh   # all four
+node evals/run-suite.mjs full --case=dts-no-tooling
+node evals/run-suite.mjs full --case=dts-strategy-api-autopilot
+node evals/run-suite.mjs full --case=dts-strategy-interactive
+node evals/run-suite.mjs full --case=dts-coverage-only
+node evals/run-suite.mjs full --case=dts-strategy-mixed-autopilot
+node evals/run-suite.mjs full --case=dts-strategy-mixed-interactive
+node evals/run-suite.mjs full --case=dts-selected-layers
+bash evals/define-test-strategy/run-all.sh   # all DTS cases
 ```
 
-All three headless cases allow Bash, so the skill can resolve the repo root
+All headless cases allow Bash, so the skill can resolve the repo root
 (`git rev-parse --show-toplevel`) and run its location and tag scans.
 
 ### Headless graders accept the written or the blocked outcome
@@ -118,6 +133,7 @@ accept the written or the blocked outcome (see above):
 - that no test file was created (`no-new-test-files`);
 - that `CLAUDE.md` has either no `/test-strategy` row and no `### Other Skills` table, or exactly one `/test-strategy` row in an `### Other Skills` table; in both cases no testing-strategy Rules row, and "Skill docs" still checklist item 1 (`claude-md-consistent`); the SENTINEL line also stays (`sentinel-survives`);
 - no hook (`no-hook`);
+- `Strategy Decisions` records an approach and first behavior tests even though a runner already exists; the configured runner remains active, and no second framework is installed (`strategy-with-existing-runner`);
 - the autopilot log (`autopilot-log-content`): a `location-confirm` line, `go-deep-offer` only if reached, and no prior-output menu. With no tests to tag, a `tag-and-migration-confirm` line is not required.
 
 ### Manual full-write check
@@ -181,10 +197,14 @@ Then check in `$RUN_DIR`:
 ## Known gaps
 
 `dts-no-tooling` removes the fresh fixture's configured runner and checks that
-the skill writes an actionable, repo-specific Recommended Setup while retaining
-`none` in active fields and installing/creating no tooling or tests.
+the skill develops repo-specific Strategy Decisions and an actionable Recommended
+Setup while retaining `none` in Test Locations and planned/deferred Example commands, and installing/creating no tooling
+or tests. The API case separately checks that the strategy is not automatically
+unit-only, without forcing multiple layers on the small pure-function fixture.
+The mixed React/Deno cases exercise the real-world failure where existing unit
+tooling and a missing backend runtime prematurely narrowed the target strategy.
 
-- The "Coverage report only" path, refresh conflicts, and a refresh that keeps user edits are not covered by an eval case.
+- The coverage-only and interactive strategy paths have cases. Refresh conflicts, a refresh that keeps user edits, and a full multi-turn strategy discussion through confirmation are not yet covered.
 - The go-deep offer with an actual partial run (an onboarded repo without go-deep) is not covered; under autopilot it resolves to "Continue without it".
 - The target-repo hard stop and a `CLAUDE.md` without `## Skills Reference` (row skipped and reported) have no deliberately broken fixture.
 - Untaggable files (JSON, Postman collections) and PHP docblock placement are not exercised; every fixture test is JavaScript.

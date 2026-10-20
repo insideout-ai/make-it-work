@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-strategy-mixed-autopilot
+tags: [define-test-strategy, strategy, existing-tooling]
+context:
+  scaffold_script: fixture.sh

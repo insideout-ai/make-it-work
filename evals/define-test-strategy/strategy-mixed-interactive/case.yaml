@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-strategy-mixed-interactive
+tags: [define-test-strategy, strategy, interaction]
+context:
+  scaffold_script: fixture.sh
