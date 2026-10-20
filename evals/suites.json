@@ -61,7 +61,10 @@
     "shape-the-epic-technical-debt-sparse",
     "shape-the-epic-discovery-interview",
     "slice-the-epic-well-specified-epic-autopilot",
-    "slice-the-epic-ambiguous-epic-autopilot"
+    "slice-the-epic-ambiguous-epic-autopilot",
+    "implement-switch-to-guided",
+    "implement-switch-to-autopilot",
+    "implement-resume-changed-autonomy"
   ],
   "extraTools": {
     "execute-resume-inline": ["Bash"],

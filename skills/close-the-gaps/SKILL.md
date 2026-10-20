@@ -394,6 +394,8 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided, Autonomous, or Autopilot), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
 
+**Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current interview progress and answers; never restart refinement just to change mode.
+
 **No offline mode** — ignore `--offline` and always use Phase 5A. (`implement` stops before calling this skill when a pending questions file exists.)
 
 **Questions** — Guided and Autonomous ask every question live exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and never ask live; return normally after a safe resolution or surface its documented hard-stop result to `implement`.

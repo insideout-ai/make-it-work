@@ -21,6 +21,10 @@ description: "Runs a project's regression suite — full, per repo (`full:<repo>
 
 This skill is invoked both directly by a user and by the `execute` skill's own instructions passing an already-resolved argument.
 
+## When run inside implement
+
+When `execute` or another inline stage of `implement` supplies a **workflow state path**, follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md). Use the current saved mode before each question/default, overriding the entry `--autopilot` flag after an explicit chat change. Retain the selected regression scope and results already observed; changing mode does not restart suites or invent an unavailable command. Preserve any existing autopilot log when entering/re-entering Autopilot during this run. Without that context, standalone invocation and log initialization remain unchanged.
+
 ## Autopilot Mode
 
 When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — the exact option labels, `multiSelect` settings, and list-vs-picker thresholds all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.

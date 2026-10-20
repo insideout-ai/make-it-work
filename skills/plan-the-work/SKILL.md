@@ -358,6 +358,8 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **Inputs** — the spec path, the run's autonomy level (Guided, Autonomous, or Autopilot), the plan version `N`, optional testing-readiness artifact with its verification policy and accepted setup baseline files, optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
 
+**Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current plan version, drafting progress, and previous decisions.
+
 **Initial mode** (`N = 1`) — write `make-it-work/<TICKET>/<TICKET>-plan.md`. If it already exists, overwrite it without the overwrite / `-v2` / abort question; `implement` has already offered the user to reuse it. **With redo notes:** read the existing plan before overwriting it, treat the notes as constraints the new draft must satisfy, and handle the earlier draft's test files the same way replan mode does (reuse what is still valid; adjust or remove the rest as ordinary file edits).
 
 **Replan mode** (`N > 1`, with the previous plan path, a feedback path — the review report or `execute`'s saved report — and the decided findings list):
