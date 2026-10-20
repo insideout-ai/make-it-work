@@ -1,6 +1,6 @@
 # Test Strategy Template
 
-Template for the file `define-test-strategy` generates at `.claude/skills/test-strategy/SKILL.md` in the onboarded repo. Reproduce this exact structure; never rename or reorder fixed headings — consumers locate sections by exact heading text. Keep every fixed section, writing `None` where empty rather than deleting it. After `## How to Scan`, include `## Recommended Setup` when automated tooling is absent, and `## Pending` only on a partial run.
+Template for the file `define-test-strategy` generates at `.claude/skills/test-strategy/SKILL.md` in the onboarded repo. Reproduce this exact structure; never rename or reorder fixed headings — consumers locate sections by exact heading text. Keep every fixed section, writing `None` where empty rather than deleting it. After `## How to Scan`, include `## Strategy Decisions` when strategy was discussed (or preserve it from a prior run), then `## Recommended Setup` when tooling is absent or justified capability additions are proposed, and `## Pending` only on a partial run.
 
 Replace every `<placeholder>`. `<Repo ID>` is the value written under `## Repo ID`.
 
@@ -9,7 +9,7 @@ The generated file starts with this frontmatter:
 ```yaml
 ---
 name: test-strategy
-description: "Test strategy for `<Repo ID>`: where its tests live (including other repos), how to run them and what they need, where new tests go, and the `@covers` tag convention. Read before planning, writing, running, or reviewing tests for this repo."
+description: "Test strategy for `<Repo ID>`: testing approach and priorities, where tests live (including other repos), how to run them and what they need, where new tests go, and the `@covers` tag convention. Read before planning, writing, running, or reviewing tests for this repo."
 ---
 ```
 
@@ -29,7 +29,7 @@ Tags use this ID. If this repo is cloned under a different directory name, tags 
 
 ## Test Locations
 
-Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. When it has test tooling (a test runner or a test script) but no test files yet, still record its layers, `Test files` glob and full-suite command, since new tests go there. Only when it has neither test files nor test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
+Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. When it has configured test tooling but no test files yet, still record its layers, `Test files` glob and full-suite command, since new tests go there. A runtime's built-in runner alone does not count as configured tooling: require an actual test script, runner config, CI test command or real tests, not a proposed command or stale reference to a missing script. Only when it has neither test files nor configured test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
 
 | Location | Repo | Layers | Test files | Full-suite command | Run from |
 | --- | --- | --- | --- | --- | --- |
@@ -38,11 +38,14 @@ Every place this repo's tests live, including other repos. `Location` is relativ
 
 ## Layers
 
-Only layers whose tooling is present in a listed location.
+Include configured layers and every layer selected in Strategy Decisions, including planned and deferred layers. `Status` is exactly `configured`, `planned` or `deferred`: configured tooling exists; planned coverage is selected for adoption but needs setup; deferred coverage is intentionally postponed. A configured layer may still need environment prerequisites before running. A recommendation not selected for adoption belongs in Strategy Decisions, not this table. In older strategies without Status, rows have the previous configured-only meaning; do not infer readiness for missing layers from them.
 
-| Layer | For | Not for | Location | Example command |
-| --- | --- | --- | --- | --- |
-| <e.g. Unit> | <what this layer tests> | <what belongs elsewhere> | `<Location from ## Test Locations>` | `<command running one file or test>` |
+| Layer | Status | For | Not for | Location | Example command | Prerequisites |
+| --- | --- | --- | --- | --- | --- | --- |
+| <e.g. Unit> | configured | <what this layer tests> | <what belongs elsewhere> | `<Location from ## Test Locations>` | `<configured command running one file or test, or none if unknown>` | <environment requirements, or None> |
+| <e.g. Component> | planned | <selected behavior to cover> | <what belongs elsewhere> | <intended location> | none | <missing dependencies/configuration; proposed command in Recommended Setup> |
+
+Write `none` for planned/deferred Example commands; place any proposed commands in Recommended Setup. Test Locations continues to describe only actual tests/configured tooling and runnable command sources; selecting a layer does not add it to that table. Write plain `None` here only when no configured or selected layers exist, not merely because setup is missing.
 
 ## Run Prerequisites
 
@@ -58,16 +61,19 @@ One `###` subsection per row of `## Test Locations`, headed by that row's `Locat
 
 ## Where New Tests Go
 
-| Layer | Repo | Directory | File naming |
-| --- | --- | --- | --- |
-| <layer from ## Layers> | `<repo ID>` | `<directory, relative to this repo's root>` | `<e.g. <module>.test.js>` |
+Include a destination row for every layer in Layers, carrying the same Status. A planned or deferred directory need not exist yet: record the agreed destination and naming. If undecided, write `TBD` and record the unresolved choice rather than omitting the layer. A Status describes the layer's setup/adoption state, not whether the directory already exists.
+
+| Layer | Status | Repo | Directory | File naming |
+| --- | --- | --- | --- | --- |
+| <layer from ## Layers> | <same status as Layers> | `<repo ID>` | <existing or planned directory, relative to this repo's root; or TBD> | <agreed naming, e.g. <module>.test.js; or TBD> |
 
 ## Coverage Decision Guidance
 
-Which layer a change needs. Use only layers listed in `## Layers`.
+Which layer a change needs. Use the configured and selected layers in Layers. For planned layers, name the layer and its setup prerequisite rather than substituting a configured layer; for deferred layers, state the remaining risk and revisit condition. Layer selection alone does not make a command runnable.
 
 - <kind of change, e.g. pure business logic> → <layer>
 - <kind of change, e.g. new API endpoint> → <layer>
+- <kind of change needing a selected planned layer> → <layer> (planned; <setup required>)
 
 ## Tag Convention
 
@@ -87,9 +93,31 @@ Which layer a change needs. Use only layers listed in `## Layers`.
 - The matched files are the tests for that tag.
 - Coverage gaps are always computed this way, live. Never store a gap list in this file.
 
+## Strategy Decisions
+
+_Include when strategy was discussed, or preserve the existing section. This section records direction; proposed capabilities are not active configuration._
+
+### Current Coverage
+
+<repo evidence, important risks, existing layers and what they actually exercise; distinguish configured tooling from tests or verification that have actually run>
+
+### Recommended Target Coverage
+
+<risk-based layers and rationale independent of currently installed tooling; real versus mocked boundaries, fixtures/data and local/CI approach; proposed status and prerequisites for missing capabilities>
+
+### First Adoption Phase
+
+<selected initial subset and why it is feasible; first behavior tests with expected observations; subsequent adoption order; deferred risks and revisit conditions; proposed production refactoring separate from tooling setup>
+
+| Decision | Choice and rationale | Source |
+| --- | --- | --- |
+| <material strategy decision> | <choice and tradeoffs> | <user, project policy with path, repo evidence, autopilot default, autonomous default, or assumption> |
+
+<unresolved assumptions and decisions, per strategy-discussion.md. Do not store a live coverage-gap list or describe unperformed manual checks as verified.>
+
 ## Recommended Setup
 
-_Include only when no usable automated setup exists. This section is a proposal, not runnable configuration._
+_Include when no usable automated setup exists, or when the strategy discussion selects justified capability additions. This section is a proposal, not runnable configuration._
 
 <repo-specific evidence, recommended tools/layers, proposed setup changes and commands, external-boundary handling, initial coverage priorities, and the first real behavior test, per recommend-initial-setup.md>
 

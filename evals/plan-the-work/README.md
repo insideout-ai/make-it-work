@@ -1,5 +1,12 @@
 # `plan-the-work` autopilot smoke test
 
+Additional status-aware coverage: `plan-the-work-planned-layer` uses a UI ticket
+with configured Unit but selected/planned Component coverage. Planning must
+surface the missing component setup and intended destination before writing
+tests or claiming a ready plan. Run it with
+`node evals/run-suite.mjs full --case=plan-the-work-planned-layer`; it uses the
+disposable headless path and semantic grading.
+
 Current runner note (2026-10-07): `happy-path` and `plan-collision` now use
 the scripted Execution Status updater and require `Bash` in model-driven evals.
 `bash evals/plan-the-work/run-all.sh` grants it through

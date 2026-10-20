@@ -1,6 +1,6 @@
 ---
 name: define-test-strategy
-description: "Onboards or refreshes a repo's test-strategy skill: discovers test locations, layers, commands and prerequisites, recommends an initial setup when tooling is absent, tags existing tests with repo-qualified @covers comments, migrates old outputs, and reports live coverage."
+description: "Onboards or refreshes a repo's test-strategy skill: discovers existing tests, discusses and recommends layers, approach, coverage priorities and adoption, records commands and prerequisites, tags tests with repo-qualified @covers comments, migrates old outputs, and reports live coverage."
 disable-model-invocation: true
 ---
 
@@ -17,6 +17,8 @@ Strip `--autopilot` from the arguments wherever it appears; whatever remains is 
 - **`[repo]`** — optional. The repo to onboard: a directory under the current directory or under the workspace root. When omitted, the target is the git toplevel of the current directory. One run onboards one repo; repeat the run in each repo.
 - **No `--autopilot`** — interactive. Every `AskUserQuestion` and checkpoint below pauses for a human, exactly as documented.
 - **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. Exception: the hard-stop site named in Autopilot Mode is never auto-resolved.
+
+Reuse explicit answers already supplied in the invocation or conversation instead of re-asking a resolved question. In particular, an explicit coverage-report-only request selects that Phase 1 path when the generated strategy exists.
 
 The output is the target repo's `.claude/skills/test-strategy/SKILL.md`, built from `<base>/references/test-strategy-template.md` (`<base>` is the `Base directory for this skill:` path printed when this skill loaded). Read the template before Phase 5 and reproduce its structure exactly.
 
@@ -42,11 +44,14 @@ Pass `--root "<invocation root>"` to every writer command, even after Phase 0 ha
 | Phase 0 | go-deep offer | `askUserQuestion` | `"Continue without it"` — a partial run. Autopilot never runs go-deep inline. |
 | Phase 1 | Prior-output menu | `askUserQuestion` | `"Refresh / migrate (Recommended)"` — refresh, plus migrate when old outputs exist. |
 | Phase 2 | Location confirmation (`askUserQuestion` with `multiSelect: true` for 1-4 candidates; plain-text `checkpoint` for more than 4) | `askUserQuestion` / `checkpoint` | Auto-confirm the detected list, selecting every candidate. |
+| Phase 3a | Existing-suite strategy review (`strategy-review`) | `askUserQuestion` | `"Review strategy (Recommended)"` when concrete gaps or changed constraints justify a review; preserve established tools and explicit choices. |
+| Phase 3a | Strategy question (`strategy-question-<n>`) | `askUserQuestion` | Choose the repo-specific recommended option within known constraints. Record unverified environment or team assumptions in the rationale and deliverable; never infer access or user agreement. |
+| Phase 3a | Strategy confirmation (`strategy-confirm`) | `checkpoint` | Confirm the resulting recommendation, retaining explicit user/project decisions and labeling defaults and assumptions. This approves documentation only. |
 | Phase 4 | Tag-and-migration confirmation | `checkpoint` | Auto-confirm. Log each file and tag written, and each migration change; placeholder files are listed only. |
 | Phase 5 | Refresh conflict | `checkpoint` | Keep the user's content and log the conflict. |
 | Phase 6 | `CLAUDE.md` has no `## Skills Reference` | `checkpoint` | Skip the row and report it in the summary. |
 
-Only the Phase 0 go-deep offer and the Phase 1 prior-output menu carry a `(Recommended)` label. At the go-deep offer, autopilot deliberately takes the non-recommended `"Continue without it"`, since running go-deep unattended is out of scope. Do not invent a `(Recommended)` label on any other site.
+The Phase 0 go-deep offer, Phase 1 prior-output menu, and Phase 3a strategy questions carry a `(Recommended)` label. Phase 3a uses repo-specific option labels except for its fixed review menu. At the go-deep offer, autopilot deliberately takes the non-recommended `"Continue without it"`, since running go-deep unattended is out of scope. Do not add a `(Recommended)` label to other sites.
 
 At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision — including any site that stopped rather than resolving, and whether the decision log itself was written successfully — and the log file's path, so someone can audit the run afterward.
 
@@ -122,7 +127,7 @@ A sibling test file references the target repo when it contains any of:
 
 Search with `grep -rlI --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work`, restricted to files that look like tests: the path contains `test` or `spec`, or the file matches the sibling's test runner config.
 
-The target repo is always in the list, and always row 1 of `## Test Locations`. Use the template's literal `none` row only when it has neither test files nor configured test tooling. When tooling exists but tests do not, record the configured layers, file pattern and command; do not invent an existing test file for an example command. The target repo cannot be removed.
+The target repo is always in the list, and always row 1 of `## Test Locations`. Use the template's literal `none` row only when it has neither test files nor configured test tooling. Configured tooling requires repo evidence: an actual test script, runner configuration, CI test command, or real tests using the runner. A runtime shipping a built-in runner is not configuration; neither is a stale README/`CLAUDE.md` reference to a nonexistent script, an empty directory or a placeholder script. For example, Node plus `scripts: {}` and no tests means `none`, even though `node --test` is available; an existing `test: node --test` script is configured tooling even with no tests. When tooling exists but tests do not, record the configured layers, file pattern and command; do not invent an existing test file for an example command. The target repo cannot be removed.
 
 Confirm the list with the user before anything is written; they may remove or add locations (autopilot: see Autopilot Mode):
 - **1 candidate** → one `AskUserQuestion` call (`multiSelect: true`) with that location plus `{ label: "Add another location", description: "Name a test location this search missed." }`, since a question needs two options.
@@ -137,18 +142,30 @@ For each confirmed location in another repo, check that repo for the Phase 0 go-
 
 For each confirmed location, collect what each template section needs. Phase 5 writes it.
 
-- **`## Layers`** — from the location's actual dependencies and config (testing libraries in `package.json`, `requirements.txt`, `Gemfile`, `go.mod`, CI config, or equivalent). State what each layer is for and not for. Skip any layer with no tooling rather than listing it as aspirational.
+- **`## Layers`** — identify configured layers from actual dependencies/config (testing libraries in `package.json`, `requirements.txt`, `Gemfile`, `go.mod`, CI config, or equivalent). Phase 3a also adds every selected planned/deferred layer, with Status per the template. State what each layer is for and not for, and its prerequisites; an unselected recommendation does not become a layer row.
 - **`## Test Locations` command** — the full-suite command, plus one example command per layer for `## Layers`. Discover them from `package.json` scripts, `Makefile` targets, CI config (e.g. `.github/workflows/`), or `CLAUDE.md`'s Quick Reference — never assume `npm test` or `pytest`. If none is found, write `none` and say so in the summary.
 - **`Test files` glob** — from the runner's configured test-match pattern, or the existing test file names.
 - **`## Run Prerequisites`** — env vars, services with a check command, credentials, and how to start them, from env usage in test config, `docker-compose` files, CI `services:`/`env:`, and README test sections. `Local run:` is `ci-only` when a suite runs only in CI; use `slow` or `flaky` only when config or docs say so; otherwise `yes`.
-- **`## Where New Tests Go`** — per layer, the directory existing tests of that layer live in and their file naming.
-- **`## Coverage Decision Guidance`** — a short list mapping a kind of change to a layer, using only the layers found, for example:
+- **`## Where New Tests Go`** — existing destinations/naming plus every selected planned/deferred layer's intended destination, carrying the same Status as Layers. Proposed directories need not exist; unresolved destinations are `TBD`, never an omitted layer.
+- **`## Coverage Decision Guidance`** — a short list mapping a kind of change to a configured or selected layer. For planned/deferred choices, include setup requirements or the deferral risk/revisit condition, for example:
   - pure function or isolated module → unit
   - UI component rendering or local behavior → component
   - API contract (request/response shape, endpoint signature) → contract
   - cross-service or end-to-end flow → behavior
 
-When no usable automated test setup exists in the confirmed locations, read `<base>/references/recommend-initial-setup.md`. Add the resulting repo-specific proposal under `## Recommended Setup`, after `## How to Scan`. Keep proposed tools, commands and directories out of the active sections above until configured. If there are no active layers, write plain `None` under Layers, Where New Tests Go, and Coverage Decision Guidance; do not create synthetic "None" table rows or put a proposed directory there. This skill recommends setup; installing tooling and writing the first real test belong to implementation, including `implement`'s testing-readiness step.
+When no usable automated test setup exists in the confirmed locations, read `<base>/references/recommend-initial-setup.md`. Add the repo-specific proposal under `## Recommended Setup`, after `## How to Scan`. Test Locations stays factual (`none` when no tests/tooling exist); selected layers and destinations still appear in Layers and Where New Tests Go as planned/deferred. Keep runnable-looking proposed commands in Recommended Setup; Example command is `none` until configured. Write plain `None` in the layer/destination/guidance sections only when no configured or selected layers exist. This skill recommends setup; installing tooling and writing the first real test belong to implementation, including `implement`'s testing-readiness step.
+
+## Phase 3a — Discuss the Testing Strategy
+
+Read `<base>/references/strategy-discussion.md` and follow it after discovery, before tagging or writing the strategy.
+
+- **No real tests in the confirmed locations** (no non-skipped behavior tests, including configured tooling with an empty or placeholder-only suite) → conduct the discussion as part of normal onboarding; no opt-in menu.
+- **Existing real tests** → when the user requests strategy advice, conduct the discussion. Otherwise, if discovery finds concrete gaps or changed constraints, offer one `AskUserQuestion` (`multiSelect: false`, site `strategy-review`): `Review strategy (Recommended)` / `Keep current approach`. Describe the actual gap and the cost/benefit of reviewing it. If there is no reason to revisit the approach, or the user keeps it, retain prior decisions and continue without an interview.
+- **Coverage report only** → Phase 1 goes directly to Phase 7; never start this discussion.
+
+Present a repo-specific recommendation that distinguishes current coverage, recommended target coverage and a feasible first adoption phase. Assess layers from risks rather than limiting the target to existing tooling; discuss missing prerequisites and consequential scope choices before prioritizing individual tests. Keep proposed production refactoring separate from test setup and do not default to testing duplicated logic. Then ask one material question at a time (`multiSelect: false`, sites `strategy-question-1`, `strategy-question-2`, etc.). Use 2–3 meaningful options with the recommended option first, explanations of tradeoffs, and free-text input. Do not ask for facts already established by code, docs, earlier answers or the caller. Close with a plain-text `strategy-confirm` checkpoint showing the target, first phase, remaining risks and prerequisites for confirmation or correction. Autopilot resolves these sites per its table without waiting.
+
+Save the result under `## Strategy Decisions` after `## How to Scan`, before `## Recommended Setup` when present. Include rationale, decision sources, assumptions, first tests, deferred work and adoption order per the reference. Project the selected choices into Layers, Where New Tests Go and Coverage Decision Guidance with explicit Status; they must not appear only in narrative or setup recommendations. Keep concrete setup proposals in Recommended Setup, including justified additions to an existing suite, and keep Test Locations limited to actual configuration. Agreement on a strategy does not install tooling, add tests, change CI, or select `implement`'s automated/manual verification policy.
 
 ## Phase 4 — Tag Mapping, Migration Confirmation, Tagging
 
@@ -176,11 +193,14 @@ When no usable automated test setup exists in the confirmed locations, read `<ba
 Write `.claude/skills/test-strategy/SKILL.md` in the target repo from the template, using what Phases 2-4 collected.
 
 - **Fresh** → write the file from the template, frontmatter included.
-- **No usable automated setup** → include `## Recommended Setup` per Phase 3. On refresh, preserve user edits to a prior proposal under the same conflict rule. Once a setup is configured, identify which recommendations are fulfilled and retain any user-written future recommendations as notes; never activate an unconfigured layer.
+- **Strategy discussion** → include `## Strategy Decisions` per Phase 3a when conducted, or preserve an existing section when no new discussion is needed. Record explicit changes agreed in this discussion with their rationale; they need no second approval under the refresh-conflict rule. Defaults cannot supersede explicit user/project choices.
+- **Selected-layer consistency** → before saving, check every selected layer in current or saved Strategy Decisions has a Layers row, a matching-status Where New Tests Go row (or explicit `TBD` destination), and appropriate Coverage Decision Guidance. `planned`/`deferred` rows have Example command `none`; no unconfigured layer or command is promoted into Test Locations. For example, user-selected unit plus component coverage with only unit tooling means Unit configured and Component planned in both tables, with component behavior mapped to Component (setup required).
+- **Setup recommendations** → include `## Recommended Setup` for absent tooling per Phase 3, or concrete missing capabilities selected in Phase 3a. On refresh, preserve user edits to a prior proposal under the same conflict rule. Once a setup is configured, identify which recommendations are fulfilled and retain any user-written future recommendations as notes; never activate an unconfigured layer.
 - **Refresh** → read the existing file in full first.
+  - **Schema upgrade:** add Status/prerequisites and project already-recorded explicit selections into the tables, replacing old generated configured-only boilerplate. This is documentation of existing decisions, not a new strategy choice or permission to install tooling; do not require the user to reselect the same layers. Preserve unrelated user content. If a saved decision is ambiguous or conflicts with policy, use the normal conflict rule rather than inventing a selection.
   - Keep user-written content under every heading, and every heading after `## How to Scan` other than `## Pending`.
   - Fill gaps: add newly detected locations, layers, prerequisites and targets. Update detected facts the file states differently only after the conflict rule below.
-  - **Verified setup by implement:** when the caller supplies its selected automated policy, saved pre-setup strategy, exact setup changes and a successful real-test command/result, replace the corresponding old `none`/no-tooling facts with that verified configuration. This includes locations, layers, commands, prerequisites, destinations and decision guidance; identify fulfilled recommendations as configured. These are facts deliberately changed by the authorized setup, not unresolved refresh conflicts. Preserve unrelated user content and constraints; this exception cannot override a user's testing policy or activate unverified tooling. Without that supplied evidence, the normal conflict rule still applies.
+  - **Verified setup by implement:** when the caller supplies its selected automated policy, saved pre-setup strategy, exact setup changes and a successful real-test command/result, replace the corresponding old `none`/no-tooling facts with that verified configuration and promote only the verified planned layer/destination rows to `configured`. This includes locations, layers, commands, prerequisites, destinations and decision guidance; identify fulfilled recommendations as configured while retaining unrelated planned/deferred selections. These are facts deliberately changed by the authorized setup, not unresolved refresh conflicts. Preserve unrelated user content and constraints; this exception cannot override a user's testing policy or activate unverified tooling. Without that supplied evidence, the normal conflict rule still applies.
   - **Conflict:** when existing content contradicts a new finding, quote both versions, name the heading, and ask which to keep (autopilot: see Autopilot Mode). Never resolve one silently.
 - **Migration** (the old rule file is in the migration set) → read `.claude/rules/testing-strategy.md` and carry its content into the new skill by meaning, not by heading text. Treat it as user-written content, under the same conflict rule:
 
@@ -235,6 +255,7 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 - go-deep warnings: the Phase 2 sentence, repeated per repo, and, in partial mode, that tagging is pending go-deep for `<Repo ID>`;
 - full-suite commands written as `none`;
 - when tooling is absent, the recommended initial setup, why it fits this repo, and that it is proposed rather than configured;
+- when strategy was discussed, the selected layers and approach, first coverage priorities, deferred work, and any assumptions or defaults still needing validation; report proposed additions to existing suites as proposed too;
 - the tag edits per repo, uncommitted, for the user to review and commit;
 - untaggable files;
 - migration removals: path tags converted, the old rule file deleted (or kept, and why), and the `CLAUDE.md` row and checklist item removed;
@@ -244,4 +265,4 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 
 ## When run by implement
 
-`implement` may follow this skill inline during testing readiness to inventory or refresh an affected repo. It passes the target repo, invocation/artifact root, and autonomy. After verified setup it also passes the selected automated policy, saved pre-setup strategy, exact setup changes and actual successful test result for Phase 5's narrow activation rule. Under Autopilot apply this skill's `--autopilot` policy, including its own decision log; under other modes retain the normal questions. Do not run go-deep inline in this context: its absence means a partial run. Return the generated skill path, active commands or `none`, recommended setup if needed, and files changed. `implement` owns setup decisions and tooling changes, and refreshes this skill after setup succeeds. This inventory has no stage handoff of its own.
+`implement` may follow this skill inline during testing readiness to inventory or refresh an affected repo. It passes the target repo, invocation/artifact root, and autonomy, plus the ticket scope and prior strategy decisions when available. Scope Phase 3a to changed behavior and nearby regression risks; reuse its saved proposal/decisions and do not reopen resolved questions on the post-setup refresh. Guided mode asks only unresolved material strategy questions. Autonomous mode resolves Phase 3a without waiting using the same evidence-based defaults as Autopilot, labeled as autonomous defaults; it does not create a DTS autopilot log. Under Autopilot apply this skill's full `--autopilot` policy, including its own decision log; outside Phase 3a, other modes retain the normal questions. After verified setup the caller also passes the selected automated policy, saved pre-setup strategy, exact setup changes and actual successful test result for Phase 5's narrow activation rule. Do not run go-deep inline in this context: its absence means a partial run. Return the generated skill path, active commands or `none`, strategy decisions, recommended setup if needed, and files changed. `implement` owns setup decisions and tooling changes, including its separate automated/manual verification choice, and refreshes this skill after setup succeeds. This inventory has no stage handoff of its own.

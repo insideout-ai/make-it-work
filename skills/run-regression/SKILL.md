@@ -113,6 +113,8 @@ For a `full:<repo>` token, a failed discovery is not a stop: record `not run —
 
 ### Run prerequisites
 
+Layers and Where New Tests Go may include `planned` or `deferred` rows alongside `configured` rows. These record selected coverage and destinations, not additional runnable suites. Use only actual commands in Test Locations; never execute setup proposals or infer a runnable command from a selected layer/directory. Legacy rows without Status retain the previous configured-only meaning. Mention selected pending coverage as unexecuted where relevant; a passing configured suite is not evidence that planned layers were covered. Do not change layer statuses, install tooling, or silently discard failures from the configured full-suite command.
+
 Before running any location — here, or a matched location in Phase 3 — when its repo has a strategy skill, read that location's `### <Location>` subsection under `## Run Prerequisites`. Do not execute the location, and record `not run — <reason>` for Phase 5, when any of these holds:
 
 - `Local run:` is not `yes` — reason: its value (`ci-only`, `slow` or `flaky`).

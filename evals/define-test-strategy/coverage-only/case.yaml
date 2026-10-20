@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-coverage-only
+tags: [define-test-strategy, strategy, read-only]
+context:
+  scaffold_script: fixture.sh

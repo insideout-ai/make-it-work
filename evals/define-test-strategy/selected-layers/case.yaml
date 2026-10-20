@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-selected-layers
+tags: [define-test-strategy, strategy, refresh]
+context:
+  scaffold_script: fixture.sh
