@@ -1,11 +1,11 @@
 # `define-test-strategy` eval cases
 
-Eleven cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
+Thirteen cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
 one per-repo test-strategy skill at `.claude/skills/test-strategy/SKILL.md`
 (structure fixed by `skills/define-test-strategy/references/test-strategy-template.md`),
-tags existing tests with repo-qualified `@covers <Repo ID>:UC-<id>` comments,
+tags tests in separate files with repo-qualified `@covers <Repo ID>:UC-<id>` comments,
 adds one `/test-strategy` row to `CLAUDE.md`'s `### Other Skills` table, and
-reports coverage from a live tag scan. It never scaffolds placeholder tests,
+reports explicit, inferred embedded, and unresolved mappings from live discovery. It never scaffolds placeholder tests,
 never writes or offers a git hook, never adds a `CLAUDE.md` checklist item, and
 never commits.
 
@@ -19,6 +19,8 @@ never commits.
 | `dts-strategy-api-autopilot` | `--autopilot` | Database-backed API: recommend layers from persistence risks, distinguish real/mocked boundaries, log strategy defaults, and keep unknown database access explicit. |
 | `dts-strategy-interactive` | no `--autopilot` | Recommend an approach, ask one material question with tradeoffs about test database access, and wait before writing. Target and locations are already confirmed. |
 | `dts-coverage-only` | explicit coverage-only choice | An existing strategy with no tests: report coverage without discussion or writes, preserving saved decisions. |
+| `dts-embedded-tests` | `embedded-tests --autopilot` refresh | Shared Python fixture: tag colocated separate files under src, leave embedded unittest/doctest examples untouched, upgrade generated legacy guidance, and report evidence-backed mappings without assigning every shared-module UC. |
+| `dts-embedded-coverage-only` | `embedded-tests`, explicit coverage-only choice | Supplement an older tag-only strategy with embedded discovery without writes; preserve decisions and distinguish explicit, inferred and unresolved relationships. |
 | `dts-strategy-mixed-autopilot` | `--autopilot` | React/Deno app with Vitest helper tests: separate current, target and initial coverage; discuss missing prerequisites; avoid treating duplicated logic or unperformed manual checks as backend verification. |
 | `dts-strategy-mixed-interactive` | no `--autopilot` | Same mixed app: ask about consequential coverage/environment choices before narrowing the discussion to unit-test priorities. |
 | `dts-selected-layers` | `--autopilot` refresh | Saved unit-plus-component decision with old configured-only tables: project Component planned into layer/destination/guidance sections while preserving active commands and user notes. |

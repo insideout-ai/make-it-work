@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-resume-changed-autonomy
+tags: [implement, autonomy]
+context:
+  scaffold_script: fixture.sh

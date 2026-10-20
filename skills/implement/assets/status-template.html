@@ -9,6 +9,7 @@
   * { box-sizing: border-box; }
   body { font-family: -apple-system, sans-serif; width: 100%; margin: 0; padding: 1.5rem 2rem; color: #1a1a1a; }
   h1 { font-size: 1.4rem; margin: 0; }
+  h2 { font-size: 1.1rem; margin: 1rem 0 0.5rem; }
   .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 1rem; font-size: 0.85rem; background: #eee; margin-right: 0.3rem; }
   .pill[title] { cursor: help; border-bottom: 1px dotted #999; }
   table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
@@ -21,11 +22,12 @@
   .delivery-details { margin: 1.25rem 0; }
   .delivery-updated, .delivery-records { font-size: 0.85rem; color: #596773; }
 
-  .header-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .header-row h1 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
   .header-row .autonomy-pill { margin-left: auto; flex-shrink: 0; }
 
-  .phase-timeline { display: flex; align-items: flex-start; width: 100%; margin: 1.5rem 0 2rem; overflow-x: auto; overflow-y: visible; padding-top: 2rem; padding-bottom: 0.5rem; }
+  .phase-timeline { display: flex; align-items: flex-start; width: 100%; margin: 1rem 0 0.75rem; overflow-x: auto; overflow-y: visible; padding-top: 1rem; padding-bottom: 0.5rem; }
   .timeline-scroll-hint { display: none; }
   .phase-step { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 90px; position: relative; }
   .phase-step .line { position: absolute; top: 14px; left: -50%; width: 100%; height: 3px; background: #d0d0d0; z-index: 0; }
@@ -34,7 +36,7 @@
   .phase-dot { width: 28px; height: 28px; border-radius: 50%; z-index: 1; border: 3px solid #d0d0d0; background: #fff; display: flex; align-items: center; justify-content: center; cursor: default; }
   .phase-dot.passed { background: #4caf50; border-color: #4caf50; color: #fff; }
   .phase-dot.failed { background: #e53935; border-color: #e53935; color: #fff; }
-  .phase-dot.current { width: 56px; height: 56px; margin-top: -14px; background: #fff; border-color: #2196f3; box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.25); position: relative; }
+  .phase-dot.current { width: 40px; height: 40px; margin-top: -6px; margin-bottom: -6px; background: #fff; border-color: #2196f3; box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.25); position: relative; }
   .phase-dot.current.spinning::after {
     content: ""; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px;
     border-radius: 50%; border: 3px solid transparent; border-top-color: #2196f3; border-right-color: #2196f3;
@@ -47,10 +49,17 @@
   .phase-step.optional-step .line { background: none; border-top: 3px dashed #8b969f; }
   .phase-dot.optional { border: 2px dashed #778590; background: #fff; }
   .phase-label { margin-top: 0.4rem; font-size: 0.75rem; text-align: center; color: #555; max-width: 100px; }
+  .phase-skill { display: block; }
   .optional-step .phase-label { color: #46535d; }
   .phase-label.current-label { font-weight: 700; color: #1a1a1a; }
   .phase-mode { margin-top: 0.1rem; font-size: 0.62rem; color: #777; text-align: center; }
-  .phase-activity { margin-top: 0.15rem; font-size: 0.68rem; color: #2196f3; text-align: center; max-width: 140px; font-style: italic; }
+  .current-activity { width: 100%; margin: 0.75rem 0 1rem; padding: 0.65rem 0.85rem; background: #f0f7fe; border-left: 3px solid #2196f3; border-radius: 0.2rem; overflow-wrap: anywhere; }
+  .current-activity strong { font-size: 0.8rem; color: #096bae; }
+  .phase-activity { margin: 0.3rem 0 0; font-size: 0.85rem; line-height: 1.45; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .activity-details { margin-top: 0.2rem; font-size: 0.75rem; }
+  .activity-details summary { color: #096bae; cursor: pointer; width: fit-content; padding: 0.2rem 0; }
+  .activity-details summary:focus-visible { outline: 2px solid #096bae; outline-offset: 3px; }
+  .activity-details p { margin: 0.3rem 0 0; line-height: 1.45; }
   .phase-duration { margin-top: 0.1rem; font-size: 0.65rem; color: #999; text-align: center; font-style: italic; }
   .phase-status { margin-top: 0.15rem; font-size: 0.68rem; font-weight: 600; text-align: center; }
   .phase-status.status-in-progress { color: #2196f3; }
@@ -67,8 +76,12 @@
   @media (max-width: 900px) {
     .phase-timeline { overflow-x: scroll; }
     .phase-step { min-width: 80px; }
-    .artifact-grid { grid-template-columns: 1fr; max-width: 100%; }
-    .timeline-scroll-hint { display: block; margin: -1.5rem 0 1.5rem; color: #596773; font-size: 0.8rem; }
+    .artifact-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 100%; }
+    .timeline-scroll-hint { display: block; margin: 0 0 0.75rem; color: #596773; font-size: 0.8rem; }
+  }
+  @media (max-width: 540px) {
+    body { padding: 1rem 0.75rem; }
+    .artifact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 </style>
 </head>
@@ -86,6 +99,7 @@
 </div>
 <p class="timeline-scroll-hint">Scroll the timeline to see later steps.</p>
 
+{{CURRENT_ACTIVITY}}
 {{STATUS_BANNER}}
 {{DELIVERY_STATUS}}
 

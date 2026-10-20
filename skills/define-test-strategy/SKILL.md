@@ -1,6 +1,6 @@
 ---
 name: define-test-strategy
-description: "Onboards or refreshes a repo's test-strategy skill: discovers existing tests, discusses and recommends layers, approach, coverage priorities and adoption, records commands and prerequisites, tags tests with repo-qualified @covers comments, migrates old outputs, and reports live coverage."
+description: "Onboards or refreshes a repo's test-strategy skill: discovers tests, discusses layers, approach and adoption, records commands and prerequisites, tags separate test files with repo-qualified @covers comments, infers embedded-test mappings, migrates old outputs, and reports live coverage."
 disable-model-invocation: true
 ---
 
@@ -94,7 +94,7 @@ In the target repo, detect two things so this run never silently overwrites or i
 - **Refresh mode:** `.claude/skills/test-strategy/SKILL.md` already exists.
 - **Migration set** — outputs of the old version of this skill:
   - `.claude/rules/testing-strategy.md`;
-  - **path-tagged files:** test files whose path carries an old path tag (`uc-<id>` / `domain-<name>` in a file or directory name), that have no `@covers` line, and whose first line does not carry the placeholder marker below;
+  - **path-tagged files:** separate test files whose path carries an old path tag (`uc-<id>` / `domain-<name>` in a file or directory name), that have no `@covers` line, and whose first line does not carry the placeholder marker below; implementation files with embedded tests are exempt from conversion;
   - **placeholder files:** files whose first line contains `baseline placeholder scaffolded by define-test-strategy` (case-insensitive). These are listed only — never converted, tagged, or deleted by this skill;
   - a `CLAUDE.md` Rules Files row naming that old rule file;
   - a `CLAUDE.md` "After Any Feature Change" checklist item about checking regression status before commit.
@@ -104,7 +104,7 @@ Tell the user what was found: whether the new skill exists, and each migration-s
 - **Nothing found** → **fresh** mode. Proceed to Phase 2 with no menu.
 - **Anything found** → ask before writing anything, with one `AskUserQuestion` call (`multiSelect: false`) (autopilot: see Autopilot Mode):
   - `{ label: "Refresh / migrate (Recommended)", description: "Re-detect locations, commands and prerequisites, keep user edits, propose new tags, and migrate any old outputs found." }`
-  - If the new skill exists: `{ label: "Coverage report only", description: "Write nothing; report uncovered use cases and domains from a live tag scan." }`
+  - If the new skill exists: `{ label: "Coverage report only", description: "Write nothing; report explicit, inferred and unresolved test mappings and coverage gaps live." }`
   - Otherwise: `{ label: "Stop — change nothing", description: "End the run without writing anything." }`
 
 Per the answer:
@@ -127,6 +127,8 @@ A sibling test file references the target repo when it contains any of:
 
 Search with `grep -rlI --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work`, restricted to files that look like tests: the path contains `test` or `spec`, or the file matches the sibling's test runner config.
 
+Also inspect configured source roots for embedded tests and executable documentation examples using the language's actual test declarations and runner discovery. The path need not contain `test`/`spec`. Include sibling locations when these tests exercise the target repo by the same reference signals above. Distinguish embedded tests from separate test files even when a separate file lives under `src/`; neither placement nor filename determines its layer.
+
 The target repo is always in the list, and always row 1 of `## Test Locations`. Use the template's literal `none` row only when it has neither test files nor configured test tooling. Configured tooling requires repo evidence: an actual test script, runner configuration, CI test command, or real tests using the runner. A runtime shipping a built-in runner is not configuration; neither is a stale README/`CLAUDE.md` reference to a nonexistent script, an empty directory or a placeholder script. For example, Node plus `scripts: {}` and no tests means `none`, even though `node --test` is available; an existing `test: node --test` script is configured tooling even with no tests. When tooling exists but tests do not, record the configured layers, file pattern and command; do not invent an existing test file for an example command. The target repo cannot be removed.
 
 Confirm the list with the user before anything is written; they may remove or add locations (autopilot: see Autopilot Mode):
@@ -144,7 +146,7 @@ For each confirmed location, collect what each template section needs. Phase 5 w
 
 - **`## Layers`** — identify configured layers from actual dependencies/config (testing libraries in `package.json`, `requirements.txt`, `Gemfile`, `go.mod`, CI config, or equivalent). Phase 3a also adds every selected planned/deferred layer, with Status per the template. State what each layer is for and not for, and its prerequisites; an unselected recommendation does not become a layer row.
 - **`## Test Locations` command** — the full-suite command, plus one example command per layer for `## Layers`. Discover them from `package.json` scripts, `Makefile` targets, CI config (e.g. `.github/workflows/`), or `CLAUDE.md`'s Quick Reference — never assume `npm test` or `pytest`. If none is found, write `none` and say so in the summary.
-- **`Test files` glob** — from the runner's configured test-match pattern, or the existing test file names.
+- **`Test files` globs** — from configured separate-file match patterns plus source roots with actual embedded tests/examples. Record embedded declaration discovery and supported selectors under How to Scan, not just a broad source glob; placement is independent of layer.
 - **`## Run Prerequisites`** — env vars, services with a check command, credentials, and how to start them, from env usage in test config, `docker-compose` files, CI `services:`/`env:`, and README test sections. `Local run:` is `ci-only` when a suite runs only in CI; use `slow` or `flaky` only when config or docs say so; otherwise `yes`.
 - **`## Where New Tests Go`** — existing destinations/naming plus every selected planned/deferred layer's intended destination, carrying the same Status as Layers. Proposed directories need not exist; unresolved destinations are `TBD`, never an omitted layer.
 - **`## Coverage Decision Guidance`** — a short list mapping a kind of change to a configured or selected layer. For planned/deferred choices, include setup requirements or the deferral risk/revisit condition, for example:
@@ -169,14 +171,15 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
 
 ## Phase 4 — Tag Mapping, Migration Confirmation, Tagging
 
-1. **Vocabulary.** Take it from the target repo's go-deep inventory: the `uc-*` and `domain-*` directories under `.claude/skills/`. Fall back to the `.claude/rules/product.md` use-case table and the `.claude/rules/architecture.md` domains. In partial mode there is no vocabulary: skip tag inference and path-tag conversion, but still run the migration items in step 3 that don't need tags.
-2. **Infer tags.** In every confirmed location, find the test files (per `Test files`) and the tests or suites in them.
+1. **Vocabulary.** Take it from the target repo's go-deep inventory: the `uc-*` and `domain-*` directories under `.claude/skills/`. Fall back to the `.claude/rules/product.md` use-case table and the `.claude/rules/architecture.md` domains. In partial mode there is no vocabulary: discover tests and supported selectors, but skip UC/domain relationship inference, tagging and path-tag conversion; still run the migration items in step 3 that don't need tokens.
+2. **Map tests by placement.** In every confirmed location, discover separate test files and embedded tests (per `Test files` and the template's How to Scan).
    - Skip placeholder files.
-   - Keep existing `@covers` lines for this Repo ID; never touch tokens for other repos. In refresh mode, propose tags only for untagged tests.
-   - For untagged tests that exercise the target repo, infer UC and domain tokens from the test name, the code imported or called, and the endpoints hit. An old path tag is a strong signal.
-   - Mark files with no single-line comment form as untaggable.
+   - In separate test files, keep existing `@covers` lines for this Repo ID; never touch tokens for other repos. In refresh mode, propose tags only for untagged tests.
+   - For untagged separate tests that exercise the target repo, infer UC and domain tokens from the test name, the code imported or called, and the endpoints hit. An old path tag is a strong signal.
+   - Never add or maintain tags in implementation files, including executable documentation examples. Leave legacy embedded tags untouched; they do not establish explicit coverage. Infer each embedded test's relationship through its containing module and the behavior actually asserted, backed by UC/domain documentation or traced code. Record its identity, evidence, and supported runner selector or selection limitation. Do not assign every UC using a module to all its embedded tests. Missing or ambiguous evidence is unresolved, not covered or automatically uncovered.
+   - Mark separate files with no single-line comment form as untaggable; embedded tests are exempt, not untaggable.
 3. **One checkpoint**, in plain text; the user confirms or edits it (autopilot: see Autopilot Mode). Show:
-   - the proposed mapping per location: file → test or suite → tokens;
+   - the proposed mapping per location: file → test or suite → tokens, distinguishing explicit tags for separate files from inferred embedded relationships with evidence;
    - unmappable and untaggable tests;
    - the migration changes, when Phase 1 found any:
      - path tags converted to `@covers` (in partial mode, listed as pending go-deep instead);
@@ -184,7 +187,7 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
      - the `CLAUDE.md` Rules Files row and "check regression status before commit" checklist item removed (Phase 6);
      - placeholder files, listed for the user to delete.
 4. **After confirmation:**
-   - Write each `@covers` line directly above its test or suite, as a single-line comment in the file's own comment syntax, in the form `@covers <Repo ID>:UC-<id> <Repo ID>:domain-<name>` (template `## Tag Convention`). In PHP, put the `//` line above any docblock, never inside it.
+   - In separate test files only, write each `@covers` line directly above its test or suite, as a single-line comment in the file's own comment syntax, in the form `@covers <Repo ID>:UC-<id> <Repo ID>:domain-<name>` (template `## Tag Convention`). In PHP, put the `//` line above any docblock, never inside it. Embedded tests require no source edits for mapping.
    - Leave all changes uncommitted.
    - Never commit, rename or move a test file.
 
@@ -197,7 +200,7 @@ Write `.claude/skills/test-strategy/SKILL.md` in the target repo from the templa
 - **Selected-layer consistency** → before saving, check every selected layer in current or saved Strategy Decisions has a Layers row, a matching-status Where New Tests Go row (or explicit `TBD` destination), and appropriate Coverage Decision Guidance. `planned`/`deferred` rows have Example command `none`; no unconfigured layer or command is promoted into Test Locations. For example, user-selected unit plus component coverage with only unit tooling means Unit configured and Component planned in both tables, with component behavior mapped to Component (setup required).
 - **Setup recommendations** → include `## Recommended Setup` for absent tooling per Phase 3, or concrete missing capabilities selected in Phase 3a. On refresh, preserve user edits to a prior proposal under the same conflict rule. Once a setup is configured, identify which recommendations are fulfilled and retain any user-written future recommendations as notes; never activate an unconfigured layer.
 - **Refresh** → read the existing file in full first.
-  - **Schema upgrade:** add Status/prerequisites and project already-recorded explicit selections into the tables, replacing old generated configured-only boilerplate. This is documentation of existing decisions, not a new strategy choice or permission to install tooling; do not require the user to reselect the same layers. Preserve unrelated user content. If a saved decision is ambiguous or conflicts with policy, use the normal conflict rule rather than inventing a selection.
+  - **Schema upgrade:** add Status/prerequisites and project already-recorded explicit selections into the tables, replacing old generated configured-only boilerplate. Upgrade generated tag-only guidance to the template's separate/embedded discovery rule, with actual embedded discovery/selectors under How to Scan and placement in Where New Tests Go; write None when no embedded tests exist. This is documentation of existing decisions, not a new strategy choice or permission to install tooling; do not require the user to reselect the same layers. Preserve unrelated user content. If user-written policy or a saved decision conflicts, use the normal conflict rule rather than inventing a selection. Never strip existing embedded tags during this upgrade.
   - Keep user-written content under every heading, and every heading after `## How to Scan` other than `## Pending`.
   - Fill gaps: add newly detected locations, layers, prerequisites and targets. Update detected facts the file states differently only after the conflict rule below.
   - **Verified setup by implement:** when the caller supplies its selected automated policy, saved pre-setup strategy, exact setup changes and a successful real-test command/result, replace the corresponding old `none`/no-tooling facts with that verified configuration and promote only the verified planned layer/destination rows to `configured`. This includes locations, layers, commands, prerequisites, destinations and decision guidance; identify fulfilled recommendations as configured while retaining unrelated planned/deferred selections. These are facts deliberately changed by the authorized setup, not unresolved refresh conflicts. Preserve unrelated user content and constraints; this exception cannot override a user's testing policy or activate unverified tooling. Without that supplied evidence, the normal conflict rule still applies.
@@ -213,7 +216,7 @@ Write `.claude/skills/test-strategy/SKILL.md` in the target repo from the templa
   | Anything that doesn't fit | A user heading `## Notes (migrated)`, after `## How to Scan` (after `## Pending` when present); update an existing one in place |
 
   Write the new skill first. Only after that write succeeds, delete `.claude/rules/testing-strategy.md`. If the write fails, keep the old file and say so in the summary.
-- **Partial** → write `## Pending`, and write `## Tag Convention` and `## How to Scan` exactly as the template gives them, with only `<Repo ID>` filled in. A run that is not partial removes any `## Pending` left by an earlier partial run.
+- **Partial** → write `## Pending` stating that UC/domain mapping awaits go-deep. Retain the template's `## Tag Convention` and both discovery paths under `## How to Scan`, filling in `<Repo ID>` and actual embedded discovery/selectors (or None when absent). Do not infer token relationships without vocabulary. A run that is not partial removes any `## Pending` left by an earlier partial run.
 - **Write blocked** → if writing `.claude/skills/test-strategy/SKILL.md` is denied or fails (e.g. the environment protects `.claude/`), never write it anywhere else. Print the full generated file in chat, verbatim from its front matter to its last line, in one fenced block, so the user can save it once writes there are allowed. Never replace it with a summary or a list of its sections. When only your final message is shown (a non-interactive run), put that block in the final message, before the summary. Keep the old rule file, skip Phase 6, and continue with Phase 7.
 
 ## Phase 6 — CLAUDE.md Pointer and Migration Clean-Up
@@ -237,11 +240,13 @@ A chat-only report: write nothing to disk. On the Phase 1 "Coverage report only"
 
 Scan with the Repo ID under the existing skill's `## Repo ID` (on a fresh run it equals Phase 0's). If it differs from the basename Phase 0 recorded, warn that tags use the recorded ID and the repo should be cloned as `<Repo ID>`, then continue.
 
-1. **Scan.** For every vocabulary token, run `## How to Scan` once per location, fresh — never reuse an earlier result. A token is covered when any location matches. If a location's path does not exist, name it as not scanned and continue.
-2. **Report**, keeping the two lists separate:
-   - **Uncovered use cases** — every `<Repo ID>:UC-<id>` with no match.
-   - **Uncovered domains** — every `<Repo ID>:domain-<name>` with no match.
-   - A covered count for each, e.g. "6 of 8 use cases covered".
+1. **Scan.** For every vocabulary token, follow both parts of `## How to Scan` once per location, fresh — never reuse an earlier result. For an older tag-only strategy, supplement the scan with read-only embedded-test discovery and module/behavior evidence per the current template; do not rewrite the strategy on a coverage-only run. A token is mapped when a separate test explicitly tags it or an embedded test has a supported inferred relationship. Missing paths or incomplete discovery are not scanned/unresolved, not proof of no coverage.
+2. **Report**, keeping mapping kinds and gap lists separate:
+   - **Explicit mappings** and **Inferred mappings** — list tokens separately; inferred entries name the embedded test and module/behavior evidence. A token can occur in both lists.
+   - **Unresolved mappings** — candidate tests/tokens with missing or ambiguous evidence, plus locations not scanned. Report outstanding candidates even when the token also has a confirmed mapping.
+   - **Uncovered use cases** — every `<Repo ID>:UC-<id>` with neither explicit nor inferred matches after a complete scan and no unresolved candidate.
+   - **Uncovered domains** — the same rule for `<Repo ID>:domain-<name>`.
+   - A mapped count for each (deduplicate tokens across explicit and inferred lists), with unresolved counts separate. These are test relationships, not proof of adequate behavioral coverage or passing results.
    - Write `None` for a list with no gaps. When a list's source is missing (no `uc-*`/`domain-*` directories and no fallback table), write "source missing" for that list instead — never `None`.
    - In partial mode, print "Coverage pending go-deep" instead of both lists.
 3. End the report with: "Re-run `/make-it-work:define-test-strategy` and choose 'Coverage report only' any time for a fresh view."
@@ -264,5 +269,7 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 - under autopilot, the log path, whether the log was written, and every auto-resolved site, per Autopilot Mode.
 
 ## When run by implement
+
+**Live autonomy** — the caller supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session, using the current saved mode before each question/default instead of the entry flag after a change. Preserve strategy decisions and verified setup; changing mode does not select manual verification. The Autonomous Phase 3a exception below still applies.
 
 `implement` may follow this skill inline during testing readiness to inventory or refresh an affected repo. It passes the target repo, invocation/artifact root, and autonomy, plus the ticket scope and prior strategy decisions when available. Scope Phase 3a to changed behavior and nearby regression risks; reuse its saved proposal/decisions and do not reopen resolved questions on the post-setup refresh. Guided mode asks only unresolved material strategy questions. Autonomous mode resolves Phase 3a without waiting using the same evidence-based defaults as Autopilot, labeled as autonomous defaults; it does not create a DTS autopilot log. Under Autopilot apply this skill's full `--autopilot` policy, including its own decision log; outside Phase 3a, other modes retain the normal questions. After verified setup the caller also passes the selected automated policy, saved pre-setup strategy, exact setup changes and actual successful test result for Phase 5's narrow activation rule. Do not run go-deep inline in this context: its absence means a partial run. Return the generated skill path, active commands or `none`, strategy decisions, recommended setup if needed, and files changed. `implement` owns setup decisions and tooling changes, including its separate automated/manual verification choice, and refreshes this skill after setup succeeds. This inventory has no stage handoff of its own.

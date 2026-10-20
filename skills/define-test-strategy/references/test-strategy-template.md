@@ -29,7 +29,7 @@ Tags use this ID. If this repo is cloned under a different directory name, tags 
 
 ## Test Locations
 
-Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` is a glob of that location's test files. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. When it has configured test tooling but no test files yet, still record its layers, `Test files` glob and full-suite command, since new tests go there. A runtime's built-in runner alone does not count as configured tooling: require an actual test script, runner config, CI test command or real tests, not a proposed command or stale reference to a missing script. Only when it has neither test files nor configured test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
+Every place this repo's tests live, including other repos. `Location` is relative to this repo's root. `Test files` identifies separate test files and implementation files containing embedded tests; list their globs separately when both exist, and record the embedded discovery procedure under How to Scan. A source glob alone does not establish that a file contains tests. `Run from` is that location's repo root, relative to this repo. The first data row is always this repo itself. When it has configured test tooling but no test files yet, still record its layers, `Test files` glob and full-suite command, since new tests go there. A runtime's built-in runner alone does not count as configured tooling: require an actual test script, runner config, CI test command or real tests, not a proposed command or stale reference to a missing script. Only when it has neither test files nor configured test tooling is it the literal row `| . | <Repo ID> | none | none | none | . |`.
 
 | Location | Repo | Layers | Test files | Full-suite command | Run from |
 | --- | --- | --- | --- | --- | --- |
@@ -63,6 +63,8 @@ One `###` subsection per row of `## Test Locations`, headed by that row's `Locat
 
 Include a destination row for every layer in Layers, carrying the same Status. A planned or deferred directory need not exist yet: record the agreed destination and naming. If undecided, write `TBD` and record the unresolved choice rather than omitting the layer. A Status describes the layer's setup/adoption state, not whether the directory already exists.
 
+When the project embeds tests in implementation files, name that placement and its convention (including executable documentation examples) in Directory/File naming. Embedded versus separate placement is independent of the test layer.
+
 | Layer | Status | Repo | Directory | File naming |
 | --- | --- | --- | --- | --- |
 | <layer from ## Layers> | <same status as Layers> | `<repo ID>` | <existing or planned directory, relative to this repo's root; or TBD> | <agreed naming, e.g. <module>.test.js; or TBD> |
@@ -77,21 +79,35 @@ Which layer a change needs. Use the configured and selected layers in Layers. Fo
 
 ## Tag Convention
 
-- **Form:** `@covers <Repo ID>:UC-<id> <Repo ID>:domain-<name>`, written as a single-line comment in the file's own comment syntax, directly above the test or suite it covers.
+- **Placement:** tag tests in separate test files, including colocated files and files in other repos. Do not add or maintain `@covers` comments for tests embedded in implementation files or their executable documentation examples; infer those relationships through the containing module under How to Scan. Placement does not determine whether a test is unit, integration, property-based, or another layer/style.
+- **Form for separate files:** `@covers <Repo ID>:UC-<id> <Repo ID>:domain-<name>`, written as a single-line comment in the file's own comment syntax, directly above the test or suite it covers.
 - **Qualified tokens:** every token is repo-qualified. `<id>` and `<name>` come verbatim from go-deep's skill directory names.
 - **Several tokens:** a line may carry several tokens. A suite-level tag covers the whole suite.
 - **Placeholders:** placeholder or skipped-scaffold files are never tagged.
-- **Untaggable files:** files with no single-line comment form (e.g. JSON, Postman collections) are listed as untaggable and never edited.
+- **Untaggable files:** separate test files with no single-line comment form (e.g. JSON, Postman collections) are listed as untaggable and never edited. Embedded tests are exempt, not untaggable.
 - **PHP:** put the `//` tag line above any docblock, never inside it — PHPUnit parses `@covers` in docblocks.
 
 ## How to Scan
 
-- Run once per row of `## Test Locations`, from this repo's root:
+Scan both sources below for each token, once per row of Test Locations. Return the file, test/suite or runner selector, mapping kind (`explicit` or `inferred`), and evidence. Keep unresolved relationships separate. Mapping establishes a relationship, not adequate behavioral coverage or a passing test result.
+
+### Separate test files — explicit mappings
+
+- Run from this repo's root:
   `grep -rlIiE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work '@covers([[:space:]].*)?[[:space:]]<repo>:<tag>([[:space:]]|$)' <Location>`
-- Filter the output to paths matching that row's `Test files` glob.
+- Filter the output to separate test files matching that row's `Test files` globs; comments in implementation files do not create explicit mappings.
 - Before substituting, escape regex metacharacters in `<repo>`, and replace each `-` in `<repo>` and `<tag>` with `[-_]`.
-- The matched files are the tests for that tag.
-- Coverage gaps are always computed this way, live. Never store a gap list in this file.
+- The matched separate files are the tests explicitly mapped to that token.
+
+### Embedded tests — inferred mappings
+
+- <Per-location discovery commands/procedure from the actual language and runner configuration, including executable documentation tests when configured; or None — no embedded tests found. Identify real test declarations/examples, not arbitrary implementation files.>
+- Inspect the actual assertions and code exercised. Map a test through its containing module only when UC/domain documentation or traced code establishes that the behavior it verifies belongs to that token. Record the evidence path/symbol and test identity. A module used by several UCs does not map every embedded test to every UC; names or directory proximity alone are insufficient.
+- <Runner-supported selectors and commands for the discovered embedded tests, derived from project configuration; include distinct unit/documentation commands when needed, or state the selection limitation. Do not pass implementation file paths to a runner that expects module/package/test selectors.>
+- Revalidate discoveries and their evidence live. Missing or ambiguous module relationships, or an incomplete discovery, are unresolved mappings; identify affected tokens/candidates and what is missing. Existing embedded `@covers` comments are not a substitute for evidence and are left untouched on refresh.
+- If precise selection is unavailable, identify the smallest supported enclosing module/package/suite and disclose its broader scope before running it. If no reliable selector or bounded enclosing command can be established, report the tests as not run and explain the required broader verification.
+
+Compute coverage gaps live from both sources, distinguishing explicit, inferred, and unresolved mappings. Only label a token uncovered when the scan is complete and neither source maps a test; an unresolved candidate is not evidence of absence. Never store a gap list in this file.
 
 ## Strategy Decisions
 

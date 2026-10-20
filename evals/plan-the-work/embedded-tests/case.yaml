@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-the-work-embedded-tests
+tags: [plan-the-work, embedded-tests]
+context:
+  scaffold_script: fixture.sh

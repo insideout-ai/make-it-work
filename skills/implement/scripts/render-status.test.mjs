@@ -113,12 +113,46 @@ test('renders a fresh run with active Context Check and no timing paragraph', as
   const { html } = await renderFixture(t, state);
 
   assert.match(html, /phase-dot current spinning[^>]+context-check:/);
-  assert.match(html, /phase-activity">Checking project context\.<\/div>/);
+  assert.match(html, /phase-activity">Checking project context\.<\/p>/);
   assert.match(html, /<meta http-equiv="refresh" content="15">/);
   assert.doesNotMatch(html, /class="session-timing"/);
   assert.match(html, /\(first real timestamp\)/);
   assert.match(html, /future relative to this device/);
   assert.doesNotMatch(html, /Waiting on you:/);
+});
+
+test('keeps refinement activity outside the connected timeline and above artifacts', async (t) => {
+  const activity = ('Starting refinement — exploring the dashboard income-limit code, then resolving open questions. ' + 'Additional context. '.repeat(20)).trim();
+  const { html } = await renderFixture(t, stateMarkdown({
+    fields: { phase: 'close-the-gaps', autonomy: 'guided', current_activity: activity },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created'],
+      ['2026-01-01T10:00:18Z', 'context-check', 'close-the-gaps', 'Context ready'],
+    ],
+  }));
+  const timeline = html.slice(html.indexOf('<div class="phase-timeline">'), html.indexOf('<p class="timeline-scroll-hint">'));
+  assert.doesNotMatch(timeline, /Starting refinement|phase-activity/);
+  assert.match(timeline, /phase-dot passed[^>]+>✓<\/div>/);
+  assert.match(timeline, /class="line line-green"/);
+  assert.match(timeline, /phase-dot current spinning[^>]+close-the-gaps:/);
+  assert.match(timeline, /phase-duration">18s<\/div>/);
+  assert.match(html, /<section class="current-activity" aria-label="Current activity">\s*<strong>Refinement in progress<\/strong>/);
+  assert.ok(html.indexOf('<section class="current-activity"') > html.indexOf('<p class="timeline-scroll-hint">'));
+  assert.ok(html.indexOf('<section class="current-activity"') < html.indexOf('<h2>Artifacts</h2>'));
+  assert.ok(html.includes(`<details class="activity-details"><summary>Activity details</summary><p>${activity}</p></details>`));
+  assert.match(html, /alt="InsideOut AI"/);
+});
+
+test('omits the activity row when idle, paused, stopped, or complete', async (t) => {
+  for (const status of ['In Progress', 'Paused', 'Stopped', 'Complete']) {
+    const phase = status === 'Complete' ? 'complete' : 'context-check';
+    const { html } = await renderFixture(t, stateMarkdown({
+      fields: { status, phase, current_activity: status === 'In Progress' ? 'none' : 'Stale activity.' },
+      rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Checkpoint']],
+    }));
+    assert.doesNotMatch(html, /<section class="current-activity"/);
+    assert.doesNotMatch(html, /Stale activity\./);
+  }
 });
 
 test('dashboard checkpoint updates activity and its rendered snapshot together', async (t) => {
@@ -132,7 +166,7 @@ test('dashboard checkpoint updates activity and its rendered snapshot together',
   const outputPath = await checkpointDashboard(statePath, { activity: 'Inspecting project context.' });
   const [state, html] = await Promise.all([readFile(statePath, 'utf8'), readFile(outputPath, 'utf8')]);
   assert.match(state, /^current_activity: Inspecting project context\.$/m);
-  assert.match(html, /phase-activity">Inspecting project context\.<\/div>/);
+  assert.match(html, /phase-activity">Inspecting project context\.<\/p>/);
 });
 
 test('dashboard checkpoint restores activity when rendering fails', async (t) => {
@@ -242,7 +276,7 @@ test('renders completion, approval annotations, fix history, and repeated review
   const { html } = await renderFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
 
   assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 11);
-  assert.equal((html.match(/Review \(review-the-pr\)/g) ?? []).length, 2);
+  assert.equal((html.match(/Review<span class="phase-skill">\(review-the-pr\)<\/span>/g) ?? []).length, 2);
   assert.match(html, /phase-mode">Approved as-is<\/div>/);
   assert.match(html, /phase-mode">Subagent-Driven · Step 2 of 2 complete<\/div>/);
   assert.match(html, /class="complete"><strong>Implementation complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
@@ -275,7 +309,7 @@ test('marks legacy phase durations unavailable and escapes state-derived HTML', 
   const { html } = await renderFixture(t, state);
 
   assert.match(html, /phase-duration">—<\/div>/);
-  assert.match(html, /phase-activity">&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;<\/div>/);
+  assert.match(html, /phase-activity">&lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;<\/p>/);
   assert.match(html, /Contains \| pipe &amp; &lt;tag&gt;/);
   assert.match(html, /Unsafe &lt;b&gt;markup&lt;\/b&gt;/);
   assert.match(html, /A &amp; B/);
