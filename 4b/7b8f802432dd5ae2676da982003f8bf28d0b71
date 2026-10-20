@@ -1,0 +1,135 @@
+evals/suites.json
+  s_f7005541e877c1::t_72ee3b3a34155f 27-28,51,57
+  s_f7005541e877c1::t_2f1bb70e4b3879 58
+evals/review-the-pr/embedded-tests/account.py
+  s_f7005541e877c1::t_2f1bb70e4b3879 1-28
+skills/review-the-pr/SKILL.md
+  s_f7005541e877c1::t_f53dc1f5c1736c 95,124-125,214
+evals/define-test-strategy/embedded-tests/case.yaml
+  s_f7005541e877c1::t_72ee3b3a34155f 1-5
+evals/fixtures/seed-embedded-tests.sh
+  s_f7005541e877c1::t_72ee3b3a34155f 1-10
+skills/define-test-strategy/references/test-strategy-template.md
+  s_f7005541e877c1::t_6fb94ac75309a9 32,66-67,82-83,87,92-96,98,100-110
+skills/implement/scripts/render-status.test.mjs
+  s_ac20fccb7dae41::t_f864b8c9dc9425 279
+  s_ac20fccb7dae41::t_58ebc17c3f7458 125
+  s_ac20fccb7dae41::t_a1744023cd9bb8 116,169,312
+  s_ac20fccb7dae41::t_869a5969205f8e 124,126-157
+skills/implement/assets/status-template.html
+  s_ac20fccb7dae41::t_f864b8c9dc9425 52
+  s_ac20fccb7dae41::t_a1744023cd9bb8 12,25-26,30,39,56-62,79-84,102
+skills/plan-the-work/SKILL.md
+  s_f7005541e877c1::t_e504aaf99ba736 11,31
+  s_f7005541e877c1::t_f53dc1f5c1736c 258
+  s_f7005541e877c1::t_6fb94ac75309a9 171,178,256
+evals/fixtures/embedded-tests/claude-dir/rules/architecture.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-12
+skills/plan-the-work/references/plan-template.md
+  s_f7005541e877c1::t_e504aaf99ba736 122
+evals/define-test-strategy/embedded-coverage-only/case.yaml
+  s_f7005541e877c1::t_72ee3b3a34155f 1-5
+evals/fixtures/embedded-tests/src/account.py
+  s_f7005541e877c1::t_72ee3b3a34155f 1-25
+evals/fixtures/embedded-tests/src/experimental.py
+  s_f7005541e877c1::t_72ee3b3a34155f 1-12
+README.md
+  s_f7005541e877c1::t_9a01821f953145 52,62,108,124,313
+skills/define-test-strategy/SKILL.md
+  s_f7005541e877c1::t_6fb94ac75309a9 3,97,107,130-131,175,177-180,182,190,203,243,245-249
+  s_f7005541e877c1::t_5b68007f721461 174,219
+  s_f7005541e877c1::t_e504aaf99ba736 149,244
+evals/fixtures/embedded-tests/Makefile
+  s_f7005541e877c1::t_72ee3b3a34155f 1-4
+evals/plan-the-work/embedded-tests/fixture.sh
+  s_f7005541e877c1::t_72ee3b3a34155f 1-9
+evals/define-test-strategy/embedded-coverage-only/fixture.sh
+  s_f7005541e877c1::t_72ee3b3a34155f 1-5
+evals/fixtures/embedded-tests/src/test_labels.py
+  s_f7005541e877c1::t_72ee3b3a34155f 1-9
+CHANGELOG.md
+  s_ac20fccb7dae41::t_869a5969205f8e 7-10,13
+  s_f7005541e877c1::t_5b68007f721461 11
+  s_ac20fccb7dae41::t_f864b8c9dc9425 12
+evals/define-test-strategy/embedded-tests/prompt.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-12
+evals/plan-the-work/embedded-tests/spec.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-21
+evals/plan-the-work/embedded-tests/prompt.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-11
+evals/define-test-strategy/README.md
+  s_f7005541e877c1::t_5b68007f721461 3,6,8,22-23
+skills/run-regression/SKILL.md
+  s_f7005541e877c1::t_f53dc1f5c1736c 17,168,175,182,184,190-191,196,198,202-204,206-207,218,245,369-370
+evals/run-regression/README.md
+  s_f7005541e877c1::t_5b68007f721461 3,14
+evals/plan-the-work/README.md
+  s_f7005541e877c1::t_5b68007f721461 3-8
+evals/review-the-pr/embedded-tests/case.yaml
+  s_f7005541e877c1::t_2f1bb70e4b3879 1-5
+evals/review-the-pr/embedded-tests/prompt.md
+  s_f7005541e877c1::t_2f1bb70e4b3879 1-15
+evals/review-the-pr/README.md
+  s_f7005541e877c1::t_2f1bb70e4b3879 3-8
+evals/plan-the-work/embedded-tests/graders/embedded-red-without-implementation.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-24
+evals/fixtures/embedded-tests/claude-dir/rules/product.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-12
+evals/define-test-strategy/embedded-tests/fixture.sh
+  s_f7005541e877c1::t_72ee3b3a34155f 1-10
+evals/review-the-pr/embedded-tests/test_labels.py
+  s_f7005541e877c1::t_2f1bb70e4b3879 1-11
+evals/review-the-pr/embedded-tests/graders/reviews-placement-correctly.md
+  s_f7005541e877c1::t_2f1bb70e4b3879 1-20
+evals/fixtures/embedded-tests/src/labels.py
+  s_f7005541e877c1::t_72ee3b3a34155f 1-2
+skills/implement/scripts/render-status.mjs
+  s_ac20fccb7dae41::t_a1744023cd9bb8 463-473,574
+  s_ac20fccb7dae41::t_f864b8c9dc9425 408,413
+evals/fixtures/embedded-tests/claude-dir/skills/test-strategy/SKILL.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-59
+evals/define-test-strategy/embedded-tests/graders/placement-and-mappings.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-25
+evals/define-test-strategy/embedded-coverage-only/prompt.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-12
+evals/run-regression/rr-embedded-tests/case.yaml
+  s_f7005541e877c1::t_72ee3b3a34155f 1-5
+evals/fixtures/embedded-tests/CLAUDE.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-19
+evals/define-test-strategy/embedded-coverage-only/graders/read-only-inference.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-13
+evals/run-regression/rr-embedded-tests/fixture.sh
+  s_f7005541e877c1::t_72ee3b3a34155f 1-5
+evals/run-regression/rr-embedded-tests/prompt.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-9
+evals/plan-the-work/embedded-tests/case.yaml
+  s_f7005541e877c1::t_72ee3b3a34155f 1-5
+evals/review-the-pr/embedded-tests/fixture.sh
+  s_f7005541e877c1::t_2f1bb70e4b3879 1-11
+evals/run-regression/rr-embedded-tests/graders/executes-both-sources.md
+  s_f7005541e877c1::t_72ee3b3a34155f 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4b7b8f802432dd5ae2676da982003f8bf28d0b71",
+  "prompts": {},
+  "sessions": {
+    "s_ac20fccb7dae41": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a159b7-d1d6-7c20-931b-3cdc151961f1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_f7005541e877c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15a3c-aa6d-7111-9a78-4139c2d5a24a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
