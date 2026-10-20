@@ -1,0 +1,93 @@
+evals/implement/switch-to-guided/case.yaml
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-5
+evals/implement/switch-to-guided/fixture.sh
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-5
+evals/implement/switch-to-guided/graders/pending-approval.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-7
+evals/implement/switch-to-autopilot/fixture.sh
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-5
+evals/implement/resume-changed-autonomy/case.yaml
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-5
+evals/implement/resume-changed-autonomy/fixture.sh
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-5
+skills/plan-the-work/SKILL.md
+  s_2ca068d80a286a::t_031a2400d2333e 361-362
+evals/implement/resume-changed-autonomy/graders/saved-mode.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-3,6-7
+  s_2ca068d80a286a::t_1e220a8d1f5870 4-5
+evals/implement/switch-to-guided/graders/saved-mode.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-3,6-7
+  s_2ca068d80a286a::t_1e220a8d1f5870 4-5
+skills/implement/SKILL.md
+  s_2ca068d80a286a::t_f6c8bdca4bba0d 13-14,44,269,271
+  s_2ca068d80a286a::t_031a2400d2333e 34,42-43,45,60-61,165,194-195,252,267
+  s_2ca068d80a286a::t_b41cfd4121832b 268
+.claude-plugin/plugin.json
+  s_f7005541e877c1::t_a25c36ac7b6186 6
+evals/implement/switch-to-autopilot/graders/nested-gate-policy.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-7
+skills/close-the-gaps/SKILL.md
+  s_2ca068d80a286a::t_031a2400d2333e 397-398
+evals/implement/resume-changed-autonomy/graders/resume-policy.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-7
+evals/implement/resume-changed-autonomy/prompt.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-11
+evals/implement/README.md
+  s_2ca068d80a286a::t_9876b4c8b36abe 11-21
+skills/implement/references/autonomy-changes.md
+  s_2ca068d80a286a::t_031a2400d2333e 1-27
+skills/execute/SKILL.md
+  s_2ca068d80a286a::t_031a2400d2333e 367-368
+skills/run-regression/SKILL.md
+  s_2ca068d80a286a::t_031a2400d2333e 24-27
+evals/implement/switch-to-autopilot/graders/saved-mode.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-3,6-7
+  s_2ca068d80a286a::t_1e220a8d1f5870 4-5
+evals/implement/switch-to-guided/prompt.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-11
+README.md
+  s_2ca068d80a286a::t_031a2400d2333e 155-156
+CHANGELOG.md
+  s_f7005541e877c1::t_a25c36ac7b6186 7
+  s_2ca068d80a286a::t_031a2400d2333e 11
+evals/implement/switch-to-autopilot/case.yaml
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-5
+evals/implement/resume-changed-autonomy/graders/history-preserved.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-6
+evals/suites.json
+  s_2ca068d80a286a::t_813e15a62f6f6b 64-67
+evals/implement/switch-to-autopilot/graders/history-preserved.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-6
+evals/implement/seed-autonomy-fixture.sh
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-44
+skills/define-test-strategy/SKILL.md
+  s_2ca068d80a286a::t_031a2400d2333e 273-274
+evals/implement/switch-to-autopilot/prompt.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-11
+evals/implement/switch-to-guided/graders/history-preserved.md
+  s_2ca068d80a286a::t_813e15a62f6f6b 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "cd4f3d9fa946d3ae08f30aa732276ceb601f6e60",
+  "prompts": {},
+  "sessions": {
+    "s_2ca068d80a286a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15a37-450a-7d42-807f-ef9ded67b6c0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_f7005541e877c1": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a15a3c-aa6d-7111-9a78-4139c2d5a24a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
