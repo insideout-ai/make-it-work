@@ -405,12 +405,12 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     const passed = dotState === 'passed';
     const symbol = passed ? '✓' : dotState === 'failed' ? '✗' : '';
     const lineClass = passed || dotState.startsWith('current') ? ' line-green' : '';
-    const label = info.skill ? `${info.label} (${info.skill})` : info.label;
+    const label = escapeHtml(info.label) + (info.skill ? `<span class="phase-skill">(${escapeHtml(info.skill)})</span>` : '');
     const currentLabel = isActive && state.fields.status === 'In Progress' ? ' current-label' : '';
     const pieces = ['<div class="phase-step">'];
     if (index > 0) pieces.push(`  <div class="line${lineClass}"></div>`);
     pieces.push(`  <div class="phase-dot ${dotState}" title="${escapeHtml(`${slot.phase}: ${info.tooltip}`)}">${symbol}</div>`);
-    pieces.push(`  <div class="phase-label${currentLabel}">${escapeHtml(label)}</div>`);
+    pieces.push(`  <div class="phase-label${currentLabel}">${label}</div>`);
 
     let modeText = slot.approval;
     if (isActive && slot.phase === 'execute') {
@@ -428,10 +428,6 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       modeText = `${planStatus.mode} · Step ${slot.fixSteps} of ${slot.fixSteps} complete`;
     }
     if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
-
-    if (isActive && state.fields.status === 'In Progress' && state.fields.current_activity !== 'none') {
-      pieces.push(`  <div class="phase-activity">${escapeHtml(state.fields.current_activity)}</div>`);
-    }
 
     if (passed && slot.phase !== 'complete') {
       const activatedIndex = activated.indexOf(slot);
@@ -462,6 +458,17 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     steps.push(`<div class="phase-step optional-step">\n  <div class="line"></div>\n  <div class="phase-dot ${dot}" title="Optional delivery: ${escapeHtml(DELIVERY_LABELS[status])}. Commits, pushes, and PRs require approval of the exact delivery plan.">${symbol}</div>\n  <div class="phase-label">Deliver</div>\n  <div class="phase-mode">${DELIVERY_LABELS[status]}</div>\n${duration}</div>`);
   }
   return steps.join('\n');
+}
+
+function renderCurrentActivity(state, timeline) {
+  if (!timeline.activeSlot || state.fields.status !== 'In Progress' || state.fields.current_activity === 'none') return '';
+  const label = escapeHtml(PHASE_INFO[timeline.activeSlot.phase].label);
+  const activity = escapeHtml(state.fields.current_activity);
+  return `<section class="current-activity" aria-label="Current activity">
+  <strong>${label} in progress</strong>
+  <p class="phase-activity">${activity}</p>
+  <details class="activity-details"><summary>Activity details</summary><p>${activity}</p></details>
+</section>`;
 }
 
 function timingDetails(state, invalidTimestampFrom) {
@@ -564,6 +571,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
+    CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),

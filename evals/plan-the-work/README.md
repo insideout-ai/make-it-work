@@ -1,5 +1,11 @@
 # `plan-the-work` autopilot smoke test
 
+`plan-the-work-embedded-tests` uses the shared Python fixture to verify that
+planning adds an embedded progression test without tags or implementation changes,
+confirms runtime assertion red, reuses passing regression coverage, and records
+module/behavior evidence and runner selectors in the step's Tests field. Run with
+`node evals/run-suite.mjs full --case=plan-the-work-embedded-tests`.
+
 Additional status-aware coverage: `plan-the-work-planned-layer` uses a UI ticket
 with configured Unit but selected/planned Component coverage. Planning must
 surface the missing component setup and intended destination before writing

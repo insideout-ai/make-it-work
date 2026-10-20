@@ -4,6 +4,13 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Test tagging now applies to separate test files, including colocated files. Embedded tests and executable documentation examples use evidence-backed module/behavior mappings without new tags. Strategy generation, planning, regression selection and PR review distinguish explicit, inferred and unresolved mappings; embedded runs use supported selectors and disclose any broader enclosing scope. Existing embedded tags are left untouched.
+- The implementation dashboard keeps its logo and connected progress circles while showing current activity in a shared row below the timeline, with a two-line summary and expandable details. Tighter spacing and multi-column artifact tiles keep Artifacts and Audit log higher in IDE panels. Timeline skill names always start on a separate line beneath their phase names.
+
 ## [4.13.0] - 2026-10-20
 
 ### Added

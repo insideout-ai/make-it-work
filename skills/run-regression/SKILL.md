@@ -14,7 +14,7 @@ description: "Runs a project's regression suite — full, per repo (`full:<repo>
 - **No argument** — asks the user whether to run the full suite or a specific scope.
 - **A bare `full` or `full-suite`, alone** — today's full mode: runs the full suite, no prompt.
 - **Any other token set** — a **mixed** run, no prompt. It may contain several repo prefixes, e.g. `payments-api:UC-08 qa-automation:domain-velocity full:payments-api`:
-  - `<repo>:UC-<id>` / `<repo>:domain-<name>` — runs the tests tagged with that token, in every test location of `<repo>`'s strategy.
+  - `<repo>:UC-<id>` / `<repo>:domain-<name>` — runs separate tests tagged with that token and embedded tests with evidence-backed module/behavior mappings, in every test location of `<repo>`'s strategy.
   - `full:<repo>` — runs `<repo>`'s own full suite.
   - Every scope token needs a `<repo>:` prefix; an unprefixed `UC-*`/`domain-*` token is unrecognized. A bare `full` mixed with other tokens is unrecognized too.
 - **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. `--autopilot` is parsed and stripped as a flag before the remaining tokens are classified — it may appear anywhere in the argument list (`execute` appends it, e.g. `payments-api:UC-08 full:payments-api --autopilot`) and never counts as "no argument" or as an unrecognized scope token on its own. Invoking `--autopilot` with no scope argument resolves to `full` — see Autopilot Mode.
@@ -165,42 +165,46 @@ For each requested token:
 - If no matching directory or table row exists at all under these rules → mark it **"unrecognized"**.
 - If a match exists → it is **recognized**; carry it forward using its canonical tag form (`<Repo ID>:UC-{id}` with the id zero-padded as the inventory has it, e.g. `<repo>:UC-08`; `<Repo ID>:domain-{name}`, e.g. `<repo>:domain-velocity`) — not the raw directory name — since Phase 3 greps for this literal tag string.
 
-**Note on "no tests mapped":** whether a recognized token actually has a test tagged with it can only be determined by Phase 3's tag search — that check does not happen in this phase. This phase's own output is therefore only two-valued per token: "unrecognized" (decided here) or "recognized, carried forward" (pending Phase 3's search). Phase 3 is responsible for moving any recognized-but-zero-match token into the unmapped list with reason "no tests mapped" once its search completes.
+**Note on "no tests mapped":** whether a recognized token has an explicitly tagged separate test or an inferred embedded test can only be determined by Phase 3's discovery — that check does not happen here. This phase's output is only "unrecognized" or "recognized, carried forward". Phase 3 determines confirmed zero matches versus unresolved mappings after inspecting both sources.
 
 If, after this validation, a prefix has no recognized token, skip Phase 3 for that prefix. If no prefix has one and there is no `full:<repo>` token, skip Phase 3 and Phase 4 entirely and go straight to Phase 5 with the full unmapped list — there is nothing left to search for or run.
 
 ### Outputs of this phase
 
 This phase produces two things for the phases after it:
-- **(a) The recognized-token list** (canonical tag form), handed to Phase 3 for tag-based test selection. Phase 3 will further narrow this list to only tokens that actually matched a tagged test.
+- **(a) The recognized-token list** (canonical token form), handed to Phase 3 for explicit and inferred test selection.
 - **(b) The unmapped list**, handed to Phase 5's final report, with a reason per token. This phase contributes entries reasoned **"unrecognized"**, **"unrecognized repo"**, **"repo not found"** or **"no test strategy"**; Phase 3 later appends entries reasoned **"no tests mapped"** to the same list.
 
 ## Phase 3 — Select and filter tests for the requested scope
 
 This phase runs only when Phase 2 handed forward at least one recognized token (output (a) above). If Phase 2 recognized zero tokens — every requested token came back "unrecognized" — Phase 2 already routed straight to Phase 5 with the full unmapped list; this phase is skipped entirely for that run, and no filter command is ever constructed for an empty token list.
 
-### Confirm the tag convention for this prefix
+### Confirm the mapping convention for this prefix
 
-Before searching for anything, read the prefix repo's strategy `## Tag Convention` and `## How to Scan` sections fresh, every run, per prefix — never hardcode the tag form or the scan command. Tags are repo-qualified `@covers` comments inside the test files, matched by content.
+Before searching for anything, read the prefix repo's strategy `## Tag Convention` and `## How to Scan` sections fresh, every run, per prefix — never hardcode the tag form or the scan command. Separate test files use repo-qualified `@covers` comments, matched by content. Tests embedded in implementation files, including executable documentation examples, need no tags: infer their relationship through the containing module and actual asserted behavior, backed by UC/domain documentation or traced code. Do not map every test to every UC using a shared module. For older tag-only strategies, supplement discovery read-only with these embedded rules and the actual runner configuration; never require a strategy rewrite just to run tests.
 
 ### Find matching files
 
 For each token in this prefix's recognized-token list (canonical form, e.g. `<repo>:UC-08`) and each row of its `## Test Locations`, run the `## How to Scan` command from the prefix repo's root over that row's `Location`. Substitute the strategy's Repo ID for `<repo>` and the token's remainder for `<tag>`, escaping as `## How to Scan` says. Keep only paths matching the row's `Test files` glob (relative to its `Location`). Collect the matches per location.
 
+Apply that tag scan to separate test files only, including colocated files. Also execute the embedded discovery procedure, finding actual test declarations and configured executable documentation examples rather than selecting all source files. Retain each embedded test's file/module, identity, token, evidence and supported selector. In older strategies whose glob only names separate test files, inspect configured source roots for embedded tests as well. An existing embedded `@covers` comment does not replace module/behavior evidence. Missing or ambiguous evidence, missing locations or incomplete discovery produce `embedded mapping unresolved` entries for affected tokens/candidates, even when a token also has confirmed separate-file matches; continue with confirmed matches.
+
 **Rebase each matched path.** Grep returns paths relative to the prefix repo's root (e.g. `../qa-automation/tests/payments/withdraw_ledger.test.js`). Rewrite each one relative to that row's `Run from` (`tests/payments/withdraw_ledger.test.js` for `Run from` `../qa-automation`) before appending it to a command.
 
 ### Fold zero-match tokens into the unmapped list
 
-Any recognized token with zero matches in every location of its prefix is moved into the unmapped list (Phase 2's output (b)) with reason **"no tests mapped"** — this is exactly the piece Phase 2 explicitly deferred to this phase (see Phase 2's "Note on 'no tests mapped'"). A token whose only matches are in not-run locations (Phase 1's "Run prerequisites") is not unmapped: those locations are reported as not run.
+Any recognized token with no explicit or inferred matches after a complete scan in every location of its prefix, and no unresolved candidates, moves into the unmapped list (Phase 2's output (b)) with reason **"no tests mapped"**. When discovery/evidence is incomplete, retain **"embedded mapping unresolved"** instead and explain the missing evidence; do not infer absence from missing tags. A token whose only confirmed matches are in not-run locations (Phase 1's "Run prerequisites") is not unmapped: those locations are reported as not run.
 
-If, after this search, no location in any prefix has a match (the matched set is empty), do **not** construct a scoped run command at all: move every recognized token into the unmapped list as "no tests mapped", and do **not** fall back to running any full-suite command in their place. Running the full suite here would silently broaden the run beyond the scope the user actually requested. Only `full:<repo>` runs, if any, still go ahead.
+If no location in any prefix has a confirmed match, do **not** construct a scoped run command or fall back to a full suite. Preserve the appropriate `no tests mapped` or `embedded mapping unresolved` reason for each token. Only `full:<repo>` runs, if any, still go ahead.
 
 ### Construct and run the scoped command
 
-Build one run per location with matches, after its Run prerequisites (Phase 1) pass: append that location's rebased files, deduplicated, as positional file arguments to that row's `Full-suite command`, and run it from its `Run from`. Passing one or more file paths directly to a test runner is close to universal across frameworks and languages — unlike a framework-specific name-filter flag, this needs no per-framework syntax at all.
+For separate test files, build one run per location with matches after its Run prerequisites (Phase 1) pass: append that location's rebased files, deduplicated, as positional file arguments to that row's `Full-suite command`, and run it from its `Run from`, only when the actual runner supports file arguments.
 
-- **Shared locations merge.** When locations from different prefixes resolve to the same `Run from` directory with the same command, they are one run with the union of their files, deduplicated. Its repo is the row's `Repo`.
-- **Same file, different commands.** A file already selected for an earlier run is dropped from later ones, so it runs once.
+For embedded tests, use the runner-supported test/module/package selectors discovered from strategy and configuration. Do not append implementation file paths blindly. Handle executable documentation tests with their own configured command when the ordinary command does not run them. If precise selection is unavailable, identify and disclose the smallest supported enclosing module/package/suite, its command and the additional scope **before** execution; report that broader scope with the result. This is allowed only for confirmed inferred matches, never for unresolved candidates or zero matches. If no reliable selector or bounded enclosing command is known, skip those embedded tests, record `embedded tests cannot be selected` for affected tokens, and explain what broader verification is required. Other confirmed matches may still run.
+
+- **Shared locations merge.** Merge separate-file selections with the same `Run from` and command by union of files. Merge embedded selections only when the same runner invocation accepts their selectors together. Report the row's `Repo` for each run.
+- **Deduplication.** Deduplicate equivalent runner/test selections. A file selected by a different command is not redundant when that command runs distinct tests (for example, executable documentation versus embedded unit tests).
 - **`full:<repo>`.** Each token adds one full-suite run (Phase 1), alongside any scoped runs.
 
 **Appending is only valid when the arguments reach the actual test runner.** A location's command is sometimes a wrapper — a `package.json` script invoked as `npm run <script>`, a `Makefile` target invoked as `make <target>`, or a CI job step — and a wrapper does not always forward extra arguments to the runner underneath it:
@@ -211,7 +215,7 @@ Build one run per location with matches, after its Run prerequisites (Phase 1) p
 
 Once a valid command is constructed, run it via Bash the same way Phase 1 runs the full-suite command: capture its full output, and use a generous timeout (up to the maximum available), or run it in the background and wait for completion, rather than letting it get cut off mid-run. Hand the exit code and captured output to Phase 4.
 
-**Limitations (accepted):** a file containing a matching tag runs whole; other tests in that file may also run.
+**Limitations (accepted):** a separate file containing a matching tag runs whole; other tests in that file may also run. Embedded tests may run within a disclosed enclosing module/package/suite. Running that broader scope does not establish inferred mappings for its other tests or prove every requested relationship was resolved.
 
 ## Phase 4 — Determine the gate result
 
@@ -238,6 +242,7 @@ No run executes when every requested item ends up in one of these:
 - a token that is unrecognized, `unrecognized repo`, `repo not found` or `no test strategy` (Phase 2);
 - a token with no tests mapped (Phase 3);
 - a token whose matched files couldn't be passed to the runner (Phase 3's wrapper refusal);
+- a token with unresolved embedded mappings or embedded tests that cannot be selected (Phase 3);
 - a matched or full-suite location that is not run (Phase 1's "Run prerequisites": `ci-only`/`slow`/`flaky`, env var unset, service unavailable, `no tests in repo`);
 - a `full:<repo>` token recorded as `not run — no full-suite command found` (Phase 1).
 
@@ -361,7 +366,8 @@ Overall gate result: <PASS | FAIL>
 - **Leading lines.** `<n>` is the number of executed runs (blocks), `0` when nothing executed. The leading `Mode:` is `Scoped + full` when any `full:<repo>` token is present, otherwise `Scoped`.
 - **Blocks.** One per executed run, in run order: Phase 3's scoped runs (`Mode: Scoped`), then each `full:<repo>` run (`Mode: Full suite`). A not-run location or a zero-match location never gets a block. On a FAIL block, print the captured output tail immediately after it.
 - **`Not run:`** — every location not run per Phase 1's "Run prerequisites", and every `full:<repo>` not run, on one line, entries separated by `; `: `<repo>: <Location> — <reason>` for a location (e.g. `payments-api: ../qa-automation/tests/e2e — ci-only`), `<repo> — <reason>` for a `full:<repo>` token (e.g. `ledger-api — no tests in repo`, `ledger-api — no full-suite command found`). `None` when empty.
-- **`Unmapped scope (not run)`** — Phase 2's and Phase 3's combined unmapped list, on one line, each token with its own reason: `unrecognized`, `unrecognized repo`, `repo not found`, `no test strategy`, `no tests mapped`, or `matched files can't be passed to the runner` (e.g. `payments-api:domain-nonexistent — unrecognized; payments-api:UC-99 — no tests mapped`). `None` when empty.
+- **`Unmapped scope (not run)`** — Phase 2's and Phase 3's combined unmapped list, on one line, each token with its own reason: `unrecognized`, `unrecognized repo`, `repo not found`, `no test strategy`, `no tests mapped`, `matched files can't be passed to the runner`, `embedded mapping unresolved`, or `embedded tests cannot be selected`. Include unresolved/unselectable embedded portions even if separate tests for the same token ran. `None` when empty.
+- **Mapping/scope notes.** Before the report block, identify inferred embedded selections with their evidence, unresolved candidates, and any broader enclosing scope actually run. Keep the report grammar unchanged. A PASS describes executed commands only, not unresolved or not-run portions.
 - **`Overall gate result:`** — per Phase 4's overall rule. When no run executed, omit this line entirely and print no `Gate result:` label anywhere in the response.
 
 For example, `payments-api:UC-08 full:payments-api` where `UC-08` is tagged in `payments-api` itself, in `qa-automation`'s payments tests, and in a `ci-only` e2e location:

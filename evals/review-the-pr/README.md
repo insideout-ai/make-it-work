@@ -1,5 +1,11 @@
 # `review-the-pr` autopilot smoke test
 
+`review-the-pr-embedded-tests` reviews a local Python test-only diff. The embedded
+checkout assertion is exempt from tags, while a changed separate file under src
+with removed tags must produce a Minor finding. It uses the shared embedded-test
+fixture and a legacy strategy to check read-only mapping inference. Run with
+`node evals/run-suite.mjs full --case=review-the-pr-embedded-tests`.
+
 Three cases exercising `skills/review-the-pr/SKILL.md`'s `--autopilot` flag:
 `autopilot-bare` (no PR link, no requirements supplied — exercises all three
 interactive sites' fallback paths), `autopilot-full-info` (PR link and
