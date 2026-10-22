@@ -64,7 +64,9 @@
     "slice-the-epic-ambiguous-epic-autopilot",
     "implement-switch-to-guided",
     "implement-switch-to-autopilot",
-    "implement-resume-changed-autonomy"
+    "implement-resume-changed-autonomy",
+    "implement-publication-guided-approval",
+    "implement-publication-resume"
   ],
   "extraTools": {
     "execute-resume-inline": ["Bash"],

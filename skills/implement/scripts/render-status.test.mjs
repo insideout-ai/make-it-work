@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import { generateDashboard, parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
+import { initializePublication, updatePublication } from './ticket-publication.mjs';
 
 const DEFAULT_FIELDS = {
   ticket: 'DEMO',
@@ -119,6 +120,7 @@ test('renders a fresh run with active Context Check and no timing paragraph', as
   assert.match(html, /\(first real timestamp\)/);
   assert.match(html, /future relative to this device/);
   assert.doesNotMatch(html, /Waiting on you:/);
+  assert.match(html, /ticket-updates-off[^>]*>Ticket updates: Off<\/span>/);
 });
 
 test('keeps refinement activity outside the connected timeline and above artifacts', async (t) => {
@@ -139,7 +141,9 @@ test('keeps refinement activity outside the connected timeline and above artifac
   assert.match(html, /<section class="current-activity" aria-label="Current activity">\s*<strong>Refinement in progress<\/strong>/);
   assert.ok(html.indexOf('<section class="current-activity"') > html.indexOf('<p class="timeline-scroll-hint">'));
   assert.ok(html.indexOf('<section class="current-activity"') < html.indexOf('<h2>Artifacts</h2>'));
-  assert.ok(html.includes(`<details class="activity-details"><summary>Activity details</summary><p>${activity}</p></details>`));
+  assert.ok(html.includes(`<p class="phase-activity">${activity}</p>`));
+  assert.equal(html.split(activity).length - 1, 1);
+  assert.doesNotMatch(html, /activity-details|Activity details/);
   assert.match(html, /alt="InsideOut AI"/);
 });
 
@@ -190,6 +194,67 @@ test('accepts and describes fully autonomous autopilot runs', async (t) => {
 
   assert.match(html, /Autonomy: autopilot/);
   assert.match(html, /resolves every documented safe default without prompting/);
+});
+
+test('ticket permission badge is independent of autonomy and shows scoped consent without private payloads', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  let journal = initializePublication({ ticket: 'DEMO', workflow_start: DEFAULT_FIELDS.start_time }, {
+    target: { tracker: 'ado', site: 'https://tracker.example.test', issue: 'DEMO <script>alert(1)</script>', url: 'https://tracker.example.test/DEMO' },
+    original_description: 'PRIVATE ORIGINAL DESCRIPTION', mode: 'comments', allowed: ['comment'], artifact_comments: true,
+    decision: { source: 'user', text: 'Autopilot + update ticket: publish the plan and summaries as comments.' },
+  });
+  const filename = `DEMO-ticket-publication-${journal.run_id}.json`;
+  const journalPath = path.join(directory, filename);
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
+  const fields = { ticket_publication: `make-it-work/DEMO/${filename}` };
+  await writeFile(journalPath, JSON.stringify(journal));
+  for (const autonomy of ['autopilot', 'guided']) {
+    await writeFile(statePath, stateMarkdown({ fields: { ...fields, autonomy }, rows }));
+    const html = await readFile(await generateDashboard(statePath), 'utf8');
+    assert.ok(html.includes(`Autonomy: ${autonomy}</span>`));
+    assert.match(html, /ticket-updates-allowed[^>]*>Ticket updates: Allowed<\/span>/);
+    assert.match(html, /at https:\/\/tracker.example.test: comments\./);
+    assert.match(html, /Artifact comments are allowed/);
+    assert.match(html, /DEMO &lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.doesNotMatch(html, /PRIVATE ORIGINAL DESCRIPTION|<script>alert\(1\)<\/script>/);
+  }
+  journal = updatePublication(journal, 'consent', { mode: 'local', decision: { source: 'user', text: 'Keep all further updates local' } }).journal;
+  await writeFile(journalPath, JSON.stringify(journal));
+  const revoked = await readFile(await generateDashboard(statePath), 'utf8');
+  assert.match(revoked, /ticket-updates-off[^>]*>Ticket updates: Off<\/span>/);
+  assert.match(revoked, /Autonomy: guided<\/span>/);
+});
+
+test('unverifiable referenced permission shows Unknown without preventing dashboard rendering', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const filename = 'DEMO-ticket-publication-fixture.json';
+  const journalPath = path.join(directory, filename);
+  await writeFile(statePath, stateMarkdown({
+    fields: { ticket_publication: `make-it-work/DEMO/${filename}` },
+    rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']],
+  }));
+  const assertUnknown = async () => {
+    const html = await readFile(await generateDashboard(statePath), 'utf8');
+    assert.match(html, /ticket-updates-unknown[^>]*>Ticket updates: Unknown<\/span>/);
+    assert.doesNotMatch(html, />Ticket updates: Allowed</);
+  };
+  await assertUnknown(); // Missing journal.
+  await writeFile(journalPath, '{invalid JSON');
+  await assertUnknown();
+  const anotherRun = initializePublication({ ticket: 'DEMO', workflow_start: '2026-01-02T10:00:00Z' }, {
+    target: { tracker: 'jira', site: 'https://tracker.example.test', issue: 'DEMO', url: 'https://tracker.example.test/DEMO' },
+    original_description: null, mode: 'updates', decision: { source: 'user', text: 'Allow updates for another run' },
+  });
+  anotherRun.run_id = 'fixture';
+  await writeFile(journalPath, JSON.stringify(anotherRun));
+  await assertUnknown();
+  const outside = path.join(path.dirname(directory), 'outside.json');
+  await writeFile(outside, JSON.stringify({ ...anotherRun, workflow_start: DEFAULT_FIELDS.start_time }));
+  await rm(journalPath);
+  await symlink(outside, journalPath);
+  await assertUnknown();
 });
 
 test('accepts new handoff-enabled runs and legacy runs without the field', () => {
@@ -246,12 +311,13 @@ test('renders a stopped active phase as failed and static', async (t) => {
   assert.match(html, /status-stopped">Stopped<\/div>/);
 });
 
-test('renders completion, approval annotations, fix history, and repeated review', async (t) => {
+test('keeps completed stages minimal and retains approval details and fix history in the audit log', async (t) => {
+  const approval = 'Spec approved by user (hash ef7df1c); description published to DEMO (spec key, receipt 402444)';
   const rows = [
     ['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created'],
     ['2026-01-01T10:01:00Z', 'context-check', 'close-the-gaps', 'Context ready'],
     ['2026-01-01T10:02:00Z', 'close-the-gaps', 'spec-approval', 'Spec ready'],
-    ['2026-01-01T10:03:00Z', 'spec-approval', 'plan', 'Approved as-is'],
+    ['2026-01-01T10:03:00Z', 'spec-approval', 'plan', approval],
     ['2026-01-01T10:04:00Z', 'plan', 'plan-approval', 'Plan ready'],
     ['2026-01-01T10:05:00Z', 'plan-approval', 'execute', 'Approved as-is'],
     ['2026-01-01T10:06:00Z', 'execute', 'review', 'Execution passed'],
@@ -277,8 +343,11 @@ test('renders completion, approval annotations, fix history, and repeated review
 
   assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 11);
   assert.equal((html.match(/Review<span class="phase-skill">\(review-the-pr\)<\/span>/g) ?? []).length, 2);
-  assert.match(html, /phase-mode">Approved as-is<\/div>/);
-  assert.match(html, /phase-mode">Subagent-Driven · Step 2 of 2 complete<\/div>/);
+  const completedStages = html.slice(html.indexOf('<div class="phase-timeline">'), html.indexOf('<div class="phase-step optional-step">'));
+  assert.doesNotMatch(completedStages, /phase-mode|Spec approved by user|Approved as-is|Step 2 of 2 complete/);
+  assert.ok(html.includes(approval));
+  assert.match(html, /Decision: Fix round 1: added 2 steps covering 1 finding/);
+  assert.match(completedStages, /phase-duration">2m<\/div>/);
   assert.match(html, /class="complete"><strong>Implementation complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
   assert.match(html, /class="phase-step optional-step"[\s\S]*class="phase-dot optional"[^>]+Optional delivery:/);
   assert.match(html, /class="phase-label">Deliver<\/div>[\s\S]*class="phase-mode">Optional<\/div>/);
