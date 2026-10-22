@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-publication-guided-approval
+tags: [implement, ticket-publication, approval]
+context:
+  scaffold_script: fixture.sh

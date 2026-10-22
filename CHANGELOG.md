@@ -4,6 +4,21 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.15.0] - 2026-10-22
+
+### Added
+
+- Eligible tracker-ticket runs offer **Autopilot + update ticket** alongside plain Autopilot. The combined choice saves explicit publication consent without a second prompt; both retain the same Autopilot execution mode.
+- A separate dashboard permission badge shows **Ticket updates: Allowed / Off / Unknown** from the validated run journal, with the granted scope in its tooltip. Revocation and autonomy changes refresh it without conflating permission with publication success.
+- Missing attachment tools no longer prevent authorized artifact publication: accepted specs/plans can fall back to readable comments, with review and verification summaries in the completion comment. Saved fallback consent is explicit and compatible with older journals; uncertain writes and successful publications are checked across both formats to prevent duplicates.
+- `implement` offers ticket publication once for an explicitly supplied tracker ticket: description replacement with the accepted refined spec, finalized plan attachments, and significant blocker/completion comments. Comments-and-attachments-only and local-only choices are available; consent is scoped to one ticket/run, persists on resume and remains independent of autonomy and delivery approval. Autopilot defaults to local unless the user explicitly authorized updates.
+- A local publication journal preserves the original description, checks for concurrent edits, records confirmed remote IDs, skips successful duplicate updates, and defers ambiguous writes for read-only reconciliation. Connector failures retain local artifacts and do not change implementation status. Focused tests/evaluations cover scope, resume, concurrency and partial support.
+
+### Changed
+
+- Completed implementation stages show only their checkmark, stage/skill label and duration in the dashboard timeline. Approval/publication explanations and completed fix-step progress remain in the audit log instead of repeating under the circles.
+- The implementation dashboard shows the full current activity once inside the blue box. Removed the duplicated Activity details disclosure and two-line truncation, so refreshes cannot hide the activity text.
+
 ## [4.14.0] - 2026-10-20
 
 ### Changed

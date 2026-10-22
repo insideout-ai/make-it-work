@@ -392,6 +392,8 @@ Finish by printing one line: `Context updated: <each file changed, with a one-li
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
 
+**Ticket publication** — return the local spec and handoff; do not replace the tracker description, attach files or post comments here. `implement` owns publication under its saved ticket-write consent after the spec's acceptance checkpoint. Tracker read access and autonomy do not grant write permission.
+
 **Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided, Autonomous, or Autopilot), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
 
 **Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current interview progress and answers; never restart refinement just to change mode.

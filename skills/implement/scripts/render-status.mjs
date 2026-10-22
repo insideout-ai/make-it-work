@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
 import { readDelivery } from './delivery-progress.mjs';
+import { readPublicationPermission } from './ticket-publication.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -302,7 +303,7 @@ export function parsePlanStatus(markdown) {
 }
 
 function newSlot(phase, activationRow = null) {
-  return { phase, activationRow, approval: null, fixSteps: null };
+  return { phase, activationRow };
 }
 
 export function buildTimeline(state) {
@@ -316,17 +317,9 @@ export function buildTimeline(state) {
   for (const row of state.audit) {
     if (row.to === 'spec-approval' || row.to === 'plan-approval') continue;
 
-    if ((row.from === 'spec-approval' || row.from === 'plan-approval') && row.from !== row.to && activeSlot) {
-      activeSlot.approval = row.outcome;
-    }
-
     if (!CANONICAL_PHASES.has(row.to)) continue;
     if (activeSlot?.phase === 'fix-plan' && row.to === 'execute') continue;
-    if (activeSlot?.phase === row.to) {
-      const fixMatch = row.outcome.match(/^Decision: Fix round \d+: added (\d+) steps? covering \d+ findings?$/);
-      if (activeSlot.phase === 'fix-plan' && fixMatch) activeSlot.fixSteps = Number(fixMatch[1]);
-      continue;
-    }
+    if (activeSlot?.phase === row.to) continue;
 
     let nextSlot;
     if (row.to !== 'fix-plan' && !activatedPhases.has(row.to)) {
@@ -412,7 +405,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     pieces.push(`  <div class="phase-dot ${dotState}" title="${escapeHtml(`${slot.phase}: ${info.tooltip}`)}">${symbol}</div>`);
     pieces.push(`  <div class="phase-label${currentLabel}">${label}</div>`);
 
-    let modeText = slot.approval;
+    let modeText = null;
     if (isActive && slot.phase === 'execute') {
       if (!planStatus) fail('An active Execute phase requires a readable plan Execution Status.');
       modeText = `${planStatus.mode} · Step ${planStatus.complete} of ${planStatus.total} complete`;
@@ -423,9 +416,6 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
         fail('Current fix-round progress is inconsistent with the plan and fix_plan_round_steps.');
       }
       modeText = `${planStatus.mode} · Step ${localComplete} of ${state.fixPlanRoundSteps} complete`;
-    } else if (!isActive && passed && slot.phase === 'fix-plan' && slot.fixSteps !== null) {
-      if (!planStatus) fail('A completed Fix phase requires a readable plan Execution Status.');
-      modeText = `${planStatus.mode} · Step ${slot.fixSteps} of ${slot.fixSteps} complete`;
     }
     if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
 
@@ -467,7 +457,6 @@ function renderCurrentActivity(state, timeline) {
   return `<section class="current-activity" aria-label="Current activity">
   <strong>${label} in progress</strong>
   <p class="phase-activity">${activity}</p>
-  <details class="activity-details"><summary>Activity details</summary><p>${activity}</p></details>
 </section>`;
 }
 
@@ -552,11 +541,24 @@ function applyTemplate(template, replacements) {
   return output;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null }) {
+function renderPublicationBadge(permission) {
+  const status = permission?.status ?? 'off';
+  const label = { allowed: 'Allowed', off: 'Off', unknown: 'Unknown' }[status];
+  let tooltip = 'No ticket writes are authorized for this run.';
+  if (status === 'allowed') {
+    const names = { description: 'description replacement', attachment: 'attachments', comment: 'comments' };
+    tooltip = `Authorized for ${permission.target.issue} at ${permission.target.site}: ${permission.allowed.map((kind) => names[kind]).join(', ')}.`;
+    if (permission.artifact_comments) tooltip += ' Artifact comments are allowed when uploads are unavailable.';
+    tooltip += ' This shows permission, not whether an update succeeded.';
+  } else if (status === 'unknown') {
+    tooltip = 'Saved ticket-update permission could not be verified. No authorization is inferred.';
+  }
+  return `<span class="pill ticket-updates-pill ticket-updates-${status}" title="${escapeHtml(tooltip)}">Ticket updates: ${label}</span>`;
+}
+
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null }) {
   const timeline = buildTimeline(state);
-  const needsPlan = timeline.slots.some((slot) => slot.activationRow && (
-    slot.phase === 'fix-plan' || (slot === timeline.activeSlot && slot.phase === 'execute')
-  ));
+  const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
   const timing = timingDetails(state, invalidTimestampFrom);
@@ -570,6 +572,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
+    TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
@@ -612,9 +615,7 @@ export async function generateDashboard(statePath) {
   assertRunState(path.dirname(path.dirname(path.dirname(absoluteStatePath))), absoluteStatePath, state.fields.ticket);
   const invalidTimestampFrom = state.audit.find((row) => row.epoch > stateInfo.mtimeMs + 60_000)?.number ?? Infinity;
   const timeline = buildTimeline(state);
-  const needsPlan = timeline.slots.some((slot) => slot.activationRow && (
-    slot.phase === 'fix-plan' || (slot === timeline.activeSlot && slot.phase === 'execute')
-  ));
+  const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   let planStatus = null;
   if (needsPlan) {
     const planPath = resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket);
@@ -631,7 +632,8 @@ export async function generateDashboard(statePath) {
   if (!logoBase64 || !/^[A-Za-z0-9+/=]+$/.test(logoBase64)) fail('Logo asset is empty or invalid base64.');
   const delivery = state.fields.status === 'Complete' && state.fields.final_package_version === '1'
     ? await readDelivery(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
-  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery });
+  const publication = await readPublicationPermission(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields);
+  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {

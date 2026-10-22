@@ -354,6 +354,8 @@ Do not paste the full plan in chat unless the user asks.
 
 ## When run by implement
 
+**Ticket publication** — return the local plan and handoff; do not upload or post it here. `implement` owns authorized publication of the accepted plan snapshot, including replans/fix amendments. The explicit-local-path ingestion guard remains in force; the caller's separately resolved tracker target does not authorize this stage to access a tracker.
+
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
 
 **Inputs** — the spec path, the run's autonomy level (Guided, Autonomous, or Autopilot), the plan version `N`, optional testing-readiness artifact with its verification policy and accepted setup baseline files, optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
