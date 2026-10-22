@@ -1,0 +1,124 @@
+evals/implement/publication-resume/prompt.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-11
+README.md
+  s_52fe12c9ba6679::t_b54ae7368ac9f7 158
+  s_52fe12c9ba6679::t_54220e44675b47 153,157,163
+  s_52fe12c9ba6679::t_589c9662489d4c 317
+  s_52fe12c9ba6679::t_f87d245a881c59 329
+  s_52fe12c9ba6679::t_421026a15386bd 164
+skills/implement/scripts/ticket-publication.mjs
+  s_52fe12c9ba6679::t_fa7690d3eed94e 135-137,164-167,169-170
+  s_52fe12c9ba6679::t_d5229bc7f30116 33,38-39,43,66-68,70,72-73,87,103,119,123,131
+  s_52fe12c9ba6679::t_d00f7a412b2e8f 7,224-256,270,285,290-291
+  s_52fe12c9ba6679::t_0c6a2397cbf4ee 58-65,71,76-84,86,91-98,116
+  s_52fe12c9ba6679::t_6ce90f24db50b0 168
+  s_52fe12c9ba6679::t_ff5b7fb1320c8f 85,156-160,171,184-187
+  s_52fe12c9ba6679::t_0747b6660c45c3 1-3,5-6,8-32,34-37,40-42,44-49,57,99-102,105-110,112-115,117-118,121-122,125,127-128,142,150-152,155,161,163,172,178-182,188-223,257-263,265-269,272-284,286-289,292-294,309-323
+  s_52fe12c9ba6679::t_be1033073d7cd0 53-56,69,74-75,88,104,111,120,124,126,143-146,149,162,176,183
+  s_52fe12c9ba6679::t_69a2a52541d371 147-148
+  s_52fe12c9ba6679::t_decfe1e16034b5 4,271,295-308
+  s_52fe12c9ba6679::t_753159bec00c11 173-174
+  s_52fe12c9ba6679::t_714800d0555b75 50-52,89-90,153-154
+  s_52fe12c9ba6679::t_ff3afe662b0b05 129-130,132-134,138-141,175,177,264
+skills/implement/SKILL.md
+  s_52fe12c9ba6679::t_2ca86a0f61f4b9 327
+  s_52fe12c9ba6679::t_4f4badcd93f1fe 16,114,224,274-275,305-306,311-312,328,518,525,541
+  s_52fe12c9ba6679::t_27f51fff3fde49 29,204,257-259,262-264,266,268
+  s_52fe12c9ba6679::t_1a4dd957a7a5a4 481,524
+  s_52fe12c9ba6679::t_c6ba4ee8de96ad 280,291
+  s_52fe12c9ba6679::t_6ce90f24db50b0 201
+  s_52fe12c9ba6679::t_64da99849de870 218
+  s_52fe12c9ba6679::t_589c9662489d4c 15,321,526
+  s_52fe12c9ba6679::t_135c013a1cc66b 278
+  s_52fe12c9ba6679::t_cf9b0c47adae22 322
+evals/implement/publication-guided-approval/case.yaml
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-5
+evals/implement/publication-guided-approval/graders/no-publication-prepared.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-6
+evals/implement/publication-resume/fixture.sh
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-5
+skills/implement/references/ticket-publication.md
+  s_52fe12c9ba6679::t_27f51fff3fde49 7,11,13-14,25,84-89
+  s_52fe12c9ba6679::t_753159bec00c11 65
+  s_52fe12c9ba6679::t_543642a7e6220e 1-6,8-10,12,15-16,18,21-22,24,26-32,35,37-41,52-64,66-67,69-74,76-80,83
+  s_52fe12c9ba6679::t_6ce90f24db50b0 81-82
+  s_52fe12c9ba6679::t_589c9662489d4c 17,19-20,23,33-34,36,42-47,49-51,75
+  s_52fe12c9ba6679::t_641fd616e452e9 48,68
+evals/implement/README.md
+  s_52fe12c9ba6679::t_54220e44675b47 68-69
+  s_52fe12c9ba6679::t_641fd616e452e9 23,29
+  s_52fe12c9ba6679::t_346bbc37d82cd2 14-22,24-28
+evals/implement/publication-resume/graders/preserve-uncertainty.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-7
+skills/implement/assets/status-template.html
+  s_52fe12c9ba6679::t_d00f7a412b2e8f 28-32,94-97
+  s_52fe12c9ba6679::t_e277ef1c864268 62
+evals/implement/publication-guided-approval/prompt.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-11
+.claude-plugin/plugin.json
+  s_52fe12c9ba6679::t_27f51fff3fde49 6
+skills/close-the-gaps/SKILL.md
+  s_52fe12c9ba6679::t_f87d245a881c59 395-396
+skills/implement/scripts/ticket-publication.test.mjs
+  s_52fe12c9ba6679::t_0c6a2397cbf4ee 7,54-55,129-141
+  s_52fe12c9ba6679::t_3b34be19c6f290 1-2,4-6,9-48,53,145-170,172-181,196-247,249-276,298-316
+  s_52fe12c9ba6679::t_d5229bc7f30116 49-52
+  s_52fe12c9ba6679::t_69a2a52541d371 79
+  s_52fe12c9ba6679::t_714800d0555b75 142-144
+  s_52fe12c9ba6679::t_52c30c4140e9f7 56-78,80-83,91-114,116-128
+  s_52fe12c9ba6679::t_74e98f5b334ec8 8,277-297
+  s_52fe12c9ba6679::t_ff5b7fb1320c8f 84-90
+  s_52fe12c9ba6679::t_753159bec00c11 115
+  s_52fe12c9ba6679::t_6ce90f24db50b0 189-190
+  s_52fe12c9ba6679::t_fa7690d3eed94e 3,171,182-188,191-195,248
+skills/implement/references/handoffs.md
+  s_52fe12c9ba6679::t_f87d245a881c59 54-55
+evals/suites.json
+  s_52fe12c9ba6679::t_68a892a6a2bdb7 67-69
+CHANGELOG.md
+  s_52fe12c9ba6679::t_e277ef1c864268 17-18,20-21
+  s_52fe12c9ba6679::t_1316baefa32724 19
+  s_52fe12c9ba6679::t_589c9662489d4c 13
+  s_52fe12c9ba6679::t_27f51fff3fde49 7,11-12
+  s_52fe12c9ba6679::t_737bc50d5ed6e1 8-10,14-16
+evals/implement/publication-resume/case.yaml
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-5
+evals/implement/seed-publication-fixture.sh
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-47
+evals/implement/publication-resume/graders/retained-remote-result.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-6
+skills/implement/references/autonomy-changes.md
+  s_52fe12c9ba6679::t_27f51fff3fde49 11-12
+skills/implement/scripts/render-status.mjs
+  s_52fe12c9ba6679::t_d00f7a412b2e8f 9,544-559,575,635-636
+  s_52fe12c9ba6679::t_1316baefa32724 306,322,408,561,618
+skills/implement/scripts/render-status.test.mjs
+  s_52fe12c9ba6679::t_74e98f5b334ec8 3,10,123,199-258
+  s_52fe12c9ba6679::t_1316baefa32724 314-315,320,346-350
+  s_52fe12c9ba6679::t_e277ef1c864268 144-146
+  s_52fe12c9ba6679::t_44d7e92d2d9d99 259
+evals/implement/publication-guided-approval/graders/approval-before-publication.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-7
+evals/implement/publication-guided-approval/fixture.sh
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-5
+skills/plan-the-work/SKILL.md
+  s_52fe12c9ba6679::t_f87d245a881c59 357-358
+evals/implement/publication-resume/graders/complete-locally.md
+  s_52fe12c9ba6679::t_570a9a03fc0c41 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "46458378b93614723761339026914775b8c9930a",
+  "prompts": {},
+  "sessions": {
+    "s_52fe12c9ba6679": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16226-9746-73c0-ba54-423d6d5234ea",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
