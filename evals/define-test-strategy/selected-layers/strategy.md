@@ -44,13 +44,19 @@ Only layers whose tooling is present in a listed location.
 - Pure logic → Unit
 - Component behavior → no configured layer; see Recommended Setup
 
-## Tag Convention
+## Test Map
 
-Single-line @covers FIXTURE_REPO_ID:UC-<id> above real tests.
+Shared .claude/testing/test-map.json records evidence-backed test identities and
+product-qualified UC/domain relationships. Source/tests are never annotated.
 
 ## How to Scan
 
-Search actual configured test files for repo-qualified @covers tags.
+Follow make-it-work docs/test-map-contract.md and scripts/test-map.mjs. Inspect
+registrations and freshness; reuse unchanged relationships and reassess affected
+tests/evidence. If the map is absent, discover tests using the configured runner
+and Test Locations patterns, inspect assertions and trace behavior to product
+and domain documentation. Use runner-supported file/test selectors, not tags.
+No tests/tooling means an empty inventory, not an invented test command.
 
 ## Strategy Decisions
 

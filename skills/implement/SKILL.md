@@ -244,7 +244,7 @@ Outcomes:
 Test strategy (absence never stops Context check): check the same root, and when it is a workspace root, each repo directory under it. Record repos with missing or old strategies for testing readiness before planning:
 
 - **Missing** → report: "No test-strategy skill — testing readiness will discover or establish the setup before planning."
-- **Only `.claude/rules/testing-strategy.md`** → report: "Old test-strategy rule found — testing readiness will migrate it before planning." Let `define-test-strategy` own that migration.
+- **Older strategy without `## Test Map`** → report: "Testing readiness will regenerate the strategy and map from current tests and documentation. Obsolete rules/pointers require manual cleanup." Do not convert or delete old rule files.
 
 Show any warning with Context check's outcome and record it in the closing context-check Audit-log row.
 
@@ -343,7 +343,7 @@ If the developer accepts the existing `GATE_NO_RESULT` manual-walkthrough route 
 
 Classify every failing test that is not already listed under Known regressions:
 
-- **Related** — the plan names it (in a step's `**Tests:**` field or a `## Test Plan` row), it lives in a file listed in the plan's Affected Code, or the file contains a `@covers` token listed in the plan's `## Domains/UCs Touched` (match per the test-strategy skill's `## Tag Convention`).
+- **Related** — the plan names it (in a step's `**Tests:**` field or a `## Test Plan` row), it lives in a file listed in the plan's Affected Code, or its actual test identity has a current evidence-backed relationship in the product repo's test map to a token in Domains/UCs Touched. Follow `<base>/../../docs/test-map-contract.md` to inspect/refresh affected mappings before classification; stale or ambiguous evidence is Uncertain, never automatically Unrelated. Missing/malformed maps under the current strategy use temporary discovery without source/test annotations; an older strategy needs regeneration and cannot establish an Unrelated classification.
 - **Unrelated** — none of the above.
 - Suites under `Not run:` are never triaged.
 - **Uncertain** — the evidence points both ways, or the failing test can't be identified. Ask the user about each one (related → fix it / unrelated → document it) in both interactive autonomy levels; under `autopilot`, stop rather than classifying it.
@@ -468,6 +468,8 @@ Runs only after review comes back `CLEAN`. Its job is to make the project's know
 Follow `go-deep`'s rules: UC skills describe what the user does and sees, domain skills describe how it is built and where the code lives; keep to the size targets; keep only what someone could not learn by reading the code. Never mention the ticket, its ID, or "this change added…".
 
 Write the updates directly, without a confirmation step, at both autonomy levels. Add the files changed to `context_updated`.
+
+**Reconcile test maps after documentation edits.** For each affected product repo with a current test-strategy, follow `<base>/../../docs/test-map-contract.md` against the finished documentation tree. Synchronize changed UC/domain vocabulary and registrations, inspect freshness, semantically reassess affected tests/evidence, and persist meaningful map updates before the transition below. Include changed map paths in `context_updated`. Reuse unchanged relationships and preserve user decisions; never merely stamp new hashes to make stale evidence look current. Keep unfinished/unavailable portions unresolved with the contract's incomplete flags and preserved baselines, and disclose them in the final package. Do not modify source/tests for mapping or migrate old metadata. If reconciliation changes test selection or behavior assumptions used by the gate/review, do not complete or package the run: checkpoint `Stopped` at final-sync, naming the affected Execute validation and Review work required before completion. The previous result does not validate that new scope; do not invent an unlisted phase transition.
 
 For a run with `final_package_version: 1`, checkpoint `final-sync → final-approval` after these updates and regenerate the dashboard. The package captures the finished tree, including these documentation changes. An older run follows its existing `final-sync → complete` transition.
 

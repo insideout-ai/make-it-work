@@ -19,7 +19,7 @@ Turn an oversized requirement into a small, ordered backlog of independently dem
 
 ## Autopilot Mode
 
-When invoked with `--autopilot`, evaluate the same clarification condition and construct the same approach choices as the interactive path. Resolve those sites without calling `AskUserQuestion` or waiting for an answer.
+When invoked with `--autopilot`, evaluate the same clarification condition and construct the same approach choices as the interactive path. Resolve those sites without calling `AskUserQuestion` or waiting for an answer. When choosing an approach, first send a chat preview of every candidate with its fit, tradeoff and 2–3 example slice titles, then announce the automatic selection and generate/save the backlog. Autopilot skips the wait, not this preview; an approach section inside the saved backlog or decision log does not replace the preceding chat message.
 
 **Hard-stop exception:** none. This skill saves a fresh timestamped backlog, adding a numeric suffix on a filename collision; it never overwrites an existing backlog. The "Wrap up" offer remains non-blocking.
 

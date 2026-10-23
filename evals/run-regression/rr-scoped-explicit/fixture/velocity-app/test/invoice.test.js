@@ -1,4 +1,3 @@
-// @covers velocity-app:domain-billing
 const { test } = require('node:test');
 const assert = require('node:assert');
 

@@ -19,7 +19,7 @@ Find the generated content:
   `FINAL:` text. Grade that block.
 
 Answer PASS only if ALL of these hold:
-1. The content has these eight `##` headings, in this order, each once: `## Repo ID`, `## Test Locations`, `## Layers`, `## Run Prerequisites`, `## Where New Tests Go`, `## Coverage Decision Guidance`, `## Tag Convention`, `## How to Scan`.
+1. The content has these eight `##` headings, in this order, each once: `## Repo ID`, `## Test Locations`, `## Layers`, `## Run Prerequisites`, `## Where New Tests Go`, `## Coverage Decision Guidance`, `## Test Map`, `## How to Scan`.
 2. It has no `## Pending` heading.
 3. The first `## Test Locations` data row has Location `.`, and its full-suite command is `npm test`, `npm run test` or a `node --test` command.
 4. It stores no list of coverage gaps or uncovered use cases.

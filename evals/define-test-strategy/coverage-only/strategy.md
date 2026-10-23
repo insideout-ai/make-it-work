@@ -37,15 +37,19 @@ None
 
 None
 
-## Tag Convention
+## Test Map
 
-Use single-line `@covers report-only-fixture:UC-<id>` comments above real tests.
+Shared .claude/testing/test-map.json records evidence-backed test identities and
+product-qualified UC/domain relationships. Source/tests are never annotated.
 
 ## How to Scan
 
-Run once per vocabulary token from this repo root:
-`grep -rlIiE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work '@covers([[:space:]].*)?[[:space:]]<repo>:<tag>([[:space:]]|$)' .`
-Filter to the location's test files; there are none configured here.
+Follow make-it-work docs/test-map-contract.md and scripts/test-map.mjs. Inspect
+registrations and freshness; reuse unchanged relationships and reassess affected
+tests/evidence. If the map is absent, discover tests using the configured runner
+and Test Locations patterns, inspect assertions and trace behavior to product
+and domain documentation. Use runner-supported file/test selectors, not tags.
+No tests/tooling means an empty inventory, not an invented test command.
 
 ## Strategy Decisions
 

@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-index-refresh
+tags: [define-test-strategy, test-map, incremental]
+context:
+  scaffold_script: fixture.sh

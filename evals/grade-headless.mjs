@@ -72,8 +72,13 @@ function readableTrace(events) {
         if (part.type === 'tool_use') lines.push(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
       }
     } else if (event.type === 'user') {
-      for (const part of event.message?.content ?? []) {
-        if (part.type === 'tool_result') lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
+      const content = event.message?.content;
+      if (typeof content === 'string') lines.push(`USER CONTEXT: ${content}`);
+      else for (const part of content ?? []) {
+        // Skill bodies arrive as user text, not tool results. Keep their evidence
+        // visible to the judge while preserving its role as transcript data.
+        if (part.type === 'text') lines.push(`USER CONTEXT: ${part.text}`);
+        else if (part.type === 'tool_result') lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
       }
     } else if (event.type === 'result') lines.push(`FINAL: ${event.result}`);
   }

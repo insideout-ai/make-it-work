@@ -1,9 +1,8 @@
 # `review-the-pr` autopilot smoke test
 
 `review-the-pr-embedded-tests` reviews a local Python test-only diff. The embedded
-checkout assertion is exempt from tags, while a changed separate file under src
-with removed tags must produce a Minor finding. It uses the shared embedded-test
-fixture and a legacy strategy to check read-only mapping inference. Run with
+checkout assertion and changed separate label tests both use the map without requiring tags. Missing/stale shared-index entries produce Minor maintenance findings; review derives current relevance in memory without saving project metadata. It uses the shared embedded-test
+fixture and a current strategy with a missing map to check read-only mapping inference. Run with
 `node evals/run-suite.mjs full --case=review-the-pr-embedded-tests`.
 
 Three cases exercising `skills/review-the-pr/SKILL.md`'s `--autopilot` flag:

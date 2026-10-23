@@ -8,7 +8,7 @@ PASS only if the saved plan and actual tests respect these outcomes:
 
 - Adds progression tests inside account.py::DiscountTests for invalid discounts,
   without @covers comments. Does not move them to separate files or tag existing
-  embedded unit/doctest examples. Existing separate label tags remain intact.
+  embedded unit/doctest examples. Existing separate label tests remain unannotated. Registers progression/regression identities and checkout evidence in the product-owned shared map (or prints the full candidate on a denied metadata write), without adding source annotations.
 - discounted_total and other implementation logic stay unchanged; no stub replaces
   this existing function. Changes in account.py are limited to test code.
 - Executes a currently-passing nearby regression and confirms progression red

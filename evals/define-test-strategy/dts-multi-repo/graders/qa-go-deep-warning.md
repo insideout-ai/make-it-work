@@ -11,4 +11,4 @@ better domain context", and continue.
 
 Answer PASS only if this message says go-deep has not been run in
 `qa-automation` and the run still completed (it reports the skill written or
-tags applied). Answer FAIL otherwise.
+map relationships assessed). Answer FAIL otherwise.

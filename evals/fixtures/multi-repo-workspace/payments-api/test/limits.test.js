@@ -1,4 +1,3 @@
-// @covers payments-api:UC-08 payments-api:domain-velocity
 const test = require('node:test');
 const assert = require('node:assert');
 const { withdraw, MAX_WITHDRAWAL } = require('../src/withdraw.js');

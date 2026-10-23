@@ -9,7 +9,7 @@ The generated file starts with this frontmatter:
 ```yaml
 ---
 name: test-strategy
-description: "Test strategy for `<Repo ID>`: testing approach and priorities, where tests live (including other repos), how to run them and what they need, where new tests go, and the `@covers` tag convention. Read before planning, writing, running, or reviewing tests for this repo."
+description: "Test strategy for `<Repo ID>`: testing approach and priorities, where tests live (including other repos), how to run them and what they need, where new tests go, and the maintained non-intrusive test map. Read before planning, writing, running, or reviewing tests for this repo."
 ---
 ```
 
@@ -25,7 +25,7 @@ This is a starting point, seeded by `define-test-strategy` — extend and edit i
 
 `<Repo ID>` — the basename of this repo's git toplevel directory at onboarding.
 
-Tags use this ID. If this repo is cloned under a different directory name, tags stop matching — clone it as `<Repo ID>`.
+Map tokens use this ID. If this repo is cloned under a different directory name, existing repo-name resolution may not match — clone it as `<Repo ID>`.
 
 ## Test Locations
 
@@ -77,37 +77,22 @@ Which layer a change needs. Use the configured and selected layers in Layers. Fo
 - <kind of change, e.g. new API endpoint> → <layer>
 - <kind of change needing a selected planned layer> → <layer> (planned; <setup required>)
 
-## Tag Convention
+## Test Map
 
-- **Placement:** tag tests in separate test files, including colocated files and files in other repos. Do not add or maintain `@covers` comments for tests embedded in implementation files or their executable documentation examples; infer those relationships through the containing module under How to Scan. Placement does not determine whether a test is unit, integration, property-based, or another layer/style.
-- **Form for separate files:** `@covers <Repo ID>:UC-<id> <Repo ID>:domain-<name>`, written as a single-line comment in the file's own comment syntax, directly above the test or suite it covers.
-- **Qualified tokens:** every token is repo-qualified. `<id>` and `<name>` come verbatim from go-deep's skill directory names.
-- **Several tokens:** a line may carry several tokens. A suite-level tag covers the whole suite.
-- **Placeholders:** placeholder or skipped-scaffold files are never tagged.
-- **Untaggable files:** separate test files with no single-line comment form (e.g. JSON, Postman collections) are listed as untaggable and never edited. Embedded tests are exempt, not untaggable.
-- **PHP:** put the `//` tag line above any docblock, never inside it — PHPUnit parses `@covers` in docblocks.
+- **Shared index:** `.claude/testing/test-map.json`, schema version 1, owned by `<Repo ID>`. UC/domain tokens are `<Repo ID>:UC-<id>` and `<Repo ID>:domain-<name>` from go-deep's actual inventory. Tests in external repos use the product repo's tokens. Both query directions derive from the same relationships.
+- **Non-intrusive:** never add, maintain or remove source/test comments or rename/move tests for mapping. Separate, embedded, documentation and comment-free formats use the same evidence-backed mapping contract; placement is independent of layer. Existing annotations and legacy filenames remain untouched. Placeholders are excluded from coverage.
+- **Evidence:** identify actual tests/suites and inspect their assertions against documented/traced behavior. Record supporting file/symbol dependencies. Shared-module ownership alone cannot map every test to every UC. Ambiguity stays unresolved. A relationship is relevance evidence, not sufficient coverage or a passing result.
+- **Maintenance:** use make-it-work's `docs/test-map-contract.md` and read-only `scripts/test-map.mjs`. Onboarding/planning/implementation save reviewed metadata changes; standalone regression/review and report-only requests use in-memory refreshes. Preserve user confirmations/rejections. Do not rewrite unchanged entries or store live gap/pass-fail lists in the strategy.
 
 ## How to Scan
 
-Scan both sources below for each token, once per row of Test Locations. Return the file, test/suite or runner selector, mapping kind (`explicit` or `inferred`), and evidence. Keep unresolved relationships separate. Mapping establishes a relationship, not adequate behavioral coverage or a passing test result.
+1. Check current strategy registrations/vocabulary against the map. Use the shared helper's `inspect --root <this repo>` to detect changed tracked/untracked inputs, then follow the contract's targeted/rebuild instructions. Reuse unchanged relationships without rereading every assertion. Missing/malformed maps require temporary discovery, not source annotations.
+2. <Per-location separate-file discovery using configured runner patterns, plus actual embedded declarations/executable documentation discovery in configured source roots; identify tests, not arbitrary source files. Record configuration files and discovery-directory prefixes for the map. Write None for absent placements.>
+3. Reassess changed tests and evidence against UC/domain behavior, preserving user decisions and unrelated entries. Unknown impact/configuration changes rebuild affected locations. Missing repos, incomplete discovery and ambiguous candidates remain unresolved; never stamp snapshots without finishing the required reassessment.
+4. Query each requested token through `query --root <this repo> --token <repo>:<token>` (or `--test <identity>` for the reverse view). Use the in-memory candidate through stdin for read-only workflows. Return file, identity/selector, provenance and evidence; retain unresolved portions even when other tests match.
+5. <Runner-supported selectors from actual configuration, including distinct documentation commands and any selection limitation. Separate files may run whole; disclose the smallest supported enclosing scope for embedded/documentation tests. Never pass source paths to a runner expecting package/module selectors. If reliable selection is unavailable, report not run and the verification required.>
 
-### Separate test files — explicit mappings
-
-- Run from this repo's root:
-  `grep -rlIiE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work '@covers([[:space:]].*)?[[:space:]]<repo>:<tag>([[:space:]]|$)' <Location>`
-- Filter the output to separate test files matching that row's `Test files` globs; comments in implementation files do not create explicit mappings.
-- Before substituting, escape regex metacharacters in `<repo>`, and replace each `-` in `<repo>` and `<tag>` with `[-_]`.
-- The matched separate files are the tests explicitly mapped to that token.
-
-### Embedded tests — inferred mappings
-
-- <Per-location discovery commands/procedure from the actual language and runner configuration, including executable documentation tests when configured; or None — no embedded tests found. Identify real test declarations/examples, not arbitrary implementation files.>
-- Inspect the actual assertions and code exercised. Map a test through its containing module only when UC/domain documentation or traced code establishes that the behavior it verifies belongs to that token. Record the evidence path/symbol and test identity. A module used by several UCs does not map every embedded test to every UC; names or directory proximity alone are insufficient.
-- <Runner-supported selectors and commands for the discovered embedded tests, derived from project configuration; include distinct unit/documentation commands when needed, or state the selection limitation. Do not pass implementation file paths to a runner that expects module/package/test selectors.>
-- Revalidate discoveries and their evidence live. Missing or ambiguous module relationships, or an incomplete discovery, are unresolved mappings; identify affected tokens/candidates and what is missing. Existing embedded `@covers` comments are not a substitute for evidence and are left untouched on refresh.
-- If precise selection is unavailable, identify the smallest supported enclosing module/package/suite and disclose its broader scope before running it. If no reliable selector or bounded enclosing command can be established, report the tests as not run and explain the required broader verification.
-
-Compute coverage gaps live from both sources, distinguishing explicit, inferred, and unresolved mappings. Only label a token uncovered when the scan is complete and neither source maps a test; an unresolved candidate is not evidence of absence. Never store a gap list in this file.
+Only report a token uncovered after complete current assessment across every location and no matching or unresolved candidate. Compute gaps on demand; do not store a gap list in this file or treat mapped tests as proof of passing behavior.
 
 ## Strategy Decisions
 
@@ -141,7 +126,7 @@ _Include when no usable automated setup exists, or when the strategy discussion 
 
 _Include this section only on a partial run; omit it otherwise._
 
-Tagging pending go-deep — run `/make-it-work:go-deep` in `<Repo ID>`, then re-run `/make-it-work:define-test-strategy`.
+UC/domain mapping pending go-deep — run `/make-it-work:go-deep` in `<Repo ID>`, then re-run `/make-it-work:define-test-strategy`. The map may inventory tests without inventing product tokens.
 
 ---
 

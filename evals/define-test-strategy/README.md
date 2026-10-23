@@ -1,212 +1,55 @@
-# `define-test-strategy` eval cases
+# `define-test-strategy` evaluations
 
-Thirteen cases exercising `skills/define-test-strategy/SKILL.md`. The skill writes
-one per-repo test-strategy skill at `.claude/skills/test-strategy/SKILL.md`
-(structure fixed by `skills/define-test-strategy/references/test-strategy-template.md`),
-tags tests in separate files with repo-qualified `@covers <Repo ID>:UC-<id>` comments,
-adds one `/test-strategy` row to `CLAUDE.md`'s `### Other Skills` table, and
-reports explicit, inferred embedded, and unresolved mappings from live discovery. It never scaffolds placeholder tests,
-never writes or offers a git hook, never adds a `CLAUDE.md` checklist item, and
-never commits.
+The strategy skill and shared `.claude/testing/test-map.json` are the only testing
+policy/mapping outputs. Discovery and refresh never change source/test files,
+comments or filenames. Legacy import/conversion/cleanup is outside this release;
+older projects regenerate the strategy/map from current evidence.
 
-| Case | Invocation | Exercises |
-|---|---|---|
-| `dts-migrate-autopilot` | `--autopilot` | Migration of an old-version repo: `.claude/rules/testing-strategy.md`, path-tagged tests (`uc-01-create-task.test.js`, `domain-tasks-helpers.test.js`), a placeholder test (`uc-02-complete-task.test.js`), and the old `CLAUDE.md` Rules Files row and "check regression status before committing" checklist item. |
-| `fresh-autopilot` | `--autopilot` | The same go-deep-shaped project with none of the old outputs and no tests: Phase 1 finds nothing (no menu), the skill is generated from scratch, and no test file is created. |
-| `define-test-strategy-negative-control` | no `--autopilot` | The migration fixture run interactively: the skill must stop at the refresh/migrate question (or the location confirmation) before writing anything. |
-| `dts-multi-repo` | `payments-api --autopilot`, from a workspace root | Cross-repo detection over `evals/fixtures/multi-repo-workspace/`: the `[repo]` argument, a sibling QA repo found by its test files' references, repo-qualified tags, the go-deep warning for a repo without go-deep, and a same-numbered UC in another repo left alone. |
-| `dts-no-tooling` | `--autopilot` | No configured tooling: selected layers/destinations are planned, while Test Locations and runnable commands remain `none`. |
-| `dts-strategy-api-autopilot` | `--autopilot` | Database-backed API: recommend layers from persistence risks, distinguish real/mocked boundaries, log strategy defaults, and keep unknown database access explicit. |
-| `dts-strategy-interactive` | no `--autopilot` | Recommend an approach, ask one material question with tradeoffs about test database access, and wait before writing. Target and locations are already confirmed. |
-| `dts-coverage-only` | explicit coverage-only choice | An existing strategy with no tests: report coverage without discussion or writes, preserving saved decisions. |
-| `dts-embedded-tests` | `embedded-tests --autopilot` refresh | Shared Python fixture: tag colocated separate files under src, leave embedded unittest/doctest examples untouched, upgrade generated legacy guidance, and report evidence-backed mappings without assigning every shared-module UC. |
-| `dts-embedded-coverage-only` | `embedded-tests`, explicit coverage-only choice | Supplement an older tag-only strategy with embedded discovery without writes; preserve decisions and distinguish explicit, inferred and unresolved relationships. |
-| `dts-strategy-mixed-autopilot` | `--autopilot` | React/Deno app with Vitest helper tests: separate current, target and initial coverage; discuss missing prerequisites; avoid treating duplicated logic or unperformed manual checks as backend verification. |
-| `dts-strategy-mixed-interactive` | no `--autopilot` | Same mixed app: ask about consequential coverage/environment choices before narrowing the discussion to unit-test priorities. |
-| `dts-selected-layers` | `--autopilot` refresh | Saved unit-plus-component decision with old configured-only tables: project Component planned into layer/destination/guidance sections while preserving active commands and user notes. |
+| Case | Behavior |
+| --- | --- |
+| `dts-fresh-tests` | Map asserted creation/deletion behavior to documented UCs/domains while excluding an unrelated build-label helper in the same module/test file; preserve source/tests and report unmapped behavior. |
+| `fresh-autopilot` | Generate strategy plus an empty test catalog for configured tooling without inventing tests. |
+| `define-test-strategy-negative-control` | Interactive checkpoint stops before metadata changes. |
+| `dts-multi-repo` | Product-owned mappings reference sibling QA tests without editing either repo's tests or another product's metadata. |
+| `dts-no-tooling` | Preserve proposed versus configured layers and pending setup. |
+| `dts-strategy-api-autopilot` | Risk-based database/API strategy with explicit assumptions. |
+| `dts-strategy-interactive` | Discuss consequential strategy choices before writes. |
+| `dts-coverage-only` | Read-only report with no strategy interview or metadata persistence. |
+| `dts-embedded-tests` | Discover separate, embedded and documentation tests uniformly; source/tests stay untouched and behavior evidence drives mappings. |
+| `dts-embedded-coverage-only` | Missing-map discovery under the current strategy in memory without source or metadata changes. |
+| `dts-strategy-mixed-autopilot` | Separate current, target and adoption coverage for mixed runtimes. |
+| `dts-strategy-mixed-interactive` | Resolve scope/environment choices before individual test priorities. |
+| `dts-selected-layers` | Preserve selected layers and project readiness into tables. |
+| `dts-index-refresh` | Reuse a saved map, reassess changed label assertions, retain user rejection of checkout-to-refund mapping, and leave source/tests unchanged. |
 
-## Running the cases
+Run with `node evals/run-suite.mjs full --case=<case-name>`; `dts-fresh-tests` is
+also in `node evals/run-suite.mjs smoke`. See `evals/README.md` for sign-in,
+budgets, disposable fixtures and grading. `node --test scripts/test-map.test.mjs`
+covers deterministic freshness, queries, partial scope, missing repos, working
+files, user decisions and non-intrusive helper behavior without model access.
 
-`dts-migrate-autopilot`, `fresh-autopilot`, `dts-multi-repo`, `dts-no-tooling`,
-`dts-strategy-api-autopilot`, `dts-strategy-mixed-autopilot`, `dts-selected-layers` and `dts-coverage-only` are listed
-under `headless` in `evals/suites.json`: the runner seeds a disposable fixture,
-runs the prompt headlessly, and grades `graders/*.md` automatically (regex
-checks locally, `llm` checks with a separate judge, which runs only when every
-regex check passes).
-`dts-migrate-autopilot` is the skill's smoke case. The negative control and
-interactive strategy cases run through plain `claude plugin eval`.
+## Written and blocked outcomes
 
-```sh
-node evals/run-suite.mjs smoke --case=dts-migrate-autopilot
-node evals/run-suite.mjs full --case=fresh-autopilot
-node evals/run-suite.mjs full --case=dts-multi-repo
-node evals/run-suite.mjs full --case=define-test-strategy-negative-control
-node evals/run-suite.mjs full --case=dts-no-tooling
-node evals/run-suite.mjs full --case=dts-strategy-api-autopilot
-node evals/run-suite.mjs full --case=dts-strategy-interactive
-node evals/run-suite.mjs full --case=dts-coverage-only
-node evals/run-suite.mjs full --case=dts-strategy-mixed-autopilot
-node evals/run-suite.mjs full --case=dts-strategy-mixed-interactive
-node evals/run-suite.mjs full --case=dts-selected-layers
-bash evals/define-test-strategy/run-all.sh   # all DTS cases
-```
+Protected metadata writes can be denied in headless runs. A passing blocked run
+prints BOTH complete proposed artifacts, leaves CLAUDE.md pointers unchanged,
+reports any partially saved artifact explicitly, and continues with the in-memory
+candidate. A written run saves and validates both artifacts before updating the
+skill pointer. Neither outcome may change source/tests or bypass a denied write.
+Historical grader filenames containing `tagged` now assert that unannotated
+fixture tests remain unannotated.
 
-All headless cases allow Bash, so the skill can resolve the repo root
-(`git rev-parse --show-toplevel`) and run its location and tag scans.
+For a full-write check, seed the selected case into a disposable `mktemp -d`
+directory using its absolute `fixture.sh` path, then invoke the skill with the
+local plugin. Verify the JSON schema through `scripts/test-map.mjs validate`,
+the strategy's `## Test Map` and incremental `## How to Scan`, exact source/test
+bytes before/after, preserved user decisions, and the conditional skill pointer.
+Never seed fixtures into the plugin checkout or a user's project.
 
-### Headless graders accept the written or the blocked outcome
+## Limits
 
-Claude Code protects `.claude/`: no `--allowedTools` grant or
-`--permission-mode acceptEdits` lets the Write or Edit tool write
-`.claude/skills/test-strategy/SKILL.md` in a headless run, and the runner
-never uses `--dangerously-skip-permissions`. Writes outside `.claude/` (test
-tags, `make-it-work/` logs) work. The skill writes files only with Write and
-Edit, so a headless run normally takes its "Write blocked" path: it prints the
-generated skill in one fenced block, keeps the old rule file, skips Phase 6
-(`CLAUDE.md` is not edited), still reports coverage, and says in its summary
-that the write was blocked. A run can still end up writing the skill (one
-smoke run wrote it through a Bash heredoc), and then it completes the
-migration: old rule file deleted, `CLAUDE.md` updated.
-
-So the headless graders accept either outcome, as long as it is consistent:
-
-- **Written:** the skill file was written, the old rule file deleted (migration case), `CLAUDE.md` has the `/test-strategy` row (and, when migrating, lost the old Rules Files row and checklist item), and the summary says what was written.
-- **Blocked:** the generated skill is printed in chat, the old rule file is kept, `CLAUDE.md` is unchanged, and the summary reports the blocked path.
-- **Mixed** states fail, for example the old rule file deleted with no new skill written, or the `CLAUDE.md` pointer added while the skill is missing.
-
-The skill file and the old rule file may each be absent, and a grader that
-reads a missing file fails, so the outcome is judged from the transcript
-(`focus: trace`: the tool calls, their results and the assistant text) and
-from `CLAUDE.md`, which exists either way. The printed block is usually in an
-earlier assistant message, not the final summary, which is another reason
-these graders read the trace. Each case's "Manual full-write check" below
-stays the thorough check of the written path. Run these checks only in a
-`mktemp -d` directory, never in this repo. They use `$REPO` for this checkout:
-
-```sh
-REPO=/path/to/make-it-work
-```
-
-## `dts-migrate-autopilot`
-
-The fixture is a mini task tracker where go-deep has run (UC-01 to UC-04,
-domains `tasks` and `notifications`) and the old version of this skill left
-its outputs. Autopilot takes "Refresh / migrate (Recommended)" at Phase 1,
-auto-confirms the location (`location-confirm`) and the tag-and-migration
-checkpoint (`tag-and-migration-confirm`). The graders accept the written or
-the blocked outcome (see above):
-
-- the path-tagged tests gain `@covers` tags (`uc01-tagged`, `helpers-tagged`);
-- the placeholder stays as it is, untagged, with its marker line, and is listed for the user to delete (`placeholder-not-tagged`, `placeholder-kept`, `placeholder-listed`);
-- the migration is all or nothing (`migration-consistent`, `focus: trace`): the new skill written, the old rule file deleted and `CLAUDE.md` edited, or none of the three, and the summary reports the same outcome;
-- `CLAUDE.md` is either unchanged (old Rules Files row and checklist item still there, no `/test-strategy` row or `### Other Skills` table) or fully migrated (both removed, checklist renumbered from "Skill docs", exactly one `/test-strategy` row in an `### Other Skills` table), never a mix (`claude-md-consistent`); the SENTINEL line and quick-lookup table stay either way (`sentinel-survives`, `quick-lookup-table-preserved`);
-- the generated skill, with at least `## Repo ID`, `## Test Locations` and `## How to Scan`, is either in the call that wrote `.claude/skills/test-strategy/SKILL.md` or, when that write was blocked, printed in one fenced block in the assistant text, and never written elsewhere (`generated-skill-delivered`, `focus: trace`);
-- the summary fully describes one outcome: the skill written, old rule file deleted and `CLAUDE.md` updated, or the write blocked, the old rule file and `CLAUDE.md` left unchanged, and a re-run after allowing writes there (`outcome-reported`);
-- no hook is offered or written (`no-hook`);
-- the live coverage report lists UC-02 (placeholder only) and UC-03 (no test) as uncovered, plus the `notifications` domain, and never mentions scaffolding (`coverage-report-shown`);
-- the summary names the autopilot log under the invocation root and says it was written, or that the write was denied and the run continued (`log-denial-handled-gracefully`).
-
-### Manual full-write check
-
-```sh
-RUN_DIR=$(mktemp -d)
-(cd "$RUN_DIR" && bash "$REPO/evals/define-test-strategy/dts-migrate-autopilot/fixture.sh")
-(cd "$RUN_DIR" && claude -p "/make-it-work:define-test-strategy --autopilot" \
-  --plugin-dir "$REPO" --dangerously-skip-permissions)
-```
-
-Then check in `$RUN_DIR`:
-
-- [ ] `.claude/skills/test-strategy/SKILL.md` exists and has the template's eight `##` headings in order (`## Repo ID` to `## How to Scan`).
-- [ ] `.claude/rules/testing-strategy.md` is deleted.
-- [ ] `CLAUDE.md` has no Rules Files row naming `testing-strategy.md`, and no "check the regression/coverage status … before committing" checklist item; the checklist is renumbered from 1, starting with "Skill docs".
-- [ ] `CLAUDE.md` has an `### Other Skills` table after the Domain and Use Case Skills tables, with exactly one `/test-strategy` row in the whole file.
-- [ ] The SENTINEL line, quick-lookup table and "Run `npm test` before committing." guideline are unchanged.
-
-## `fresh-autopilot`
-
-`fixture.sh` copies the migration fixture, then removes the old rule file and
-all tests, and strips the old Rules Files row and checklist item from
-`CLAUDE.md` (renumbering the rest), so Phase 1 finds nothing. The graders
-accept the written or the blocked outcome (see above):
-
-- the generated skill, written to `.claude/skills/test-strategy/SKILL.md` or printed in the assistant text when that write was blocked (`test-strategy-skill-generated`, `focus: trace`): the template's eight fixed headings in order, no `## Pending`, row 1 Location `.`, a `node --test`-based command, no stored gap list, and a summary that names the path as written or says the write was blocked;
-- the `CLAUDE.md` pointer was added only if the skill was written (`pointer-consistent`, `focus: trace`);
-- that no test file was created (`no-new-test-files`);
-- that `CLAUDE.md` has either no `/test-strategy` row and no `### Other Skills` table, or exactly one `/test-strategy` row in an `### Other Skills` table; in both cases no testing-strategy Rules row, and "Skill docs" still checklist item 1 (`claude-md-consistent`); the SENTINEL line also stays (`sentinel-survives`);
-- no hook (`no-hook`);
-- `Strategy Decisions` records an approach and first behavior tests even though a runner already exists; the configured runner remains active, and no second framework is installed (`strategy-with-existing-runner`);
-- the autopilot log (`autopilot-log-content`): a `location-confirm` line, `go-deep-offer` only if reached, and no prior-output menu. With no tests to tag, a `tag-and-migration-confirm` line is not required.
-
-### Manual full-write check
-
-```sh
-RUN_DIR=$(mktemp -d)
-(cd "$RUN_DIR" && bash "$REPO/evals/define-test-strategy/fresh-autopilot/fixture.sh")
-(cd "$RUN_DIR" && claude -p "/make-it-work:define-test-strategy --autopilot" \
-  --plugin-dir "$REPO" --dangerously-skip-permissions)
-```
-
-Then check in `$RUN_DIR`:
-
-- [ ] `.claude/skills/test-strategy/SKILL.md` exists, has the eight `##` headings in order and no `## Pending`, and its first Test Locations row has Location `.` and a `node --test`-based command.
-- [ ] `CLAUDE.md` has an `### Other Skills` table with exactly one `/test-strategy` row, no testing-strategy Rules row, and "Skill docs" still checklist item 1.
-- [ ] `__tests__/` still holds only `.gitkeep`.
-
-## `define-test-strategy-negative-control`
-
-Same fixture as `dts-migrate-autopilot`, no `--autopilot`. It passes when the
-run stops at the refresh/migrate question or at location confirmation
-(`blocks-before-proceeding`), `CLAUDE.md` still has its SENTINEL line and old
-Rules Files row and no `/test-strategy` row (`claude-md-untouched`), and no
-`@covers` tag was written (`no-tags-written`).
-
-## `dts-multi-repo`
-
-`fixture.sh` copies the shared multi-repo workspace (`payments-api`,
-`qa-automation`, `ledger-api`), removes payments-api's test-strategy skill,
-strips every `@covers` line from `qa-automation/tests`, keeps ledger-api's
-strategy, and gives each repo its own `.claude/` and one commit. The run starts
-at the workspace root, which has no `.git`, and names `payments-api` as the
-target. payments-api has go-deep output, so the go-deep offer is not reached.
-The write to `payments-api/.claude/skills/test-strategy/SKILL.md` may be
-written or blocked (see above); the graders check the tags and the detected
-locations either way:
-
-- `qa-location-detected` (`focus: trace`): the confirmed locations, read from the written or printed skill's Test Locations table or from the summary, include `.` and a `../qa-automation` location for repo `qa-automation`, because `qa-automation/tests/payments/withdraw.test.js` requires `../../../payments-api/src/withdraw.js` and exercises `/payments`.
-- `qa-tagged-qualified`: that test gains `@covers payments-api:UC-08`.
-- `qa-go-deep-warning`: the run says go-deep has not been run in `qa-automation`, and continues.
-- `ledger-untouched`: `withdraw_ledger.test.js` exercises only `ledger-api`, so it never gets a `payments-api:` tag, although both repos have a UC-08.
-
-After the strip, `limits_decoy.test.js` and `tests/e2e/flow.test.js` no longer
-reference payments-api, so the skill is not expected to tag them.
-
-### Manual full-write check
-
-```sh
-RUN_DIR=$(mktemp -d)
-(cd "$RUN_DIR" && bash "$REPO/evals/define-test-strategy/dts-multi-repo/fixture.sh")
-(cd "$RUN_DIR" && claude -p "/make-it-work:define-test-strategy payments-api --autopilot" \
-  --plugin-dir "$REPO" --dangerously-skip-permissions)
-```
-
-Then check in `$RUN_DIR`:
-
-- [ ] `payments-api/.claude/skills/test-strategy/SKILL.md` exists; its `## Test Locations` table has row 1 Location `.` for `payments-api`, and a row whose Location starts with `../qa-automation` and whose Repo is `qa-automation`.
-- [ ] `payments-api/CLAUDE.md` has exactly one `/test-strategy` row in its `### Other Skills` table.
-- [ ] `ledger-api/.claude/skills/test-strategy/SKILL.md` is unchanged, and `withdraw_ledger.test.js` has no `payments-api:` tag.
-
-## Known gaps
-
-`dts-no-tooling` removes the fresh fixture's configured runner and checks that
-the skill develops repo-specific Strategy Decisions and an actionable Recommended
-Setup while retaining `none` in Test Locations and planned/deferred Example commands, and installing/creating no tooling
-or tests. The API case separately checks that the strategy is not automatically
-unit-only, without forcing multiple layers on the small pure-function fixture.
-The mixed React/Deno cases exercise the real-world failure where existing unit
-tooling and a missing backend runtime prematurely narrowed the target strategy.
-
-- The coverage-only and interactive strategy paths have cases. Refresh conflicts, a refresh that keeps user edits, and a full multi-turn strategy discussion through confirmation are not yet covered.
-- The go-deep offer with an actual partial run (an onboarded repo without go-deep) is not covered; under autopilot it resolves to "Continue without it".
-- The target-repo hard stop and a `CLAUDE.md` without `## Skills Reference` (row skipped and reported) have no deliberately broken fixture.
-- Untaggable files (JSON, Postman collections) and PHP docblock placement are not exercised; every fixture test is JavaScript.
+Model-driven evidence checks establish expected behavior, not general semantic
+coverage accuracy. The new helper never parses a language or judges assertions.
+Byte/content freshness is deterministic; inferred relationships require semantic
+review. Unsupported discovery/selection and unavailable repos remain unresolved,
+not proof of absent coverage or passing verification. A live eval pass requires
+an actual signed-in run; an authored grader or dry run is not a pass.

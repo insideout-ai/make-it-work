@@ -8,10 +8,10 @@ This is a trace of `run-regression --autopilot velocity-app:domain-velocity`,
 invoked from a workspace root whose one repo `velocity-app` has two domains
 (`billing`, `velocity`). Its `.claude/skills/test-strategy/SKILL.md` lists one
 location `.` with `Test files` `test/*.test.js`, command `npm run test` and
-`Local run: yes`. Tests are mapped by `@covers` content tags:
-`test/sprint.test.js` carries `velocity-app:domain-velocity`,
-`test/invoice.test.js` carries `velocity-app:domain-billing`, and
-`test/notes.test.js` is untagged. Every test passes. Only
+`Local run: yes`. Temporary evidence-backed discovery must confirm that
+`test/sprint.test.js` asserts velocity behavior,
+`test/invoice.test.js` asserts billing behavior, and
+`test/notes.test.js` checks only release-note formatting. Every test passes. Only
 `velocity-app:domain-velocity` was requested, so the expected run is
 `npm run test -- test/sprint.test.js`, run from `velocity-app`.
 

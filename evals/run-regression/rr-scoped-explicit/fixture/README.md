@@ -9,10 +9,9 @@ and `Local run: yes`. `velocity-app/.claude/rules/product.md` /
 `architecture.md` are the UC/domain inventory fallback (no
 `.claude/skills/uc-*`/`domain-*` directories here).
 
-Tests are mapped by content tags, not paths: `test/invoice.test.js`
-carries `// @covers velocity-app:domain-billing` and `test/sprint.test.js`
-carries `// @covers velocity-app:domain-velocity`, both passing.
-`test/notes.test.js` mentions velocity only in plain text and is untagged.
+Tests are mapped by assertion/behavior evidence: `test/invoice.test.js`
+checks invoice totals and `test/sprint.test.js` checks sprint velocity, both passing.
+`test/notes.test.js` mentions velocity only in release-note formatting.
 The eval case requests only `velocity-app:domain-velocity` from the fixture
 root, so a correct scoped run executes `npm run test -- test/sprint.test.js`
 from `velocity-app` and never touches the invoice or notes test files.

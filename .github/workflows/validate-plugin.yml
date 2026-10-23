@@ -48,3 +48,6 @@ jobs:
 
       - name: Test shared decision-log writer
         run: node --test scripts/decision-log.test.mjs
+
+      - name: Test non-intrusive test-map helper
+        run: node --test scripts/test-map.test.mjs

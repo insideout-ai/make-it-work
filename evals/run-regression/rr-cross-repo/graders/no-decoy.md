@@ -5,8 +5,8 @@ weight: 2
 ---
 
 The fixture contains `qa-automation/tests/payments/limits_decoy.test.js`,
-tagged `payments-api:UC-080`. It must not be selected for the requested
-`payments-api:UC-08` (the id's trailing-digit boundary excludes `UC-080`).
+which asserts a UC-080 daily-report list length, not a UC-08 withdrawal.
+It must not be selected for the requested `payments-api:UC-08`.
 
 PASS only if no `Suite(s) run:` line, and no other list of files or
 commands the report says it ran, includes `limits_decoy`. FAIL if any of

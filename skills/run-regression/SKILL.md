@@ -14,7 +14,7 @@ description: "Runs a project's regression suite — full, per repo (`full:<repo>
 - **No argument** — asks the user whether to run the full suite or a specific scope.
 - **A bare `full` or `full-suite`, alone** — today's full mode: runs the full suite, no prompt.
 - **Any other token set** — a **mixed** run, no prompt. It may contain several repo prefixes, e.g. `payments-api:UC-08 qa-automation:domain-velocity full:payments-api`:
-  - `<repo>:UC-<id>` / `<repo>:domain-<name>` — runs separate tests tagged with that token and embedded tests with evidence-backed module/behavior mappings, in every test location of `<repo>`'s strategy.
+  - `<repo>:UC-<id>` / `<repo>:domain-<name>` — runs tests with current evidence-backed relationships to that token in every registered location of `<repo>`'s strategy, using its maintained test map without modifying project files.
   - `full:<repo>` — runs `<repo>`'s own full suite.
   - Every scope token needs a `<repo>:` prefix; an unprefixed `UC-*`/`domain-*` token is unrecognized. A bare `full` mixed with other tokens is unrecognized too.
 - **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. `--autopilot` is parsed and stripped as a flag before the remaining tokens are classified — it may appear anywhere in the argument list (`execute` appends it, e.g. `payments-api:UC-08 full:payments-api --autopilot`) and never counts as "no argument" or as an unrecognized scope token on its own. Invoking `--autopilot` with no scope argument resolves to `full` — see Autopilot Mode.
@@ -97,13 +97,13 @@ Run this phase once per repo in scope. For a bare `full`: every repo in a detect
 
 ### Discovery order
 
-1. **Read the test-strategy skill.** Look for `.claude/skills/test-strategy/SKILL.md` in this repo. If it exists, it is the authoritative source: each `## Test Locations` row holds that location's `Full-suite command` and its `Run from` directory (relative to this repo's root). Which rows run depends on the mode — cross-repo rows run only through tags (Phase 3) or an explicit `full:<repo>`:
+1. **Read the test-strategy skill.** Look for `.claude/skills/test-strategy/SKILL.md` in this repo. If it has `## Test Map`, it is the authoritative command source: each `## Test Locations` row holds that location's `Full-suite command` and its `Run from` directory (relative to this repo's root). Otherwise use steps 2-3. Which rows run depends on the mode — cross-repo rows run only through scoped mappings (Phase 3) or an explicit `full:<repo>`:
    - **Bare `full`:** only this repo's own first row (the repo itself), run from its `Run from`.
    - **`full:<repo>`:** `<repo>`'s own strategy's first row. If `<repo>` has no strategy skill, use the row whose `Repo` is `<repo>` in the invoking strategy (cwd's git toplevel's `.claude/skills/test-strategy/SKILL.md`); otherwise fall back to step 3.
 
    A row whose command is `none` is not run — record `not run — no tests in repo` (see Run prerequisites below); this is never a FAIL and never triggers the stop-and-ask.
-2. **Old contract only.** If this repo has `.claude/rules/testing-strategy.md` but no `.claude/skills/test-strategy/SKILL.md`, do not read the old file. Tell the user: "Found `.claude/rules/testing-strategy.md` but no `.claude/skills/test-strategy/SKILL.md` — re-run `/make-it-work:define-test-strategy` to migrate." Then continue as if there were no strategy (step 3).
-3. **Fall back to the same discovery order `plan-the-work` uses** only when there is no strategy skill: check `package.json` scripts, `Makefile` targets, and CI config (e.g. `.github/workflows/`) for a full-test/regression command. The only exclusions are build, lint, and type-check commands — a plain `test` script or target (even one that only runs unit tests, e.g. a bare `jest`/`vitest` invocation) is a usable full-suite command on its own. If several test-related commands exist, prefer the broadest one (`test:all`, `test:ci`, or a CI job step that runs the whole suite) over a narrower `test`.
+2. **Older strategy.** If the strategy lacks `## Test Map`, recommend re-running `/make-it-work:define-test-strategy` to regenerate it, then use step 3. Do not read, convert or delete old testing-rule files.
+3. **Fall back to the same discovery order `plan-the-work` uses** when there is no current strategy: check `package.json` scripts, `Makefile` targets, and CI config (e.g. `.github/workflows/`) for a full-test/regression command. The only exclusions are build, lint, and type-check commands — a plain `test` script or target (even one that only runs unit tests, e.g. a bare `jest`/`vitest` invocation) is a usable full-suite command on its own. If several test-related commands exist, prefer the broadest one (`test:all`, `test:ci`, or a CI job step that runs the whole suite) over a narrower `test`.
 
 ### Stop-and-ask fallback (autopilot: see Autopilot Mode)
 
@@ -138,7 +138,7 @@ This phase runs once per prefix group (Phase 0), against that prefix's repo. It 
 
 ### Availability gate
 
-Before touching any token, check whether the prefix's repo has `.claude/skills/test-strategy/SKILL.md`. This check runs first, ahead of any token handling below. If the repo has only the old `.claude/rules/` file, print Phase 1's migration hint first.
+Before touching any token, check whether the prefix's repo has `.claude/skills/test-strategy/SKILL.md`. This check runs first, ahead of any token handling below. An older strategy without `## Test Map` needs regeneration: report its tokens as `mapping unresolved`, recommend define-test-strategy, and skip their scoped selection. Explicit `full:<repo>` requests may still use Phase 1's command discovery.
 
 If it does not exist, scoped mode is unavailable for that prefix — regardless of who invoked this skill (this skill never branches on "am I being called by execute vs. a direct user"; see Phase 0's note on this).
 
@@ -153,7 +153,7 @@ If it does not exist, scoped mode is unavailable for that prefix — regardless 
 
 If the strategy exists, validate the prefix and every requested domain/UC token before running anything.
 
-**Prefix.** Phase 0 found the repo by directory name; a prefix with no such directory is `repo not found` for all its tokens. If the directory isn't a git repo, or its strategy has no readable `## Repo ID`, its tokens are `unrecognized repo`. If the strategy's `## Repo ID` differs from the prefix, warn that tags use `<Repo ID>` and the repo should be cloned as `<Repo ID>`, then continue, using the recorded Repo ID for canonical tokens and the Phase 3 scan. A `full:<repo>` token is validated only for existence (`repo not found`).
+**Prefix.** Phase 0 found the repo by directory name; a prefix with no such directory is `repo not found` for all its tokens. If the directory isn't a git repo, or its strategy has no readable `## Repo ID`, its tokens are `unrecognized repo`. If the strategy's `## Repo ID` differs from the prefix, warn that map tokens use `<Repo ID>` and the repo should be cloned as `<Repo ID>`, then continue, using the recorded Repo ID for canonical tokens and the Phase 3 scan. A `full:<repo>` token is validated only for existence (`repo not found`).
 
 **Remainder.** Validate it against that repo's actual inventory.
 
@@ -167,39 +167,35 @@ If the strategy exists, validate the prefix and every requested domain/UC token 
 
 For each requested token:
 - If no matching directory or table row exists at all under these rules → mark it **"unrecognized"**.
-- If a match exists → it is **recognized**; carry it forward using its canonical tag form (`<Repo ID>:UC-{id}` with the id zero-padded as the inventory has it, e.g. `<repo>:UC-08`; `<Repo ID>:domain-{name}`, e.g. `<repo>:domain-velocity`) — not the raw directory name — since Phase 3 greps for this literal tag string.
+- If a match exists → it is **recognized**; carry it forward using its canonical token form (`<Repo ID>:UC-{id}` with the id zero-padded as the inventory has it, e.g. `<repo>:UC-08`; `<Repo ID>:domain-{name}`, e.g. `<repo>:domain-velocity`) — not the raw directory name — since Phase 3 queries this exact map token.
 
-**Note on "no tests mapped":** whether a recognized token has an explicitly tagged separate test or an inferred embedded test can only be determined by Phase 3's discovery — that check does not happen here. This phase's output is only "unrecognized" or "recognized, carried forward". Phase 3 determines confirmed zero matches versus unresolved mappings after inspecting both sources.
+**Note on "no tests mapped":** whether a recognized token has a current mapped test can only be determined by Phase 3's map inspection/assessment — that check does not happen here. This phase's output is only "unrecognized" or "recognized, carried forward". Phase 3 determines confirmed zero matches versus unresolved mappings after assessing all registered locations.
 
 If, after this validation, a prefix has no recognized token, skip Phase 3 for that prefix. If no prefix has one and there is no `full:<repo>` token, skip Phase 3 and Phase 4 entirely and go straight to Phase 5 with the full unmapped list — there is nothing left to search for or run.
 
 ### Outputs of this phase
 
 This phase produces two things for the phases after it:
-- **(a) The recognized-token list** (canonical token form), handed to Phase 3 for explicit and inferred test selection.
+- **(a) The recognized-token list** (canonical token form), handed to Phase 3 for current evidence-backed test selection.
 - **(b) The unmapped list**, handed to Phase 5's final report, with a reason per token. This phase contributes entries reasoned **"unrecognized"**, **"unrecognized repo"**, **"repo not found"** or **"no test strategy"**; Phase 3 later appends entries reasoned **"no tests mapped"** to the same list.
 
 ## Phase 3 — Select and filter tests for the requested scope
 
 This phase runs only when Phase 2 handed forward at least one recognized token (output (a) above). If Phase 2 recognized zero tokens — every requested token came back "unrecognized" — Phase 2 already routed straight to Phase 5 with the full unmapped list; this phase is skipped entirely for that run, and no filter command is ever constructed for an empty token list.
 
-### Confirm the mapping convention for this prefix
+### Inspect the test map for this prefix
 
-Before searching for anything, read the prefix repo's strategy `## Tag Convention` and `## How to Scan` sections fresh, every run, per prefix — never hardcode the tag form or the scan command. Separate test files use repo-qualified `@covers` comments, matched by content. Tests embedded in implementation files, including executable documentation examples, need no tags: infer their relationship through the containing module and actual asserted behavior, backed by UC/domain documentation or traced code. Do not map every test to every UC using a shared module. For older tag-only strategies, supplement discovery read-only with these embedded rules and the actual runner configuration; never require a strategy rewrite just to run tests.
+Read the prefix repo's strategy Test Map and How to Scan sections and `<base>/../../docs/test-map-contract.md`. Inspect registered paths/vocabulary and snapshot freshness through the shared helper; reuse unchanged mappings and reassess affected tests/evidence in memory. This skill never saves map/strategy updates or creates project scratch files. Missing/malformed maps under the current strategy use temporary discovery across all placements; no rewrite is required. Do not import tag/path relationships or annotate files. Relationships require asserted behavior plus documentation/traced-code evidence; shared-module ownership alone is insufficient.
 
 ### Find matching files
 
-For each token in this prefix's recognized-token list (canonical form, e.g. `<repo>:UC-08`) and each row of its `## Test Locations`, run the `## How to Scan` command from the prefix repo's root over that row's `Location`. Substitute the strategy's Repo ID for `<repo>` and the token's remainder for `<tag>`, escaping as `## How to Scan` says. Keep only paths matching the row's `Test files` glob (relative to its `Location`). Collect the matches per location.
-
-Apply that tag scan to separate test files only, including colocated files. Also execute the embedded discovery procedure, finding actual test declarations and configured executable documentation examples rather than selecting all source files. Retain each embedded test's file/module, identity, token, evidence and supported selector. In older strategies whose glob only names separate test files, inspect configured source roots for embedded tests as well. An existing embedded `@covers` comment does not replace module/behavior evidence. Missing or ambiguous evidence, missing locations or incomplete discovery produce `embedded mapping unresolved` entries for affected tokens/candidates, even when a token also has confirmed separate-file matches; continue with confirmed matches.
-
-**Rebase each matched path.** Grep returns paths relative to the prefix repo's root (e.g. `../qa-automation/tests/payments/withdraw_ledger.test.js`). Rewrite each one relative to that row's `Run from` (`tests/payments/withdraw_ledger.test.js` for `Run from` `../qa-automation`) before appending it to a command.
+Query each recognized product token through the validated current candidate map, across all Test Locations. Resolve returned test identities and paths through their registered location's Run from root, not through a text-tag scan. Source/test files remain untouched. Preserve explicit test/suite/file granularity and distinct embedded/documentation identities. Map paths are already relative to their test repo root; rebase only if needed for the strategy's actual runner invocation. Incomplete assessment, stale/unavailable locations and ambiguous evidence produce `mapping unresolved` entries even when other tests for the token match; continue only with current confirmed relationships.
 
 ### Fold zero-match tokens into the unmapped list
 
-Any recognized token with no explicit or inferred matches after a complete scan in every location of its prefix, and no unresolved candidates, moves into the unmapped list (Phase 2's output (b)) with reason **"no tests mapped"**. When discovery/evidence is incomplete, retain **"embedded mapping unresolved"** instead and explain the missing evidence; do not infer absence from missing tags. A token whose only confirmed matches are in not-run locations (Phase 1's "Run prerequisites") is not unmapped: those locations are reported as not run.
+Any recognized token with no current mapped matches after complete assessment in every location of its prefix, and no unresolved candidates, moves into the unmapped list (Phase 2's output (b)) with reason **"no tests mapped"**. When discovery/evidence is incomplete, retain **"mapping unresolved"** instead and explain the missing evidence; missing annotations never establish absence. A token whose only confirmed matches are in not-run locations (Phase 1's "Run prerequisites") is not unmapped: those locations are reported as not run.
 
-If no location in any prefix has a confirmed match, do **not** construct a scoped run command or fall back to a full suite. Preserve the appropriate `no tests mapped` or `embedded mapping unresolved` reason for each token. Only `full:<repo>` runs, if any, still go ahead.
+If no location in any prefix has a confirmed match, do **not** construct a scoped run command or fall back to a full suite. Preserve the appropriate `no tests mapped` or `mapping unresolved` reason for each token. Only `full:<repo>` runs, if any, still go ahead.
 
 ### Construct and run the scoped command
 
@@ -219,7 +215,7 @@ For embedded tests, use the runner-supported test/module/package selectors disco
 
 Once a valid command is constructed, run it via Bash the same way Phase 1 runs the full-suite command: capture its full output, and use a generous timeout (up to the maximum available), or run it in the background and wait for completion, rather than letting it get cut off mid-run. Hand the exit code and captured output to Phase 4.
 
-**Limitations (accepted):** a separate file containing a matching tag runs whole; other tests in that file may also run. Embedded tests may run within a disclosed enclosing module/package/suite. Running that broader scope does not establish inferred mappings for its other tests or prove every requested relationship was resolved.
+**Limitations (accepted):** a separate file selected through a current mapped relationship runs whole; other tests in that file may also run. Embedded tests may run within a disclosed enclosing module/package/suite. Running that broader scope does not establish inferred mappings for its other tests or prove every requested relationship was resolved.
 
 ## Phase 4 — Determine the gate result
 
@@ -370,11 +366,11 @@ Overall gate result: <PASS | FAIL>
 - **Leading lines.** `<n>` is the number of executed runs (blocks), `0` when nothing executed. The leading `Mode:` is `Scoped + full` when any `full:<repo>` token is present, otherwise `Scoped`.
 - **Blocks.** One per executed run, in run order: Phase 3's scoped runs (`Mode: Scoped`), then each `full:<repo>` run (`Mode: Full suite`). A not-run location or a zero-match location never gets a block. On a FAIL block, print the captured output tail immediately after it.
 - **`Not run:`** — every location not run per Phase 1's "Run prerequisites", and every `full:<repo>` not run, on one line, entries separated by `; `: `<repo>: <Location> — <reason>` for a location (e.g. `payments-api: ../qa-automation/tests/e2e — ci-only`), `<repo> — <reason>` for a `full:<repo>` token (e.g. `ledger-api — no tests in repo`, `ledger-api — no full-suite command found`). `None` when empty.
-- **`Unmapped scope (not run)`** — Phase 2's and Phase 3's combined unmapped list, on one line, each token with its own reason: `unrecognized`, `unrecognized repo`, `repo not found`, `no test strategy`, `no tests mapped`, `matched files can't be passed to the runner`, `embedded mapping unresolved`, or `embedded tests cannot be selected`. Include unresolved/unselectable embedded portions even if separate tests for the same token ran. `None` when empty.
-- **Mapping/scope notes.** Before the report block, identify inferred embedded selections with their evidence, unresolved candidates, and any broader enclosing scope actually run. Keep the report grammar unchanged. A PASS describes executed commands only, not unresolved or not-run portions.
+- **`Unmapped scope (not run)`** — Phase 2's and Phase 3's combined unmapped list, on one line, each token with its own reason: `unrecognized`, `unrecognized repo`, `repo not found`, `no test strategy`, `no tests mapped`, `matched files can't be passed to the runner`, `mapping unresolved`, or `embedded tests cannot be selected`. Include unresolved/unselectable embedded portions even if separate tests for the same token ran. `None` when empty.
+- **Mapping/scope notes.** Before the report block, identify mapped selections with their evidence and provenance, unresolved candidates, and any broader enclosing scope actually run. Keep the report grammar unchanged. A PASS describes executed commands only, not unresolved or not-run portions.
 - **`Overall gate result:`** — per Phase 4's overall rule. When no run executed, omit this line entirely and print no `Gate result:` label anywhere in the response.
 
-For example, `payments-api:UC-08 full:payments-api` where `UC-08` is tagged in `payments-api` itself, in `qa-automation`'s payments tests, and in a `ci-only` e2e location:
+For example, `payments-api:UC-08 full:payments-api` where `UC-08` is mapped to tests in `payments-api` itself, in `qa-automation`'s payments tests, and in a `ci-only` e2e location:
 
 ```
 Workspace: 3 runs
