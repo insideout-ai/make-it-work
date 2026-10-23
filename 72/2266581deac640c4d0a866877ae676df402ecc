@@ -1,0 +1,268 @@
+evals/define-test-strategy/fresh-tests/graders/coverage-report-shown.md
+  s_454236056af692::t_0b84d7aa6a6ed9 7
+CHANGELOG.md
+  s_454236056af692::t_44778b76814014 7
+  s_454236056af692::t_477e3a3ab2a075 15-18,20
+  s_454236056af692::t_fbbb437bd820ed 19
+  s_454236056af692::t_0fc33f1dc1eea7 11,13
+  s_454236056af692::t_38fb54552070e6 8-10,12,14
+evals/run-regression/README.md
+  s_454236056af692::t_880d30a03f0bf7 13-15
+  s_454236056af692::t_0b70036304cdc7 3,18
+  s_454236056af692::t_0330b173e60321 19
+README.md
+  s_454236056af692::t_8d735337e43062 52
+  s_454236056af692::t_9d1dba032558aa 62
+  s_454236056af692::t_0fc33f1dc1eea7 56,319
+  s_454236056af692::t_6d207defa2f4e6 108,116,124,191,323
+CONTRIBUTING.md
+  s_454236056af692::t_8e6bfcd1dc5d36 47,61
+evals/define-test-strategy/fresh-tests/fixture/src/tasks/createTask.js
+  s_454236056af692::t_fb00bd6917b7c4 8-13
+evals/define-test-strategy/dts-multi-repo/graders/qa-tagged-qualified.md
+  s_454236056af692::t_aafe2bf53a78ea 4-5,9
+evals/define-test-strategy/define-test-strategy-negative-control/fixture.sh
+  s_454236056af692::t_0fc33f1dc1eea7 5-6,12
+evals/define-test-strategy/selected-layers/strategy.md
+  s_454236056af692::t_9d1dba032558aa 47,49-50,54-59
+evals/fixtures/multi-repo-workspace/payments-api/claude-dir/skills/test-strategy/SKILL.md
+  s_454236056af692::t_9d1dba032558aa 3,14,80,82-83,87-92
+evals/run-regression/rr-index-reuse/fixture.sh
+  s_454236056af692::t_4e089ee0258c6b 1-6
+scripts/test-map.mjs
+  s_454236056af692::t_8c234b9eb4efa3 47,53-55
+  s_454236056af692::t_38cb5de482958d 76,83-90,150,177,190
+  s_454236056af692::t_7dc11e74fcc474 95,102,112,136
+  s_454236056af692::t_547e0d276f076e 132,149,202
+  s_454236056af692::t_4e089ee0258c6b 160,164
+  s_454236056af692::t_3101210c5f1745 233-241
+  s_454236056af692::t_4ac6552f28cf55 61
+  s_454236056af692::t_666108573a62de 172,174
+  s_454236056af692::t_669333dfc348bf 27,115-117
+  s_454236056af692::t_fbbb437bd820ed 5,99-101,103-106,109-111,129-131,137-138,153-158
+  s_454236056af692::t_45daf57d194408 1-4,6-26,28-44,46,48-52,56-60,62-71,73-75,77,79-82,91-94,96-98,107-108,113-114,118-128,133-135,139-148,151-152,159,161-163,165-171,173,175-176,178,180-186,188-189,191-201,203-232,242-250
+  s_454236056af692::t_38fb54552070e6 72,78,179,187
+  s_454236056af692::t_a8eac9561febab 45
+evals/define-test-strategy/dts-multi-repo/graders/ledger-untouched.md
+  s_454236056af692::t_9d1dba032558aa 10
+skills/slice-the-epic/SKILL.md
+  s_454236056af692::t_477e3a3ab2a075 22
+evals/define-test-strategy/run-all.sh
+  s_454236056af692::t_0fc33f1dc1eea7 14
+skills/define-test-strategy/SKILL.md
+  s_454236056af692::t_b986269929829e 231
+  s_454236056af692::t_477e3a3ab2a075 165
+  s_454236056af692::t_b21cf4e9cc333a 71,82,88,97,152,164,167,182,190,200,206,208,219,223
+  s_454236056af692::t_e7df12cf067744 3,23,29,31,45,50,58,92,96,101,162,166,171,183,185,187,202,204,217
+  s_454236056af692::t_a94eed0c7d651c 163
+evals/define-test-strategy/fresh-tests/fixture/__tests__/uc-01-create-task.test.js
+  s_454236056af692::t_0b84d7aa6a6ed9 17
+  s_454236056af692::t_fb00bd6917b7c4 3,14-16
+docs/test-map-contract.md
+  s_454236056af692::t_4ac6552f28cf55 52,60,62
+  s_454236056af692::t_38cb5de482958d 21-22,32,47
+  s_454236056af692::t_1c88b789b49f46 40
+  s_454236056af692::t_a8eac9561febab 17
+  s_454236056af692::t_45daf57d194408 1-16,18-20,23-28,30-31,41-44,46,48-51,53-54,57-59,61,63-64
+  s_454236056af692::t_fbbb437bd820ed 45,55-56
+  s_454236056af692::t_477e3a3ab2a075 29,33-39
+evals/define-test-strategy/README.md
+  s_454236056af692::t_fb00bd6917b7c4 10
+  s_454236056af692::t_503d4c2c70a1e2 1-3,7-9,11-18,20-24,26-33,35,38-44,46-55
+  s_454236056af692::t_880d30a03f0bf7 4-6,19,25,34,36-37,45
+evals/define-test-strategy/fresh-tests/graders/helpers-unannotated.md
+  s_454236056af692::t_0b84d7aa6a6ed9 5,9
+evals/define-test-strategy/fresh-autopilot/graders/test-strategy-skill-generated.md
+  s_454236056af692::t_ed9004db37306c 22
+skills/plan-the-work/references/plan-template.md
+  s_454236056af692::t_f87f3be2dd60a7 122
+evals/review-the-pr/embedded-tests/graders/reviews-placement-correctly.md
+  s_454236056af692::t_403260a8bfec18 9,12
+  s_454236056af692::t_9d1dba032558aa 10-11
+evals/run-regression/rr-index-reuse/case.yaml
+  s_454236056af692::t_4e089ee0258c6b 1-5
+skills/define-test-strategy/references/test-strategy-template.md
+  s_454236056af692::t_d8e45df684b0fa 12,28,80,82-85,90-93,95,129
+  s_454236056af692::t_9d1dba032558aa 89
+evals/define-test-strategy/fresh-tests/graders/log-denial-handled-gracefully.md
+  s_454236056af692::t_0b84d7aa6a6ed9 14
+evals/run-regression/rr-cross-repo/graders/no-decoy.md
+  s_454236056af692::t_292953c1314b79 8-9
+evals/define-test-strategy/fresh-tests/graders/nonintrusive-map.md
+  s_454236056af692::t_c82eb8558dee9d 18-20
+  s_454236056af692::t_0b84d7aa6a6ed9 1-14,21-22
+  s_454236056af692::t_fb00bd6917b7c4 15-17
+evals/implement/final-sync-map/prompt.md
+  s_454236056af692::t_5f81699d87701f 2-6,9-13
+evals/define-test-strategy/fresh-tests/fixture/CLAUDE.md
+  s_454236056af692::t_0b84d7aa6a6ed9 49-51,58-59
+evals/define-test-strategy/fresh-tests/graders/pointer-consistent.md
+  s_454236056af692::t_0b84d7aa6a6ed9 8-11,14-15,17-20
+evals/implement/final-sync-map/case.yaml
+  s_454236056af692::t_5f81699d87701f 1-5
+evals/define-test-strategy/index-refresh/fixture.sh
+  s_454236056af692::t_4e089ee0258c6b 1-5
+  s_454236056af692::t_791270dbf00640 6-7
+skills/execute/SKILL.md
+  s_454236056af692::t_429c83dd89c812 184
+  s_454236056af692::t_f0951fb07d871c 299
+evals/review-the-pr/README.md
+  s_454236056af692::t_afe046b7bd2138 4
+  s_454236056af692::t_292953c1314b79 5
+evals/define-test-strategy/fresh-autopilot/graders/autopilot-log-content.md
+  s_454236056af692::t_0fc33f1dc1eea7 12,19,22
+evals/grade-headless.mjs
+  s_454236056af692::t_477e3a3ab2a075 75-81
+skills/run-regression/SKILL.md
+  s_454236056af692::t_7d95b4d98cdc9e 100
+  s_454236056af692::t_db19f8c299054a 172
+  s_454236056af692::t_f6dd1798fcf6cd 156,170,179,196,370
+  s_454236056af692::t_00ff1c1d7f4623 17,186,192,198,218,369,373
+  s_454236056af692::t_4ac6552f28cf55 105-106,141,188
+evals/run-regression/rr-scoped-explicit/graders/scoped-result.md
+  s_454236056af692::t_292953c1314b79 11-14
+evals/define-test-strategy/fresh-tests/fixture/.claude/rules/architecture.md
+  s_454236056af692::t_fb00bd6917b7c4 31
+evals/define-test-strategy/fresh-tests/graders/outcome-reported.md
+  s_454236056af692::t_0b84d7aa6a6ed9 4,7
+evals/define-test-strategy/dts-multi-repo/graders/nonintrusive-map.md
+  s_454236056af692::t_9d1dba032558aa 7,21
+  s_454236056af692::t_c82eb8558dee9d 18-20
+  s_454236056af692::t_fb00bd6917b7c4 15-17
+  s_454236056af692::t_bfcea94b846b28 1-6,8-14,22
+evals/define-test-strategy/fresh-autopilot/graders/pointer-consistent.md
+  s_454236056af692::t_2943dc2664d544 14
+evals/define-test-strategy/index-refresh/graders/incremental-and-nonintrusive.md
+  s_454236056af692::t_4e089ee0258c6b 3-4,7-15
+evals/define-test-strategy/fresh-autopilot/fixture.sh
+  s_454236056af692::t_0fc33f1dc1eea7 6-7
+skills/plan-the-work/SKILL.md
+  s_454236056af692::t_f0951fb07d871c 171
+  s_454236056af692::t_7125ceb19cd67a 258
+  s_454236056af692::t_d8e45df684b0fa 178,256
+  s_454236056af692::t_4ac6552f28cf55 149
+evals/define-test-strategy/embedded-tests/graders/nonintrusive-map.md
+  s_454236056af692::t_fb00bd6917b7c4 15-17
+  s_454236056af692::t_9d1dba032558aa 7,21
+  s_454236056af692::t_c82eb8558dee9d 18-20
+  s_454236056af692::t_411ae61392ea95 1-6,8-14,22
+.claude-plugin/plugin.json
+  s_454236056af692::t_44778b76814014 6
+evals/run-regression/rr-index-reuse/graders/reuses-index-read-only.md
+  s_454236056af692::t_4e089ee0258c6b 1-13
+evals/suites.json
+  s_454236056af692::t_4e089ee0258c6b 29,60
+  s_454236056af692::t_0fc33f1dc1eea7 6,20
+  s_454236056af692::t_5f81699d87701f 44
+evals/fixtures/multi-repo-workspace/ledger-api/claude-dir/skills/test-strategy/SKILL.md
+  s_454236056af692::t_9d1dba032558aa 3,14,65,67-68,72-77
+evals/fixtures/seed-test-map.mjs
+  s_454236056af692::t_791270dbf00640 36-42
+  s_454236056af692::t_4e089ee0258c6b 1-4,6-16,18,20-25,27-31,33-35,43-48
+  s_454236056af692::t_d890838e85f2b1 17,19,26
+  s_454236056af692::t_38cb5de482958d 5,32
+evals/run-regression/rr-scoped-explicit/fixture/velocity-app/claude-dir/skills/test-strategy/SKILL.md
+  s_454236056af692::t_9d1dba032558aa 3,14,56,58-59,63-68
+evals/run-regression/rr-embedded-tests/graders/executes-both-sources.md
+  s_454236056af692::t_9d1dba032558aa 9,14
+evals/define-test-strategy/fresh-autopilot/graders/nonintrusive-map.md
+  s_454236056af692::t_c82eb8558dee9d 18-20
+  s_454236056af692::t_d13023dc673166 1-6,8-14,22
+  s_454236056af692::t_9d1dba032558aa 7,21
+  s_454236056af692::t_fb00bd6917b7c4 15-17
+evals/run-regression/rr-scoped-explicit/graders/billing-not-touched.md
+  s_454236056af692::t_292953c1314b79 9-11
+evals/grade-headless.test.mjs
+  s_454236056af692::t_3ac1b8884e109d 126-182
+evals/plan-the-work/planned-layer/strategy.md
+  s_454236056af692::t_f0951fb07d871c 47,49-50,54-56
+skills/implement/SKILL.md
+  s_454236056af692::t_4ac6552f28cf55 247
+  s_454236056af692::t_f0951fb07d871c 346
+  s_454236056af692::t_0e101a68e5befe 472
+  s_454236056af692::t_fbbb437bd820ed 473
+evals/run-regression/rr-index-reuse/prompt.md
+  s_454236056af692::t_4e089ee0258c6b 1-9
+evals/define-test-strategy/fresh-tests/graders/uc01-unannotated.md
+  s_454236056af692::t_0b84d7aa6a6ed9 4-5,9
+.github/workflows/validate-plugin.yml
+  s_454236056af692::t_3101210c5f1745 51-53
+evals/define-test-strategy/index-refresh/case.yaml
+  s_454236056af692::t_4e089ee0258c6b 1-5
+evals/define-test-strategy/fresh-tests/case.yaml
+  s_454236056af692::t_0b84d7aa6a6ed9 2
+evals/define-test-strategy/fresh-tests/fixture.sh
+  s_454236056af692::t_0b84d7aa6a6ed9 14
+evals/define-test-strategy/define-test-strategy-negative-control/graders/blocks-before-proceeding.md
+  s_454236056af692::t_0fc33f1dc1eea7 7-8,11,14-15
+evals/fixtures/embedded-tests/claude-dir/skills/test-strategy/SKILL.md
+  s_454236056af692::t_7d95b4d98cdc9e 3,16,47,49-50,54-60
+evals/plan-the-work/README.md
+  s_454236056af692::t_292953c1314b79 6
+evals/plan-the-work/embedded-tests/graders/embedded-red-without-implementation.md
+  s_454236056af692::t_9d1dba032558aa 11
+evals/implement/final-sync-map/seed-map.mjs
+  s_454236056af692::t_5f81699d87701f 1-67
+evals/define-test-strategy/embedded-coverage-only/graders/read-only-inference.md
+  s_454236056af692::t_9d1dba032558aa 7-9,13
+evals/implement/final-sync-map/graders/state-complete.md
+  s_454236056af692::t_5f81699d87701f 3-4
+skills/review-the-pr/SKILL.md
+  s_454236056af692::t_4ac6552f28cf55 95
+  s_454236056af692::t_616930898460ca 124-125,214,266
+evals/define-test-strategy/coverage-only/strategy.md
+  s_454236056af692::t_9d1dba032558aa 40,42-43,47-52
+evals/implement/empty-strategy/fixture/empty-strategy.md
+  s_454236056af692::t_f0951fb07d871c 42,44-45,49-50
+evals/implement/final-sync-map/graders/reconciles-after-docs.md
+  s_454236056af692::t_5f81699d87701f 1-22
+evals/implement/final-sync-map/fixture.sh
+  s_454236056af692::t_5f81699d87701f 1-6
+evals/define-test-strategy/dts-multi-repo/graders/qa-go-deep-warning.md
+  s_454236056af692::t_9d1dba032558aa 14
+evals/implement/README.md
+  s_454236056af692::t_5f81699d87701f 8
+skills/implement/references/testing-readiness.md
+  s_454236056af692::t_161682ccf87fe9 11,20
+scripts/test-map.test.mjs
+  s_454236056af692::t_a8eac9561febab 190
+  s_454236056af692::t_f57782018e2f3b 209-267,278-339
+  s_454236056af692::t_7dc11e74fcc474 268-277
+  s_454236056af692::t_669333dfc348bf 340-349
+  s_454236056af692::t_547e0d276f076e 137,154-156
+  s_454236056af692::t_3101210c5f1745 1-7,9-21,23-43,45-100,110-134,138-153,157-188,191-194,203-208,350-357
+  s_454236056af692::t_4e089ee0258c6b 135-136
+  s_454236056af692::t_4ac6552f28cf55 22
+  s_454236056af692::t_8c234b9eb4efa3 189
+  s_454236056af692::t_38fb54552070e6 195-202
+  s_454236056af692::t_38cb5de482958d 8,44,101-109
+evals/define-test-strategy/index-refresh/prompt.md
+  s_454236056af692::t_4e089ee0258c6b 1-9
+evals/define-test-strategy/dts-multi-repo/fixture.sh
+  s_454236056af692::t_9d1dba032558aa 7
+evals/run-regression/rr-scoped-explicit/fixture/velocity-app/test/notes.test.js
+  s_454236056af692::t_292953c1314b79 5
+evals/run-regression/rr-scoped-explicit/fixture/README.md
+  s_454236056af692::t_292953c1314b79 12-14
+evals/define-test-strategy/fresh-tests/graders/behavioral-evidence.md
+  s_454236056af692::t_fb00bd6917b7c4 3,7-8,10-21,23-24
+evals/define-test-strategy/embedded-tests/graders/placement-and-mappings.md
+  s_454236056af692::t_492ebd3fda2b64 10,14
+  s_454236056af692::t_9d1dba032558aa 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "722266581deac640c4d0a866877ae676df402ecc",
+  "prompts": {},
+  "sessions": {
+    "s_454236056af692": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16223-328f-77d3-84e2-2e306334565f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
