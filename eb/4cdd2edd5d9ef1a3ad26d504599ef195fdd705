@@ -1,0 +1,39 @@
+evals/go-deep/run-scope-review.mjs
+  s_2e14a191c112e5::t_6365c400346f2c 1-37
+CHANGELOG.md
+  s_2e14a191c112e5::t_b4f5880fdb14e4 7-14
+evals/go-deep/check-scope-review.mjs
+  s_2e14a191c112e5::t_110b4d643fa2cb 28-30
+  s_2e14a191c112e5::t_e37a9c8d5f1387 1-2,4-12,17,19-23,25-26,31-52,54-59
+  s_2e14a191c112e5::t_05699a4877b129 3,13-16,18,24,27,53
+.claude-plugin/plugin.json
+  s_2e14a191c112e5::t_b4f5880fdb14e4 6
+README.md
+  s_2e14a191c112e5::t_0c6e71e09691c1 42
+skills/go-deep/SKILL.md
+  s_2e14a191c112e5::t_a9b213f0c37004 169-188,193-194
+  s_2e14a191c112e5::t_a08cb96ec8d8ab 17,22,27-28,35-36,43,168,189-192,195,201
+  s_2e14a191c112e5::t_a41402884f910c 197-200,202-203
+  s_2e14a191c112e5::t_424365f098c66f 39
+evals/go-deep/scope-review-fixture.py
+  s_2e14a191c112e5::t_9b4c3e3643fa4e 1-69
+evals/go-deep/README.md
+  s_2e14a191c112e5::t_110b4d643fa2cb 83,85-88,90-99,103,114-120,127-133
+  s_2e14a191c112e5::t_0c6e71e09691c1 100-102,104-113,121-126,134-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "eb4cdd2edd5d9ef1a3ad26d504599ef195fdd705",
+  "prompts": {},
+  "sessions": {
+    "s_2e14a191c112e5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16f01-3efb-7703-bdb4-53edd6e81f77",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
