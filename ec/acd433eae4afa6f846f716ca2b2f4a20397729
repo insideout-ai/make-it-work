@@ -1,0 +1,23 @@
+skills/go-deep/SKILL.md
+  s_2e14a191c112e5::t_74a514f11d5f6c 33,170-174
+  s_2e14a191c112e5::t_cce7e0fd20a8cf 24-30,134
+skills/close-the-gaps/SKILL.md
+  s_2e14a191c112e5::t_7ec71aa05d7143 303-313,346,355,376-377
+  s_2e14a191c112e5::t_88058ce5c9a752 344
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ecacd433eae4afa6f846f716ca2b2f4a20397729",
+  "prompts": {},
+  "sessions": {
+    "s_2e14a191c112e5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16f01-3efb-7703-bdb4-53edd6e81f77",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
