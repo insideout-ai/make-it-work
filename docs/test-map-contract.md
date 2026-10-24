@@ -1,0 +1,64 @@
+# Non-intrusive test map
+
+All testing skills use this contract. Resolve the helper as `<skill-base>/../../scripts/test-map.mjs`. Read this contract before generating, refreshing or consuming mappings. Mapping work never edits, moves or removes user source/tests, comments, legacy tags, filenames or placeholder scaffolds. TDD may intentionally change source/tests for the requested feature; adding mapping annotations is never part of that work.
+
+## Ownership and schema
+
+Each product repo owns `.claude/testing/test-map.json`, shared in Git beside its one `.claude/skills/test-strategy/SKILL.md`. It maps that product's repo-qualified UC/domain vocabulary to tests anywhere in its registered locations. A shared QA test may occur in several product maps; never edit another product's map merely because it shares a test repo. Reverse queries derive from the same relationships. Commands, prerequisites, layer decisions and discovery procedures stay in the strategy, not the map.
+
+Schema version 1 (all fields below are required except snapshots may initially be empty):
+
+```json
+{
+  "schemaVersion": 1,
+  "productRepo": "payments-api",
+  "tokens": ["payments-api:UC-08"],
+  "repos": [{"id": "payments-api", "root": "."}, {"id": "qa", "root": "../qa"}],
+  "locations": [{"id": "local", "repo": "payments-api", "paths": ["."], "config": [], "complete": true, "assessedTokens": ["payments-api:UC-08"]}, {"id": "qa-payments", "repo": "qa", "paths": ["tests/payments"], "config": ["package.json"], "complete": true, "assessedTokens": ["payments-api:UC-08"]}],
+  "tests": [{"id": "qa:tests/payments/withdraw.test.js:withdraws", "location": "qa-payments", "file": "tests/payments/withdraw.test.js", "identity": "withdraws", "placement": "separate", "granularity": "test", "selector": null}],
+  "mappings": [{"test": "qa:tests/payments/withdraw.test.js:withdraws", "token": "payments-api:UC-08", "status": "mapped", "source": "inferred", "evidence": [{"repo": "payments-api", "file": "src/withdraw.js", "symbol": "withdraw", "reason": "The test asserts the withdrawal balance transition documented in UC-08."}, {"repo": "payments-api", "file": ".claude/skills/uc-08-withdraw/SKILL.md", "symbol": "Main flow", "reason": "Defines the asserted behavior."}]}],
+  "decisions": [],
+  "snapshots": {},
+  "discovery": {}
+}
+```
+
+- `root` is relative to the product root, taken from registered strategy `Run from` roots; the product root is `.`. Other file/directory paths are relative to their named repo, never absolute or escaping that repo. `paths` are discovery directory prefixes, including configured source roots for embedded/documentation tests, not glob expressions. Include a location for every strategy row, even a no-tooling row; an empty completed inventory is valid.
+- `config` names actual runner/manifests/CI/discovery inputs within that location's repo. Discoveries must also reflect current strategy locations/procedures and vocabulary before consuming an old map. Synchronize changed registrations first and set affected locations `complete: false`.
+- Identify tests by repo + relative file + runner identity (fully qualified name, including parameter identity when supported). Line numbers are not IDs. Duplicate/dynamic identities use an explicitly named enclosing suite/file with `granularity: suite|file`; never invent individual precision. Placement is `separate|embedded|documentation`, independent of layer. `selector` is a runner-supported selector or `null`; derive the actual invocation from the strategy. A shared file can have distinct unit and documentation test identities.
+- Mapping `status` is `mapped|unresolved`, `source` is `inferred|user`; unresolved entries require a `reason`. Mapped entries require evidence naming repo/file/symbol and the behavior-to-token rationale, following Behavioral evidence below. Do not import relationships from tags or path conventions. Files without comment syntax are ordinary mappable tests.
+- `decisions` contains `{test, token, choice: confirm|reject, reason}`. Preserve decisions, including those whose test was deleted, and never silently remap a renamed test's user decision. Rejection suppresses the relationship; confirmation records provenance but does not override stale evidence or create coverage without evidence. Preserve unrelated user fields/content on refresh.
+- `complete` records completed discovery, and `assessedTokens` records the vocabulary actually assessed across that inventory. Partial/ticket-scoped work cannot claim all tokens were assessed. No go-deep vocabulary means `tokens: []`, no relationships, and pending product mapping. Uncertain discovered tests receive unresolved candidate relationships where tokens are identifiable; otherwise keep the location incomplete and explain the unknown scope in the report.
+- `discovery` stores the helper-produced location signatures of registered roots, paths, configuration and vocabulary. A missing/changed signature requires reassessment even when source bytes are unchanged. This is a baseline, never a substitute for discovery.
+
+## Behavioral evidence
+
+For each relationship, state what the test actually asserts, which implementation behavior it exercises, and why that behavior belongs to the named UC/domain. Cite only documentation/code actually inspected (including skill content loaded through the Skill tool); retain the files supporting each link as evidence dependencies so their changes invalidate the relationship.
+
+A domain relationship may follow either a documented domain responsibility directly or an exercised UC plus its documented UC-to-domain association. For example, a test asserting rejection of an empty task title exercises creation validation; documentation assigning task creation/validation to the tasks domain supports that domain relationship. Record the assertion and that responsibility, not just "the function lives in src/tasks/". A separate domain-specific assertion or proof that the domain is adequately tested is not required.
+
+Directory/module ownership, imports and names alone are insufficient: asserting withdrawal behavior does not establish a refund-UC relationship merely because both functions share a module or domain. A documented behavioral match is sufficient for relevance, not exhaustive coverage. Keep ambiguous candidates unresolved; inventory understood tests outside the product vocabulary without inventing relationships. Do not copy mappings to every test in a file. Include traced implementation intermediates and any UC-to-domain documentation used in the evidence.
+
+## Refresh protocol
+
+1. Read the strategy and map, validate registration/vocabulary alignment, then run `node "<helper>" inspect --root "<product-root>"`. For a draft or temporary map use `--map <file>` or `--map -` with JSON on stdin. All helper commands are read-only. They never execute test/discovery commands or infer semantic relationships.
+2. The helper inventories tracked and nonignored untracked files in registered repos, plus explicitly registered test files, runner/config inputs and mapping evidence even when Git-ignored. It does not scan unrelated ignored files. Clean regular files reuse Git blob IDs; changed/untracked/ignored inputs and safe in-repo file links use working-content blob digests, including staged/unstaged changes. Internal directory links record their destination pointer without recursive traversal; explicitly cataloged test/evidence paths beneath them are checked by content too. It compares file content snapshots, not just HEAD/mtime. Index files and ticket artifacts are excluded; metadata-only commits do not force semantic refresh. A missing repo, unmerged index, escaping symlink or unsupported nested submodule is unavailable, never empty coverage.
+3. Apply `refresh`: `targeted` means reassess only the listed changed tests/dependencies, checking changed tests against the relevant vocabulary for newly added relationships as well. `rebuild` means rediscover that location because the baseline/configuration/completeness or change impact is unknown. Unchanged locations/relationships reuse their evidence. Unknown product changes conservatively affect external locations too. Inaccessible locations retain saved entries as unresolved, without replacing their baseline.
+4. After semantic review, update affected test identities/relationships and completeness. Preserve user decisions and unrelated entries. Do not simply stamp a new baseline to clear staleness: all affected locations sharing that repo baseline must finish their reassessment first. If any cannot finish, keep its `complete: false`; preserve the old snapshot for unavailable repos. Only then use `inspect`'s `snapshots` and `discovery` as the new baselines (retain unavailable locations' old signatures). Record final metadata edits before taking the final baseline so the strategy/pointer do not immediately invalidate it.
+5. Validate again and query with `node "<helper>" query --root "<product-root>" --token "payments-api:UC-08"` or `--test "<test-id>"`. A draft/temporary candidate uses `--map` too. `matches` contains current relationships; `unresolved` includes stale mappings, unassessed/incomplete locations and ambiguous candidates, even when other matches exist. `unmapped: true` is possible only after complete assessment with neither matches nor uncertainty. Deletions/renames retire old identities through review, not string guessing.
+
+First onboarding builds all confirmed locations. Subsequent runs perform lightweight inventory checks; they do not reread every assertion. Rebuild all locations only for an explicit full refresh or globally changed discovery. A relationship is relevance evidence, never proof of sufficient assertions or passing tests. Keep pass/fail and prerequisites in existing verification reports, not in the map.
+
+## Persistence
+
+Onboarding, planning and implementation persist reviewed updates with Write/Edit (or the environment's approved file-edit tool), leaving them uncommitted. Include changed map paths in the plan's Affected Code/accepted setup baseline; metadata-only changes do not create a new product or test-scope repo. Save only meaningful differences; retain stable array order, sort newly generated entries by ID/token, and omit timestamps. The helper exports `serializeMap` for stable object ordering but never saves files.
+
+Implement's final context sync reconciles maps after its last UC/domain/orientation edits and before final packaging/completion. Reassess changed evidence and vocabulary before advancing baselines; include changed map paths and unresolved limitations in the final result. A change to selected tests or verification assumptions requires affected validation/review again, not a blind baseline update.
+
+Standalone regression, standalone review, and coverage-report-only refresh candidates in memory, never saving strategy/map changes or creating temporary project files. JSON can be passed to the helper on stdin; the CLI supports `--map -`. If no helper/Bash is available, perform the same content/dependency/completeness checks read-only and disclose the limitation; do not claim cached freshness without checking it. An inline stage called by implement may persist accepted changes during planning/execution; the independent Review stage remains read-only for project metadata.
+
+Missing/malformed maps under the current strategy contract trigger discovery in memory for the requested scope, not a mandatory project rewrite or a false zero-match result. Older strategies without `## Test Map` require regeneration through define-test-strategy before scoped mapping is available; report unresolved scope instead of interpreting their tag guidance. Regeneration uses current tests, runner configuration, code and documentation, preserving explicit user strategy choices. There is no legacy relationship importer, old-rule conversion or automatic cleanup. Users remove obsolete rules and pointers manually; existing source/tests remain untouched.
+
+Write and validate the map and strategy before updating the CLAUDE.md skill pointer. If either write is denied, print both complete proposed artifacts, leave pointers unchanged, and continue reporting using the in-memory candidate. Never reroute a denied write through another tool/path. Report partially saved artifacts explicitly.
+
+Review reports Minor missing/stale shared-index entries for relevant changed tests, separately from behavior/coverage defects. It may derive current relationships in memory to explain actual relevance without hiding that persistent metadata needs maintenance. No source tags are required. Preserve existing full-suite selection, test-scope rules, gate outcomes and not-run handling; use `mapping unresolved` for uncertain portions and retain supported runner scoping/broader-scope disclosures.

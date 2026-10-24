@@ -3,7 +3,7 @@
 `plan-the-work-embedded-tests` uses the shared Python fixture to verify that
 planning adds an embedded progression test without tags or implementation changes,
 confirms runtime assertion red, reuses passing regression coverage, and records
-module/behavior evidence and runner selectors in the step's Tests field. Run with
+module/behavior evidence and runner selectors in the step's Tests field and product-owned map. New mapping comments are forbidden for all placements. Run with
 `node evals/run-suite.mjs full --case=plan-the-work-embedded-tests`.
 
 Additional status-aware coverage: `plan-the-work-planned-layer` uses a UI ticket

@@ -44,13 +44,16 @@ description: Test strategy for FIXTURE_REPO_ID.
 - Pure helper logic → Unit
 - React form state, button behavior and displayed feedback → Component (planned; configure jsdom, Testing Library and JSX test inclusion first)
 
-## Tag Convention
+## Test Map
 
-Use repo-qualified @covers comments above real tests.
+Shared .claude/testing/test-map.json records evidence-backed test relationships;
+never annotate source/tests for mapping.
 
 ## How to Scan
 
-Search configured tests for @covers tokens. No use-case inventory exists yet.
+Follow make-it-work docs/test-map-contract.md. Inspect map freshness and reuse
+unchanged entries; a missing map requires discovery using real runner configuration
+and assertion/behavior evidence. No use-case inventory exists yet.
 
 ## Strategy Decisions
 

@@ -1,6 +1,6 @@
 ---
 name: test-strategy
-description: "Test strategy for `velocity-app`: where its tests live (including other repos), how to run them and what they need, where new tests go, and the `@covers` tag convention. Read before planning, writing, running, or reviewing tests for this repo."
+description: "Test strategy for `velocity-app`: where its tests live (including other repos), how to run them and what they need, where new tests go, and the maintained test map. Read before planning, writing, running, or reviewing tests for this repo."
 ---
 
 # Test Strategy — velocity-app
@@ -11,7 +11,7 @@ This is a starting point, seeded by `define-test-strategy` — extend and edit i
 
 `velocity-app` — the basename of this repo's git toplevel directory at onboarding.
 
-Tags use this ID. If this repo is cloned under a different directory name, tags stop matching — clone it as `velocity-app`.
+Map tokens use this product Repo ID.
 
 ## Test Locations
 
@@ -53,20 +53,16 @@ Which layer a change needs. Use only layers listed in `## Layers`.
 
 - Pure invoice or velocity calculation logic → Unit
 
-## Tag Convention
+## Test Map
 
-- **Form:** `@covers velocity-app:UC-<id> velocity-app:domain-<name>`, written as a single-line comment in the file's own comment syntax, directly above the test or suite it covers.
-- **Qualified tokens:** every token is repo-qualified. `<id>` and `<name>` come verbatim from go-deep's skill directory names.
-- **Several tokens:** a line may carry several tokens. A suite-level tag covers the whole suite.
-- **Placeholders:** placeholder or skipped-scaffold files are never tagged.
-- **Untaggable files:** files with no single-line comment form (e.g. JSON, Postman collections) are listed as untaggable and never edited.
-- **PHP:** put the `//` tag line above any docblock, never inside it — PHPUnit parses `@covers` in docblocks.
+Shared .claude/testing/test-map.json records evidence-backed test identities and
+product-qualified UC/domain relationships. Source/tests are never annotated.
 
 ## How to Scan
 
-- Run once per row of `## Test Locations`, from this repo's root:
-  `grep -rlIiE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.claude --exclude-dir=make-it-work '@covers([[:space:]].*)?[[:space:]]<repo>:<tag>([[:space:]]|$)' <Location>`
-- Filter the output to paths matching that row's `Test files` glob.
-- Before substituting, escape regex metacharacters in `<repo>`, and replace each `-` in `<repo>` and `<tag>` with `[-_]`.
-- The matched files are the tests for that tag.
-- Coverage gaps are always computed this way, live. Never store a gap list in this file.
+Follow make-it-work docs/test-map-contract.md and scripts/test-map.mjs. Inspect
+registrations and freshness; reuse unchanged relationships and reassess affected
+tests/evidence. If the map is absent, discover tests using the configured runner
+and Test Locations patterns, inspect assertions and trace behavior to product
+and domain documentation. Use runner-supported file/test selectors, not tags.
+No tests/tooling means an empty inventory, not an invented test command.

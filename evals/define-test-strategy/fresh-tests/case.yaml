@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: dts-fresh-tests
+tags: [define-test-strategy, smoke]
+context:
+  scaffold_script: fixture.sh

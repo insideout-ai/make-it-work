@@ -1,9 +1,9 @@
 ---
 type: regex
 target: { source: file, path: "qa-automation/tests/payments/withdraw.test.js" }
-pattern: "@covers [^\\n]*payments-api:UC-08([\\s]|$)"
+pattern: "@covers"
+match: not_contains
 weight: 3
 ---
 
-The QA repo's withdrawal test now carries a repo-qualified
-`payments-api:UC-08` tag (not `UC-080`).
+The QA test is not annotated; the product-owned map must describe the relationship.

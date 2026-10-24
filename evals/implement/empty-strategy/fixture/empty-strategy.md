@@ -39,13 +39,15 @@ None — no layers exist yet.
 
 None — no layers are available to map changes to.
 
-## Tag Convention
+## Test Map
 
-Use repo-qualified `@covers REPO_ID:domain-demo` single-line comments.
+Shared .claude/testing/test-map.json records evidence-backed test relationships;
+never annotate source/tests for mapping.
 
 ## How to Scan
 
-Scan test files for repo-qualified @covers tokens; compute gaps live.
+Follow make-it-work docs/test-map-contract.md. Reuse current entries and refresh
+changed evidence; no tests/tooling means an empty inventory, not invented coverage.
 
 ## Team notes
 

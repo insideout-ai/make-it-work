@@ -44,6 +44,7 @@ refuses to replace an existing hooks setup.
 - `skills/<skill-name>/SKILL.md` contains each user-facing workflow.
 - `docs/` contains shared reference documentation for skill authors (e.g. the `--autopilot` decision-log schema), referenced from multiple skills' `SKILL.md` files rather than duplicated in each.
 - `scripts/decision-log.mjs` validates and writes the shared autopilot JSONL log under `make-it-work/` when Bash writes are permitted.
+- `scripts/test-map.mjs` performs read-only test-index validation, freshness inspection and queries; `docs/test-map-contract.md` defines the shared non-intrusive mapping workflow.
 - `.github/workflows/validate-plugin.yml` runs strict validation in CI.
 
 Do not bump the plugin version as part of an ordinary contribution. Maintainers update versions when preparing a release.
@@ -57,7 +58,7 @@ node --test skills/implement/scripts/*.test.mjs
 claude plugin validate .claude-plugin/plugin.json --strict
 claude plugin validate skills --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
-node --test scripts/decision-log.test.mjs
+node --test scripts/decision-log.test.mjs scripts/test-map.test.mjs
 git diff --check
 node --test skills/execute/scripts/plan-status.test.mjs
 node --test evals/grade-headless.test.mjs evals/run-batches.test.mjs

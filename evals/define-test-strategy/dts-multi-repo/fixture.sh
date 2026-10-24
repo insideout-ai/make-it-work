@@ -4,13 +4,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../assert-disposable-cwd.sh"
 cp -R "$SCRIPT_DIR/../../fixtures/multi-repo-workspace/." .
 
-# payments-api is onboarded from scratch: drop its test-strategy skill and
-# every `@covers` line in qa-automation, so the run must detect the QA repo
-# and write the tags itself. ledger-api keeps its strategy.
+# Onboard payments-api from scratch; leave ledger-api's current strategy alone.
 rm -rf payments-api/claude-dir/skills/test-strategy
-find qa-automation/tests -name '*.test.js' | while read -r f; do
-  grep -v '@covers' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-done
 
 for repo in payments-api qa-automation ledger-api; do
   (

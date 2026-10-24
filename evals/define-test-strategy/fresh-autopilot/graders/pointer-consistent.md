@@ -11,7 +11,7 @@ the change (Write, Edit or Bash). A change happened if its tool call ran and
 no `TOOL RESULT` shows it was denied or failed.
 
 Decide whether each of these happened:
-- A. `.claude/skills/test-strategy/SKILL.md` was written.
+- A. Both `.claude/skills/test-strategy/SKILL.md` and a validated `.claude/testing/test-map.json` were written.
 - B. `CLAUDE.md` was edited to add a `/test-strategy` row.
 
 Answer PASS only if both happened (written outcome) or neither happened

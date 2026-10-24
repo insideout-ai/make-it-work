@@ -4,6 +4,20 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.16.0] - 2026-10-22
+
+### Changed
+
+- Test mapping is non-intrusive for every placement: onboarding maintains shared `.claude/testing/test-map.json` beside the strategy skill without editing source/tests, comments or filenames. Older setups regenerate strategy/map metadata from current evidence; there is no tag importer, old-rule conversion or automatic cleanup.
+- Planning, execution, gate triage and review consume evidence-backed index relationships. Lightweight Git-aware freshness checks reuse unchanged mappings and reassess changed tests/dependencies, with conservative rediscovery for unknown impact. Standalone regression/review and report-only requests refresh in memory; change workflows save reviewed metadata updates. Full-suite scope and gate policy are unchanged.
+- A read-only Node helper, shared contract, lifecycle tests and focused evaluations cover fresh onboarding, cross-repo identities, freshness, partial discovery and user decisions.
+
+### Fixed
+
+- Test-map evidence distinguishes documented behavioral domain relationships from directory-only inference; headless graders retain loaded skill text when judging that evidence.
+- Story-slicing autopilot presents all approach previews and example slice titles in chat before generating the backlog, rather than only recording its choice in the deliverable.
+- Test-map freshness supports safe in-repo symlinks and explicitly referenced Git-ignored tests, configuration and evidence without scanning unrelated ignored files. Final context sync reconciles mappings after documentation edits and before packaging/completion.
+
 ## [4.15.0] - 2026-10-22
 
 ### Added

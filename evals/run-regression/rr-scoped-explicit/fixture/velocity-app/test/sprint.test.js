@@ -1,4 +1,3 @@
-// @covers velocity-app:domain-velocity
 const { test } = require('node:test');
 const assert = require('node:assert');
 

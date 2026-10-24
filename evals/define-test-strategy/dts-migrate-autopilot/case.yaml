@@ -1,5 +1,0 @@
-schema_version: "1.1"
-name: dts-migrate-autopilot
-tags: [define-test-strategy, smoke]
-context:
-  scaffold_script: fixture.sh

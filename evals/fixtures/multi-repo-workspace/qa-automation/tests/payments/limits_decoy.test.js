@@ -1,4 +1,3 @@
-// @covers payments-api:UC-080
 const test = require('node:test');
 const assert = require('node:assert');
 

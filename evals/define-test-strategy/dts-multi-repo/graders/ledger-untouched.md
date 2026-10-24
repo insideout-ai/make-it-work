@@ -7,4 +7,4 @@ weight: 3
 ---
 
 `withdraw_ledger.test.js` exercises only `ledger-api`, so it must not receive a
-`payments-api:` tag even though it shares the UC-08 number.
+`payments-api:` annotation even though it shares the UC-08 number.

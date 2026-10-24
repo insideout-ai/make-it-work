@@ -1,6 +1,6 @@
 # `run-regression` autopilot smoke test
 
-Nine cases exercising `skills/run-regression/SKILL.md`'s `--autopilot` flag
+Ten cases exercising `skills/run-regression/SKILL.md`'s `--autopilot` flag
 and its underlying full-suite/scoped-mode logic:
 
 | Case | Invocation | Exercises |
@@ -10,10 +10,12 @@ and its underlying full-suite/scoped-mode logic:
 | `rr-scoped-unavailable` | `--autopilot velocity-app:domain-velocity` | Phase 2's scoped-mode availability gate firing even with an explicit, otherwise-valid scope token: the prefix resolves to `velocity-app/` under a one-repo workspace root, and that repo has no `.claude/skills/test-strategy/SKILL.md`. |
 | `rr-full-pass` | `--autopilot full` | The full happy path: discover `npm test` via `package.json`, run it, report `Gate result: PASS`. |
 | `rr-full-fail` | `--autopilot full` | A plain exit-code `FAIL` (no `Reason:`), with the captured output tail shown. |
-| `rr-scoped-explicit` | `--autopilot velocity-app:domain-velocity` | Full scoped-mode machinery from a workspace root: `<repo>:` prefix resolution to `velocity-app/`, its `.claude/skills/test-strategy/SKILL.md` + `product.md`/`architecture.md` as the inventory, the strategy's `## How to Scan` `@covers` content-tag grep (an untagged file that mentions velocity in plain text is never selected), the `npm run <script> -- <files>` passthrough rule, the token-run report grammar, and that an unrequested domain's tests are never touched. |
-| `rr-embedded-tests` | `--autopilot embedded-tests:UC-01 embedded-tests:UC-03` | Read-only inference with a legacy strategy; execute embedded unit and documentation commands plus tagged colocated tests using real selectors. Do not deduplicate distinct test kinds just because they share a source file; disclose any enclosing scope before running it. |
-| `rr-cross-repo` | `--autopilot payments-api:UC-08 ledger-api:UC-08 full:payments-api full:ledger-api` | A mixed multi-prefix run over the shared `evals/fixtures/multi-repo-workspace/`: tests in another repo (`qa-automation`) selected by content tag, a `ci-only` location reported under `Not run:`, `full:<repo>` runs (including a repo with no tests), a `UC-080` decoy never selected, and `Overall gate result: FAIL` from the intentionally failing ledger test. |
+| `rr-scoped-explicit` | `--autopilot velocity-app:domain-velocity` | Workspace-root prefix resolution, temporary evidence-backed discovery under a current strategy with a missing map, npm argument passthrough, token-run report grammar and exclusion of unrequested domains. |
+| `rr-embedded-tests` | `--autopilot embedded-tests:UC-01 embedded-tests:UC-03` | Missing-map discovery under the current strategy; execute embedded unit, documentation and colocated tests using real selectors. Preserve distinct test kinds sharing a file; disclose broader runner scope. |
+| `rr-cross-repo` | `--autopilot payments-api:UC-08 ledger-api:UC-08 full:payments-api full:ledger-api` | Behavior-backed cross-repo selection, CI-only not-run handling, explicit full-suite runs, unrelated UC-080 exclusion and FAIL from the intentionally failing ledger test. |
 | `rr-unrelated-clones` | `--autopilot full` | Phase 0's repo-ambiguity stop: two unrelated clones with no workspace orientation file, so the run must ask which repo to test rather than pick one. |
+
+`rr-index-reuse` adds a native shared-map fixture: validate content freshness, reuse saved checkout/label mappings, execute unittest plus doctest, and leave map/strategy/source unchanged. Run it with `node evals/run-suite.mjs full --case=rr-index-reuse`. Historical observations below describe earlier tag-based releases; current selection follows `docs/test-map-contract.md`.
 
 ## Running the original six at once
 
