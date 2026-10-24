@@ -1,0 +1,19 @@
+skills/go-deep/SKILL.md
+  s_2e14a191c112e5::t_20d785b8885b5d 27,173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bd2ca68ce1489cb392f5c8b931ae28d193d43dd2",
+  "prompts": {},
+  "sessions": {
+    "s_2e14a191c112e5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a16f01-3efb-7703-bdb4-53edd6e81f77",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
