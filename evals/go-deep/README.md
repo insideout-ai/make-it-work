@@ -80,11 +80,62 @@ Check `git status` on this repo before and after (it must not change). Then chec
 
 ## Interactive checkpoint review
 
-In a disposable representative project, run `/make-it-work:go-deep` interactively. Phase 2 should ask only unresolved questions, offering `Use your best judgment` last for multiple-choice questions. Confirm that Phases 3–6 show numbered review checkpoints through the available question tool, with the review material and next action visible before each question. Phase 6 should report consistency and inventory checks before asking for acceptance.
+### Scope presentation regression
 
-At a checkpoint, choose `Request changes`: only the current material should be revised and the same checkpoint should return. Choose `Pause here` and resume: the run should return to the pending checkpoint. Dismissing or leaving a question unanswered must not start the next phase. If no permitted question tool exists, the run should end its turn with `Waiting for your confirmation` and the same choices. On a prior-run fixture, check the same interaction for Phase 0's file-impact and repair pre-write confirmations; the file-impact question must name files that would be replaced.
+`scope-review-fixture.py atm` creates a disposable two-domain/four-use-case example;
+`scope-review-fixture.py large` creates eight independent domains and 24 use cases.
+The script prints the new directory and never writes into an existing project.
+From each printed directory, start a fresh interactive session with this checkout:
 
-Autopilot must continue without question-tool calls, keep approval sites logged as `checkpoint`, and never choose fresh onboarding. The headless smoke cases cannot demonstrate that the interactive question UI is visible; verify that part in an interactive session.
+```sh
+claude --plugin-dir /absolute/path/to/make-it-work --strict-mcp-config \
+  --tools Read,Glob,Grep,AskUserQuestion --allowedTools Read,Glob,Grep \
+  /make-it-work:go-deep
+```
+
+At Scope, verify both complete tables appear as normal assistant output above the
+short question, with purpose/skill names for domains and actor/trigger/domain
+mapping for use cases. A reasoning summary or inventory inside the question is
+not sufficient. The proposed scope must not be described as approved. Leave
+approval pending, then reply Pause and exit; no docs should be created. The
+complete review must end the turn, with no question-tool call or later tools.
+There is no scope guard hook; discovery questions still use the question tool.
+
+Run both disposable fixtures automatically using the existing Claude Code sign-in
+(up to $1.50 per case):
+
+```sh
+node evals/go-deep/run-scope-review.mjs
+```
+
+This uses non-autopilot prompts with no approval reply, so both sessions must stop
+after the written scope review. Reports are saved to a fresh temporary directory.
+
+Check the saved interactive JSONL transcript (not only a terminal summary):
+
+```sh
+node evals/go-deep/check-scope-review.mjs /path/to/atm-session.jsonl 2 4
+node evals/go-deep/check-scope-review.mjs /path/to/large-session.jsonl 8 24
+```
+
+The transcript check excludes reasoning, user content, and tool arguments. It
+requires the full inventory, actor/trigger/domain mapping, proposed status, next
+action, and closing choices in assistant text. It rejects a scope approval tool
+call, premature documentation work, or tools after the review. These cases
+supplement the existing autopilot smoke case, which does not exercise waiting
+for approval.
+
+For Checkpoint 2, verify the title is **Project documentation**, the review links
+`CLAUDE.md`, `product.md`, and `architecture.md` with plain-language purposes, and
+the question names those files explicitly. It must explain that approval starts
+two sample skills for another review. Counts or the word "foundations" alone do
+not explain what the user is approving.
+
+In a disposable representative project, run `/make-it-work:go-deep` interactively. Phase 2 should ask only unresolved questions, offering `Use your best judgment` last for multiple-choice questions. Confirm that Phases 3–6 end their turns with numbered written reviews containing the review material, next action, and closing choices. Phase 6 should report consistency and inventory checks before asking for acceptance.
+
+At a checkpoint, reply `Request changes`: only the current material should be revised and the same checkpoint should return. Reply `Pause` and resume: the run should return to the pending checkpoint. Leaving a review unanswered must not start the next phase. On a prior-run fixture, check the same written interaction for Phase 0's file-impact and repair pre-write confirmations; the file-impact review must name files that would be replaced.
+
+Autopilot must continue without question-tool calls or waiting for chat replies, keep approval sites logged as `checkpoint`, and never choose fresh onboarding. Review choices remain three choices; changing the presentation does not change approval scope.
 
 ## Known gaps in this suite (by design, not oversight)
 

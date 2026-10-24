@@ -4,6 +4,14 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.16.1] - 2026-10-24
+
+### Changed
+
+- `go-deep` presents review checkpoints as complete written reviews and waits for a chat reply. Scope reviews include the full domain and use-case tables; the project documentation review explicitly names `CLAUDE.md`, `product.md`, and `architecture.md`. Discovery questions continue using the question tool.
+- `go-deep` explains findings, the requested decision, and next actions around user questions. Added small and large scope-review regression cases checking visible review content and the approval pause.
+- `close-the-gaps` includes an "As a…, I want…, so that…" user story in each refined spec, preserving existing stories and listing unresolved parts as TBD.
+
 ## [4.16.0] - 2026-10-22
 
 ### Changed
