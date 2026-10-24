@@ -300,6 +300,17 @@ Generate the final ticket and save it to `make-it-work/<TICKET-or-slug>/<TICKET-
 Start from the **original ticket's exact format and content** — preserve its sections, headings, and structure. Apply these targeted changes:
 
 1. **Update the description / overview** — incorporate any clarifications from the Q&A session. Keep the original wording where it was already correct; edit only what changed.
+
+   **Include a User Story in every final spec.** Preserve and refine an existing user story in place; otherwise add `## User Story` immediately after the description / overview (or after the title if neither exists):
+
+   ```markdown
+   ## User Story
+
+   As a [actor], I want [capability], so that [benefit].
+   ```
+
+   Ground the actor, capability, and benefit in the original ticket and resolved refinement answers; do not invent a persona, business benefit, or extra scope to fill the format. Use `TBD` for any part that remains unresolved, and list it under `## TBD — Unresolved Items`. Autopilot inferences follow the existing decision-log marker policy.
+
 2. **Update existing acceptance criteria** — fix any that were ambiguous or incorrect based on Q&A answers.
 3. **Add missing acceptance criteria** — for any gaps identified during analysis that the original ticket did not cover, append new acceptance criteria in **Gherkin format** under a new section:
 
@@ -330,9 +341,9 @@ Scenario: [edge case or error case]
 | [full question text as asked] | [gap type] | [option the user picked, verbatim — or "Skipped — see TBD"] |
 ```
 
-Include every applicable question here, including skipped ones — the Decision Log is the complete record of questions actually asked; TBD (below) is only the actionable follow-up list for skipped items. A condition-not-met question is neither asked nor skipped, so omit it from both sections. Before saving an offline-injection spec, check each Decision Log row against the final Phase 5C statuses and remove every `N/A — condition not met` row. (autopilot: see Autopilot Mode — autopilot-resolved answers get an `_(autopilot)_` marker in the Answer column.)
+Include every applicable question here, including skipped ones — the Decision Log is the complete record of questions actually asked; TBD (below) is the actionable follow-up list for skipped items and unresolved User Story parts. A condition-not-met question is neither asked nor skipped, so omit it from both sections. Before saving an offline-injection spec, check each Decision Log row against the final Phase 5C statuses and remove every `N/A — condition not met` row. (autopilot: see Autopilot Mode — autopilot-resolved answers get an `_(autopilot)_` marker in the Answer column.)
 
-5. **Append TBD section** — only if any questions were skipped:
+5. **Append TBD section** — only if any questions were skipped or any User Story parts remain unresolved:
 
 ```
 ## TBD — Unresolved Items
@@ -341,6 +352,7 @@ Include every applicable question here, including skipped ones — the Decision 
 
 - [ ] [Skipped question 1 — original question text]
 - [ ] [Skipped question 2 — original question text]
+- [ ] [Unresolved User Story part, if any — actor, capability, or benefit]
 ```
 
 6. **Append Out of Scope section** — only if anything was explicitly clarified as out of scope during Q&A:
@@ -361,8 +373,8 @@ Include every applicable question here, including skipped ones — the Decision 
 - Keep Given/When/Then in plain business language — no code, no field names, no API details.
 - If the original ticket already has Gherkin scenarios, add new ones in the same style.
 - Before finalizing any new Gherkin scenario that asserts specific system behavior (not just user-visible intent), re-check that behavior against the exact code/logic found during Phase 3 exploration — don't rely on a general impression of how it "probably" works. A wrong assertion here becomes a wrong acceptance criterion.
-- New sections (Acceptance Criteria — Added During Refinement, Decision Log, TBD, Out of Scope) always use `##` headers, even if the original ticket used no headers at all — this is expected, not a violation of "preserve the original format." Only the original ticket's own content should be left in its original style.
-- Decision Log, TBD, and Out of Scope sections are omitted if empty (i.e., no questions were asked, none were skipped, or nothing was scoped out, respectively).
+- New sections (User Story, Acceptance Criteria — Added During Refinement, Decision Log, TBD, Out of Scope) always use `##` headers, even if the original ticket used no headers at all — this is expected, not a violation of "preserve the original format." Only the original ticket's own content should be left in its original style.
+- Decision Log, TBD, and Out of Scope sections are omitted if empty (i.e., no questions were asked, neither skipped questions nor unresolved User Story parts remain, or nothing was scoped out, respectively).
 - Do not include implementation notes, technical choices, or a "how" section.
 
 ---
