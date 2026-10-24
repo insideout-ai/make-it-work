@@ -39,7 +39,7 @@ Fresh projects get numbered domain skills such as `domain-01-authentication`, al
 
 During `go-deep`, Claude asks targeted questions so the how and what files capture what can't be learned from reading the code alone - giving Claude the full picture of the project, not just its structure.
 
-Interactive runs use question prompts for four review checkpoints: scope, documentation foundations, sample skills, and final acceptance. Each shows what to review and what happens next, with choices to approve, request changes, or pause. Repair confirmations use the same pattern. If a question tool is unavailable, the run stops with an explicit "Waiting for your confirmation" prompt; `--autopilot` keeps its unattended behavior.
+Interactive runs end their turns with written reviews at four checkpoints: scope, project documentation (`CLAUDE.md`, `product.md`, and `architecture.md`), sample skills, and final review. Each includes the actual review material, explains what happens next, and asks you to approve, request changes, or pause through a chat reply. Repair confirmations use the same pattern. Discovery questions still use the available question tool; `--autopilot` keeps its unattended behavior.
 
 The questioning phase reveals what Claude misunderstands about your code - surfacing domain concepts not obvious from reading files, business rules that live only in developers' heads, and assumptions baked into the architecture that were never written down. Answering those questions produces documentation no static analysis tool can generate: the *why* behind the *what*.
 
