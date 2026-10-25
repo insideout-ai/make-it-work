@@ -1,0 +1,24 @@
+README.md
+  s_58f154cac938fd::t_3910c93046a70a 157
+  s_58f154cac938fd::t_5d9538cddf45db 317
+skills/implement/references/ticket-publication.md
+  s_58f154cac938fd::t_5d9538cddf45db 17,19-20,23,37,41-51,79
+skills/implement/SKILL.md
+  s_58f154cac938fd::t_5d9538cddf45db 15,264,528
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "dde42a0b3736ad74c89367148a13206644a7d4cf",
+  "prompts": {},
+  "sessions": {
+    "s_58f154cac938fd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17306-8f41-76f3-b677-3405876d6f54",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
