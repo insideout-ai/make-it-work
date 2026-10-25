@@ -14,31 +14,33 @@ Create a 3-tier layered documentation system from scratch. The goal is to keep c
 /make-it-work:go-deep [--autopilot]
 ```
 
-- **No argument** — interactive. Every question and checkpoint below pauses for a human through the question tool policy below.
+- **No argument** — interactive. Discovery questions use the question tool policy below; review checkpoints end with a written review and wait for a chat reply.
 - **`--autopilot`** — unattended. At every interactive point below, apply the Autopilot Mode policy instead of pausing. Exception: the destructive "Run fresh onboarding" path (see Autopilot Mode) is never auto-selected, even in autopilot mode.
 
 ## Questions and Review Checkpoints
 
-**Question tool:** In interactive mode, use `AskUserQuestion` when available and permitted. Otherwise use the host's available, permitted equivalent (e.g. `request_user_input_async`, or `request_user_input` where the active mode allows it). Adapt field names, option limits, and multi-select support to that tool without changing the decision being asked. Never switch modes or request extra permissions just to expose a question tool. For genuinely open-ended questions, use a free-text question tool when supported; otherwise ask in plain text. If no permitted question tool exists, ask in plain text and end the turn awaiting the answer.
+**Question tool:** For discovery questions and Phase 0's workflow, repair-selection, and staleness choices, use `AskUserQuestion` when available and permitted. Otherwise use the host's available, permitted equivalent (e.g. `request_user_input_async`, or `request_user_input` where the active mode allows it). Adapt field names, option limits, and multi-select support to that tool without changing the decision being asked. Never switch modes or request extra permissions just to expose a question tool. For genuinely open-ended questions, use a free-text question tool when supported; otherwise ask in plain text. If no permitted question tool exists, ask in plain text and end the turn awaiting the answer. Review/approval checkpoints always use the written checkpoint interaction below, even when a question tool is available.
+
+**Communication around every question:** Apply this to discovery questions, workflow and repair choices, follow-up questions, and review checkpoints.
+
+- **Before asking:** Present a concise introduction with **What I found/did**, **Your decision**, and **What happens next**. Describe relevant findings or completed work, the specific input needed and why it matters, and what the answer will determine or authorize. Keep simple discovery introductions to two or three sentences; use labeled bullets and the actual tables, samples, or changes for larger reviews. Do not repeat the entire run history.
+- **Visible output:** Emit introductions as normal assistant text. At review checkpoints, the complete review is the final chat response for that turn, followed by a short closing question. Do not call any tool after emitting the review; end the turn and wait. Thinking/reasoning blocks, generated summaries, tool arguments, and task descriptions do not satisfy this requirement.
+- **Inside the question:** Keep the question focused on the decision and its immediate consequence. For discovery questions, include the brief finding or uncertainty needed to answer. For review checkpoints, put the review material above the closing question in the same chat message. Keep option labels short and use descriptions for consequences that differ by choice.
+- **After an answer:** Briefly acknowledge its practical effect and state the immediate next action, then proceed within the chosen scope. For example: "I'll document administrators as the only users who can approve payments. Next, I'll confirm the remaining scope." Combine this acknowledgment with the next question's introduction when useful. If the user requests changes or pauses, acknowledge that choice and follow its existing handling below. This adds no questions or approval gates and does not make a discovery answer approve a later checkpoint.
+- **Autopilot:** Keep the review material visible and describe resolutions as automatic decisions, never as answers or approvals supplied by the user. Follow the existing resolution and logging policies without asking or waiting.
 
 **Checkpoint interaction:** Use this pattern at every confirmation checkpoint, including Phase 0's file-impact and repair pre-write confirmations:
 
-1. Present a short review summary with links to any files already written and the specific scope or changes to review. State the next action and its impact (e.g. "Next: generate the remaining 14 skills"; for fresh onboarding, name the existing files that will be replaced).
-2. Call the question tool with `multiSelect: false`, the checkpoint title and question, and these choices:
-
-   - `{ label: "Approve and continue", description: "Approve the reviewed scope or changes and perform the stated next action." }`
-   - `{ label: "Request changes", description: "Revise this checkpoint before continuing." }`
-   - `{ label: "Pause here", description: "Stop here and summarize progress for resuming later." }`
-
-   For final acceptance, replace the first label with `Accept documentation` and describe completion rather than another generation step. Do not add a `Skip` or `(Recommended)` label to checkpoint choices.
-3. Wait for an explicit response before doing work that depends on approval. A default selection, dismissal, empty response, or elapsed time is not approval. With an asynchronous question tool, keep the checkpoint pending until the user answers. If no question tool is available or permitted, end the turn with a standalone question beginning `Waiting for your confirmation — [checkpoint title]` and list the same choices.
+1. Present the actual review material required by the phase below, with links to any files already written. Counts or statements such as "proposing 2 domains and 4 use cases" do not replace the lists or tables the user must review. State the next action and its impact (e.g. "Next: generate the remaining 14 skills"; for fresh onboarding, name the existing files that will be replaced).
+2. In the same chat message, show the checkpoint title and its specific review question, then close with **"Approve and continue, request changes, or pause?"** For final acceptance, close with **"Accept documentation, request changes, or pause?"** Do not add a `Skip` or `(Recommended)` label to these choices.
+3. **End the turn here. Do not call the question tool or any other tool after the review.** Wait for an explicit chat reply before doing work that depends on approval. A vague continuation request, empty response, or elapsed time is not approval. Keep the checkpoint pending until the user answers. This written review is the normal interactive path, not a fallback.
 4. On `Request changes`, collect any missing feedback, revise only the current review material, and present the checkpoint again. On `Pause here`, stop and summarize completed work, files written, and the pending checkpoint. Resume from that checkpoint when requested.
 
-The onboarding review titles are **Checkpoint 1 of 4 — Scope**, **Checkpoint 2 of 4 — Foundations**, **Checkpoint 3 of 4 — Samples**, and **Checkpoint 4 of 4 — Acceptance**. Phase 0 uses descriptive titles (`Fresh onboarding — File impact` or `Repair — [action]`) outside this sequence.
+The onboarding review titles are **Checkpoint 1 of 4 — Scope**, **Checkpoint 2 of 4 — Project documentation**, **Checkpoint 3 of 4 — Sample skills**, and **Checkpoint 4 of 4 — Final review**. Explain what the user is reviewing in plain language; do not use tier numbers or "foundations" as the explanation. Phase 0 uses descriptive titles (`Fresh onboarding — File impact` or `Repair — [action]`) outside this sequence.
 
 ## Autopilot Mode
 
-When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — the 2–4 option count, `Use your best judgment` placed last where it applies, and the `(Recommended)` label rules all still apply and get exercised on every run — just don't call any question tool or wait at a checkpoint. Auto-resolve per the table below instead. Keep each site's existing log `kind`: approval sites remain `checkpoint` even though interactive runs now display them through a question tool; genuinely open-ended questions remain `open_text` whether displayed through a tool or plain text.
+When invoked with `--autopilot`, still **construct** every discovery question/options payload exactly as the interactive path below would — the 2–4 option count, `Use your best judgment` placed last where it applies, and the `(Recommended)` label rules still apply. Construct and display each checkpoint's written review and its three choices too, but don't call any question tool, end the turn, or wait at a checkpoint. Auto-resolve per the table below instead. Keep each site's existing log `kind`: approval sites remain `checkpoint`; genuinely open-ended questions remain `open_text` whether displayed through a tool or plain text.
 
 **Hard-stop exception:** autopilot must never select "Run fresh onboarding" (the path that replaces existing docs wholesale). If that workflow-choice site is reached and "Repair existing docs" isn't a valid option for some reason, stop and require a human rather than proceeding unattended. In practice this exception is never actually triggered by the table below, since the Recommended option at that site is always "Repair existing docs" — but it is a named, explicit rule, not an implicit consequence of always picking the recommended option.
 
@@ -124,7 +126,7 @@ Announce first:
 
 For each multiple-choice question:
 - Call `AskUserQuestion` with:
-  - `question`: `"Question [X] of [N] · [Category]: [The question]\n\n[One sentence explaining why this matters.]"` — where `[Category]` is either `Product/domain` (questions 1–10) or `Architecture/technical` (questions 11–20).
+  - `question`: `"Question [X] of [N] · [Category]: [The question]\n\n[Relevant finding or uncertainty, why this matters, and what the answer will determine.]"` — where `[Category]` is either `Product/domain` (questions 1–10) or `Architecture/technical` (questions 11–20).
   - `options`: 1–3 substantive pre-enumerated choices + always `{ label: "Use your best judgment", description: "Infer an answer from the code and record any remaining uncertainty." }` (last). `AskUserQuestion` requires 2–4 options total; adapt to the host tool's limits. If the answer truly cannot be pre-enumerated, ask one concise free-text question using the question tool policy above.
   - Always recommend one option: place it first and append `(Recommended)` to its label.
   - Never place `Use your best judgment` first — it must always be last. This delegates only this question; it does not approve a later checkpoint.
@@ -160,10 +162,45 @@ After the last question: "All questions answered. Confirming scope..."
 **Instructions:**
 - **Phase 1 — Code Discovery:** Start by thoroughly analyzing the codebase
 - **Phase 2 — Targeted Questions:** Use the question tool policy above. Ask one at a time, only about information that couldn't be determined from code analysis, and wait for each answer before proceeding.
-- **Phase 3 — Confirm Scope:** Present the identified functional domains and use cases before creating any documentation files. Show a draft domain list with full skill names and IDs where numbered, following Domain Skill Naming, and a UC list. Use **Checkpoint 1 of 4 — Scope** to ask: "Does this domain and use-case list cover the scope you want documented?" Next action: create CLAUDE.md and the two orientation maps. (autopilot: see Autopilot Mode)
-- **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use `TaskCreate` to create one progress task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, using `TaskUpdate` to mark each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in. Present the UC table, Functional Domains table, and CLAUDE.md scope at **Checkpoint 2 of 4 — Foundations** and ask: "Are these documentation foundations ready for creating the sample skills?" Next action: create one sample UC skill and one sample domain skill. (autopilot: see Autopilot Mode)
-- **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use `TaskCreate` to create one progress task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. Present both samples for review of depth, structure, and sections at **Checkpoint 3 of 4 — Samples** and ask: "Should I use these two samples as the pattern for the remaining skills?" State the number of remaining skills to generate after approval. (autopilot: see Autopilot Mode) Incorporate feedback, then create remaining skills in parallel batches with the `Agent` tool, using `TaskUpdate` to mark each progress task `completed` when done.
-- **Phase 6 — Final Review:** Verify cross-reference consistency and file inventory yourself, resolve any fixable issues, and present the results with any blocked paths or remaining limitations. Use **Checkpoint 4 of 4 — Acceptance** to ask: "Accept the documentation, or request revisions?" Do not ask the user to perform the consistency checks. Acceptance does not turn blocked files or unresolved issues into completed work. (autopilot: see Autopilot Mode)
+- **Phase 3 — Confirm Scope:** Before creating any documentation files or opening the approval prompt, render the complete proposed scope in the conversation:
+  - **Domains:** a table with `ID` (where numbered), `Domain`, `Purpose`, and `Skill name`, following Domain Skill Naming.
+  - **Use cases:** a table with `ID`, `Use Case`, `Actor`, `Trigger`, and `Domains`, using the same domain names as the domain table.
+  - Include every proposed domain and use case in these tables; counts alone are insufficient. Put them in the written review above its closing question; do not repeat them as compact lists inside the question.
+  - Use the following layout in a **normal assistant text message**, replacing the example rows with the complete inventory. Preserve existing unnumbered domain naming where applicable:
+
+    ```markdown
+    **Findings:** [What was inspected, what is implemented, and any remaining uncertainty.]
+
+    **Proposed domains**
+
+    | ID | Domain | Purpose | Skill name |
+    | --- | --- | --- | --- |
+    | 01 | [Domain] | [Responsibility] | domain-01-[name] |
+
+    **Proposed use cases**
+
+    | ID | Use Case | Actor | Trigger | Domains |
+    | --- | --- | --- | --- | --- |
+    | UC-01 | [Use case] | [Actor] | [Action/event] | [Domain] |
+
+    **Your decision:** Review whether these domains and use cases cover the scope you want documented.
+
+    **Next after approval:** Create CLAUDE.md, .claude/rules/architecture.md, and .claude/rules/product.md.
+
+    **Checkpoint 1 of 4 — Scope:** Does this domain and use-case list cover the scope you want documented?
+
+    Approve and continue, request changes, or pause?
+    ```
+
+  - **Pre-send check:** Verify that the final chat response includes both complete tables, the next action, and the closing question. End the turn after that message, without a tool call. Until the user approves, call this the *proposed scope*, never the *confirmed scope*. On approval, acknowledge the confirmed scope and proceed to Phase 4.
+  - Use **Checkpoint 1 of 4 — Scope** to ask: "Does this domain and use-case list cover the scope you want documented?" Next action: create CLAUDE.md and the two orientation maps. (autopilot: see Autopilot Mode)
+- **Phase 4 — Draft Tier 1 + Tier 2:** Before writing any files, use `TaskCreate` to create one progress task per file (CLAUDE.md, architecture.md, product.md) so progress is visible. Create CLAUDE.md, architecture.md, and product.md, using `TaskUpdate` to mark each task `in_progress` then `completed` as you go. Then run a cross-tier deduplication pass: scan each section of architecture.md and product.md against CLAUDE.md and flag any content that appears in both. Resolve by keeping actionable "how to" guidance in CLAUDE.md, structural/architectural descriptions in architecture.md, and product/domain content in product.md — delete the duplicate from whichever file it doesn't belong in.
+  - Before **Checkpoint 2 of 4 — Project documentation**, emit a normal assistant text message linking each written file and explaining its purpose: `CLAUDE.md` is the project development guide, `architecture.md` maps the system and its domains, and `product.md` describes user flows and business rules. Name any blocked files rather than implying they were written.
+  - Show the actual Functional Domains and Use Cases tables plus a concise summary of the development guide's commands, rules, and skill-loading requirements. Ask the user to review accuracy, missing behavior, and incorrect development guidance. Counts and file names alone are insufficient.
+  - Explain the next output in plain language: one sample domain skill documenting how a domain is built and one sample use-case skill documenting a user's flow. Name the selected domain and use case. These samples will be reviewed before generating the rest.
+  - Ask in the written review: "Are CLAUDE.md, product.md, and architecture.md accurate and complete enough to proceed? If approved, I'll create two sample skills for your next review." End with the shared three choices and wait for a chat reply. (autopilot: see Autopilot Mode)
+- **Phase 5 — Create Tier 3 Skills:** Before writing any skills, use `TaskCreate` to create one progress task per skill file so the full inventory is visible and nothing is missed when running parallel agents. Create 1 sample UC skill + 1 sample domain skill first. Present both samples for review of depth, structure, and sections at **Checkpoint 3 of 4 — Sample skills** and ask: "Should I use these two samples as the pattern for the remaining skills?" State the number of remaining skills to generate after approval. (autopilot: see Autopilot Mode) Incorporate feedback, then create remaining skills in parallel batches with the `Agent` tool, using `TaskUpdate` to mark each progress task `completed` when done.
+- **Phase 6 — Final Review:** Verify cross-reference consistency and file inventory yourself, resolve any fixable issues, and present the results with any blocked paths or remaining limitations. Use **Checkpoint 4 of 4 — Final review** to ask: "Accept the documentation, or request revisions?" Do not ask the user to perform the consistency checks. Acceptance does not turn blocked files or unresolved issues into completed work. (autopilot: see Autopilot Mode)
 
 **Checkpoint discipline:** Use the checkpoint interaction above at every workflow checkpoint; never proceed without explicit user confirmation (autopilot: see Autopilot Mode).
 
