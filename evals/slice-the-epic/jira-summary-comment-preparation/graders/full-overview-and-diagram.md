@@ -1,0 +1,9 @@
+---
+type: llm
+focus: { source: file, path: "make-it-work/DEMO-700-summary-comment.md" }
+weight: 3
+---
+
+PASS only if the prepared comment contains the full saved overview rather than a table-only summary. It must preserve the Saved checkout addresses title; the goal and DEMO-700 source link; functional slicing and its early-checkout-feedback rationale; the unconfirmed existing-address-form assumption; the unresolved delivery-region question; the complete three-row Slice summary; the diagram's information converted to a readable plain-text dependency list covering S-1, S-2, S-3, the hard S-1-to-S-2 edge and the recommended-only S-1-to-S-3 edge with a clear legend; both relationship-table rows and their reasons; both implementation stages and the distinction between technical feasibility and preferred feedback order; S-1's MVP and prerequisite closure; all creation results including confirmation/permission failure/pending value; the native-link result showing no link created, no confirmed S-2 endpoint, and no link authorization; the additional Pilot review note; and the pre-send source-comment state.
+
+The Jira comment must replace the raw Mermaid code block with a readable dependency list or tree, distinct from the relationship table; Mermaid syntax, a missing diagram, or only a link to the local file fails. Every node and relationship must remain represented, and recommended order must not be described as an existing Jira blocker. All other sections must survive, including the extra Pilot review note about reviewing invalid-address feedback with checkout pilot participants before widening availability. The local source overview must retain its Mermaid. Formatting and local-link conversion may change, but substantive omissions, invented native-link successes, promoted assumptions, and summaries that replace full content fail.

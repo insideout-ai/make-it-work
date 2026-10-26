@@ -10,6 +10,7 @@ The suite covers mode/focus selection, the discovery interview, direct epic gene
 - `shape-the-epic-technical-debt-outcomes`: a supplied completed interview and review scope lead directly to normal epic generation without another interview or category-approval round. Three outcomes, a material privacy constraint, and an explicit approval criterion are preserved. The case rejects inferred responsibility, incidental-tool dependencies, and candidate implementation designs.
 - `shape-the-epic-technical-debt-sparse`: qualitative CI-delay evidence goes through unattended discovery and produces a draft with scoped measurement TBDs. The case rejects invented metrics, ownership questions, implementation plans, and optional-section readiness blockers.
 - `shape-the-epic-discovery-interview`: a normal run with mode and focus already supplied asks one relevant discovery question and waits, without requiring an explicit interview opt-in or another selection step.
+- `shape-the-epic-jira-full-description`: a saved epic and an explicit Jira update request prepare the complete description locally without repeating shaping. Checks that the entire Decision log, its four decision/rationale/status rows, and all other epic content survive, while the separate JSONL audit stays local. The fixture prohibits live tracker calls.
 
 Autopilot discovery retains its six-open-text-turn cap and exit summary. Only the category-draft approval graders have been retired. Content readiness is distinct from human approval. An empty autopilot log is valid only when supplied mode, focus, and interview context already resolved every site.
 
@@ -17,7 +18,7 @@ Autopilot discovery retains its six-open-text-turn cap and exit summary. Only th
 
 Use an existing signed-in Claude Code installation. Check `claude auth status` first; model evaluation is unavailable when the shell is signed out.
 
-Run all six cases sequentially:
+Run all seven cases sequentially:
 
 ```sh
 bash evals/shape-the-epic/run-all.sh
@@ -28,11 +29,12 @@ The per-skill script uses disposable headless runs for the technical-debt and di
 ```sh
 node evals/run-suite.mjs full --case=shape-the-epic-technical-debt-outcomes --max-cost-usd=3
 node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot --max-cost-usd=3
+node evals/run-suite.mjs full --case=shape-the-epic-jira-full-description --max-cost-usd=3
 ```
 
 The shared smoke suite uses a disposable headless run for the rich Product case because its epic write was denied in a previous plain plugin-eval run despite the Write grant. The new cases are also registered as headless. Reports include the transcript, fixture location, and grader verdicts under ignored `evals/results/`. Never treat a denied artifact write as a successful draft.
 
-All cases grant Write, Edit, Read, and AskUserQuestion. Autopilot resolves selection and discovery without invoking AskUserQuestion. Normal interview cases ask the user and wait; the completed-interview case reuses the supplied answers and proceeds to drafting. No case grants Bash or bypasses tool permissions.
+Shaping cases grant Write, Edit, Read, and AskUserQuestion; the Jira description-preparation case grants only Read and Write. Autopilot resolves selection and discovery without invoking AskUserQuestion. Normal interview cases ask the user and wait; the completed-interview case reuses the supplied answers and proceeds to drafting. No case grants Bash or bypasses tool permissions.
 
 ## Artifact and logging checks
 
@@ -55,3 +57,5 @@ Replace the absolute checkout path. The helper refuses to run from the plugin ch
 Inspect the successful saved artifact and transcript when an LLM grader fails. Prior runs showed judge variance on long traces and occasional plugin-loading failures; those findings do not establish that the revised workflow passes. The current cases must be rerun against the changed instructions.
 
 The suite covers interview entry and a supplied completed-interview handoff, but not a full multi-turn live interview or consolidated revision. It does not yet exercise collision handling, an explicitly requested design appendix, or backlog identifiers requested by the user.
+
+The Jira regression checks local description preparation only. It does not validate a live Jira write, formatting conversion by a connector, or the required remote read-back; those need a disposable tracker integration.

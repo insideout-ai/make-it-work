@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: shape-the-epic-jira-full-description
+tags: [shape-the-epic, publication]
+fixture:
+  scaffold_script: fixture.sh

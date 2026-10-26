@@ -31,7 +31,8 @@ done
 for case_name in \
   shape-the-epic-technical-debt-outcomes \
   shape-the-epic-technical-debt-sparse \
-  shape-the-epic-discovery-interview
+  shape-the-epic-discovery-interview \
+  shape-the-epic-jira-full-description
 do
   node evals/run-suite.mjs full --case="$case_name" --max-cost-usd=3
   rc=$?

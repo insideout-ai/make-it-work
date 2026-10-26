@@ -143,3 +143,13 @@ Use the user's own words for explicit decisions where possible. Leave rationale 
 ## Phase 5 — Consolidated review and revision
 
 After saving the complete draft, invite the user to review the whole artifact and provide consolidated comments. Briefly identify material open decisions. Do not require approval of each section or reopen a confirmation loop after revisions. Apply feedback together, preserve unaffected content, and save the revised artifact with the same collision-avoidance rule. Update assumptions, open items, and readiness to reflect the actual decisions; do not imply approval merely because a revision was requested.
+
+## When the user requests a Jira update
+
+An explicit request to update a Jira ticket authorizes publishing to that specified ticket; do not ask for the same permission again. Generating the local epic or running autopilot alone does not authorize a Jira update.
+
+Use the **entire latest saved epic Markdown** as the ticket description unless the user explicitly requests a narrower edit. Include its title, mode, draft status, review scope, every substantive section, acceptance criteria, Open Items & Out of Scope, Readiness checklist, and **the complete Decision log table, including all rows, rationales, and statuses**. The Decision log is part of the epic, not an internal appendix to discard. Preserve proposed assumptions, deferred decisions, and autopilot markers as written; publishing does not confirm them or change readiness. Adapt formatting to the connector's supported description format without summarizing, truncating, or dropping content.
+
+The separate `shape-the-epic-autopilot-log.jsonl` is a run audit file, not part of the epic Markdown. Do not append or attach it unless the user specifically requests that additional artifact.
+
+Before sending, compare the prepared description with the saved epic to ensure every section and all decision entries are present. After updating, read back the ticket description and verify the same content survived formatting conversion, including the Decision log. If a connector or destination limit prevents a complete update, explain the limitation rather than silently omitting sections or substituting an attachment/comment. Report an incomplete or unverified update accurately, and provide the ticket link and local epic path when available.
