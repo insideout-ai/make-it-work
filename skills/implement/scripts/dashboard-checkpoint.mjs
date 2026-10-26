@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
-import { readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { generateDashboard, parseState } from './render-status.mjs';
+import { decisionCell, decisionText, lastWorkRow, validateDecision } from './workflow-decisions.mjs';
 
 function fail(message) { throw new Error(message); }
 
@@ -51,19 +52,78 @@ export async function checkpointDashboard(statePath, { activity } = {}) {
   }
 }
 
+async function refreshExistingDashboard(statePath) {
+  const output = statePath.replace(/-state\.md$/, '-status.html');
+  try {
+    const info = await lstat(output);
+    if (!info.isFile() || info.isSymbolicLink()) fail('Existing dashboard must be a regular file.');
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+  return generateDashboard(statePath);
+}
+
+/** Save a decision once; rendering failure must not erase its audit evidence. */
+export async function checkpointDecision(statePath, input) {
+  const d = validateDecision(input);
+  const absoluteStatePath = path.resolve(statePath);
+  const info = await lstat(absoluteStatePath);
+  if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
+  const original = await readFile(absoluteStatePath, 'utf8');
+  const state = parseState(original, absoluteStatePath);
+  const existing = state.audit.find((row) => row.decision?.id === d.id);
+  if (existing) {
+    if (existing.outcome !== decisionText(d) || existing.decision.resume !== d.resume) {
+      fail(`Decision id ${d.id} already records a different decision.`);
+    }
+    return { row: existing.number, dashboard: await refreshExistingDashboard(absoluteStatePath) };
+  }
+  const lines = original.split('\n');
+  const start = lines.findIndex((line) => line.trim() === '## Audit log');
+  let end = lines.findIndex((line, index) => index > start && line.startsWith('## '));
+  if (end === -1) end = lines.length;
+  while (end > start && !lines[end - 1].trim()) end -= 1;
+  const number = state.audit.length + 1;
+  const phase = state.fields.phase;
+  const cell = decisionCell(d);
+  const time = new Date().toISOString();
+  lines.splice(end, 0, `| ${number} | ${time} | ${phase} | ${phase} | ${cell} |`);
+  const updated = lines.join('\n');
+  parseState(updated, absoluteStatePath);
+  await replaceAtomically(absoluteStatePath, updated);
+  return { row: number, dashboard: await refreshExistingDashboard(absoluteStatePath) };
+}
+
+const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> | decision --state <state.md> --input <decision.json>';
+
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === '--help') return { help: true };
   if (argv[0] === 'render' && argv.length === 3 && argv[1] === '--state' && argv[2]) return { statePath: argv[2] };
   if (argv[0] === 'activity' && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--activity' && argv[4]) {
     return { statePath: argv[2], activity: argv[4] };
   }
-  fail('Usage: dashboard-checkpoint.mjs render --state <state.md> | activity --state <state.md> --activity <one line>');
+  if (argv[0] === 'decision' && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--input' && argv[4]) {
+    return { statePath: argv[2], input: argv[4] };
+  }
+  if (argv[0] === 'resume' && argv.length === 3 && argv[1] === '--state' && argv[2]) return { statePath: argv[2], resume: true };
+  fail(USAGE);
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    process.stdout.write('Usage: dashboard-checkpoint.mjs render --state <state.md> | activity --state <state.md> --activity <one line>\n');
+    process.stdout.write(`${USAGE}\n`);
+    return;
+  }
+  if (args.resume) {
+    const state = parseState(await readFile(args.statePath, 'utf8'), args.statePath);
+    process.stdout.write(`${JSON.stringify({ last_work_row: lastWorkRow(state.audit) })}\n`);
+    return;
+  }
+  if (args.input) {
+    const result = await checkpointDecision(args.statePath, JSON.parse(await readFile(args.input, 'utf8')));
+    process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
   const output = await checkpointDashboard(args.statePath, args.activity === undefined ? {} : { activity: args.activity });

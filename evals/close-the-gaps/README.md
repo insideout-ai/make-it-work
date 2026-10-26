@@ -1,20 +1,32 @@
 # `close-the-gaps` autopilot smoke test
 
-Five cases exercising `skills/close-the-gaps/SKILL.md`'s `--autopilot` flag:
+Seven cases exercising `skills/close-the-gaps/SKILL.md`'s `--autopilot` flag and Slack delivery modes:
 
 - **`close-the-gaps-live-autopilot`** — a pasted ticket, `--autopilot`, no prior state. Exercises the normal Phase 1 → 6 flow end to end: skills loading (none available in this tiny fixture), code exploration, gap analysis, every gap auto-resolved via `(Recommended)` without ever calling `AskUserQuestion`, and the final refined ticket with a Gherkin acceptance-criteria block and a Decision Log where every autopilot-resolved row carries the `_(autopilot)_` marker. Its fixture (`src/orders/model.js` + `status.js`) deliberately has no "admin" role, only "owner" — the ticket's "the admin should mark the order as refunded" is a real gap the skill must surface and resolve one way or another; the grader checking for this accepts any reasonable gap-type label (`Code conflict`, `Missing actor/trigger`, etc.) across three real runs the model used different-but-equally-defensible labels for the same underlying gap.
 - **`close-the-gaps-stale-questions-file`** — the fixture pre-seeds a stale `make-it-work/TASK-99/TASK-99-questions.md` (`**Status:** Awaiting Answers`) before the run starts, then pastes a *new* ticket for the same `TASK-99` ID. This exercises the skill's Phase 1 hard-stop: autopilot must detect the pending export and stop, never silently picking "resume," "overwrite," or "abort" on its own, and never deleting the stale file.
 - **`close-the-gaps-offline-injection`** — invokes the questions-file path form (`close-the-gaps make-it-work/TASK-50/TASK-50-questions.md --autopilot`) against a hand-authored, partially-answered Phase 5B export: one question already answered by a human (a non-Recommended choice, which must be preserved verbatim), one left blank (which autopilot must resolve via its Recommended option and mark `_(autopilot)_`), and one conditional question whose gate isn't met (which must be excluded from the final Decision Log entirely).
 - **`close-the-gaps-slack-fallback`** — a pasted ticket with `--slack --autopilot` in a session with no Slack integration. Exercises Phase 5D's fallback: the skill must say Slack couldn't be used, write the ordinary Phase 5B questions file (still `Awaiting Answers`, no `### Slack` block), tell the user to forward it to the Product Manager, and stop without a spec. Slack itself can't be reached from a headless eval, so the draft and thread-reply paths are checked manually.
+- **`close-the-gaps-slack-send-fallback`** — a pasted ticket with no PM or reporter, invoked with `--slack-send --autopilot`. Whether the host exposes Slack tools or not, the run must explain the missing recipient or unavailable integration, export the questions for the PM, and stop without inventing a recipient, claiming delivery, or resolving the questions automatically.
+- **`close-the-gaps-slack-send-resume`** — resumes a questions file whose earlier send has unknown delivery status, with no Slack integration. It must preserve that metadata, explain why replies cannot be read, keep the recorded human answer, resolve remaining questions under Autopilot, and never resend or mark delivery confirmed. Both new cases run with the headless runner and semantic grading.
 - **`close-the-gaps-negative-control`** — the same ticket as `live-autopilot`, no `--autopilot`. Confirms the skill still announces its questions and does not fabricate a finished refined ticket when nothing is there to answer them live.
 
-## Running all five at once
+## Running the cases
+
+Run the two send cases through the headless runner:
+
+```sh
+node evals/run-suite.mjs full --case=close-the-gaps-slack-send-fallback --case=close-the-gaps-slack-send-resume
+```
+
+Run the original five plugin-eval cases:
 
 ```
 bash evals/close-the-gaps/run-all.sh
 ```
 
-All five run fully through plain `claude plugin eval` — no `--dangerously-skip-permissions` needed for any of them. `run-all.sh` runs every case even if an earlier one scores imperfectly (so one weak case doesn't hide the rest), then exits non-zero overall if any case did. See "Why one check still needs a manual run" below for the one thing this suite does *not* verify automatically.
+The original five run fully through plain `claude plugin eval` — no `--dangerously-skip-permissions` needed for any of them. `run-all.sh` runs every original case even if an earlier one scores imperfectly (so one weak case doesn't hide the rest), then exits non-zero overall if any case did. See "Why one check still needs a manual run" below for the one thing this suite does *not* verify automatically.
+
+For a live Slack check, use a test recipient: select **Draft in Slack** and verify a draft with the ticket link/disclosure is created without sending; select **Send via Slack**, confirm that recipient, and verify a single message is sent after the preview without another send question. Resume with the questions file to verify it reads that thread without sending again. Also check that legacy `--slack` stays draft-only and Autopilot without an explicit send choice never sends. Live Slack delivery cannot be exercised by these offline fixtures.
 
 ## `.claude/`-exposure: why this skill is mostly plain-eval-testable
 

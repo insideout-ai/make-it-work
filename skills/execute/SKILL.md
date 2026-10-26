@@ -302,6 +302,8 @@ The full suite of every product repo the plan changes always runs, so this gate 
 
 However scope resolved, invoke `run-regression` via the `Skill` tool — the same mechanism used anywhere else in this plugin that one skill's own instructions call another:
 
+Inside an `implement` run, carry the supplied workflow state path and workflow-decision audit contract into this same-session invocation (including the resolved-policy path). Any workflow choices made there are checkpointed by the main session before dependent work; do not introduce a new command flag or another state file.
+
 - **Scoped+full mode** (conditions (a) and (b) both hold): `Skill({skill: "make-it-work:run-regression", args: "<every token from the plan's ## Domains/UCs Touched> <full:<repo> per product repo> [--autopilot]"})` — append `--autopilot` exactly when this `execute` invocation has it; e.g. `Skill({skill: "make-it-work:run-regression", args: "payments-api:UC-08 ledger-api:UC-03 full:payments-api full:ledger-api --autopilot"})`.
 - **Full-suite mode** (either condition fails): `Skill({skill: "make-it-work:run-regression", args: "full [--autopilot]"})` — append the flag only when this invocation has it.
 
@@ -357,6 +359,8 @@ This report is one of exactly three distinct, mutually exclusive ways a run of `
 The explicit-policy manual terminal report is a fourth successful terminal path, with outcome `VERIFIED_MANUALLY`. Print only the applicable terminal report, never an automated PASS for an all-manual plan.
 
 ## When run by implement
+
+**Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely. Everything above still applies unchanged — Phases 0–5, the retry limit, the guardrail, the halt scope, and the never-git-commit rule.
 

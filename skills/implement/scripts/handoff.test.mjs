@@ -170,7 +170,7 @@ test('manual artifact validation binds the report, selected plan policy, observa
   await assert.rejects(validateArtifacts(manual, root), /accepted manual gate/);
 });
 
-test('validates and pauses on questions sent to the Product Manager in Slack', async (t) => {
+test('validates and pauses on exported PM questions without claiming Slack delivery', async (t) => {
   assert.equal(validateHandoff(questionsSent()).outcome, 'QUESTIONS_SENT');
   assert.throws(() => validateHandoff({ ...questionsSent(), data: { tbd_items: 0 } }), /unknown field/);
   assert.throws(() => validateHandoff({ ...questionsSent(), artifacts: { spec: 'make-it-work/DEMO-1/DEMO-1-spec.md' } }), /unknown field|questions/);
@@ -183,10 +183,10 @@ test('validates and pauses on questions sent to the Product Manager in Slack', a
   assert.equal((await validateArtifacts(questionsSent(), root)).outcome, 'QUESTIONS_SENT');
   await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
   await assert.rejects(validateArtifacts({ ...questionsSent(), artifacts: { questions: 'make-it-work/DEMO-1/DEMO-1-spec.md' } }, root), /does not match/);
-  for (const autonomy of ['guided', 'autonomous']) {
+  for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
     assert.deepEqual(decideNext(state('close-the-gaps', autonomy), questionsSent()), {
       action: 'pause',
-      reason: 'Questions sent to the Product Manager in Slack; waiting for replies.',
+      reason: 'Refinement questions prepared for the Product Manager; check delivery status in the questions file.',
       pause_reason: 'Slack refinement pending',
       questions: 'make-it-work/DEMO-1/DEMO-1-questions.md',
     });

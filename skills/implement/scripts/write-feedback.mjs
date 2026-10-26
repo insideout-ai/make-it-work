@@ -5,6 +5,7 @@ import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 import { fileURLToPath } from 'node:url';
+import { parseDecisionCell } from './workflow-decisions.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -77,7 +78,7 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     if (Number(number) !== index + 1 || !ISO_UTC.test(time) || Number.isNaN(Date.parse(time))) {
       fail(`Invalid Audit log number or timestamp at row ${index + 1}.`);
     }
-    return { number: index + 1, from, to, outcome };
+    return { number: index + 1, from, to, outcome, ...parseDecisionCell(outcome) };
   });
   if (rows.length === 0) fail('Audit log is empty.');
   const finalRow = rows.at(-1);
@@ -92,7 +93,9 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     if (row.to === 'plan' && REPLAN_FROM.has(row.from)) return [{ kind: 'Replan', row: row.number }];
     return [];
   });
-  const explicitReviews = rows.filter((row) => /\bReview cycle \d+\b/i.test(row.outcome)).length;
+  const explicitReviews = rows.filter((row) =>
+    !(row.from === row.to && row.outcome.startsWith('Decision: ')) && /\bReview cycle \d+\b/i.test(row.outcome)
+  ).length;
   const enteredReviews = rows.filter((row) => row.to === 'review' && row.from !== 'review').length;
   // Distinctive compounds in Audit prose are often project terminology. They
   // must be paraphrased in feedback rather than copied into a shareable file.
