@@ -1,6 +1,6 @@
 ---
 name: close-the-gaps
-description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode (export every question to a file to answer outside the session) and a Slack mode (draft the questions as a direct message to the Product Manager); re-invoke with the questions file to inject the answers and resume. Use when refining a ticket before dev starts."
+description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode (export every question to a file to answer outside the session) and Slack modes (draft or explicitly send the questions as a direct message to the Product Manager); re-invoke with the questions file to inject the answers and resume. Use when refining a ticket before dev starts."
 disable-model-invocation: true
 ---
 
@@ -8,14 +8,14 @@ disable-model-invocation: true
 
 **Role:** Act as a Product Analyst facilitating a live ticket refinement session.
 
-**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development. When invoked with `--offline` or `--slack`, or when resuming from a previously exported questions file, follow Phase 5B, 5D, or 5C instead of asking questions live.
+**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development. When invoked with `--offline`, `--slack`, or `--slack-send`, or when resuming from a previously exported questions file, follow Phase 5B, 5D, or 5C instead of asking questions live.
 
 ---
 
 ## Usage
 
 ```
-/make-it-work:close-the-gaps [TICKET-ID] [--offline | --slack] [--autopilot]
+/make-it-work:close-the-gaps [TICKET-ID] [--offline | --slack | --slack-send] [--autopilot]
 /make-it-work:close-the-gaps path/to/<TICKET>-questions.md [--autopilot]
 ```
 
@@ -23,9 +23,9 @@ Or paste the ticket content directly into the chat after invoking.
 
 Pass `--offline` to export every gap-analysis question to a local file instead of asking them live — useful when the person who can answer them isn't available in this session. Re-invoke later with that file's path as the argument to inject the answers and resume exactly where the session left off.
 
-Pass `--slack` to send the questions to the ticket's Product Manager instead: the full question list is prepared as a **draft** direct message in the user's own Slack, the user reviews and sends it, and the session stops. Re-invoke later with the saved questions file's path to read the PM's thread replies and resume. `--slack` and `--offline` are mutually exclusive — if both are passed, say that only one can be used and stop before analyzing the ticket. Without either flag, Phase 5 offers the same choice once the questions are known.
+Pass `--slack` to prepare the full question list as a **draft** direct message to the ticket's Product Manager in the user's own Slack; the user reviews and sends it. Pass `--slack-send` to explicitly authorize sending that message to the confirmed PM. Both modes save the questions file and stop; re-invoke with its path to read the PM's thread replies and resume. `--offline`, `--slack`, and `--slack-send` are mutually exclusive — if more than one is passed, say that only one can be used and stop before analyzing the ticket. Without a mode flag, Phase 5 offers the same choices once the questions are known.
 
-Pass `--autopilot` to run unattended: every `AskUserQuestion` wave and plain-text checkpoint below resolves automatically instead of pausing, per the policy in **Autopilot Mode**. Combine freely with `[TICKET-ID]`, pasted content, `--offline`, `--slack`, or the questions-file path form — `--offline --autopilot` still exports the file untouched (there's nothing to autopilot in an export-only run), and `--slack --autopilot` still creates the Slack draft (accepting the ticket-derived Product Manager without confirmation); autopilot's resolutions apply the next time that file comes back through the injection path. Without `--autopilot`, every interactive point pauses for a human exactly as documented below.
+Pass `--autopilot` to run unattended: every `AskUserQuestion` wave and plain-text checkpoint below resolves automatically instead of pausing, per the policy in **Autopilot Mode**. Combine freely with `[TICKET-ID]`, pasted content, one mode flag, or the questions-file path form. `--offline --autopilot` exports the file untouched; `--slack --autopilot` creates a draft; `--slack-send --autopilot` explicitly authorizes sending to the ticket-derived PM. Autopilot never chooses to send on its own. Its resolutions apply the next time an exported file comes back through the injection path. Without `--autopilot`, every interactive point pauses for a human exactly as documented below.
 
 ## Autopilot Mode
 
@@ -49,11 +49,11 @@ This file is a run artifact: never treat it as a Phase 3 "code finding," never e
 |---|---|---|---|
 | Phase 1 | ticket-fetch failure, nothing pasted | `checkpoint` | Hard-stop exception above — stop and require a human. |
 | Phase 1 | pending offline export (resume / overwrite / abort) | `checkpoint` | Hard-stop exception above — stop and require a human. Never auto-select "overwrite it and continue this fresh session." |
-| Phase 5 | mode choice (answer here / export to a file / send to the PM in Slack), no mode flag passed | `askUserQuestion` | Choose `Answer here (Recommended)`. |
+| Phase 5 | mode choice (answer here / draft in Slack / send via Slack / export to a file), no mode flag passed | `askUserQuestion` | Choose `Answer here (Recommended)`; never automatically authorize sending. |
 | Phase 5A | per-question wave batch | `askUserQuestion` | Choose the option labeled `(Recommended)`. |
 | Phase 5A | genuinely open-ended question (no pre-enumerable answer) | `open_text` | Answer with your own best inference from Phase 2–3 findings, prefixed `[autopilot best-guess]`. |
 | Phase 5D | Product Manager confirmation | `checkpoint` | Accept the PM derived from the ticket without confirmation. If none can be derived, fall back to Phase 5B (log `chosen: null` with the reason). |
-| Phase 5C | Slack draft never sent, or no PM reply yet (wait / answer live) | `checkpoint` | Answer live — resolve every question through the rows below. |
+| Phase 5C | Slack draft never sent, delivery unconfirmed, or no PM reply yet (wait / answer live) | `checkpoint` | Answer live — resolve every question through the rows below; never send or resend. |
 | Phase 5C | more than one checkbox checked for the same question | `checkpoint` | Hard-stop exception above — stop and require a human. |
 | Phase 5C | recorded answer's code finding changed in a way that contradicts it | `askUserQuestion` | Re-resolve using the same options the file recorded; choose `(Recommended)`. Log the rationale as the drift that triggered re-resolution, e.g. `"<path> no longer matches the recorded finding; re-resolved via Recommended."` |
 | Phase 5C | blank checkbox-style question | `askUserQuestion` | Reuse the header, gap type, and options exactly as recorded in the file; choose `(Recommended)`. |
@@ -76,11 +76,11 @@ Otherwise, ingest the ticket as usual:
 
 - If a ticket ID is provided, fetch it via the available MCP integration (e.g., Atlassian, Linear, GitHub Issues). If the fetch fails (not found, no access, tool unavailable), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
 - If content is pasted, parse it as-is — work with whatever is there, even if vague or incomplete.
-- Extract: ticket ID, summary, description, acceptance criteria, linked tickets, and any attachments or comments.
+- Extract: ticket ID, canonical ticket URL when available, summary, description, acceptance criteria, linked tickets, and any attachments or comments. Keep a URL returned by the tracker or supplied with the ticket; for Jira, a confirmed site URL and issue key can also resolve the `/browse/<KEY>` link.
 - Record the **source**: either "Fetched from `<tracker>` issue `<ID>`" or "Pasted directly, no tracker ticket" — Phase 5B will embed this so Phase 5C can later check for ticket drift.
 - Derive `<TICKET-or-slug>`: the ticket ID if there is one; otherwise a kebab-case slug of the title; otherwise `spec-YYYY-MM-DD` — the same rule Phase 6 uses for its own output filename. Reuse this one value for the rest of this phase, for Phase 5B's export filename, and for Phase 6's final spec filename, so all three always agree.
 - **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
-- Note whether `--offline` or `--slack` was passed in the arguments — carry this forward as a session flag for Phase 5 to check. If both were passed, say that only one of the two can be used and stop here, before any analysis.
+- Record the selected mode flag (`--offline`, `--slack`, or `--slack-send`) for Phase 5. Reject conflicting mode flags before any analysis. `--slack` always means draft-only; generic or legacy Slack selection does not authorize sending.
 - Acknowledge to the user: "Loaded ticket [ID]: [summary]. Starting analysis..."
 
 ---
@@ -149,9 +149,9 @@ This draft is internal only. Do not output it. Use it to generate the question l
 
 ## Phase 5 — Interactive Q&A
 
-If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of asking anything live. If `--slack` was passed, follow **Phase 5D**. Otherwise, ask the mode choice below, then follow the phase it selects.
+If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of asking anything live. If `--slack` or `--slack-send` was passed, follow **Phase 5D** in draft or send mode respectively. Otherwise, ask the mode choice below, then follow the phase it selects.
 
-**Mode choice (no mode flag passed).** Ask one `AskUserQuestion` (`multiSelect: false`) whose question states the actual question count: *"I've analyzed the ticket and found [N] questions to resolve. How do you want to answer them?"*, with options `Answer here (Recommended)` → Phase 5A, `Export to a file` → Phase 5B, and `Send to the Product Manager in Slack` → Phase 5D. Offer the Slack option only when a Slack MCP integration is available in this session. (autopilot: see Autopilot Mode — always `Answer here`.) When run by implement, skip this choice — see **When run by implement**.
+**Mode choice (no mode flag passed).** Ask one `AskUserQuestion` (`multiSelect: false`) whose question states the actual question count: *"I've analyzed the ticket and found [N] questions to resolve. Where should they go?"*, with options `Answer here (Recommended)` → Phase 5A; `Draft in Slack` — prepare a DM to the ticket's PM for the user to review and send → Phase 5D draft mode; `Send via Slack` — send the questions directly to the confirmed PM → Phase 5D send mode; and `Export to a file` → Phase 5B. Offer each Slack option only if the integration supports that action. Selecting `Send via Slack` is explicit authorization for this ticket's refinement message; do not add a separate send-confirmation question later. Keep Phase 5D's recipient confirmation. (autopilot: see Autopilot Mode — always `Answer here` unless a mode was explicitly selected.) When run by implement, skip this choice — see **When run by implement**.
 
 ### Phase 5A — Live Q&A
 
@@ -272,29 +272,57 @@ Tell the user: "Questions exported to `<path>`. Answer them there, then re-invok
 
 ### Phase 5D — Slack Export
 
-Send the questions to the ticket's Product Manager as a Slack draft, then stop. The questions file is still written, so the resume path is Phase 5C exactly as for an offline export.
+Prepare a draft or send the questions to the ticket's Product Manager according to the user's initial choice, then stop. Both modes write the questions file; Phase 5C reads replies on resume. Sending requires an explicit `Send via Slack` choice or `--slack-send`; draft mode and a legacy generic Slack choice never permit sending.
 
 1. **Build the question list** exactly as Phase 5B steps 1–2 do — every wave, conditional follow-ups labeled with the answer they depend on, and any `## Follow-up Needed After This Round` items. Do not call `AskUserQuestion` for the questions themselves.
 2. **Identify the Product Manager.** Take the ticket's reporter, or its Product Manager field when the ticket has one, and look that person up via the Slack MCP integration. Show the user the matched Slack user (name and handle) and ask them to confirm it or name a different person. If the ticket names no one, or no Slack user matches, ask the user who the Product Manager is. (autopilot: see Autopilot Mode — the derived PM is accepted without confirmation.)
-3. **Create a draft direct message** to the confirmed PM in the user's own Slack. Never send it on the user's behalf — create a draft only. The draft contains:
-   - a first line naming the ticket: `close-the-gaps — <TICKET-or-slug>: <ticket summary>`;
-   - one short sentence saying these are refinement questions, and asking the PM to reply **in this message's thread**, one reply per question, starting with the question number and the option letter (e.g. `Q2: B`), or free text for open-ended questions;
-   - each question numbered as in the questions file, with its options lettered `A`, `B`, `C`…, `(Recommended)` kept on the recommended option, and every conditional question marked `(answer only if Q<n> = <letter>)`. Omit the Skip option and the `Other:` line — the PM can always reply in free text.
-4. **Write the questions file** to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` using the Phase 5B template unchanged, plus a `### Slack` block at the end of `## Session Context`:
+3. **Compose and show the message** with the confirmed recipient, using this welcoming template. Replace the placeholders and render the ticket title as a clickable link using the Slack tool's supported formatting. The initial send choice already authorizes delivery; this preview does not introduce another confirmation gate.
+
+   ```text
+   close-the-gaps — <TICKET-or-slug>: <ticket summary>
+
+   Hey <PM first name> 👋
+
+   We're getting <ticket-url|TICKET-or-slug — ticket summary> ready for development, and your input would help clear up a few details.
+
+   <Numbered questions and answer options>
+
+   Please reply in this thread, one reply per question—for example, Q2: B. Feel free to add context or suggest a different answer! For open-ended questions, start with the question number and write your answer in your own words.
+
+   Thanks for helping us get the details right 🙌
+
+   _Generated by make-it-work, an AI workflow by InsideOut AI. Your answers guide the final requirements._
+   ```
+
+   - Keep the ticket-identifying first line exactly as shown; Phase 5C uses the recorded first line to find the sent message.
+   - Use the real ticket URL from Phase 1. If none can be resolved, use the ticket ID/title as plain text and tell the user the link was unavailable when showing the message; never invent a ticket URL.
+   - Number each question as in the questions file, with its options lettered `A`, `B`, `C`…, `(Recommended)` kept on the recommended option, and every conditional question marked `(answer only if Q<n> = <letter>)`. Omit the Skip option and the `Other:` line — the PM can always reply in free text.
+   - Keep the AI disclosure visible as a short italic footer. Describe the questions as details to clarify rather than "gaps," and avoid promising how little time answering will take.
+4. **Save before delivery.** Write the questions file to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` using the Phase 5B template unchanged, plus a `### Slack` block at the end of `## Session Context`:
 
    ```markdown
    ### Slack
 
    - Product Manager: <display name> (<Slack user ID>)
    - Direct message: <DM channel ID>
-   - Draft created: <ISO 8601 UTC timestamp>
+   - Delivery mode: <draft | send>
+   - Delivery status: prepared
+   - Prepared at: <ISO 8601 UTC timestamp>
    - First line: close-the-gaps — <TICKET-or-slug>: <ticket summary>
+
+   #### Message
+
+   <the exact composed message>
    ```
 
-   Replace the template's "Fill in the checkboxes…" status note with: "Questions drafted to `<PM name>` in Slack. Send the draft, then re-invoke `/make-it-work:close-the-gaps <this file's path>` once they reply." The checkboxes stay in place so the file can also be answered by hand.
-5. Tell the user: "A draft direct message to `<PM name>` is waiting in your Slack. Review and send it, then re-invoke `/make-it-work:close-the-gaps <path>` once they've replied." Stop here — do not proceed to Phase 6 in this session.
+   Keep the file `Awaiting Answers` and its checkboxes available for manual answers. Until delivery resolves, replace the template's "Fill in the checkboxes…" status note with "Questions prepared for `<PM name>` in Slack; delivery pending." If saving fails, stop before any delivery call.
+5. **Deliver once in the selected mode.**
+   - **Draft:** create a draft direct message in the user's own Slack. Never call a send tool. On success, set `Delivery status: draft`, record `Draft created: <UTC timestamp>`, and update the status note to "Questions drafted to `<PM name>` in Slack. Send the draft, then re-invoke `/make-it-work:close-the-gaps <this file's path>` once they reply."
+   - **Send:** persist `Delivery status: pending` immediately before the send call, then send the displayed message to the confirmed PM. On confirmed success, set `Delivery status: sent` and record `Sent at`, the returned `Message timestamp`/ID, and `Message link` when available. Update the status note to "Questions sent to `<PM name>` in Slack. Re-invoke `/make-it-work:close-the-gaps <this file's path>` once they reply." A mode or recipient change from the user before delivery takes precedence over the initial choice.
+   - **Interruption or uncertain result:** a timeout or missing acknowledgement does not prove failure. Keep `Delivery status: unknown` (or the already-saved `pending` if interrupted). Reconcile read-only in the recorded DM using the sender, timestamp, and exact stored message before any retry. If found, record its ID and mark it `sent`. Otherwise report delivery as unconfirmed and stop without sending again or creating a fallback draft. Resume through Phase 5C; a retry requires a new explicit user instruction after reconciliation.
+6. **Report the actual result and stop.** For a draft: "A draft direct message to `<PM name>` is waiting in your Slack. Review and send it, then re-invoke `/make-it-work:close-the-gaps <path>` once they've replied." For a confirmed send: "Sent to `<PM name>` ✅" with the returned message link when available, then "Re-invoke `/make-it-work:close-the-gaps <path>` once they've replied." For unconfirmed delivery, say so plainly and give the saved file path. Do not proceed to Phase 6 in this session. Do not claim a message was sent based only on its selected mode.
 
-**If Slack can't be used** — no Slack MCP integration is available, the confirmed PM can't be found in Slack, or the draft can't be created — say exactly what failed, then follow Phase 5B with the questions already built (no `### Slack` block), and tell the user to forward the exported file to the Product Manager manually.
+**If Slack can't be used** — no integration, no matching PM, or a definite delivery failure — explain exactly what failed. For send mode, if sending is unavailable or definitively failed and draft creation is supported, create a draft instead and record/report that fallback as draft-only. If no draft can be created, follow Phase 5B with the questions already built (no `### Slack` block). Report the offline handoff explicitly: "Slack delivery wasn't completed: <reason>. Forward or attach `<questions-file-path>` to the Product Manager manually. Once they've filled in the answers, re-invoke `/make-it-work:close-the-gaps <questions-file-path>`." These fallbacks apply only when no message could have been sent; never discard pending/unknown delivery metadata.
 
 ### Phase 5C — Offline Injection
 
@@ -302,8 +330,8 @@ Send the questions to the ticket's Product Manager as a Slack draft, then stop. 
 - If they differ, tell the user the live ticket has changed since export, and add a one-line callout directly under the refined ticket's title in Phase 6's output: "> **Note:** the live ticket in `<tracker>` has changed since this refinement was exported on `<date>`; this spec reflects the snapshot taken at export time." The embedded snapshot stays authoritative — do not substitute the live version.
 - If the tracker integration isn't available, or the ticket was pasted (no tracker source), say the comparison was skipped (or wasn't applicable) and proceed using the snapshot.
 
-**0b. Read the Product Manager's Slack replies** (only when `## Session Context` has a `### Slack` block). Via the Slack MCP integration, find the sent message in the recorded direct message whose first line matches the recorded first line, posted at or after `Draft created`, then read its thread replies from the recorded Product Manager.
-- **Draft never sent** (no matching message) or **no reply yet** (no thread replies from the PM): tell the user which of the two it is, then ask whether to **stop and keep waiting** (stop here; the file stays `Awaiting Answers`) or **answer every question live now** (treat every question as blank below). (autopilot: see Autopilot Mode — answer live.)
+**0b. Read the Product Manager's Slack replies** (only when `## Session Context` has a `### Slack` block). This is read-only; resuming never sends or resends the questions. Read the recorded `Message timestamp`/ID directly when present. Otherwise find the sent message in the recorded DM whose first line matches the recorded first line, posted by the user at or after `Prepared at` (legacy files: `Draft created`). For a pending/unknown send, also compare the exact stored message body before adopting a match. A draft may have been edited by the user before sending, so keep first-line matching for draft mode. Record the discovered message ID and mark delivery `sent`, then read its thread replies from the recorded Product Manager. Older Slack blocks without delivery fields retain their original draft-only meaning.
+- **Draft never sent** (draft-only metadata, no matching message), **delivery unconfirmed** (send metadata but no confirmed message), or **no reply yet** (message found, no thread replies from the PM): tell the user which it is, then ask whether to **stop and keep waiting** (stop here; the file stays `Awaiting Answers`) or **answer every question live now** (treat every question as blank below). Do not label an uncertain send as an unsent draft. (autopilot: see Autopilot Mode — answer live without sending.)
 - **Slack unavailable now** (no integration, or the DM can't be read): say so and continue with whatever the file itself holds, so blanks are asked live below.
 - Otherwise, map each reply to its question by its leading `Q<n>`. A reply that clearly selects exactly one recorded option (by letter or by unambiguous wording) or that answers an open-ended question becomes that question's answer — record it as if that box had been checked, or as its `**Your answer:**` text, citing `PM via Slack`. A reply that does not clearly match one option counts as blank: when step 3 below asks it live, show the PM's reply verbatim next to the recorded options. A later reply to the same question supersedes an earlier one. An answer recorded by hand in the file takes precedence over a Slack reply only when the two agree; when they disagree, treat it like conflicting checkboxes (step 1 below).
 
@@ -440,6 +468,8 @@ Finish by printing one line: `Context updated: <each file changed, with a one-li
 
 ## When run by implement
 
+**Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
+
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
 
 **Ticket publication** — return the local spec and handoff; do not replace the tracker description, attach files or post comments here. `implement` owns publication under its saved ticket-write consent after the spec's acceptance checkpoint. Tracker read access and autonomy do not grant write permission.
@@ -448,9 +478,9 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current interview progress and answers; never restart refinement just to change mode.
 
-**Answer mode** — ignore `--offline` and never show Phase 5's mode choice; `implement` already asked at its start. Use Phase 5D when `implement` passes `--slack` (it never does under Autopilot), otherwise Phase 5A. When `implement` passes a pending questions file's path instead of the ticket, this is an injection run: follow Phase 5C. (`implement` stops before calling this skill when an offline questions file is pending that its own run did not create.)
+**Answer mode** — ignore `--offline` and never show Phase 5's mode choice; `implement` already asked at its start. Use Phase 5D draft mode when it passes `--slack`, send mode when it passes `--slack-send`, otherwise Phase 5A. A saved explicit Slack choice remains effective under Autopilot; Autopilot itself never selects sending. When `implement` passes a pending questions file's path instead of the ticket, this is an injection run: follow Phase 5C without any send call. (`implement` stops before calling this skill when an offline questions file is pending that its own run did not create.)
 
-**Questions** — Guided and Autonomous ask every question live exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and never ask live; return normally after a safe resolution or surface its documented hard-stop result to `implement`.
+**Questions** — in answer-here mode, Guided and Autonomous ask every question live exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and never ask live; return normally after a safe resolution or surface its documented hard-stop result to `implement`. Slack modes export the questions and pause instead of answering them.
 
 **Return report** — end the output with these lines, then stop without suggesting next steps:
 
@@ -464,8 +494,9 @@ After a Phase 5D export (no spec yet), end instead with:
 
 ```
 Questions sent: <path of the questions file>
+Slack delivery: <draft | sent | unknown | offline>
 ```
 
-If Phase 5D fell back to Phase 5B because Slack couldn't be used, report the same line — the file is pending either way, and `implement` pauses on it.
+`Questions sent:` is the existing compatibility label for the questions artifact, not proof of a send. Report the actual delivery result in `Slack delivery:` (`unknown` includes an interrupted pending send). If Phase 5D fell back to Phase 5B because Slack couldn't be used, use `offline` — the file is pending either way, and `implement` pauses on it.
 
 **Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `gaps-<N>.json` in `make-it-work/<TICKET>/<TICKET>-handoffs/` using its schema. Use `SPEC_SAVED`, the actual spec path, the counted TBD items, and the paths updated in Phase 7 — or, after a Phase 5D export (including its Phase 5B fallback), `QUESTIONS_SENT` with the questions file's path. Do not write this file for an older run. End the chat report with `Handoff: <path>` so `implement` can validate it before advancing.

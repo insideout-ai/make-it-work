@@ -395,3 +395,7 @@ Not run: payments-api: ../qa-automation/tests/e2e — ci-only
 Unmapped scope (not run): None
 Overall gate result: PASS
 ```
+
+## When run within implement
+
+When `execute` supplies a workflow state path, follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report any explicit workflow choice to the main session before dependent work, preserving its source and scope. Standalone runs retain their existing behavior.

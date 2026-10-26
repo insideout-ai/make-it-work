@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
 import { readDelivery } from './delivery-progress.mjs';
 import { readPublicationPermission } from './ticket-publication.mjs';
+import { parseDecisionCell } from './workflow-decisions.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -203,6 +204,7 @@ function parseAudit(value) {
       from: cells[2],
       to: cells[3],
       outcome: cells[4],
+      ...parseDecisionCell(cells[4]),
     };
   });
 }
@@ -463,7 +465,10 @@ function renderCurrentActivity(state, timeline) {
 function timingDetails(state, invalidTimestampFrom) {
   if (state.audit.length < 2 || state.realRowsFrom > state.audit.length || Number.isFinite(invalidTimestampFrom)) return null;
   const first = state.audit[state.realRowsFrom - 1];
-  const last = state.audit.at(-1);
+  const last = state.fields.status === 'Complete'
+    ? state.audit.findLast((row) => row.to === 'complete' && row.from !== row.to) ?? state.audit.at(-1)
+    : state.audit.at(-1);
+  if (last.number < first.number) return null;
   return { total: formatDuration(last.epoch - first.epoch), first, last };
 }
 

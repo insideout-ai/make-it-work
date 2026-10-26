@@ -202,7 +202,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   if (![fixes, reviews, replans].every(Number.isSafeInteger)) fail('State loop counters are invalid.');
 
   if (h.stage === 'gaps' && h.outcome === 'QUESTIONS_SENT') {
-    return outcome('pause', 'Questions sent to the Product Manager in Slack; waiting for replies.', { pause_reason: 'Slack refinement pending', questions: h.artifacts.questions });
+    return outcome('pause', 'Refinement questions prepared for the Product Manager; check delivery status in the questions file.', { pause_reason: 'Slack refinement pending', questions: h.artifacts.questions });
   }
   if (h.stage === 'gaps') {
     if (h.data.tbd_items > 0) return autopilot

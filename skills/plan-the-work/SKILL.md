@@ -354,6 +354,8 @@ Do not paste the full plan in chat unless the user asks.
 
 ## When run by implement
 
+**Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
+
 **Ticket publication** — return the local plan and handoff; do not upload or post it here. `implement` owns authorized publication of the accepted plan snapshot, including replans/fix amendments. The explicit-local-path ingestion guard remains in force; the caller's separately resolved tracker target does not authorize this stage to access a tracker.
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.

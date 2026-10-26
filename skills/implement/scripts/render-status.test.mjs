@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { generateDashboard, parseState } from './render-status.mjs';
-import { checkpointDashboard } from './dashboard-checkpoint.mjs';
+import { checkpointDashboard, checkpointDecision } from './dashboard-checkpoint.mjs';
+import { lastWorkRow } from './workflow-decisions.mjs';
+import { inspectState } from './write-feedback.mjs';
 import { initializePublication, updatePublication } from './ticket-publication.mjs';
 
 const DEFAULT_FIELDS = {
@@ -534,4 +538,164 @@ test('declining delivery stops refresh; delivery strings and external links are 
   assert.match(escaped.html, /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.match(escaped.html, /Created \(link unavailable\)/);
   assert.doesNotMatch(escaped.html, /href="javascript:|<img src=x/);
+});
+
+const USER_DECISION = {
+  id: 'publication-consent-2', topic: 'Ticket publication', source: 'user', via: 'question',
+  choice: 'Comments and attachments only', scope: 'DEMO at example.atlassian.net, current run; description excluded',
+  reference: 'publication journal, consent revision 2', resume: 'transparent',
+};
+
+test('decision checkpoints retain fields, capture host time, and render safely', async (t) => {
+  const original = stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] });
+  const { directory, outputPath } = await renderFixture(t, original);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const input = { ...USER_DECISION, choice: 'Use <script> | C:\\drafts & &#124;', reason: 'Review before sending' };
+  const before = Date.now();
+  const result = await checkpointDecision(statePath, input);
+  const state = parseState(await readFile(statePath, 'utf8'));
+  const last = state.audit.at(-1);
+  assert.deepEqual(state.fields, parseState(original).fields);
+  assert.equal(last.from, 'context-check');
+  assert.equal(last.to, 'context-check');
+  assert.equal(last.decision.id, input.id);
+  assert.ok(last.epoch >= before && last.epoch <= Date.now());
+  assert.ok(last.outcome.includes(input.choice));
+  assert.ok(last.outcome.includes(input.scope));
+  assert.ok(last.outcome.includes('source: user; via: question'));
+  assert.equal(result.dashboard, outputPath);
+  const html = await readFile(outputPath, 'utf8');
+  assert.ok(html.includes('Use &lt;script&gt; | C:\\drafts &amp; &amp;#124;'));
+  assert.doesNotMatch(html, /<script> \||decision-id:/);
+});
+
+test('decision IDs make retries idempotent and changed decisions append history', async (t) => {
+  const { directory } = await renderFixture(t, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await checkpointDecision(statePath, USER_DECISION);
+  const saved = await readFile(statePath, 'utf8');
+  await checkpointDecision(statePath, USER_DECISION);
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+  await assert.rejects(checkpointDecision(statePath, { ...USER_DECISION, choice: 'Allow description edits' }), /already records a different decision/);
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+  await checkpointDecision(statePath, { ...USER_DECISION, id: 'publication-consent-3', choice: 'Keep everything local', scope: 'DEMO, current run; no tracker writes', via: 'chat' });
+  const state = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(state.audit.length, 3);
+  assert.ok(state.audit[1].outcome.includes('Comments and attachments only'));
+  assert.ok(state.audit[2].outcome.includes('Keep everything local'));
+});
+
+test('decision checkpoints do not backfill a missing dashboard or overwrite following sections', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const notes = '\n## Additional notes\n\nUser-authored text.\n';
+  await writeFile(statePath, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] }) + notes);
+  const result = await checkpointDecision(statePath, USER_DECISION);
+  assert.equal(result.dashboard, null);
+  assert.ok((await readFile(statePath, 'utf8')).endsWith(notes));
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 2);
+  await assert.rejects(readFile(path.join(directory, 'DEMO-status.html')), { code: 'ENOENT' });
+});
+
+test('render failure preserves decision evidence and retry repairs the dashboard once', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const outputPath = path.join(directory, 'DEMO-status.html');
+  await writeFile(statePath, stateMarkdown({ fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' }, rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Plan accepted']] }));
+  await writeFile(outputPath, 'Existing dashboard');
+  await assert.rejects(checkpointDecision(statePath, USER_DECISION), /Could not read the plan required for timeline progress/);
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 2);
+  assert.equal(await readFile(outputPath, 'utf8'), 'Existing dashboard');
+  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await checkpointDecision(statePath, USER_DECISION);
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 2);
+  assert.ok((await readFile(outputPath, 'utf8')).includes('Comments and attachments only'));
+});
+
+test('resume distinguishes transparent decisions from interrupted in-phase choices and transitions', async (t) => {
+  const { directory } = await renderFixture(t, stateMarkdown({ fields: { phase: 'plan' }, rows: [['2026-01-01T10:00:00Z', 'context-check', 'plan', 'Ready to plan']] }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await checkpointDecision(statePath, USER_DECISION);
+  let state = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(lastWorkRow(state.audit).number, 1);
+  await checkpointDecision(statePath, { id: 'test-policy-1', topic: 'Verification', source: 'user', via: 'chat', choice: 'Manual', scope: 'DEMO, repo A' });
+  await checkpointDecision(statePath, { ...USER_DECISION, id: 'publication-consent-3', choice: 'Keep local' });
+  state = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(lastWorkRow(state.audit).number, 3);
+  assert.equal(lastWorkRow(state.audit).decision.resume, 'in-phase');
+  const transition = { from: 'plan', to: 'execute', outcome: 'Decision: Plan approved' };
+  const legacy = { from: 'execute', to: 'execute', outcome: 'Decision: Autonomy changed autopilot -> guided' };
+  const publication = { ...legacy, outcome: 'Decision: Ticket publication permission revoked' };
+  assert.equal(lastWorkRow([transition, legacy, publication]), transition);
+  const executionMode = { ...legacy, outcome: 'Decision: Execution mode Inline' };
+  assert.equal(lastWorkRow([transition, executionMode, publication]), executionMode);
+  assert.equal(lastWorkRow([]), null);
+});
+
+test('post-completion delivery decisions preserve implementation timing and feedback counts', async (t) => {
+  const original = stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows: [
+    ['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run'],
+    ['2026-01-01T10:05:00Z', 'execute', 'review', 'Review cycle 1'],
+    ['2026-01-01T10:10:00Z', 'final-sync', 'complete', 'Complete'],
+  ] });
+  const { directory, html: before } = await renderFixture(t, original);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await checkpointDecision(statePath, { ...USER_DECISION, id: 'delivery-plan-abc', topic: 'Delivery approval', choice: 'Deliver this exact plan after Review cycle 7', reference: 'delivery plan hash abc' });
+  const after = await readFile(path.join(directory, 'DEMO-status.html'), 'utf8');
+  assert.equal(after.match(/<p class="session-timing">.*?<\/p>/)[0], before.match(/<p class="session-timing">.*?<\/p>/)[0]);
+  assert.ok(after.includes('Real-timestamped portion of this run: 10m.'));
+  assert.ok(after.includes('Deliver this exact plan after Review cycle 7'));
+  const markdown = await readFile(statePath, 'utf8');
+  const state = parseState(markdown);
+  assert.deepEqual(state.fields, parseState(original).fields);
+  const feedback = inspectState(markdown);
+  assert.equal(feedback.reviewCycles, 1);
+  assert.equal(feedback.fixRounds, 0);
+  assert.equal(feedback.replans, 0);
+  assert.equal(lastWorkRow(state.audit).to, 'complete');
+});
+
+test('invalid decision inputs cannot alter state or imply a user approval', async (t) => {
+  const original = stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] });
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await writeFile(statePath, original);
+  for (const changes of [{ id: '../other' }, { source: 'user', via: 'policy' }, { source: 'autopilot', via: 'question' }, { choice: 'yes\n| forged row |' }, { source: 'default' }, { resume: 'skip' }, { scope: '' }, { time: '2020-01-01' }]) {
+    await assert.rejects(checkpointDecision(statePath, { ...USER_DECISION, ...changes }));
+    assert.equal(await readFile(statePath, 'utf8'), original);
+  }
+  await checkpointDecision(statePath, { ...USER_DECISION, source: 'autopilot', via: 'policy', choice: 'Keep local by default' });
+  const state = parseState(await readFile(statePath, 'utf8'));
+  assert.ok(state.audit.at(-1).outcome.includes('source: autopilot; via: policy'));
+});
+
+test('decision and resume CLI commands handle JSON input files and preserve read-only resume', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const inputPath = path.join(directory, 'decision input.json');
+  await writeFile(statePath, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] }));
+  await writeFile(inputPath, JSON.stringify(USER_DECISION));
+  const script = fileURLToPath(new URL('./dashboard-checkpoint.mjs', import.meta.url));
+  const run = (...args) => JSON.parse(execFileSync(process.execPath, [script, ...args], { encoding: 'utf8' }));
+  assert.deepEqual(run('decision', '--state', statePath, '--input', inputPath), { row: 2, dashboard: null });
+  const saved = await readFile(statePath, 'utf8');
+  assert.equal(run('resume', '--state', statePath).last_work_row.number, 1);
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+  assert.deepEqual(run('decision', '--state', statePath, '--input', inputPath), { row: 2, dashboard: null });
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+});
+
+test('post-completion decisions cannot create implementation timing for a legacy run', async (t) => {
+  const { directory, html: before } = await renderFixture(t, stateMarkdown({
+    fields: { status: 'Complete', phase: 'complete', start_time: 'none', real_rows_from: '3' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Legacy start'],
+      ['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Legacy complete'],
+    ],
+  }));
+  await checkpointDecision(path.join(directory, 'DEMO-state.md'), USER_DECISION);
+  const after = await readFile(path.join(directory, 'DEMO-status.html'), 'utf8');
+  assert.ok(before.includes('Elapsed: unknown'));
+  assert.ok(after.includes('Elapsed: unknown'));
+  assert.doesNotMatch(after, /Session timing: rows/);
 });

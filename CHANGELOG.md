@@ -4,6 +4,21 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- PM refinement messages in Slack now use a welcoming greeting, link to the Jira or other tracker ticket when its URL is available, explain how to reply in the thread, and include a short AI disclosure crediting make-it-work by InsideOut AI.
+
+### Added
+
+- The initial refinement choice now separates **Answer here**, **Draft in Slack**, and **Send via Slack**; standalone `close-the-gaps` also retains **Export to a file**. `--slack` remains draft-only and new `--slack-send` explicitly authorizes sending to the confirmed PM. Saved delivery metadata supports reply lookup and prevents automatic resends after interruption or an uncertain result; `implement` reports the actual delivery status and pauses for answers.
+- `implement` now requires every explicit user workflow decision in its Audit log and dashboard, including tracker permission scope and revocation, Slack selection, approvals, execution preferences, resume choices and delivery decisions. A shared checkpoint captures the host timestamp, preserves changed-choice history and prevents duplicate events on retry. Automatic defaults remain distinct from user approval.
+
+### Fixed
+
+- Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
+
 ## [4.17.0] - 2026-10-25
 
 ### Added

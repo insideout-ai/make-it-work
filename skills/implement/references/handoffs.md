@@ -26,7 +26,7 @@ Stage-specific `done` fields:
 | Stage | Outcome | Required `data` |
 | --- | --- | --- |
 | gaps | `SPEC_SAVED` | `tbd_items` (integer), `context_updated` (path strings) |
-| gaps | `QUESTIONS_SENT` (Slack export, or its offline-file fallback) | `{}` — the artifact is `questions: make-it-work/<TICKET>/<TICKET>-questions.md` instead of `spec` |
+| gaps | `QUESTIONS_SENT` (Slack draft/send, unconfirmed delivery, or offline-file fallback; the name does not prove a send) | `{}` — the artifact is `questions: make-it-work/<TICKET>/<TICKET>-questions.md` instead of `spec`; its Slack metadata records actual delivery |
 | plan | `PLAN_SAVED` for initial/replan; `FIX_PLAN_READY` for amend | `mode` (`initial`, `replan`, `amend`), `steps_added` (integer for amend, otherwise `null`), `recommend_replan` (reason string or `null`), `context_updated` (path strings) |
 | execute | `PASSED`, `VERIFIED_MANUALLY`, `GUARDRAIL`, `RETRY_LIMIT`, `GATE_FAILED`, `GATE_NO_RESULT`, `EXECUTE_STOPPED` | `discoveries` (strings), `failing_tests` (test names/paths, required and nonempty for `GATE_FAILED`), `gate` (`none`, `full-suite`, `scoped`, `scoped+full`) |
 | review | `CLEAN`, `FIX_REQUIRED`, `REPLAN_REQUIRED`, `HUMAN_DECISION` | `findings` (see below), `context_gaps` (strings) |
@@ -52,6 +52,6 @@ Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route"
 
 The helper checks the ticket, stage, plan version, review cycle, newest handoff number, result fields, and artifact existence before deciding. For Execute and Review, it also confirms the outcome agrees with the saved Markdown report. Never infer a missing outcome from Markdown. A missing or malformed handoff stops the run with the validation error and can be repaired on Resume by writing a new handoff. It must not silently select a different route.
 
-Approval gates, state writes, dashboard updates, regression classification, developer answers, and fix/replan counter changes remain with `implement`. The helper returns a decision; it does not mutate state, edit code, answer a question, or approve an artifact. The existing Transition table is the compatibility path for older runs and the source of the detailed side effects of each returned operation.
+Approval gates, state writes, dashboard updates, regression classification, developer answers, and fix/replan counter changes remain with `implement`. Follow [workflow-decisions.md](workflow-decisions.md) for each explicit workflow choice before dependent work; a decision that changes phase belongs in the ordinary transition row. Inline stage choices are recorded as they resolve, rather than buffered until this handoff. The helper returns a decision; it does not mutate state, edit code, answer a question, or approve an artifact. The existing Transition table is the compatibility path for older runs and the source of the detailed side effects of each returned operation.
 
 Ticket publication also belongs to `implement`, under [ticket-publication.md](ticket-publication.md). A valid handoff supplies artifact/evidence inputs, not permission to write externally. Guided artifact approval still precedes publication. Publication uses a separate journal and does not change this handoff schema, helper routing, loop counters or implementation completion status.
