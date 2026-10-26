@@ -1,0 +1,30 @@
+evals/slice-the-epic/jira-summary-comment-preparation/graders/full-overview-and-diagram.md
+  s_f85927dc21493e::t_59c84ac25fc0da 7-8
+skills/slice-the-epic/SKILL.md
+  s_f85927dc21493e::t_d3f22c0f827602 150
+evals/slice-the-epic/jira-summary-comment-preparation/graders/comment-content.md
+  s_f85927dc21493e::t_59c84ac25fc0da 7-8
+evals/slice-the-epic/jira-summary-comment-preparation/graders/honest-authorized-handoff.md
+  s_f85927dc21493e::t_59c84ac25fc0da 7-9
+evals/slice-the-epic/jira-native-link-plan/graders/authorized-local-only.md
+  s_f85927dc21493e::t_72fd14cfaaef0b 7-9
+skills/slice-the-epic/references/jira-creation.md
+  s_f85927dc21493e::t_59c84ac25fc0da 53
+  s_f85927dc21493e::t_d3f22c0f827602 71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "254a2b826eace298ec9ed8b4bb01e48c40d5a3ca",
+  "prompts": {},
+  "sessions": {
+    "s_f85927dc21493e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17824-a60b-7af2-aa1d-c526b321e824",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
