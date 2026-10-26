@@ -1,0 +1,114 @@
+evals/suites.json
+  s_2480391724cfaa::t_1e4bbce8fad48f 18-19
+skills/implement/scripts/render-status.mjs
+  s_e4dbca34af0d7e::t_a643e52170e9e6 471
+  s_e4dbca34af0d7e::t_8e2c00e95267cd 468-470
+  s_e4dbca34af0d7e::t_827b78ed2adff3 10
+  s_e4dbca34af0d7e::t_821b6cdb5b7bfd 207
+skills/plan-the-work/SKILL.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 357-358
+evals/close-the-gaps/close-the-gaps-slack-send-fallback/fixture.sh
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-5
+evals/close-the-gaps/close-the-gaps-slack-send-resume/prompt.md
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-9
+skills/implement/references/autonomy-changes.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 20
+  s_e4dbca34af0d7e::t_1812469783e118 16
+skills/execute/SKILL.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 363-364
+  s_e4dbca34af0d7e::t_42315ec19c09d8 305-306
+skills/implement/scripts/handoff.mjs
+  s_2480391724cfaa::t_64c31f7c06c815 205
+CHANGELOG.md
+  s_e4dbca34af0d7e::t_1812469783e118 7-8,13-14,16-21
+  s_2480391724cfaa::t_1e4bbce8fad48f 11,15
+  s_2480391724cfaa::t_a6451e718ee3b3 9-10,12
+skills/implement/SKILL.md
+  s_2480391724cfaa::t_64c31f7c06c815 266,306,308,407
+  s_e4dbca34af0d7e::t_93e7b7d85851dc 338,374,382
+  s_e4dbca34af0d7e::t_ebde2c59987127 62,168,276,280,283,538
+evals/close-the-gaps/close-the-gaps-slack-send-fallback/case.yaml
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-5
+skills/implement/references/ticket-publication.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 11,25,100
+skills/implement/references/testing-readiness.md
+  s_e4dbca34af0d7e::t_1812469783e118 3-4
+skills/close-the-gaps/SKILL.md
+  s_2480391724cfaa::t_64c31f7c06c815 481,483,497,500
+  s_2480391724cfaa::t_a6451e718ee3b3 79,280-297,299-300
+  s_2480391724cfaa::t_d724d6f8858cd2 3,11,18,26,28,52,56,83,152,154
+  s_2480391724cfaa::t_7c4908977b0f5d 333
+  s_e4dbca34af0d7e::t_ebde2c59987127 471-472
+  s_2480391724cfaa::t_8aad44c562a919 275,279,298,301,308-310,312-315,318-323,334
+  s_2480391724cfaa::t_ce24c34462c268 325
+skills/implement/references/handoffs.md
+  s_2480391724cfaa::t_64c31f7c06c815 29
+  s_e4dbca34af0d7e::t_1812469783e118 55
+README.md
+  s_2480391724cfaa::t_1e4bbce8fad48f 96,202,342
+  s_e4dbca34af0d7e::t_ebde2c59987127 163-164
+evals/close-the-gaps/close-the-gaps-slack-send-resume/case.yaml
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-5
+skills/implement/scripts/dashboard-checkpoint.mjs
+  s_e4dbca34af0d7e::t_827b78ed2adff3 4,9,55-99,106-110,116-126
+skills/implement/scripts/write-feedback.mjs
+  s_e4dbca34af0d7e::t_827b78ed2adff3 8,81
+  s_e4dbca34af0d7e::t_42315ec19c09d8 96-98
+evals/close-the-gaps/README.md
+  s_2480391724cfaa::t_f0867fa4faa00b 3,10,13-21,27-29
+  s_2480391724cfaa::t_264555b3fae10c 9
+skills/implement/scripts/handoff.test.mjs
+  s_2480391724cfaa::t_64c31f7c06c815 173,186,189
+skills/deliver/SKILL.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 13-14
+skills/run-regression/SKILL.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 398-401
+skills/implement/scripts/workflow-decisions.mjs
+  s_e4dbca34af0d7e::t_821b6cdb5b7bfd 1-56
+evals/close-the-gaps/close-the-gaps-slack-send-resume/fixture.sh
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-32
+skills/define-test-strategy/SKILL.md
+  s_e4dbca34af0d7e::t_ebde2c59987127 229-230
+skills/implement/references/workflow-decisions.md
+  s_e4dbca34af0d7e::t_b79fbc75e9e3c8 44
+  s_e4dbca34af0d7e::t_64f9d23a2ab650 34
+  s_2480391724cfaa::t_64c31f7c06c815 5
+  s_e4dbca34af0d7e::t_8e2c00e95267cd 1-4,6-33,35-43,45-56
+evals/close-the-gaps/close-the-gaps-slack-send-fallback/graders/send-unavailable.md
+  s_2480391724cfaa::t_1ec45ea3ccd277 3
+  s_2480391724cfaa::t_264555b3fae10c 7,9,14
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-2,4-6,8,10-13
+skills/implement/scripts/render-status.test.mjs
+  s_e4dbca34af0d7e::t_1cca1d1e2f2b36 542-669,701
+  s_e4dbca34af0d7e::t_a643e52170e9e6 2,8,670-700
+  s_e4dbca34af0d7e::t_2ee7ba61618426 11-13
+evals/close-the-gaps/close-the-gaps-slack-send-fallback/prompt.md
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-18
+evals/close-the-gaps/close-the-gaps-slack-send-resume/graders/resume-without-resending.md
+  s_2480391724cfaa::t_1e4bbce8fad48f 1-2,4-15
+  s_2480391724cfaa::t_1ec45ea3ccd277 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "226da95fe60e80d6c0bb2df20dfa1d10615f6446",
+  "prompts": {},
+  "sessions": {
+    "s_2480391724cfaa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17791-931e-74b0-be80-74d6d2c52e6a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_e4dbca34af0d7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1778f-8130-7c43-83b3-c5cfd373d189",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
