@@ -9,6 +9,7 @@ import { decideNext, validateArtifacts, validateHandoff } from './handoff.mjs';
 
 const base = { version: 1, ticket: 'DEMO-1', plan_version: 1, status: 'done' };
 const gaps = (tbd = 0) => ({ ...base, stage: 'gaps', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO-1/DEMO-1-spec.md' }, data: { tbd_items: tbd, context_updated: [] } });
+const questionsSent = () => ({ ...base, stage: 'gaps', outcome: 'QUESTIONS_SENT', artifacts: { questions: 'make-it-work/DEMO-1/DEMO-1-questions.md' }, data: {} });
 const plan = (mode = 'initial', steps = null, recommend = null) => ({ ...base, stage: 'plan', outcome: mode === 'amend' ? 'FIX_PLAN_READY' : 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO-1/DEMO-1-plan.md' }, data: { mode, steps_added: steps, recommend_replan: recommend, context_updated: [] } });
 const execute = (outcome, failing = []) => ({ ...base, stage: 'execute', outcome, artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md' }, data: { discoveries: [], failing_tests: failing, gate: 'full-suite' } });
 const finding = (id, route = 'fix', region = 'src/x.js:run', introduced = null) => ({ id, route, region, introduced_by_fix_of: introduced });
@@ -167,4 +168,27 @@ test('manual artifact validation binds the report, selected plan policy, observa
   await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan);
   await writeFile(path.join(dir, 'DEMO-1-verification-v1.json'), JSON.stringify({ ...evidence, gate: { mode: 'full-suite', result: 'pass', note: 'Reported suite' } }));
   await assert.rejects(validateArtifacts(manual, root), /accepted manual gate/);
+});
+
+test('validates and pauses on questions sent to the Product Manager in Slack', async (t) => {
+  assert.equal(validateHandoff(questionsSent()).outcome, 'QUESTIONS_SENT');
+  assert.throws(() => validateHandoff({ ...questionsSent(), data: { tbd_items: 0 } }), /unknown field/);
+  assert.throws(() => validateHandoff({ ...questionsSent(), artifacts: { spec: 'make-it-work/DEMO-1/DEMO-1-spec.md' } }), /unknown field|questions/);
+  assert.throws(() => validateHandoff({ ...gaps(), artifacts: { questions: 'make-it-work/DEMO-1/DEMO-1-questions.md' } }), /unknown field|spec/);
+  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-handoff-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'make-it-work', 'DEMO-1'), { recursive: true });
+  await assert.rejects(validateArtifacts(questionsSent(), root), /ENOENT/);
+  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-questions.md'), '# Offline Questions');
+  assert.equal((await validateArtifacts(questionsSent(), root)).outcome, 'QUESTIONS_SENT');
+  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
+  await assert.rejects(validateArtifacts({ ...questionsSent(), artifacts: { questions: 'make-it-work/DEMO-1/DEMO-1-spec.md' } }, root), /does not match/);
+  for (const autonomy of ['guided', 'autonomous']) {
+    assert.deepEqual(decideNext(state('close-the-gaps', autonomy), questionsSent()), {
+      action: 'pause',
+      reason: 'Questions sent to the Product Manager in Slack; waiting for replies.',
+      pause_reason: 'Slack refinement pending',
+      questions: 'make-it-work/DEMO-1/DEMO-1-questions.md',
+    });
+  }
 });

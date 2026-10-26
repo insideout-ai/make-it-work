@@ -1,19 +1,20 @@
 # `close-the-gaps` autopilot smoke test
 
-Four cases exercising `skills/close-the-gaps/SKILL.md`'s `--autopilot` flag:
+Five cases exercising `skills/close-the-gaps/SKILL.md`'s `--autopilot` flag:
 
 - **`close-the-gaps-live-autopilot`** — a pasted ticket, `--autopilot`, no prior state. Exercises the normal Phase 1 → 6 flow end to end: skills loading (none available in this tiny fixture), code exploration, gap analysis, every gap auto-resolved via `(Recommended)` without ever calling `AskUserQuestion`, and the final refined ticket with a Gherkin acceptance-criteria block and a Decision Log where every autopilot-resolved row carries the `_(autopilot)_` marker. Its fixture (`src/orders/model.js` + `status.js`) deliberately has no "admin" role, only "owner" — the ticket's "the admin should mark the order as refunded" is a real gap the skill must surface and resolve one way or another; the grader checking for this accepts any reasonable gap-type label (`Code conflict`, `Missing actor/trigger`, etc.) across three real runs the model used different-but-equally-defensible labels for the same underlying gap.
 - **`close-the-gaps-stale-questions-file`** — the fixture pre-seeds a stale `make-it-work/TASK-99/TASK-99-questions.md` (`**Status:** Awaiting Answers`) before the run starts, then pastes a *new* ticket for the same `TASK-99` ID. This exercises the skill's Phase 1 hard-stop: autopilot must detect the pending export and stop, never silently picking "resume," "overwrite," or "abort" on its own, and never deleting the stale file.
 - **`close-the-gaps-offline-injection`** — invokes the questions-file path form (`close-the-gaps make-it-work/TASK-50/TASK-50-questions.md --autopilot`) against a hand-authored, partially-answered Phase 5B export: one question already answered by a human (a non-Recommended choice, which must be preserved verbatim), one left blank (which autopilot must resolve via its Recommended option and mark `_(autopilot)_`), and one conditional question whose gate isn't met (which must be excluded from the final Decision Log entirely).
+- **`close-the-gaps-slack-fallback`** — a pasted ticket with `--slack --autopilot` in a session with no Slack integration. Exercises Phase 5D's fallback: the skill must say Slack couldn't be used, write the ordinary Phase 5B questions file (still `Awaiting Answers`, no `### Slack` block), tell the user to forward it to the Product Manager, and stop without a spec. Slack itself can't be reached from a headless eval, so the draft and thread-reply paths are checked manually.
 - **`close-the-gaps-negative-control`** — the same ticket as `live-autopilot`, no `--autopilot`. Confirms the skill still announces its questions and does not fabricate a finished refined ticket when nothing is there to answer them live.
 
-## Running all four at once
+## Running all five at once
 
 ```
 bash evals/close-the-gaps/run-all.sh
 ```
 
-All four run fully through plain `claude plugin eval` — no `--dangerously-skip-permissions` needed for any of them. `run-all.sh` runs every case even if an earlier one scores imperfectly (so one weak case doesn't hide the rest), then exits non-zero overall if any case did. See "Why one check still needs a manual run" below for the one thing this suite does *not* verify automatically.
+All five run fully through plain `claude plugin eval` — no `--dangerously-skip-permissions` needed for any of them. `run-all.sh` runs every case even if an earlier one scores imperfectly (so one weak case doesn't hide the rest), then exits non-zero overall if any case did. See "Why one check still needs a manual run" below for the one thing this suite does *not* verify automatically.
 
 ## `.claude/`-exposure: why this skill is mostly plain-eval-testable
 
@@ -26,7 +27,7 @@ claude plugin eval . --case close-the-gaps-live-autopilot --scaffold --allow-too
   --ablation none --runs 1 --trust-plugin --no-publish
 ```
 
-(swap the case name for the other three). `AskUserQuestion` is listed in `allowed_tools` for every case even though autopilot shouldn't call it — same reasoning as `go-deep`: if the model deviates and calls it anyway, we want that visible as a grader failure, not an unrelated tool-denial error.
+(swap the case name for any of the other four). `AskUserQuestion` is listed in `allowed_tools` for every case even though autopilot shouldn't call it — same reasoning as `go-deep`: if the model deviates and calls it anyway, we want that visible as a grader failure, not an unrelated tool-denial error.
 
 ## Why one check still needs a manual run
 

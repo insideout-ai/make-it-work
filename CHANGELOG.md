@@ -4,6 +4,15 @@ All notable changes to `make-it-work` are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.17.0] - 2026-10-25
+
+### Added
+
+- `close-the-gaps --slack` sends gap-analysis questions to the ticket's Product Manager: it confirms the PM derived from the ticket, creates a **draft** direct message in your own Slack (never sent for you), saves the usual questions file, and stops. Re-invoking with that file reads the PM's thread replies, asks you live about unclear or missing ones, and reports a draft that was never sent or an unanswered thread with a choice to wait or answer live. When Slack can't be used, it falls back to the offline file. `--slack` and `--offline` are mutually exclusive.
+- Without a mode flag, `close-the-gaps` asks once the questions are known whether to answer here, export to a file, or send to the PM in Slack. Autopilot always answers here; `--slack --autopilot` accepts the ticket-derived PM without confirmation.
+- `implement` offers Slack refinement at its start in Guided and Autonomous runs when Slack is available. A new `QUESTIONS_SENT` gaps handoff pauses the run as `Slack refinement pending`; Resume re-enters `close-the-gaps` with the questions file. Autopilot never uses Slack.
+- New `close-the-gaps-slack-fallback` evaluation covers the no-Slack fallback.
+
 ## [4.16.1] - 2026-10-24
 
 ### Changed
