@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: slice-the-epic-jira-summary-comment-preparation
+tags: [slice-the-epic, publication]
+fixture:
+  scaffold_script: fixture.sh

@@ -1,0 +1,1 @@
+{"phase":"Phase 1","site":"mode-choice","kind":"askUserQuestion","question":"Which mode?","options":["Product (Recommended)","Technical debt"],"multiSelect":false,"chosen":"Product (Recommended)","rationale":"AUDIT_ONLY_RUN_DETAILS: the supplied problem concerns customer checkout."}

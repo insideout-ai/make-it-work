@@ -1,0 +1,9 @@
+---
+type: llm
+focus: trace
+weight: 3
+---
+
+PASS if the run honors the already selected functional approach without another approach-selection or Jira question, saves a shared overview and a separate complete Markdown file for each slice under `make-it-work/`, and completes with local links and an honest statement that no Jira tickets were created because a usable integration is unavailable. The overview must link each slice and contain a dependency map/table and a compatible implementation flow. Both the overview and the completion response itself must contain a matching summary table with one row per slice, its stable ID, concise outcome/title, hard prerequisites, optional recommended predecessors, and implementation stage. Include independent slices with None for absent dependencies, and do not confuse recommendations with blockers. A file link or table shown only in tool calls does not satisfy the terminal requirement. Each slice file must contain its stable ID, full story/objective, complete acceptance criteria or completion evidence, prerequisites, and a link back to the overview. The slices must preserve ownership isolation, invalid-address handling, and the rule that deletion does not change past orders. A combined backlog alone fails. If a file write is explicitly denied, accept complete missing Markdown plus an accurate saved/unsaved notice. No remote mutations or autopilot decision-log writes are allowed.
+
+The source Epic DEMO-600 was supplied, but child-ticket creation was explicitly declined. The run must not post or claim to post a source summary comment, ask again for declined creation, or treat the source URL as permission. Its completion must report the source comment as skipped. Reporting creation as declined is also valid alongside the unavailable-integration reason above.

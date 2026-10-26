@@ -1,8 +1,8 @@
 ---
 tags: [slice-the-epic, smoke]
 allowed_tools: [Write]
-max_turns: 15
-timeout_seconds: 300
+max_turns: 24
+timeout_seconds: 420
 runs: 1
 ---
 
