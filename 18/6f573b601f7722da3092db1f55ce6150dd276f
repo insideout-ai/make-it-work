@@ -1,0 +1,139 @@
+evals/slice-the-epic/interactive-files-only/case.yaml
+  s_f85927dc21493e::t_b01131a2d0bb92 1-3
+evals/slice-the-epic/jira-native-link-plan/case.yaml
+  s_f85927dc21493e::t_d4cd5acdfdb91a 1-3
+evals/shape-the-epic/shape-the-epic-jira-full-description/graders/entire-description.md
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1-9
+evals/slice-the-epic/jira-summary-comment-preparation/graders/comment-content.md
+  s_f85927dc21493e::t_d3cdf783f342fc 8-9
+  s_f85927dc21493e::t_e845f0939d6aa5 1-7
+evals/slice-the-epic/jira-native-link-plan/prompt.md
+  s_f85927dc21493e::t_d4cd5acdfdb91a 1-26
+skills/slice-the-epic/references/jira-creation.md
+  s_f85927dc21493e::t_b16b859bb76739 51
+  s_f85927dc21493e::t_306fb4ef297ec4 45,52,55-56,58-59
+  s_f85927dc21493e::t_9873f0d898d2c6 1-10,12,14,17-26,28-33,40,63-65,70-71
+  s_f85927dc21493e::t_30e849d1892bfa 46-48,50,57,60,62,66-67
+  s_f85927dc21493e::t_111725187a0895 11,13,15-16,27,34-39,41-44,49,53-54,61,68-69
+evals/slice-the-epic/jira-summary-comment-preparation/graders/honest-authorized-handoff.md
+  s_f85927dc21493e::t_d4cd5acdfdb91a 7
+  s_f85927dc21493e::t_e845f0939d6aa5 1-6
+evals/slice-the-epic/README.md
+  s_f85927dc21493e::t_e845f0939d6aa5 9,21
+  s_f85927dc21493e::t_92a31093179c41 29
+  s_f85927dc21493e::t_2529da0acc575d 31
+  s_f85927dc21493e::t_b01131a2d0bb92 5-6,20,35
+  s_f85927dc21493e::t_d4cd5acdfdb91a 3,10-11,15,22,43
+  s_f85927dc21493e::t_987c58f7bbc063 30
+evals/slice-the-epic/jira-native-link-plan/graders/directed-hard-links.md
+  s_f85927dc21493e::t_d4cd5acdfdb91a 1-9
+skills/implement/SKILL.md
+  s_a4fda3078306bd::t_a7941fb745a987 89,205,223,271-274,309
+evals/implement/README.md
+  s_a4fda3078306bd::t_7b5b679f82c092 71-79
+evals/slice-the-epic/well-specified-epic-autopilot/graders/dependency-map-and-flow.md
+  s_f85927dc21493e::t_2529da0acc575d 7
+evals/shape-the-epic/README.md
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 13,21,32,37,60-61
+evals/shape-the-epic/shape-the-epic-jira-full-description/fixture/make-it-work/epic-saved-addresses-20261026-1000.md
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1-56
+evals/slice-the-epic/interactive-files-only/graders/complete-local-files.md
+  s_f85927dc21493e::t_2529da0acc575d 7
+  s_f85927dc21493e::t_b01131a2d0bb92 1-6
+  s_f85927dc21493e::t_e845f0939d6aa5 8-9
+evals/shape-the-epic/run-all.sh
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 34-35
+evals/slice-the-epic/jira-summary-comment-preparation/graders/full-overview-and-diagram.md
+  s_f85927dc21493e::t_d3cdf783f342fc 1-6,8
+  s_f85927dc21493e::t_d4cd5acdfdb91a 7,9
+evals/slice-the-epic/jira-summary-comment-preparation/fixture.sh
+  s_f85927dc21493e::t_d3cdf783f342fc 1-5
+evals/slice-the-epic/ambiguous-epic-autopilot/prompt.md
+  s_f85927dc21493e::t_b01131a2d0bb92 4-5
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/best-guess-and-backlog.md
+  s_f85927dc21493e::t_2529da0acc575d 15
+  s_f85927dc21493e::t_b01131a2d0bb92 11,14
+evals/slice-the-epic/well-specified-epic-autopilot/graders/autopilot-local-only.md
+  s_f85927dc21493e::t_b01131a2d0bb92 1-7
+README.md
+  s_f85927dc21493e::t_9873f0d898d2c6 83
+  s_a4fda3078306bd::t_7b5b679f82c092 100
+  s_f85927dc21493e::t_2529da0acc575d 82
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 74-75
+  s_f85927dc21493e::t_a0bb1a0af3da8f 328
+  s_f85927dc21493e::t_d4cd5acdfdb91a 84,327
+evals/suites.json
+  s_f85927dc21493e::t_b01131a2d0bb92 71
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 66
+  s_f85927dc21493e::t_d4cd5acdfdb91a 73
+  s_f85927dc21493e::t_e845f0939d6aa5 72
+evals/shape-the-epic/shape-the-epic-jira-full-description/fixture.sh
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1-5
+evals/slice-the-epic/jira-summary-comment-preparation/prompt.md
+  s_f85927dc21493e::t_d3cdf783f342fc 3,13,15
+  s_f85927dc21493e::t_d4cd5acdfdb91a 11
+  s_f85927dc21493e::t_e845f0939d6aa5 1-2,4-10,12,14
+evals/close-the-gaps/README.md
+  s_a4fda3078306bd::t_e04ab0a821a913 31-32
+evals/slice-the-epic/well-specified-epic-autopilot/graders/wrap-up-present.md
+  s_f85927dc21493e::t_2529da0acc575d 9
+skills/implement/references/refinement-destination.md
+  s_a4fda3078306bd::t_a7941fb745a987 1-47
+evals/shape-the-epic/shape-the-epic-jira-full-description/fixture/make-it-work/shape-the-epic-autopilot-log.jsonl
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1
+skills/shape-the-epic/SKILL.md
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 146-155
+skills/slice-the-epic/SKILL.md
+  s_f85927dc21493e::t_2529da0acc575d 95,111,113,115-123,138
+  s_f85927dc21493e::t_9873f0d898d2c6 9,17-18,26,39,105,124-133,142-147
+  s_f85927dc21493e::t_111725187a0895 24,148-152,156
+evals/slice-the-epic/well-specified-epic-autopilot/prompt.md
+  s_f85927dc21493e::t_b01131a2d0bb92 4-5
+evals/slice-the-epic/jira-native-link-plan/graders/authorized-local-only.md
+  s_f85927dc21493e::t_d4cd5acdfdb91a 1-7
+skills/close-the-gaps/SKILL.md
+  s_a4fda3078306bd::t_9ba5549f42a104 276,324-325,327
+  s_a4fda3078306bd::t_e04ab0a821a913 80,279-282
+  s_a4fda3078306bd::t_a7941fb745a987 485
+evals/shape-the-epic/shape-the-epic-jira-full-description/case.yaml
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1-5
+evals/slice-the-epic/interactive-files-only/prompt.md
+  s_f85927dc21493e::t_b01131a2d0bb92 1-12,15-17,20-21
+  s_f85927dc21493e::t_e845f0939d6aa5 13-14,18-19
+evals/slice-the-epic/well-specified-epic-autopilot/graders/backlog-with-gherkin.md
+  s_f85927dc21493e::t_b01131a2d0bb92 9
+evals/slice-the-epic/jira-summary-comment-preparation/fixture/make-it-work/slices-addresses-20261026-1000.md
+  s_f85927dc21493e::t_d3cdf783f342fc 1-60,69-75
+  s_f85927dc21493e::t_d4cd5acdfdb91a 61-68
+evals/shape-the-epic/shape-the-epic-jira-full-description/graders/honest-local-preparation.md
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1-7
+evals/slice-the-epic/jira-summary-comment-preparation/case.yaml
+  s_f85927dc21493e::t_e845f0939d6aa5 1-3
+  s_f85927dc21493e::t_d3cdf783f342fc 4-5
+evals/shape-the-epic/shape-the-epic-jira-full-description/prompt.md
+  s_f85927dc21493e::t_ee1b8f0cc6df5b 1-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "186f573b601f7722da3092db1f55ce6150dd276f",
+  "prompts": {},
+  "sessions": {
+    "s_a4fda3078306bd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17833-2158-7d22-b574-2272c7a03449",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_f85927dc21493e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17824-a60b-7af2-aa1d-c526b321e824",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
