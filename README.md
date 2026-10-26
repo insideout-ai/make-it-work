@@ -93,7 +93,7 @@ Unlike the fixed `close-the-gaps → plan-the-work → execute → review-the-pr
 
 ### `/make-it-work:close-the-gaps`
 
-`close-the-gaps` acts as a Product Analyst before development begins. It loads the project skills relevant to the ticket, digs into the affected code, and surfaces every gap - unclear language, missing edge cases, conflicting requirements, unstated assumptions - then walks you through them one question at a time. It can also run in an **offline mode** — export every question to a file to answer outside the session, then re-invoke pointing at that file to inject the answers and resume — for when the person who can answer isn't available live.
+`close-the-gaps` acts as a Product Analyst before development begins. It loads the project skills relevant to the ticket, digs into the affected code, and surfaces every gap - unclear language, missing edge cases, conflicting requirements, unstated assumptions - then walks you through them one question at a time. It can also run in an **offline mode** — export every question to a file to answer outside the session, then re-invoke pointing at that file to inject the answers and resume — for when the person who can answer isn't available live. A **Slack mode** (`--slack`) does the same for the ticket's Product Manager: it drafts every question as a direct message in your Slack for you to review and send, then reads the PM's thread replies when you re-invoke with the questions file. Without a flag, it asks which of the three you want once the questions are ready. `implement` offers Slack mode at its start in Guided and Autonomous runs and pauses until the PM has replied.
 
 The output is a Gherkin-ready refined spec. Unknown unknowns become explicit. Requirements are solid before a single line of code is written.
 
@@ -196,6 +196,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps TICKET-123      # Refine a ticket by ID
 /make-it-work:close-the-gaps                 # Paste ticket content directly
 /make-it-work:close-the-gaps TICKET-123 --offline            # Export gap-analysis questions to a file instead of asking live
+/make-it-work:close-the-gaps TICKET-123 --slack              # Draft the questions to the ticket's Product Manager in Slack
 /make-it-work:close-the-gaps make-it-work/TICKET-123/TICKET-123-questions.md  # Resume and inject answers from that file
 /make-it-work:plan-the-work TICKET-123       # Turn a refined spec into an implementation plan
 /make-it-work:plan-the-work path/to/spec.md  # Plan from an explicit local spec
@@ -335,6 +336,7 @@ Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, hand
 - **A skill is not available:** run `/reload-plugins` or restart Claude Code, then confirm the plugin is enabled with `/plugin`.
 - **Claude Code loads an older version:** update both the marketplace and the plugin using the commands above, then reload plugins.
 - **A ticket ID cannot be found:** configure an issue-tracker integration or invoke `close-the-gaps` without an ID and paste the ticket content.
+- **The PM hasn't answered in Slack yet:** re-invoking with the questions file reports whether the draft was never sent or there's no reply yet, then lets you keep waiting or answer the questions live.
 - **An offline questions file is stuck pending:** re-invoke `close-the-gaps` with that file's path to inject the answers and resume, or invoke the ticket again and choose to overwrite it and start fresh.
 - **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123/TICKET-123-spec.md`.
 - **`review-the-pr` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.

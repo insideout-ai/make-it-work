@@ -9,7 +9,7 @@ import { runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 
 const STAGES = {
-  gaps: ['SPEC_SAVED'],
+  gaps: ['SPEC_SAVED', 'QUESTIONS_SENT'],
   plan: ['PLAN_SAVED', 'FIX_PLAN_READY'],
   execute: ['PASSED', 'VERIFIED_MANUALLY', 'GUARDRAIL', 'RETRY_LIMIT', 'GATE_FAILED', 'GATE_NO_RESULT', 'EXECUTE_STOPPED'],
   review: ['CLEAN', 'FIX_REQUIRED', 'REPLAN_REQUIRED', 'HUMAN_DECISION'],
@@ -72,11 +72,14 @@ export function validateHandoff(input) {
   if (!STAGES[h.stage].includes(h.outcome)) fail(`Invalid ${h.stage} outcome: ${h.outcome}.`);
   const artifacts = object(h.artifacts, 'handoff.artifacts');
   const data = object(h.data, 'handoff.data');
-  const expectedArtifact = h.stage === 'gaps' ? 'spec' : h.stage === 'plan' ? 'plan' : 'report';
+  const questionsSent = h.stage === 'gaps' && h.outcome === 'QUESTIONS_SENT';
+  const expectedArtifact = questionsSent ? 'questions' : h.stage === 'gaps' ? 'spec' : h.stage === 'plan' ? 'plan' : 'report';
   keys(artifacts, h.stage === 'execute' ? [expectedArtifact, 'verification'] : [expectedArtifact], 'handoff.artifacts');
   string(artifacts[expectedArtifact], `handoff.artifacts.${expectedArtifact}`);
   if (artifacts.verification !== undefined) string(artifacts.verification, 'handoff.artifacts.verification');
-  if (h.stage === 'gaps') {
+  if (questionsSent) {
+    keys(data, [], 'handoff.data');
+  } else if (h.stage === 'gaps') {
     keys(data, ['tbd_items', 'context_updated'], 'handoff.data');
     integer(data.tbd_items, 'handoff.data.tbd_items');
     stringList(data.context_updated, 'handoff.data.context_updated');
@@ -125,7 +128,7 @@ export async function validateArtifacts(handoff, root) {
   const rootPath = await realpath(root);
   const directory = runDirectory(rootPath, h.ticket);
   const expectedNames = {
-    gaps: [`${h.ticket}-spec.md`],
+    gaps: [h.outcome === 'QUESTIONS_SENT' ? `${h.ticket}-questions.md` : `${h.ticket}-spec.md`],
     plan: [`${h.ticket}-plan.md`, `${h.ticket}-plan-v${h.plan_version}.md`],
     execute: [`${h.ticket}-execute.md`],
     review: [`${h.ticket}-review.md`],
@@ -198,6 +201,9 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   const replans = Number(fields.replans_used);
   if (![fixes, reviews, replans].every(Number.isSafeInteger)) fail('State loop counters are invalid.');
 
+  if (h.stage === 'gaps' && h.outcome === 'QUESTIONS_SENT') {
+    return outcome('pause', 'Questions sent to the Product Manager in Slack; waiting for replies.', { pause_reason: 'Slack refinement pending', questions: h.artifacts.questions });
+  }
   if (h.stage === 'gaps') {
     if (h.data.tbd_items > 0) return autopilot
       ? outcome('stop', 'Refined spec still has unresolved TBD items.')

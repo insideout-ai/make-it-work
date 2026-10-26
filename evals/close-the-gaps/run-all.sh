@@ -24,6 +24,7 @@ for case_name in \
   close-the-gaps-live-autopilot \
   close-the-gaps-stale-questions-file \
   close-the-gaps-offline-injection \
+  close-the-gaps-slack-fallback \
   close-the-gaps-negative-control
 do
   echo "=== $case_name (claude plugin eval) ==="

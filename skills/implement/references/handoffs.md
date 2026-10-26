@@ -26,6 +26,7 @@ Stage-specific `done` fields:
 | Stage | Outcome | Required `data` |
 | --- | --- | --- |
 | gaps | `SPEC_SAVED` | `tbd_items` (integer), `context_updated` (path strings) |
+| gaps | `QUESTIONS_SENT` (Slack export, or its offline-file fallback) | `{}` — the artifact is `questions: make-it-work/<TICKET>/<TICKET>-questions.md` instead of `spec` |
 | plan | `PLAN_SAVED` for initial/replan; `FIX_PLAN_READY` for amend | `mode` (`initial`, `replan`, `amend`), `steps_added` (integer for amend, otherwise `null`), `recommend_replan` (reason string or `null`), `context_updated` (path strings) |
 | execute | `PASSED`, `VERIFIED_MANUALLY`, `GUARDRAIL`, `RETRY_LIMIT`, `GATE_FAILED`, `GATE_NO_RESULT`, `EXECUTE_STOPPED` | `discoveries` (strings), `failing_tests` (test names/paths, required and nonempty for `GATE_FAILED`), `gate` (`none`, `full-suite`, `scoped`, `scoped+full`) |
 | review | `CLEAN`, `FIX_REQUIRED`, `REPLAN_REQUIRED`, `HUMAN_DECISION` | `findings` (see below), `context_gaps` (strings) |
@@ -45,6 +46,7 @@ Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route"
    - `phase`: checkpoint the returned `phase`; apply `operation` (`replan`, `manual-walkthrough`, `resume-after-edit`, or `resume-with-baseline-decision`) using the existing phase instructions.
    - `ask`: present its question and `choices` in the main session. Record the developer's answer, then call `next` again with `--choice <choice>` and use the returned action. For a `needs_input` handoff, answer the stage's questions and run that stage again; it emits a new handoff.
    - `triage`: run the existing Gate triage, asking about uncertain tests. Then call `next` again with `--related-failures <count>`. If this yields `ask`, apply the preceding bullet and pass the same count again with `--choice`.
+   - `pause`: checkpoint `status: Paused` with the returned `pause_reason`, keep the current phase, and show its reason. `QUESTIONS_SENT` is the only outcome that pauses; Resume reads the questions path from this handoff.
    - `stop`: checkpoint the stop and show its reason.
 5. For a Review run after the first review of the *same plan version*, pass `--previous-review <previous-review-handoff>`. This lets the helper detect repeat findings in the same region. Do not use a previous plan version's review.
 
