@@ -13,7 +13,7 @@ const text = (value) => typeof value === 'string' && value.trim().length > 0;
 const relative = (value) => text(value) && !path.posix.isAbsolute(value) && !value.includes('\\') &&
   !/^[A-Za-z]:/.test(value) && !value.split('/').some((part) => part === '..' || part === '');
 const within = (file, directory) => directory === '.' || file === directory || file.startsWith(`${directory}/`);
-const metadata = (file) => file === MAP_PATH || within(file, 'make-it-work') || within(file, '.git');
+const metadata = (file) => file === MAP_PATH || file === 'TEST-MAP.md' || within(file, 'make-it-work') || within(file, '.git');
 const unique = (values) => [...new Set(values)].sort();
 const key = (test, token) => JSON.stringify([test, token]);
 
@@ -50,6 +50,8 @@ export function validateMap(map) {
     if (!object(test) || !text(test.id) || tests.has(test.id) || !location || !relative(test.file) || !location.paths.some((directory) => within(test.file, directory)) || !text(test.identity) ||
         !['separate', 'embedded', 'documentation'].includes(test.placement) || !['test', 'suite', 'file'].includes(test.granularity) ||
         (test.selector !== null && !text(test.selector))) fail('Invalid or duplicate test.');
+    // Schema-v1 maps remain readable; newly assessed entries record a strategy layer.
+    if (test.layer !== undefined && (!text(test.layer) || test.layer !== test.layer.trim() || /[\r\n]/.test(test.layer))) fail('Invalid test layer.');
     const identity = JSON.stringify([location.repo, test.file, test.placement, test.identity]);
     if (identities.has(identity)) fail('Duplicate runner test identity.');
     identities.add(identity);

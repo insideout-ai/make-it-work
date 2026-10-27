@@ -170,7 +170,7 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
 
 Read [the strategy consistency contract](../../docs/deterministic-artifacts.md#test-strategy-consistency). Its required `test-strategy.mjs check` validates the candidate and actual selected-layer projection before reporting it ready. In Phase 6, use its `pointer` command instead of manually editing/deduplicating the CLAUDE.md table; this narrow script write is an explicit exception to the Write/Edit-only rule. All semantic refresh/conflict/blocked-write rules remain active.
 
-Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. After final strategy/pointer changes, complete semantic reassessment and record final snapshots per the contract, so metadata edits do not immediately stale the map.
+Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Record each discovered/reassessed test's strategy layer, or `unknown` when unclear. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. After final strategy/pointer changes, complete semantic reassessment and record final snapshots per the contract, so metadata edits do not immediately stale the map. Then generate root `TEST-MAP.md` with `node "<base>/../../scripts/test-map-report.mjs" --root "<target-repo>" --write`, per the contract's Developer report section. Record the resolved refresh invocation in the strategy. Do not generate it on the coverage-report-only path; disclose a failed report write separately from successfully saved metadata.
 
 - **Fresh** → write the file from the template, frontmatter included.
 - **Strategy discussion** → include `## Strategy Decisions` per Phase 3a when conducted, or preserve an existing section when no new discussion is needed. Record explicit changes agreed in this discussion with their rationale; they need no second approval under the refresh-conflict rule. Defaults cannot supersede explicit user/project choices.
@@ -222,7 +222,7 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 - full-suite commands written as `none`;
 - when tooling is absent, the recommended initial setup, why it fits this repo, and that it is proposed rather than configured;
 - when strategy was discussed, the selected layers and approach, first coverage priorities, deferred work, and any assumptions or defaults still needing validation; report proposed additions to existing suites as proposed too;
-- map changes, reused/reassessed entries, unresolved relationships and user decisions, uncommitted for review; source/tests were not modified;
+- map changes, the generated `TEST-MAP.md` path and refresh command (or failed write), reused/reassessed entries, unresolved relationships and user decisions, uncommitted for review; source/tests were not modified;
 - the `CLAUDE.md` change: the `/test-strategy` row added, updated, or already present — or no `## Skills Reference` found;
 - under autopilot, the log path, whether the log was written, and every auto-resolved site, per Autopilot Mode.
 
