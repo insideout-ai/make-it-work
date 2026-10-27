@@ -17,6 +17,10 @@
   .step-duration { color: #999; font-size: 0.8em; font-style: italic; white-space: nowrap; }
   .timestamp-warning { color: #b54708; font-size: 0.8em; font-style: italic; white-space: nowrap; }
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
+  .pending-input { margin: 0.75rem 0; overflow-wrap: anywhere; }
+  .pending-qualifier { display: block; font-size: 0.8rem; margin-top: 0.2rem; color: #65582d; }
+  .pending-question { white-space: pre-wrap; }
+  .pending-since, .pending-reference { font-size: 0.8rem; }
   .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .session-timing { font-size: 0.75rem; color: #888; }
   .delivery-details { margin: 1.25rem 0; }
@@ -60,6 +64,7 @@
   .current-activity { width: 100%; margin: 0.75rem 0 1rem; padding: 0.65rem 0.85rem; background: #f0f7fe; border-left: 3px solid #2196f3; border-radius: 0.2rem; overflow-wrap: anywhere; }
   .current-activity strong { font-size: 0.8rem; color: #096bae; }
   .phase-activity { margin: 0.3rem 0 0; font-size: 0.85rem; line-height: 1.45; }
+  .activity-updated { margin: 0.4rem 0 0; font-size: 0.75rem; color: #596773; }
   .phase-duration { margin-top: 0.1rem; font-size: 0.65rem; color: #999; text-align: center; font-style: italic; }
   .phase-status { margin-top: 0.15rem; font-size: 0.68rem; font-weight: 600; text-align: center; }
   .phase-status.status-in-progress { color: #2196f3; }
@@ -156,6 +161,19 @@
         cell.appendChild(warning);
       }
     });
+    function updateWaitingTimes() {
+      document.querySelectorAll('[data-wait-since]').forEach(function (cell) {
+        var since = Date.parse(cell.getAttribute('data-wait-since'));
+        var delta = Date.now() - since;
+        if (!isFinite(delta) || delta < 0) { cell.textContent = 'elapsed unavailable on this device'; return; }
+        var seconds = Math.floor(delta / 1000);
+        var minutes = Math.floor(seconds / 60);
+        var hours = Math.floor(minutes / 60);
+        cell.textContent = (hours ? hours + 'h ' + minutes % 60 + 'm' : minutes ? minutes + 'm ' + seconds % 60 + 's' : seconds + 's') + ' waiting';
+      });
+    }
+    updateWaitingTimes();
+    if (document.querySelector('[data-wait-since]')) setInterval(updateWaitingTimes, 1000);
   })();
 </script>
 </body>

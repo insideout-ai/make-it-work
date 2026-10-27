@@ -215,7 +215,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
   return { current: true, approved, sha256: hash, package: target.md };
 }
 
-async function approve(root, statePath, expectedHash) {
+export async function approve(root, statePath, expectedHash) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath);
   if (state.fields.phase !== 'final-approval') fail('Approve is only allowed at final approval.');
   const result = await checkFinalPackage(root, statePath);

@@ -57,6 +57,8 @@ At the end of an autopilot run that reaches a terminal report (Phase 3's report,
 
 ## Phase 0 — Locate the plan and resolve execution context
 
+**Controller-enabled runs:** When the supplied implement state has `controller_version: 1`, read [references/step-control.md](references/step-control.md). Its required helper replaces manual retry counting, next-step/batch selection, shared evidence writes and direct Progress completion below. The orchestrator completes steps from returned actual evidence; subagents do not write shared Progress/ledger files in this path. Other step semantics, guardrail reasoning and user choices remain unchanged.
+
 1. **Repo/workspace detection** — reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **single repo** or a **coordinated multi-repo workspace**, since it determines which repo's `Affected Code` table (and, later, where each repo's test commands come from — its `.claude/skills/test-strategy/SKILL.md` when present) this run applies to. The distinction is not "does the parent hold other repos" — a bare folder of unrelated clones is not a workspace. It is "are these repos documented as one system": a **workspace-root orientation file** (a top-level `CLAUDE.md` / service map describing the sibling repos and how they call each other) is the signal that turns a folder of repos into a workspace.
    - **`.git` exists here.** This repo is a project root. Then:
      - If the **parent** holds a workspace-root orientation file that describes this repo as one service among siblings → you are inside one service of a multi-repo workspace; the **workspace root** is the parent (`..`).
@@ -89,6 +91,7 @@ At the end of an autopilot run that reaches a terminal report (Phase 3's report,
    - **If a mode is already recorded** (the line already reads `Subagent-Driven` or `Inline` rather than "Not yet chosen" — set by a prior `plan-the-work` or `execute` run), proceed under that mode without asking again (autopilot: nothing to resolve or log here when Mode is Subagent-Driven, or when Mode is Inline with its pause-mode line already present — see the one exception immediately below, and Autopilot Mode). When the recorded mode is Inline, also check for an existing `**Inline pause mode:**` line immediately after it. If present, proceed under that stored choice without asking again — same treatment as Mode itself. **If absent** (a plan recorded `Mode: Inline` before this line existed): this is a newly-added decision point being resolved for the first time on an existing plan, not a fresh Inline choice — ask the same follow-up question as above before proceeding to point 4 (autopilot: see Autopilot Mode — this specific site, named `inline-pause-mode-backfill`, auto-resolves to the Recommended default rather than stopping, since it is reachable under `--autopilot` whenever a plan already recorded `Inline` from an earlier **interactive** run).
 
 4. **Resolve Progress / resume point** — parse the plan file's `## Execution Status → Progress` line ("Step N of M complete").
+   - First run `node "<base>/../../scripts/validate-plan.mjs" steps --plan "<plan path>"`; invalid numbering, total or dependencies stop execution before any dispatch. This checks legacy plans without imposing newly added sections.
    - If `N` equals `M`, every implementation/test step is already done — skip directly to Phase 4 (the completion gate); only the gate remains, or needs re-running.
    - Otherwise, resume from step `N+1` once Phase 2 begins working through the plan's steps.
 
@@ -313,6 +316,8 @@ This call requires `skills/run-regression/SKILL.md` to not carry a `disable-mode
 
 ### Reading the result
 
+For a regression invocation using [the structured runner](../../docs/regression-runner.md), consume its `overall` and actual per-run evidence directly instead of parsing chat labels: `pass` → the existing success path, `fail` → gate failure, `null` → no result. Preserve policy requirements for every automated product repo and manual evidence. The prose parsing below remains compatibility behavior only.
+
 `run-regression`'s Phase 5 report takes one of these shapes, and which one applies is a property of the report itself — not of how many repos this plan's own `## Affected Code` table lists (a single-repo plan can still resolve, inside `run-regression`, to a detected multi-repo workspace, since `run-regression` does its own independent repo/workspace detection whenever it's given `full`):
 
 - **No leading `Workspace:` line** — a single-repo bare `full` run. Read that one block's own `Gate result:` field.
@@ -359,6 +364,8 @@ This report is one of exactly three distinct, mutually exclusive ways a run of `
 The explicit-policy manual terminal report is a fourth successful terminal path, with outcome `VERIFIED_MANUALLY`. Print only the applicable terminal report, never an automated PASS for an all-manual plan.
 
 ## When run by implement
+
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md) alongside the per-step Progress contract below. In this inline session, save the exact narrated activity before each implementation/verification chunk, step/batch dispatch, and nested regression invocation. Retain the delegated-work description while waiting; per-step subagents must not write workflow activity or edit HTML. A legacy single-step subagent's required Progress helper may still regenerate the dashboard under the existing per-step contract. Pass the resolved `implement` directory and activity contract to nested inline regression. Standalone runs and older runs without a dashboard do not create one.
 
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
 

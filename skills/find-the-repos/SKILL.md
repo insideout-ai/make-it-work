@@ -45,6 +45,8 @@ When Bash is permitted, invoke each shared log-writer command in its own call. D
 
 ## Phase 1 — Workspace Detection and Combined Intake
 
+Read [the repository collector contract](../../docs/deterministic-artifacts.md#repository-assessment-collection). Once the boundary is resolved, its required inventory/collection helper owns filesystem enumeration, Git-file support, owner provenance, queue deduplication and bounded code searches. Use its returned evidence in the existing single report; semantic grouping/relevance and unavailable-source rules below remain active.
+
 Inventory only immediate local repos; recognize both .git directories and .git files. If launched inside a repo, inspect its immediate parent for grouping evidence that includes this repo, or use an explicitly supplied workspace path. Do not traverse arbitrary ancestors or treat unrelated home/temp-directory clones as a workspace merely because siblings exist.
 
 Accept grouping evidence available locally or explicitly supplied by the user, recording its source:

@@ -51,12 +51,24 @@ function safePath(root, relative) {
   return path.join(root, relative);
 }
 
+function pathPattern(relative) {
+  return new RegExp(`^${relative.split('*').map((part) =>
+    part.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')).join('[^/]*')}$`);
+}
+
 async function readEvidence(focus, context) {
   if (focus === 'trace') return context.trace;
   if (focus === 'last_message') return context.lastMessage;
   if (focus?.source === 'file') {
+    safePath(context.fixtureDir, focus.path);
+    let relative = focus.path;
+    if (relative.includes('*')) {
+      const matches = (await pathsBelow(context.fixtureDir)).filter((file) => pathPattern(relative).test(file));
+      if (matches.length !== 1) throw new Error(`Expected exactly one evidence file for ${relative}; found ${matches.length}`);
+      [relative] = matches;
+    }
     const root = await realpath(context.fixtureDir);
-    const file = await realpath(safePath(context.fixtureDir, focus.path));
+    const file = await realpath(safePath(context.fixtureDir, relative));
     if (!file.startsWith(root + path.sep)) throw new Error(`Grader path leaves fixture: ${focus.path}`);
     return readFile(file, 'utf8');
   }
@@ -99,8 +111,7 @@ export async function gradeHeadlessLocal(grader, context) {
       const relative = grader.path;
       safePath(context.fixtureDir, relative);
       const files = await pathsBelow(context.fixtureDir);
-      const expression = new RegExp(`^${relative.split('*').map((part) =>
-        part.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')).join('[^/]*')}$`);
+      const expression = pathPattern(relative);
       const exists = files.some((file) => expression.test(file));
       const expected = grader.exists !== false;
       return { name: grader.name, passed: exists === expected,

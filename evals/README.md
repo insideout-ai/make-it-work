@@ -19,6 +19,10 @@ bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before
 ```
 
 `smoke` exercises one representative case for each of the 12 public skills.
+Script-backed skills declare the minimal Read/Bash helper capabilities in
+`suites.json`'s `requiredToolsBySkill`, merged with each case's tools for both
+headless and plugin-eval runs. This keeps the eval environment able to exercise
+the required helpers; the runner still never bypasses tool permissions.
 The `implement` case covers completion feedback rather than the complete
 orchestrator; the latter is checked in the manual end-to-end release rehearsal.
 `full` discovers and runs every `case.yaml` in this tree (45 at the time this
@@ -47,6 +51,11 @@ only when every grader passes; an unavailable or invalid judge result is a
 failure, never an unreviewed success. Model responses and semantic verdicts
 can still vary between runs; automatic grading is not deterministic model
 behavior.
+File evidence targets may use `*` within a path component for timestamped
+artifacts, for example `{ source: file, path: "make-it-work/epic-*.md" }`.
+They must resolve to exactly one regular file inside the fixture; zero or
+multiple matches fail. Evidence is read from the artifact rather than a
+tool-specific success message. Traversal and symlink escapes are rejected.
 The runner never uses `--dangerously-skip-permissions`. A permission refusal is
 an incomplete case, not a pass; the case README documents its manual fallback.
 The optional Git hook invokes `smoke` once for every push command against a

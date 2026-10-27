@@ -12,12 +12,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Deterministic skill helpers now own new implement-run transitions/counters/snapshots, evidence-bound execution progress, regression command results, structural plan checks, fixed autonomy choices, offline question conditions, documentation inventory, strategy consistency/pointers, slice graphs/artifacts, epic rendering, bounded repo evidence collection, and review report/handoff projection. Legacy runs retain their existing opt-in boundaries. Focused disposable-fixture tests and CI cover the helpers; semantic product/design/coverage judgments and external-write authorization remain with their existing owners.
+
 - The initial refinement choice now separates **Answer here**, **Draft in Slack**, and **Send via Slack**; standalone `close-the-gaps` also retains **Export to a file**. `--slack` remains draft-only and new `--slack-send` explicitly authorizes sending to the confirmed PM. Saved delivery metadata supports reply lookup and prevents automatic resends after interruption or an uncertain result; `implement` reports the actual delivery status and pauses for answers.
 - `implement` now requires every explicit user workflow decision in its Audit log and dashboard, including tracker permission scope and revocation, Slack selection, approvals, execution preferences, resume choices and delivery decisions. A shared checkpoint captures the host timestamp, preserves changed-choice history and prevents duplicate events on retry. Automatic defaults remain distinct from user approval.
 
 ### Fixed
 
+- Questions and approvals now checkpoint pending-input records before asking, with blocking waits marked Paused and optional decisions allowed to coexist. The HTML shows the actual question, choices, recipient, artifact/hash and elapsed wait, and keeps refreshing through resolution. Answers, resume, mode changes and stale exact approvals use the saved request identity; post-completion delivery retains Complete.
+
 - Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
+
+## [4.18.1] - 2026-10-27
+
+### Fixed
+
+- Active workflow phases always show an activity box, with an explicit fallback when details have not been reported. Activity checkpoints save a Last updated timestamp, clear it at phase/pause/stop boundaries, and carry reporting through inline stages, testing readiness and subagent waits without letting delegated agents overwrite the dashboard.
 
 ## [4.17.0] - 2026-10-25
 

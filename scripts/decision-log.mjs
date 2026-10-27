@@ -57,6 +57,12 @@ export function normalizeEntry(value, skill) {
     } else if (value.chosen !== null && !nonempty(value.chosen)) {
       fail('chosen must be a label, label array, or null.');
     }
+    const labels = value.options.map((option) => typeof option === 'string' ? option : option.label);
+    if (new Set(labels).size !== labels.length) fail('Option labels must be unique.');
+    const selected = value.chosen === null ? [] : Array.isArray(value.chosen) ? value.chosen : [value.chosen];
+    if (new Set(selected).size !== selected.length || selected.some((label) => !labels.includes(label))) {
+      fail('chosen must contain unique labels from the offered options.');
+    }
   } else {
     if (['question', 'options', 'multiSelect'].some((key) => Object.hasOwn(value, key))) {
       fail(`${value.kind} cannot include question, options, or multiSelect.`);

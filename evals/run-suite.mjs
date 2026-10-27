@@ -7,7 +7,7 @@ import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
 import { gradeHeadlessCase } from './grade-headless.mjs';
-import { pluginEvalArgs } from './run-suite-args.mjs';
+import { caseTools, pluginEvalArgs } from './run-suite-args.mjs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
@@ -102,7 +102,7 @@ async function runCase(item, remaining) {
   const caseReportDir = path.join(reportDir, item.name);
   await mkdir(caseReportDir, { recursive: true });
   const prompt = promptConfig(await readFile(path.join(item.dir, 'prompt.md'), 'utf8'));
-  const tools = [...new Set([...prompt.tools, ...(suites.extraTools[item.name] ?? [])])];
+  const tools = caseTools({ skill: item.skill, name: item.name, tools: prompt.tools, suites });
   const headless = suites.headless.includes(item.name);
   let result;
   let caseCost = 0;

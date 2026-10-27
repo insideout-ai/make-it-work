@@ -77,6 +77,19 @@
     "implement-publication-guided-approval",
     "implement-publication-resume"
   ],
+  "requiredToolsBySkill": {
+    "implement": ["Read", "Bash"],
+    "execute": ["Read", "Bash"],
+    "run-regression": ["Read", "Bash"],
+    "plan-the-work": ["Read", "Bash"],
+    "close-the-gaps": ["Read", "Bash"],
+    "go-deep": ["Read", "Bash"],
+    "define-test-strategy": ["Read", "Bash"],
+    "slice-the-epic": ["Read", "Bash"],
+    "shape-the-epic": ["Read", "Bash"],
+    "find-the-repos": ["Read", "Bash"],
+    "review-the-pr": ["Read", "Bash"]
+  },
   "extraTools": {
     "execute-resume-inline": ["Bash"],
     "execute-stop-at-gate": ["Bash"],

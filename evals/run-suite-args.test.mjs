@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pluginEvalArgs } from './run-suite-args.mjs';
+import { caseTools, pluginEvalArgs } from './run-suite-args.mjs';
+
+test('scripted skills get only their declared helper tools while unrelated cases retain their own tools', () => {
+  const suites = { requiredToolsBySkill: { 'slice-the-epic': ['Read', 'Bash'] }, extraTools: { example: ['Write'] } };
+  assert.deepEqual(caseTools({ skill: 'slice-the-epic', name: 'example', tools: ['Write'], suites }), ['Write', 'Read', 'Bash']);
+  assert.deepEqual(caseTools({ skill: 'other', name: 'other-case', tools: [], suites }), []);
+});
 
 test('omits --allow-tools when a case has no allowed tools', () => {
   const args = pluginEvalArgs({ name: 'negative-control', caseReportDir: '/tmp/report',
