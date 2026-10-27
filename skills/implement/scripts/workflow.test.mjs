@@ -47,6 +47,7 @@ test('checkpoint clears activity, increments review once, and preserves unrelate
   await writeFile(path.join(dir, 'DEMO-spec.md'), '# Spec');
   await writeFile(path.join(dir, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
   await checkpointDashboard(statePath, { activity: 'Writing the refined spec.' });
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   const next = await apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json' });
   assert.equal(next.fields.phase, 'plan');
   assert.equal(next.fields.current_activity, 'none');
@@ -55,7 +56,7 @@ test('checkpoint clears activity, increments review once, and preserves unrelate
   assert.match(html, /Plan is in progress\. No activity details have been reported yet\./);
   assert.doesNotMatch(html, /Writing the refined spec|Last updated:/);
   assert.equal(next.fields.spec_hash, digest('# Spec'));
-  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 3);
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 4);
 });
 test('status boundaries clear activity and its timestamp; same-phase mode changes preserve both', () => {
   const state = fields('plan', { current_activity: 'Drafting the plan.', current_activity_updated_at: '2026-01-01T10:00:00Z' });
@@ -122,6 +123,7 @@ test('plan content hash excludes only Execution Status', () => {
 test('mode changes preserve artifact fingerprints even when a spec changed; normal resume catches that drift', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   const spec = path.join(root, 'make-it-work/DEMO/DEMO-spec.md'); await writeFile(spec, 'Original spec');
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const previous = parseState(await readFile(statePath, 'utf8')).fields;
   await writeFile(spec, 'Changed spec');
@@ -132,6 +134,7 @@ test('mode changes preserve artifact fingerprints even when a spec changed; norm
 test('the controller retains the existing handoff boundary requiring testing policy before execution', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const directory = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(directory);
   await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy');
@@ -139,4 +142,44 @@ test('the controller retains the existing handoff boundary requiring testing pol
   const before = await readFile(statePath, 'utf8');
   await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Verification Policy/);
   assert.equal(await readFile(statePath, 'utf8'), before);
+});
+const lightweight = (phase, overrides = {}) => fields(phase, { adaptive_version: '1', risk: 'low', mode: 'lightweight', mode_source: 'assessed', risk_rationale: 'One small helper.', escalations: '0', implementation_report: 'none', review: 'not-started', fix_plan_round_steps: 'none', fix_plan_dispatch: 'none', ...overrides });
+const gapsDone = { version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } };
+test('adaptive runs record the assessed mode and route spec acceptance by it', () => {
+  const unassessed = lightweight('close-the-gaps', { risk: 'none', mode: 'none', mode_source: 'none', risk_rationale: 'none' });
+  assert.throws(() => transition(unassessed, { event: 'handoff' }, gapsDone), /Risk assessment required/);
+  assert.throws(() => transition(unassessed, { event: 'mode', risk: 'low', mode: 'tdd', source: 'assessed', rationale: 'x' }), /follow its risk/);
+  const assessed = transition(unassessed, { event: 'mode', risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'One small helper.' });
+  assert.equal(assessed.fields.phase, 'close-the-gaps');
+  assert.match(assessed.reason, /^Implementation mode: lightweight \(low risk, assessed\)/);
+  assert.equal(transition({ fields: assessed.fields }, { event: 'handoff' }, gapsDone).fields.phase, 'lightweight');
+  const guided = transition(lightweight('spec-approval', { autonomy: 'guided' }), { event: 'approve', source: 'user', via: 'question' });
+  assert.equal(guided.fields.phase, 'lightweight');
+  const forced = transition(lightweight('spec-approval', { autonomy: 'guided' }), { event: 'mode', risk: 'low', mode: 'tdd', source: 'user', via: 'question', rationale: 'User chose TDD at spec approval.' });
+  assert.equal(forced.fields.mode, 'tdd'); assert.equal(forced.fields.mode_source, 'user');
+  assert.equal(transition({ fields: forced.fields }, { event: 'approve', source: 'user', via: 'question' }).fields.phase, 'plan');
+  assert.throws(() => transition(lightweight('review', { mode: 'tdd', risk: 'medium' }), { event: 'mode', risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'x' }), /Only the user/);
+  assert.throws(() => transition(lightweight('review'), { event: 'mode', risk: 'high', mode: 'tdd', source: 'assessed', rationale: 'x' }), /Use escalate/);
+});
+test('Lightweight implementation, direct fixes and escalation are controller-owned', () => {
+  const implemented = { version: 1, ticket: 'DEMO', plan_version: 1, stage: 'implement', status: 'done', outcome: 'IMPLEMENTED', artifacts: { report: 'make-it-work/DEMO/DEMO-lightweight.md' }, data: { changed_paths: ['src/a.js'], checks: [], discoveries: [], risk_signal: null } };
+  const toReview = transition(lightweight('lightweight', { review_cycle: '0' }), { event: 'handoff' }, implemented);
+  assert.equal(toReview.fields.phase, 'review'); assert.equal(toReview.fields.review_cycle, '1');
+  assert.equal(toReview.fields.implementation_report, 'make-it-work/DEMO/DEMO-lightweight.md');
+  const fix = review('FIX_REQUIRED', [{ id: '#1', route: 'fix', region: 'src/a.js:run', introduced_by_fix_of: null }]);
+  const fixing = transition(lightweight('review', { implementation_report: 'make-it-work/DEMO/DEMO-lightweight.md' }), { event: 'handoff' }, fix);
+  assert.equal(fixing.fields.phase, 'lightweight'); assert.equal(fixing.fields.fix_cycle, '1');
+  const repeat = { ...review('FIX_REQUIRED', [{ id: '#2', route: 'fix', region: 'src/a.js:run', introduced_by_fix_of: '#1' }]), review_cycle: 2 };
+  const escalated = transition(lightweight('review', { review_cycle: '2', fix_cycle: '1', replans_used: '0' }), { event: 'handoff', risk: 'medium' }, repeat);
+  assert.equal(escalated.fields.phase, 'plan'); assert.equal(escalated.fields.mode, 'tdd'); assert.equal(escalated.fields.escalations, '1');
+  assert.equal(escalated.fields.review_cycle, '0'); assert.equal(escalated.fields.fix_cycle, '0'); assert.equal(escalated.fields.risk, 'medium');
+  assert.equal(escalated.fields.replans_used, '0'); assert.equal(escalated.fields.plan_version, '1');
+  assert.match(escalated.reason, /^Escalation: /);
+  assert.throws(() => transition({ fields: escalated.fields }, { event: 'escalate', reason: 'again' }), /no prior escalation/);
+  const manual = transition(lightweight('final-approval'), { event: 'escalate', reason: 'The requested change alters the approach.', source: 'user', via: 'chat' });
+  assert.equal(manual.fields.phase, 'plan'); assert.equal(manual.reason, 'Escalation: The requested change alters the approach.');
+  const change = transition(lightweight('final-approval'), { event: 'lightweight-fix', reason: 'Rename the helper.', source: 'user', via: 'question' });
+  assert.equal(change.fields.phase, 'lightweight'); assert.equal(change.fields.fix_cycle, '1');
+  assert.throws(() => transition(lightweight('final-approval', { fix_cycle: '3' }), { event: 'lightweight-fix', reason: 'x', source: 'user', via: 'chat' }), /limit/);
+  assert.throws(() => transition(lightweight('final-approval', { mode: 'tdd' }), { event: 'lightweight-fix', reason: 'x', source: 'user', via: 'chat' }), /Lightweight change request/);
 });

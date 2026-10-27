@@ -11,6 +11,7 @@ import { testingPolicy } from './testing-policy.mjs';
 const STAGES = {
   gaps: ['SPEC_SAVED', 'QUESTIONS_SENT'],
   plan: ['PLAN_SAVED', 'FIX_PLAN_READY'],
+  implement: ['IMPLEMENTED'],
   execute: ['PASSED', 'VERIFIED_MANUALLY', 'GUARDRAIL', 'RETRY_LIMIT', 'GATE_FAILED', 'GATE_NO_RESULT', 'EXECUTE_STOPPED'],
   review: ['CLEAN', 'FIX_REQUIRED', 'REPLAN_REQUIRED', 'HUMAN_DECISION'],
 };
@@ -47,7 +48,7 @@ export function validateHandoff(input) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(h.ticket ?? '')) fail('handoff.ticket is unsafe.');
   if (!Object.hasOwn(STAGES, h.stage)) fail(`Unknown handoff stage: ${h.stage}.`);
   integer(h.plan_version, 'handoff.plan_version');
-  if (h.stage !== 'gaps' && h.plan_version < 1) fail('Plan, Execute, and Review require a positive plan_version.');
+  if (h.stage !== 'gaps' && h.plan_version < 1) fail('Plan, Implement, Execute, and Review require a positive plan_version.');
   if (h.stage === 'review') integer(h.review_cycle, 'handoff.review_cycle');
   else if (h.review_cycle !== undefined) fail('Only Review uses review_cycle.');
   if (!['done', 'blocked', 'needs_input'].includes(h.status)) fail(`Unknown handoff status: ${h.status}.`);
@@ -94,6 +95,12 @@ export function validateHandoff(input) {
     if (data.recommend_replan !== null) string(data.recommend_replan, 'handoff.data.recommend_replan');
     if (data.mode !== 'amend' && data.recommend_replan !== null) fail('Only amend mode can recommend replanning.');
     stringList(data.context_updated, 'handoff.data.context_updated');
+  } else if (h.stage === 'implement') {
+    keys(data, ['changed_paths', 'checks', 'discoveries', 'risk_signal'], 'handoff.data');
+    stringList(data.changed_paths, 'handoff.data.changed_paths');
+    stringList(data.checks, 'handoff.data.checks');
+    stringList(data.discoveries, 'handoff.data.discoveries');
+    if (data.risk_signal !== null) string(data.risk_signal, 'handoff.data.risk_signal');
   } else if (h.stage === 'execute') {
     keys(data, ['discoveries', 'failing_tests', 'gate'], 'handoff.data');
     stringList(data.discoveries, 'handoff.data.discoveries');
@@ -130,6 +137,7 @@ export async function validateArtifacts(handoff, root) {
   const expectedNames = {
     gaps: [h.outcome === 'QUESTIONS_SENT' ? `${h.ticket}-questions.md` : `${h.ticket}-spec.md`],
     plan: [`${h.ticket}-plan.md`, `${h.ticket}-plan-v${h.plan_version}.md`],
+    implement: [`${h.ticket}-lightweight.md`],
     execute: [`${h.ticket}-execute.md`],
     review: [`${h.ticket}-review.md`],
   };
@@ -172,16 +180,31 @@ export async function validateArtifacts(handoff, root) {
 function outcome(action, reason, extra = {}) { return { action, reason, ...extra }; }
 function ask(reason, routes) { return outcome('ask', reason, { choices: Object.keys(routes), routes }); }
 
-function decideCore(state, handoff, { relatedFailures = null, previousReview = null } = {}) {
+function adaptiveMode(fields) {
+  if (fields.adaptive_version === undefined) return null;
+  if (fields.adaptive_version !== '1' && fields.adaptive_version !== 1) fail(`Unsupported adaptive_version: ${fields.adaptive_version}`);
+  if (!['none', 'lightweight', 'tdd'].includes(fields.mode)) fail(`Unsupported mode: ${fields.mode}`);
+  return fields.mode;
+}
+function canEscalate(fields) { return adaptiveMode(fields) === 'lightweight' && Number(fields.escalations) === 0; }
+function escalation(reason) { return outcome('phase', reason, { phase: 'plan', operation: 'escalate' }); }
+
+function decideCore(state, handoff, { relatedFailures = null, previousReview = null, escalate } = {}) {
   const fields = state.fields ?? state;
   const h = validateHandoff(handoff);
   if (h.ticket !== fields.ticket) fail('Handoff ticket does not match state.');
   if (h.plan_version !== Number(fields.plan_version)) fail('Handoff plan_version does not match state.');
   if (h.stage === 'review' && h.review_cycle !== Number(fields.review_cycle)) fail('Handoff review_cycle does not match state.');
-  const expectedStage = fields.phase === 'close-the-gaps' ? 'gaps' : fields.phase === 'fix-plan' ? 'plan' : fields.phase;
+  const expectedStage = fields.phase === 'close-the-gaps' ? 'gaps' : fields.phase === 'fix-plan' ? 'plan' : fields.phase === 'lightweight' ? 'implement' : fields.phase;
   if (h.stage !== expectedStage) fail(`Handoff stage ${h.stage} does not match state phase ${fields.phase}.`);
   if (h.stage === 'plan' && h.status === 'done' && ((fields.phase === 'fix-plan') !== (h.data.mode === 'amend'))) fail('Plan mode does not match state phase.');
   if (!['guided', 'autonomous', 'autopilot'].includes(fields.autonomy)) fail('Choose autonomy before routing a handoff.');
+  const mode = adaptiveMode(fields);
+  if (escalate !== undefined) {
+    string(escalate, 'escalate reason');
+    if (!canEscalate(fields)) fail('Escalation requires adaptive_version: 1, mode: lightweight and escalations: 0.');
+    return escalation(escalate);
+  }
   if (h.status === 'blocked') {
     if (h.code === 'PRE_EXISTING_REGRESSION' && fields.autonomy !== 'autopilot') {
       return ask(h.reason, {
@@ -205,15 +228,18 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
     return outcome('pause', 'Refinement questions prepared for the Product Manager; check delivery status in the questions file.', { pause_reason: 'Slack refinement pending', questions: h.artifacts.questions });
   }
   if (h.stage === 'gaps') {
+    if (mode === 'none') fail('Risk assessment required before routing: set risk and mode first.');
+    const ready = guided ? 'spec-approval' : mode === 'lightweight' ? 'lightweight' : 'plan';
     if (h.data.tbd_items > 0) return autopilot
       ? outcome('stop', 'Refined spec still has unresolved TBD items.')
       : ask('Resolve or explicitly accept unresolved TBD items.', {
         resolve: outcome('phase', 'Refine unresolved items.', { phase: 'close-the-gaps' }),
-        proceed: outcome('phase', 'Developer accepted unresolved items.', { phase: guided ? 'spec-approval' : 'plan' }),
+        proceed: outcome('phase', 'Developer accepted unresolved items.', { phase: ready }),
         stop: outcome('stop', 'Developer stopped at unresolved items.'),
       });
-    return outcome('phase', 'Spec is ready.', { phase: guided ? 'spec-approval' : 'plan' });
+    return outcome('phase', 'Spec is ready.', { phase: ready });
   }
+  if (h.stage === 'implement') return outcome('phase', 'Lightweight implementation finished.', { phase: 'review' });
   if (h.stage === 'plan' && fields.phase === 'plan') {
     return outcome('phase', 'Plan is ready.', { phase: guided ? 'plan-approval' : 'execute' });
   }
@@ -260,6 +286,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   }
   if (h.outcome === 'CLEAN') return outcome('phase', 'Review is clean.', { phase: 'final-sync' });
   if (reviews >= 4) return outcome('stop', 'Review limit reached.');
+  if (mode === 'lightweight') return lightweightReview(h, fields, { autopilot, fixes, previousReview });
   if (h.outcome === 'REPLAN_REQUIRED') {
     if (replans >= 2) return outcome('stop', 'Replan limit reached.');
     if (h.data.findings.some((f) => f.route === 'human')) return autopilot
@@ -278,9 +305,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
         stop: outcome('stop', 'Developer stopped at review findings.'),
       });
   }
-  const previous = previousReview ? validateHandoff(previousReview) : null;
-  if (previous && (previous.stage !== 'review' || previous.status !== 'done' || previous.ticket !== h.ticket || previous.plan_version !== h.plan_version || previous.review_cycle >= h.review_cycle)) fail('Previous review handoff does not match.');
-  const oldRegions = new Set(previous?.data.findings.map((f) => f.region) ?? []);
+  const oldRegions = previousRegions(h, previousReview);
   const repeat = h.data.findings.some((f) => f.introduced_by_fix_of !== null || oldRegions.has(f.region));
   if (repeat && replans < 2) return guided
     ? ask('Review found a repeat offender; consider replanning.', {
@@ -298,7 +323,34 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   return outcome('phase', 'Review findings need a fix plan.', { phase: 'fix-plan' });
 }
 
+function previousRegions(h, previousReview) {
+  const previous = previousReview ? validateHandoff(previousReview) : null;
+  if (previous && (previous.stage !== 'review' || previous.status !== 'done' || previous.ticket !== h.ticket || previous.plan_version !== h.plan_version || previous.review_cycle >= h.review_cycle)) fail('Previous review handoff does not match.');
+  return new Set(previous?.data.findings.map((f) => f.region) ?? []);
+}
+
+// Lightweight review: fix directly, escalate to TDD on early-replan triggers or decisions.
+function lightweightReview(h, fields, { autopilot, fixes, previousReview }) {
+  const escalateOrStop = (reason) => canEscalate(fields)
+    ? escalation(`${reason} Escalating to TDD.`)
+    : outcome('stop', `${reason} Escalation limit reached.`);
+  const human = h.data.findings.some((f) => f.route === 'human');
+  if (human) {
+    return autopilot ? outcome('stop', 'Review requires a human decision.')
+      : ask('Resolve human findings, then escalate to TDD.', {
+        'decide-and-escalate': escalateOrStop('Human findings decided.'),
+        stop: outcome('stop', 'Developer stopped at review findings.'),
+      });
+  }
+  if (h.outcome === 'REPLAN_REQUIRED') return escalateOrStop('Review requires replanning.');
+  const oldRegions = previousRegions(h, previousReview);
+  if (h.data.findings.some((f) => f.introduced_by_fix_of !== null || oldRegions.has(f.region))) return escalateOrStop('Review found a repeat offender.');
+  if (fixes >= 3) return outcome('stop', 'Fix round limit reached.');
+  return outcome('phase', 'Review findings need a Lightweight fix.', { phase: 'lightweight', operation: 'fix' });
+}
+
 export function decideNext(state, handoff, options = {}) {
+  if (options.escalate !== undefined && options.choice !== undefined) fail('Use --escalate or --choice, not both.');
   const result = decideCore(state, handoff, options);
   if (options.choice === undefined) {
     if (result.routes) {
@@ -322,7 +374,7 @@ async function main(args) {
     options[flag.slice(2)] = args.shift();
   }
   if (!['validate', 'next'].includes(command) || !options.handoff || !options.root) {
-    fail('Usage: handoff.mjs validate|next --handoff PATH --root PROJECT_ROOT [--state PATH] [--previous-review PATH] [--related-failures N] [--choice CHOICE]');
+    fail('Usage: handoff.mjs validate|next --handoff PATH --root PROJECT_ROOT [--state PATH] [--previous-review PATH] [--related-failures N] [--choice CHOICE] [--escalate REASON]');
   }
   const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root);
   const expectedDirectory = path.join(runDirectory(path.resolve(options.root), h.ticket), `${h.ticket}-handoffs`);
@@ -342,7 +394,7 @@ async function main(args) {
   }
   const previous = options['previous-review'] ? JSON.parse(await readFile(options['previous-review'], 'utf8')) : null;
   const related = options['related-failures'] === undefined ? null : Number(options['related-failures']);
-  return decideNext(state, h, { previousReview: previous, relatedFailures: related, choice: options.choice });
+  return decideNext(state, h, { previousReview: previous, relatedFailures: related, choice: options.choice, escalate: options.escalate });
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

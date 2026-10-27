@@ -34,6 +34,7 @@ for (const autonomy of ['autonomous', 'guided']) test(`a real red-to-green ${aut
     return path.relative(root, file);
   };
   await writeFile(path.join(directory, 'DEMO-2-spec.md'), '# Formal greeting\n\nAdd a formal greeting while preserving the existing greeting.\n');
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   const specResult = await apply('handoff', { handoff: await saveHandoff('gaps', { outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO-2/DEMO-2-spec.md' }, data: { tbd_items: 0, context_updated: [] } }) });
   if (autonomy === 'guided') {
     assert.equal(specResult.fields.status, 'Paused');

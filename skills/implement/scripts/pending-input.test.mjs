@@ -179,6 +179,7 @@ test('switching away from Guided skips the saved approval gate without recording
   await writeFile(path.join(directory, 'DEMO-spec.md'), '# Refined spec');
   const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
   await writeFile(path.join(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   const gate = await apply('handoff', { handoff }); assert.equal(gate.fields.status, 'Paused'); assert.equal(gate.fields.phase, 'spec-approval');
   await apply('autonomy', { mode: 'autonomous', source: 'user', via: 'chat' });
   assert.equal((await state()).pendingInputs[0].id, gate.pending[0].id);

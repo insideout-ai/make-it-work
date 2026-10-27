@@ -27,7 +27,11 @@ const STATUS_VALUES = new Set(['In Progress', 'Paused', 'Stopped', 'Complete']);
 const PHASE_VALUES = new Set([
   'context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval',
   'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete',
+  'lightweight',
 ]);
+const RISK_VALUES = new Set(['none', 'low', 'medium', 'high']);
+const MODE_VALUES = new Set(['none', 'lightweight', 'tdd']);
+const MODE_SOURCE_VALUES = new Set(['none', 'assessed', 'user']);
 const AUTONOMY_VALUES = new Set(['guided', 'autonomous', 'autopilot', 'pending']);
 const EXECUTION_MODE_VALUES = new Set(['none', 'subagent-driven', 'inline']);
 const INLINE_PAUSE_MODE_VALUES = new Set(['none', 'stop-after-each-step', 'run-straight-through']);
@@ -93,7 +97,19 @@ const PHASE_INFO = {
     skill: '',
     tooltip: 'the run has finished successfully.',
   },
+  lightweight: {
+    label: 'Implement (Lightweight)',
+    skill: '',
+    tooltip: 'a fresh subagent implements the approved spec directly, without a plan, test-first (TDD) steps or a regression gate.',
+  },
 };
+const LIGHTWEIGHT_FIX_INFO = {
+  label: 'Fix (Lightweight)',
+  skill: '',
+  tooltip: 'a fresh subagent fixes the review findings directly, without a plan.',
+};
+const SKIPPED_TOOLTIP = 'Skipped (Lightweight) — this low-risk run implements from the spec without a plan, TDD or regression gate.';
+const MODE_LABELS = { lightweight: 'Lightweight', tdd: 'TDD' };
 
 const AUTONOMY_TOOLTIP =
   'guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question. autopilot: resolves every documented safe default without prompting, creates a feature branch from the base branch, and stops with a recorded reason when required facts are missing or contradictory.';
@@ -210,6 +226,28 @@ function parseAudit(value) {
   });
 }
 
+const ADAPTIVE_FIELDS = ['risk', 'mode', 'mode_source', 'risk_rationale', 'escalations', 'implementation_report'];
+
+// Adaptive workflow fields are opt-in: present only on runs created with adaptive_version: 1.
+function validateAdaptiveFields(fields) {
+  if (fields.adaptive_version === undefined) {
+    if (fields.phase === 'lightweight') fail('Phase lightweight requires adaptive_version: 1.');
+    return;
+  }
+  if (fields.adaptive_version !== '1') fail(`Unsupported adaptive_version: ${fields.adaptive_version}`);
+  for (const name of ADAPTIVE_FIELDS) {
+    if (!Object.hasOwn(fields, name) || fields[name] === '') fail(`Missing required state field: ${name}`);
+  }
+  if (!RISK_VALUES.has(fields.risk)) fail(`Unsupported risk: ${fields.risk}`);
+  if (!MODE_VALUES.has(fields.mode)) fail(`Unsupported mode: ${fields.mode}`);
+  if (!MODE_SOURCE_VALUES.has(fields.mode_source)) fail(`Unsupported mode_source: ${fields.mode_source}`);
+  if ((fields.mode === 'none') !== (fields.mode_source === 'none')) fail('Fields "mode" and "mode_source" must both be none or both be set.');
+  const escalations = parseInteger(fields, 'escalations');
+  if (escalations > 1) fail('Field "escalations" exceeds its limit of 1.');
+  if (fields.phase === 'lightweight' && fields.mode !== 'lightweight') fail('Phase lightweight requires mode: lightweight.');
+  if (fields.implementation_report !== 'none') runArtifactName(fields.implementation_report, fields.ticket, 'implementation_report');
+}
+
 export function parseState(markdown, statePath = '') {
   const block = markdown.match(/^# Workflow state[^\r\n]*\r?\n\s*```[^\r\n]*\r?\n([\s\S]*?)\r?\n```/m);
   if (!block) fail('Could not find the workflow state field block.');
@@ -249,6 +287,7 @@ export function parseState(markdown, statePath = '') {
   if (!REVIEW_VALUES.has(fields.review)) fail(`Unsupported review: ${fields.review}`);
   if (!FIX_DISPATCH_VALUES.has(fields.fix_plan_dispatch)) fail(`Unsupported fix_plan_dispatch: ${fields.fix_plan_dispatch}`);
   if (!GATE_VALUES.has(fields.gate)) fail(`Unsupported gate: ${fields.gate}`);
+  validateAdaptiveFields(fields);
   if (fields.current_activity_updated_at !== undefined && fields.current_activity_updated_at !== 'none') {
     parseIsoTimestamp(fields.current_activity_updated_at, 'Field "current_activity_updated_at"');
   }
@@ -313,31 +352,53 @@ function newSlot(phase, activationRow = null) {
   return { phase, activationRow };
 }
 
+function isAdaptive(state) {
+  return state.fields.adaptive_version === '1';
+}
+
+function slotInfo(slot) {
+  return slot.lightweightFix ? LIGHTWEIGHT_FIX_INFO : PHASE_INFO[slot.phase];
+}
+
 export function buildTimeline(state) {
-  const phases = state.fields.final_package_version === '1'
+  const adaptive = isAdaptive(state);
+  const lightweightTimeline = adaptive && (state.fields.mode === 'lightweight' || state.fields.escalations === '1');
+  let phases = state.fields.final_package_version === '1'
     ? [...BASELINE_PHASES.slice(0, -1), 'final-approval', 'complete']
     : BASELINE_PHASES;
-  const slots = phases.map((phase) => newSlot(phase));
+  if (lightweightTimeline) phases = phases.flatMap((phase) => phase === 'review' ? ['lightweight', phase] : [phase]);
+  const slots = phases.map((phase) => ({
+    ...newSlot(phase),
+    ...(lightweightTimeline && (phase === 'plan' || phase === 'execute') ? { skipped: true } : {}),
+  }));
   const activatedPhases = new Set();
   let activeSlot = null;
 
   for (const row of state.audit) {
     if (row.to === 'spec-approval' || row.to === 'plan-approval') continue;
 
-    if (!CANONICAL_PHASES.has(row.to)) continue;
+    if (!CANONICAL_PHASES.has(row.to) && !(adaptive && row.to === 'lightweight')) continue;
     if (activeSlot?.phase === 'fix-plan' && row.to === 'execute') continue;
     if (activeSlot?.phase === row.to) continue;
 
+    // Adaptive runs never activate a skipped or already-passed baseline slot; such rows insert after the active slot.
+    const escalation = adaptive && row.to === 'plan' && row.outcome.startsWith('Escalation:');
+    const activeIndex = activeSlot ? slots.indexOf(activeSlot) : -1;
     let nextSlot;
-    if (row.to !== 'fix-plan' && !activatedPhases.has(row.to)) {
-      nextSlot = slots.find((slot) => slot.phase === row.to && slot.activationRow === null);
-      if (!nextSlot) fail(`Timeline could not find the baseline slot for ${row.to}.`);
+    if (row.to !== 'fix-plan' && !escalation && !activatedPhases.has(row.to)) {
+      nextSlot = slots.find((slot, index) => slot.phase === row.to && slot.activationRow === null &&
+        (!adaptive || (!slot.skipped && index > activeIndex)));
+      if (!nextSlot && !adaptive) fail(`Timeline could not find the baseline slot for ${row.to}.`);
+    }
+    if (nextSlot) {
       nextSlot.activationRow = row;
     } else {
       nextSlot = newSlot(row.to, row);
-      const insertionIndex = activeSlot ? slots.indexOf(activeSlot) + 1 : slots.length;
+      const insertionIndex = activeSlot ? activeIndex + 1 : slots.length;
       slots.splice(insertionIndex, 0, nextSlot);
     }
+    if (escalation) nextSlot.escalation = row.outcome.slice('Escalation:'.length).trim();
+    if (adaptive && row.to === 'lightweight' && ['review', 'final-approval'].includes(row.from)) nextSlot.lightweightFix = true;
     activatedPhases.add(row.to);
     activeSlot = nextSlot;
   }
@@ -379,7 +440,7 @@ function renderList(items) {
 }
 
 function slotState(slot, activeSlot, status) {
-  if (!slot.activationRow) return 'not-reached';
+  if (!slot.activationRow) return slot.skipped ? 'skipped' : 'not-reached';
   if (slot !== activeSlot) return 'passed';
   if (status === 'Complete') return 'passed';
   if (status === 'In Progress') return 'current spinning';
@@ -399,7 +460,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
   const activated = slots.filter((slot) => slot.activationRow);
 
   const steps = slots.map((slot, index) => {
-    const info = PHASE_INFO[slot.phase];
+    const info = slotInfo(slot);
     const dotState = slotState(slot, activeSlot, state.fields.status);
     const isActive = slot === activeSlot;
     const passed = dotState === 'passed';
@@ -409,7 +470,9 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     const currentLabel = isActive && state.fields.status === 'In Progress' ? ' current-label' : '';
     const pieces = ['<div class="phase-step">'];
     if (index > 0) pieces.push(`  <div class="line${lineClass}"></div>`);
-    pieces.push(`  <div class="phase-dot ${dotState}" title="${escapeHtml(`${slot.phase}: ${info.tooltip}`)}">${symbol}</div>`);
+    const tooltip = dotState === 'skipped' ? SKIPPED_TOOLTIP
+      : slot.escalation !== undefined ? `Escalated: ${slot.escalation} — ${info.tooltip}` : info.tooltip;
+    pieces.push(`  <div class="phase-dot ${dotState}" title="${escapeHtml(`${slot.phase}: ${tooltip}`)}">${symbol}</div>`);
     pieces.push(`  <div class="phase-label${currentLabel}">${label}</div>`);
 
     let modeText = null;
@@ -424,6 +487,8 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       }
       modeText = `${planStatus.mode} · Step ${localComplete} of ${state.fixPlanRoundSteps} complete`;
     }
+    if (dotState === 'skipped') modeText = 'Skipped';
+    else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
     if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
 
     if (passed && slot.phase !== 'complete') {
@@ -459,7 +524,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
 
 function renderCurrentActivity(state, timeline) {
   if (!timeline.activeSlot || state.fields.status !== 'In Progress') return '';
-  const label = escapeHtml(PHASE_INFO[timeline.activeSlot.phase].label);
+  const label = escapeHtml(slotInfo(timeline.activeSlot).label);
   const hasActivity = state.fields.current_activity !== 'none';
   const activity = hasActivity ? escapeHtml(state.fields.current_activity)
     : `${label} is in progress. No activity details have been reported yet.`;
@@ -562,6 +627,31 @@ ${rows ? `<table><tr><th>Repository</th><th>Commit</th><th>Push</th><th>Pull req
 <p class="delivery-records"><a href="${encodeURIComponent(ticket)}-delivery-plan.md">Delivery plan</a> · <a href="${encodeURIComponent(ticket)}-delivery-progress.json">Progress record</a></p></section>`;
 }
 
+function renderModePill(state) {
+  if (!isAdaptive(state)) return '';
+  const { mode, mode_source: source, risk, risk_rationale: rationale } = state.fields;
+  if (mode === 'none') {
+    return '<span class="pill mode-pill" title="Risk and mode are assessed after Refinement.">Mode: Not yet assessed</span>';
+  }
+  const riskText = risk === 'none' ? '' : ` · ${risk[0].toUpperCase()}${risk.slice(1)} risk`;
+  const text = `Mode: ${MODE_LABELS[mode]}${source === 'user' ? ' (user)' : ''}${riskText}`;
+  const tooltip = rationale === 'none' ? 'No risk rationale recorded.' : rationale;
+  return `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</span>`;
+}
+
+function skippableLink(state, field) {
+  if (isAdaptive(state) && state.fields.mode === 'lightweight' && state.fields[field] === 'none') {
+    return '<span class="none">Skipped (Lightweight)</span>';
+  }
+  return artifactLink(state.fields[field], field, state.fields.ticket);
+}
+
+function renderImplementationTile(state) {
+  if (!isAdaptive(state) || state.fields.implementation_report === 'none') return '';
+  const link = artifactLink(state.fields.implementation_report, 'implementation_report', state.fields.ticket);
+  return `\n  <div class="artifact-tile"><div class="label">Lightweight report</div>${link}</div>`;
+}
+
 function applyTemplate(template, replacements) {
   let output = template;
   for (const [name, value] of Object.entries(replacements)) {
@@ -603,14 +693,16 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
+    MODE_PILL: renderModePill(state),
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PLAN_LINK: artifactLink(state.fields.plan, 'plan', state.fields.ticket),
-    EXECUTE_LINK: artifactLink(state.fields.execute_report, 'execute_report', state.fields.ticket),
+    PLAN_LINK: skippableLink(state, 'plan'),
+    EXECUTE_LINK: skippableLink(state, 'execute_report'),
+    IMPLEMENTATION_TILE: renderImplementationTile(state),
     REVIEW_LINK: reviewLink,
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`), 'final_package', state.fields.ticket)
@@ -623,6 +715,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     REVIEW_CYCLE: String(state.reviewCycle),
     FIX_CYCLE: String(state.fixCycle),
     REPLANS_USED: String(state.replansUsed),
+    ESCALATIONS_COUNTER: isAdaptive(state) ? ` &nbsp; Escalations: ${escapeHtml(state.fields.escalations)} / 1` : '',
     KNOWN_REGRESSIONS: renderList(state.knownRegressions),
     DECIDED_FINDINGS: renderList(state.decidedFindings),
   };

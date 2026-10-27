@@ -6,9 +6,19 @@ These cases resume a seeded `implement` run at `final-sync`, allowing the termin
 - `feedback-nonminimal` verifies Audit-log-based counting, retrospective analysis, skill attribution, share-safe output, and subagent dispatch after counters have reset.
 - `feedback-idempotent` verifies replacement of the matching run block while preserving older runs and user-authored text.
 - `implement-final-sync-map` resumes final sync with a current native map and a domain/product documentation gap. It checks evidence reassessment after the final doc edits, persisted current baselines, preserved user confirmation, and unchanged source/tests. Run with `node evals/run-suite.mjs full --case=implement-final-sync-map` after approving a model budget; authoring/seeding the case alone is not a live pass.
-- `implement-autopilot-full` starts from `main` and verifies the unattended implementation path creates a feature branch, records autopilot state/logging, implements the requested policy, and reaches a clean terminal state before the optional delivery offer.
-- `implement-no-tooling` starts without a test strategy, tests or configured command. It checks readiness/setup before planning, a real baseline behavior test, strategy generation, retained setup changes, and automated implementation/gate completion.
-- `implement-empty-strategy` starts with an existing generated `none` strategy. It checks activation after verified setup rather than keeping stale facts through refresh, while preserving an unrelated user-written Team note.
+- `implement-autopilot-full` starts from `main` with `--mode tdd` and verifies the unattended implementation path creates a feature branch, records autopilot state/logging and the user-forced TDD mode, implements the requested policy, and reaches a clean terminal state before the optional delivery offer.
+- `implement-no-tooling` starts without a test strategy, tests or configured command, forcing `--mode tdd` because the small ticket would otherwise likely be assessed Low risk and skip readiness. It checks readiness/setup before planning, a real baseline behavior test, strategy generation, retained setup changes, and automated implementation/gate completion.
+- `implement-empty-strategy` starts with an existing generated `none` strategy and also forces `--mode tdd`. It checks activation after verified setup rather than keeping stale facts through refresh, while preserving an unrelated user-written Team note.
+- `implement-lightweight-run` starts a fresh Autopilot run on a one-line typo fix without `--mode`. It checks the run is assessed Low risk and completes through Lightweight: `adaptive_version: 1`, `mode: lightweight`, no plan file, a Lightweight report and `implement` handoff, a clean independent review, and `status: Complete`.
+- `implement-escalation` resumes a seeded Guided Lightweight run at review cycle 2, whose saved handoff reports a repeat offender (`#2` introduced by the fix of `#1` in the same region). It checks the run escalates to TDD instead of another Lightweight fix: an `Escalation:` Audit-log row, `mode: tdd`, `escalations: 1`, reset review/fix counters, an initial-mode plan built on the Lightweight baseline, and unchanged `replans_used`/`plan_version`. The fixture verifies with the handoff helper that the seeded review routes to `escalate` and that the dashboard renders. It stops at Guided plan approval.
+
+Seeded fixtures without `adaptive_version` are older runs and keep today's full TDD workflow; they need no `--mode` flag.
+
+Run the adaptive cases with the signed-in headless runner:
+
+```sh
+node evals/run-suite.mjs full --case=implement-lightweight-run --case=implement-escalation --max-cost-usd=8
+```
 - `implement-switch-to-guided` changes an existing Autopilot run at a pending spec approval, overriding a stale `--autopilot` flag without approving the spec or truncating prior logs.
 - `implement-switch-to-autopilot` changes Guided to Autopilot before a resumed Execute completion gate. It checks saved progress and nested regression policy; the deliberately unavailable full-suite command must stop without a live prompt, invented PASS, or manual-policy downgrade.
 - `implement-resume-changed-autonomy` resumes saved Autopilot without a flag after a trailing mode-change Audit-log row, preserving its history and completing the older run without schema backfill.

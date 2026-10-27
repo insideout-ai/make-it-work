@@ -760,3 +760,129 @@ test('post-completion decisions cannot create implementation timing for a legacy
   assert.ok(after.includes('Elapsed: unknown'));
   assert.doesNotMatch(after, /Session timing: rows/);
 });
+
+const ADAPTIVE_FIELDS = {
+  adaptive_version: '1', risk: 'low', mode: 'lightweight', mode_source: 'assessed',
+  risk_rationale: 'Single-file <copy> change', escalations: '0', implementation_report: 'none',
+};
+
+function timelineHtml(html) {
+  return html.slice(html.indexOf('<div class="phase-timeline">'), html.indexOf('<p class="timeline-scroll-hint">'));
+}
+
+function timelineLabels(html) {
+  return [...timelineHtml(html).matchAll(/class="phase-label[^"]*">([^<]+)/g)].map((match) => match[1]);
+}
+
+test('lightweight run skips Plan and Execute and adds Fix (Lightweight) re-entries', async (t) => {
+  const { html } = await renderFixture(t, stateMarkdown({
+    fields: {
+      ...ADAPTIVE_FIELDS, phase: 'lightweight', autonomy: 'autonomous', spec: 'make-it-work/DEMO/DEMO-spec.md',
+      implementation_report: 'make-it-work/DEMO/DEMO-lightweight.md', review: 'fix-required', review_cycle: '1', fix_cycle: '1',
+      current_activity: 'Fixing review findings.',
+    },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created'],
+      ['2026-01-01T10:01:00Z', 'context-check', 'close-the-gaps', 'Context ready'],
+      ['2026-01-01T10:02:00Z', 'close-the-gaps', 'lightweight', 'Spec saved; Low risk → Lightweight'],
+      ['2026-01-01T10:05:00Z', 'lightweight', 'review', 'Implemented'],
+      ['2026-01-01T10:06:00Z', 'review', 'lightweight', 'Review requested fixes'],
+    ],
+  }));
+  const timeline = timelineHtml(html);
+  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Fix (Lightweight)', 'Final Sync', 'Complete']);
+  assert.equal((timeline.match(/phase-dot skipped" title="[a-z]+: Skipped \(Lightweight\)/g) ?? []).length, 2);
+  assert.match(timeline, /phase-dot passed[^>]+lightweight: a fresh subagent implements the approved spec/);
+  assert.match(timeline, /phase-dot current spinning[^>]+lightweight: a fresh subagent fixes the review findings/);
+  assert.match(timeline, /phase-duration">3m<\/div>[\s\S]*phase-duration">1m<\/div>/);
+  assert.match(html, /<strong>Fix \(Lightweight\) in progress<\/strong>/);
+  assert.match(html, /<div class="label">Plan<\/div><span class="none">Skipped \(Lightweight\)<\/span>/);
+  assert.match(html, /<div class="label">Execute<\/div><span class="none">Skipped \(Lightweight\)<\/span>/);
+  assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
+});
+
+test('escalation from review inserts Plan and Execute after the active slot in order', async (t) => {
+  const { html } = await renderFixture(t, stateMarkdown({
+    fields: {
+      ...ADAPTIVE_FIELDS, mode: 'tdd', escalations: '1', phase: 'review', autonomy: 'autonomous',
+      plan: 'make-it-work/DEMO/DEMO-plan.md', implementation_report: 'make-it-work/DEMO/DEMO-lightweight.md',
+      execute_report: 'make-it-work/DEMO/DEMO-execute.md', execution: 'passed', review_cycle: '1',
+    },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created'],
+      ['2026-01-01T10:01:00Z', 'context-check', 'close-the-gaps', 'Context ready'],
+      ['2026-01-01T10:02:00Z', 'close-the-gaps', 'lightweight', 'Low risk → Lightweight'],
+      ['2026-01-01T10:04:00Z', 'lightweight', 'review', 'Implemented'],
+      ['2026-01-01T10:05:00Z', 'review', 'plan', 'Escalation: review found <auth> changes'],
+      ['2026-01-01T10:07:00Z', 'plan', 'plan-approval', 'Plan ready'],
+      ['2026-01-01T10:08:00Z', 'plan-approval', 'execute', 'Plan approved'],
+      ['2026-01-01T10:12:00Z', 'execute', 'review', 'Execution passed'],
+    ],
+  }));
+  const timeline = timelineHtml(html);
+  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Plan', 'Execute', 'Review', 'Final Sync', 'Complete']);
+  assert.equal((timeline.match(/phase-dot skipped/g) ?? []).length, 2);
+  assert.match(timeline, /phase-dot passed" title="plan: Escalated: review found &lt;auth&gt; changes — [^"]+">✓[\s\S]*?Escalated to TDD/);
+  const durations = [...timeline.matchAll(/phase-duration">([^<]+)</g)].map((match) => match[1]);
+  assert.deepEqual(durations, ['1m', '1m', '2m', '1m', '3m', '4m']);
+  assert.match(timeline, /phase-dot current spinning[^>]+review:/);
+  assert.match(html, /Mode: TDD · Low risk/);
+  assert.match(html, /Escalations: 1 \/ 1<\/p>/);
+  assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
+  assert.match(html, /<div class="label">Plan<\/div><a href="DEMO-plan\.md"/);
+});
+
+test('escalation from a stopped lightweight phase keeps baseline Review after the new slots', async (t) => {
+  const { html } = await renderFixture(t, stateMarkdown({
+    fields: { ...ADAPTIVE_FIELDS, mode: 'tdd', escalations: '1', phase: 'plan', autonomy: 'autonomous' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'close-the-gaps', 'Started'],
+      ['2026-01-01T10:02:00Z', 'close-the-gaps', 'lightweight', 'Low risk → Lightweight'],
+      ['2026-01-01T10:04:00Z', 'lightweight', 'plan', 'Escalation: implementation touched shared schema'],
+    ],
+  }));
+  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Plan', 'Review', 'Final Sync', 'Complete']);
+  assert.match(timelineHtml(html), /phase-dot current spinning" title="plan: Escalated: implementation touched shared schema/);
+});
+
+test('mode pill and escalations counter appear only for adaptive runs', async (t) => {
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
+  const legacy = await renderFixture(t, stateMarkdown({ rows }));
+  assert.doesNotMatch(legacy.html, /mode-pill|Mode: |Escalations|phase-dot skipped|Lightweight report/);
+  assert.match(legacy.html, /Replans used: 0 \/ 2<\/p>/);
+  assert.deepEqual(timelineLabels(legacy.html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Review', 'Final Sync', 'Complete']);
+
+  const pending = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'none', mode: 'none', mode_source: 'none', risk_rationale: 'none' }, rows }));
+  assert.match(pending.html, /Mode: Not yet assessed/);
+  assert.match(pending.html, /Escalations: 0 \/ 1<\/p>/);
+  assert.doesNotMatch(pending.html, /phase-dot skipped/);
+
+  const lightweight = await renderFixture(t, stateMarkdown({ fields: ADAPTIVE_FIELDS, rows }));
+  assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="Single-file &lt;copy&gt; change">Mode: Lightweight · Low risk<\/span>/);
+  assert.match(lightweight.html, /Escalations: 0 \/ 1<\/p>/);
+
+  const forced = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'high', mode: 'tdd', mode_source: 'user' }, rows }));
+  assert.match(forced.html, />Mode: TDD \(user\) · High risk<\/span>/);
+  assert.doesNotMatch(forced.html, /phase-dot skipped|Skipped \(Lightweight\)/);
+});
+
+test('phase lightweight renders without plan progress', async (t) => {
+  const { html } = await renderFixture(t, stateMarkdown({
+    fields: { ...ADAPTIVE_FIELDS, phase: 'lightweight', plan: 'none' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'close-the-gaps', 'Started'],
+      ['2026-01-01T10:01:00Z', 'close-the-gaps', 'lightweight', 'Low risk → Lightweight'],
+    ],
+  }));
+  assert.match(timelineHtml(html), /phase-dot current spinning[^>]+lightweight:/);
+  assert.doesNotMatch(timelineHtml(html), /Step \d+ of/);
+});
+
+test('rejects invalid adaptive fields', () => {
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
+  assert.equal(parseState(stateMarkdown({ fields: ADAPTIVE_FIELDS, rows })).fields.mode, 'lightweight');
+  assert.throws(() => parseState(stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, mode: 'fast' }, rows })), /Unsupported mode: fast/);
+  assert.throws(() => parseState(stateMarkdown({ fields: { phase: 'lightweight' }, rows })), /Phase lightweight requires adaptive_version: 1/);
+  assert.throws(() => parseState(stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, escalations: '2' }, rows })), /"escalations" exceeds its limit of 1/);
+  assert.throws(() => parseState(stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, mode: 'tdd', phase: 'lightweight' }, rows })), /Phase lightweight requires mode: lightweight/);
+});

@@ -133,15 +133,23 @@ Use it to review a pull request or diff in any repo that keeps the `go-deep` kno
 
 ### `/make-it-work:implement`
 
-Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, then runs `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
+Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, runs `close-the-gaps`, assesses the ticket's risk, implements it in the matching mode, reviews it with `review-the-pr`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
 
-Before planning, new runs resolve testing readiness for each affected repo. Existing tooling is discovered and its strategy generated/refreshed. With no tooling, Guided offers minimal automated setup or manual verification; Autonomous and Autopilot establish the recommended minimal setup unless manual verification was explicitly selected. Setup includes a real passing behavior test, and its files become the planning baseline. A failed setup cannot silently switch to manual mode. The plan records each repo's verification policy; all-manual execution can complete with observed scenario/AC evidence and `VERIFIED_MANUALLY`, while mixed execution requires both manual evidence and each automated repo's full suite. Manual completion is reported as such, with automated regression unavailable. Older resumed runs keep their original gate behavior.
+Once the refined spec is saved, new runs assess the ticket as Low, Medium or High risk by judgment over scope, dependencies, architectural impact, security and uncertainty, and record a one-line rationale. Low risk runs **Lightweight**: a fresh subagent implements the spec directly, with whatever checks it chooses and no plan, test-first steps or regression gate; the independent review is the verification, and review findings are fixed directly within the usual fix and review limits. Medium and High risk run **TDD**: today's full `plan-the-work` → `execute` pipeline with its regression gate and fix/replan loops. Every mode keeps the refined spec, the independent review and the final context sync. A Lightweight run escalates once to TDD when a fix breaks what an earlier fix touched, findings repeat in the same area, a finding needs a product decision or replanning, or the implementation reveals more risk; the code already written becomes the TDD plan's accepted baseline. `implement` never downgrades on its own. Force a mode with `--mode lightweight|tdd` or a chat request; the assessment is still recorded alongside the override. Older resumed runs keep the full TDD workflow without assessment.
+
+Before planning (TDD mode), new runs resolve testing readiness for each affected repo. Existing tooling is discovered and its strategy generated/refreshed. With no tooling, Guided offers minimal automated setup or manual verification; Autonomous and Autopilot establish the recommended minimal setup unless manual verification was explicitly selected. Setup includes a real passing behavior test, and its files become the planning baseline. A failed setup cannot silently switch to manual mode. The plan records each repo's verification policy; all-manual execution can complete with observed scenario/AC evidence and `VERIFIED_MANUALLY`, while mixed execution requires both manual evidence and each automated repo's full suite. Manual completion is reported as such, with automated regression unavailable. Older resumed runs keep their original gate behavior.
 
 ```mermaid
 flowchart TD
     Start(["/make-it-work:implement TICKET"]) --> Gaps["close-the-gaps"]
-    Gaps --> Plan["plan-the-work"]
+    Gaps --> Risk{"Risk assessment"}
+    Risk -- "Low: Lightweight" --> Light["Lightweight implementation"]
+    Risk -- "Medium / High: TDD" --> Plan["plan-the-work"]
     Plan --> Execute["execute"]
+
+    Light --> Review
+    Review -- "changes requested (Lightweight)" --> Light
+    Review -- "repeat findings or new risk" --> Escalate["Escalate to TDD"] --> Plan
 
     Execute -- "passed" --> Review["review-the-pr"]
     Execute -- "tests failing or stuck" --> FixPlan["fix the plan"]
@@ -154,7 +162,7 @@ flowchart TD
     FixPlan -- "plan needs rethinking" --> Replan["Replan"] --> Plan
 ```
 
-You choose the autonomy level before the branch decision on a new run. **Guided** pauses for your approval after the spec and after the plan. **Autonomous** skips those approval gates and replans on its own when the plan stops holding; in both modes, every question a stage asks still comes to you. **Autopilot** runs implementation unattended with each stage's documented safe defaults, creates the ticket-named feature branch automatically when started from the base branch, and leaves all resulting changes uncommitted. It stops with a saved, actionable reason rather than guessing when a required fact is missing, contradictory, or needs a product decision. **`--autopilot`** skips the initial autonomy question and selects the same mode without granting ticket-write permission. For an explicitly supplied, resolved tracker ticket with usable write capabilities, the interactive choices also include **Autopilot + update ticket**. It uses the same Autopilot execution mode and saves the disclosed ticket-update consent without a second prompt; local-spec or unavailable-connector runs keep the three ordinary choices.
+You choose the autonomy level before the branch decision on a new run. **Guided** pauses for your approval after the spec — showing the assessed risk, mode and rationale, with an option to approve with the other mode — and after the plan; a Lightweight run has no plan gate. Escalations are shown and logged, not asked. **Autonomous** skips those approval gates and replans on its own when the plan stops holding; in both modes, every question a stage asks still comes to you. **Autopilot** runs implementation unattended with each stage's documented safe defaults, creates the ticket-named feature branch automatically when started from the base branch, and leaves all resulting changes uncommitted. It stops with a saved, actionable reason rather than guessing when a required fact is missing, contradictory, or needs a product decision. **`--autopilot`** skips the initial autonomy question and selects the same mode without granting ticket-write permission. For an explicitly supplied, resolved tracker ticket with usable write capabilities, the interactive choices also include **Autopilot + update ticket**. It uses the same Autopilot execution mode and saves the disclosed ticket-update consent without a second prompt; local-spec or unavailable-connector runs keep the three ordinary choices.
 
 During a run, type **"switch to Guided"**, **"switch to Autonomous"**, or **"switch to Autopilot"** in the same Claude Code session. After Claude receives the message, the change applies at the next safe checkpoint, preserving the current task and progress. Claude confirms the applied mode, records it in the audit log, and refreshes an existing dashboard. The selection overrides the initial flag and persists on resume. Pending approval gates follow the new mode; unresolved facts and correctness stops still need resolution. Guided does not add per-step pauses, and workflow autonomy does not change Claude Code's permission mode or delivery approvals. Messages sent during tool calls can wait until those calls finish before Claude receives them; there is no server or additional skill to invoke.
 
@@ -211,6 +219,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:review-the-pr                  # Review a PR against the project's own skills and CLAUDE.md
 /make-it-work:implement TICKET-123           # Run the whole pipeline for a ticket, with saved state
 /make-it-work:implement TICKET-123 --autopilot # Run the pipeline unattended using safe documented defaults
+/make-it-work:implement TICKET-123 --mode tdd # Force a run mode (lightweight or tdd) instead of the assessed one
 /make-it-work:implement path/to/spec.md      # Start the pipeline from an existing spec
 /make-it-work:implement                      # Resume an in-progress implement run
 ```
@@ -334,7 +343,7 @@ With your explicit agreement to the disclosed scope, interactive `slice-the-epic
 
 Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>/<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
 
-`implement` changes the target project only through the stages it runs — `plan-the-work`'s uncommitted test files, `execute`'s uncommitted implementation — plus its own final context sync, which writes the project's skills and `.claude/rules` files directly. `close-the-gaps` and `plan-the-work` may also write those files directly at the end of a run, but only to record facts about the system as it already is, never the ticket's planned behavior.
+`implement` changes the target project only through the stages it runs — `plan-the-work`'s uncommitted test files, `execute`'s uncommitted implementation, or, in Lightweight mode, the uncommitted code and tests written by its own implementation subagent — plus its own final context sync, which writes the project's skills and `.claude/rules` files directly. `close-the-gaps` and `plan-the-work` may also write those files directly at the end of a run, but only to record facts about the system as it already is, never the ticket's planned behavior.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection. Ticket publication additionally requires the relevant write capabilities and a saved opt-in for the specific ticket/run. Connector availability alone grants no permission.
 

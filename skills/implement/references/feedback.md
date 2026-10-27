@@ -7,7 +7,7 @@ Use this reference only when an `implement` run has already reached an eligible 
 Update `make-it-work/implement-feedback.md` only for:
 
 - every run that has checkpointed `status: Complete`; and
-- a run that has checkpointed `status: Stopped` because the fix, review, or replan limit was exhausted.
+- a run that has checkpointed `status: Stopped` because the fix, review, or replan limit was exhausted (in execute, review, fix-plan, or lightweight).
 
 Do not write an entry for a pause, user-requested stop, branch/context/setup failure, missing tool, or other non-limit stop. Never backfill runs that reached a terminal state before this feedback behavior existed.
 
@@ -48,7 +48,7 @@ node "<base>/scripts/write-feedback.mjs" inspect --state "make-it-work/<TICKET>/
 
 For an exhausted fix, review, or replan limit stop, also pass `--limit-stop`; never pass it for any other stop. The script rejects ineligible state. Its JSON summary supplies `minimal`, the counts, and the ordered `events` (`kind` and Audit-log `row`). It reads the Audit log chronologically; never substitute the live counters, which can reset after replanning.
 
-The writer counts transitions into `fix-plan` (including zero-step rounds), explicit replans from execute/review/fix-plan back to plan, and review-cycle rows (falling back to transitions into review). A run with no fix or replan transitions is minimal, even if an approval was redone or execution retried internally.
+The writer counts transitions into `fix-plan` (including zero-step rounds) and, for Lightweight runs, `review`/`final-approval` → `lightweight` fix rounds as `Fix`; explicit replans from execute/review/fix-plan back to plan as `Replan`; any row whose outcome starts with `Escalation:` (Lightweight → TDD) as `Escalation`, never as a Replan; and review-cycle rows (falling back to transitions into review). A run with no fix, replan, or escalation event is minimal, even if an approval was redone or execution retried internally. Adaptive runs (`adaptive_version: 1`) also get `Mode: <mode> (<risk> risk, <assessed|user>)`, `Escalations: <n>`, `Stages skipped:` and `Elapsed:` lines (the risk rationale stays in the state file, since it may name project terms); older runs do not.
 
 For a minimal run, write the compact block immediately:
 
@@ -67,12 +67,12 @@ Give that subagent this reference and the minimum available evidence needed from
 - the state file and its complete Audit log;
 - the refined spec;
 - every version of the plan, including amended fix steps and `Design reset` notes;
-- the saved execute report; and
+- the saved execute report and any Lightweight implementation report; and
 - the review report.
 
 Reports may have been overwritten by later cycles. Treat the Audit-log trigger summaries, fix-step root-cause text, and versioned plan design resets as the durable evidence for earlier rounds. Inspect the final diff or code only when those artifacts cannot establish whether execution departed from an adequate plan.
 
-For each fix or replan event, determine:
+For each fix, replan, or escalation event, determine:
 
 1. The immediate trigger, paraphrased without project identifiers.
 2. The underlying cause category: `refinement gap`, `planning gap`, `execution deviation`, `review gap`, `orchestration issue`, `project-context gap`, `unavoidable`, or `unclear`.
@@ -90,6 +90,8 @@ Use these attribution rules:
 | The plan was adequate but the implementation departed from it | `execute` |
 | Review missed an observable issue in an earlier cycle, produced an unsupported finding, or surfaced related defects one cycle at a time | `review-the-pr` |
 | Routing, state, retry, fix, or replan behavior created the extra round | `implement` |
+| A Lightweight implementation or Lightweight fix missed or broke behavior the spec stated | `implement` (Lightweight phase) |
+| An escalation: the initial risk assessment underrated the change, or Lightweight was the wrong mode | `implement` (risk assessment) |
 | Required system knowledge was missing or stale | project context / `go-deep`, not automatically a pipeline-skill defect |
 
 Recommend a skill change only when the needed evidence was available before the failure and the change would generalize beyond this run. Do not convert hindsight or a one-off project preference into a universal workflow rule.
@@ -139,7 +141,7 @@ The retrospective subagent returns one share-safe JSON object. Create a uniquely
 }
 ```
 
-`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
+`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` (`Fix`, `Replan`, or `Escalation`) and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
 
 ```sh
 node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --analysis "<temporary-analysis.json>"

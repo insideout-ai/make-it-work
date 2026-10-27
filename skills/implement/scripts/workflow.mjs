@@ -55,17 +55,46 @@ function appendItems(markdown, heading, additions) {
 function explicit(input) {
   if (input.source !== 'user' || !['question', 'chat'].includes(input.via)) fail('This event requires an explicit user decision.');
 }
+const adaptive = (f) => f.adaptive_version === '1';
+// Adaptive runs leave spec acceptance for the phase their assessed mode selects.
+function afterSpec(f) {
+  if (!adaptive(f)) return 'plan';
+  if (f.mode === 'none') fail('Risk assessment required before leaving spec acceptance.');
+  return f.mode === 'lightweight' ? 'lightweight' : 'plan';
+}
+function startFix(f) {
+  if (Number(f.fix_cycle) >= 3) fail('Fix round limit reached.');
+  f.fix_cycle = String(Number(f.fix_cycle) + 1);
+}
+function escalate(f, input, reason) {
+  if (!adaptive(f) || f.mode !== 'lightweight' || f.escalations !== '0') fail('Escalation needs a Lightweight run with no prior escalation.');
+  Object.assign(f, { phase: 'plan', mode: 'tdd', escalations: '1', review_cycle: '0', fix_cycle: '0', review: 'not-started',
+    fix_plan_round_steps: 'none', fix_plan_dispatch: 'none' });
+  if (input.risk !== undefined) {
+    if (!['medium', 'high'].includes(input.risk)) fail('An escalated risk must be medium or high.');
+    f.risk = input.risk;
+  }
+  if (input.rationale !== undefined) f.risk_rationale = oneLine(input.rationale, 'Risk rationale');
+  const text = requireText(reason, 'Escalation reason');
+  return text.startsWith('Escalation:') ? text : `Escalation: ${text}`;
+}
+function oneLine(value, label) {
+  const text = requireText(value, label);
+  if (/[\r\n]/.test(text)) fail(`${label} must be one line.`);
+  return text;
+}
+
 export function transition(state, input, handoff = null, routeOptions = {}) {
   const before = state.fields;
   const f = { ...before };
-  if (['Paused', 'Stopped'].includes(f.status) && !['await-input', 'input-answered', 'autonomy', 'resume', 'accept-workspace', 'stop', 'pause'].includes(input.event)) fail('Resume the saved run before transitioning it.');
+  if (['Paused', 'Stopped'].includes(f.status) && !['await-input', 'input-answered', 'autonomy', 'mode', 'resume', 'accept-workspace', 'stop', 'pause'].includes(input.event)) fail('Resume the saved run before transitioning it.');
   let reason = input.reason || input.event;
   let action;
   if (input.event === 'handoff') {
     if (before.status !== 'In Progress') fail('Resume the run before applying a handoff.');
     if (!handoff) fail('Handoff required.');
     if (input.choice !== undefined) explicit(input);
-    action = decideNext(state, handoff, { ...routeOptions, choice: input.choice });
+    action = decideNext(state, handoff, { ...routeOptions, choice: input.choice, ...(input.escalate ? { escalate: input.escalate } : {}) });
     if (action.action === 'triage') return { pending: action };
     if (action.action === 'ask') return { fields: f, reason: action.reason, pending: action };
     reason = action.reason;
@@ -84,6 +113,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
         f.gate = handoff.data.gate;
         f.execute_report = handoff.artifacts.report;
       }
+      if (handoff.stage === 'implement') f.implementation_report = handoff.artifacts.report;
       if (handoff.stage === 'review') f.review = { CLEAN: 'clean', FIX_REQUIRED: 'fix-required', REPLAN_REQUIRED: 'replan-required', HUMAN_DECISION: 'human-decision' }[handoff.outcome];
       const updated = handoff.data.context_updated ?? [];
       const previous = f.context_updated === 'none' ? [] : f.context_updated.split(', ');
@@ -96,6 +126,8 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
       f.plan_version = String(Number(f.plan_version) + 1);
       Object.assign(f, { review_cycle: '0', fix_cycle: '0', fix_plan_round_steps: 'none', fix_plan_dispatch: 'none', execution: 'not-started', review: 'not-started', execution_mode: 'none', inline_pause_mode: 'none' });
     }
+    if (action.operation === 'fix') startFix(f);
+    if (action.operation === 'escalate') reason = escalate(f, input, action.reason);
     if (action.action === 'phase') f.phase = action.phase;
     if (action.action === 'stop') { f.status = 'Stopped'; f.pause_reason = reason; }
     if (action.action === 'pause') { f.status = 'Paused'; f.pause_reason = action.pause_reason; }
@@ -106,12 +138,14 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
       explicit(input);
       f.spec = requireText(input.spec, 'Accepted spec path');
       if (input.plan) f.plan = requireText(input.plan, 'Accepted plan path');
+      if (adaptive(f) && input.plan && f.mode !== 'tdd') fail('A reused plan requires mode: tdd.');
+      if (adaptive(f) && !input.plan) f.phase = f.autonomy === 'guided' ? (afterSpec(f), 'spec-approval') : afterSpec(f);
     }
   } else if (['approve', 'redo', 'skip-approval'].includes(input.event)) {
     if (!['spec-approval', 'plan-approval'].includes(f.phase)) fail('No spec/plan approval is pending.');
     if (input.event === 'skip-approval') { if (f.autonomy === 'guided') fail('Guided approval cannot be skipped.'); }
     else explicit(input);
-    f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? 'plan' : 'execute');
+    f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : 'execute');
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
     f.phase = f.final_package_version === '1' ? 'final-approval' : 'complete';
@@ -119,6 +153,33 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
   } else if (input.event === 'complete') {
     if (f.phase !== 'final-approval' || f.review !== 'clean') fail('Completion requires final approval and clean review.');
     f.phase = 'complete'; f.status = 'Complete';
+  } else if (input.event === 'mode') {
+    if (!adaptive(f)) fail('Run modes need adaptive_version: 1.');
+    if (!['low', 'medium', 'high'].includes(input.risk)) fail('Invalid risk.');
+    if (!['lightweight', 'tdd'].includes(input.mode)) fail('Invalid mode.');
+    if (input.source === 'user') {
+      if (!['question', 'chat', 'flag'].includes(input.via)) fail('This event requires an explicit user decision.');
+    } else if (input.source !== 'assessed') fail('Mode source must be assessed or user.');
+    if (input.source === 'assessed' && input.mode !== (input.risk === 'low' ? 'lightweight' : 'tdd')) fail('An assessed mode must follow its risk level.');
+    if (f.mode === 'tdd' && input.mode === 'lightweight' && input.source !== 'user') fail('Only the user can downgrade a run to Lightweight.');
+    const started = !['context-check', 'close-the-gaps', 'spec-approval'].includes(f.phase);
+    if (f.mode === 'lightweight' && input.mode === 'tdd' && started) fail('Use escalate to move a started Lightweight run to TDD.');
+    if (f.mode_source === 'user' && input.source === 'assessed' && f.mode !== 'none') {
+      Object.assign(f, { risk: input.risk, risk_rationale: oneLine(input.rationale, 'Risk rationale') });
+    } else {
+      Object.assign(f, { risk: input.risk, mode: input.mode, mode_source: input.source, risk_rationale: oneLine(input.rationale, 'Risk rationale') });
+    }
+    reason = `Implementation mode: ${f.mode} (${f.risk} risk, ${f.mode_source}) — ${f.risk_rationale}`;
+  } else if (input.event === 'escalate') {
+    if (f.status !== 'In Progress') fail('Resume the run before escalating.');
+    if (input.source === 'user') explicit(input);
+    reason = escalate(f, input, input.reason);
+  } else if (input.event === 'lightweight-fix') {
+    if (!adaptive(f) || f.mode !== 'lightweight' || f.phase !== 'final-approval') fail('A Lightweight change request starts only from final approval.');
+    explicit(input);
+    requireText(input.reason, 'Requested changes');
+    startFix(f);
+    f.phase = 'lightweight';
   } else if (input.event === 'autonomy') {
     explicit(input);
     if (!['guided', 'autonomous', 'autopilot'].includes(input.mode)) fail('Invalid autonomy.');

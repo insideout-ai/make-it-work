@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "ticket": "DEMO",
+  "stage": "implement",
+  "plan_version": 1,
+  "status": "done",
+  "outcome": "IMPLEMENTED",
+  "artifacts": { "report": "make-it-work/DEMO/DEMO-lightweight.md" },
+  "data": {
+    "changed_paths": ["src/policy.js"],
+    "checks": ["node --test: 2 passed"],
+    "discoveries": [],
+    "risk_signal": null
+  }
+}
