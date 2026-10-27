@@ -1,0 +1,29 @@
+evals/README.md
+  s_0beb8896e4caf0::t_844ca5e538b1b4 54-58
+evals/grade-headless.test.mjs
+  s_0beb8896e4caf0::t_afc74e68c38b62 30
+  s_0beb8896e4caf0::t_32be4725a6d901 2,6,8,25-29,31-74
+  s_0beb8896e4caf0::t_ce225730381f9f 75
+evals/grade-headless.mjs
+  s_0beb8896e4caf0::t_4f4a21ca91a94c 54-58,63-69,71,114
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/epic-file-written.md
+  s_0beb8896e4caf0::t_c5988eae70c27b 3-5,9
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/epic-file-written.md
+  s_0beb8896e4caf0::t_37e5008939c5cc 3-5,9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "aed3cb0d4d0fa28d99a4b138f3dc197f7bb8ef62",
+  "prompts": {},
+  "sessions": {
+    "s_0beb8896e4caf0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17c36-d6fe-7840-8945-d5b095a834e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
