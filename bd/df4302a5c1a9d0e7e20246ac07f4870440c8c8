@@ -1,0 +1,48 @@
+docs/test-map-contract.md
+  s_c0091022f69c5e::t_e226a1f5deac52 9
+  s_c0091022f69c5e::t_52a1ae88ce4945 7,18,29,57-65
+  s_c0091022f69c5e::t_d55ac3f0f761d9 66
+scripts/test-map.test.mjs
+  s_c0091022f69c5e::t_b06cef6af2593f 131,134
+skills/implement/SKILL.md
+  s_c0091022f69c5e::t_52a1ae88ce4945 552
+scripts/test-map-report.test.mjs
+  s_c0091022f69c5e::t_b06cef6af2593f 1-136
+scripts/test-map-report.mjs
+  s_c0091022f69c5e::t_b06cef6af2593f 23,28,175
+  s_c0091022f69c5e::t_e3c12627189f29 1-22,24-27,29-174,176-187
+evals/define-test-strategy/fresh-tests/graders/developer-report-and-layers.md
+  s_c0091022f69c5e::t_3d9cc835da97b3 1-20
+scripts/test-map.mjs
+  s_c0091022f69c5e::t_b23c8bf40a4dec 16,53-54
+skills/plan-the-work/SKILL.md
+  s_c0091022f69c5e::t_52a1ae88ce4945 149
+skills/define-test-strategy/references/test-strategy-template.md
+  s_c0091022f69c5e::t_52a1ae88ce4945 83-84
+skills/define-test-strategy/SKILL.md
+  s_c0091022f69c5e::t_52a1ae88ce4945 173,225
+CHANGELOG.md
+  s_c0091022f69c5e::t_70952cf3527ca2 17-18
+CONTRIBUTING.md
+  s_c0091022f69c5e::t_9b742f63623f60 47
+README.md
+  s_c0091022f69c5e::t_fcf480f21dbf15 54-55,340
+docs/deterministic-artifacts.md
+  s_c0091022f69c5e::t_fb69678571680c 25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bddf4302a5c1a9d0e7e20246ac07f4870440c8c8",
+  "prompts": {},
+  "sessions": {
+    "s_c0091022f69c5e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17d34-5a28-7dc0-a73e-7dd1583e5bde",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
