@@ -19,6 +19,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Install Claude Code
         run: npm install --global @anthropic-ai/claude-code@2.1.267
 
