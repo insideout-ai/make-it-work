@@ -1,0 +1,71 @@
+skills/implement/scripts/pending-input.test.mjs
+  s_71321bbebb07b8::t_728272c353107d 36-37,41,50
+skills/implement/scripts/render-status.mjs
+  s_71321bbebb07b8::t_de3e6ff6290e6b 169,171,174,177,204,252-254,461,463-469,473
+skills/define-test-strategy/SKILL.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 231-232
+skills/implement/SKILL.md
+  s_71321bbebb07b8::t_7ca591886a940d 63,184
+  s_71321bbebb07b8::t_ba92f262b6282d 122,168,185,191-192,460
+  s_0beb8896e4caf0::t_597514dcf03cdd 461
+skills/implement/references/testing-readiness.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 9-10
+skills/implement/scripts/dashboard-checkpoint.mjs
+  s_71321bbebb07b8::t_de3e6ff6290e6b 34-38
+skills/implement/references/controller.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 31-32
+.claude-plugin/plugin.json
+  s_71321bbebb07b8::t_672af0d43cec3d 6
+skills/close-the-gaps/SKILL.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 479-480
+skills/implement/references/activity.md
+  s_71321bbebb07b8::t_728272c353107d 23
+  s_71321bbebb07b8::t_ba92f262b6282d 1-22,24-27
+skills/review-the-pr/SKILL.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 224-225
+skills/implement/scripts/workflow.test.mjs
+  s_71321bbebb07b8::t_728272c353107d 9,49,52-56,60-77
+  s_71321bbebb07b8::t_64d0fa7035adaf 78
+skills/plan-the-work/SKILL.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 361-362
+CHANGELOG.md
+  s_71321bbebb07b8::t_672af0d43cec3d 26-30
+  s_71321bbebb07b8::t_c709082c63d787 31
+skills/execute/SKILL.md
+  s_71321bbebb07b8::t_728272c353107d 368
+  s_71321bbebb07b8::t_a9cb549d0ba630 369
+skills/implement/scripts/workflow.mjs
+  s_71321bbebb07b8::t_728272c353107d 166
+  s_71321bbebb07b8::t_de3e6ff6290e6b 167-169,207-210,377-380
+skills/implement/scripts/render-status.test.mjs
+  s_71321bbebb07b8::t_111acf22ca82cd 154-167,170,175-179,184-186,198,200,203-204,206-227,229-237,244,248,250
+  s_71321bbebb07b8::t_ba92f262b6282d 180-183,228
+skills/implement/assets/status-template.html
+  s_71321bbebb07b8::t_de3e6ff6290e6b 67
+skills/run-regression/SKILL.md
+  s_71321bbebb07b8::t_a9cb549d0ba630 26-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "740c3813bec59521986536438fc57a77385bb61a",
+  "prompts": {},
+  "sessions": {
+    "s_0beb8896e4caf0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17c36-d6fe-7840-8945-d5b095a834e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_71321bbebb07b8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17d2b-1672-7073-bce4-68632aae0e6b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
