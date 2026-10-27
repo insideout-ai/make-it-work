@@ -1,3 +1,7 @@
+export function caseTools({ skill, name, tools, suites }) {
+  return [...new Set([...tools, ...(suites.extraTools?.[name] ?? []), ...(suites.requiredToolsBySkill?.[skill] ?? [])])];
+}
+
 export function pluginEvalArgs({ name, caseReportDir, remaining, tools, scaffold, model, judgeModel }) {
   const args = ['plugin', 'eval', '.', '--case', name, '--ablation', 'none', '--runs', '1',
     '--trust-plugin', '--no-publish', '--threshold', '0', '--output-dir', caseReportDir,

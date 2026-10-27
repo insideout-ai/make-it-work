@@ -31,7 +31,11 @@ function replaceActivity(markdown, activity) {
     return `${prefix} ${activity.trim()}`;
   });
   if (replacements !== 1) fail('State file must contain exactly one current_activity field.');
-  return next;
+  const timestamp = activity.trim() === 'none' ? 'none' : new Date().toISOString();
+  if (/^current_activity_updated_at:/m.test(next)) {
+    return next.replace(/^current_activity_updated_at:[^\r\n]*/m, `current_activity_updated_at: ${timestamp}`);
+  }
+  return next.replace(/^(current_activity:[^\r\n]*)/m, `$1\ncurrent_activity_updated_at: ${timestamp}`);
 }
 
 /** Updates activity and the derived dashboard as one recoverable checkpoint. */

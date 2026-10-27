@@ -156,6 +156,8 @@ If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of askin
 
 ### Phase 5A — Live Q&A
 
+Once semantic dependencies are identified, use `scripts/questions.mjs waves` under [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) to validate and schedule batches. Recompute after an answer materially changes the graph.
+
 Tell the user:
 > "I've analyzed the ticket and found [N] questions to resolve. I'll ask them in batches, grouped so you can navigate and revise answers within each batch before submitting."
 
@@ -330,6 +332,8 @@ Prepare a draft or send the questions to the ticket's Product Manager according 
 
 ### Phase 5C — Offline Injection
 
+First read [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) and run its required parser. Its active/conflict/N/A results replace manual checkbox counting and conditional propagation below; preserve the documented Slack provenance and semantic code-drift checks.
+
 **0. Check for ticket drift (tracker-sourced tickets only).** If `## Session Context → Source` names a tracker and issue ID, and that tracker's MCP integration is available in this session, fetch the current ticket read-only and compare it to the embedded `### Original Ticket` content.
 - If they differ, tell the user the live ticket has changed since export, and add a one-line callout directly under the refined ticket's title in Phase 6's output: "> **Note:** the live ticket in `<tracker>` has changed since this refinement was exported on `<date>`; this spec reflects the snapshot taken at export time." The embedded snapshot stays authoritative — do not substitute the live version.
 - If the tracker integration isn't available, or the ticket was pasted (no tracker source), say the comparison was skipped (or wasn't applicable) and proceed using the snapshot.
@@ -471,6 +475,8 @@ Finish by printing one line: `Context updated: <each file changed, with a one-li
 ---
 
 ## When run by implement
+
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md). In this inline session, save the exact narrated activity before each substantial investigation or spec-writing chunk. Before delegating work, save its description and retain it while waiting; only the main session writes activity or dashboards. Standalone runs and older runs without a dashboard do not create one.
 
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
 

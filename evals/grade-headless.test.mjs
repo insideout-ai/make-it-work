@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { gradeHeadlessCase, parseGrader, transcriptContext } from './grade-headless.mjs';
+import { gradeHeadlessCase, gradeHeadlessLocal, parseGrader, transcriptContext } from './grade-headless.mjs';
 import { validateEvalTree } from './validate.mjs';
+import { renderEpic, writeEpic } from '../scripts/epic.mjs';
 
 const transcript = [
   { type: 'assistant', message: { content: [
@@ -19,6 +20,57 @@ test('parses headless grader frontmatter', () => {
   assert.deepEqual(grader.target, { source: 'file', path: 'report.md' });
   assert.equal(grader.pattern, 'PASS\\s+now');
   assert.equal(grader.match, 'not_contains');
+});
+
+test('epic artifact graders accept script output and reject missing, empty or incomplete files', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-epic-artifact-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const input = { version: 1, title: 'Saved Search Alerts', mode: 'product',
+    categories: Array.from({ length: 7 }, (_, i) => ({ id: i + 1, assessed: true, ready: true,
+      content: '### Scenarios\n\nUser-supplied requirement and observable acceptance criteria.' })) };
+  const context = transcriptContext(transcript, root);
+  for (const name of ['shape-the-epic-rich-input-autopilot', 'shape-the-epic-sparse-input-autopilot']) {
+    const grader = parseGrader(await readFile(path.join('evals/shape-the-epic', name,
+      'graders/epic-file-written.md'), 'utf8'), 'epic-file-written.md');
+    const grade = () => gradeHeadlessLocal(grader, context);
+    assert.equal((await grade()).passed, false, 'A success claim cannot replace a missing artifact');
+    const { files: [file] } = await writeEpic(path.join(root, 'make-it-work'), input);
+    assert.equal((await grade()).passed, true, 'No Write-tool success message is needed');
+    await writeFile(file, '');
+    assert.equal((await grade()).passed, false);
+    const markdown = renderEpic(input);
+    for (const heading of ['What & Why', 'Definition of Done', 'Problem & Value Proposition',
+      'Target Users & Permissions', 'KPIs & Success Metrics', 'Use Cases & Requirements',
+      'Rollout Plan', 'Readiness checklist', 'Decision log']) {
+      const start = markdown.indexOf(`## ${heading}\n`);
+      const end = markdown.indexOf('\n## ', start + 1);
+      await writeFile(file, markdown.slice(0, start) + markdown.slice(end < 0 ? markdown.length : end));
+      assert.equal((await grade()).passed, false, `Missing ${heading}`);
+      await writeFile(file, markdown.slice(0, start + `## ${heading}\n`.length) +
+        markdown.slice(end < 0 ? markdown.length : end));
+      assert.equal((await grade()).passed, false, `Empty ${heading}`);
+    }
+    await rm(file);
+  }
+});
+
+test('file evidence globs reject ambiguity, traversal and symlink escapes', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-evidence-glob-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'fixture'));
+  await writeFile(path.join(root, 'secret.md'), 'PASS');
+  const context = transcriptContext(transcript, path.join(root, 'fixture'));
+  const grade = (file) => gradeHeadlessLocal({ name: 'file', type: 'regex',
+    target: { source: 'file', path: file }, pattern: 'PASS' }, context);
+  assert.equal((await grade('../*.md')).passed, false);
+  assert.equal((await grade(path.join(root, '*.md'))).passed, false);
+  await symlink(path.join(root, 'secret.md'), path.join(root, 'fixture', 'linked.md'));
+  assert.equal((await grade('linked.md')).passed, false);
+  assert.equal((await grade('*.md')).passed, false, 'Symlinks cannot supply glob evidence');
+  await writeFile(path.join(root, 'fixture', 'one.md'), 'PASS');
+  assert.equal((await grade('*.md')).passed, true);
+  await writeFile(path.join(root, 'fixture', 'two.md'), 'PASS');
+  assert.equal((await grade('*.md')).passed, false, 'Do not combine evidence from multiple files');
 });
 
 test('grades local checks and semantic checks without a review status', async (t) => {

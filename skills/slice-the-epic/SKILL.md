@@ -60,6 +60,8 @@ Build 2–3 tailored candidate approaches from the techniques below. An option m
 
 Before generating the full backlog, show each candidate's technique or combination, why it fits this epic, the main tradeoff, and 2–3 example slice titles. Make the options meaningfully different in boundaries, order, or feedback opportunities; do not add a weak third choice merely to fill a slot. Recommend one based on independent value, manageable scope, dependencies, and early risk reduction.
 
+Use `node <plugin-root>/scripts/slices.mjs preview --input <approaches.json>` to validate and render the candidates (see [the slice artifact contract](../../docs/deterministic-artifacts.md#slice-artifacts)). Send its output as visible assistant text before drafting the backlog; tool output and thinking do not replace that message. Then apply the existing interactive or autopilot selection policy. When the user already supplied an approach, honor it without constructing alternatives.
+
 Ask the user to choose through `AskUserQuestion`: one question in the `questions` array, a short `header` such as `Slicing`, `multiSelect: false`, and 2–3 options with `label` and `description`. Put the recommended option first with `(Recommended)` in its label. Claude supplies a free-text Other choice automatically. If the tool is unavailable, show numbered options and wait for a number or written choice. In interactive mode, stop here until the user responds; previews are not the completed backlog. In autopilot, apply the resolution table instead.
 
 If the user already specified a definite approach, honor it and briefly state its implications rather than asking them to select again. If they request a custom combination, clarify only material ambiguity, then use that choice. Record the chosen technique(s) and rationale in the final artifact. Do not add a second approval gate before saving the backlog.
@@ -95,6 +97,8 @@ Assign stable IDs (`S-1`, `S-2`, ...) to every story, technical task, and spike.
 Use the **Slice summary** table described below as the shared overview's slice index, linking each stable ID to its individual Markdown file. Each slice file includes its ID and title, epic/source context, a link back to the overview, story or technical objective, complete acceptance criteria or completion evidence, and hard prerequisites (IDs or `None`, with links to prerequisite slice files). Retain the full content in each slice file even when adapting presentation to a requested format; the overview need not duplicate it.
 
 ## Dependencies and implementation flow
+
+Read [the slice artifact contract](../../docs/deterministic-artifacts.md#slice-artifacts). Supply the semantically chosen slices/relationships once, then use required `slices.mjs check` and `write` for graph validation and all derived artifacts below. Do not hand-maintain separate dependency representations; show the helper's returned summary in chat. The helper's collision-safe set writer replaces the manual saving mechanics below.
 
 Identify relationships after drafting the slices, then reconcile them with each slice's dependency field:
 

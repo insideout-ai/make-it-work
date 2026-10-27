@@ -151,15 +151,39 @@ test('keeps refinement activity outside the connected timeline and above artifac
   assert.match(html, /alt="InsideOut AI"/);
 });
 
-test('omits the activity row when idle, paused, stopped, or complete', async (t) => {
-  for (const status of ['In Progress', 'Paused', 'Stopped', 'Complete']) {
+test('shows an honest fallback for active phases without a reported activity', async (t) => {
+  for (const phase of ['context-check', 'close-the-gaps', 'plan', 'review', 'final-sync']) {
+    const { html } = await renderFixture(t, stateMarkdown({
+      fields: { phase, current_activity: 'none', current_activity_updated_at: '2026-01-01T10:00:00Z' },
+      rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Checkpoint']],
+    }));
+    assert.match(html, /<section class="current-activity"/);
+    assert.match(html, /is in progress\. No activity details have been reported yet\./);
+    assert.doesNotMatch(html, /Last updated:/);
+  }
+});
+
+test('omits the activity row when paused, stopped, or complete', async (t) => {
+  for (const status of ['Paused', 'Stopped', 'Complete']) {
     const phase = status === 'Complete' ? 'complete' : 'context-check';
     const { html } = await renderFixture(t, stateMarkdown({
-      fields: { status, phase, current_activity: status === 'In Progress' ? 'none' : 'Stale activity.' },
+      fields: { status, phase, current_activity: 'Stale activity.', current_activity_updated_at: '2026-01-01T10:00:00Z' },
       rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Checkpoint']],
     }));
     assert.doesNotMatch(html, /<section class="current-activity"/);
     assert.doesNotMatch(html, /Stale activity\./);
+    assert.doesNotMatch(html, /Last updated:/);
+  }
+});
+
+test('activity timestamps are optional for legacy states and validated when present', async (t) => {
+  const { html } = await renderFixture(t, stateMarkdown({
+    fields: { current_activity: 'Drafting the plan.' },
+    rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started']],
+  }));
+  assert.match(html, /Last updated: unavailable/);
+  for (const timestamp of ['', 'yesterday', '2026-02-30T10:00:00Z', '<script>alert(1)</script>']) {
+    assert.throws(() => parseState(stateMarkdown({ fields: { current_activity_updated_at: timestamp } })), /current_activity_updated_at/);
   }
 });
 
@@ -171,22 +195,59 @@ test('dashboard checkpoint updates activity and its rendered snapshot together',
     rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']],
   }));
 
+  const before = Date.now();
   const outputPath = await checkpointDashboard(statePath, { activity: 'Inspecting project context.' });
+  const after = Date.now();
   const [state, html] = await Promise.all([readFile(statePath, 'utf8'), readFile(outputPath, 'utf8')]);
   assert.match(state, /^current_activity: Inspecting project context\.$/m);
+  const timestamp = parseState(state).fields.current_activity_updated_at;
+  assert.ok(Date.parse(timestamp) >= before && Date.parse(timestamp) <= after);
   assert.match(html, /phase-activity">Inspecting project context\.<\/p>/);
+  assert.ok(html.includes(`Last updated: <time class="ts" datetime="${timestamp}" data-ts="${timestamp}">${timestamp}</time>`));
+
+  await checkpointDashboard(statePath);
+  assert.equal(await readFile(statePath, 'utf8'), state);
+  assert.equal(await readFile(outputPath, 'utf8'), html);
+
+  await checkpointDashboard(statePath, { activity: 'none' });
+  assert.equal(parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at, 'none');
+  const cleared = await readFile(outputPath, 'utf8');
+  assert.match(cleared, /No activity details have been reported yet/);
+  assert.doesNotMatch(cleared, /Inspecting project context|Last updated:/);
+});
+
+test('retains a delegated-work description through refresh and decisions until the parent reports its result', async (t) => {
+  const { directory, outputPath } = await renderFixture(t, stateMarkdown({
+    fields: { phase: 'plan' },
+    rows: [['2026-01-01T10:00:00Z', 'start', 'plan', 'Planning started']],
+  }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const activity = 'Refreshing the test strategy and test map in a background agent.';
+  await checkpointDashboard(statePath, { activity });
+  const timestamp = parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at;
+  await checkpointDecision(statePath, { id: 'waiting-mode', topic: 'Autonomy', choice: 'Keep autopilot', source: 'user', via: 'chat', scope: 'DEMO', resume: 'transparent' });
+  await checkpointDashboard(statePath);
+  const waiting = await readFile(outputPath, 'utf8');
+  assert.ok(waiting.includes(activity));
+  assert.ok(waiting.includes(`data-ts="${timestamp}"`));
+  assert.equal(parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at, timestamp);
+  await checkpointDashboard(statePath, { activity: 'The test strategy is ready; drafting the implementation plan.' });
+  const finished = await readFile(outputPath, 'utf8');
+  assert.match(finished, /The test strategy is ready; drafting the implementation plan\./);
+  assert.ok(!finished.includes(activity));
 });
 
 test('dashboard checkpoint restores activity when rendering fails', async (t) => {
   const directory = await workspace(t);
   const statePath = path.join(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({
-    fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md', current_activity: 'none' },
+    fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md', current_activity: 'Earlier activity.', current_activity_updated_at: '2026-01-01T10:00:00Z' },
     rows: [['2026-01-01T10:00:00Z', 'start', 'execute', 'Execution started']],
   }));
 
+  const original = await readFile(statePath, 'utf8');
   await assert.rejects(checkpointDashboard(statePath, { activity: 'Running a step.' }), /Could not read the plan required for timeline progress/);
-  assert.match(await readFile(statePath, 'utf8'), /^current_activity: none$/m);
+  assert.equal(await readFile(statePath, 'utf8'), original);
 });
 
 test('accepts and describes fully autonomous autopilot runs', async (t) => {

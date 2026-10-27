@@ -42,6 +42,8 @@ Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route"
 
 ## After each stage
 
+For `controller_version: 1` runs, use `workflow.mjs apply` with event `handoff` under [controller.md](controller.md) instead of manually applying `next`'s side effects. It calls the same routing policy, persists the result once, and owns the counters. The instructions below remain the legacy path and explain pending questions/triage.
+
 1. Finish the normal Markdown artifact and chat report. For Execute, first save the terminal report to `make-it-work/<TICKET>/<TICKET>-execute.md`, as `implement` already does.
 2. Write the JSON handoff using the actual artifact paths and current plan/review counters. These JSON files are local run data under the same ignored `make-it-work/` directory as the other artifacts.
 3. Run `node "<implement-base>/scripts/handoff.mjs" validate --handoff <path> --root <artifact-root>`. The artifact root is the directory containing `make-it-work/`, not necessarily a service repo. On validation failure, correct the result or report a blocked run; never route from invalid JSON.

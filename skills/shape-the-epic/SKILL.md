@@ -106,6 +106,8 @@ Check that the draft connects the problem to the intended outcome, expresses tes
 
 ## Phase 4 — Epic generation
 
+Read [the epic artifact contract](../../docs/deterministic-artifacts.md#epic-artifacts). After completing the interview and semantic category/readiness decisions, use required `scripts/epic.mjs` rendering/writing for section order, status, scope projection, shared lists, decision ordering and collision-safe files. For revisions pass the prior artifact to preserve unselected/custom sections and retain the full shared decision history. The content and review rules below still apply; a renderer pass does not imply readiness or approval.
+
 Generate the complete draft in the selected mode's output order without a section-approval gate. Preserve supplied commitments and clearly label proposed interpretations. When editing an epic, apply the requested changes and preserve unrelated content, including unselected sections; the ownership prohibition still applies to generated content.
 
 Save a new Markdown file as `make-it-work/epic-[title-in-kebab-case]-[YYYYMMDD-HHMM].md` under the project root (create `make-it-work/` if needed). Use the current working directory as the project root when no repository root is explicitly known; never infer a parent from a home path or status display. Keep the epic and autopilot decision log under the same root. Avoid overwriting an existing file with the same name; append a numeric suffix if needed. Tell the user the saved filename. This workflow generates a local artifact; it does not itself authorize publishing or modifying a work-management ticket.

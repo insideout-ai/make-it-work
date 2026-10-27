@@ -8,6 +8,8 @@ Never describe an automatic default, skipped gate, absent connector, unanswered 
 
 ## Record before proceeding
 
+**Before presenting a question:** When the workflow state exists, follow [the controller's pending-input lifecycle](controller.md#pending-input-lifecycle). Save `await-input` before asking any blocking workflow/product question or pausing between inline steps. The helper owns Paused status, the pending question and immediate dashboard refresh; silence leaves it pending. Use `blocking: false` only when independent work can proceed. Inline stages report the exact prompt/choices to the main session before the question, then the actual answer; subagents do not independently write state. Handoff questions and Guided spec/plan gates are checkpointed automatically by the controller. Use `resolve-input` for the answer; its resolution/transition row replaces a duplicate generic decision row for that same answer. Authoritative publication/delivery/verification records remain required before dependent operations. Before state creation and after implementation completes, retain Start and the delivery journal's respective ownership rules.
+
 For a decision that causes a phase transition, include `Decision: <topic> — <choice>; source: user; via: question|chat|flag; scope: <scope>; reference: <version/hash or journal revision when applicable>` in that transition's ordinary Outcome / reason, retaining its required causal evidence. Do not add a duplicate same-phase row. Before a state file exists, retain all startup choices (including branch, autonomy and refinement channel) and include them with their sources/scopes in its first row; never fabricate a pre-state timestamp.
 
 For every other decision, save a local JSON input and run:

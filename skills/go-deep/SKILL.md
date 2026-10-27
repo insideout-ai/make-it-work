@@ -75,6 +75,8 @@ At the end of an autopilot run, print a short human-readable summary of every au
 
 ## Domain Skill Naming
 
+Before naming or prior-run repair checks, read [the documentation inventory contract](../../docs/deterministic-artifacts.md#documentation-inventory) and run its helper. Use its existing/reserved names, ID allocation, missing references and size warnings instead of manually counting or cross-referencing. Run the selected staleness window through the same helper; semantic documentation repair remains the workflow below.
+
 - Resolve the repository's convention from existing `domain-*` directories and exact skill names referenced in CLAUDE.md and the orientation maps, including references whose files are missing. Preserve those names on repair or repeat onboarding; recreating a missing skill uses its referenced name exactly.
 - For a repository with no established domain skill names, use `domain-{id}-{kebab-case-name}`, starting at `01` (e.g. `domain-01-authentication`). Existing repositories with unnumbered domains keep `domain-{kebab-case-name}` for new domains; repositories with numbered domains keep numbering. Do not add a migration choice or rename existing skills to introduce numbering.
 - Assign new domain IDs in Phase 3, show the IDs and full skill names in the scope review, and keep them stable. Use at least two digits; allocate above the highest ID already assigned or reserved in the repository's inventory, including missing-skill references. Never renumber existing domains or reuse retired IDs. Domain and UC numbering are independent.

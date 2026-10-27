@@ -8,6 +8,7 @@ import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.
 import { readDelivery } from './delivery-progress.mjs';
 import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
+import { pendingInputs } from './pending-input.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -181,15 +182,15 @@ function splitTableRow(line) {
   return cells;
 }
 
-function parseIsoTimestamp(value, rowNumber) {
+function parseIsoTimestamp(value, label) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
-    fail(`Audit row ${rowNumber} has an invalid ISO 8601 UTC timestamp: ${value}`);
+    fail(`${label} has an invalid ISO 8601 UTC timestamp: ${value}`);
   }
   const epoch = Date.parse(value);
-  if (!Number.isFinite(epoch)) fail(`Audit row ${rowNumber} has an invalid timestamp: ${value}`);
+  if (!Number.isFinite(epoch)) fail(`${label} has an invalid timestamp: ${value}`);
   const normalized = value.includes('.') ? value : value.replace('Z', '.000Z');
   if (new Date(epoch).toISOString() !== normalized) {
-    fail(`Audit row ${rowNumber} has an invalid calendar timestamp: ${value}`);
+    fail(`${label} has an invalid calendar timestamp: ${value}`);
   }
   return epoch;
 }
@@ -216,7 +217,7 @@ function parseAudit(value) {
     return {
       number,
       time: cells[1],
-      epoch: parseIsoTimestamp(cells[1], number),
+      epoch: parseIsoTimestamp(cells[1], `Audit row ${number}`),
       from: cells[2],
       to: cells[3],
       outcome: cells[4],
@@ -287,6 +288,9 @@ export function parseState(markdown, statePath = '') {
   if (!FIX_DISPATCH_VALUES.has(fields.fix_plan_dispatch)) fail(`Unsupported fix_plan_dispatch: ${fields.fix_plan_dispatch}`);
   if (!GATE_VALUES.has(fields.gate)) fail(`Unsupported gate: ${fields.gate}`);
   validateAdaptiveFields(fields);
+  if (fields.current_activity_updated_at !== undefined && fields.current_activity_updated_at !== 'none') {
+    parseIsoTimestamp(fields.current_activity_updated_at, 'Field "current_activity_updated_at"');
+  }
 
   const audit = parseAudit(section(markdown, 'Audit log'));
   const reviewCycle = parseInteger(fields, 'review_cycle');
@@ -320,6 +324,7 @@ export function parseState(markdown, statePath = '') {
 
   return {
     fields,
+    pendingInputs: pendingInputs(fields),
     audit,
     knownRegressions: parseList(section(markdown, 'Known regressions'), 'Known regressions'),
     decidedFindings: parseList(section(markdown, 'Decided findings'), 'Decided findings'),
@@ -518,12 +523,19 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
 }
 
 function renderCurrentActivity(state, timeline) {
-  if (!timeline.activeSlot || state.fields.status !== 'In Progress' || state.fields.current_activity === 'none') return '';
+  if (!timeline.activeSlot || state.fields.status !== 'In Progress') return '';
   const label = escapeHtml(slotInfo(timeline.activeSlot).label);
-  const activity = escapeHtml(state.fields.current_activity);
+  const hasActivity = state.fields.current_activity !== 'none';
+  const activity = hasActivity ? escapeHtml(state.fields.current_activity)
+    : `${label} is in progress. No activity details have been reported yet.`;
+  const updatedAt = state.fields.current_activity_updated_at;
+  const timestamp = updatedAt && updatedAt !== 'none'
+    ? `<time class="ts" datetime="${escapeHtml(updatedAt)}" data-ts="${escapeHtml(updatedAt)}">${escapeHtml(updatedAt)}</time>`
+    : 'unavailable';
   return `<section class="current-activity" aria-label="Current activity">
   <strong>${label} in progress</strong>
   <p class="phase-activity">${activity}</p>
+  ${hasActivity ? `<p class="activity-updated">Last updated: ${timestamp}</p>` : ''}
 </section>`;
 }
 
@@ -566,6 +578,20 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
 }
 
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
+  const pending = state.pendingInputs ?? pendingInputs(state.fields);
+  if (pending.length) {
+    const cards = pending.map((record) => {
+      const title = record.waiting_for === 'pm' ? 'Waiting for the Product Manager' : 'Waiting for your input';
+      const qualifier = record.blocking ? state.fields.status === 'Stopped' ? 'Workflow stopped' : 'Workflow paused' : state.fields.status === 'Complete' ? 'Implementation remains complete' : 'Does not block the workflow';
+      const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
+      const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
+      const reference = record.binding ? `<p class="pending-reference">${record.binding.path ? escapeHtml(record.binding.path) + ' · ' : ''}SHA-256: <code>${escapeHtml(record.binding.sha256)}</code></p>` : '';
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+    }).join('\n');
+    const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
+    const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
+    return `${banner}\n${cards}`;
+  }
   if (state.fields.status === 'Paused' || state.fields.status === 'Stopped') {
     return `<p class="next-action"><strong>Waiting on you:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
   }
@@ -662,7 +688,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`), 'review', state.fields.ticket);
   const replacements = {
     TICKET: escapeHtml(state.fields.ticket),
-    AUTO_REFRESH: state.fields.status === 'In Progress' || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
+    AUTO_REFRESH: state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
       ? '<meta http-equiv="refresh" content="15">' : '',
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
