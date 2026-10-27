@@ -1,0 +1,21 @@
+.github/workflows/validate-plugin.yml
+  s_2ad3bd6fc1a5bc::t_348c1655921bec 22-24
+scripts/repo-assessment.test.mjs
+  s_2ad3bd6fc1a5bc::t_624d96037b73ac 7-10,32,38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "390cf2ee3cf8ca9e228b792f74030db3d6ec6529",
+  "prompts": {},
+  "sessions": {
+    "s_2ad3bd6fc1a5bc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17de8-cdcc-7440-a55a-dc0b99513a77",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
