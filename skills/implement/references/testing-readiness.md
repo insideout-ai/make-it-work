@@ -2,7 +2,7 @@
 
 Record the user's testing setup, strategy scope and automated/manual verification choices under [workflow-decisions.md](workflow-decisions.md), including the affected repos and selected policy, before setup or dependent planning begins. Automatic Autonomous/Autopilot defaults keep their actual source; unavailable tooling or unanswered prompts never imply manual-verification consent.
 
-Run inside `implement`'s Plan phase, before invoking `plan-the-work`, and before entering Execute with a reused standalone plan. The branch guard, workflow state, dashboard and spec already exist. Read the spec to identify affected product repos; inspect only relevant test locations. This is setup owned by the orchestrator, outside planning's read-only investigation. Keep the dashboard in Plan while doing it.
+Run inside `implement`'s Plan phase, before invoking `plan-the-work`, and before entering Execute with a reused standalone plan. A Lightweight run never enters Plan and skips readiness; an escalation into Plan runs it as usual. The branch guard, workflow state, dashboard and spec already exist. Read the spec to identify affected product repos; inspect only relevant test locations. This is setup owned by the orchestrator, outside planning's read-only investigation. Keep the dashboard in Plan while doing it.
 
 ## Inspect and choose
 

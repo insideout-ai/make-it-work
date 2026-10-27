@@ -9,7 +9,7 @@ completed checklist with private transcripts or test-account data.
 - `node evals/run-suite.mjs full` report path and reported usage:
 - All headless cases automatically graded (record any failures and investigation):
 - Failing LLM graders, transcript evidence, and disposition:
-- Disposable end-to-end workflow result (including failure and resume):
+- Disposable end-to-end workflow result, run with `--mode tdd` (including failure and resume):
 - Clean-install smoke result:
 - Live integration smoke result using existing test accounts:
 - Reviewer and date:

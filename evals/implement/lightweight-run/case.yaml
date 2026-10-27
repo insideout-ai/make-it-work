@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-lightweight-run
+tags: [implement, autopilot, adaptive, lightweight]
+context:
+  scaffold_script: fixture.sh

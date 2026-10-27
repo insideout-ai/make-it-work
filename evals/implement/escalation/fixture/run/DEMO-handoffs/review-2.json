@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "ticket": "DEMO",
+  "stage": "review",
+  "plan_version": 1,
+  "review_cycle": 2,
+  "status": "done",
+  "outcome": "FIX_REQUIRED",
+  "artifacts": { "report": "make-it-work/DEMO/DEMO-review.md" },
+  "data": {
+    "findings": [
+      { "id": "#2", "route": "fix", "region": "src/policy.js:canProceed", "introduced_by_fix_of": "#1" }
+    ],
+    "context_gaps": []
+  }
+}

@@ -168,3 +168,80 @@ test('packages an explicitly manual completion without claiming automated PASS',
   await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ ...evidence, acceptance: [{ ...evidence.acceptance[0], status: 'unverified', step: null }] }));
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /every acceptance criterion/);
 });
+
+function adaptiveState(ticket, { mode, risk, escalations, implementationReport = `make-it-work/${ticket}/${ticket}-lightweight.md` }) {
+  let state = stateMarkdown(ticket).replace('final_package_version: 1', `final_package_version: 1\nverification_version: 1\nadaptive_version: 1\nrisk: ${risk}\nmode: ${mode}\nmode_source: assessed\nrisk_rationale: Small isolated change\nescalations: ${escalations}\nimplementation_report: ${implementationReport}`);
+  if (mode === 'lightweight') {
+    state = state.replace(`plan: make-it-work/${ticket}/${ticket}-plan.md`, 'plan: none').replace('plan_hash: plan', 'plan_hash: none')
+      .replace('execution: passed', 'execution: not-started').replace('gate: full-suite', 'gate: none')
+      .replace(`execute_report: make-it-work/${ticket}/${ticket}-execute.md`, 'execute_report: none')
+      .replace('context_updated: none', 'testing_readiness: none\ncontext_updated: none');
+  }
+  return state;
+}
+
+test('packages a Lightweight run from spec, implementation report and review only', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-lightweight-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  for (const name of ['plan', 'execute']) await rm(path.join(dir, `DEMO-${name}.md`));
+  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Lightweight\n\nChanged src/existing.txt; ran unit tests.\n');
+  await writeFile(state, adaptiveState('DEMO', { mode: 'lightweight', risk: 'low', escalations: 0 }));
+  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.deepEqual(Object.keys(pkg.evidence), ['spec', 'implementation', 'review']);
+  assert.equal(pkg.evidence.implementation.path, 'make-it-work/DEMO/DEMO-lightweight.md');
+  assert.deepEqual(pkg.validation, { mode: 'lightweight', result: 'Lightweight — no regression gate; verified by independent review' });
+  assert.deepEqual(pkg.adaptive, { mode: 'lightweight', risk: 'low', mode_source: 'assessed', escalations: 0 });
+  assert.equal(pkg.acceptance, undefined);
+  assert.deepEqual(pkg.repos[0].paths, ['src/existing.txt']);
+  const md = await readFile(built.package, 'utf8');
+  assert.match(md, /Validation: Lightweight — no regression gate; verified by independent review\./);
+  assert.match(md, /Mode: Lightweight \(assessed\) · Risk: low · Escalations: 0 \/ 1/);
+  assert.doesNotMatch(md, /- plan:|- execute:/);
+  run('approve', root, state, '--hash', built.sha256);
+  assert.equal(run('check', root, state, '--require-approval').approved, true);
+  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Lightweight changed\n');
+  assert.throws(() => run('check', root, state), /stale/);
+  await writeFile(state, adaptiveState('DEMO', { mode: 'lightweight', risk: 'low', escalations: 0 }).replace('review: clean', 'review: fix-required'));
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /clean review/);
+  await writeFile(state, adaptiveState('DEMO', { mode: 'lightweight', risk: 'low', escalations: 0, implementationReport: 'none' }));
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /implementation report/);
+});
+
+test('packages an escalated run on the TDD path with the Lightweight report as extra evidence', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-escalated-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Lightweight baseline\n');
+  await writeFile(state, adaptiveState('DEMO', { mode: 'tdd', risk: 'medium', escalations: 1 }));
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
+    gate: { mode: 'full-suite', result: 'pass', note: 'Full suite passed' },
+    acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] }));
+  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.deepEqual(Object.keys(pkg.evidence), ['spec', 'plan', 'execute', 'review', 'implementation', 'verification']);
+  assert.deepEqual(pkg.validation, { mode: 'full-suite', result: 'pass' });
+  assert.equal(pkg.acceptance[0].status, 'automated');
+  assert.match(await readFile(built.package, 'utf8'), /Mode: TDD \(assessed\) · Risk: medium · Escalations: 1 \/ 1/);
+  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Baseline changed\n');
+  assert.throws(() => run('check', root, state), /stale/);
+});
+
+test('old runs keep the exact package shape without adaptive fields', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-legacy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.deepEqual(Object.keys(pkg), ['version', 'ticket', 'draft_path', 'draft_sha256', 'draft', 'evidence', 'validation', 'review', 'open_nits', 'known_regressions', 'decided_findings', 'repos']);
+  assert.match(await readFile(built.package, 'utf8'), /^# Final approval — DEMO\n\nReview: clean\. Validation: full-suite — PASS\.\n\n## Changes/);
+});

@@ -8,10 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- `implement` now chooses its workflow by risk. After `close-the-gaps`, new runs assess the ticket as Low, Medium or High risk with a recorded rationale. Low risk runs **Lightweight**: a fresh subagent implements the spec directly, with no plan, test-first steps or regression gate, and the independent review and final context sync remain mandatory. Medium and High risk keep the full TDD pipeline. A Lightweight run escalates once to TDD on repeat or same-area review findings, a product decision, a replan-level finding or new risk, keeping its code as the TDD plan's accepted baseline; it never downgrades on its own. `--mode lightweight|tdd` or a chat request forces a mode while the assessment is still recorded. Guided spec approval shows the risk, mode and rationale and can switch mode; Lightweight runs have no plan gate. The state, dashboard, final package and workflow feedback record risk, mode, escalations and skipped stages. Runs started before this change resume under the full workflow without assessment.
+- The `implement-autopilot-full`, `implement-no-tooling` and `implement-empty-strategy` evaluations and the end-to-end rehearsal pass `--mode tdd` so their small tickets still exercise the full TDD pipeline.
 - PM refinement messages in Slack now use a welcoming greeting, link to the Jira or other tracker ticket when its URL is available, explain how to reply in the thread, and include a short AI disclosure crediting make-it-work by InsideOut AI.
 
 ### Added
 
+- New `implement-lightweight-run` and `implement-escalation` evaluations cover a Low-risk run completing through Lightweight and a repeat review finding escalating a Lightweight run to TDD.
 - The initial refinement choice now separates **Answer here**, **Draft in Slack**, and **Send via Slack**; standalone `close-the-gaps` also retains **Export to a file**. `--slack` remains draft-only and new `--slack-send` explicitly authorizes sending to the confirmed PM. Saved delivery metadata supports reply lookup and prevents automatic resends after interruption or an uncertain result; `implement` reports the actual delivery status and pauses for answers.
 - `implement` now requires every explicit user workflow decision in its Audit log and dashboard, including tracker permission scope and revocation, Slack selection, approvals, execution preferences, resume choices and delivery decisions. A shared checkpoint captures the host timestamp, preserves changed-choice history and prevents duplicate events on retry. Automatic defaults remain distinct from user approval.
 

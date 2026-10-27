@@ -14,21 +14,25 @@ Claude Code sign-in. It is deliberately not part of the per-PR smoke suite.
    baseline `node --test` run must pass before proceeding.
 
 2. From `run_dir`, start `claude --plugin-dir <plugin-root>` and submit
-   `/make-it-work:implement DEMO-101` followed by the complete contents of
-   `TICKET.md`. Choose **Autonomous**. Review the saved spec, plan, code,
-   regression result, PR review, and final context update. Pass requires
+   `/make-it-work:implement DEMO-101 --mode tdd` followed by the complete
+   contents of `TICKET.md`. The flag forces the full TDD pipeline this
+   rehearsal checks; without it this small ticket would likely be assessed
+   Low risk and run Lightweight. Choose **Autonomous**. Confirm the state
+   records `mode: tdd` with `mode_source: user`. Review the saved spec, plan,
+   code, regression result, PR review, and final context update. Pass requires
    `canProceed('admin') === true`, the original member/guest tests still
    passing, a completed state file, and no commit or push by the skill.
 
-3. For the failure-and-resume rehearsal, seed a second disposable project.
-   Choose **Guided** and pause at plan approval. Copy
-   `forced-regression.test.js` into that project's `test/` directory, then
-   approve the plan and let execution reach the regression gate. The copied
-   test is deliberately unrelated to the ticket. Pass requires a visible
-   failing gate, a clear related/unrelated classification, and no silent
-   success claim. Stop the run, remove only the copied test from this
-   disposable project, then invoke `/make-it-work:implement` to resume.
-   Pass requires the saved state to be reconciled and the suite to pass.
+3. For the failure-and-resume rehearsal, seed a second disposable project and
+   start it the same way, including `--mode tdd`. Choose **Guided** and pause
+   at plan approval. Copy `forced-regression.test.js` into that project's
+   `test/` directory, then approve the plan and let execution reach the
+   regression gate. The copied test is deliberately unrelated to the ticket.
+   Pass requires a visible failing gate, a clear related/unrelated
+   classification, and no silent success claim. Stop the run, remove only the
+   copied test from this disposable project, then invoke
+   `/make-it-work:implement` to resume. Pass requires the saved state to be
+   reconciled and the suite to pass.
 
 4. Record both fixture paths, the final state files, the reviewed report,
    and the exact plugin commit in `docs/eval-release-checklist.md`'s release

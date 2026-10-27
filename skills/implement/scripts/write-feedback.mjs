@@ -24,8 +24,11 @@ const REPLAN_FROM = new Set(['execute', 'review', 'fix-plan']);
 const WORKFLOW_TERMS = new Set([
   'close-the-gaps', 'define-test-strategy', 'find-the-repos', 'go-deep',
   'plan-the-work', 'review-the-pr', 'run-regression', 'shape-the-epic',
-  'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval',
+  'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval', 'lightweight',
 ]);
+const ADAPTIVE_MODES = new Set(['none', 'lightweight', 'tdd']);
+const ADAPTIVE_RISKS = new Set(['none', 'low', 'medium', 'high']);
+const ADAPTIVE_SOURCES = new Set(['none', 'assessed', 'user']);
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
 function fail(message) { throw new Error(message); }
@@ -62,8 +65,8 @@ export function inspectState(markdown, { limitStop = false } = {}) {
   if (status === 'Complete') {
     if (phase !== 'complete' || limitStop) fail('Complete feedback requires phase: complete and no --limit-stop.');
   } else if (status === 'Stopped' && limitStop) {
-    if (!['execute', 'review', 'fix-plan'].includes(phase)) {
-      fail('A limit stop must be in execute, review, or fix-plan.');
+    if (!['execute', 'review', 'fix-plan', 'lightweight'].includes(phase)) {
+      fail('A limit stop must be in execute, review, fix-plan, or lightweight.');
     }
   } else {
     fail('Feedback requires a completed run or an explicitly confirmed fix/review/replan limit stop.');
@@ -78,7 +81,7 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     if (Number(number) !== index + 1 || !ISO_UTC.test(time) || Number.isNaN(Date.parse(time))) {
       fail(`Invalid Audit log number or timestamp at row ${index + 1}.`);
     }
-    return { number: index + 1, from, to, outcome, ...parseDecisionCell(outcome) };
+    return { number: index + 1, time, from, to, outcome, ...parseDecisionCell(outcome) };
   });
   if (rows.length === 0) fail('Audit log is empty.');
   const finalRow = rows.at(-1);
@@ -88,8 +91,26 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     fail('A limit stop needs limit/cap/exhausted evidence in pause_reason or the final Audit log row.');
   }
 
+  let adaptive = null;
+  if (fields.adaptive_version !== undefined) {
+    const { mode, risk, mode_source: source, escalations } = fields;
+    if (fields.adaptive_version !== '1' || !ADAPTIVE_MODES.has(mode) || !ADAPTIVE_RISKS.has(risk) ||
+        !ADAPTIVE_SOURCES.has(source) || !/^[01]$/.test(escalations ?? '')) {
+      fail('Adaptive runs need valid mode, risk, mode_source, and escalations fields.');
+    }
+    const elapsedMinutes = Math.max(0, Math.round((Date.parse(finalRow.time) - Date.parse(runId)) / 60000));
+    adaptive = {
+      mode, risk, modeSource: source, escalations: Number(escalations),
+      stagesSkipped: mode === 'lightweight' ? 'plan, execute, regression gate' : 'none',
+      elapsed: `${Math.floor(elapsedMinutes / 60)}h ${elapsedMinutes % 60}m`,
+    };
+  }
+
   const events = rows.flatMap((row) => {
+    // Escalation rows (Lightweight -> TDD) enter plan but are not replans.
+    if (row.outcome.startsWith('Escalation:')) return [{ kind: 'Escalation', row: row.number }];
     if (row.to === 'fix-plan' && row.from !== 'fix-plan') return [{ kind: 'Fix', row: row.number }];
+    if (row.to === 'lightweight' && ['review', 'final-approval'].includes(row.from)) return [{ kind: 'Fix', row: row.number }];
     if (row.to === 'plan' && REPLAN_FROM.has(row.from)) return [{ kind: 'Replan', row: row.number }];
     return [];
   });
@@ -113,6 +134,7 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     sourceCompounds,
     ticket,
     pluginVersion: pluginVersion ?? 'not captured (legacy run)',
+    ...(adaptive ? { adaptive } : {}),
   };
 }
 
@@ -138,7 +160,7 @@ function safeLines(value, label, ticket, sourceCompounds) {
 function validateAnalysis(analysis, summary) {
   if (!analysis || typeof analysis !== 'object' || Array.isArray(analysis)) fail('Analysis must be a JSON object.');
   if (!Array.isArray(analysis.events) || analysis.events.length !== summary.events.length) {
-    fail('Analysis must have one event per Audit log fix/replan event, in order.');
+    fail('Analysis must have one event per Audit log fix/replan/escalation event, in order.');
   }
   const events = analysis.events.map((event, index) => {
     const expected = summary.events[index];
@@ -170,7 +192,11 @@ function validateAnalysis(analysis, summary) {
 
 export function renderBlock(summary, analysis = null) {
   const prefix = `<!-- run:${summary.runId} -->\n## Run started ${summary.runId}\n\n` +
-    `- Plugin version: ${summary.pluginVersion}\n- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
+    `- Plugin version: ${summary.pluginVersion}\n` +
+    (summary.adaptive ? `- Mode: ${summary.adaptive.mode} (${summary.adaptive.risk} risk, ${summary.adaptive.modeSource})\n` +
+      `- Escalations: ${summary.adaptive.escalations}\n- Stages skipped: ${summary.adaptive.stagesSkipped}\n` +
+      `- Elapsed: ${summary.adaptive.elapsed}\n` : '') +
+    `- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
     `- Fix rounds: ${summary.fixRounds}\n- Replans: ${summary.replans}\n` +
     `- Review cycles: ${summary.reviewCycles}\n`;
   if (summary.minimal) {

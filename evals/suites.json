@@ -48,6 +48,8 @@
     "implement-autopilot-full",
     "implement-no-tooling",
     "implement-empty-strategy",
+    "implement-lightweight-run",
+    "implement-escalation",
     "plan-the-work-happy-path",
     "plan-the-work-plan-collision",
     "plan-the-work-with-tests",

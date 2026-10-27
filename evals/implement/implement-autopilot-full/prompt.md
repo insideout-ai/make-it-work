@@ -6,7 +6,7 @@ timeout_seconds: 2400
 runs: 1
 ---
 
-/make-it-work:implement DEMO-101 --autopilot
+/make-it-work:implement DEMO-101 --autopilot --mode tdd
 
 Ticket: Allow administrators to proceed through the policy-protected action.
 

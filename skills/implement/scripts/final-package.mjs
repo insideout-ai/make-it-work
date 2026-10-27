@@ -12,6 +12,8 @@ import { assertRunState, runArtifact, runArtifactName, runDirectory } from './ar
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
+const LIGHTWEIGHT_VALIDATION = 'Lightweight — no regression gate; verified by independent review';
+const MODE_LABEL = { lightweight: 'Lightweight', tdd: 'TDD', none: 'none' };
 
 function git(repo, args, { acceptDiff = false } = {}) {
   const result = spawnSync('git', ['-C', repo, ...args], { encoding: null, maxBuffer: 100 * 1024 * 1024 });
@@ -66,8 +68,11 @@ function markdown(pkg) {
   const lines = [
     `# Final approval — ${pkg.ticket}`,
     '',
-    `Review: ${pkg.review.status}. Validation: ${pkg.validation.mode} — ${pkg.validation.result}.`,
+    pkg.validation.mode === 'lightweight'
+      ? `Review: ${pkg.review.status}. Validation: ${pkg.validation.result}.`
+      : `Review: ${pkg.review.status}. Validation: ${pkg.validation.mode} — ${pkg.validation.result}.`,
     '',
+    ...(pkg.adaptive ? [`Mode: ${MODE_LABEL[pkg.adaptive.mode]} (${pkg.adaptive.mode_source}) · Risk: ${pkg.adaptive.risk} · Escalations: ${pkg.adaptive.escalations} / 1`, ''] : []),
     '## Changes',
     '',
   ];
@@ -130,6 +135,8 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   runArtifactName(draftRelative, f.ticket, 'Draft');
   const draftArtifact = await artifact(root, draftRelative);
   const draft = assertDraft(JSON.parse(await readFile(path.resolve(root, draftArtifact.path), 'utf8')));
+  const adaptive = f.adaptive_version === '1';
+  if (adaptive && f.mode === 'lightweight') return lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft);
   for (const [name, relative] of [['spec', f.spec], ['plan', f.plan], ['execute', f.execute_report]]) {
     runArtifactName(relative, f.ticket, name);
   }
@@ -139,6 +146,7 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     execute: await artifact(root, f.execute_report),
     review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
   };
+  if (adaptive && f.implementation_report !== 'none') evidence.implementation = await artifact(root, f.implementation_report);
   if (f.testing_readiness !== undefined) {
     runArtifactName(f.testing_readiness, f.ticket, 'Testing readiness');
     evidence.testing_readiness = await artifact(root, f.testing_readiness);
@@ -156,6 +164,26 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     if (verification.gate.mode !== f.gate) fail('Verification gate mode disagrees with state.');
     evidence.verification = await artifact(root, relative);
   } else if (f.execution !== 'passed') fail('Final package requires passed execution.');
+  const validation = { mode: f.gate, result: verification ? verification.gate.result : f.gate === 'none' ? 'automated gate skipped; see execution report for manual verification' : 'PASS' };
+  return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, verification ? { acceptance: verification.acceptance } : {});
+}
+
+// Adaptive Lightweight runs have no plan, execution report, readiness, or
+// verification ledger: the spec, implementation report and clean review are the evidence.
+async function lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft) {
+  const f = state.fields;
+  if (f.implementation_report === 'none') fail('Lightweight final package requires an implementation report.');
+  runArtifactName(f.spec, f.ticket, 'spec');
+  const evidence = {
+    spec: await artifact(root, f.spec),
+    implementation: await artifact(root, f.implementation_report),
+    review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
+  };
+  return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, { mode: 'lightweight', result: LIGHTWEIGHT_VALIDATION }, {});
+}
+
+async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, extra) {
+  const f = state.fields;
   const reviewReport = await readFile(path.resolve(root, evidence.review.path), 'utf8');
   const openNits = [...reviewReport.matchAll(/^\d+\.\s+\*\*\[Minor\]\*\*\s+(.+)$/gm)].map((match) => match[1].trim());
   const repos = [];
@@ -170,8 +198,9 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   repos.sort((a, b) => a.name.localeCompare(b.name));
   const pkg = {
     version: 1, ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
-    draft, evidence, validation: { mode: f.gate, result: verification ? verification.gate.result : f.gate === 'none' ? 'automated gate skipped; see execution report for manual verification' : 'PASS' },
-    ...(verification ? { acceptance: verification.acceptance } : {}),
+    draft, evidence, validation,
+    ...(f.adaptive_version === '1' ? { adaptive: { mode: f.mode, risk: f.risk, mode_source: f.mode_source, escalations: Number(f.escalations) } } : {}),
+    ...extra,
     review: { status: f.review, cycle: state.reviewCycle }, open_nits: openNits,
     known_regressions: state.knownRegressions, decided_findings: state.decidedFindings,
     repos: repos.map(({ diff, ...data }) => data),

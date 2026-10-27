@@ -30,6 +30,8 @@
   .ticket-updates-allowed { color: #1e6231; background: #e6f4ea; }
   .ticket-updates-off { color: #596773; }
   .ticket-updates-unknown { color: #805400; background: #fff6e0; }
+  .mode-lightweight { color: #0b5394; background: #e8f1fb; }
+  .mode-tdd { color: #4a2a8a; background: #f0ebfa; }
 
   .phase-timeline { display: flex; align-items: flex-start; width: 100%; margin: 1rem 0 0.75rem; overflow-x: auto; overflow-y: visible; padding-top: 1rem; padding-bottom: 0.5rem; }
   .timeline-scroll-hint { display: none; }
@@ -52,6 +54,7 @@
   }
   .phase-step.optional-step .line { background: none; border-top: 3px dashed #8b969f; }
   .phase-dot.optional { border: 2px dashed #778590; background: #fff; }
+  .phase-dot.skipped { border: 2px dashed #b4bcc3; background: repeating-linear-gradient(45deg, #fff, #fff 3px, #eef0f2 3px, #eef0f2 6px); cursor: help; }
   .phase-label { margin-top: 0.4rem; font-size: 0.75rem; text-align: center; color: #555; max-width: 100px; }
   .phase-skill { display: block; }
   .optional-step .phase-label { color: #46535d; }
@@ -93,7 +96,7 @@
   <h1>Make-It-Work: Implementation Workflow: <em>{{TICKET}}</em></h1>
   <div class="header-badges" aria-label="Workflow settings">
     <span class="pill autonomy-pill" title="{{AUTONOMY_TOOLTIP}}">Autonomy: {{AUTONOMY}}</span>
-    {{TICKET_UPDATES_BADGE}}
+    {{TICKET_UPDATES_BADGE}}{{MODE_PILL}}
   </div>
 </div>
 
@@ -110,7 +113,7 @@
 <div class="artifact-grid">
   <div class="artifact-tile"><div class="label">Spec</div>{{SPEC_LINK}}</div>
   <div class="artifact-tile"><div class="label">Plan</div>{{PLAN_LINK}}</div>
-  <div class="artifact-tile"><div class="label">Execute</div>{{EXECUTE_LINK}}</div>
+  <div class="artifact-tile"><div class="label">Execute</div>{{EXECUTE_LINK}}</div>{{IMPLEMENTATION_TILE}}
   <div class="artifact-tile"><div class="label">Review</div>{{REVIEW_LINK}}</div>
   <div class="artifact-tile"><div class="label">Final package</div>{{FINAL_LINK}}</div>
 </div>
@@ -124,7 +127,7 @@
 {{SESSION_TIMING}}
 
 <h2>Cycle counters</h2>
-<p>Review cycles: {{REVIEW_CYCLE}} / 4 &nbsp; Fix cycles: {{FIX_CYCLE}} / 3 &nbsp; Replans used: {{REPLANS_USED}} / 2</p>
+<p>Review cycles: {{REVIEW_CYCLE}} / 4 &nbsp; Fix cycles: {{FIX_CYCLE}} / 3 &nbsp; Replans used: {{REPLANS_USED}} / 2{{ESCALATIONS_COUNTER}}</p>
 
 <h2>Known regressions</h2>
 {{KNOWN_REGRESSIONS}}

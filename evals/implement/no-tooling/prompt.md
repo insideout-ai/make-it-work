@@ -6,7 +6,7 @@ timeout_seconds: 2400
 runs: 1
 ---
 
-/make-it-work:implement DEMO-102 --autopilot
+/make-it-work:implement DEMO-102 --autopilot --mode tdd
 
 Ticket: Allow administrators through the policy-protected action.
 Administrators and members must be allowed; guests must remain denied.

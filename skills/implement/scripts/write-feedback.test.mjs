@@ -191,3 +191,55 @@ test('CLI inspect is read-only and CLI write emits the summary', async (t) => {
   assert.equal(JSON.parse(write.stdout).outputPath, feedbackPath);
   assert.match(await readFile(feedbackPath, 'utf8'), /Minimal path: Yes/);
 });
+
+function adaptiveState(rows, { status = 'Complete', phase = 'complete', mode = 'lightweight', risk = 'low', source = 'assessed', escalations = 0, pause = 'none' } = {}) {
+  const fields = `ticket: DEMO\nstatus: ${status}\nphase: ${phase}\nstart_time: 2026-02-01T10:00:00Z\nplugin_version: 4.19.0\npause_reason: ${pause}\n` +
+    `adaptive_version: 1\nrisk: ${risk}\nmode: ${mode}\nmode_source: ${source}\nrisk_rationale: Small isolated change\nescalations: ${escalations}\nimplementation_report: none`;
+  const table = rows.map(([from, to, outcome], index) =>
+    `| ${index + 1} | 2026-02-01T10:${String(index).padStart(2, '0')}:00Z | ${from} | ${to} | ${outcome} |`).join('\n');
+  return `\`\`\`\n${fields}\n\`\`\`\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n${table}\n`;
+}
+
+test('adaptive Lightweight run adds Mode and Escalations lines and stays minimal when clean', () => {
+  const summary = inspectState(adaptiveState([
+    ['start', 'close-the-gaps', 'Started'], ['close-the-gaps', 'lightweight', 'Spec saved; low risk'],
+    ['lightweight', 'review', 'Implemented'], ['review', 'final-sync', 'Review cycle 1 clean'],
+    ['final-sync', 'complete', 'Final context sync complete'],
+  ]));
+  assert.deepEqual([summary.minimal, summary.fixRounds, summary.replans, summary.reviewCycles], [true, 0, 0, 1]);
+  const block = renderBlock(summary);
+  assert.match(block, /- Plugin version: 4\.19\.0\n- Mode: lightweight \(low risk, assessed\)\n- Escalations: 0\n- Stages skipped: plan, execute, regression gate\n- Elapsed: \d+h \d+m\n- Outcome: Complete\n/);
+});
+
+test('review to lightweight counts as Fix and an Escalation row is its own event, not a Replan', () => {
+  const summary = inspectState(adaptiveState([
+    ['start', 'close-the-gaps', 'Started'], ['close-the-gaps', 'lightweight', 'Spec saved; low risk'],
+    ['lightweight', 'review', 'Implemented'], ['review', 'lightweight', 'Review cycle 1 fix required'],
+    ['lightweight', 'review', 'Fixed'], ['review', 'plan', 'Escalation: repeat offender finding after fix'],
+    ['plan', 'execute', 'Plan approved'], ['execute', 'review', 'Gate passed'], ['review', 'plan', 'Review cycle 1 replan required'],
+    ['plan', 'execute', 'Replanned'], ['execute', 'review', 'Gate passed'], ['review', 'final-sync', 'Review cycle 2 clean'],
+    ['final-sync', 'complete', 'Final context sync complete'],
+  ], { mode: 'tdd', risk: 'medium', source: 'user', escalations: 1 }));
+  assert.deepEqual(summary.events, [{ kind: 'Fix', row: 4 }, { kind: 'Escalation', row: 6 }, { kind: 'Replan', row: 9 }]);
+  assert.deepEqual([summary.minimal, summary.fixRounds, summary.replans], [false, 1, 1]);
+  const analysis = diagnosis(summary);
+  analysis.events[1].owner = 'implement';
+  const block = renderBlock(summary, analysis);
+  assert.match(block, /- Mode: tdd \(medium risk, user\)\n- Escalations: 1\n- Stages skipped: none\n/);
+  assert.match(block, /#### Event 2 — Escalation/);
+});
+
+test('limit stop is accepted in the lightweight phase', () => {
+  const summary = inspectState(adaptiveState([
+    ['start', 'close-the-gaps', 'Started'], ['close-the-gaps', 'lightweight', 'Spec saved'],
+    ['lightweight', 'lightweight', 'Fix limit exhausted'],
+  ], { status: 'Stopped', phase: 'lightweight', pause: 'fix limit exhausted' }), { limitStop: true });
+  assert.equal(summary.outcome, 'Stopped — loop limit');
+  assert.ok(!summary.sourceCompounds.includes('lightweight'));
+});
+
+test('old runs emit no adaptive lines', async () => {
+  const summary = inspectState(finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z'));
+  assert.equal(summary.adaptive, undefined);
+  assert.doesNotMatch(renderBlock(summary), /- Mode:|- Escalations:/);
+});
