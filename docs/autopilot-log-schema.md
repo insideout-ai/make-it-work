@@ -4,6 +4,8 @@ Shared reference for the `**Decision log:**` section every `--autopilot`-enabled
 
 ## Shared writer
 
+Before resolving a fixed-policy decision, run `node "<base>/../../scripts/autonomy-policy.mjs" resolve --input <decision.json>` (use `list` to inspect registered sites). Supply `skill`, stable `site`, `phase`, current `mode`, question/kind, and options with stable `id`/`label` values. For semantic recommendation sites mark exactly one substantive option `recommended: true`; candidate-list sites mark actual candidates `candidate: true`. The helper selects by policy/ID, not by interpreting display labels, and returns the validated log `entry`. Preserve each skill's existing writer timing and root; pass that returned entry to the writer in its separate tool call. Unknown/open-text sites retain their semantic contract, never an invented automatic default. The helper has no external side effects and never grants ticket, Slack, manual-verification or delivery permission. The writer now rejects unoffered or duplicate chosen labels.
+
 When Bash is already permitted for the run, use the shared writer instead of
 hand-building JSONL or editing existing lines. Invoke each writer command in
 its **own Bash tool call**, never joined with discovery, tests, or another

@@ -159,6 +159,8 @@ Drop anything that fails these checks. **Report every verified finding in the ch
 
 ## Output format
 
+Read [the review renderer contract](../../docs/deterministic-artifacts.md#review-reports). After semantic verification, use required `scripts/review-report.mjs` to validate source locations and derive counts, verdict, report tiers and version-1 handoff from one findings object. Do not manually produce contradictory Markdown/JSON. Existing report shapes below describe the rendered output; legacy implement callers still retain their outcome-line behavior without a new handoff.
+
 Deliver the review in **two tiers** — a durable, pasteable report in a file, and a scannable summary in chat. Both lead with a verdict so the reader knows the outcome before reading a single finding.
 
 ### Tier 1 — Full report (file)

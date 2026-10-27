@@ -199,6 +199,8 @@ Ask only about gaps where guessing wrong would send the executor down the wrong 
 
 **Ask in dependency-ordered waves** (same mechanics as `close-the-gaps`): `AskUserQuestion` can batch up to 4 questions into one call, rendered as navigable tabs the user can jump between and revise before submitting — but only when those questions don't depend on each other's answers.
 
+After identifying those semantic dependencies, use `scripts/questions.mjs waves` under [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) to validate IDs/cycles and compute batches; do not manually schedule the graph.
+
 - Before asking anything, check each gap against every other pending gap: does answering one change another's wording, options, or whether it's still needed? If so, the dependent one goes in a **later** wave, never the same batch. Common dependency: a `Scope boundary` or `Data / migration` answer often gates the options for a later `Sequencing / rollout` question. Independent gap types (most `Unstated assumption`, `Missing prerequisite`, unrelated `Approach` choices) default to Wave 1.
 - Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead — outside the batch (autopilot: see Autopilot Mode).
 - Batch each wave's independent questions into a single `AskUserQuestion` call (≤4 per call); if a wave has more than 4, split into consecutive calls of ≤4 in that wave — order between them doesn't matter.
@@ -280,6 +282,8 @@ Run `set-total` as its own Bash tool call after the plan file has been saved; do
 ---
 
 ## Step 5.5 — Self-review the plan
+
+First run `node "<base>/../../scripts/validate-plan.mjs" normalize-risk --plan "<plan path>"`, then `check --plan "<plan path>"`. Fix structural errors before returning a completed plan/handoff. This required validator owns section/step/dependency/file/scenario checks and risk arithmetic; retain the semantic coverage, naming intent and readability review below. A High calculated residual still requires the actual phasing alternative. The helper does not prove adequate behavioral coverage or resolve open decisions.
 
 Before handing off, run this quick self-check on the draft. It's a mechanical pass you run yourself — not a substitute for the independent review offered in Step 6:
 

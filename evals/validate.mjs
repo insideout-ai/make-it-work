@@ -103,6 +103,9 @@ export async function validateEvalTree(root = EVAL_ROOT) {
   for (const skill of publicSkills) if (!smokeSkills.has(skill)) errors.push(`no smoke case for ${skill}`);
 
   for (const name of suites.headless ?? []) if (!byName.has(name)) errors.push(`unknown headless case: ${name}`);
+  for (const [skill, tools] of Object.entries(suites.requiredToolsBySkill ?? {})) {
+    if (!publicSkills.includes(skill) || !Array.isArray(tools) || tools.some((tool) => !['Read', 'Bash'].includes(tool))) errors.push(`invalid scripted skill tools: ${skill}`);
+  }
   for (const [name, tools] of Object.entries(suites.extraTools ?? {})) {
     if (!byName.has(name)) errors.push(`unknown extraTools case: ${name}`);
     if (!Array.isArray(tools) || tools.some((tool) => typeof tool !== 'string')) {

@@ -23,7 +23,7 @@ jobs:
         run: npm install --global @anthropic-ai/claude-code@2.1.267
 
       - name: Test implement workflow helpers
-        run: node --test skills/implement/scripts/*.test.mjs
+        run: node --test skills/implement/scripts/*.test.mjs skills/execute/scripts/*.test.mjs scripts/*.test.mjs
 
       - name: Validate plugin manifest
         run: claude plugin validate .claude-plugin/plugin.json --strict
@@ -31,23 +31,11 @@ jobs:
       - name: Validate skills
         run: claude plugin validate skills --strict
 
-      - name: Test plan Execution Status updater
-        run: node --test skills/execute/scripts/plan-status.test.mjs
-
       - name: Validate eval inventory and fixture guards
         run: node evals/validate.mjs
 
       - name: Test automatic headless grading and eval batching
-        run: node --test evals/grade-headless.test.mjs evals/run-batches.test.mjs
-
-      - name: Test local pre-push hook
-        run: node --test scripts/pre-push-hook.test.mjs
+        run: node --test evals/*.test.mjs
 
       - name: Validate marketplace manifest
         run: claude plugin validate .claude-plugin/marketplace.json --strict
-
-      - name: Test shared decision-log writer
-        run: node --test scripts/decision-log.test.mjs
-
-      - name: Test non-intrusive test-map helper
-        run: node --test scripts/test-map.test.mjs

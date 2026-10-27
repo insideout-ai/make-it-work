@@ -73,6 +73,10 @@ For runs with `handoff_version: 1`, also read `<base>/references/handoffs.md` be
 
 ## Workflow state
 
+**Scripted checkpoints:** Read [references/controller.md](references/controller.md) before Start. New runs are initialized and transitioned by `scripts/workflow.mjs`; its `controller_version: 1` contract replaces manual state/counter/hash/audit writes described below. The template remains the source for initialization defaults. Existing runs without the field retain their original behavior.
+
+**Waiting for input:** Once state exists, read the reference's pending-input lifecycle before any user question or approval. Blocking waits are persisted as Paused with their actual question/choices, cleared activity and refreshed HTML before asking. Resolve the saved ID explicitly before continuing; optional permission requests can remain nonblocking. Delivery after Complete retains its separate journal. This replaces ad hoc question/pause bookkeeping below.
+
 For a new run, create the real directory `make-it-work/<TICKET>/` under the artifact root and put all ticket-scoped artifacts there. Keep the existing `<TICKET>-` filenames inside that directory. Do not move or resume flat artifacts from older runs. The run's state lives in `make-it-work/<TICKET>/<TICKET>-state.md`, next to the other pipeline artifacts. Create it with exactly this template:
 
 ````markdown
@@ -114,6 +118,7 @@ execute_report: none           # path of the last saved execute report
 context_updated: none
 ticket_publication: none        # this run's publication-journal path; none/missing means no tracker writes
 current_activity: none          # one-sentence, high-level description of what's actively being done right now; none while not In Progress, or before the active phase's first narrated sentence
+pending_inputs: []              # script-owned JSON records; blocking requests pause, optional requests preserve status
 real_rows_from: 1               # Audit-log row number of the first row with a real (post-upgrade) timestamp; 1 for any run created under this feature. Set only by Resume, for a run whose state file predates this feature (see Resume).
 ```
 
@@ -230,6 +235,8 @@ If this message explicitly requests a mode change, apply **Change autonomy durin
 ---
 
 ## Context check
+
+Run `node "<base>/../../scripts/context-inventory.mjs" inspect --root <project-root>` under [the inventory contract](../../docs/deterministic-artifacts.md#documentation-inventory). Its signals/completeness/missing paths drive the following outcomes; do not manually recreate those filesystem checks. Workspace structure and affected-repo discovery retain their existing rules.
 
 `implement` needs the project context `go-deep` builds, and checks for it in two layers:
 

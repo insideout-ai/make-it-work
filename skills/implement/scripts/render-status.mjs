@@ -8,6 +8,7 @@ import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.
 import { readDelivery } from './delivery-progress.mjs';
 import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
+import { pendingInputs } from './pending-input.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -281,6 +282,7 @@ export function parseState(markdown, statePath = '') {
 
   return {
     fields,
+    pendingInputs: pendingInputs(fields),
     audit,
     knownRegressions: parseList(section(markdown, 'Known regressions'), 'Known regressions'),
     decidedFindings: parseList(section(markdown, 'Decided findings'), 'Decided findings'),
@@ -501,6 +503,20 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
 }
 
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
+  const pending = state.pendingInputs ?? pendingInputs(state.fields);
+  if (pending.length) {
+    const cards = pending.map((record) => {
+      const title = record.waiting_for === 'pm' ? 'Waiting for the Product Manager' : 'Waiting for your input';
+      const qualifier = record.blocking ? state.fields.status === 'Stopped' ? 'Workflow stopped' : 'Workflow paused' : state.fields.status === 'Complete' ? 'Implementation remains complete' : 'Does not block the workflow';
+      const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
+      const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
+      const reference = record.binding ? `<p class="pending-reference">${record.binding.path ? escapeHtml(record.binding.path) + ' · ' : ''}SHA-256: <code>${escapeHtml(record.binding.sha256)}</code></p>` : '';
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+    }).join('\n');
+    const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
+    const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
+    return `${banner}\n${cards}`;
+  }
   if (state.fields.status === 'Paused' || state.fields.status === 'Stopped') {
     return `<p class="next-action"><strong>Waiting on you:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
   }
@@ -572,7 +588,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`), 'review', state.fields.ticket);
   const replacements = {
     TICKET: escapeHtml(state.fields.ticket),
-    AUTO_REFRESH: state.fields.status === 'In Progress' || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
+    AUTO_REFRESH: state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
       ? '<meta http-equiv="refresh" content="15">' : '',
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),

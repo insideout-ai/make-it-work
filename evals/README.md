@@ -19,6 +19,10 @@ bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before
 ```
 
 `smoke` exercises one representative case for each of the 12 public skills.
+Script-backed skills declare the minimal Read/Bash helper capabilities in
+`suites.json`'s `requiredToolsBySkill`, merged with each case's tools for both
+headless and plugin-eval runs. This keeps the eval environment able to exercise
+the required helpers; the runner still never bypasses tool permissions.
 The `implement` case covers completion feedback rather than the complete
 orchestrator; the latter is checked in the manual end-to-end release rehearsal.
 `full` discovers and runs every `case.yaml` in this tree (45 at the time this

@@ -96,6 +96,8 @@ Use the **Slice summary** table described below as the shared overview's slice i
 
 ## Dependencies and implementation flow
 
+Read [the slice artifact contract](../../docs/deterministic-artifacts.md#slice-artifacts). Supply the semantically chosen slices/relationships once, then use required `slices.mjs check` and `write` for graph validation and all derived artifacts below. Do not hand-maintain separate dependency representations; show the helper's returned summary in chat. The helper's collision-safe set writer replaces the manual saving mechanics below.
+
 Identify relationships after drafting the slices, then reconcile them with each slice's dependency field:
 
 - **Hard prerequisite:** a slice must finish before another can be implemented or verified. Explain the specific capability, contract, artifact, or decision it supplies. Name external prerequisites explicitly rather than fabricating a story for them.

@@ -156,6 +156,8 @@ If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of askin
 
 ### Phase 5A — Live Q&A
 
+Once semantic dependencies are identified, use `scripts/questions.mjs waves` under [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) to validate and schedule batches. Recompute after an answer materially changes the graph.
+
 Tell the user:
 > "I've analyzed the ticket and found [N] questions to resolve. I'll ask them in batches, grouped so you can navigate and revise answers within each batch before submitting."
 
@@ -329,6 +331,8 @@ Prepare a draft or send the questions to the ticket's Product Manager according 
 **If Slack can't be used** — no integration, no matching PM, or a definite delivery failure — explain exactly what failed. For send mode, if sending is unavailable or definitively failed and draft creation is supported, create a draft instead and record/report that fallback as draft-only. If no draft can be created, follow Phase 5B with the questions already built (no `### Slack` block). Report the offline handoff explicitly: "Slack delivery wasn't completed: <reason>. Forward or attach `<questions-file-path>` to the Product Manager manually. Once they've filled in the answers, re-invoke `/make-it-work:close-the-gaps <questions-file-path>`." These fallbacks apply only when no message could have been sent; never discard pending/unknown delivery metadata.
 
 ### Phase 5C — Offline Injection
+
+First read [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) and run its required parser. Its active/conflict/N/A results replace manual checkbox counting and conditional propagation below; preserve the documented Slack provenance and semantic code-drift checks.
 
 **0. Check for ticket drift (tracker-sourced tickets only).** If `## Session Context → Source` names a tracker and issue ID, and that tracker's MCP integration is available in this session, fetch the current ticket read-only and compare it to the embedded `### Original Ticket` content.
 - If they differ, tell the user the live ticket has changed since export, and add a one-line callout directly under the refined ticket's title in Phase 6's output: "> **Note:** the live ticket in `<tracker>` has changed since this refinement was exported on `<date>`; this spec reflects the snapshot taken at export time." The embedded snapshot stays authoritative — do not substitute the live version.

@@ -168,6 +168,8 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
 
 ## Phase 5 — Write the Skill
 
+Read [the strategy consistency contract](../../docs/deterministic-artifacts.md#test-strategy-consistency). Its required `test-strategy.mjs check` validates the candidate and actual selected-layer projection before reporting it ready. In Phase 6, use its `pointer` command instead of manually editing/deduplicating the CLAUDE.md table; this narrow script write is an explicit exception to the Write/Edit-only rule. All semantic refresh/conflict/blocked-write rules remain active.
+
 Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. After final strategy/pointer changes, complete semantic reassessment and record final snapshots per the contract, so metadata edits do not immediately stale the map.
 
 - **Fresh** → write the file from the template, frontmatter included.

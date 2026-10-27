@@ -93,6 +93,8 @@ Resolve the mode from the invocation argument (per the Usage syntax above). `--a
 
 ## Phase 1 — Discover and run the full suite
 
+**Scripted execution:** Read [the structured regression contract](../../docs/regression-runner.md). After resolving actual commands, scope and prerequisites, use `scripts/regression.mjs` to execute/aggregate runs and render their reports. This replaces model-authored argv forwarding, exit-code aggregation and report formatting in Phases 1, 3–5. Discovery and semantic mapping stay as documented below. Unsupported scoped wrappers are explicit limitations, never unfiltered runs.
+
 Run this phase once per repo in scope. For a bare `full`: every repo in a detected workspace, or the one repo in a single-repo project (per Phase 0's repo/workspace detection). For a mixed run: once per `full:<repo>` token, for that repo only.
 
 ### Discovery order
