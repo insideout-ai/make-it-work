@@ -228,6 +228,8 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 
 ## When run by implement
 
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md). When followed inline, save the exact narrated activity before strategy/test-map inventory, analysis and writing. If this work is delegated to a subagent, the parent checkpoints the description before dispatch and retains it while waiting; the subagent must not write workflow activity or dashboards. Standalone runs and older runs without a dashboard do not create one.
+
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
 
 **Live autonomy** — the caller supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session, using the current saved mode before each question/default instead of the entry flag after a change. Preserve strategy decisions and verified setup; changing mode does not select manual verification. The Autonomous Phase 3a exception below still applies.

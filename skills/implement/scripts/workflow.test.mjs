@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { parseState } from './render-status.mjs';
+import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
 
 async function fixture(t) {
@@ -45,10 +46,35 @@ test('checkpoint clears activity, increments review once, and preserves unrelate
   await mkdir(path.join(dir, 'DEMO-handoffs'));
   await writeFile(path.join(dir, 'DEMO-spec.md'), '# Spec');
   await writeFile(path.join(dir, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  await checkpointDashboard(statePath, { activity: 'Writing the refined spec.' });
   const next = await apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json' });
   assert.equal(next.fields.phase, 'plan');
+  assert.equal(next.fields.current_activity, 'none');
+  assert.equal(next.fields.current_activity_updated_at, 'none');
+  const html = await readFile(next.dashboard, 'utf8');
+  assert.match(html, /Plan is in progress\. No activity details have been reported yet\./);
+  assert.doesNotMatch(html, /Writing the refined spec|Last updated:/);
   assert.equal(next.fields.spec_hash, digest('# Spec'));
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 3);
+});
+test('status boundaries clear activity and its timestamp; same-phase mode changes preserve both', () => {
+  const state = fields('plan', { current_activity: 'Drafting the plan.', current_activity_updated_at: '2026-01-01T10:00:00Z' });
+  const mode = transition(state, { event: 'autonomy', mode: 'guided', source: 'user', via: 'chat' });
+  assert.equal(mode.fields.current_activity, state.fields.current_activity);
+  assert.equal(mode.fields.current_activity_updated_at, state.fields.current_activity_updated_at);
+  for (const event of ['pause', 'stop']) {
+    const next = transition(state, { event, reason: 'Waiting on a required decision' });
+    assert.equal(next.fields.current_activity, 'none');
+    assert.equal(next.fields.current_activity_updated_at, 'none');
+  }
+  const resumed = transition(fields('plan', { ...state.fields, status: 'Paused' }), { event: 'resume', blocker_resolved: true });
+  assert.equal(resumed.fields.current_activity, 'none');
+  assert.equal(resumed.fields.current_activity_updated_at, 'none');
+  const complete = transition(fields('final-approval', { review: 'clean', current_activity_updated_at: '2026-01-01T10:00:00Z' }), { event: 'complete' });
+  assert.equal(complete.fields.current_activity_updated_at, 'none');
+  assert.equal(complete.fields.current_activity, 'none');
+  const legacy = transition(fields('plan'), { event: 'stop', reason: 'Required context missing' });
+  assert.ok(!Object.hasOwn(legacy.fields, 'current_activity_updated_at'));
 });
 test('render failure leaves durable event; retry refreshes without counting twice', async (t) => {
   const { root, statePath } = await fixture(t);

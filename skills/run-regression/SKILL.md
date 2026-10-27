@@ -23,6 +23,8 @@ This skill is invoked both directly by a user and by the `execute` skill's own i
 
 ## When run inside implement
 
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md) when a workflow state path is supplied. In the main inline session, save the exact narrated activity before discovering scope and running each meaningful suite/group. If delegated, the parent saves and retains the work description while waiting; subagents must not write workflow activity or dashboards. Standalone runs and older runs without a dashboard do not create one. This activity checkpoint is the narrow workflow-state/dashboard exception to this skill's ordinary report-only write policy.
+
 When `execute` or another inline stage of `implement` supplies a **workflow state path**, follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md). Use the current saved mode before each question/default, overriding the entry `--autopilot` flag after an explicit chat change. Retain the selected regression scope and results already observed; changing mode does not restart suites or invent an unavailable command. Preserve any existing autopilot log when entering/re-entering Autopilot during this run. Without that context, standalone invocation and log initialization remain unchanged.
 
 ## Autopilot Mode

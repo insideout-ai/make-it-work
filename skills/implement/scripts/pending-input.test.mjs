@@ -33,10 +33,12 @@ const choices = [{ id: 'continue', label: 'Continue' }, { id: 'stop', label: 'St
 const question = (extra = {}) => ({ id: 'question-1', kind: 'question', question: 'Which behavior should apply?', choices, ...extra });
 
 test('a blocking question is persisted and rendered before returning, and only an explicit offered answer resumes it', async (t) => {
-  const { apply, state, html } = await fixture(t);
+  const { apply, state, html, seed } = await fixture(t);
+  await seed({ current_activity: 'Investigating the requirement.', current_activity_updated_at: '2026-01-01T10:00:00Z' });
   const before = await state();
   const waiting = await apply('await-input', { pending: question({ question: 'Choose <script>behavior</script>?' }) });
   assert.equal(waiting.fields.status, 'Paused'); assert.equal(waiting.fields.current_activity, 'none');
+  assert.equal(waiting.fields.current_activity_updated_at, 'none');
   const saved = await state(); assert.equal(saved.fields.phase, before.fields.phase); assert.equal(saved.fields.review_cycle, before.fields.review_cycle);
   assert.equal(saved.pendingInputs[0].id, 'question-1'); assert.ok(Number.isFinite(Date.parse(saved.pendingInputs[0].requested_at)));
   const page = await html(); assert.match(page, /Waiting for your input/); assert.match(page, /Choose &lt;script&gt;behavior&lt;\/script&gt;/);
@@ -45,6 +47,7 @@ test('a blocking question is persisted and rendered before returning, and only a
   await assert.rejects(apply('resolve-input', { pending_id: 'question-1', answer: 'invented', source: 'user', via: 'chat' }), /offered/);
   const resumed = await apply('resolve-input', { pending_id: 'question-1', answer: 'continue', source: 'user', via: 'question' });
   assert.equal(resumed.fields.status, 'In Progress'); assert.deepEqual(resumed.pending, []);
+  assert.equal(resumed.fields.current_activity_updated_at, 'none');
   assert.match((await state()).audit.at(-1).outcome, /resolved: Continue; source: user/);
   assert.doesNotMatch(await html(), /aria-label="Pending input"/);
 });

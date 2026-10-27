@@ -365,6 +365,8 @@ The explicit-policy manual terminal report is a fourth successful terminal path,
 
 ## When run by implement
 
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md) alongside the per-step Progress contract below. In this inline session, save the exact narrated activity before each implementation/verification chunk, step/batch dispatch, and nested regression invocation. Retain the delegated-work description while waiting; per-step subagents must not write workflow activity or edit HTML. A legacy single-step subagent's required Progress helper may still regenerate the dashboard under the existing per-step contract. Pass the resolved `implement` directory and activity contract to nested inline regression. Standalone runs and older runs without a dashboard do not create one.
+
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely. Everything above still applies unchanged — Phases 0–5, the retry limit, the guardrail, the halt scope, and the never-git-commit rule.

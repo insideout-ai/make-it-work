@@ -23,6 +23,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
 
+## [4.18.1] - 2026-10-27
+
+### Fixed
+
+- Active workflow phases always show an activity box, with an explicit fallback when details have not been reported. Activity checkpoints save a Last updated timestamp, clear it at phase/pause/stop boundaries, and carry reporting through inline stages, testing readiness and subagent waits without letting delegated agents overwrite the dashboard.
+
 ## [4.17.0] - 2026-10-25
 
 ### Added

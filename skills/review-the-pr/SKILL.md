@@ -221,6 +221,8 @@ When there are **no findings**, say so plainly in both tiers — `Verdict: Appro
 
 ## When run by implement
 
+**Activity ownership** — follow [implement's activity contract](../implement/references/activity.md). The parent session saves the independent-review description before dispatch and retains it while awaiting this report. This review subagent must not write workflow activity or dashboards; return the review result for the parent to checkpoint.
+
 This section applies only when `/make-it-work:implement` dispatches the review; a standalone review ignores it entirely and runs every step above as written.
 
 **Inputs** — the dispatch prompt provides: the ticket key, the spec path, the current plan path, the base branch, the literal `no PR`, the review cycle number, the list of known unrelated regressions (may be empty), and the list of decided findings (may be empty).

@@ -476,6 +476,8 @@ Finish by printing one line: `Context updated: <each file changed, with a one-li
 
 ## When run by implement
 
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md). In this inline session, save the exact narrated activity before each substantial investigation or spec-writing chunk. Before delegating work, save its description and retain it while waiting; only the main session writes activity or dashboards. Standalone runs and older runs without a dashboard do not create one.
+
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.

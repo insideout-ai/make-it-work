@@ -166,15 +166,15 @@ function splitTableRow(line) {
   return cells;
 }
 
-function parseIsoTimestamp(value, rowNumber) {
+function parseIsoTimestamp(value, label) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
-    fail(`Audit row ${rowNumber} has an invalid ISO 8601 UTC timestamp: ${value}`);
+    fail(`${label} has an invalid ISO 8601 UTC timestamp: ${value}`);
   }
   const epoch = Date.parse(value);
-  if (!Number.isFinite(epoch)) fail(`Audit row ${rowNumber} has an invalid timestamp: ${value}`);
+  if (!Number.isFinite(epoch)) fail(`${label} has an invalid timestamp: ${value}`);
   const normalized = value.includes('.') ? value : value.replace('Z', '.000Z');
   if (new Date(epoch).toISOString() !== normalized) {
-    fail(`Audit row ${rowNumber} has an invalid calendar timestamp: ${value}`);
+    fail(`${label} has an invalid calendar timestamp: ${value}`);
   }
   return epoch;
 }
@@ -201,7 +201,7 @@ function parseAudit(value) {
     return {
       number,
       time: cells[1],
-      epoch: parseIsoTimestamp(cells[1], number),
+      epoch: parseIsoTimestamp(cells[1], `Audit row ${number}`),
       from: cells[2],
       to: cells[3],
       outcome: cells[4],
@@ -249,6 +249,9 @@ export function parseState(markdown, statePath = '') {
   if (!REVIEW_VALUES.has(fields.review)) fail(`Unsupported review: ${fields.review}`);
   if (!FIX_DISPATCH_VALUES.has(fields.fix_plan_dispatch)) fail(`Unsupported fix_plan_dispatch: ${fields.fix_plan_dispatch}`);
   if (!GATE_VALUES.has(fields.gate)) fail(`Unsupported gate: ${fields.gate}`);
+  if (fields.current_activity_updated_at !== undefined && fields.current_activity_updated_at !== 'none') {
+    parseIsoTimestamp(fields.current_activity_updated_at, 'Field "current_activity_updated_at"');
+  }
 
   const audit = parseAudit(section(markdown, 'Audit log'));
   const reviewCycle = parseInteger(fields, 'review_cycle');
@@ -455,12 +458,19 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
 }
 
 function renderCurrentActivity(state, timeline) {
-  if (!timeline.activeSlot || state.fields.status !== 'In Progress' || state.fields.current_activity === 'none') return '';
+  if (!timeline.activeSlot || state.fields.status !== 'In Progress') return '';
   const label = escapeHtml(PHASE_INFO[timeline.activeSlot.phase].label);
-  const activity = escapeHtml(state.fields.current_activity);
+  const hasActivity = state.fields.current_activity !== 'none';
+  const activity = hasActivity ? escapeHtml(state.fields.current_activity)
+    : `${label} is in progress. No activity details have been reported yet.`;
+  const updatedAt = state.fields.current_activity_updated_at;
+  const timestamp = updatedAt && updatedAt !== 'none'
+    ? `<time class="ts" datetime="${escapeHtml(updatedAt)}" data-ts="${escapeHtml(updatedAt)}">${escapeHtml(updatedAt)}</time>`
+    : 'unavailable';
   return `<section class="current-activity" aria-label="Current activity">
   <strong>${label} in progress</strong>
   <p class="phase-activity">${activity}</p>
+  ${hasActivity ? `<p class="activity-updated">Last updated: ${timestamp}</p>` : ''}
 </section>`;
 }
 

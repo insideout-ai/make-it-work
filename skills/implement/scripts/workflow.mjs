@@ -163,7 +163,10 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     f.review_cycle = String(Number(f.review_cycle) + 1);
   }
   if (f.phase === 'fix-plan' && before.phase !== 'fix-plan') Object.assign(f, { fix_plan_round_steps: 'none', fix_plan_dispatch: 'none' });
-  if (f.phase !== before.phase || f.status !== 'In Progress') f.current_activity = 'none';
+  if (f.phase !== before.phase || f.status !== before.status || f.status !== 'In Progress') {
+    f.current_activity = 'none';
+    if (Object.hasOwn(f, 'current_activity_updated_at')) f.current_activity_updated_at = 'none';
+  }
   return { fields: f, reason, action };
 }
 async function refresh(statePath) {
@@ -201,7 +204,10 @@ function remainingFields(fields, id) {
   const record = pendingInputs(fields).find((entry) => entry.id === id);
   if (!record) fail('This input is no longer pending; inspect the current request.');
   const next = { ...fields, pending_inputs: JSON.stringify(pendingInputs(fields).filter((entry) => entry.id !== id)) };
-  if (record.blocking && fields.status === 'Paused') Object.assign(next, { status: 'In Progress', pause_reason: 'none', current_activity: 'none' });
+  if (record.blocking && fields.status === 'Paused') {
+    Object.assign(next, { status: 'In Progress', pause_reason: 'none', current_activity: 'none' });
+    if (Object.hasOwn(next, 'current_activity_updated_at')) next.current_activity_updated_at = 'none';
+  }
   return { fields: next, record };
 }
 async function resolveInput(root, statePath, state, input) {
@@ -368,7 +374,10 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (f.autonomy === 'autopilot' && request.blocking !== false && request.kind !== 'slack') fail('Autopilot cannot open an interactive wait; apply its documented default or hard stop.');
       const record = createPendingInput(request, f.phase, new Date().toISOString());
       f.pending_inputs = JSON.stringify([...records, record]);
-      if (record.blocking) Object.assign(f, { status: 'Paused', pause_reason: record.question.replaceAll('\n', ' '), current_activity: 'none' });
+      if (record.blocking) {
+        Object.assign(f, { status: 'Paused', pause_reason: record.question.replaceAll('\n', ' '), current_activity: 'none' });
+        if (Object.hasOwn(f, 'current_activity_updated_at')) f.current_activity_updated_at = 'none';
+      }
     }
     if (resolution?.finalApproval) await approveFinalPackage(root, statePath, resolution.finalApproval);
     if (effective.event === 'complete') await checkFinalPackage(root, statePath, state.fields.autonomy === 'guided');

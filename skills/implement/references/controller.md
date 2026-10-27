@@ -28,6 +28,8 @@ A dashboard failure preserves the saved event. Repair rendering, then retry the 
 
 Existing same-phase workflow decisions, narration, publication and delivery keep their specialized helpers. They must not rewrite controller-owned phase/counter fields. Product decisions and semantic regression classification remain with the model/user.
 
+Activity checkpoints follow [activity.md](activity.md). Phase/status boundaries and blocking input waits clear both `current_activity` and its optional `current_activity_updated_at` timestamp. Same-phase decisions and ordinary renders preserve both. The activity helper owns timestamp capture; a dashboard render never invents a newer activity time.
+
 ## Pending input lifecycle
 
 Once a workflow state exists, every blocking question or approval uses this lifecycle before the question is shown. Stage questions, uncertain human regression classification, inline step pauses and saved Slack/offline refinement waits all participate. Intake/autonomy/branch questions before the first state file exists retain Start's existing rules; there is no dashboard to update yet.
