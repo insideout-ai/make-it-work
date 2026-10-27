@@ -1,0 +1,219 @@
+skills/implement/scripts/workflow.mjs
+  s_0beb8896e4caf0::t_4661b48987a8c3 61
+  s_0beb8896e4caf0::t_1b91d058159ff4 356-359,361-363,418-421
+  s_0beb8896e4caf0::t_748c0d734f2cf0 187-191,198,367,382
+  s_0beb8896e4caf0::t_801a10eede9ba3 3-4,33,281,384-385,393-397,402-417,422-433,436-438
+  s_0beb8896e4caf0::t_a816ead829cda4 151-158,218-219,239,245,314
+  s_0beb8896e4caf0::t_ffbbe4411b61cc 128-134,229-231,307-312,322
+  s_0beb8896e4caf0::t_9681bc843e25f7 257,261-272,279,328,330
+  s_0beb8896e4caf0::t_851ed07256a214 354,360
+  s_0beb8896e4caf0::t_5708d0e6614284 11,284-286
+  s_0beb8896e4caf0::t_f0a5060343be4c 236-237,329
+  s_0beb8896e4caf0::t_c195448798c909 9,12-13,69-70,141-146,160,185-186,192-197,199-217,220-228,232-235,238,240,254,258-260,273-278,280,282-283,287,303-305,313,327,331-353,355,364-366,368-371,373-374,381,383,390
+  s_0beb8896e4caf0::t_8c4a507317f916 1-2,5-8,14-32,34-60,62-68,71-104,110-127,135-136,147-150,159,161-184,241-244,246-253,255-256,306,315-321,323,372,375-380,386-389,391-392,434-435,439-442
+  s_0beb8896e4caf0::t_624ab6065f496b 10,105-109,288-302,398-401
+  s_0beb8896e4caf0::t_eeae00350fa6af 137-140,324-326
+skills/execute/scripts/step-control.mjs
+  s_0beb8896e4caf0::t_c55ac8978121c3 2-3,61-62,150
+  s_0beb8896e4caf0::t_2e6c67cf96d18f 55,73-74,79-84,86-88
+  s_0beb8896e4caf0::t_8730982c3445ed 1,5-8,10-12,21-22,24,30,32-35,37-43,46-47,58-60,63-69,98-119,125-142,144-149,151-153
+  s_0beb8896e4caf0::t_647781e7653c3c 4,13-20,23,25-29,36,44,52-54,70-72,75-78,85
+  s_0beb8896e4caf0::t_624ab6065f496b 9,45,48-51,56-57,143
+  s_0beb8896e4caf0::t_982887ea75c199 31,89-97,120-124
+evals/README.md
+  s_0beb8896e4caf0::t_fe3a42b2747d2c 22-25
+evals/run-suite-args.mjs
+  s_0beb8896e4caf0::t_928bc492145162 1-4
+scripts/decision-log.mjs
+  s_0beb8896e4caf0::t_b4c816ac8d12e5 60-65
+skills/define-test-strategy/SKILL.md
+  s_0beb8896e4caf0::t_12b278f1db1c13 171-172
+scripts/regression.test.mjs
+  s_0beb8896e4caf0::t_bff76878688fa0 47-51
+  s_0beb8896e4caf0::t_9b7954ccad5214 1-46
+skills/shape-the-epic/SKILL.md
+  s_0beb8896e4caf0::t_7b4e40df68b396 109-110
+scripts/regression.mjs
+  s_0beb8896e4caf0::t_9b7954ccad5214 1-53,56-58,64-83,86-88,92-126,128-148
+  s_0beb8896e4caf0::t_bff76878688fa0 54-55,59-63,84-85,89-91,127
+scripts/context-inventory.mjs
+  s_0beb8896e4caf0::t_2a281984948236 1-82
+scripts/slices.mjs
+  s_0beb8896e4caf0::t_c14523ba218b53 1-70,72-73,75,77
+  s_0beb8896e4caf0::t_bff76878688fa0 71,74,76
+CONTRIBUTING.md
+  s_0beb8896e4caf0::t_928bc492145162 48,58,63
+skills/go-deep/SKILL.md
+  s_0beb8896e4caf0::t_2a281984948236 78-79
+scripts/autonomy-policy.mjs
+  s_0beb8896e4caf0::t_9e84ff821b4766 47-50,62
+  s_0beb8896e4caf0::t_b4c816ac8d12e5 1-46,51-61,63-71
+scripts/autonomy-policy.test.mjs
+  s_0beb8896e4caf0::t_b4c816ac8d12e5 1-36
+  s_0beb8896e4caf0::t_9e84ff821b4766 37-42
+docs/deterministic-artifacts.md
+  s_0beb8896e4caf0::t_7b4e40df68b396 32-39
+  s_0beb8896e4caf0::t_ac1ee6de52060c 1-11
+  s_0beb8896e4caf0::t_2a281984948236 12-17
+  s_0beb8896e4caf0::t_9e84ff821b4766 51
+  s_0beb8896e4caf0::t_12b278f1db1c13 18-23
+  s_0beb8896e4caf0::t_6fb74ef7eeac6f 40-45
+  s_0beb8896e4caf0::t_3928e78011e58a 46-50
+  s_0beb8896e4caf0::t_c14523ba218b53 24-31
+scripts/validate-plan.mjs
+  s_0beb8896e4caf0::t_2da3fccd5e77f9 1-37,39-78
+  s_0beb8896e4caf0::t_9e84ff821b4766 38
+skills/implement/scripts/workflow-integration.test.mjs
+  s_0beb8896e4caf0::t_9681bc843e25f7 14,24,37-41,47-51,73-76,83
+  s_0beb8896e4caf0::t_3793b83a27de1f 1-13,15-23,25-36,42-44,52-72,84-86
+  s_0beb8896e4caf0::t_23b7d3512738af 45-46
+  s_0beb8896e4caf0::t_851ed07256a214 77-82
+scripts/test-strategy.test.mjs
+  s_0beb8896e4caf0::t_12b278f1db1c13 1-31,33-34
+  s_0beb8896e4caf0::t_0e1e38eda96ab5 32
+skills/implement/scripts/pending-input.mjs
+  s_0beb8896e4caf0::t_b96f15717dd246 1-11,22,24-26,36-50,53-57,59-74,81-85
+  s_0beb8896e4caf0::t_dfa833b6eb55c8 15,18,51-52
+  s_0beb8896e4caf0::t_41a03761fca532 12-14,16-17,19-21,23,27-35,58,75-80
+scripts/repo-assessment.test.mjs
+  s_0beb8896e4caf0::t_6fb74ef7eeac6f 1-38
+evals/suites.json
+  s_0beb8896e4caf0::t_928bc492145162 80-92
+skills/implement/references/controller.md
+  s_0beb8896e4caf0::t_41a03761fca532 55-56
+  s_0beb8896e4caf0::t_dfa833b6eb55c8 57
+  s_0beb8896e4caf0::t_a816ead829cda4 65-66
+  s_0beb8896e4caf0::t_16783e437f7604 1-14,16,18-22,24-29
+  s_0beb8896e4caf0::t_e071221cc0c1c3 15,17,30-54,58-64,67-73
+  s_0beb8896e4caf0::t_624ab6065f496b 23
+docs/autopilot-log-schema.md
+  s_0beb8896e4caf0::t_b4c816ac8d12e5 7-8
+scripts/lib/artifacts.mjs
+  s_0beb8896e4caf0::t_8c4a507317f916 1-103
+scripts/review-report.mjs
+  s_0beb8896e4caf0::t_9e84ff821b4766 40,54,63
+  s_0beb8896e4caf0::t_3928e78011e58a 1-39,41-53,55-62,64-106
+evals/validate.mjs
+  s_0beb8896e4caf0::t_928bc492145162 106-108
+skills/implement/references/workflow-decisions.md
+  s_0beb8896e4caf0::t_e071221cc0c1c3 11-12
+skills/run-regression/SKILL.md
+  s_0beb8896e4caf0::t_9b7954ccad5214 96-97
+docs/regression-runner.md
+  s_0beb8896e4caf0::t_9b7954ccad5214 1-19
+skills/find-the-repos/SKILL.md
+  s_0beb8896e4caf0::t_6fb74ef7eeac6f 48-49
+evals/run-suite-args.test.mjs
+  s_0beb8896e4caf0::t_fe3a42b2747d2c 3-9
+skills/execute/SKILL.md
+  s_0beb8896e4caf0::t_9b7954ccad5214 319-320
+  s_0beb8896e4caf0::t_2da3fccd5e77f9 94
+  s_0beb8896e4caf0::t_982887ea75c199 60-61
+scripts/review-report.test.mjs
+  s_0beb8896e4caf0::t_3928e78011e58a 1-7,9-31,36
+  s_0beb8896e4caf0::t_9e84ff821b4766 8,32-35
+skills/implement/scripts/final-package.mjs
+  s_0beb8896e4caf0::t_c195448798c909 218
+skills/execute/references/step-control.md
+  s_0beb8896e4caf0::t_e071221cc0c1c3 6
+  s_0beb8896e4caf0::t_982887ea75c199 1-4,7-10,12,14-16
+  s_0beb8896e4caf0::t_f0a5060343be4c 5
+  s_0beb8896e4caf0::t_647781e7653c3c 11,13,17-18
+evals/run-suite.mjs
+  s_0beb8896e4caf0::t_928bc492145162 10,105
+skills/implement/scripts/workflow.test.mjs
+  s_0beb8896e4caf0::t_16783e437f7604 1-16,23-30,32-94,105
+  s_0beb8896e4caf0::t_5708d0e6614284 106-116
+  s_0beb8896e4caf0::t_eeae00350fa6af 31
+  s_0beb8896e4caf0::t_624ab6065f496b 17-22,95-104
+scripts/lib/plan.mjs
+  s_0beb8896e4caf0::t_624ab6065f496b 25
+  s_0beb8896e4caf0::t_8730982c3445ed 1-10,12-24,26-43
+  s_0beb8896e4caf0::t_394e6ac660aff8 11
+scripts/questions.mjs
+  s_0beb8896e4caf0::t_ac1ee6de52060c 1-27,30-37,42-90
+  s_0beb8896e4caf0::t_9e84ff821b4766 28-29,38-41
+skills/close-the-gaps/SKILL.md
+  s_0beb8896e4caf0::t_bff76878688fa0 159-160
+  s_0beb8896e4caf0::t_ac1ee6de52060c 335-336
+scripts/epic.mjs
+  s_0beb8896e4caf0::t_7b4e40df68b396 1-55,57-76
+  s_0beb8896e4caf0::t_9e84ff821b4766 56
+scripts/validate-plan.test.mjs
+  s_0beb8896e4caf0::t_2da3fccd5e77f9 1-29
+scripts/epic.test.mjs
+  s_0beb8896e4caf0::t_7b4e40df68b396 1-27
+skills/implement/scripts/render-status.mjs
+  s_0beb8896e4caf0::t_1b91d058159ff4 11,285,506-509,513-519,591
+  s_0beb8896e4caf0::t_41a03761fca532 512
+  s_0beb8896e4caf0::t_dfa833b6eb55c8 511
+  s_0beb8896e4caf0::t_a816ead829cda4 510
+skills/implement/scripts/pending-input.test.mjs
+  s_0beb8896e4caf0::t_4661b48987a8c3 1-51,53-57,61-159,164-171
+  s_0beb8896e4caf0::t_851ed07256a214 172-210
+  s_0beb8896e4caf0::t_f0a5060343be4c 160-163
+  s_0beb8896e4caf0::t_dfa833b6eb55c8 221,226
+  s_0beb8896e4caf0::t_ffbbe4411b61cc 52,58-60
+  s_0beb8896e4caf0::t_748c0d734f2cf0 211-217
+  s_0beb8896e4caf0::t_41a03761fca532 218-220,222-225,227-232
+  s_0beb8896e4caf0::t_a816ead829cda4 233-256
+scripts/repo-assessment.mjs
+  s_0beb8896e4caf0::t_9e84ff821b4766 42,90-92,106
+  s_0beb8896e4caf0::t_6fb74ef7eeac6f 1-41,43-89,93-105,107-118
+skills/plan-the-work/SKILL.md
+  s_0beb8896e4caf0::t_ac1ee6de52060c 202-203
+  s_0beb8896e4caf0::t_2da3fccd5e77f9 286-287
+skills/implement/assets/status-template.html
+  s_0beb8896e4caf0::t_1b91d058159ff4 20-23,163-175
+skills/implement/references/handoffs.md
+  s_0beb8896e4caf0::t_16783e437f7604 42-43
+skills/execute/scripts/step-control.test.mjs
+  s_0beb8896e4caf0::t_2e6c67cf96d18f 8,66,69-71,75-76
+  s_0beb8896e4caf0::t_624ab6065f496b 65,67-68,72-74,79-88,99
+  s_0beb8896e4caf0::t_7479721e6b54d8 77-78
+  s_0beb8896e4caf0::t_982887ea75c199 1-7,9-26,30,32-62,64
+  s_0beb8896e4caf0::t_c55ac8978121c3 100-105
+  s_0beb8896e4caf0::t_647781e7653c3c 27-29,31,63,89-98
+skills/slice-the-epic/SKILL.md
+  s_0beb8896e4caf0::t_c14523ba218b53 99-100
+scripts/test-strategy.mjs
+  s_0beb8896e4caf0::t_12b278f1db1c13 1-60,64-92
+  s_0beb8896e4caf0::t_9e84ff821b4766 61-63
+.github/workflows/validate-plugin.yml
+  s_0beb8896e4caf0::t_928bc492145162 26,38
+skills/implement/references/autonomy-changes.md
+  s_0beb8896e4caf0::t_e071221cc0c1c3 24-25
+scripts/questions.test.mjs
+  s_0beb8896e4caf0::t_9e84ff821b4766 34-38
+  s_0beb8896e4caf0::t_ac1ee6de52060c 1-33
+skills/review-the-pr/SKILL.md
+  s_0beb8896e4caf0::t_3928e78011e58a 162-163
+skills/implement/SKILL.md
+  s_0beb8896e4caf0::t_e071221cc0c1c3 78-79
+  s_0beb8896e4caf0::t_2a281984948236 239-240
+  s_0beb8896e4caf0::t_16783e437f7604 76-77
+  s_0beb8896e4caf0::t_1b91d058159ff4 121
+scripts/context-inventory.test.mjs
+  s_0beb8896e4caf0::t_2a281984948236 1-36
+scripts/slices.test.mjs
+  s_0beb8896e4caf0::t_c14523ba218b53 1-34
+CHANGELOG.md
+  s_0beb8896e4caf0::t_928bc492145162 15-16
+  s_0beb8896e4caf0::t_e071221cc0c1c3 22-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "51e952bf9e00e9e9ccc32f74fc29043e1804386f",
+  "prompts": {},
+  "sessions": {
+    "s_0beb8896e4caf0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17c36-d6fe-7840-8945-d5b095a834e5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
