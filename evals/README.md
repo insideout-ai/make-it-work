@@ -51,6 +51,11 @@ only when every grader passes; an unavailable or invalid judge result is a
 failure, never an unreviewed success. Model responses and semantic verdicts
 can still vary between runs; automatic grading is not deterministic model
 behavior.
+File evidence targets may use `*` within a path component for timestamped
+artifacts, for example `{ source: file, path: "make-it-work/epic-*.md" }`.
+They must resolve to exactly one regular file inside the fixture; zero or
+multiple matches fail. Evidence is read from the artifact rather than a
+tool-specific success message. Traversal and symlink escapes are rejected.
 The runner never uses `--dangerously-skip-permissions`. A permission refusal is
 an incomplete case, not a pass; the case README documents its manual fallback.
 The optional Git hook invokes `smoke` once for every push command against a
