@@ -1,6 +1,29 @@
 #!/usr/bin/env node
 import { args, cell, cli, fail, jsonInput, requireText, slug, writeSet } from './lib/artifacts.mjs';
 
+export function renderApproachPreview(input) {
+  requireText(input.title, 'Epic title');
+  const options = input.options;
+  if (!Array.isArray(options) || options.length < 2 || options.length > 3) fail('Preview requires 2–3 approaches.');
+  for (const option of options) {
+    for (const field of ['label', 'fit', 'tradeoff']) requireText(option[field], `Approach ${field}`);
+    if (option.recommended !== undefined && typeof option.recommended !== 'boolean') fail('recommended must be boolean.');
+    if (!Array.isArray(option.examples) || option.examples.length < 2 || option.examples.length > 3) fail('Each approach needs 2–3 example slice titles.');
+    option.examples.forEach((title) => requireText(title, 'Example slice title'));
+    if (new Set(option.examples.map((title) => title.trim().toLowerCase())).size !== option.examples.length) fail('Example titles must be distinct within an approach.');
+  }
+  if (new Set(options.map((option) => option.label.trim().toLowerCase())).size !== options.length) fail('Approach labels must be unique.');
+  if (options.filter((option) => option.recommended === true).length !== 1) fail('Exactly one recommended approach is required.');
+  const lines = [`Slicing approaches for **${input.title}**:`, ''];
+  for (const [i, option] of options.entries()) {
+    if (!option.recommended && option.label.endsWith('(Recommended)')) fail('Only the recommended option may carry the Recommended label.');
+    const label = option.recommended && !option.label.endsWith('(Recommended)') ? `${option.label} (Recommended)` : option.label;
+    lines.push(`${i + 1}. **${label}**`, `   Fit: ${option.fit}`, `   Tradeoff: ${option.tradeoff}`,
+      ...option.examples.map((title) => `   - ${title}`), '');
+  }
+  return lines.join('\n').trimEnd();
+}
+
 export function sliceGraph(input) {
   if (input.version !== 1 || !Array.isArray(input.slices) || !input.slices.length) fail('A version-1 nonempty slice set is required.');
   requireText(input.title, 'Epic title');
@@ -65,13 +88,15 @@ export async function writeSlices(directory, input) {
   let rendered;
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 13);
   const result = await writeSet(directory, `slices-${slug(input.title)}-${stamp}`, (prefix) => { rendered = renderSlices(input, prefix); return rendered.files; });
-  return { ...result, summary: rendered.summary, graph: rendered.graph };
+  return { ...result, summary: rendered.summary, graph: rendered.graph,
+    chat_summary: `${rendered.summary}\n\nRecommended starting slice: ${rendered.graph.stages.flat()[0]}.` };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--input', '--directory', '--prefix']);
   const input = await jsonInput(o.input);
+  if (o.command === 'preview') return renderApproachPreview(input);
   if (o.command === 'check') return sliceGraph(input);
   if (o.command === 'render') return renderSlices(input, o.prefix ?? `slices-${slug(input.title)}`);
   if (o.command === 'write' && o.directory) return writeSlices(o.directory, input);
-  fail('Usage: slices.mjs check|render --input SLICES.json | write --input SLICES.json --directory ARTIFACTS');
+  fail('Usage: slices.mjs preview --input APPROACHES.json | check|render --input SLICES.json | write --input SLICES.json --directory ARTIFACTS');
 });
