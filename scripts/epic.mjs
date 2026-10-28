@@ -26,6 +26,7 @@ export function renderEpic(input, existing = null) {
   const selectedNames = CATEGORIES[input.mode].filter(([id]) => ids.includes(id)).map(([, title]) => title);
   const omitted = CATEGORIES[input.mode].filter(([id]) => !ids.includes(id)).map(([, title]) => title);
   const lines = [`# ${input.title}`, '', `**Mode:** ${input.mode}`, '**Status:** Draft — pending review', `**Review scope:** ${selectedNames.join(', ')}`, ''];
+  if (input.source) lines.push(`Source: ${requireText(input.source, 'Source reference')}`, '');
   const open = [...(input.open_items ?? [])], exclusions = [...(input.out_of_scope ?? [])], readiness = [];
   for (const [id, title] of CATEGORIES[input.mode]) {
     const category = input.categories.find((entry) => entry.id === id);
@@ -61,10 +62,10 @@ export function renderEpic(input, existing = null) {
   else lines.push('No decisions recorded.');
   return lines.join('\n') + '\n';
 }
-export async function writeEpic(directory, input, existing = null) {
+export async function writeEpic(directory, input, existing = null, { compact = false } = {}) {
   const markdown = renderEpic(input, existing);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 13);
-  return writeSet(directory, `epic-${slug(input.title)}-${stamp}`, (prefix) => ({ [`${prefix}.md`]: markdown }));
+  return writeSet(directory, compact ? 'requirement' : `epic-${slug(input.title)}-${stamp}`, (prefix) => ({ [`${prefix}.md`]: markdown }), { versioned: compact });
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--input', '--directory', '--existing']);

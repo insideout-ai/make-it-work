@@ -164,3 +164,15 @@ Include the complete **Slice summary** table directly in the terminal/chat compl
 - **Losing the bigger picture:** retain the epic description as the map and connect every slice to it.
 - **More upfront work:** acknowledge the cost and explain that it reduces rework, ambiguity, and late risk.
 - **"This cannot be sliced":** inspect the workflow, data shape, roles, and technical uncertainty for a smaller demonstrable seam.
+
+## When run by drive-the-epic
+
+Read this section before applying standalone save/log/Jira behavior. The parent passes the current autonomy, run name and absolute directory, accepted epic and source references, saved decisions/progress, and its controller path.
+
+Keep this skill's approach preview, interactive choice or autopilot selection, thin-slice reasoning, complete criteria, graph validation, and visible summary table. Checkpoint each blocking question and actual answer through the parent; reuse saved answers on resume. Keep stable IDs across revisions, retain unaffected slice content, and explicitly report removed slices for retirement rather than recycling their IDs.
+
+Place the semantic `slices.mjs` input directly in the parent’s reusable `.event.json` under the event’s `input`, extended with per-slice `open_items` and `parallel: {suitability: candidate|sequential|unassessed, reason: ...}`, plus justified `parallel_groups` arrays. Hard prerequisites and recommended sequence retain their existing meanings. A dependency wave is not automatically safe concurrent implementation; use `unassessed` when evidence is missing.
+
+Use the parent's `slices` event instead of the standalone write command. It invokes the same graph checker and set writer, saves the overview and every complete slice **inside the run folder**, updates the dashboard and handoff, and returns `chat_summary`. Display that full summary. Use the returned actual paths; do not write a second set to the root `make-it-work/` directory.
+
+Use only the parent’s reusable `.event.json` for transient preview/event input and do not save command results or separate slice-input files. Instead of the standalone JSONL log, report each auto-resolved site through the parent’s automatic `decision` event with `stage: slice-the-epic` and the existing shared-schema entry as `auto_resolution`. State retains the complete record without another log file; existing old logs remain untouched. Do not offer or perform nested Jira publication: the parent owns the combined interactive offer after local completion; autopilot stays local. These destination, logging, and checkpoint rules override standalone mechanics only for this invocation. Return saved files and any unresolved requirements without starting implementation.

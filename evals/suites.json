@@ -3,6 +3,7 @@
   "smoke": [
     "close-the-gaps-live-autopilot",
     "deliver-no-package",
+    "drive-the-epic-autopilot",
     "dts-fresh-tests",
     "execute-full-pass",
     "find-the-repos-happy-path",
@@ -15,6 +16,10 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "drive-the-epic-autopilot",
+    "drive-the-epic-review-gate",
+    "drive-the-epic-scoped-resume",
+    "drive-the-epic-jira-unavailable",
     "close-the-gaps-slack-send-fallback",
     "close-the-gaps-slack-send-resume",
     "autopilot-bare",
@@ -80,6 +85,7 @@
     "implement-publication-resume"
   ],
   "requiredToolsBySkill": {
+    "drive-the-epic": ["Read", "Bash"],
     "implement": ["Read", "Bash"],
     "execute": ["Read", "Bash"],
     "run-regression": ["Read", "Bash"],

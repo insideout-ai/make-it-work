@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: drive-the-epic-scoped-resume
+tags: [drive-the-epic]
+scaffold_script: fixture.sh

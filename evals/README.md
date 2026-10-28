@@ -11,14 +11,14 @@ signed in, use `claude auth login` interactively and retry. It never requests
 or stores an API key.
 
 ```sh
-node evals/run-suite.mjs smoke --dry-run  # inspect the 12 selected cases
+node evals/run-suite.mjs smoke --dry-run  # inspect the 13 selected cases
 node evals/run-suite.mjs smoke            # before every PR
 node evals/run-suite.mjs full             # on demand and before a release
 node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # retry one case
 bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before every push
 ```
 
-`smoke` exercises one representative case for each of the 12 public skills.
+`smoke` exercises one representative case for each of the 13 public skills.
 Script-backed skills declare the minimal Read/Bash helper capabilities in
 `suites.json`'s `requiredToolsBySkill`, merged with each case's tools for both
 headless and plugin-eval runs. This keeps the eval environment able to exercise
@@ -102,3 +102,11 @@ Any `fixture.sh` that runs `git init`/`add`/`commit`/`checkout` must guard again
 - **`file_exists` grader unreliability**: this grader type has been observed reproducibly reporting a confirmed-present file as missing. Prefer a `regex` or `llm` grader targeting that file's content (`{source: file, path: ...}`) over `file_exists` for a positive existence check.
 - **Default judge model (`haiku`) unreliability on long `llm` graders**: `haiku` has been observed failing objectively-correct output on long, multi-criteria `llm` graders, especially with `focus: trace` (noisy raw JSONL). Prefer `focus: last_message` with short, single-question grader prompts, or pass `--judge-model sonnet`, for any grader judging substantial or complex content.
 - **Manual headless runs of a `disable-model-invocation` skill can stochastically fail to resolve on the first attempt**: a manual `claude -p "/make-it-work:<skill> ..." --dangerously-skip-permissions` invocation of any skill with `disable-model-invocation: true` in its frontmatter (`go-deep`, `close-the-gaps`, `define-test-strategy`, `execute`, `review-the-pr`, `shape-the-epic`, `slice-the-epic`) can occasionally claim the skill "isn't in the available skills list" and either stop or silently substitute an unrelated skill, with no apparent deterministic trigger — confirmed to affect multiple skills and to disappear on a plain retry of the identical command. If a manual run reports the target skill as unavailable, just retry it once before treating it as a real defect.
+
+For a focused change, select relevant pre-push smoke cases explicitly, for example:
+
+```sh
+MIW_SMOKE_CASES=drive-the-epic-autopilot git push
+```
+
+Use comma-separated case names for multiple smoke cases. The hook still tests a committed snapshot and records its report; an unset selection runs the full suite. Document the selected scope in the PR.

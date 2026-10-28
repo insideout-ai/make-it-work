@@ -27,6 +27,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
 
+## [4.19.0] - 2026-10-28
+
+### Added
+
+- `drive-the-epic` orchestrates ideas, documents, or Jira tickets through requirement shaping, complete-epic review, and slicing, with interactive/autopilot modes, resumable state, and an HTML process dashboard. Its handoff prepares individual slices for separate `implement` runs; automatic implementation coordination remains a future phase.
+- Four behavioral evals cover autopilot preparation, the interactive review gate, scoped revisions, and inaccessible Jira sources.
+
+### Changed
+
+- Epic orchestration uses short artifact names: `requirement.md`, `slicing-summary.md`, and stable slice IDs with short descriptions. Revisions receive `-v2`, `-v3`, and later suffixes while preserving previous artifacts and updating links.
+- New orchestration runs retain source evidence, stage inputs, and decisions in one state file; successful transient event input is removed instead of accumulating per-event JSON and duplicate logs.
+- The epic dashboard shares implement styling and shows two primary artifacts followed by a newest-first decision audit, compact status banners, and unwrapped From/To labels.
+- The optional pre-push hook accepts `MIW_SMOKE_CASES` to run explicitly selected relevant smoke cases; its default remains the complete smoke suite.
+
 ## [4.18.1] - 2026-10-27
 
 ### Fixed

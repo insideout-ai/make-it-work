@@ -31,7 +31,7 @@ Git hook once:
 bash scripts/install-pre-push-hook.sh
 ```
 
-The hook runs the 12-skill smoke suite against a disposable snapshot of the
+The hook runs the 13-skill smoke suite against a disposable snapshot of the
 commit being pushed, using your existing Claude Code sign-in before each push.
 It reports failures but does not block the push or PR. It does not request an
 API key or run in CI. Installation is local to your clone; the installer
@@ -66,7 +66,7 @@ node --test evals/*.test.mjs
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
-Before opening a pull request, run the 12-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and investigate any failed grader in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
+Before opening a pull request, run the 13-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Record its report path and investigate any failed grader in the PR description. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI, and PR creation or merge is not gated on smoke evidence.
 
 ## Pull requests
 
@@ -79,3 +79,11 @@ Keep each pull request focused on one outcome. In the description, include:
 - Any compatibility or migration impact.
 
 By contributing, you agree that your contribution is provided under this repository's [PolyForm Internal Use License 1.0.0](LICENSE).
+
+For a focused change, select relevant pre-push smoke cases explicitly, for example:
+
+```sh
+MIW_SMOKE_CASES=drive-the-epic-autopilot git push
+```
+
+Use comma-separated case names for multiple smoke cases. The hook still tests a committed snapshot and records its report; an unset selection runs the full suite. Document the selected scope in the PR.

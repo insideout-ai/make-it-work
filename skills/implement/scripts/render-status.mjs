@@ -9,6 +9,7 @@ import { readDelivery } from './delivery-progress.mjs';
 import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
 import { pendingInputs } from './pending-input.mjs';
+import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -687,6 +688,13 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     ? '<span class="none">Not yet created</span>'
     : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`), 'review', state.fields.ticket);
   const replacements = {
+    WORKFLOW_STYLES,
+    WORKFLOW_TIMESTAMPS,
+    WORKFLOW_HEADER: renderWorkflowHeader({
+      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64,
+      badges: `<span class="pill autonomy-pill" title="${escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP)}">Autonomy: ${escapeHtml(state.fields.autonomy)}</span>` +
+        renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
+    }),
     TICKET: escapeHtml(state.fields.ticket),
     AUTO_REFRESH: state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
       ? '<meta http-equiv="refresh" content="15">' : '',

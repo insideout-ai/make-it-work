@@ -65,3 +65,16 @@ test('pre-push runs smoke once and propagates its result', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+test('pre-push supports an explicit relevant-case selection without running the full smoke suite', async () => {
+  const root = await fixture();
+  try {
+    const bin = path.join(root, 'bin'); const log = path.join(root, 'selected.txt'); await mkdir(bin);
+    const mock = path.join(bin, 'node'); await writeFile(mock, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\n'); await chmod(mock, 0o755);
+    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, HOOK_TEST_LOG: log, MIW_SMOKE_CASES: 'drive-the-epic-autopilot' };
+    const selected = run('bash', ['.githooks/pre-push'], root, env); assert.equal(selected.status, 0);
+    assert.equal((await readFile(log, 'utf8')).trim(), 'evals/run-suite.mjs smoke --case=drive-the-epic-autopilot');
+    const invalid = run('bash', ['.githooks/pre-push'], root, { ...env, MIW_SMOKE_CASES: '--unexpected-option' });
+    assert.match(invalid.stderr, /invalid smoke case selection/);
+    assert.equal((await readFile(log, 'utf8')).trim().split('\n').length, 1);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
