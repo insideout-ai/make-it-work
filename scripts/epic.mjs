@@ -26,6 +26,7 @@ export function renderEpic(input, existing = null) {
   const selectedNames = CATEGORIES[input.mode].filter(([id]) => ids.includes(id)).map(([, title]) => title);
   const omitted = CATEGORIES[input.mode].filter(([id]) => !ids.includes(id)).map(([, title]) => title);
   const lines = [`# ${input.title}`, '', `**Mode:** ${input.mode}`, '**Status:** Draft — pending review', `**Review scope:** ${selectedNames.join(', ')}`, ''];
+  if (input.source) lines.push(`Source: ${requireText(input.source, 'Source reference')}`, '');
   const open = [...(input.open_items ?? [])], exclusions = [...(input.out_of_scope ?? [])], readiness = [];
   for (const [id, title] of CATEGORIES[input.mode]) {
     const category = input.categories.find((entry) => entry.id === id);

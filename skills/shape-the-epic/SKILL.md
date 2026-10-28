@@ -155,3 +155,13 @@ Use the **entire latest saved epic Markdown** as the ticket description unless t
 The separate `shape-the-epic-autopilot-log.jsonl` is a run audit file, not part of the epic Markdown. Do not append or attach it unless the user specifically requests that additional artifact.
 
 Before sending, compare the prepared description with the saved epic to ensure every section and all decision entries are present. After updating, read back the ticket description and verify the same content survived formatting conversion, including the Decision log. If a connector or destination limit prevents a complete update, explain the limitation rather than silently omitting sections or substituting an attachment/comment. Report an incomplete or unverified update accurately, and provide the ticket link and local epic path when available.
+
+## When run by drive-the-epic
+
+Read this section before applying standalone save/log/publication behavior. The parent passes the current autonomy, run name and absolute directory, retained source evidence and references, prior decisions/progress, and its controller path.
+
+Keep this skill's shaping interview, mode/category selection, output content, and autopilot policy. Reuse saved answers. Before each blocking interview question, ask the parent to checkpoint the exact question; after the answer, checkpoint the actual choice before continuing. Report substantive decisions, assumptions, open items, and progress to the parent's decision journal with accurate provenance.
+
+Place this skill’s semantic `epic.mjs` input directly in the parent’s reusable `.event.json` under the event’s `input`; do not save a separate `epic-input` file. Submit it using the parent's `epic` event instead of calling the standalone writer: the parent uses that same writer to save a new epic **inside the run folder**, adds retained source references, updates progress/HTML, and owns the complete-epic review gate. Present the saved complete draft for that gate; do not insert a separate approval loop, publish Jira, or proceed to slicing yourself. Autopilot returns the saved draft immediately to the parent.
+
+Use only the parent’s reusable `.event.json` as temporary input; do not save command results. Instead of this skill’s standalone JSONL log, report each auto-resolved site through the parent’s automatic `decision` event with `stage: shape-the-epic` and the existing shared-schema entry as `auto_resolution`. The complete record is retained in state, without another log file. Existing old logs remain untouched. The parent marks automatic continuation separately from user approval. These orchestration-specific destination, logging, and checkpoint rules replace standalone mechanics only for this invocation.

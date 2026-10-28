@@ -67,6 +67,22 @@ Use it directly during day-to-day development to check a change against the regr
 
 ---
 
+### `/make-it-work:drive-the-epic`
+
+Orchestrates **source intake → shape-the-epic → full-epic review → slice-the-epic**, with saved, resumable progress and an offline HTML dashboard. Accepts ideas, document paths, or a Jira ticket key/URL, including combined inputs. Interactive mode waits for your acceptance of the full epic before slicing; `--autopilot` runs unattended and stays local. Optional Jira publication is offered only after interactive local preparation completes.
+
+```text
+/make-it-work:drive-the-epic APP-123
+/make-it-work:drive-the-epic path/to/brief.md --autopilot
+/make-it-work:drive-the-epic --resume make-it-work/drive-order-exports-<timestamp>
+```
+
+Every run keeps its epic, overview, complete slice files, `state.json`, and `dashboard.html` in a dedicated `make-it-work/drive-<title>-<timestamp>/` folder. The dashboard reflects saved progress and waits, links two primary artifacts (Requirement and Slicing summary), and places its decision/transition audit directly after them. Slice detail, dependencies, and parallel candidates live in the summary Markdown and linked slice files; it refreshes every 15 seconds while active or waiting, then stops refreshing at completion or a stop. The state file retains inputs, decisions, and history; one temporary event file is removed after successful checkpoints. Resume reuses decisions and revisits only affected work when requirements change.
+
+The workflow ends with **preparation complete** and a starting slice for a separate `implement` run. Unresolved requirements remain visible. The handoff reserves per-slice implementation progress so a future phase can coordinate sequential and parallel `implement` runs; this version does not start them.
+
+---
+
 ### `/make-it-work:shape-the-epic`
 
 Shapes an epic for any work management tool (Jira, Azure DevOps, Linear, Shortcut) in **Product** or **Technical-debt** mode. Choose the readiness categories to focus on, then work through the discovery interview and gap-check. After the interview, it generates the complete Markdown epic directly for consolidated feedback, without a category-by-category content approval round. Real unknowns remain scoped TBDs; unselected categories are marked **Not assessed**.
