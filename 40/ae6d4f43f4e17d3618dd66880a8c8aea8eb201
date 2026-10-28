@@ -1,0 +1,176 @@
+evals/drive-the-epic/autopilot/graders/no-stage-log-files.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+README.md
+  s_85e5f5ece1467c::t_5db9e12756562d 80
+  s_85e5f5ece1467c::t_c1f6d4f9aad361 70-79,81-85
+scripts/epic-workflow.test.mjs
+  s_85e5f5ece1467c::t_f6e3d172d04b5a 2,170-181
+  s_85e5f5ece1467c::t_dfdee8d66e8f1d 6,211-262
+  s_85e5f5ece1467c::t_592b28f33e85b2 155-161
+  s_85e5f5ece1467c::t_7f3c68e055f9b5 115,137,193-210
+  s_85e5f5ece1467c::t_c9e57b80e63c81 136,182
+  s_85e5f5ece1467c::t_53d48890edd2a2 162-169,183
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 264-272
+  s_85e5f5ece1467c::t_5110564712e1d9 139-154
+  s_85e5f5ece1467c::t_008962c45c1b6b 1,3-5,7-114,116-135,138
+  s_85e5f5ece1467c::t_91f1898e345e0d 191
+  s_85e5f5ece1467c::t_593ce139b82e2c 184-190,192,263
+evals/drive-the-epic.test.mjs
+  s_85e5f5ece1467c::t_592b28f33e85b2 1-45
+skills/implement/assets/status-template.html
+  s_85e5f5ece1467c::t_5529ef66cdd7ec 9,13,49
+evals/drive-the-epic/autopilot/graders/handoff-quality.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-6
+skills/drive-the-epic/references/controller.md
+  s_85e5f5ece1467c::t_5db9e12756562d 8,12,36,50,68,70
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 3
+  s_85e5f5ece1467c::t_12ffbc82ff4fbb 1-2,4-7,9-11,13-33,35,37-39,41-49,51-65,69,71
+  s_85e5f5ece1467c::t_ebd72a4d08f3f1 66
+  s_85e5f5ece1467c::t_53d48890edd2a2 34,40
+  s_85e5f5ece1467c::t_faf2e06a95802f 67
+evals/drive-the-epic/autopilot/prompt.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-11
+evals/drive-the-epic/autopilot/graders/html-view.md
+  s_85e5f5ece1467c::t_7f3c68e055f9b5 4,7
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3,5-6
+evals/drive-the-epic/scoped-resume/graders/no-stage-log-files.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+evals/README.md
+  s_85e5f5ece1467c::t_c1f6d4f9aad361 14,21
+evals/drive-the-epic/autopilot/case.yaml
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3
+evals/drive-the-epic/jira-unavailable/graders/honest-stop.md
+  s_85e5f5ece1467c::t_f247933c6eb4b0 4-5
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3,6-8
+evals/drive-the-epic/review-gate/case.yaml
+  s_85e5f5ece1467c::t_d570c241677c8b 1-4
+evals/drive-the-epic/review-gate/graders/no-slices-yet.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-6
+evals/drive-the-epic/review-gate/graders/review-is-pending.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3,6-8
+  s_85e5f5ece1467c::t_f247933c6eb4b0 4-5
+CONTRIBUTING.md
+  s_85e5f5ece1467c::t_c1f6d4f9aad361 34,69
+evals/drive-the-epic/review-gate/prompt.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-11
+evals/drive-the-epic/jira-unavailable/prompt.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-11
+evals/drive-the-epic/autopilot/graders/no-event-file-sprawl.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+evals/drive-the-epic/scoped-resume/graders/handoff-quality.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-6
+evals/drive-the-epic/jira-unavailable/fixture.sh
+  s_85e5f5ece1467c::t_d570c241677c8b 1-5
+scripts/epic-dashboard.mjs
+  s_85e5f5ece1467c::t_300c48f126b344 35
+  s_85e5f5ece1467c::t_a1a8032740a8d7 32,36,42,91-107,109-110,112-117,123-124,129
+  s_85e5f5ece1467c::t_5529ef66cdd7ec 1-25,27-31,33,37,43,48-76,79-80,86,89-90,119-120,122,125-128,131-135,137-141,143,145-147
+  s_85e5f5ece1467c::t_733cfd15f22ca4 26,44-47,77-78,81-85,87-88,108,111,144
+  s_85e5f5ece1467c::t_ebd72a4d08f3f1 34,38-41,121,142
+  s_85e5f5ece1467c::t_13002469afb9e9 118,130,148
+  s_85e5f5ece1467c::t_aa27b1d13cede1 136
+evals/drive-the-epic/scoped-resume/fixture.sh
+  s_85e5f5ece1467c::t_d570c241677c8b 1-5
+scripts/epic-dashboard.test.mjs
+  s_85e5f5ece1467c::t_733cfd15f22ca4 72,74-92
+  s_85e5f5ece1467c::t_7f3c68e055f9b5 37,39,47-71,73
+  s_85e5f5ece1467c::t_c9e57b80e63c81 1-36,38,40-46,93
+scripts/epic-workflow.mjs
+  s_85e5f5ece1467c::t_466634f650cace 4,155,165,258
+  s_85e5f5ece1467c::t_b1fb2c1f40b09f 2,187-189,196-197,282-302,308
+  s_85e5f5ece1467c::t_13002469afb9e9 120
+  s_85e5f5ece1467c::t_a1a8032740a8d7 244,262
+  s_85e5f5ece1467c::t_5110564712e1d9 106,114,116,144,148,158,161
+  s_85e5f5ece1467c::t_008962c45c1b6b 149
+  s_85e5f5ece1467c::t_12ffbc82ff4fbb 121,130,230,240
+  s_85e5f5ece1467c::t_592b28f33e85b2 123-129
+  s_85e5f5ece1467c::t_53d48890edd2a2 11,39,84-91,95,99
+  s_85e5f5ece1467c::t_593ce139b82e2c 263-265
+  s_85e5f5ece1467c::t_b8ae370372d67d 1,3,5-8,10,12-30,36-38,40-83,92-94,96-98,100-105,107-113,115,117-119,122,131-143,145-147,150-154,156-157,159-160,162-164,166-171,175-186,190-195,198-229,231-239,241-243,245-257,259-261,266-281,303-307,309-318
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 172-174
+  s_85e5f5ece1467c::t_5db9e12756562d 9,31-35
+evals/drive-the-epic/scoped-resume/graders/no-leftover-event-input.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+skills/drive-the-epic/SKILL.md
+  s_85e5f5ece1467c::t_592b28f33e85b2 17
+  s_85e5f5ece1467c::t_5db9e12756562d 24
+  s_85e5f5ece1467c::t_ebd72a4d08f3f1 66
+  s_85e5f5ece1467c::t_12ffbc82ff4fbb 1-16,18-23,25-65
+evals/drive-the-epic/README.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 20-21
+  s_85e5f5ece1467c::t_d570c241677c8b 1-19,22
+evals/drive-the-epic/scoped-resume/graders/prepared-state.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3,6-8
+  s_85e5f5ece1467c::t_f247933c6eb4b0 4-5
+docs/deterministic-artifacts.md
+  s_85e5f5ece1467c::t_a1a9c42bb535e9 31,45-47
+  s_85e5f5ece1467c::t_98fa16a3b8d723 48
+evals/drive-the-epic/autopilot/graders/no-duplicate-decision-journal.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+evals/drive-the-epic/scoped-resume/graders/no-duplicate-decision-journal.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+scripts/slices.mjs
+  s_85e5f5ece1467c::t_a1a8032740a8d7 83-91
+evals/drive-the-epic/scoped-resume/graders/no-event-file-sprawl.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+evals/drive-the-epic/autopilot/graders/no-stage-input-files.md
+  s_85e5f5ece1467c::t_7bf3d14d2b120d 1-7
+evals/drive-the-epic/scoped-resume/graders/no-stage-input-files.md
+  s_85e5f5ece1467c::t_7bf3d14d2b120d 1-7
+evals/drive-the-epic/autopilot/graders/no-leftover-event-input.md
+  s_85e5f5ece1467c::t_0ba6a3ec23b176 1-7
+evals/drive-the-epic/jira-unavailable/graders/no-questions.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-7
+scripts/lib/workflow-dashboard.mjs
+  s_85e5f5ece1467c::t_5529ef66cdd7ec 1-141
+evals/drive-the-epic/scoped-resume/prompt.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-11
+evals/drive-the-epic/seed.mjs
+  s_85e5f5ece1467c::t_d570c241677c8b 1-19
+skills/slice-the-epic/SKILL.md
+  s_85e5f5ece1467c::t_c1f6d4f9aad361 167-173,175-177
+  s_85e5f5ece1467c::t_5db9e12756562d 174,178
+skills/shape-the-epic/SKILL.md
+  s_85e5f5ece1467c::t_c1f6d4f9aad361 158-164,166
+  s_85e5f5ece1467c::t_5db9e12756562d 165,167
+evals/suites.json
+  s_85e5f5ece1467c::t_466634f650cace 6,19-22,88
+scripts/epic.mjs
+  s_85e5f5ece1467c::t_13002469afb9e9 29
+evals/drive-the-epic/autopilot/graders/no-questions.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-7
+evals/drive-the-epic/jira-unavailable/case.yaml
+  s_85e5f5ece1467c::t_d570c241677c8b 1-4
+evals/drive-the-epic/scoped-resume/graders/no-questions.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-7
+evals/drive-the-epic/autopilot/graders/prepared-state.md
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3,6-8
+  s_85e5f5ece1467c::t_f247933c6eb4b0 4-5
+evals/drive-the-epic/scoped-resume/case.yaml
+  s_85e5f5ece1467c::t_d570c241677c8b 1-4
+evals/drive-the-epic/scoped-resume/graders/html-view.md
+  s_85e5f5ece1467c::t_7f3c68e055f9b5 4,7
+  s_85e5f5ece1467c::t_d570c241677c8b 1-3,5-6
+evals/drive-the-epic/review-gate/fixture.sh
+  s_85e5f5ece1467c::t_d570c241677c8b 1-5
+skills/implement/scripts/render-status.mjs
+  s_85e5f5ece1467c::t_5529ef66cdd7ec 12,691-697
+skills/drive-the-epic/references/publication.md
+  s_85e5f5ece1467c::t_12ffbc82ff4fbb 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "40ae6d4f43f4e17d3618dd66880a8c8aea8eb201",
+  "prompts": {},
+  "sessions": {
+    "s_85e5f5ece1467c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17f0f-679b-7050-b2f6-c8b5f4cdc307",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
