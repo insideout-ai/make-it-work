@@ -66,10 +66,18 @@ export function sliceGraph(input) {
   return { edges, feasible, stages, stage, mvp_closure: ids.filter((id) => closure.has(id)) };
 }
 const mermaid = (text) => text.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('`', '&#96;');
-export function renderSlices(input, prefix) {
+export function renderSlices(input, prefix, { compact = false } = {}) {
   const graph = sliceGraph(input);
   const overview = `${prefix}.md`;
-  const names = Object.fromEntries(input.slices.map((slice) => [slice.id, `${prefix}-${slice.id}-${slug(slice.title)}.md`]));
+  const shortName = (slice) => {
+    const words = slug(slice.short_title ?? slice.title).split('-');
+    let result = words.shift().slice(0, 40);
+    for (const word of words.slice(0, 4)) { if (`${result}-${word}`.length > 40) break; result += `-${word}`; }
+    return result;
+  };
+  const revision = compact ? prefix.slice('slicing-summary'.length) : '';
+  const names = Object.fromEntries(input.slices.map((slice) => [slice.id, compact
+    ? `${slice.id}-${shortName(slice)}${revision}.md` : `${prefix}-${slice.id}-${slug(slice.title)}.md`]));
   const reference = (id) => `[${id}](${names[id]})`;
   const files = {};
   const summary = ['| Slice | Summary / outcome | Hard prerequisites | Recommended after | Stage |', '|---|---|---|---|---|'];
@@ -90,13 +98,13 @@ export function renderSlices(input, prefix) {
   ] : [];
   files[overview] = [`# ${input.title}`, '', input.goal ?? '', '', input.source ? `Source: ${input.source}` : '', '', '## Approach', '', input.approach ?? '', '', input.rationale ?? '', '', '## Assumptions', '', ...(input.assumptions?.length ? input.assumptions.map((s) => `- ${s}`) : ['None']), '', '## Slice summary', '', ...summary, '', '## Dependency map', '', ...diagram, '', ...dependencies, '', ...(graph.edges.length ? [] : ['No inter-slice dependencies identified', '']), '## Recommended implementation flow', '', ...flow, '', ...(graph.mvp_closure.length ? [`Proposed MVP prerequisite closure: ${graph.mvp_closure.map(reference).join(', ')}`, ''] : []), ...preparation, ...(input.open_items?.length ? ['## Open questions', '', ...input.open_items.map((item) => `- ${item}`), ''] : [])].join('\n');
   for (const slice of input.slices) files[names[slice.id]] = [`# ${slice.id} — ${slice.title}`, '', `Epic: ${input.title}`, input.source ? `Source: ${input.source}` : '', `Overview: [${input.title}](${overview})`, '', slice.content.trim(), '', '## Hard prerequisites', '', ...((slice.hard?.length || slice.external?.length) ? [...(slice.hard ?? []).map((id) => `- ${reference(id)}`), ...(slice.external ?? []).map((item) => `- ${item}`)] : ['None']), ''].join('\n');
-  return { files, summary: summary.join('\n'), graph };
+  return { files, summary: summary.join('\n'), graph, overview, slice_files: names };
 }
-export async function writeSlices(directory, input) {
+export async function writeSlices(directory, input, { compact = false } = {}) {
   let rendered;
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 13);
-  const result = await writeSet(directory, `slices-${slug(input.title)}-${stamp}`, (prefix) => { rendered = renderSlices(input, prefix); return rendered.files; });
-  return { ...result, summary: rendered.summary, graph: rendered.graph,
+  const result = await writeSet(directory, compact ? 'slicing-summary' : `slices-${slug(input.title)}-${stamp}`, (prefix) => { rendered = renderSlices(input, prefix, { compact }); return rendered.files; }, { versioned: compact });
+  return { ...result, summary: rendered.summary, graph: rendered.graph, overview: rendered.overview, slice_files: rendered.slice_files,
     chat_summary: `${rendered.summary}\n\nRecommended starting slice: ${rendered.graph.stages.flat()[0]}.` };
 }
 cli(import.meta.url, async (argv) => {

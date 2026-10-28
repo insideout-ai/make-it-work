@@ -25,3 +25,12 @@ test('successive drafts write distinct files without changing earlier artifacts'
   const first = await writeEpic(dir, input()); const original = await readFile(first.files[0], 'utf8');
   const second = await writeEpic(dir, input()); assert.notEqual(first.files[0], second.files[0]); assert.equal(await readFile(first.files[0], 'utf8'), original);
 });
+test('orchestrated requirements use short versioned names and preserve full titles and earlier drafts', async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'epic-compact-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const spec = input(); spec.title = 'Premium customer coverage with a deliberately complete descriptive title';
+  const first = await writeEpic(dir, spec, null, { compact: true });
+  const old = await readFile(first.files[0], 'utf8');
+  const second = await writeEpic(dir, spec, null, { compact: true });
+  assert.equal(path.basename(first.files[0]), 'requirement.md'); assert.equal(path.basename(second.files[0]), 'requirement-v2.md');
+  assert.ok(old.includes(spec.title)); assert.equal(await readFile(first.files[0], 'utf8'), old);
+});

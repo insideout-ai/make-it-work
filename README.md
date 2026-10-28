@@ -1,6 +1,6 @@
 # make-it-work
 
-> From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — or orchestrate the whole flow for a ticket with `implement`.
+> From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — orchestrate an epic with `drive-the-epic`, or take a ticket through implementation with `implement`.
 
 Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
 
@@ -77,7 +77,21 @@ Orchestrates **source intake → shape-the-epic → full-epic review → slice-t
 /make-it-work:drive-the-epic --resume make-it-work/drive-order-exports-<timestamp>
 ```
 
-Every run keeps its epic, overview, complete slice files, `state.json`, and `dashboard.html` in a dedicated `make-it-work/drive-<title>-<timestamp>/` folder. The dashboard reflects saved progress and waits, links two primary artifacts (Requirement and Slicing summary), and places its decision/transition audit directly after them. Slice detail, dependencies, and parallel candidates live in the summary Markdown and linked slice files; it refreshes every 15 seconds while active or waiting, then stops refreshing at completion or a stop. The state file retains inputs, decisions, and history; one temporary event file is removed after successful checkpoints. Resume reuses decisions and revisits only affected work when requirements change.
+Every run keeps its epic, overview, complete slice files, `state.json`, and `dashboard.html` in a dedicated `make-it-work/drive-<title>-<timestamp>/` folder. The dashboard reflects saved progress and waits, links two primary artifacts (Requirement and Slicing summary), and places its decision/transition audit directly after them. Slice detail, dependencies, and parallel candidates live in the summary Markdown and linked slice files. The dashboard refreshes every 15 seconds while active or waiting, then stops refreshing at completion or a stop. The state file retains inputs, decisions, and history; one temporary event file is removed after successful checkpoints. Resume reuses decisions and revisits only affected work when requirements change.
+
+Generated Markdown names stay short because the run folder already identifies the epic:
+
+```text
+make-it-work/drive-order-exports-<timestamp>/
+  dashboard.html
+  requirement.md
+  slicing-summary.md
+  S-1-export-orders.md
+  S-2-date-filter.md
+  state.json
+```
+
+Full titles remain inside the documents. Preserved revisions use `-v2`, `-v3`, and later suffixes; dashboard, overview, and prerequisite links use the actual generated paths. Existing artifacts keep their names until a new version is generated.
 
 The workflow ends with **preparation complete** and a starting slice for a separate `implement` run. Unresolved requirements remain visible. The handoff reserves per-slice implementation progress so a future phase can coordinate sequential and parallel `implement` runs; this version does not start them.
 

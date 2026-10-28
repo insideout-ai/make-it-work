@@ -58,11 +58,11 @@ export function table(markdown, headers) {
 }
 export const cell = (value) => String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
 export const slug = (value) => String(value).normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
-export async function writeSet(directory, prefix, files) {
+export async function writeSet(directory, prefix, files, { versioned = false } = {}) {
   await mkdir(directory, { recursive: true });
   if (!(await lstat(directory)).isDirectory()) fail('Artifact directory must not be a symlink.');
   for (let n = 1; ; n += 1) {
-    const name = n === 1 ? prefix : `${prefix}-${n}`;
+    const name = n === 1 ? prefix : `${prefix}-${versioned ? 'v' : ''}${n}`;
     const bodies = files(name);
     const reserved = [];
     try {

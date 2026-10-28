@@ -30,7 +30,7 @@ test('review eval grader requires a real saved pending review and absence of pre
   await updateEpicRun({ root: f.root, run: f.run, event: { id: 'draft', type: 'epic', input: { version: 1, mode: 'product', title: 'Exports', categories: [{ id: 3, assessed: true, ready: true, content: 'Let customers reconcile purchases with their own CSV.' }] } } });
   assert.equal((await grade(f, 'review-gate', 'review-is-pending.md')).passed, true);
   assert.equal((await grade(f, 'review-gate', 'no-slices-yet.md')).passed, true);
-  const { directory } = await inspectEpicRun(f); await writeFile(path.join(directory, 'slices-premature.md'), 'Premature backlog');
+  const { directory } = await inspectEpicRun(f); await writeFile(path.join(directory, 'slicing-summary.md'), 'Premature backlog');
   assert.equal((await grade(f, 'review-gate', 'no-slices-yet.md')).passed, false);
 });
 test('scoped-resume fixture and local graders distinguish pending revision from actual preparation completion', async (t) => {

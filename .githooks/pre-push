@@ -36,9 +36,20 @@ set +e
   GIT_AUTHOR_NAME='Eval Snapshot' GIT_AUTHOR_EMAIL='eval@example.invalid' \
   GIT_COMMITTER_NAME='Eval Snapshot' GIT_COMMITTER_EMAIL='eval@example.invalid' \
     git -c core.hooksPath=/dev/null commit -q -m 'Committed plugin snapshot'
+  smoke_args=(smoke)
+  if [ -n "${MIW_SMOKE_CASES:-}" ]; then
+    IFS=',' read -r -a selected_cases <<< "$MIW_SMOKE_CASES"
+    for case_name in "${selected_cases[@]}"; do
+      if [[ ! "$case_name" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+        echo "pre-push: invalid smoke case selection: $case_name" >&2
+        exit 1
+      fi
+      smoke_args+=("--case=$case_name")
+    done
+  fi
   MIW_EVAL_SOURCE_COMMIT="$source_commit" \
   MIW_EVAL_REPORT_ROOT="$repo_root/evals/results" \
-    node evals/run-suite.mjs smoke
+    node evals/run-suite.mjs "${smoke_args[@]}"
 )
 smoke_status=$?
 set -e

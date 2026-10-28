@@ -66,3 +66,19 @@ test('approach preview rejects incomplete candidates and ambiguous recommendatio
     assert.throws(() => renderApproachPreview(input));
   }
 });
+test('compact slice sets have bounded ID-based names, valid links, and coherent revision suffixes', async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'slice-compact-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const input = data(); input.title = 'An epic whose full title should never repeat in every slice filename';
+  input.slices[0].title = 'Create a saved draft that retains all information after a browser restart'; input.slices[0].short_title = 'save-draft';
+  const first = await writeSlices(dir, input, { compact: true });
+  assert.equal(first.overview, 'slicing-summary.md'); assert.equal(first.slice_files['S-1'], 'S-1-save-draft.md');
+  const original = await readFile(path.join(dir, first.overview), 'utf8');
+  const second = await writeSlices(dir, input, { compact: true });
+  assert.equal(second.overview, 'slicing-summary-v2.md'); assert.equal(second.slice_files['S-1'], 'S-1-save-draft-v2.md');
+  assert.equal(await readFile(path.join(dir, first.overview), 'utf8'), original);
+  for (const result of [first, second]) for (const file of result.files) {
+    const body = await readFile(file, 'utf8'); assert.ok(path.basename(file).length < 65);
+    for (const match of body.matchAll(/\]\(([^)]+\.md)\)/g)) await readFile(path.join(dir, match[1]));
+  }
+  const sliceBody = await readFile(path.join(dir, second.slice_files['S-1']), 'utf8'); assert.ok(sliceBody.includes(input.slices[0].title));
+});

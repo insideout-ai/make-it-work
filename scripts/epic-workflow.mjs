@@ -246,7 +246,7 @@ export async function updateEpicRun({ root, run, event }) {
     let summary = null;
     if (event.type === 'epic') {
       const input = { ...event.input, source: state.sources.map((s) => s.reference).join(', ') };
-      const output = await writeEpic(dir, input);
+      const output = await writeEpic(dir, input, null, { compact: true });
       resolved.artifact = await artifact(dir, path.basename(output.files[0]));
       resolved.input = event.input;
     }
@@ -263,12 +263,11 @@ export async function updateEpicRun({ root, run, event }) {
         assumptions: event.input.assumptions ?? [],
         open_items: [...new Set([...state.open_items, ...(event.input.open_items ?? []),
           ...event.input.slices.flatMap((s) => (s.open_items ?? []).map((text) => `${s.id}: ${text}`))])] };
-      const output = await writeSlices(dir, input);
-      resolved.overview = await artifact(dir, `${output.prefix}.md`);
+      const output = await writeSlices(dir, input, { compact: true });
+      resolved.overview = await artifact(dir, output.overview);
       resolved.artifacts = {};
       for (const slice of event.input.slices) {
-        const file = output.files.find((f) => path.basename(f).startsWith(`${output.prefix}-${slice.id}-`));
-        resolved.artifacts[slice.id] = await artifact(dir, path.basename(file));
+        resolved.artifacts[slice.id] = await artifact(dir, output.slice_files[slice.id]);
       }
       summary = output.chat_summary;
     }

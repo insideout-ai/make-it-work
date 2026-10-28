@@ -79,3 +79,11 @@ Keep each pull request focused on one outcome. In the description, include:
 - Any compatibility or migration impact.
 
 By contributing, you agree that your contribution is provided under this repository's [PolyForm Internal Use License 1.0.0](LICENSE).
+
+For a focused change, select relevant pre-push smoke cases explicitly, for example:
+
+```sh
+MIW_SMOKE_CASES=drive-the-epic-autopilot git push
+```
+
+Use comma-separated case names for multiple smoke cases. The hook still tests a committed snapshot and records its report; an unset selection runs the full suite. Document the selected scope in the PR.
