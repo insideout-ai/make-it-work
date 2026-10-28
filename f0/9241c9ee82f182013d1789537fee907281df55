@@ -1,0 +1,56 @@
+evals/README.md
+  s_85e5f5ece1467c::t_556801e53fc443 105-112
+evals/drive-the-epic/scoped-resume/graders/html-view.md
+  s_85e5f5ece1467c::t_a1dd949d6f7008 4
+scripts/epic-workflow.mjs
+  s_85e5f5ece1467c::t_a1dd949d6f7008 249,266-267,270
+scripts/slices.mjs
+  s_85e5f5ece1467c::t_a1dd949d6f7008 69,72-80,101,103,106-107
+scripts/epic.test.mjs
+  s_85e5f5ece1467c::t_556801e53fc443 28-36
+README.md
+  s_85e5f5ece1467c::t_556801e53fc443 3,81-94
+  s_85e5f5ece1467c::t_e31fe5267e4510 80
+skills/drive-the-epic/references/controller.md
+  s_85e5f5ece1467c::t_556801e53fc443 72-73
+scripts/epic.mjs
+  s_85e5f5ece1467c::t_a1dd949d6f7008 65,68
+scripts/lib/artifacts.mjs
+  s_85e5f5ece1467c::t_a1dd949d6f7008 61,65
+evals/drive-the-epic/autopilot/graders/html-view.md
+  s_85e5f5ece1467c::t_a1dd949d6f7008 4
+.githooks/pre-push
+  s_85e5f5ece1467c::t_a1dd949d6f7008 39-49,52
+CHANGELOG.md
+  s_85e5f5ece1467c::t_556801e53fc443 30-43
+.claude-plugin/plugin.json
+  s_85e5f5ece1467c::t_556801e53fc443 6
+CONTRIBUTING.md
+  s_85e5f5ece1467c::t_556801e53fc443 82-89
+evals/drive-the-epic/review-gate/graders/no-slices-yet.md
+  s_85e5f5ece1467c::t_a1dd949d6f7008 3
+skills/drive-the-epic/SKILL.md
+  s_85e5f5ece1467c::t_556801e53fc443 67-68
+scripts/slices.test.mjs
+  s_85e5f5ece1467c::t_556801e53fc443 69-84
+scripts/pre-push-hook.test.mjs
+  s_85e5f5ece1467c::t_556801e53fc443 68-80
+evals/drive-the-epic.test.mjs
+  s_85e5f5ece1467c::t_a1dd949d6f7008 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f09241c9ee82f182013d1789537fee907281df55",
+  "prompts": {},
+  "sessions": {
+    "s_85e5f5ece1467c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a17f0f-679b-7050-b2f6-c8b5f4cdc307",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
