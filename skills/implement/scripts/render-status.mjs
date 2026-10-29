@@ -10,6 +10,7 @@ import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
 import { pendingInputs } from './pending-input.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
+import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -482,6 +483,10 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     if (isActive && slot.phase === 'execute') {
       if (!planStatus) fail('An active Execute phase requires a readable plan Execution Status.');
       modeText = `${planStatus.mode} · Step ${planStatus.complete} of ${planStatus.total} complete`;
+      if (state.fields.status === 'In Progress' && planStatus.activeSteps?.length) {
+        const ids = planStatus.activeSteps.map((step) => step.number);
+        modeText = `${planStatus.mode} · Running ${ids.length === 1 ? 'step' : 'steps'} ${ids.join(', ')} of ${planStatus.total} · ${planStatus.complete} of ${planStatus.total} verified complete`;
+      }
     } else if (isActive && slot.phase === 'fix-plan' && state.fixPlanRoundSteps !== null) {
       if (!planStatus) fail('An active Fix phase with sized steps requires a readable plan Execution Status.');
       const localComplete = planStatus.complete - (planStatus.total - state.fixPlanRoundSteps);
@@ -554,7 +559,27 @@ function timingDetails(state, invalidTimestampFrom) {
 
 function displayOutcome(outcome) {
   // Controller retry metadata stays in the saved audit, outside the user-facing presentation.
-  return outcome.replace(/\s*\[workflow-event: [A-Za-z0-9][A-Za-z0-9._:-]*; sha256: [a-f0-9]{64}\]/g, '').trim();
+  const clean = outcome.replace(/\s*\[workflow-event: [A-Za-z0-9][A-Za-z0-9._:-]*; sha256: [a-f0-9]{64}\]/g, '').trim();
+  const decision = clean.match(/^Decision: ([\s\S]*?) — ([\s\S]*?); source: (user|autopilot|policy); via: (question|chat|flag|policy); scope: ([\s\S]*)$/);
+  if (decision) {
+    const [, topic, choice, source, , tail] = decision;
+    // Scope may contain semicolons; only the serializer's optional field labels
+    // delimit reference/reason. Reference remains authoritative in the state.
+    const fields = tail.match(/^([\s\S]*?)(?:; reference: [\s\S]*?)?(?:; reason: ([\s\S]*))?$/);
+    let title = `${topic} — ${choice}`;
+    if (source === 'user' && topic === 'Delivery exact-plan approval' && choice === 'Deliver this exact plan') title = 'Delivery approved';
+    if (source === 'user' && topic === 'Delivery preparation' && choice === 'Prepare delivery') title = 'Delivery preparation requested';
+    const attribution = source === 'autopilot' ? ' (Autopilot default)' : source === 'policy' ? ' (Policy default)' : '';
+    const text = [title + attribution, fields[1], fields[2]].filter(Boolean).join(' — ');
+    return text.replace(/\bSHA-?256\s*[:=]?\s*[a-f0-9]{7,64}\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+  }
+  // Controller input resolutions and queue decisions carry provenance without
+  // the structured decision serializer's scope/reference fields.
+  if (/^(Decision: |Input )/.test(clean)) {
+    return clean.replace(/; source: (user|autopilot|policy|pm); via: (question|chat|flag|policy|slack)(?=$| Autonomy applied at phase boundary:)/g,
+      (_match, source) => source === 'autopilot' ? ' (Autopilot default)' : source === 'policy' ? ' (Policy default)' : source === 'pm' ? ' (Product Manager reply)' : '');
+  }
+  return clean;
 }
 
 function renderAuditRows(state, invalidTimestampFrom) {
@@ -771,6 +796,22 @@ export async function generateDashboard(statePath) {
       fail(`Could not read the plan required for timeline progress: ${error.message}`);
     }
     planStatus = parsePlanStatus(planMarkdown);
+    if (state.fields.phase === 'execute') {
+      let journal;
+      try { journal = JSON.parse(await readFile(`${planPath}.execution.json`, 'utf8')); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (journal) {
+        if (journal.version !== 1) fail('Unsupported execution activity journal.');
+        const active = journal.active_steps ?? [];
+        if (!Array.isArray(active)) fail('Execution journal active steps must be an array.');
+        if (!journal.stopped && active.length && state.fields.status === 'In Progress') {
+          if (journal.plan_hash !== planHash(planMarkdown)) fail('Execution activity belongs to a changed plan; inspect step control before continuing.');
+          const steps = parseSteps(planMarkdown), eligible = nextBatch(steps, planStatus.complete, active.length > 1);
+          if (active.length > eligible.length || active.some((id, i) => id !== eligible[i])) fail('Execution journal active steps conflict with verified Progress.');
+          planStatus.activeSteps = active.map((id) => ({ number: id, title: steps[id - 1].title }));
+        }
+      }
+    }
   }
   const logoBase64 = logo.trim();
   if (!logoBase64 || !/^[A-Za-z0-9+/=]+$/.test(logoBase64)) fail('Logo asset is empty or invalid base64.');

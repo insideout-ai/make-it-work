@@ -11,12 +11,11 @@ import { contextInventory } from '../../../scripts/context-inventory.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
+import { planHash } from '../../../scripts/lib/plan.mjs';
+export { planHash } from '../../../scripts/lib/plan.mjs';
 
 const git = (root, argv) => execFileSync('git', ['-C', root, ...argv], { maxBuffer: 100 * 1024 * 1024 });
 const text = (root, argv) => git(root, argv).toString('utf8').trim();
-export function planHash(markdown) {
-  return digest(markdown.replace(/^## Execution Status\s*\n[\s\S]*?(?=^## |$(?![\s\S]))/m, ''));
-}
 export async function snapshot(repos) {
   if (!Array.isArray(repos) || !repos.length) fail('Snapshot requires explicit repository roots.');
   const result = [];

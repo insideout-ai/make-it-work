@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
-import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { lstat, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -144,6 +144,28 @@ async function dashboardStateForPlan(planPath) {
   }
 }
 
+export async function executionDashboardState(planPath, supplied, allowInactive = false) {
+  const target = supplied || await dashboardStateForPlan(planPath);
+  if (!target) return null;
+  const state = parseState(await readFile(target, 'utf8'), target);
+  if (state.fields.phase !== 'execute' || !(state.fields.status === 'In Progress' || allowInactive && ['Paused', 'Stopped'].includes(state.fields.status)) ||
+      await realpath(path.resolve(path.dirname(target), path.basename(state.fields.plan))) !== await realpath(planPath)) fail('Execution dashboard must belong to this active plan.');
+  // Activity reporting must not create a dashboard for an older run.
+  try { if (!(await lstat(target.replace(/-state\.md$/, '-status.html'))).isFile()) fail('Dashboard must be a regular file.'); }
+  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  return { path: target, state };
+}
+
+export async function checkpointExecutionActivity(planPath, supplied, activity, allowInactive = false) {
+  const dashboard = await executionDashboardState(planPath, supplied, allowInactive);
+  if (!dashboard) return null;
+  return checkpointDashboard(dashboard.path, activity === undefined || dashboard.state.fields.status !== 'In Progress' || dashboard.state.fields.current_activity === activity ? {} : { activity });
+}
+
+export function completedActivity(completed, total) {
+  return `${completed} of ${total} steps verified complete. ${completed === total ? 'Ready for the completion gate.' : `Ready to start step ${completed + 1}.`}`;
+}
+
 export async function updatePlan(planPath, command, options = {}) {
   const info = await lstat(planPath);
   if (!info.isFile()) fail('Plan path must be a regular file, not a symlink or directory.');
@@ -159,8 +181,8 @@ export async function updatePlan(planPath, command, options = {}) {
     await unlink(temporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
   if (['complete-step', 'complete-batch'].includes(command)) {
-    const dashboardState = options.dashboardState || await dashboardStateForPlan(planPath);
-    if (dashboardState) await checkpointDashboard(dashboardState);
+    const status = inspectPlan(updated);
+    await checkpointExecutionActivity(planPath, options.dashboardState, completedActivity(status.completed, status.total));
   }
   return inspectPlan(updated);
 }

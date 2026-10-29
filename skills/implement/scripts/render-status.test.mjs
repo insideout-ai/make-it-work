@@ -659,6 +659,48 @@ test('decision checkpoints retain fields, capture host time, and render safely',
   const html = await readFile(outputPath, 'utf8');
   assert.ok(html.includes('Use &lt;script&gt; | C:\\drafts &amp; &amp;#124;'));
   assert.doesNotMatch(html, /<script> \||decision-id:/);
+  assert.ok(html.includes('Review before sending'));
+  assert.ok(html.includes(input.scope));
+  assert.doesNotMatch(html, /source: user|via: question|reference: publication journal/);
+});
+
+test('delivery audit rows hide full and shortened reference hashes while preserving exact approval scope in state', async (t) => {
+  const original = stateMarkdown({ fields: { phase: 'complete', status: 'Complete', autonomy: 'autopilot' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Implementation complete.']] });
+  const { directory, outputPath } = await renderFixture(t, original);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const hash = createHash('sha256').update('approved delivery plan').digest('hex');
+  const preparation = { id: 'delivery-prepare', topic: 'Delivery preparation', choice: 'Prepare delivery', source: 'user', via: 'question',
+    scope: 'DEMO completed run, preparation only; exact-plan approval still required', reference: `final package sha256 ${hash.slice(0, 8)}`, resume: 'transparent' };
+  const approval = { id: 'delivery-approve', topic: 'Delivery exact-plan approval', choice: 'Deliver this exact plan', source: 'user', via: 'question',
+    scope: 'app: commit, push premium-badge-dashboard to origin; create/update PR against main', reference: `delivery plan sha256 ${hash}`, resume: 'transparent' };
+  await checkpointDecision(statePath, preparation); await checkpointDecision(statePath, approval);
+  const saved = await readFile(statePath, 'utf8');
+  const html = await readFile(outputPath, 'utf8');
+  assert.ok(html.includes(`Delivery preparation requested — ${preparation.scope}`));
+  assert.ok(html.includes(`Delivery approved — ${approval.scope}`));
+  assert.doesNotMatch(html, /source:|via:|reference:|sha-?256|decision-id:/i);
+  assert.ok(!html.includes(hash)); assert.ok(!html.includes(hash.slice(0, 8)));
+  const state = parseState(saved);
+  assert.ok(state.audit[1].outcome.includes(preparation.reference));
+  assert.ok(state.audit[2].outcome.includes(approval.reference));
+  assert.ok(state.audit[2].outcome.includes('source: user; via: question'));
+  const rerendered = await generateDashboard(statePath);
+  assert.equal(rerendered, outputPath); assert.equal(await readFile(statePath, 'utf8'), saved);
+});
+
+test('readable automatic decisions retain their attribution, restrictions and reason', async (t) => {
+  const { directory, outputPath } = await renderFixture(t, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Run created']] }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  for (const source of ['autopilot', 'policy']) await checkpointDecision(statePath, {
+    id: `mode-${source}`, topic: 'Execution mode', choice: 'Sequential', source, via: 'policy',
+    scope: 'DEMO; implementation only; delivery approval required separately', reason: 'Dependent steps must stay ordered',
+  });
+  const html = await readFile(outputPath, 'utf8');
+  assert.match(html, /Sequential \(Autopilot default\)/); assert.match(html, /Sequential \(Policy default\)/);
+  assert.ok(html.includes('DEMO; implementation only; delivery approval required separately'));
+  assert.ok(html.includes('Dependent steps must stay ordered'));
+  assert.doesNotMatch(html, /source:|via:|scope:|reference:|reason:/);
 });
 
 test('decision IDs make retries idempotent and changed decisions append history', async (t) => {

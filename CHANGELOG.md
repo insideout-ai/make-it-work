@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Execute dashboards refresh when a step/batch starts, verifies completion or stops. The running step/title stays separate from verified Progress, and durable dispatch checkpoints support resume without counting starts as completed work or retry attempts.
+- Dashboard audit decisions show readable actions, approval scope and reasons while hiding internal reference hashes and raw provenance fields. Saved decision records and exact-plan approval bindings remain unchanged.
 - Final Sync bounds test-map semantic review to affected evidence, separates pre-existing incomplete onboarding from feature changes, uses compact subagent inputs and reuses completed validation unless its assumptions or selection change. Partial maintenance retains unresolved scope and existing baselines rather than claiming a full refresh.
 - Questions and approvals now checkpoint pending-input records before asking, with blocking waits marked Paused and optional decisions allowed to coexist. The HTML shows the actual question, choices, recipient, artifact/hash and elapsed wait, and keeps refreshing through resolution. Answers, resume, mode changes and stale exact approvals use the saved request identity; post-completion delivery retains Complete.
 
