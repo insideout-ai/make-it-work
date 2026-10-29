@@ -1,0 +1,57 @@
+scripts/lib/plan.mjs
+  s_71f82498774b45::t_df65c02edfeeb6 1-5
+skills/implement/scripts/workflow-integration.test.mjs
+  s_71f82498774b45::t_d37385d8bdd039 55
+skills/implement/scripts/workflow.mjs
+  s_71f82498774b45::t_df65c02edfeeb6 14-15
+skills/implement/references/workflow-decisions.md
+  s_71f82498774b45::t_df5f50f94ed3a7 38
+skills/execute/scripts/step-control.mjs
+  s_71f82498774b45::t_1b6eef7a1d3dc7 26,61,118,170
+  s_71f82498774b45::t_5abcc83209321d 27,46,54-57,132,134
+  s_71f82498774b45::t_df65c02edfeeb6 5-6,17,22-25,28-36,71,111,123-125,131,133,135,144-146,171
+  s_71f82498774b45::t_9090e05bdcbce8 126-130,182-187
+  s_71f82498774b45::t_5ddda1bd74d5e2 16,20,53,60
+skills/execute/scripts/step-control.test.mjs
+  s_71f82498774b45::t_9090e05bdcbce8 12,166-170,173-177
+  s_71f82498774b45::t_1b6eef7a1d3dc7 97
+  s_71f82498774b45::t_5ddda1bd74d5e2 2-3,10-11,88-92,94,96,100-129,139-165,171-172,178-189,194-195
+  s_71f82498774b45::t_5abcc83209321d 190-193,196-209
+  s_71f82498774b45::t_63412c2edadd55 130-138
+skills/execute/SKILL.md
+  s_71f82498774b45::t_63412c2edadd55 196-197
+skills/execute/references/step-control.md
+  s_71f82498774b45::t_63412c2edadd55 7,11,14,16
+skills/execute/scripts/plan-status.mjs
+  s_71f82498774b45::t_9ae186bf829669 4,152
+  s_71f82498774b45::t_9090e05bdcbce8 162
+  s_71f82498774b45::t_df65c02edfeeb6 148-150,153-158,161,163-168,184-185
+  s_71f82498774b45::t_5abcc83209321d 147,151,159-160
+skills/implement/scripts/render-status.test.mjs
+  s_71f82498774b45::t_1682f97dc4e0c0 662-703
+skills/implement/scripts/render-status.mjs
+  s_71f82498774b45::t_d37385d8bdd039 13,486-489,799-803,805-807,809-814
+  s_71f82498774b45::t_df5f50f94ed3a7 562-582
+  s_71f82498774b45::t_5abcc83209321d 804,808
+CHANGELOG.md
+  s_71f82498774b45::t_63412c2edadd55 27
+  s_71f82498774b45::t_df5f50f94ed3a7 28
+skills/implement/references/activity.md
+  s_71f82498774b45::t_63412c2edadd55 21,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "7bf0c8f4115199a2ce6b4991c725a96edfcb9fcb",
+  "prompts": {},
+  "sessions": {
+    "s_71f82498774b45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a183ac-d603-7710-9ef7-ddf6a9821475",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
