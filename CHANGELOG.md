@@ -15,7 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Test-map entries now record strategy layer labels, with Unknown for unclassified or older entries. A portable generator produces root `TEST-MAP.md` with layer counts, feature behaviors, unresolved mappings and a collapsed evidence catalog. Onboarding/planning/implementation regenerate it after saving maps; read-only workflows remain unchanged. Explicit `--write` and `--check` modes support developer refreshes and drift detection without changing JSON or running tests.
+- Test-map entries now record strategy layer labels, with Unknown for unclassified or older entries. A portable generator produces `.claude/testing/TEST-MAP.md` beside the JSON with layer counts, feature behaviors, unresolved mappings and a collapsed evidence catalog. Onboarding/planning/implementation regenerate it after saving maps; read-only workflows remain unchanged. Explicit `--write` and `--check` modes support developer refreshes and drift detection without changing JSON or running tests.
 
 - Deterministic skill helpers now own new implement-run transitions/counters/snapshots, evidence-bound execution progress, regression command results, structural plan checks, fixed autonomy choices, offline question conditions, documentation inventory, strategy consistency/pointers, slice graphs/artifacts, epic rendering, bounded repo evidence collection, and review report/handoff projection. Legacy runs retain their existing opt-in boundaries. Focused disposable-fixture tests and CI cover the helpers; semantic product/design/coverage judgments and external-write authorization remain with their existing owners.
 - New `implement-lightweight-run` and `implement-escalation` evaluations cover a Low-risk run completing through Lightweight and a repeat review finding escalating a Lightweight run to TDD.
@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The generated test-map report now lives at `.claude/testing/TEST-MAP.md` beside `test-map.json`, with corrected local/cross-repo links, strategy discovery and freshness exclusions. Legacy root reports are left untouched; the report remains reference data outside rule/skill discovery.
 - Execute dashboards refresh when a step/batch starts, verifies completion or stops. The running step/title stays separate from verified Progress, and durable dispatch checkpoints support resume without counting starts as completed work or retry attempts.
 - Dashboard audit decisions show readable actions, approval scope and reasons while hiding internal reference hashes and raw provenance fields. Saved decision records and exact-plan approval bindings remain unchanged.
 - Final Sync bounds test-map semantic review to affected evidence, separates pre-existing incomplete onboarding from feature changes, uses compact subagent inputs and reuses completed validation unless its assumptions or selection change. Partial maintenance retains unresolved scope and existing baselines rather than claiming a full refresh.

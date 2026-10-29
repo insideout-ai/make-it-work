@@ -22,7 +22,7 @@ Before saving/returning a strategy, run `test-strategy.mjs check --file <candida
 
 After both strategy/map artifacts are saved and validated, use `test-strategy.mjs pointer --root <repo>` for the CLAUDE.md pointer. This is an explicit script-write exception to DTS's Write/Edit-only rule for this narrow operation. It validates the saved artifacts and matching Repo IDs, keeps other rows/content, and inserts exactly one canonical pointer under Other Skills. Missing CLAUDE.md/Skills Reference is reported without inventing it. Final semantic map reassessment/baselines still follow the test-map contract after pointer edits; the helper never stamps freshness to hide stale relationships.
 
-After the final authorized map save, regenerate root `TEST-MAP.md` with `test-map-report.mjs --root <repo> --write` per the shared [test-map contract](test-map-contract.md#developer-report). The report projects the explicit per-test layers, feature relationships, uncertainty and evidence without running tests or advancing snapshots. `--check` detects drift from the saved map and feature labels; it does not establish semantic freshness. Read-only regression/review and coverage-only workflows do not write it.
+After the final authorized map save, regenerate `.claude/testing/TEST-MAP.md` with `test-map-report.mjs --root <repo> --write` per the shared [test-map contract](test-map-contract.md#developer-report). The report projects the explicit per-test layers, feature relationships, uncertainty and evidence without running tests or advancing snapshots. `--check` detects drift from the saved map and feature labels; it does not establish semantic freshness. Read-only regression/review and coverage-only workflows do not write it.
 
 ## Slice artifacts
 
