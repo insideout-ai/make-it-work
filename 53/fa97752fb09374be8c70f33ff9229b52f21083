@@ -1,0 +1,139 @@
+evals/implement/delivery-prepare/graders/no-execution.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-stale/fixture.sh
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+evals/delivery-handoff.test.mjs
+  s_71f82498774b45::t_3257fdc1c25c64 1-57
+evals/implement/final-sync-partial-map/graders/complete.md
+  s_71f82498774b45::t_3cd70ea744240f 1-6
+skills/implement/scripts/render-status.test.mjs
+  s_71f82498774b45::t_3266cb0fdce97d 128,470-472
+  s_71f82498774b45::t_781bfe0117228e 822-825,859,879-880
+  s_71f82498774b45::t_54d89340ad4454 856,875,893-899
+  s_71f82498774b45::t_5e86263c87ce08 131-147,841,851
+  s_71f82498774b45::t_ed8225cc5f6f6b 129-130
+evals/implement/delivery-decline/graders/response-handled.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-prepare/case.yaml
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+evals/implement/delivery-decline/graders/no-plan.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/final-sync-partial-map/graders/partial-map.md
+  s_71f82498774b45::t_3cd70ea744240f 1-6
+skills/implement/scripts/render-status.mjs
+  s_71f82498774b45::t_3266cb0fdce97d 438-440,727-728
+  s_71f82498774b45::t_5e86263c87ce08 401,553-557,571
+  s_71f82498774b45::t_781bfe0117228e 648-651,715-716
+.claude-plugin/plugin.json
+  s_71f82498774b45::t_b8f6f4f3e22a88 6
+skills/implement/references/final-sync-mapping.md
+  s_71f82498774b45::t_14cf0b14085e5c 1-31
+evals/implement/final-sync-partial-map/graders/bounded-maintenance.md
+  s_71f82498774b45::t_3cd70ea744240f 1-7
+evals/implement/final-sync-partial-map/graders/report.md
+  s_71f82498774b45::t_3cd70ea744240f 1-7
+skills/implement/assets/status-template.html
+  s_71f82498774b45::t_781bfe0117228e 27-28
+evals/implement/delivery-stale/graders/implementation-complete.md
+  s_71f82498774b45::t_80fc53157a7be4 1-7
+evals/implement/final-sync-partial-map/case.yaml
+  s_71f82498774b45::t_3cd70ea744240f 1-5
+evals/suites.json
+  s_71f82498774b45::t_3cd70ea744240f 52
+  s_71f82498774b45::t_80fc53157a7be4 86-89
+evals/implement/delivery-decline/graders/no-execution.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-decline/prompt.md
+  s_71f82498774b45::t_80fc53157a7be4 1-15
+evals/implement/delivery-prepare/fixture.sh
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+evals/implement/final-sync-partial-map/seed-partial.mjs
+  s_71f82498774b45::t_3cd70ea744240f 1-43
+evals/implement/delivery-decline/graders/implementation-complete.md
+  s_71f82498774b45::t_80fc53157a7be4 1-7
+evals/implement/delivery-stale/graders/delivery-state.md
+  s_71f82498774b45::t_80fc53157a7be4 1-3,5-6
+  s_71f82498774b45::t_966cf32837f5ae 4
+evals/implement/final-sync-partial-map/prompt.md
+  s_71f82498774b45::t_3cd70ea744240f 1-11
+evals/implement/README.md
+  s_71f82498774b45::t_279062cf914d9f 91-92
+  s_71f82498774b45::t_3cd70ea744240f 9
+  s_71f82498774b45::t_88ae3117e4c5f8 28-30
+skills/implement/references/refinement-destination.md
+  s_71f82498774b45::t_279062cf914d9f 29
+evals/implement/delivery-decline/graders/delivery-state.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+skills/implement/SKILL.md
+  s_71f82498774b45::t_279062cf914d9f 224,279,294
+  s_71f82498774b45::t_14cf0b14085e5c 553-555
+  s_71f82498774b45::t_88ae3117e4c5f8 221
+  s_71f82498774b45::t_c3a6353f1e29f6 614-616
+evals/implement/delivery-prepare/graders/implementation-complete.md
+  s_71f82498774b45::t_80fc53157a7be4 1-7
+evals/implement/delivery-stale/prompt.md
+  s_71f82498774b45::t_80fc53157a7be4 1-15
+evals/implement/delivery-prepare/prompt.md
+  s_71f82498774b45::t_80fc53157a7be4 1-15
+evals/implement/delivery-prepare/graders/plan-created.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-prepare/graders/preview-and-approval.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-decline/case.yaml
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+evals/implement/delivery-prepare/graders/delivery-state.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-stale/case.yaml
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+evals/implement/delivery-stale/graders/no-execution.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/implement/delivery-stale/graders/response-handled.md
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+  s_71f82498774b45::t_966cf32837f5ae 6
+evals/implement/seed-delivery-fixture.sh
+  s_71f82498774b45::t_864e694df15b07 1-38
+CHANGELOG.md
+  s_71f82498774b45::t_54d89340ad4454 36
+  s_71f82498774b45::t_b8f6f4f3e22a88 31-35,38-39
+  s_71f82498774b45::t_3266cb0fdce97d 37
+  s_71f82498774b45::t_14cf0b14085e5c 26
+docs/test-map-contract.md
+  s_71f82498774b45::t_14cf0b14085e5c 47,53
+  s_71f82498774b45::t_a6db9dd0196915 54
+evals/implement/final-sync-partial-map/fixture.sh
+  s_71f82498774b45::t_3cd70ea744240f 1-6
+evals/implement/delivery-stale/graders/no-plan.md
+  s_71f82498774b45::t_80fc53157a7be4 1-6
+evals/final-sync-map.test.mjs
+  s_71f82498774b45::t_f48b0828f637d3 1-67
+evals/implement/delivery-decline/fixture.sh
+  s_71f82498774b45::t_80fc53157a7be4 1-5
+evals/implement/final-sync-map/graders/reconciles-after-docs.md
+  s_71f82498774b45::t_3cd70ea744240f 21-23
+skills/deliver/SKILL.md
+  s_9da9022e827e62::t_dca81513a7496b 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "53fa97752fb09374be8c70f33ff9229b52f21083",
+  "prompts": {},
+  "sessions": {
+    "s_71f82498774b45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a183ac-d603-7710-9ef7-ddf6a9821475",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_9da9022e827e62": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1f0ccf2-89d4-4a4f-b85c-124e57d61687",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
