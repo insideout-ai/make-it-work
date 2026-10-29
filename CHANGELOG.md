@@ -23,9 +23,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Final Sync bounds test-map semantic review to affected evidence, separates pre-existing incomplete onboarding from feature changes, uses compact subagent inputs and reuses completed validation unless its assumptions or selection change. Partial maintenance retains unresolved scope and existing baselines rather than claiming a full refresh.
 - Questions and approvals now checkpoint pending-input records before asking, with blocking waits marked Paused and optional decisions allowed to coexist. The HTML shows the actual question, choices, recipient, artifact/hash and elapsed wait, and keeps refreshing through resolution. Answers, resume, mode changes and stale exact approvals use the saved request identity; post-completion delivery retains Complete.
 
 - Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
+
+## [4.19.1] - 2026-10-28
+
+### Fixed
+
+- `implement` resolves autonomy before asking where refinement questions should go, so either Autopilot choice skips the destination prompt.
+- Lightweight dashboards hide Plan and Execute artifact cards. Dashboards omit cycle counters, and audit outcomes and timeline tooltips omit internal workflow event IDs and hashes; saved records retain counters and retry metadata.
+- Dashboards hide empty exception sections and label populated ones Unrelated test failures and Review decisions; saved state headings and entries remain unchanged.
+- Selecting Prepare delivery continues `deliver` inline, prepares and displays the full delivery plan, and waits for exact-plan approval without requiring a manual command or repeated opt-in. Behavioral eval cases cover preparation, decline and stale-package failure.
 
 ## [4.19.0] - 2026-10-28
 

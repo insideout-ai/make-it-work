@@ -24,8 +24,8 @@
 <h2>Artifacts</h2>
 <div class="artifact-grid">
   <div class="artifact-tile"><div class="label">Spec</div>{{SPEC_LINK}}</div>
-  <div class="artifact-tile"><div class="label">Plan</div>{{PLAN_LINK}}</div>
-  <div class="artifact-tile"><div class="label">Execute</div>{{EXECUTE_LINK}}</div>{{IMPLEMENTATION_TILE}}
+{{PLAN_TILE}}
+{{EXECUTE_TILE}}{{IMPLEMENTATION_TILE}}
   <div class="artifact-tile"><div class="label">Review</div>{{REVIEW_LINK}}</div>
   <div class="artifact-tile"><div class="label">Final package</div>{{FINAL_LINK}}</div>
 </div>
@@ -38,13 +38,7 @@
 </table>
 {{SESSION_TIMING}}
 
-<h2>Cycle counters</h2>
-<p>Review cycles: {{REVIEW_CYCLE}} / 4 &nbsp; Fix cycles: {{FIX_CYCLE}} / 3 &nbsp; Replans used: {{REPLANS_USED}} / 2{{ESCALATIONS_COUNTER}}</p>
-
-<h2>Known regressions</h2>
 {{KNOWN_REGRESSIONS}}
-
-<h2>Decided findings</h2>
 {{DECIDED_FINDINGS}}
 {{WORKFLOW_TIMESTAMPS}}
 </body>

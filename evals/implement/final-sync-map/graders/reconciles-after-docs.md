@@ -18,5 +18,6 @@ context_updated must include its path, and the workflow must reach Complete.
 Source/test bytes must remain unchanged. No migration, commit, PR or external
 publication is permitted. If the actor unexpectedly changes selected test scope
 or behavioral assumptions, the previous gate/review cannot be reused without
-affected validation/review. Do not require an unrelated suite rerun for a pure
-documentation clarification that preserves those assumptions and selections.
+affected validation/review. No test execution should be added for this pure
+documentation clarification when those assumptions and selections are preserved;
+reuse the completed gate/review.

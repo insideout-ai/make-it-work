@@ -49,6 +49,7 @@
     "implement-feedback-clean",
     "implement-feedback-idempotent",
     "implement-final-sync-map",
+    "implement-final-sync-partial-map",
     "implement-feedback-nonminimal",
     "implement-autopilot-full",
     "implement-no-tooling",
@@ -82,7 +83,10 @@
     "implement-switch-to-autopilot",
     "implement-resume-changed-autonomy",
     "implement-publication-guided-approval",
-    "implement-publication-resume"
+    "implement-publication-resume",
+    "implement-delivery-prepare",
+    "implement-delivery-decline",
+    "implement-delivery-stale"
   ],
   "requiredToolsBySkill": {
     "drive-the-epic": ["Read", "Bash"],

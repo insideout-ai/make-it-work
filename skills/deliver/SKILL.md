@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 Use only when the developer explicitly asks to deliver a completed `implement` run. `implement` may offer this as its final optional next step, but finishing or approving `implement` does **not** authorize delivery. Never start delivery automatically from `implement`, Autonomous, or Autopilot; an explicit developer opt-in is required first.
 
+Selecting **Prepare delivery** in `implement` satisfies that explicit opt-in requirement. Continue by reading and following this skill inline in the same session, without requiring a separate `/deliver` command, a Skill-tool invocation, or another preparation-permission question. A recorded opt-in remains effective if preparation continues after an interruption. The selection authorizes preparing and displaying the preview only; commit, push, and PR actions still require **Deliver this exact plan** for the plan shown below. `disable-model-invocation: true` preserves explicit command entry and does not prohibit this authorized inline continuation.
+
 Usage: `/make-it-work:deliver <TICKET>`.
 
 Follow [the workflow-decision audit contract](../implement/references/workflow-decisions.md): record explicit delivery opt-in (unless already recorded by `implement`), Stop, exact-plan approval and retry requests in the completed run's Audit log using `dashboard-checkpoint.mjs decision` with `resume: transparent`. Record before the dependent delivery command, referencing the shown plan hash for approval. Preserve implementation completion and its timing; the delivery journal remains authoritative for operations and approval. Silence supplies no decision.

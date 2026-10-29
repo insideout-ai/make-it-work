@@ -398,7 +398,7 @@ export function buildTimeline(state) {
       const insertionIndex = activeSlot ? activeIndex + 1 : slots.length;
       slots.splice(insertionIndex, 0, nextSlot);
     }
-    if (escalation) nextSlot.escalation = row.outcome.slice('Escalation:'.length).trim();
+    if (escalation) nextSlot.escalation = displayOutcome(row.outcome).slice('Escalation:'.length).trim();
     if (adaptive && row.to === 'lightweight' && ['review', 'final-approval'].includes(row.from)) nextSlot.lightweightFix = true;
     activatedPhases.add(row.to);
     activeSlot = nextSlot;
@@ -435,9 +435,9 @@ function artifactLink(value, field, ticket) {
   return `<a href="${escapeHtml(relative)}" title="${escapeHtml(value)}">${escapeHtml(relative)}</a>`;
 }
 
-function renderList(items) {
-  if (items.length === 0) return '<p>None</p>';
-  return `<ul>\n${items.map((item) => `  <li>${escapeHtml(item)}</li>`).join('\n')}\n</ul>`;
+function renderListSection(title, items) {
+  if (items.length === 0) return '';
+  return `<h2>${escapeHtml(title)}</h2>\n<ul>\n${items.map((item) => `  <li>${escapeHtml(item)}</li>`).join('\n')}\n</ul>`;
 }
 
 function slotState(slot, activeSlot, status) {
@@ -550,6 +550,11 @@ function timingDetails(state, invalidTimestampFrom) {
   return { total: formatDuration(last.epoch - first.epoch), first, last };
 }
 
+function displayOutcome(outcome) {
+  // Controller retry metadata stays in the saved audit, outside the user-facing presentation.
+  return outcome.replace(/\s*\[workflow-event: [A-Za-z0-9][A-Za-z0-9._:-]*; sha256: [a-f0-9]{64}\]/g, '').trim();
+}
+
 function renderAuditRows(state, invalidTimestampFrom) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
@@ -563,7 +568,7 @@ function renderAuditRows(state, invalidTimestampFrom) {
     }
     const warning = row.number === invalidTimestampFrom
       ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(row.outcome)}${warning}${duration}</td></tr>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(displayOutcome(row.outcome))}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
@@ -640,11 +645,10 @@ function renderModePill(state) {
   return `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</span>`;
 }
 
-function skippableLink(state, field) {
-  if (isAdaptive(state) && state.fields.mode === 'lightweight' && state.fields[field] === 'none') {
-    return '<span class="none">Skipped (Lightweight)</span>';
-  }
-  return artifactLink(state.fields[field], field, state.fields.ticket);
+function renderTddArtifactTile(state, field, label) {
+  if (isAdaptive(state) && state.fields.mode === 'lightweight') return '';
+  const link = artifactLink(state.fields[field], field, state.fields.ticket);
+  return `  <div class="artifact-tile"><div class="label">${label}</div>${link}</div>`;
 }
 
 function renderImplementationTile(state) {
@@ -708,8 +712,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PLAN_LINK: skippableLink(state, 'plan'),
-    EXECUTE_LINK: skippableLink(state, 'execute_report'),
+    PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
+    EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
     IMPLEMENTATION_TILE: renderImplementationTile(state),
     REVIEW_LINK: reviewLink,
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
@@ -720,12 +724,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       : '',
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
-    REVIEW_CYCLE: String(state.reviewCycle),
-    FIX_CYCLE: String(state.fixCycle),
-    REPLANS_USED: String(state.replansUsed),
-    ESCALATIONS_COUNTER: isAdaptive(state) ? ` &nbsp; Escalations: ${escapeHtml(state.fields.escalations)} / 1` : '',
-    KNOWN_REGRESSIONS: renderList(state.knownRegressions),
-    DECIDED_FINDINGS: renderList(state.decidedFindings),
+    KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
+    DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
   };
   return applyTemplate(template, replacements);
 }
