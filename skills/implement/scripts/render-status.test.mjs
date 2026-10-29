@@ -280,6 +280,14 @@ test('accepts and describes fully autonomous autopilot runs', async (t) => {
   assert.match(html, /Autonomy: autopilot/);
   assert.match(html, /resolves every documented safe default without prompting/);
 });
+test('queued autonomy is optional for older runs and rejects invalid or completed-run queues', () => {
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Run created']];
+  assert.equal(parseState(stateMarkdown({ rows })).fields.queued_autonomy, undefined);
+  const fields = { autonomy: 'guided', queued_autonomy: 'autopilot' };
+  assert.equal(parseState(stateMarkdown({ rows, fields })).fields.queued_autonomy, 'autopilot');
+  assert.throws(() => parseState(stateMarkdown({ rows, fields: { ...fields, queued_autonomy: 'unknown' } })), /Unsupported queued autonomy/);
+  assert.throws(() => parseState(stateMarkdown({ rows, fields: { ...fields, phase: 'complete', status: 'Complete' } })), /cannot retain queued autonomy/);
+});
 
 test('ticket permission badge is independent of autonomy and shows scoped consent without private payloads', async (t) => {
   const directory = await workspace(t);

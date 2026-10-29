@@ -282,6 +282,8 @@ export function parseState(markdown, statePath = '') {
   if (fields.phase === 'final-approval' && fields.final_package_version !== '1') fail('Final approval requires final_package_version: 1.');
   if (!PHASE_VALUES.has(fields.phase)) fail(`Unsupported phase: ${fields.phase}`);
   if (!AUTONOMY_VALUES.has(fields.autonomy)) fail(`Unsupported autonomy: ${fields.autonomy}`);
+  if (fields.queued_autonomy !== undefined && fields.queued_autonomy !== 'none' && !['guided', 'autonomous', 'autopilot'].includes(fields.queued_autonomy)) fail(`Unsupported queued autonomy: ${fields.queued_autonomy}`);
+  if (fields.status === 'Complete' && fields.queued_autonomy && fields.queued_autonomy !== 'none') fail('A completed run cannot retain queued autonomy.');
   if (!EXECUTION_MODE_VALUES.has(fields.execution_mode)) fail(`Unsupported execution_mode: ${fields.execution_mode}`);
   if (!INLINE_PAUSE_MODE_VALUES.has(fields.inline_pause_mode)) fail(`Unsupported inline_pause_mode: ${fields.inline_pause_mode}`);
   if (!EXECUTION_VALUES.has(fields.execution)) fail(`Unsupported execution: ${fields.execution}`);
@@ -592,7 +594,9 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
       const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
       const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
       const reference = record.binding ? `<p class="pending-reference">${record.binding.path ? escapeHtml(record.binding.path) + ' · ' : ''}SHA-256: <code>${escapeHtml(record.binding.sha256)}</code></p>` : '';
-      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+      const queued = record.blocking && state.fields.queued_autonomy && state.fields.queued_autonomy !== 'none'
+        ? `<p class="pending-qualifier">${escapeHtml(state.fields.queued_autonomy)} starts with the next phase. This question still needs an answer under ${escapeHtml(state.fields.autonomy)}.</p>` : '';
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
     const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
@@ -682,6 +686,14 @@ function renderPublicationBadge(permission) {
   return `<span class="pill ticket-updates-pill ticket-updates-${status}" title="${escapeHtml(tooltip)}">Ticket updates: ${label}</span>`;
 }
 
+function renderAutonomyBadge(state) {
+  const { autonomy, queued_autonomy: queued } = state.fields;
+  const pending = queued && queued !== 'none';
+  const title = pending ? 'The queued mode starts at the next phase boundary. The current phase and any open question keep their existing mode.'
+    : autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP;
+  return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
+}
+
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null }) {
   const timeline = buildTimeline(state);
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -696,7 +708,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     WORKFLOW_TIMESTAMPS,
     WORKFLOW_HEADER: renderWorkflowHeader({
       workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64,
-      badges: `<span class="pill autonomy-pill" title="${escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP)}">Autonomy: ${escapeHtml(state.fields.autonomy)}</span>` +
+      badges: renderAutonomyBadge(state) +
         renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
     }),
     TICKET: escapeHtml(state.fields.ticket),

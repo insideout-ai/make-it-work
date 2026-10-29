@@ -132,14 +132,18 @@ test('render failures retain durable waits and answers; replay repairs HTML with
   assert.equal((await applyWorkflow({ root, statePath, input: answer })).replayed, true);
   assert.equal((await state()).audit.length, 3);
 });
-test('mode changes preserve unanswered questions; a saved fixed policy may resolve only its actual documented default', async (t) => {
+test('queued mode changes cannot apply a future policy to an open question', async (t) => {
   const { apply, state } = await fixture(t);
   const options = [{ id: 'subagent-driven', label: 'Subagent driven' }, { id: 'inline', label: 'Inline' }];
   await apply('await-input', { pending: question({ choices: options, policy: { skill: 'execute', site: 'mode-choice', phase: 'Phase 0', question: 'Execution mode?', options } }) });
   await apply('autonomy', { mode: 'autopilot', source: 'user', via: 'chat' });
   assert.equal((await state()).fields.status, 'Paused'); assert.equal((await state()).pendingInputs[0].id, 'question-1');
-  const result = await apply('resolve-input', { pending_id: 'question-1', source: 'autopilot', via: 'policy' });
-  assert.equal(result.response, 'subagent-driven'); assert.equal(result.fields.status, 'In Progress');
+  assert.equal((await state()).fields.autonomy, 'autonomous');
+  assert.equal((await state()).fields.queued_autonomy, 'autopilot');
+  await assert.rejects(apply('resolve-input', { pending_id: 'question-1', source: 'autopilot', via: 'policy' }), /current policy/);
+  const result = await apply('resolve-input', { pending_id: 'question-1', answer: 'inline', source: 'user', via: 'chat' });
+  assert.equal(result.response, 'inline'); assert.equal(result.fields.status, 'In Progress');
+  assert.equal(result.fields.autonomy, 'autonomous'); assert.equal(result.fields.queued_autonomy, 'autopilot');
 });
 test('Slack waits identify the PM and require an actual reply reference before accepting a PM answer', async (t) => {
   const { root, apply, html, seed } = await fixture(t); await seed({ phase: 'close-the-gaps' });
@@ -151,6 +155,50 @@ test('Slack waits identify the PM and require an actual reply reference before a
   await assert.rejects(apply('resolve-input', { pending_id: waiting.pending[0].id, answer: 'PM answered', source: 'pm', via: 'slack' }), /reply reference/);
   const result = await apply('resolve-input', { pending_id: waiting.pending[0].id, answer: 'PM answered the recorded questions.', source: 'pm', via: 'slack', reply_reference: 'recorded-thread-reply-id' });
   assert.equal(result.fields.status, 'In Progress'); assert.equal(result.fields.phase, 'close-the-gaps');
+});
+test('a Guided refinement wave keeps all human answers and activates queued Autopilot only on the next phase', async (t) => {
+  const { root, apply, state, seed, html } = await fixture(t, 'guided');
+  await seed({ phase: 'close-the-gaps' });
+  const pending = { id: 'wave-2', kind: 'question', question: 'Answer Q5 and Q6.', questions: [
+    { id: 'Q5', question: 'Which trigger?', choices: [{ id: 'manual', label: 'Manual (Recommended)' }, { id: 'scheduled', label: 'Scheduled' }] },
+    { id: 'Q6', question: 'What should the empty state say?', choices: [] },
+  ] };
+  await apply('await-input', { pending }); const before = await state();
+  await apply('autonomy', { mode: 'autopilot', source: 'user', via: 'chat' });
+  const queued = await state();
+  assert.equal(queued.fields.autonomy, 'guided'); assert.equal(queued.fields.queued_autonomy, 'autopilot');
+  assert.deepEqual(queued.pendingInputs, before.pendingInputs);
+  assert.equal(queued.fields.workspace_snapshot, before.fields.workspace_snapshot);
+  assert.match(await html(), /Autonomy: guided · autopilot queued/);
+  assert.match(await html(), /This question still needs an answer under guided/);
+  assert.equal((await apply('resume', { blocker_resolved: true })).fields.status, 'Paused');
+  await assert.rejects(apply('resolve-input', { pending_id: pending.id, source: 'autopilot', via: 'policy' }), /explicit answer/);
+  await apply('resolve-input', { pending_id: pending.id, answer: { Q5: 'scheduled', Q6: 'Nothing here yet.' }, source: 'user', via: 'question' });
+  assert.equal((await state()).fields.autonomy, 'guided');
+  await apply('mode', { risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'Local additive behavior.' });
+  const directory = path.join(root, 'make-it-work/DEMO'); await mkdir(path.join(directory, 'DEMO-handoffs'));
+  await writeFile(path.join(directory, 'DEMO-spec.md'), '# Refined spec');
+  const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
+  await writeFile(path.join(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  const next = await apply('handoff', { handoff });
+  assert.equal(next.fields.phase, 'lightweight'); assert.equal(next.fields.autonomy, 'autopilot');
+  assert.equal(next.fields.queued_autonomy, 'none'); assert.deepEqual(next.pending, []);
+  assert.match((await state()).audit.at(-1).outcome, /Autonomy applied at phase boundary: guided to autopilot/);
+  assert.doesNotMatch(await html(), /autopilot queued/);
+});
+test('queued Guided becomes active before creating the next spec approval request', async (t) => {
+  const { root, apply, state, seed } = await fixture(t, 'autopilot');
+  await seed({ phase: 'close-the-gaps' });
+  await apply('autonomy', { mode: 'guided', source: 'user', via: 'chat' });
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Shared behavior.' });
+  const directory = path.join(root, 'make-it-work/DEMO'); await mkdir(path.join(directory, 'DEMO-handoffs'));
+  await writeFile(path.join(directory, 'DEMO-spec.md'), '# Specification');
+  const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
+  await writeFile(path.join(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  const next = await apply('handoff', { handoff });
+  assert.equal(next.fields.phase, 'spec-approval'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.status, 'Paused');
+  assert.equal(next.fields.queued_autonomy, 'none'); assert.equal(next.pending[0].kind, 'approval');
+  assert.match((await state()).audit.at(-1).outcome, /Awaiting user input.*Autonomy applied at phase boundary/);
 });
 test('inline-step waits preserve actual step progress; completed-run delivery does not become Paused', async (t) => {
   const { root, apply, seed } = await fixture(t);
@@ -172,7 +220,7 @@ test('pending-state validation rejects active blocking waits and preserves missi
   assert.throws(() => pendingInputs({ pending_inputs: JSON.stringify([record]), phase: 'execute', status: 'In Progress', current_activity: 'none' }), /paused\/stopped/);
   assert.deepEqual(pendingInputs({}), []);
 });
-test('switching away from Guided skips the saved approval gate without recording user artifact approval', async (t) => {
+test('switching away from Guided preserves the active approval gate until its answer closes the phase', async (t) => {
   const { root, apply, state, seed } = await fixture(t, 'guided');
   const directory = path.join(root, 'make-it-work/DEMO'); await mkdir(path.join(directory, 'DEMO-handoffs'));
   await seed({ phase: 'close-the-gaps' });
@@ -183,9 +231,11 @@ test('switching away from Guided skips the saved approval gate without recording
   const gate = await apply('handoff', { handoff }); assert.equal(gate.fields.status, 'Paused'); assert.equal(gate.fields.phase, 'spec-approval');
   await apply('autonomy', { mode: 'autonomous', source: 'user', via: 'chat' });
   assert.equal((await state()).pendingInputs[0].id, gate.pending[0].id);
-  const skipped = await apply('skip-approval');
-  assert.equal(skipped.fields.phase, 'plan'); assert.equal(skipped.fields.status, 'In Progress'); assert.deepEqual(skipped.pending, []);
-  assert.equal((await state()).audit.at(-1).outcome.startsWith('skip-approval'), true);
+  await assert.rejects(apply('skip-approval'), /Resume|cannot be skipped/);
+  const approved = await apply('resolve-input', { pending_id: gate.pending[0].id, answer: 'approve', source: 'user', via: 'question' });
+  assert.equal(approved.fields.phase, 'plan'); assert.equal(approved.fields.status, 'In Progress'); assert.deepEqual(approved.pending, []);
+  assert.equal(approved.fields.autonomy, 'autonomous'); assert.equal(approved.fields.queued_autonomy, 'none');
+  assert.match((await state()).audit.at(-1).outcome, /source: user.*Autonomy applied at phase boundary/);
 });
 test('an answer to a blocking wait cannot silently accept source drift', async (t) => {
   const { root, apply, state } = await fixture(t);

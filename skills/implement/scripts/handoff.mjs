@@ -218,6 +218,8 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
     ? outcome('stop', 'Stage needs an answer with no documented safe default.')
     : outcome('ask', 'Stage questions require an answer.', { questions: h.questions });
   const guided = fields.autonomy === 'guided';
+  // Approval gates belong to the next phase; in-phase questions still use the active mode.
+  const nextGuided = (fields.queued_autonomy && fields.queued_autonomy !== 'none' ? fields.queued_autonomy : fields.autonomy) === 'guided';
   const autopilot = fields.autonomy === 'autopilot';
   const fixes = Number(fields.fix_cycle);
   const reviews = Number(fields.review_cycle);
@@ -229,7 +231,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   }
   if (h.stage === 'gaps') {
     if (mode === 'none') fail('Risk assessment required before routing: set risk and mode first.');
-    const ready = guided ? 'spec-approval' : mode === 'lightweight' ? 'lightweight' : 'plan';
+    const ready = nextGuided ? 'spec-approval' : mode === 'lightweight' ? 'lightweight' : 'plan';
     if (h.data.tbd_items > 0) return autopilot
       ? outcome('stop', 'Refined spec still has unresolved TBD items.')
       : ask('Resolve or explicitly accept unresolved TBD items.', {
@@ -241,7 +243,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   }
   if (h.stage === 'implement') return outcome('phase', 'Lightweight implementation finished.', { phase: 'review' });
   if (h.stage === 'plan' && fields.phase === 'plan') {
-    return outcome('phase', 'Plan is ready.', { phase: guided ? 'plan-approval' : 'execute' });
+    return outcome('phase', 'Plan is ready.', { phase: nextGuided ? 'plan-approval' : 'execute' });
   }
   if (h.stage === 'plan') {
     if (h.data.recommend_replan && replans < 2) return guided
