@@ -1,0 +1,65 @@
+skills/implement/scripts/workflow.mjs
+  s_71f82498774b45::t_c4a8961a95c76c 59,143,187-193,229-238,248,470,472-473,501
+evals/autonomy-queue.test.mjs
+  s_71f82498774b45::t_49510daa0dc4bf 3,15
+  s_71f82498774b45::t_daacfb2c095cbc 46-48,53
+  s_71f82498774b45::t_32998e2be8cea7 1-2,4-14,16-45,49-52,54-59
+evals/implement/switch-to-autopilot/graders/nested-gate-policy.md
+  s_71f82498774b45::t_ac98d1a0d6e9cc 7
+skills/implement/scripts/render-status.mjs
+  s_71f82498774b45::t_25076c0c29b0a3 597-599
+  s_71f82498774b45::t_c4a8961a95c76c 285-286,689-696,711
+CHANGELOG.md
+  s_71f82498774b45::t_25076c0c29b0a3 11
+evals/implement/switch-to-guided/graders/saved-mode.md
+  s_71f82498774b45::t_daacfb2c095cbc 4
+skills/implement/scripts/workflow.test.mjs
+  s_71f82498774b45::t_25076c0c29b0a3 167-180
+  s_71f82498774b45::t_cddfbbe1626bde 107
+  s_71f82498774b45::t_412533945442dd 80-104
+  s_71f82498774b45::t_32998e2be8cea7 105-106,108-112
+skills/implement/scripts/pending-input.test.mjs
+  s_71f82498774b45::t_8adf8a8514c3c2 135,141-146,223,234-238
+  s_71f82498774b45::t_19da6500d59a8e 159-172,174-187,202
+  s_71f82498774b45::t_25076c0c29b0a3 173,188-201
+skills/implement/references/controller.md
+  s_71f82498774b45::t_49510daa0dc4bf 24
+  s_71f82498774b45::t_04d74c51951cc4 75
+skills/implement/scripts/handoff.mjs
+  s_71f82498774b45::t_c4a8961a95c76c 221-222,234,246
+skills/implement/references/autonomy-changes.md
+  s_71f82498774b45::t_04d74c51951cc4 1,3,5,7,9,11,13,15,17,19,21-33
+skills/implement/SKILL.md
+  s_71f82498774b45::t_04d74c51951cc4 13,47,102-103,305
+evals/implement/seed-autonomy-fixture.sh
+  s_71f82498774b45::t_ac98d1a0d6e9cc 14,30,34-52,57,59
+  s_71f82498774b45::t_24fd1973aa601c 13
+README.md
+  s_71f82498774b45::t_04d74c51951cc4 199
+evals/implement/switch-to-autopilot/graders/saved-mode.md
+  s_71f82498774b45::t_ac98d1a0d6e9cc 4
+skills/implement/scripts/render-status.test.mjs
+  s_71f82498774b45::t_e17d1ab69cb80f 283-290
+evals/implement/switch-to-guided/graders/pending-approval.md
+  s_71f82498774b45::t_daacfb2c095cbc 7
+evals/implement/README.md
+  s_71f82498774b45::t_ac98d1a0d6e9cc 23-24,52
+evals/implement/switch-to-guided/fixture.sh
+  s_71f82498774b45::t_dcdb004bf9c3e7 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "351d95fa63f7382eb3c387e371b1ead19743a29f",
+  "prompts": {},
+  "sessions": {
+    "s_71f82498774b45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a183ac-d603-7710-9ef7-ddf6a9821475",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
