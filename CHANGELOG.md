@@ -8,13 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Chat autonomy changes in `implement` now queue for the next phase. The active phase and open questions/approvals retain their original mode; later requests replace or cancel the queue. Saved state and the dashboard distinguish effective and queued modes, and the phase transition audits application without retroactive approval or guessed answers.
 - `implement` now chooses its workflow by risk. After `close-the-gaps`, new runs assess the ticket as Low, Medium or High risk with a recorded rationale. Low risk runs **Lightweight**: a fresh subagent implements the spec directly, with no plan, test-first steps or regression gate, and the independent review and final context sync remain mandatory. Medium and High risk keep the full TDD pipeline. A Lightweight run escalates once to TDD on repeat or same-area review findings, a product decision, a replan-level finding or new risk, keeping its code as the TDD plan's accepted baseline; it never downgrades on its own. `--mode lightweight|tdd` or a chat request forces a mode while the assessment is still recorded. Guided spec approval shows the risk, mode and rationale and can switch mode; Lightweight runs have no plan gate. The state, dashboard, final package and workflow feedback record risk, mode, escalations and skipped stages. Runs started before this change resume under the full workflow without assessment.
 - The `implement-autopilot-full`, `implement-no-tooling` and `implement-empty-strategy` evaluations and the end-to-end rehearsal pass `--mode tdd` so their small tickets still exercise the full TDD pipeline.
 - PM refinement messages in Slack now use a welcoming greeting, link to the Jira or other tracker ticket when its URL is available, explain how to reply in the thread, and include a short AI disclosure crediting make-it-work by InsideOut AI.
 
 ### Added
 
-- Test-map entries now record strategy layer labels, with Unknown for unclassified or older entries. A portable generator produces root `TEST-MAP.md` with layer counts, feature behaviors, unresolved mappings and a collapsed evidence catalog. Onboarding/planning/implementation regenerate it after saving maps; read-only workflows remain unchanged. Explicit `--write` and `--check` modes support developer refreshes and drift detection without changing JSON or running tests.
+- Test-map entries now record strategy layer labels, with Unknown for unclassified or older entries. A portable generator produces `.claude/testing/TEST-MAP.md` beside the JSON with layer counts, feature behaviors, unresolved mappings and a collapsed evidence catalog. Onboarding/planning/implementation regenerate it after saving maps; read-only workflows remain unchanged. Explicit `--write` and `--check` modes support developer refreshes and drift detection without changing JSON or running tests.
 
 - Deterministic skill helpers now own new implement-run transitions/counters/snapshots, evidence-bound execution progress, regression command results, structural plan checks, fixed autonomy choices, offline question conditions, documentation inventory, strategy consistency/pointers, slice graphs/artifacts, epic rendering, bounded repo evidence collection, and review report/handoff projection. Legacy runs retain their existing opt-in boundaries. Focused disposable-fixture tests and CI cover the helpers; semantic product/design/coverage judgments and external-write authorization remain with their existing owners.
 - New `implement-lightweight-run` and `implement-escalation` evaluations cover a Low-risk run completing through Lightweight and a repeat review finding escalating a Lightweight run to TDD.
@@ -23,9 +24,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The generated test-map report now lives at `.claude/testing/TEST-MAP.md` beside `test-map.json`, with corrected local/cross-repo links, strategy discovery and freshness exclusions. Legacy root reports are left untouched; the report remains reference data outside rule/skill discovery.
+- Execute dashboards refresh when a step/batch starts, verifies completion or stops. The running step/title stays separate from verified Progress, and durable dispatch checkpoints support resume without counting starts as completed work or retry attempts.
+- Dashboard audit decisions show readable actions, approval scope and reasons while hiding internal reference hashes and raw provenance fields. Saved decision records and exact-plan approval bindings remain unchanged.
+- Final Sync bounds test-map semantic review to affected evidence, separates pre-existing incomplete onboarding from feature changes, uses compact subagent inputs and reuses completed validation unless its assumptions or selection change. Partial maintenance retains unresolved scope and existing baselines rather than claiming a full refresh.
 - Questions and approvals now checkpoint pending-input records before asking, with blocking waits marked Paused and optional decisions allowed to coexist. The HTML shows the actual question, choices, recipient, artifact/hash and elapsed wait, and keeps refreshing through resolution. Answers, resume, mode changes and stale exact approvals use the saved request identity; post-completion delivery retains Complete.
 
 - Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
+
+## [4.19.1] - 2026-10-28
+
+### Fixed
+
+- `implement` resolves autonomy before asking where refinement questions should go, so either Autopilot choice skips the destination prompt.
+- Lightweight dashboards hide Plan and Execute artifact cards. Dashboards omit cycle counters, and audit outcomes and timeline tooltips omit internal workflow event IDs and hashes; saved records retain counters and retry metadata.
+- Dashboards hide empty exception sections and label populated ones Unrelated test failures and Review decisions; saved state headings and entries remain unchanged.
+- Selecting Prepare delivery continues `deliver` inline, prepares and displays the full delivery plan, and waits for exact-plan approval without requiring a manual command or repeated opt-in. Behavioral eval cases cover preparation, decline and stale-package failure.
 
 ## [4.19.0] - 2026-10-28
 

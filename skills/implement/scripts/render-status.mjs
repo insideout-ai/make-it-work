@@ -10,6 +10,7 @@ import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
 import { pendingInputs } from './pending-input.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
+import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -282,6 +283,8 @@ export function parseState(markdown, statePath = '') {
   if (fields.phase === 'final-approval' && fields.final_package_version !== '1') fail('Final approval requires final_package_version: 1.');
   if (!PHASE_VALUES.has(fields.phase)) fail(`Unsupported phase: ${fields.phase}`);
   if (!AUTONOMY_VALUES.has(fields.autonomy)) fail(`Unsupported autonomy: ${fields.autonomy}`);
+  if (fields.queued_autonomy !== undefined && fields.queued_autonomy !== 'none' && !['guided', 'autonomous', 'autopilot'].includes(fields.queued_autonomy)) fail(`Unsupported queued autonomy: ${fields.queued_autonomy}`);
+  if (fields.status === 'Complete' && fields.queued_autonomy && fields.queued_autonomy !== 'none') fail('A completed run cannot retain queued autonomy.');
   if (!EXECUTION_MODE_VALUES.has(fields.execution_mode)) fail(`Unsupported execution_mode: ${fields.execution_mode}`);
   if (!INLINE_PAUSE_MODE_VALUES.has(fields.inline_pause_mode)) fail(`Unsupported inline_pause_mode: ${fields.inline_pause_mode}`);
   if (!EXECUTION_VALUES.has(fields.execution)) fail(`Unsupported execution: ${fields.execution}`);
@@ -398,7 +401,7 @@ export function buildTimeline(state) {
       const insertionIndex = activeSlot ? activeIndex + 1 : slots.length;
       slots.splice(insertionIndex, 0, nextSlot);
     }
-    if (escalation) nextSlot.escalation = row.outcome.slice('Escalation:'.length).trim();
+    if (escalation) nextSlot.escalation = displayOutcome(row.outcome).slice('Escalation:'.length).trim();
     if (adaptive && row.to === 'lightweight' && ['review', 'final-approval'].includes(row.from)) nextSlot.lightweightFix = true;
     activatedPhases.add(row.to);
     activeSlot = nextSlot;
@@ -435,9 +438,9 @@ function artifactLink(value, field, ticket) {
   return `<a href="${escapeHtml(relative)}" title="${escapeHtml(value)}">${escapeHtml(relative)}</a>`;
 }
 
-function renderList(items) {
-  if (items.length === 0) return '<p>None</p>';
-  return `<ul>\n${items.map((item) => `  <li>${escapeHtml(item)}</li>`).join('\n')}\n</ul>`;
+function renderListSection(title, items) {
+  if (items.length === 0) return '';
+  return `<h2>${escapeHtml(title)}</h2>\n<ul>\n${items.map((item) => `  <li>${escapeHtml(item)}</li>`).join('\n')}\n</ul>`;
 }
 
 function slotState(slot, activeSlot, status) {
@@ -480,6 +483,10 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     if (isActive && slot.phase === 'execute') {
       if (!planStatus) fail('An active Execute phase requires a readable plan Execution Status.');
       modeText = `${planStatus.mode} · Step ${planStatus.complete} of ${planStatus.total} complete`;
+      if (state.fields.status === 'In Progress' && planStatus.activeSteps?.length) {
+        const ids = planStatus.activeSteps.map((step) => step.number);
+        modeText = `${planStatus.mode} · Running ${ids.length === 1 ? 'step' : 'steps'} ${ids.join(', ')} of ${planStatus.total} · ${planStatus.complete} of ${planStatus.total} verified complete`;
+      }
     } else if (isActive && slot.phase === 'fix-plan' && state.fixPlanRoundSteps !== null) {
       if (!planStatus) fail('An active Fix phase with sized steps requires a readable plan Execution Status.');
       const localComplete = planStatus.complete - (planStatus.total - state.fixPlanRoundSteps);
@@ -550,6 +557,31 @@ function timingDetails(state, invalidTimestampFrom) {
   return { total: formatDuration(last.epoch - first.epoch), first, last };
 }
 
+function displayOutcome(outcome) {
+  // Controller retry metadata stays in the saved audit, outside the user-facing presentation.
+  const clean = outcome.replace(/\s*\[workflow-event: [A-Za-z0-9][A-Za-z0-9._:-]*; sha256: [a-f0-9]{64}\]/g, '').trim();
+  const decision = clean.match(/^Decision: ([\s\S]*?) — ([\s\S]*?); source: (user|autopilot|policy); via: (question|chat|flag|policy); scope: ([\s\S]*)$/);
+  if (decision) {
+    const [, topic, choice, source, , tail] = decision;
+    // Scope may contain semicolons; only the serializer's optional field labels
+    // delimit reference/reason. Reference remains authoritative in the state.
+    const fields = tail.match(/^([\s\S]*?)(?:; reference: [\s\S]*?)?(?:; reason: ([\s\S]*))?$/);
+    let title = `${topic} — ${choice}`;
+    if (source === 'user' && topic === 'Delivery exact-plan approval' && choice === 'Deliver this exact plan') title = 'Delivery approved';
+    if (source === 'user' && topic === 'Delivery preparation' && choice === 'Prepare delivery') title = 'Delivery preparation requested';
+    const attribution = source === 'autopilot' ? ' (Autopilot default)' : source === 'policy' ? ' (Policy default)' : '';
+    const text = [title + attribution, fields[1], fields[2]].filter(Boolean).join(' — ');
+    return text.replace(/\bSHA-?256\s*[:=]?\s*[a-f0-9]{7,64}\b/gi, '').replace(/\s{2,}/g, ' ').trim();
+  }
+  // Controller input resolutions and queue decisions carry provenance without
+  // the structured decision serializer's scope/reference fields.
+  if (/^(Decision: |Input )/.test(clean)) {
+    return clean.replace(/; source: (user|autopilot|policy|pm); via: (question|chat|flag|policy|slack)(?=$| Autonomy applied at phase boundary:)/g,
+      (_match, source) => source === 'autopilot' ? ' (Autopilot default)' : source === 'policy' ? ' (Policy default)' : source === 'pm' ? ' (Product Manager reply)' : '');
+  }
+  return clean;
+}
+
 function renderAuditRows(state, invalidTimestampFrom) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
@@ -563,7 +595,7 @@ function renderAuditRows(state, invalidTimestampFrom) {
     }
     const warning = row.number === invalidTimestampFrom
       ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(row.outcome)}${warning}${duration}</td></tr>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(displayOutcome(row.outcome))}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
@@ -587,7 +619,9 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
       const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
       const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
       const reference = record.binding ? `<p class="pending-reference">${record.binding.path ? escapeHtml(record.binding.path) + ' · ' : ''}SHA-256: <code>${escapeHtml(record.binding.sha256)}</code></p>` : '';
-      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+      const queued = record.blocking && state.fields.queued_autonomy && state.fields.queued_autonomy !== 'none'
+        ? `<p class="pending-qualifier">${escapeHtml(state.fields.queued_autonomy)} starts with the next phase. This question still needs an answer under ${escapeHtml(state.fields.autonomy)}.</p>` : '';
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
     const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
@@ -640,11 +674,10 @@ function renderModePill(state) {
   return `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</span>`;
 }
 
-function skippableLink(state, field) {
-  if (isAdaptive(state) && state.fields.mode === 'lightweight' && state.fields[field] === 'none') {
-    return '<span class="none">Skipped (Lightweight)</span>';
-  }
-  return artifactLink(state.fields[field], field, state.fields.ticket);
+function renderTddArtifactTile(state, field, label) {
+  if (isAdaptive(state) && state.fields.mode === 'lightweight') return '';
+  const link = artifactLink(state.fields[field], field, state.fields.ticket);
+  return `  <div class="artifact-tile"><div class="label">${label}</div>${link}</div>`;
 }
 
 function renderImplementationTile(state) {
@@ -678,6 +711,14 @@ function renderPublicationBadge(permission) {
   return `<span class="pill ticket-updates-pill ticket-updates-${status}" title="${escapeHtml(tooltip)}">Ticket updates: ${label}</span>`;
 }
 
+function renderAutonomyBadge(state) {
+  const { autonomy, queued_autonomy: queued } = state.fields;
+  const pending = queued && queued !== 'none';
+  const title = pending ? 'The queued mode starts at the next phase boundary. The current phase and any open question keep their existing mode.'
+    : autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP;
+  return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
+}
+
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null }) {
   const timeline = buildTimeline(state);
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -692,7 +733,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     WORKFLOW_TIMESTAMPS,
     WORKFLOW_HEADER: renderWorkflowHeader({
       workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64,
-      badges: `<span class="pill autonomy-pill" title="${escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP)}">Autonomy: ${escapeHtml(state.fields.autonomy)}</span>` +
+      badges: renderAutonomyBadge(state) +
         renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
     }),
     TICKET: escapeHtml(state.fields.ticket),
@@ -708,8 +749,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PLAN_LINK: skippableLink(state, 'plan'),
-    EXECUTE_LINK: skippableLink(state, 'execute_report'),
+    PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
+    EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
     IMPLEMENTATION_TILE: renderImplementationTile(state),
     REVIEW_LINK: reviewLink,
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
@@ -720,12 +761,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       : '',
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
-    REVIEW_CYCLE: String(state.reviewCycle),
-    FIX_CYCLE: String(state.fixCycle),
-    REPLANS_USED: String(state.replansUsed),
-    ESCALATIONS_COUNTER: isAdaptive(state) ? ` &nbsp; Escalations: ${escapeHtml(state.fields.escalations)} / 1` : '',
-    KNOWN_REGRESSIONS: renderList(state.knownRegressions),
-    DECIDED_FINDINGS: renderList(state.decidedFindings),
+    KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
+    DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
   };
   return applyTemplate(template, replacements);
 }
@@ -759,6 +796,22 @@ export async function generateDashboard(statePath) {
       fail(`Could not read the plan required for timeline progress: ${error.message}`);
     }
     planStatus = parsePlanStatus(planMarkdown);
+    if (state.fields.phase === 'execute') {
+      let journal;
+      try { journal = JSON.parse(await readFile(`${planPath}.execution.json`, 'utf8')); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (journal) {
+        if (journal.version !== 1) fail('Unsupported execution activity journal.');
+        const active = journal.active_steps ?? [];
+        if (!Array.isArray(active)) fail('Execution journal active steps must be an array.');
+        if (!journal.stopped && active.length && state.fields.status === 'In Progress') {
+          if (journal.plan_hash !== planHash(planMarkdown)) fail('Execution activity belongs to a changed plan; inspect step control before continuing.');
+          const steps = parseSteps(planMarkdown), eligible = nextBatch(steps, planStatus.complete, active.length > 1);
+          if (active.length > eligible.length || active.some((id, i) => id !== eligible[i])) fail('Execution journal active steps conflict with verified Progress.');
+          planStatus.activeSteps = active.map((id) => ({ number: id, title: steps[id - 1].title }));
+        }
+      }
+    }
   }
   const logoBase64 = logo.trim();
   if (!logoBase64 || !/^[A-Za-z0-9+/=]+$/.test(logoBase64)) fail('Logo asset is empty or invalid base64.');

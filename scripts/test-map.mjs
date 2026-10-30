@@ -7,13 +7,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const MAP_PATH = '.claude/testing/test-map.json';
+export const REPORT_PATH = '.claude/testing/TEST-MAP.md';
 const fail = (message) => { throw new Error(message); };
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = (value) => typeof value === 'string' && value.trim().length > 0;
 const relative = (value) => text(value) && !path.posix.isAbsolute(value) && !value.includes('\\') &&
   !/^[A-Za-z]:/.test(value) && !value.split('/').some((part) => part === '..' || part === '');
 const within = (file, directory) => directory === '.' || file === directory || file.startsWith(`${directory}/`);
-const metadata = (file) => file === MAP_PATH || file === 'TEST-MAP.md' || within(file, 'make-it-work') || within(file, '.git');
+const metadata = (file) => file === MAP_PATH || file === REPORT_PATH || file === 'TEST-MAP.md' || within(file, 'make-it-work') || within(file, '.git');
 const unique = (values) => [...new Set(values)].sort();
 const key = (test, token) => JSON.stringify([test, token]);
 

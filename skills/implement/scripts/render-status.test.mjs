@@ -125,6 +125,26 @@ test('renders a fresh run with active Context Check and no timing paragraph', as
   assert.match(html, /future relative to this device/);
   assert.doesNotMatch(html, /Waiting on you:/);
   assert.match(html, /ticket-updates-off[^>]*>Ticket updates: Off<\/span>/);
+  assert.doesNotMatch(html, /Known regressions|Decided findings|Unrelated test failures|Review decisions|<p>None<\/p>/);
+});
+
+test('hides controller retry markers while preserving outcome text and saved audit evidence', async (t) => {
+  const hash = createHash('sha256').update('workflow event').digest('hex');
+  const marker = `[workflow-event: review-1; sha256: ${hash}]`;
+  const state = stateMarkdown({
+    fields: { phase: 'final-sync' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'review', `Artifact checksum sha256: ${hash} [kept for review].`],
+      ['2026-01-01T10:01:00Z', 'review', 'final-sync', `Review is <clean>. ${marker} Follow-up preserved.`],
+    ],
+  });
+  const { directory, html } = await renderFixture(t, state);
+  assert.doesNotMatch(html, /workflow-event:/);
+  assert.match(html, /Review is &lt;clean&gt;\. Follow-up preserved\./);
+  assert.ok(html.includes(`Artifact checksum sha256: ${hash} [kept for review].`));
+  assert.match(html, /\(\+1m\)/);
+  assert.equal(await readFile(path.join(directory, 'DEMO-state.md'), 'utf8'), state);
+  assert.ok(parseState(state).audit[1].outcome.includes(marker));
 });
 
 test('keeps refinement activity outside the connected timeline and above artifacts', async (t) => {
@@ -259,6 +279,14 @@ test('accepts and describes fully autonomous autopilot runs', async (t) => {
 
   assert.match(html, /Autonomy: autopilot/);
   assert.match(html, /resolves every documented safe default without prompting/);
+});
+test('queued autonomy is optional for older runs and rejects invalid or completed-run queues', () => {
+  const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Run created']];
+  assert.equal(parseState(stateMarkdown({ rows })).fields.queued_autonomy, undefined);
+  const fields = { autonomy: 'guided', queued_autonomy: 'autopilot' };
+  assert.equal(parseState(stateMarkdown({ rows, fields })).fields.queued_autonomy, 'autopilot');
+  assert.throws(() => parseState(stateMarkdown({ rows, fields: { ...fields, queued_autonomy: 'unknown' } })), /Unsupported queued autonomy/);
+  assert.throws(() => parseState(stateMarkdown({ rows, fields: { ...fields, phase: 'complete', status: 'Complete' } })), /cannot retain queued autonomy/);
 });
 
 test('ticket permission badge is independent of autonomy and shows scoped consent without private payloads', async (t) => {
@@ -447,6 +475,9 @@ test('marks legacy phase durations unavailable and escapes state-derived HTML', 
   assert.match(html, /Contains \| pipe &amp; &lt;tag&gt;/);
   assert.match(html, /Unsafe &lt;b&gt;markup&lt;\/b&gt;/);
   assert.match(html, /A &amp; B/);
+  assert.match(html, /<h2>Unrelated test failures<\/h2>\s*<ul>/);
+  assert.match(html, /<h2>Review decisions<\/h2>\s*<ul>/);
+  assert.doesNotMatch(html, /<h2>Known regressions<\/h2>|<h2>Decided findings<\/h2>/);
   assert.match(html, /everything before row 2 happened before any real timestamp was captured/);
 });
 
@@ -628,6 +659,48 @@ test('decision checkpoints retain fields, capture host time, and render safely',
   const html = await readFile(outputPath, 'utf8');
   assert.ok(html.includes('Use &lt;script&gt; | C:\\drafts &amp; &amp;#124;'));
   assert.doesNotMatch(html, /<script> \||decision-id:/);
+  assert.ok(html.includes('Review before sending'));
+  assert.ok(html.includes(input.scope));
+  assert.doesNotMatch(html, /source: user|via: question|reference: publication journal/);
+});
+
+test('delivery audit rows hide full and shortened reference hashes while preserving exact approval scope in state', async (t) => {
+  const original = stateMarkdown({ fields: { phase: 'complete', status: 'Complete', autonomy: 'autopilot' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Implementation complete.']] });
+  const { directory, outputPath } = await renderFixture(t, original);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const hash = createHash('sha256').update('approved delivery plan').digest('hex');
+  const preparation = { id: 'delivery-prepare', topic: 'Delivery preparation', choice: 'Prepare delivery', source: 'user', via: 'question',
+    scope: 'DEMO completed run, preparation only; exact-plan approval still required', reference: `final package sha256 ${hash.slice(0, 8)}`, resume: 'transparent' };
+  const approval = { id: 'delivery-approve', topic: 'Delivery exact-plan approval', choice: 'Deliver this exact plan', source: 'user', via: 'question',
+    scope: 'app: commit, push premium-badge-dashboard to origin; create/update PR against main', reference: `delivery plan sha256 ${hash}`, resume: 'transparent' };
+  await checkpointDecision(statePath, preparation); await checkpointDecision(statePath, approval);
+  const saved = await readFile(statePath, 'utf8');
+  const html = await readFile(outputPath, 'utf8');
+  assert.ok(html.includes(`Delivery preparation requested — ${preparation.scope}`));
+  assert.ok(html.includes(`Delivery approved — ${approval.scope}`));
+  assert.doesNotMatch(html, /source:|via:|reference:|sha-?256|decision-id:/i);
+  assert.ok(!html.includes(hash)); assert.ok(!html.includes(hash.slice(0, 8)));
+  const state = parseState(saved);
+  assert.ok(state.audit[1].outcome.includes(preparation.reference));
+  assert.ok(state.audit[2].outcome.includes(approval.reference));
+  assert.ok(state.audit[2].outcome.includes('source: user; via: question'));
+  const rerendered = await generateDashboard(statePath);
+  assert.equal(rerendered, outputPath); assert.equal(await readFile(statePath, 'utf8'), saved);
+});
+
+test('readable automatic decisions retain their attribution, restrictions and reason', async (t) => {
+  const { directory, outputPath } = await renderFixture(t, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Run created']] }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  for (const source of ['autopilot', 'policy']) await checkpointDecision(statePath, {
+    id: `mode-${source}`, topic: 'Execution mode', choice: 'Sequential', source, via: 'policy',
+    scope: 'DEMO; implementation only; delivery approval required separately', reason: 'Dependent steps must stay ordered',
+  });
+  const html = await readFile(outputPath, 'utf8');
+  assert.match(html, /Sequential \(Autopilot default\)/); assert.match(html, /Sequential \(Policy default\)/);
+  assert.ok(html.includes('DEMO; implementation only; delivery approval required separately'));
+  assert.ok(html.includes('Dependent steps must stay ordered'));
+  assert.doesNotMatch(html, /source:|via:|scope:|reference:|reason:/);
 });
 
 test('decision IDs make retries idempotent and changed decisions append history', async (t) => {
@@ -796,8 +869,10 @@ test('lightweight run skips Plan and Execute and adds Fix (Lightweight) re-entri
   assert.match(timeline, /phase-dot current spinning[^>]+lightweight: a fresh subagent fixes the review findings/);
   assert.match(timeline, /phase-duration">3m<\/div>[\s\S]*phase-duration">1m<\/div>/);
   assert.match(html, /<strong>Fix \(Lightweight\) in progress<\/strong>/);
-  assert.match(html, /<div class="label">Plan<\/div><span class="none">Skipped \(Lightweight\)<\/span>/);
-  assert.match(html, /<div class="label">Execute<\/div><span class="none">Skipped \(Lightweight\)<\/span>/);
+  const artifacts = html.slice(html.indexOf('<div class="artifact-grid">'), html.indexOf('<h2>Audit log</h2>'));
+  assert.deepEqual([...artifacts.matchAll(/<div class="label">([^<]+)<\/div>/g)].map((match) => match[1]),
+    ['Spec', 'Lightweight report', 'Review', 'Final package']);
+  assert.doesNotMatch(artifacts, /Skipped/);
   assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
 });
 
@@ -813,7 +888,7 @@ test('escalation from review inserts Plan and Execute after the active slot in o
       ['2026-01-01T10:01:00Z', 'context-check', 'close-the-gaps', 'Context ready'],
       ['2026-01-01T10:02:00Z', 'close-the-gaps', 'lightweight', 'Low risk → Lightweight'],
       ['2026-01-01T10:04:00Z', 'lightweight', 'review', 'Implemented'],
-      ['2026-01-01T10:05:00Z', 'review', 'plan', 'Escalation: review found <auth> changes'],
+      ['2026-01-01T10:05:00Z', 'review', 'plan', `Escalation: review found <auth> changes [workflow-event: escalate-1; sha256: ${'a'.repeat(64)}]`],
       ['2026-01-01T10:07:00Z', 'plan', 'plan-approval', 'Plan ready'],
       ['2026-01-01T10:08:00Z', 'plan-approval', 'execute', 'Plan approved'],
       ['2026-01-01T10:12:00Z', 'execute', 'review', 'Execution passed'],
@@ -823,13 +898,15 @@ test('escalation from review inserts Plan and Execute after the active slot in o
   assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Plan', 'Execute', 'Review', 'Final Sync', 'Complete']);
   assert.equal((timeline.match(/phase-dot skipped/g) ?? []).length, 2);
   assert.match(timeline, /phase-dot passed" title="plan: Escalated: review found &lt;auth&gt; changes — [^"]+">✓[\s\S]*?Escalated to TDD/);
+  assert.doesNotMatch(html, /workflow-event:|sha256:/);
   const durations = [...timeline.matchAll(/phase-duration">([^<]+)</g)].map((match) => match[1]);
   assert.deepEqual(durations, ['1m', '1m', '2m', '1m', '3m', '4m']);
   assert.match(timeline, /phase-dot current spinning[^>]+review:/);
   assert.match(html, /Mode: TDD · Low risk/);
-  assert.match(html, /Escalations: 1 \/ 1<\/p>/);
+  assert.doesNotMatch(html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
   assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
   assert.match(html, /<div class="label">Plan<\/div><a href="DEMO-plan\.md"/);
+  assert.match(html, /<div class="label">Execute<\/div><a href="DEMO-execute\.md"/);
 });
 
 test('escalation from a stopped lightweight phase keeps baseline Review after the new slots', async (t) => {
@@ -845,25 +922,31 @@ test('escalation from a stopped lightweight phase keeps baseline Review after th
   assert.match(timelineHtml(html), /phase-dot current spinning" title="plan: Escalated: implementation touched shared schema/);
 });
 
-test('mode pill and escalations counter appear only for adaptive runs', async (t) => {
+test('mode pill appears only for adaptive runs and cycle counters stay out of the dashboard', async (t) => {
   const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
   const legacy = await renderFixture(t, stateMarkdown({ rows }));
   assert.doesNotMatch(legacy.html, /mode-pill|Mode: |Escalations|phase-dot skipped|Lightweight report/);
-  assert.match(legacy.html, /Replans used: 0 \/ 2<\/p>/);
+  assert.match(legacy.html, /<div class="label">Plan<\/div><span class="none">Not yet created<\/span>/);
+  assert.match(legacy.html, /<div class="label">Execute<\/div><span class="none">Not yet created<\/span>/);
   assert.deepEqual(timelineLabels(legacy.html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Review', 'Final Sync', 'Complete']);
 
   const pending = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'none', mode: 'none', mode_source: 'none', risk_rationale: 'none' }, rows }));
   assert.match(pending.html, /Mode: Not yet assessed/);
-  assert.match(pending.html, /Escalations: 0 \/ 1<\/p>/);
   assert.doesNotMatch(pending.html, /phase-dot skipped/);
 
   const lightweight = await renderFixture(t, stateMarkdown({ fields: ADAPTIVE_FIELDS, rows }));
   assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="Single-file &lt;copy&gt; change">Mode: Lightweight · Low risk<\/span>/);
-  assert.match(lightweight.html, /Escalations: 0 \/ 1<\/p>/);
 
   const forced = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'high', mode: 'tdd', mode_source: 'user' }, rows }));
   assert.match(forced.html, />Mode: TDD \(user\) · High risk<\/span>/);
   assert.doesNotMatch(forced.html, /phase-dot skipped|Skipped \(Lightweight\)/);
+  for (const fixture of [legacy, pending, lightweight, forced]) {
+    assert.doesNotMatch(fixture.html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
+    const saved = parseState(await readFile(path.join(fixture.directory, 'DEMO-state.md'), 'utf8'));
+    assert.equal(saved.fields.review_cycle, '0');
+    assert.equal(saved.fields.fix_cycle, '0');
+    assert.equal(saved.fields.replans_used, '0');
+  }
 });
 
 test('phase lightweight renders without plan progress', async (t) => {

@@ -11,12 +11,11 @@ import { contextInventory } from '../../../scripts/context-inventory.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
+import { planHash } from '../../../scripts/lib/plan.mjs';
+export { planHash } from '../../../scripts/lib/plan.mjs';
 
 const git = (root, argv) => execFileSync('git', ['-C', root, ...argv], { maxBuffer: 100 * 1024 * 1024 });
 const text = (root, argv) => git(root, argv).toString('utf8').trim();
-export function planHash(markdown) {
-  return digest(markdown.replace(/^## Execution Status\s*\n[\s\S]*?(?=^## |$(?![\s\S]))/m, ''));
-}
 export async function snapshot(repos) {
   if (!Array.isArray(repos) || !repos.length) fail('Snapshot requires explicit repository roots.');
   const result = [];
@@ -56,6 +55,7 @@ function explicit(input) {
   if (input.source !== 'user' || !['question', 'chat'].includes(input.via)) fail('This event requires an explicit user decision.');
 }
 const adaptive = (f) => f.adaptive_version === '1';
+const nextAutonomy = (f) => f.queued_autonomy && f.queued_autonomy !== 'none' ? f.queued_autonomy : f.autonomy;
 // Adaptive runs leave spec acceptance for the phase their assessed mode selects.
 function afterSpec(f) {
   if (!adaptive(f)) return 'plan';
@@ -139,7 +139,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
       f.spec = requireText(input.spec, 'Accepted spec path');
       if (input.plan) f.plan = requireText(input.plan, 'Accepted plan path');
       if (adaptive(f) && input.plan && f.mode !== 'tdd') fail('A reused plan requires mode: tdd.');
-      if (adaptive(f) && !input.plan) f.phase = f.autonomy === 'guided' ? (afterSpec(f), 'spec-approval') : afterSpec(f);
+      if (adaptive(f) && !input.plan) f.phase = nextAutonomy(f) === 'guided' ? (afterSpec(f), 'spec-approval') : afterSpec(f);
     }
   } else if (['approve', 'redo', 'skip-approval'].includes(input.event)) {
     if (!['spec-approval', 'plan-approval'].includes(f.phase)) fail('No spec/plan approval is pending.');
@@ -183,7 +183,13 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
   } else if (input.event === 'autonomy') {
     explicit(input);
     if (!['guided', 'autonomous', 'autopilot'].includes(input.mode)) fail('Invalid autonomy.');
-    f.autonomy = input.mode;
+    if (f.status === 'Complete') fail('A completed run has no remaining phase for an autonomy change.');
+    const previous = f.queued_autonomy ?? 'none';
+    f.queued_autonomy = input.mode === f.autonomy ? 'none' : input.mode;
+    reason = f.queued_autonomy === 'none'
+      ? `Decision: Autonomy ${previous === 'none' ? 'reaffirmed' : 'queue cancelled'}; current mode remains ${f.autonomy}`
+      : `Decision: Autonomy queued ${f.queued_autonomy} after ${f.phase}; current mode remains ${f.autonomy}${previous !== 'none' && previous !== f.queued_autonomy ? `; replaces queued ${previous}` : ''}`;
+    reason += `; source: user; via: ${input.via}`;
   } else if (input.event === 'resume') {
     if (f.status === 'Complete') fail('A completed run cannot be resumed.');
     if (pendingInputs(f).some((record) => record.blocking)) {
@@ -219,6 +225,16 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     }
   } else fail(`Unsupported workflow event: ${input.event}`);
   if (before.status === 'Complete' && !['autonomy', 'input-answered'].includes(input.event)) fail('A completed run stays complete.');
+  let autonomyNote;
+  if (f.phase !== before.phase && f.queued_autonomy && f.queued_autonomy !== 'none') {
+    if (f.status === 'Complete') {
+      autonomyNote = `Queued autonomy ${f.queued_autonomy} not applied: no remaining phase; completed under ${f.autonomy}.`;
+    } else {
+      autonomyNote = `Autonomy applied at phase boundary: ${f.autonomy} to ${f.queued_autonomy} (queued user request).`;
+      f.autonomy = f.queued_autonomy;
+    }
+    f.queued_autonomy = 'none';
+  }
   if (f.phase === 'review' && before.phase !== 'review' && f.status === 'In Progress') {
     if (Number(f.review_cycle) >= 4) fail('Review limit reached.');
     f.review_cycle = String(Number(f.review_cycle) + 1);
@@ -228,7 +244,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     f.current_activity = 'none';
     if (Object.hasOwn(f, 'current_activity_updated_at')) f.current_activity_updated_at = 'none';
   }
-  return { fields: f, reason, action };
+  return { fields: f, reason, action, ...(autonomyNote ? { autonomyNote } : {}) };
 }
 async function refresh(statePath) {
   try { const info = await lstat(statePath.replace(/-state\.md$/, '-status.html')); if (!info.isFile()) fail('Dashboard must be a regular file.'); }
@@ -450,9 +466,10 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const time = new Date().toISOString();
     const reason = resolution ? `Input ${resolution.record.id} resolved: ${resolution.response.label}; source: ${input.source}; via: ${input.via}`
       : request ? `${replaced ? `Input ${replaced.id} superseded. ` : ''}Awaiting ${request.waiting_for === 'pm' ? 'Product Manager' : 'user'} input: ${request.question} [pending-input: ${request.id}]`
-      : input.event === 'autonomy' ? `Decision: Autonomy changed ${state.fields.autonomy} to ${f.autonomy}` : next.reason;
+      : next.reason;
     const transparent = input.event === 'autonomy' ? ` [decision-id: ${input.id}; resume: transparent]` : '';
-    const row = `| ${state.audit.length + 1} | ${time} | ${state.fields.phase} | ${f.phase} | ${String(reason).replaceAll('|', '&#124;').replaceAll('\n', ' ')} ${marker}${transparent} |\n`;
+    const outcome = `${reason}${next.autonomyNote ? ` ${next.autonomyNote}` : ''}`;
+    const row = `| ${state.audit.length + 1} | ${time} | ${state.fields.phase} | ${f.phase} | ${String(outcome).replaceAll('|', '&#124;').replaceAll('\n', ' ')} ${marker}${transparent} |\n`;
     updated = updated.trimEnd() + '\n' + row;
     parseState(updated, statePath);
     await atomicWrite(statePath, updated);
@@ -480,7 +497,7 @@ export async function initializeWorkflow(root, input) {
   const manifest = JSON.parse(await readFile(fileURLToPath(new URL('../../../.claude-plugin/plugin.json', import.meta.url)), 'utf8'));
   requireText(manifest.version, 'Plugin version');
   const time = new Date().toISOString();
-  Object.assign(fields, { ticket: input.ticket, controller_version: '1', autonomy: input.autonomy,
+  Object.assign(fields, { ticket: input.ticket, controller_version: '1', autonomy: input.autonomy, queued_autonomy: 'none',
     refinement_destination: input.refinement_destination ?? 'here', start_time: time, plugin_version: manifest.version,
     branch: repos[0].branch, base: requireText(input.base, 'Base branch'), head: repos[0].head,
     worktree_fingerprint: digest(JSON.stringify(repos)), workspace_snapshot: JSON.stringify(repos) });

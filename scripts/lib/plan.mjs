@@ -1,4 +1,8 @@
-import { fail, section } from './artifacts.mjs';
+import { digest, fail, section } from './artifacts.mjs';
+
+export function planHash(markdown) {
+  return digest(markdown.replace(/^## Execution Status\s*\n[\s\S]*?(?=^## |$(?![\s\S]))/m, ''));
+}
 
 export function parseSteps(markdown) {
   const body = section(markdown, 'Steps');

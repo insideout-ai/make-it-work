@@ -26,7 +26,7 @@ If the destination remains unresolved:
 
 Check the tools available in this session. If integrations or their tools are deferred, use the available tool-discovery mechanism (for example `ToolSearch`) to search for Slack capabilities before deciding Slack is unavailable. Inspect whether lookup/DM addressing and the requested draft or send action are supported; do not send a probe message or create a draft to test access. Availability in another app/session, a Slack plugin name, or the presence of Jira tools does not establish Slack access here. If discovery fails or cannot verify support, explain that limitation and omit the unverified action.
 
-Ask a separate startup question after autonomy is resolved: **Where should refinement questions go?** Do not make the question conditional on Slack being available. Offer:
+Only when Guided/Autonomous still needs a destination, ask a separate startup question after autonomy is resolved: **Where should refinement questions go?** Never include this question in the same `AskUserQuestion` call as the autonomy question: its presence depends on that answer. Either interactive Autopilot choice follows the no-prompt policy default above, just like `--autopilot` or an explicit chat selection. The default `here` does not enable live product questions in Autopilot; missing required answers still trigger the stage's documented hard stop. For Guided/Autonomous, do not make the question conditional on Slack being available. Offer:
 
 - **Answer here (Recommended)** — answer product questions in this session.
 - **Draft in Slack** — only when supported; prepare a DM for review and manual sending.

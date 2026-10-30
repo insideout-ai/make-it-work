@@ -77,6 +77,39 @@ test('status boundaries clear activity and its timestamp; same-phase mode change
   const legacy = transition(fields('plan'), { event: 'stop', reason: 'Required context missing' });
   assert.ok(!Object.hasOwn(legacy.fields, 'current_activity_updated_at'));
 });
+test('the latest autonomy request replaces or cancels the queue without changing the active phase policy', () => {
+  const start = fields('execute', { autonomy: 'guided' });
+  const queued = transition(start, { event: 'autonomy', mode: 'autopilot', source: 'user', via: 'chat' });
+  assert.equal(queued.fields.autonomy, 'guided'); assert.equal(queued.fields.queued_autonomy, 'autopilot');
+  const replaced = transition(queued, { event: 'autonomy', mode: 'autonomous', source: 'user', via: 'chat' });
+  assert.equal(replaced.fields.queued_autonomy, 'autonomous'); assert.match(replaced.reason, /replaces queued autopilot/);
+  const cancelled = transition(replaced, { event: 'autonomy', mode: 'guided', source: 'user', via: 'chat' });
+  assert.equal(cancelled.fields.queued_autonomy, 'none'); assert.match(cancelled.reason, /queue cancelled/);
+  const stopped = transition(queued, { event: 'stop', reason: 'Required fact missing.' });
+  assert.equal(stopped.fields.autonomy, 'guided'); assert.equal(stopped.fields.queued_autonomy, 'autopilot');
+});
+test('a queued Guided mode controls the next approval gate but cannot remove the current phase human decision', () => {
+  const start = fields('close-the-gaps', { autonomy: 'autonomous', queued_autonomy: 'guided' });
+  const gaps = { version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } };
+  const next = transition(start, { event: 'handoff' }, gaps);
+  assert.equal(next.fields.phase, 'spec-approval'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.queued_autonomy, 'none');
+  const unresolved = transition(fields('close-the-gaps', { autonomy: 'guided', queued_autonomy: 'autopilot' }), { event: 'handoff' }, { ...gaps, data: { ...gaps.data, tbd_items: 1 } });
+  assert.equal(unresolved.pending.action, 'ask'); assert.equal(unresolved.fields.autonomy, 'guided'); assert.equal(unresolved.fields.queued_autonomy, 'autopilot');
+});
+test('completion drops a queued change without relabeling the mode that validated the final package', () => {
+  const result = transition(fields('final-approval', { autonomy: 'autopilot', queued_autonomy: 'guided', review: 'clean' }), { event: 'complete' });
+  assert.equal(result.fields.status, 'Complete'); assert.equal(result.fields.autonomy, 'autopilot'); assert.equal(result.fields.queued_autonomy, 'none');
+  assert.match(result.autonomyNote, /no remaining phase/);
+  assert.throws(() => transition(result, { event: 'autonomy', mode: 'guided', source: 'user', via: 'chat' }), /no remaining phase/);
+});
+test('queued mode determines plan approval at the boundary in both directions', () => {
+  const plan = { version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED',
+    artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } };
+  for (const [active, queued, phase] of [['autopilot', 'guided', 'plan-approval'], ['guided', 'autopilot', 'execute']]) {
+    const next = transition(fields('plan', { autonomy: active, queued_autonomy: queued }), { event: 'handoff' }, plan);
+    assert.equal(next.fields.phase, phase); assert.equal(next.fields.autonomy, queued); assert.equal(next.fields.queued_autonomy, 'none');
+  }
+});
 test('render failure leaves durable event; retry refreshes without counting twice', async (t) => {
   const { root, statePath } = await fixture(t);
   const input = { event: 'context-ready', id: 'once', repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')) };
@@ -130,6 +163,20 @@ test('mode changes preserve artifact fingerprints even when a spec changed; norm
   const changed = await apply('autonomy', { mode: 'guided', source: 'user', via: 'chat' });
   assert.equal(changed.fields.spec_hash, previous.spec_hash); assert.equal(changed.fields.workspace_snapshot, previous.workspace_snapshot);
   await assert.rejects(apply('resume'), /spec changed/);
+});
+test('queued requests survive render failure and replay, then apply once at a real phase boundary', async (t) => {
+  const { root, statePath, apply } = await fixture(t);
+  const request = { event: 'autonomy', id: 'queue-guided', expected_hash: digest(await readFile(statePath, 'utf8')), mode: 'guided', source: 'user', via: 'chat' };
+  await assert.rejects(applyWorkflow({ root, statePath, input: request, render: async () => { throw new Error('render failed'); } }), /render failed/);
+  const saved = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(saved.fields.autonomy, 'autonomous'); assert.equal(saved.fields.queued_autonomy, 'guided');
+  const replay = await applyWorkflow({ root, statePath, input: request });
+  assert.equal(replay.replayed, true);
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, saved.audit.length);
+  assert.match(await readFile(replay.dashboard, 'utf8'), /Autonomy: autonomous · guided queued/);
+  const next = await apply('context-ready');
+  assert.equal(next.fields.phase, 'close-the-gaps'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.queued_autonomy, 'none');
+  assert.match(parseState(await readFile(statePath, 'utf8')).audit.at(-1).outcome, /Autonomy applied at phase boundary/);
 });
 test('the controller retains the existing handoff boundary requiring testing policy before execution', async (t) => {
   const { root, statePath, apply } = await fixture(t);

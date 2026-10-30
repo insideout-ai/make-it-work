@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Portable report generator. It never discovers tests, classifies layers or edits JSON.
 import { createHash } from 'node:crypto';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { lstat, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MAP_PATH, serializeMap, validateMap } from './test-map.mjs';
+import { MAP_PATH, REPORT_PATH, serializeMap, validateMap } from './test-map.mjs';
+export { REPORT_PATH } from './test-map.mjs';
 
-export const REPORT_PATH = 'TEST-MAP.md';
 const escape = (value) => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   .replace(/[\\`*_[\]{}|]/g, '\\$&').replace(/\r?\n/g, ' ');
 const code = (value) => `<code>${String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('|', '&#124;').replace(/\r?\n/g, ' ')}</code>`;
@@ -162,23 +162,22 @@ export async function reportMain(argv) {
     refreshCommand = manifest?.scripts?.['test:map'] ? 'npm run test:map' : 'node scripts/test-map-report.mjs --write';
   }
   const markdown = renderTestMap(map, { root, labels: await readLabels(root, map), refreshCommand });
-  const output = path.join(root, REPORT_PATH);
   if (mode === 'print') return markdown;
+  root = await realpath(root);
+  const output = path.join(root, REPORT_PATH);
+  if (await realpath(path.dirname(output)) !== path.dirname(output)) throw new Error(`${REPORT_PATH} must be in a real directory under the product repo.`);
+  try { if (!(await lstat(output)).isFile()) throw new Error(`${REPORT_PATH} must be a regular file.`); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
   let existing;
   try { existing = await readFile(output, 'utf8'); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (mode === 'check') {
-    if (existing !== markdown) throw new Error(`TEST-MAP.md is missing or stale. Refresh with ${refreshCommand}.`);
-    return 'TEST-MAP.md is up to date with the saved map.';
+    if (existing !== markdown) throw new Error(`${REPORT_PATH} is missing or stale. Refresh with ${refreshCommand}.`);
+    return `${REPORT_PATH} is up to date with the saved map.`;
   }
-  if (existing === markdown) return 'TEST-MAP.md is already up to date.';
-  // Refuse symlink destinations before writing.
-  const { realpath, lstat } = await import('node:fs/promises');
-  root = await realpath(root);
-  try { if (!(await lstat(path.join(root, REPORT_PATH))).isFile()) throw new Error('TEST-MAP.md must be a regular file.'); }
-  catch (error) { if (error.code !== 'ENOENT') throw error; }
-  await writeFile(path.join(root, REPORT_PATH), markdown);
-  return 'Generated TEST-MAP.md from the saved map.';
+  if (existing === markdown) return `${REPORT_PATH} is already up to date.`;
+  await writeFile(output, markdown);
+  return `Generated ${REPORT_PATH} from the saved map.`;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, mkdir, readFile, writeFile, stat, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, stat, rm, rename, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { renderTestMap, reportMain } from './test-map-report.mjs';
+import { REPORT_PATH, renderTestMap, reportMain } from './test-map-report.mjs';
 import { serializeMap, validateMap } from './test-map.mjs';
 
 function example() {
@@ -55,7 +55,10 @@ test('reports preserve incomplete assessment, exact evidence, separate layers an
   assert.match(report, /not sufficient coverage or passing results/);
   assert.match(report, /Payment backend is mocked/);
   assert.match(report, /Asserts payment completion/);
-  assert.match(report, /\.\.\/qa\/tests\/pay%20test\.js/);
+  assert.ok(report.includes('[.claude/testing/test-map.json](<test-map.json>)'));
+  assert.ok(report.includes('[src/pay.component.test.js](<../../src/pay.component.test.js>)'));
+  assert.ok(report.includes('[UC-01: Pay](<../skills/uc-01-pay/SKILL.md>)'));
+  assert.match(report, /\.\.\/\.\.\/\.\.\/qa\/tests\/pay%20test\.js/);
   assert.match(report, /pays \\\| safely/);
   assert.match(report, /<details>\n<summary>Open catalog/);
   assert.equal((report.match(/<details>/g) ?? []).length, (report.match(/<\/details>/g) ?? []).length);
@@ -109,28 +112,54 @@ test('CLI writes only on --write, checks drift, updates layer counts and leaves 
   const original = await readFile(source, 'utf8');
   const printed = await reportMain(args);
   assert.match(printed, /npm run test:map/);
-  await assert.rejects(stat(path.join(root, 'TEST-MAP.md')), { code: 'ENOENT' });
+  await assert.rejects(stat(path.join(root, REPORT_PATH)), { code: 'ENOENT' });
   await assert.rejects(reportMain([...args, '--check']), /missing or stale/);
   assert.match(await reportMain([...args, '--write']), /Generated/);
-  const before = await stat(path.join(root, 'TEST-MAP.md'));
-  assert.equal(await readFile(path.join(root, 'TEST-MAP.md'), 'utf8'), printed);
+  await assert.rejects(stat(path.join(root, 'TEST-MAP.md')), { code: 'ENOENT' });
+  assert.equal(path.dirname(path.join(root, REPORT_PATH)), path.dirname(source));
+  const before = await stat(path.join(root, REPORT_PATH));
+  assert.equal(await readFile(path.join(root, REPORT_PATH), 'utf8'), printed);
   assert.match(await reportMain([...args, '--write']), /already up to date/);
-  assert.equal((await stat(path.join(root, 'TEST-MAP.md'))).mtimeMs, before.mtimeMs);
+  assert.equal((await stat(path.join(root, REPORT_PATH))).mtimeMs, before.mtimeMs);
   assert.match(await reportMain([...args, '--check']), /up to date/);
   assert.equal(await readFile(source, 'utf8'), original);
   const changed = JSON.parse(original); changed.tests[0].layer = 'Integration';
   await writeFile(source, serializeMap(changed));
   await assert.rejects(reportMain([...args, '--check']), /missing or stale/);
   await reportMain([...args, '--write']);
-  assert.match(await readFile(path.join(root, 'TEST-MAP.md'), 'utf8'), /\| Integration \| 1 \|/);
+  assert.match(await readFile(path.join(root, REPORT_PATH), 'utf8'), /\| Integration \| 1 \|/);
   await assert.rejects(reportMain([...args, '--write', '--check']), /Usage/);
 });
 
 test('report output cannot overwrite a symlink target', async (t) => {
   const root = await fixture(t);
   const target = path.join(root, 'source.md');
-  await writeFile(target, 'preserve me');
-  await symlink(target, path.join(root, 'TEST-MAP.md'));
+  const original = await reportMain(['--root', root]);
+  await writeFile(target, original);
+  await symlink(target, path.join(root, REPORT_PATH));
   await assert.rejects(reportMain(['--root', root, '--write']), /regular file/);
-  assert.equal(await readFile(target, 'utf8'), 'preserve me');
+  await assert.rejects(reportMain(['--root', root, '--check']), /regular file/);
+  assert.equal(await readFile(target, 'utf8'), original);
+});
+
+test('a legacy root report neither satisfies the canonical check nor gets overwritten during generation', async (t) => {
+  const root = await fixture(t);
+  const map = JSON.parse(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'));
+  const legacy = renderTestMap(map, { root, reportPath: 'TEST-MAP.md' });
+  await writeFile(path.join(root, 'TEST-MAP.md'), legacy);
+  await assert.rejects(reportMain(['--root', root, '--check']), /\.claude\/testing\/TEST-MAP.md is missing or stale/);
+  await reportMain(['--root', root, '--write']);
+  assert.equal(await readFile(path.join(root, 'TEST-MAP.md'), 'utf8'), legacy);
+  assert.ok((await readFile(path.join(root, REPORT_PATH), 'utf8')).includes('](<test-map.json>)'));
+});
+
+test('nested output refuses a symlinked metadata directory without writing outside the product repo', async (t) => {
+  const root = await fixture(t);
+  const outside = await mkdtemp(path.join(os.tmpdir(), 'map-report-outside-'));
+  t.after(() => rm(outside, { recursive: true, force: true }));
+  const moved = path.join(outside, 'testing');
+  await rename(path.join(root, '.claude/testing'), moved);
+  await symlink(moved, path.join(root, '.claude/testing'), 'dir');
+  await assert.rejects(reportMain(['--root', root, '--write']), /real directory under the product repo/);
+  await assert.rejects(stat(path.join(moved, 'TEST-MAP.md')), { code: 'ENOENT' });
 });

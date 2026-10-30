@@ -2,4 +2,4 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../assert-disposable-cwd.sh"
-bash "$SCRIPT_DIR/../seed-autonomy-fixture.sh" guided
+bash "$SCRIPT_DIR/../seed-autonomy-fixture.sh" queued-guided

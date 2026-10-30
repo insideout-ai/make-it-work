@@ -52,6 +52,7 @@ for (const autonomy of ['autonomous', 'guided']) test(`a real red-to-green ${aut
   }
   const regression = () => runRegression({ version: 1, mode: 'full', runs: [{ repo: 'tiny-greeter-full', cwd: root, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } }] });
   assert.equal((await regression()).overall, 'fail');
+  await executionControl(planPath, { action: 'start', id: 'formal-greeting-step-1', steps: [1] }, { dashboardState: statePath });
   await executionControl(planPath, { action: 'begin-attempt', id: 'formal-greeting-fix-1', step: 1 });
   await writeFile(path.join(root, 'src/greeting.js'), 'function greet(name) { return `Hello, ${name}!`; }\nfunction greetFormally(name) { return `Good day, ${name}.`; }\nmodule.exports = { greet, greetFormally };\n');
   const result = await regression(); assert.equal(result.overall, 'pass');

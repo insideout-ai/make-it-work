@@ -128,14 +128,17 @@ test('map-only commits and ignored artifacts cause no refresh or serialized chur
   const { root, map } = await fixture(t);
   await mkdir(path.join(root, '.claude/testing'), { recursive: true });
   await writeFile(path.join(root, '.claude/testing/test-map.json'), serializeMap(map));
-  await writeFile(path.join(root, 'TEST-MAP.md'), '# Generated report\n');
+  await writeFile(path.join(root, 'TEST-MAP.md'), '# Legacy generated report\n');
+  await writeFile(path.join(root, '.claude/testing/TEST-MAP.md'), '# Generated report\n');
   await mkdir(path.join(root, 'make-it-work'), { recursive: true });
   await writeFile(path.join(root, 'make-it-work/scratch'), 'ignored');
-  git(root, 'add', '.claude/testing/test-map.json', 'TEST-MAP.md');
+  git(root, 'add', '.claude/testing/test-map.json', '.claude/testing/TEST-MAP.md', 'TEST-MAP.md');
   git(root, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.test', 'commit', '-qm', 'map only');
   const status = await inspectMap(map, root);
   assert.deepEqual(status.refresh, []);
   assert.deepEqual({ ...status.snapshots }, map.snapshots);
+  await writeFile(path.join(root, '.claude/testing/TEST-MAP.md'), '# Regenerated report\n');
+  assert.deepEqual((await inspectMap(map, root)).refresh, []);
 });
 
 test('missing external repo preserves baseline and never reports confirmed absence', async (t) => {
