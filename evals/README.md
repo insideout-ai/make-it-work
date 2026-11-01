@@ -56,6 +56,9 @@ artifacts, for example `{ source: file, path: "make-it-work/epic-*.md" }`.
 They must resolve to exactly one regular file inside the fixture; zero or
 multiple matches fail. Evidence is read from the artifact rather than a
 tool-specific success message. Traversal and symlink escapes are rejected.
+Use `{ source: files, path: "make-it-work/slices-*.md" }` when a grader needs
+several related artifacts. It requires at least one match and labels each
+file's contents with its relative path; single-file targets still reject ambiguity.
 The runner never uses `--dangerously-skip-permissions`. A permission refusal is
 an incomplete case, not a pass; the case README documents its manual fallback.
 The optional Git hook invokes `smoke` once for every push command against a

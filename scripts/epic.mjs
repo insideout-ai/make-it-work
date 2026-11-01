@@ -16,6 +16,26 @@ function existingSections(markdown) {
   }
   return sections;
 }
+function nestedContent(markdown) {
+  let fence = null;
+  const headings = [];
+  const lines = markdown.trim().split('\n');
+  for (const [index, line] of lines.entries()) {
+    const marker = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) {
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
+      continue;
+    }
+    if (marker) { fence = marker[1]; continue; }
+    const heading = line.match(/^( {0,3})(#{1,6})(?=\s|$)/);
+    if (heading) headings.push({ index, indent: heading[1], depth: heading[2].length });
+  }
+  const shift = Math.max(0, 3 - Math.min(3, ...headings.map(({ depth }) => depth)));
+  for (const { index, indent, depth } of headings) {
+    lines[index] = indent + '#'.repeat(Math.min(6, depth + shift)) + lines[index].slice(indent.length + depth);
+  }
+  return lines.join('\n');
+}
 export function renderEpic(input, existing = null) {
   if (input.version !== 1 || !CATEGORIES[input.mode]) fail('Epic requires version 1 and product/technical-debt mode.');
   requireText(input.title, 'Epic title');
@@ -39,7 +59,7 @@ export function renderEpic(input, existing = null) {
     const gaps = category.open_items ?? [];
     if (!Array.isArray(gaps) || !Array.isArray(category.exclusions ?? [])) fail('Open items/exclusions must be arrays.');
     if (category.ready && (gaps.length || category.unconfirmed === true)) fail(`Category ${id} cannot be ready with material unresolved decisions.`);
-    lines.push(`## ${title}`, '', category.content.trim(), '');
+    lines.push(`## ${title}`, '', nestedContent(category.content), '');
     for (const item of gaps) { requireText(item, 'Open item'); lines.push(`> Open item: ${item}`, ''); open.push(item); }
     for (const item of category.exclusions ?? []) { requireText(item, 'Exclusion'); lines.push(`> Out of scope: ${item}`, ''); exclusions.push(item); }
     readiness.push(`- [${category.ready ? 'x' : ' '}] ${title}`);

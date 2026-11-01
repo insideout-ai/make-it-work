@@ -32,6 +32,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Resume distinguishes phase-independent decision rows from choices made during unfinished work. Post-completion audit entries retain implementation completion timing, and decision prose cannot inflate feedback review counts.
 
+## [4.19.2] - 2026-11-01
+
+### Fixed
+
+- Epic category subheadings stay nested under their category without changing fenced examples.
+- Test-map reports provide a runnable refresh command for either installed or plugin helpers; strategies link to that command instead of saving a placeholder.
+- Slicing evaluations inspect saved artifacts directly rather than requiring transcript readbacks. Decision-log guidance and the epic evaluator accept either supported input transport while retaining validation and denied-write handling.
+
 ## [4.19.1] - 2026-10-28
 
 ### Fixed

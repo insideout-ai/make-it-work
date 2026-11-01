@@ -10,7 +10,7 @@ When Bash is already permitted for the run, use the shared writer instead of
 hand-building JSONL or editing existing lines. Invoke each writer command in
 its **own Bash tool call**, never joined with discovery, tests, or another
 file write: a denied decision-log operation must not prevent unrelated work in
-the same shell call. Resolve `<base>` to the active
+the same shell call. Read-only verification of the saved log may follow in that call. Resolve `<base>` to the active
 skill's directory and `<repo-root>` to the repo that owns the log:
 
 ```sh
@@ -20,13 +20,13 @@ node "<base>/../../scripts/decision-log.mjs" append <skill-name> --root "<repo-r
 JSON
 ```
 
-If the shell refuses a writer command because of its text (a safety check on the inline JSON, not a denied write), write the same JSON payload with the Write tool to `<repo-root>/make-it-work/.decision-log-input.json` and re-run the same command with `--input "<that path>"` instead of the heredoc. The writer reads and then deletes that file. Never write the log file itself directly.
+The writer accepts JSON on stdin or via `--input "<repo-root>/make-it-work/.decision-log-input.json"`. Either is valid; the file form is useful when the shell refuses inline JSON. The writer reads and then deletes that input file. Never write the log file itself directly or switch transport to retry a denied log write.
 
 For a ticket-scoped workflow, pass `--ticket "<TICKET>"` to every writer call. Its log lives in `make-it-work/<TICKET>/`; project-wide skills omit the option and keep their log directly in `make-it-work/`.
 
 `init` creates an empty log for a new run. `append` accepts one decision object
-on stdin and requires that this run has already initialized the log. `write`
-accepts one object or an array on stdin and atomically replaces the whole log;
+via stdin or `--input` and requires that this run has already initialized the log. `write`
+accepts one object or an array through either input and atomically replaces the whole log;
 use it for a skill that flushes decisions only after saving its deliverable, or
 for `execute`'s first resolved site before later `append` calls. `write` with
 `[]` creates the required empty log for a run with no resolved sites. The

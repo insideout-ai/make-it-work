@@ -42,7 +42,7 @@ export function renderTestMap(map, { labels = {}, root = '.', reportPath = REPOR
   const lines = [], add = (...items) => lines.push(...items);
   add(`# Test Map — ${escape(map.productRepo)}`, '',
     `Generated from ${sourceLink}. Edit the JSON and regenerate this file; do not edit this report by hand.`, '',
-    refreshCommand ? `Refresh: ${code(refreshCommand)}.` : 'Refresh with the report generator used by the test-map maintenance workflow.', '',
+    refreshCommand ? `Refresh: ${code(refreshCommand)} (run from the product repo root).` : 'Refresh with the report generator used by the test-map maintenance workflow.', '',
     '**Saved-map snapshot.** Generating this report does not discover tests, check mapping freshness, or run tests. Mapped relationships indicate relevance, not sufficient coverage or passing results.', '',
     '## Overview', '',
     '| Indexed tests / suites / files | Mapped relationships | Unresolved relationships | Features with assessment recorded in every location |',
@@ -159,7 +159,12 @@ export async function reportMain(argv) {
     let manifest;
     try { manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
-    refreshCommand = manifest?.scripts?.['test:map'] ? 'npm run test:map' : 'node scripts/test-map-report.mjs --write';
+    const helper = fileURLToPath(import.meta.url);
+    const relative = path.relative(await realpath(root), helper);
+    const installed = relative && relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+    const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+    refreshCommand = manifest?.scripts?.['test:map'] ? 'npm run test:map'
+      : `node ${quote(installed ? relative : helper)} --root . --write`;
   }
   const markdown = renderTestMap(map, { root, labels: await readLabels(root, map), refreshCommand });
   if (mode === 'print') return markdown;
@@ -175,9 +180,9 @@ export async function reportMain(argv) {
     if (existing !== markdown) throw new Error(`${REPORT_PATH} is missing or stale. Refresh with ${refreshCommand}.`);
     return `${REPORT_PATH} is up to date with the saved map.`;
   }
-  if (existing === markdown) return `${REPORT_PATH} is already up to date.`;
+  if (existing === markdown) return `${REPORT_PATH} is already up to date.\nRefresh from the product repo root: ${refreshCommand}`;
   await writeFile(output, markdown);
-  return `Generated ${REPORT_PATH} from the saved map.`;
+  return `Generated ${REPORT_PATH} from the saved map.\nRefresh from the product repo root: ${refreshCommand}`;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

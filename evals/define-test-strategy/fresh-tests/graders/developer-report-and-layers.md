@@ -11,8 +11,9 @@ classification uncertainty; placement and runner are not layer labels.
 
 When the strategy and map were successfully saved, the run must also generate
 `.claude/testing/TEST-MAP.md` from the final saved map, with layer counts, feature mappings,
-unresolved scope and a collapsed catalog/evidence section. The strategy or final
-summary must provide the actual refresh invocation. The report must distinguish
+unresolved scope and a collapsed catalog/evidence section. The strategy must
+provide the actual refresh invocation or link to the generated report's resolved
+Refresh command; a placeholder invocation is insufficient. The report must distinguish
 saved relevance from sufficient coverage or passing tests.
 
 If metadata or report writing was denied, the run must disclose the actual
