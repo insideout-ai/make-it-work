@@ -1,0 +1,53 @@
+scripts/epic.test.mjs
+  s_71f82498774b45::t_300800a9da6f8c 19-30
+docs/test-map-contract.md
+  s_71f82498774b45::t_ab9c47cc6e86c9 67
+scripts/test-map-report.mjs
+  s_71f82498774b45::t_ab9c47cc6e86c9 162-167,183,185
+  s_71f82498774b45::t_49e45411581ad3 45
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/decision-log-write-attempted.md
+  s_71f82498774b45::t_192ee502e9ecf7 10
+evals/slice-the-epic/well-specified-epic-autopilot/graders/dependency-map-and-flow.md
+  s_71f82498774b45::t_300800a9da6f8c 3,7
+.claude-plugin/plugin.json
+  s_71f82498774b45::t_192ee502e9ecf7 6
+evals/define-test-strategy/fresh-tests/graders/developer-report-and-layers.md
+  s_71f82498774b45::t_ab9c47cc6e86c9 14-16
+CHANGELOG.md
+  s_71f82498774b45::t_192ee502e9ecf7 35-41
+  s_71f82498774b45::t_85f4409e6098db 42
+skills/define-test-strategy/SKILL.md
+  s_71f82498774b45::t_ab9c47cc6e86c9 173
+docs/autopilot-log-schema.md
+  s_71f82498774b45::t_192ee502e9ecf7 13,23,28-29
+scripts/test-map-report.test.mjs
+  s_71f82498774b45::t_366653c2283060 4-6,148,150-170
+  s_71f82498774b45::t_398576328dd1dd 3,149
+  s_71f82498774b45::t_f8fe87c1f1fe67 171-172
+evals/grade-headless.mjs
+  s_71f82498774b45::t_300800a9da6f8c 62,64-68,71-78
+evals/README.md
+  s_71f82498774b45::t_300800a9da6f8c 59-61
+scripts/epic.mjs
+  s_71f82498774b45::t_300800a9da6f8c 19-38,62
+evals/grade-headless.test.mjs
+  s_71f82498774b45::t_366653c2283060 76-101
+skills/define-test-strategy/references/test-strategy-template.md
+  s_71f82498774b45::t_ab9c47cc6e86c9 84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "71bd2242a53ecf8e5ee4196e62b94b4b80cb2537",
+  "prompts": {},
+  "sessions": {
+    "s_71f82498774b45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a183ac-d603-7710-9ef7-ddf6a9821475",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
