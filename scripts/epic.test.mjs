@@ -16,6 +16,18 @@ test('readiness and confirmed decisions cannot be manufactured from a proposal',
   const ready = input(); ready.categories[0].ready = true; assert.throws(() => renderEpic(ready), /unresolved/);
   const proposed = input(); proposed.decisions[0].status = 'Confirmed'; assert.throws(() => renderEpic(proposed), /provenance/);
 });
+test('category headings remain nested under their section while fenced examples and input stay intact', () => {
+  const spec = input();
+  const content = '## Happy-path flows\n\n### UC-1\nGiven a saved draft.\n\n```md\n# Example\n## Keep literal\n```\n\n~~~\n## Also literal\n~~~';
+  spec.categories[0].content = content;
+  const markdown = renderEpic(spec);
+  assert.match(markdown, /## Use Cases & Requirements\n\n### Happy-path flows\n\n#### UC-1\nGiven a saved draft\./);
+  assert.ok(markdown.includes('```md\n# Example\n## Keep literal\n```'));
+  assert.ok(markdown.includes('~~~\n## Also literal\n~~~'));
+  assert.equal(spec.categories[0].content, content);
+  spec.categories[0].content = '### Already nested\n\n#### Detail\nText.';
+  assert.ok(renderEpic(spec).includes(spec.categories[0].content));
+});
 test('focused revisions preserve untouched sections and custom content from the existing epic', () => {
   const existing = '# Previous\n\n## Rollout Plan\n\nKeep user wording exactly.\n\n## Custom evidence\n\nKeep this table.\n';
   const result = renderEpic(input(), existing); assert.match(result, /## Rollout Plan\n\nKeep user wording exactly\./); assert.match(result, /## Custom evidence\n\nKeep this table\./);

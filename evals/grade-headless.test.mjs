@@ -73,6 +73,32 @@ test('file evidence globs reject ambiguity, traversal and symlink escapes', asyn
   assert.equal((await grade('*.md')).passed, false, 'Do not combine evidence from multiple files');
 });
 
+test('explicit multi-file evidence includes saved artifacts without transcript readbacks', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-evidence-files-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const fixtureDir = path.join(root, 'fixture');
+  const graderDir = path.join(root, 'graders');
+  await mkdir(fixtureDir); await mkdir(graderDir);
+  await writeFile(path.join(fixtureDir, 'slices-b.md'), '# Slice B\nNeeds A.');
+  await writeFile(path.join(fixtureDir, 'slices-a.md'), '# Slice A\nNo prerequisites.');
+  await writeFile(path.join(graderDir, 'saved.md'), '---\ntype: llm\nfocus: { source: files, path: "slices-*.md" }\n---\nCheck the saved files.');
+  const judge = async (prompt) => {
+    assert.match(prompt, /FILE: slices-a.md\n# Slice A\nNo prerequisites\./);
+    assert.match(prompt, /FILE: slices-b.md\n# Slice B\nNeeds A\./);
+    assert.ok(prompt.indexOf('FILE: slices-a.md') < prompt.indexOf('FILE: slices-b.md'));
+    return { stdout: JSON.stringify({ structured_output: { verdict: 'PASS', reason: 'Both saved artifacts are present.' } }) };
+  };
+  assert.equal((await gradeHeadlessCase({ graderDir, fixtureDir, transcript, budgetUsd: 1, judge })).passed, true);
+  const context = transcriptContext(transcript, fixtureDir);
+  const grade = (file) => gradeHeadlessLocal({ name: 'files', type: 'regex',
+    target: { source: 'files', path: file }, pattern: 'Slice' }, context);
+  assert.equal((await grade('missing-*.md')).passed, false);
+  assert.equal((await grade('../*.md')).passed, false);
+  await writeFile(path.join(root, 'outside.md'), '# Slice outside');
+  await symlink(path.join(root, 'outside.md'), path.join(fixtureDir, 'linked.md'));
+  assert.equal((await grade('linked.md')).passed, false);
+});
+
 test('grades local checks and semantic checks without a review status', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });

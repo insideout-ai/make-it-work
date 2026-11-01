@@ -59,18 +59,23 @@ function pathPattern(relative) {
 async function readEvidence(focus, context) {
   if (focus === 'trace') return context.trace;
   if (focus === 'last_message') return context.lastMessage;
-  if (focus?.source === 'file') {
+  if (['file', 'files'].includes(focus?.source)) {
     safePath(context.fixtureDir, focus.path);
-    let relative = focus.path;
-    if (relative.includes('*')) {
-      const matches = (await pathsBelow(context.fixtureDir)).filter((file) => pathPattern(relative).test(file));
-      if (matches.length !== 1) throw new Error(`Expected exactly one evidence file for ${relative}; found ${matches.length}`);
-      [relative] = matches;
+    const matches = focus.path.includes('*')
+      ? (await pathsBelow(context.fixtureDir)).filter((file) => pathPattern(focus.path).test(file)).sort()
+      : [focus.path];
+    if (!matches.length || (focus.source === 'file' && matches.length !== 1)) {
+      throw new Error(`Expected ${focus.source === 'file' ? 'exactly one' : 'at least one'} evidence file for ${focus.path}; found ${matches.length}`);
     }
     const root = await realpath(context.fixtureDir);
-    const file = await realpath(safePath(context.fixtureDir, relative));
-    if (!file.startsWith(root + path.sep)) throw new Error(`Grader path leaves fixture: ${focus.path}`);
-    return readFile(file, 'utf8');
+    const contents = [];
+    for (const relative of matches) {
+      const file = await realpath(safePath(context.fixtureDir, relative));
+      if (!file.startsWith(root + path.sep)) throw new Error(`Grader path leaves fixture: ${focus.path}`);
+      const content = await readFile(file, 'utf8');
+      contents.push(focus.source === 'files' ? `FILE: ${relative}\n${content}` : content);
+    }
+    return contents.join('\n\n');
   }
   throw new Error(`Unsupported grader focus: ${JSON.stringify(focus)}`);
 }

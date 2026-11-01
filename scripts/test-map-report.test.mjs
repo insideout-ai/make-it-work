@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, mkdir, readFile, writeFile, stat, rm, rename, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, stat, rm, rename, symlink, copyFile, realpath } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 import { REPORT_PATH, renderTestMap, reportMain } from './test-map-report.mjs';
@@ -140,6 +143,31 @@ test('report output cannot overwrite a symlink target', async (t) => {
   await assert.rejects(reportMain(['--root', root, '--write']), /regular file/);
   await assert.rejects(reportMain(['--root', root, '--check']), /regular file/);
   assert.equal(await readFile(target, 'utf8'), original);
+});
+
+test('plugin and installed helpers emit working refresh commands without project script assumptions', async (t) => {
+  const root = await realpath(await fixture(t));
+  await writeFile(path.join(root, 'package.json'), '{}');
+  const output = await reportMain(['--root', root, '--write']);
+  const command = output.split('Refresh from the product repo root: ')[1];
+  assert.ok(command.includes(fileURLToPath(new URL('./test-map-report.mjs', import.meta.url))));
+  assert.doesNotMatch(command, /<[^>]+>/);
+  const originalMap = await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8');
+  assert.match((await promisify(execFile)('/bin/sh', ['-c', command], { cwd: root })).stdout, /already up to date/);
+
+  // Portable installations may live in paths with spaces and shell metacharacters.
+  const installed = path.join(root, "helper's $(unused)");
+  await mkdir(installed);
+  for (const filename of ['test-map-report.mjs', 'test-map.mjs']) {
+    await copyFile(new URL(filename, import.meta.url), path.join(installed, filename));
+  }
+  const generated = await promisify(execFile)(process.execPath,
+    [path.join(installed, 'test-map-report.mjs'), '--write'], { cwd: root });
+  const installedCommand = generated.stdout.trim().split('Refresh from the product repo root: ')[1];
+  assert.ok(installedCommand.startsWith("node 'helper"));
+  assert.ok(!installedCommand.includes(root), 'Installed helpers use a project-relative path');
+  assert.match((await promisify(execFile)('/bin/sh', ['-c', installedCommand], { cwd: root })).stdout, /already up to date/);
+  assert.equal(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'), originalMap);
 });
 
 test('a legacy root report neither satisfies the canonical check nor gets overwritten during generation', async (t) => {
