@@ -1,9 +1,10 @@
 # Commercial licensing migration record
 
-Status: **Final agreement approved by the maintainer on 2026-11-03; release pending**.
+Status: **Final agreement and commercial publication authorized for 2026-11-03**.
 Initial audit: 2026-11-01. Consolidation and remote recheck: 2026-11-03.
-Branch: `chore/commercial-annual-licensing`. Nothing here authorizes a merge,
-commercial release, marketplace publication, or live settings change.
+Original preparation branch: `chore/commercial-annual-licensing` (PR #75, merged).
+Release branch: `release/commercial-5.0.0`. The maintainer subsequently authorized
+the remaining publication steps; see the publication authorization below.
 
 ## Audit findings (before implementation)
 
@@ -118,7 +119,7 @@ No live catalog was edited, submitted, or installed during this task.
 
 Earlier MIT versions also retain their MIT rights. No prior rights are revoked.
 Only a separately identified future release will carry the approved commercial
-terms. This branch bumps the plugin manifest from 4.19.2 to 5.0.0 for the proposed transition. Version 5.0.0 remains unreleased. The approved agreement applies upon publication of an expressly designated commercial version.
+terms. This branch bumps the plugin manifest from 4.19.2 to 5.0.0 for the proposed transition. Version 5.0.0 is the first expressly designated commercial release, dated 2026-11-03.
 
 ## Preserve and access the PolyForm snapshot
 
@@ -165,7 +166,7 @@ existing external MIT listing unchanged and commercial updates there deferred.
 | Licensor and brand | Erez Morabia, trading as InsideOut AI. InsideOut AI remains the plugin author/brand. |
 | Contact | insideoutaitech@gmail.com for licensing, renewal, and contractual notices. |
 | Public geography | No country or court selected in public terms. Paid Order Forms or separate agreements must specify agreed governing law and courts. A trial without a separate agreement has no express choice. |
-| Effective date | Planned 2026-11-03, conditional on publication of 5.0.0. If publication slips, update to the actual publication date. |
+| Effective date | 2026-11-03, beginning with version 5.0.0. |
 | Trial | Self-service, one 30-day trial per organization from first installation/execution; no registration, email approval, or credit card. Organization records the earliest date. |
 | Organization scope | Unlimited employees/authorized contractors, internal repositories/installations and internal modifications; affiliates excluded unless expressly included in an Order Form. |
 | Purchase | Email contact, agreed quote/Order Form, annual fee paid upfront, then written confirmation of the 12-month license and dates. No price, currency, or payment method invented. |
@@ -219,15 +220,16 @@ There are **no further business-policy questions** in this migration. What remai
    and authorized removing draft labels and marking PR #75 ready for review.
    The repository audit and maintainer confirmations do not constitute an
    independent legal opinion or signed third-party consent.
-2. Release validation and disposition of the two earlier full-smoke failures,
-   plus the documented full eval suite/installation rehearsal before release.
+2. The maintainer accepted publication despite the two earlier full-smoke
+   failures. CI and focused plugin-loading smoke remain validation evidence.
+   The full model eval suite and live installation rehearsal were not rerun;
+   they are not represented as passed.
 3. Customer-specific quotes/Order Forms must supply price, currency, payment
    details, legal organization, dates, and agreed law/courts. The
    [Order Form template](ORDER-FORM-TEMPLATE.md) is approved as a template; customer-specific completion is not a sale by itself.
-4. Explicit authorization for merge, historical-tag publication, commercial tag
-   and release, or live marketplace/metadata changes. The planned date alone
-   grants none of those permissions. External catalog approval is deferred with
-   that channel rather than a blocker to documenting the publisher-only launch.
+4. Publication authorization is recorded below, including the historical tag,
+   release merge, commercial tag/release and approved GitHub metadata. External
+   catalog commercial updates remain deferred; that listing stays unchanged.
 
 ## Trial, activation, expiration, and renewal recommendation
 
@@ -276,7 +278,7 @@ requirements for your team. Before the first line of code.", homepage
 read-only access succeeded. No permissions change is needed for the checked
 account, but future access must be revalidated.
 
-After legal clearance and explicit publication approval, proposed command:
+The authorized repository metadata update is:
 
 ```sh
 gh repo edit insideout-ai/make-it-work \
@@ -302,8 +304,8 @@ access to those systems. No live metadata was changed during this preparation.
 - [x] Confirm remote main still identifies the audited PolyForm boundary on 2026-11-03.
 - [x] Identify the pinned community MIT snapshot and leave the external listing unchanged.
 - [x] Obtain final maintainer approval of the agreement and remove draft labels. No independent external legal review is represented.
-- [ ] Confirm actual publication date and update the planned date if it changes.
-- [ ] Review/dispose of the two full-smoke failures; run required release evals and installation rehearsal.
+- [x] Confirm release/effective date as 2026-11-03.
+- [x] Record the maintainer's acceptance of the two full-smoke failures for publication. Full model evals/live install rehearsal were not rerun.
 - [ ] With explicit approval, publish the historical tag using the command above without rewriting history.
 - [ ] With explicit approval, merge and publish v5.0.0 with legacy-rights and trial notices.
 - [ ] Apply approved GitHub/website metadata and commercial enquiry guidance at launch.
@@ -360,7 +362,7 @@ identify the maintainer's final approval and publisher-only launch, and report
 all validation including unresolved full-smoke failures. No enforcement, payment
 platform, workflow behavior, live metadata, public tag, release or catalog update
 is included. The maintainer authorized marking the PR ready for review; merge
-and release publication remain separately unapproved.
+and release publication were subsequently authorized as recorded below.
 The pre-existing untracked `output/` directory is unrelated and remains untouched.
 
 
@@ -380,3 +382,22 @@ commercial version was published by this approval. Merge, release/tag publicatio
 and live marketplace or metadata changes still require separate authorization.
 If publication occurs after the planned 2026-11-03 date, update the effective
 date to the actual release date before publication.
+
+
+## Publication authorization — 2026-11-03
+
+After the merge of PR #75 (merge commit
+`3de5125fd99fcf519a267b1818359c3014157a83`), the maintainer said publication may
+proceed despite the two documented smoke failures. After being told the remaining
+steps were release documentation, the historical PolyForm tag, the v5.0.0
+GitHub Release, and repository description/website/topics, he explicitly asked
+to perform those remaining steps. This supersedes the earlier pending-publication
+status. No visibility, ownership, access, protection, security or billing change
+is authorized or performed. The community catalog remains untouched.
+
+Release records: [v5.0.0](https://github.com/insideout-ai/make-it-work/releases/tag/v5.0.0)
+and [historical PolyForm snapshot](https://github.com/insideout-ai/make-it-work/tree/v4.19.2-polyform).
+The historical tag targets `8d57b84fd0df8a99960bd29c2d2e1465f04ad7ea`; the commercial
+tag targets the merged release-documentation commit after CI succeeds. The
+release notes disclose the two accepted smoke failures, absence of a full model
+eval rerun/live install rehearsal, and contractual-only license compliance.

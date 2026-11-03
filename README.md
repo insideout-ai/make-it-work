@@ -1,6 +1,6 @@
 # make-it-work
 
-> **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. The agreement is approved; 5.0.0 remains unreleased pending publication approval. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
+> **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. Version 5.0.0 is the first commercial release, effective November 3, 2026. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
 
 > From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — orchestrate an epic with `drive-the-epic`, or take a ticket through implementation with `implement`.
 
@@ -268,12 +268,11 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ## Install
 
-> **License notice for commercial versions:** Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Each organization has one self-service 30-day trial from its first installation or execution; no registration, email approval, or credit card is required. Record that earliest date. After the trial, continued use requires an annual organization subscription. The agreement is approved for the unreleased 5.0.0 version; previously published versions retain their original terms.
+> **License notice for commercial versions:** Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Each organization has one self-service 30-day trial from its first installation or execution; no registration, email approval, or credit card is required. Record that earliest date. After the trial, continued use requires an annual organization subscription. Version 5.0.0 is released under this agreement; previously published versions retain their original terms.
 
 ### InsideOut AI marketplace — commercial launch channel
 
-The planned commercial 5.0.0 release will use the publisher's marketplace. After
-publication, install it with:
+Install commercial version 5.0.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -302,7 +301,7 @@ Reload Claude Code after installation if the skills do not appear immediately:
 
 ## Update
 
-For the planned commercial channel, review the license terms, update the
+For the commercial channel, review the license terms, update the
 publisher's marketplace metadata, then update the plugin:
 
 ```text
@@ -409,7 +408,7 @@ See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report su
 
 ## Licensing
 
-The [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) was approved by the maintainer on **2026-11-03**. The plugin manifest is bumped to **5.0.0**; it remains unreleased pending publication approval. The agreed business decisions, maintainer ownership confirmations, and approval record are in the [migration record](docs/licensing/MIGRATION.md). The agreement applies only to versions expressly released under it. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies the custom agreement; it is not an OSI-approved license.
+The [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) was approved by the maintainer on **2026-11-03**. Version **5.0.0**, published on **2026-11-03**, is the first version released under this agreement. The agreed business decisions, maintainer ownership confirmations, and approval record are in the [migration record](docs/licensing/MIGRATION.md). The agreement applies only to versions expressly released under it. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies the custom agreement; it is not an OSI-approved license.
 
 For versions expressly released under the commercial agreement:
 
