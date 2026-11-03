@@ -1,10 +1,10 @@
 # Contributing to make-it-work
 
-Thank you for helping improve `make-it-work`. Contributions can address plugin packaging, documentation, or the behavior of an individual skill.
+Thank you for helping improve `make-it-work`. Bug reports, feature requests, and suggestions are welcome. Code and documentation changes are currently maintained by Erez Morabia and Yael Morabia (Rabinovitz); external patches are not accepted at this time.
 
-Before starting substantial work, open an issue so the intended outcome and scope can be discussed. For vulnerabilities, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+Before proposing substantial work, review the contribution policy below and open an issue so the intended outcome and scope can be discussed. For vulnerabilities, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
-## Development setup
+## Maintainer development setup
 
 You need Git and an installed, authenticated version of [Claude Code](https://code.claude.com/docs/en/overview).
 
@@ -16,7 +16,7 @@ cd make-it-work
 git switch -c your-change
 ```
 
-Load the working tree directly in Claude Code:
+Execution requires applicable rights under the snapshot's license or separate written contributor permission. The commercial agreement applies only to versions expressly released under it. Once authorized, load the working tree directly in Claude Code:
 
 ```sh
 claude --plugin-dir .
@@ -78,7 +78,13 @@ Keep each pull request focused on one outcome. In the description, include:
 - Screenshots or transcripts only when they add useful evidence, with sensitive data removed.
 - Any compatibility or migration impact.
 
-By contributing, you agree that your contribution is provided under this repository's [PolyForm Internal Use License 1.0.0](LICENSE).
+## Contribution licensing policy
+
+The [commercial agreement](LICENSE) is an approved outbound customer license, not a contributor assignment or CLA. Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent.
+
+For the initial commercial release, code and documentation changes are maintained by Erez Morabia and Yael Morabia (Rabinovitz). External code or documentation patches are deferred until a contributor agreement is ready and the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions rather than submitting an external patch. Customer rights to make internal modifications under an applicable license and GitHub platform view/fork rights remain unaffected.
+
+The maintainer's ownership and partner-permission confirmations are recorded in the [migration record](docs/licensing/MIGRATION.md) for legal review. Before reopening external patches, establish written contribution terms that address ownership and permission for commercial licensing and distribution (such as an appropriate CLA). No CLA execution, transfer of ownership, or relicensing consent is implied by opening an issue or PR.
 
 For a focused change, select relevant pre-push smoke cases explicitly, for example:
 
