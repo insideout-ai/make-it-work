@@ -10,9 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Licensing (draft; not a commercial release)
 
+- Incorporate the maintainer-approved business terms: Erez Morabia trading as InsideOut AI; licensing by email; self-service trial; annual payment upfront and manual renewal; defined refund, warranty, liability and termination terms; public governing-law neutrality with law and courts agreed in paid customer documents. Planned effective date is 2026-11-03, conditional on approval and publication.
+- Use the InsideOut AI marketplace for commercial launch guidance. Leave the community listing at its existing MIT-licensed snapshot until its commercial distribution requirements are confirmed. Defer external code/documentation patches; issues and suggestions remain welcome.
+
 - Prepare the Make It Work Commercial Software License Agreement — Version 1.0, **Draft — Pending Legal Review**, for future expressly designated commercial versions: one 30-day organization trial, then a renewable 12-month organization subscription with unlimited developers and internal installations; generally available updates, improvements, bug fixes, and maintenance included while subscribed.
 - Prepare matching custom license references in both manifests and update licensing, contribution, and support documentation. No trial tracking, payment integration, activation, or workflow changes are included; bump the plugin version from 4.19.2 to 5.0.0 to distinguish this proposed licensing transition. This is not a published commercial release.
-- Preserve all previously granted rights: previously published PolyForm Internal Use License 1.0.0 versions and earlier MIT versions retain their original terms. Archive the prior texts and identify the last audited PolyForm commit in [the migration record](docs/licensing/MIGRATION.md). Ownership confirmation, legal approval, and completed legal details remain release blockers.
+- Preserve all previously granted rights: previously published PolyForm Internal Use License 1.0.0 versions and earlier MIT versions retain their original terms. Archive the prior texts and identify the last audited PolyForm commit in [the migration record](docs/licensing/MIGRATION.md). Maintainer ownership and partner-permission confirmations are recorded; final legal approval, release validation, and publication approval remain pending.
 
 ### Changed
 

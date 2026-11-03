@@ -1,6 +1,7 @@
 # Commercial licensing migration record
 
-Status: **Draft — Pending Legal Review**. Audit date: 2026-11-01.
+Status: **Draft — Pending Legal Review; all business decisions confirmed**.
+Initial audit: 2026-11-01. Consolidation and remote recheck: 2026-11-03.
 Branch: `chore/commercial-annual-licensing`. Nothing here authorizes a merge,
 commercial release, marketplace publication, or live settings change.
 
@@ -40,10 +41,14 @@ main advances. Existing tags must remain untouched.
 `git shortlog -sne HEAD` shows 166 commits under Erez Morabia/erezmorabia and
 81 under Yael Morabia (Rabinovitz). All-ref author inspection additionally shows
 `git-ai <git-ai@local>`; commit trailers credit Claude models. Those entries are
-provenance signals, not proof of ownership or rights clearance. Neither person
-can be classified as an external contributor or an employee solely from Git.
-No CLA, assignment, DCO agreement, or third-party NOTICE was found in tracked
-files. The prior contribution policy supplied contributions under PolyForm;
+provenance signals, not proof of ownership or rights clearance. The maintainer
+subsequently confirmed that Yael Morabia (Rabinovitz) is his partner in InsideOut
+AI, and confirmed her agreement to the proposed commercial licensing model in
+response to whether Erez Morabia trading as InsideOut AI may commercially license
+her contributions. This is the maintainer's representation of her consent; the
+audit did not establish an ownership assignment or review a separate signed
+agreement. No CLA, assignment, DCO agreement, or
+third-party NOTICE was found in tracked files. The prior contribution policy supplied contributions under PolyForm;
 that alone does not establish permission to relicense others' contributions
 under this commercial agreement.
 
@@ -60,10 +65,10 @@ required notices, and any third-party obligations, including the earlier MIT
 notice where applicable. Archived old texts are historical records, not a grant
 to apply those licenses to all future code.
 
-**Blockers to an effective commercial release:** contributor/chain-of-title
-clearance and third-party provenance; legal approval of the agreement and inbound
-policy; missing legal identity, email, jurisdiction, and effective date. Draft
-preparation can proceed, but no blanket relicensing claim is made.
+The maintainer subsequently supplied ownership, partner-permission, and provenance
+confirmations, recorded below. They are not independent legal verification or a
+signed assignment. All requested business decisions are now settled; final
+legal approval and release execution remain pending.
 
 ### Hosting and marketplace requirements
 
@@ -87,10 +92,14 @@ policy approval.
 allows matching license display fields in plugin entries and sources pinned by
 ref/SHA. [Publishing guidance](https://code.claude.com/docs/en/plugins/publish)
 describes separate directory submission. These pages do not establish that any
-specific third-party catalog accepts these paid terms. README and SUPPORT refer
-to `claude-community` as an existing channel; its current operator, actual listing,
-redistribution/caching terms, and paid-license policy were not verified. Obtain
-operator confirmation before updating any external catalog. The self-hosted
+specific third-party catalog accepts these paid terms. On 2026-11-03, the public
+[Anthropic community catalog](https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json)
+identified Anthropic as operator and pinned Make It Work to commit
+`aac589f62e2eded9333767a0490c0a1b1751cd0e`. Its local historical tree contains
+MIT-licensed plugin version 1.0.0. Commercial-license acceptance and caching or
+redistribution requirements for future updates remain unconfirmed. The maintainer
+approved leaving this catalog untouched and deferring its commercial update.
+Obtain operator confirmation before requesting such an update. The self-hosted
 InsideOut marketplace needs no new runtime field for a legal subscription, but
 installation UI acceptance and notice need review before commercial launch.
 No live catalog was edited, submitted, or installed during this task.
@@ -142,31 +151,81 @@ claude --plugin-dir .
 Select one installed copy in Claude Code to avoid duplicate workflows. Staying
 on the old snapshot does not entitle users to subsequent commercial updates.
 
-## Unresolved human/legal decisions
+## Confirmed business decisions
 
-1. Confirm the full legal Licensor, ownership of the InsideOut AI name, contact
-   email, governing jurisdiction/courts, and commercial effective date.
-2. Confirm each contributor's employment/contractor status and assignments or
-   explicit commercial relicensing permissions, including the earlier MIT to
-   PolyForm change. Obtain missing permissions or exclude affected material.
-3. Complete provenance/third-party notice review; preserve independent licenses
-   and any required MIT attribution. Review AI-generated contributions against
-   service terms and source provenance rather than treating AI trailers as clearance.
-4. Approve a future inbound agreement/CLA with commercial licensing and
-   distribution rights. CONTRIBUTING temporarily blocks merging external patches
-   for the commercial release until written terms are arranged; it is not a CLA.
-5. Approve trial organization identity, affiliated-entity treatment, acceptance
-   evidence, and how evaluation by prospective contributors is authorized.
-6. Approve proposed payment notice/cure periods, manual renewal default,
-   refund terms, warranty exclusions, liability cap (including zero-fee trials),
-   exceptions, termination and court provisions. These are draft choices, not
-   established business policies. Set pricing, currency, tax handling, due dates,
-   purchase/renewal process, subscription dates, and affiliates in an Order Form.
-7. Approve the proposed first commercial version (`5.0.0`, now assigned in the draft manifest),
-   publication date, release boundary, and customer notice. Review whether generated
-   artifacts ever embed protectable Software templates and clarify those cases.
-8. Confirm policies of every external marketplace/operator, including caching,
-   mirroring, commercial terms and preservation of historical versions.
+All decisions below were explicitly confirmed by the maintainer during review.
+The former detailed question log is consolidated here; these are settled
+business choices rather than further questions to repeat. The final distribution
+choice was explicitly approved: publisher-only commercial launch, with the
+existing external MIT listing unchanged and commercial updates there deferred.
+
+| Topic | Confirmed decision |
+| --- | --- |
+| Licensor and brand | Erez Morabia, trading as InsideOut AI. InsideOut AI remains the plugin author/brand. |
+| Contact | insideoutaitech@gmail.com for licensing, renewal, and contractual notices. |
+| Public geography | No country or court selected in public terms. Paid Order Forms or separate agreements must specify agreed governing law and courts. A trial without a separate agreement has no express choice. |
+| Effective date | Planned 2026-11-03, conditional on approval and publication of 5.0.0. If publication slips, update to the actual publication date. |
+| Trial | Self-service, one 30-day trial per organization from first installation/execution; no registration, email approval, or credit card. Organization records the earliest date. |
+| Organization scope | Unlimited employees/authorized contractors, internal repositories/installations and internal modifications; affiliates excluded unless expressly included in an Order Form. |
+| Purchase | Email contact, agreed quote/Order Form, annual fee paid upfront, then written confirmation of the 12-month license and dates. No price, currency, or payment method invented. |
+| Renewal and late payment | Manual renewal with annual upfront payment and written confirmation; no automatic billing/renewal or grace period. Unpaid purchases/renewals do not start or extend a term. Removed the 15-day suspension clause. |
+| Refunds | No change-of-mind/non-use refund. Pro-rata unused prepaid fees refunded if Customer terminates for Licensor's material breach remaining uncured after 30 days' written notice. Required-law and separately agreed refunds preserved. |
+| Warranty | As is/as available; no guarantee of error-free operation, accurate output or fitness. Express subscription obligations, refunds and non-excludable rights preserved. |
+| Paid liability | Each party's ordinary contractual liability capped at fees paid/payable during the preceding 12 months. |
+| Trial liability | No monetary liability for ordinary errors to the extent legally permitted, with agreed exceptions preserved. |
+| Liability exceptions | Agreed fees remain payable. Fraud, deliberate misconduct, deliberate IP misuse and legally non-excludable liability are excepted from both cap and exclusions. Ordinary, unintentional contractual errors remain capped where applicable. |
+| Indirect losses | Exclude indirect/consequential damages and lost profits/revenue; other direct damages subject to agreed trial/paid rules and exceptions. |
+| Termination | Either party may terminate for material breach uncured 30 days after written notice. No extension of an expired trial or subscription. |
+| Customer artifacts | Customer retains its own code, requirements, documents and generated work and may keep using them after expiry, subject to independently embedded materials' terms. |
+| Prior versions | Preserve prior PolyForm and MIT grants; no retroactive subscription. |
+| Contributions | Erez and Yael maintain code/docs. Welcome issues and suggestions; defer external patches until an inbound agreement is ready and the policy is reopened. |
+| Launch channel | InsideOut AI marketplace for commercial 5.0.0. Leave community listing at its existing MIT snapshot; commercial updates there deferred until requirements confirmed and update approved. |
+
+### Ownership and provenance confirmations
+
+- The maintainer answered “no” when asked whether any part was developed for an
+  employer or client that might hold rights.
+- The maintainer identified Yael Morabia (Rabinovitz) as his InsideOut AI partner.
+  Asked whether she agrees that Erez Morabia trading as InsideOut AI may
+  commercially license her contributions under the proposed annual model, he
+  confirmed her agreement. This records his representation; no separate signed
+  consent or ownership assignment was supplied or inferred.
+- The maintainer answered “no” when asked whether the repository contains code,
+  skill text, templates, images or documentation copied/adapted from others'
+  projects. This complements the tracked-file/import scan; it does not claim
+  ownership of external tools or eval fixture dependencies.
+
+Legal review should assess these confirmations and any required documentation,
+AI-service terms and provenance, applicable historical notices, and the earlier
+MIT-to-PolyForm transition. No blanket conclusion that every possible third-party
+right has been independently cleared is made. A future CLA is deferred along
+with external patches; CONTRIBUTING is not itself a CLA.
+
+The geographically neutral public-license/separate-commercial-terms structure
+was informed by the public [n8n Enterprise license](https://github.com/n8n-io/n8n/blob/master/LICENSE_EE.md),
+[Formbricks EE license](https://github.com/formbricks/formbricks/blob/main/apps/web/modules/ee/LICENSE),
+and [Elastic License 2.0](https://github.com/elastic/elasticsearch/blob/main/licenses/ELASTIC-LICENSE-2.0.txt),
+compared with the separate [n8n enterprise terms](https://n8n.io/legal/master-enterprise-terms/)
+and [Formbricks commercial agreement](https://formbricks.com/license-agreement).
+Their grants differ from this custom 30-day/annual model; they were not copied
+as a substitute for legal review.
+
+## Remaining release gates
+
+There are **no further business-policy questions** in this migration. What remains:
+
+1. Final approval of the consolidated agreement after legal review. Draft labels
+   remain until approved. The repository audit and maintainer confirmations do
+   not constitute an independent legal opinion or signed third-party consent.
+2. Release validation and disposition of the two earlier full-smoke failures,
+   plus the documented full eval suite/installation rehearsal before release.
+3. Customer-specific quotes/Order Forms must supply price, currency, payment
+   details, legal organization, dates, and agreed law/courts. The
+   [Order Form template](ORDER-FORM-TEMPLATE.md) is prepared for review, not a sale.
+4. Explicit authorization for merge, historical-tag publication, commercial tag
+   and release, or live marketplace/metadata changes. The planned date alone
+   grants none of those permissions. External catalog approval is deferred with
+   that channel rather than a blocker to documenting the publisher-only launch.
 
 ## Trial, activation, expiration, and renewal recommendation
 
@@ -178,16 +237,23 @@ local bypass possible. A local first-run timestamp cannot establish a single
 organization-wide trial or reliably survive new machines, deletion, or clock
 changes. A prompt-only warning is not enforcement.
 
-For an initial launch, maintain an organization ledger manually: stable legal
-organization ID, acknowledged earliest install/execute date, trial end, signed
-Order Form, paid term start/end, and included affiliates. Provide an entitlement
-file containing organization ID and dates, deployed by the customer's admin to a
-shared organization-managed location. Avoid per-developer licensing and never
-store secrets in the repository. Renewal updates the shared entitlement's term;
-expiration ends rights to commercial versions but never deletes customer work or
-revokes old-license versions. Publish clear notices and an explicit acceptance
-step before the first commercial installation; auto-update must not silently
-stand in for agreement.
+For the approved initial self-service trial, the organization records its own
+earliest install/execute date and trial end. There is no mandatory registration,
+email approval, credit-card collection, central trial ledger, or entitlement file.
+The license notice is placed before README installation commands and requires an
+authorized individual to review and accept the terms before use. This documents
+the policy; it does not implement click-through acceptance or capture evidence
+of assent. Legal review of this notice/acceptance approach remains a release
+check. Auto-update must not silently stand in for agreement.
+
+When an organization purchases a subscription, an optional administrative ledger
+can record its identity, signed Order Form, paid term start/end, and included
+affiliates. Purchase is approved as email/Order Form with annual payment upfront
+and written confirmation. Renewal is manual through the same process, with no
+automatic renewal or billing; completion before expiry is needed for uninterrupted
+commercial-version use and maintenance. This does
+not require per-developer licensing. Expiration ends rights to commercial
+versions but never deletes customer work or revokes prior-license rights.
 
 If technical checks are later commissioned, an offline signed entitlement file
 and a small common checker could supply organization ID, evaluation/subscription
@@ -228,86 +294,68 @@ access to those systems. No live metadata was changed during this preparation.
 
 ## First commercial release checklist
 
-- [ ] Clear all ownership, third-party, CLA and legal questions above; record evidence.
-- [ ] Fill legal placeholders, obtain counsel approval, and remove draft status only
-      in the approved release change. Approve Order Form and acceptance flow.
-- [ ] Re-audit remote HEAD/tags/releases and designate the final PolyForm boundary.
-- [ ] With explicit approval, create/publish the historical tag without rewriting history.
-- [x] Assign the distinct proposed version 5.0.0 in manifest/changelog together so
-      caches and users distinguish the new license from published 4.19.2 copies.
-- [ ] Give existing users clear terms, trial start and opt-in/acceptance instructions,
-      immutable historical links and a path to remain on prior-license versions.
-- [ ] Confirm all marketplace policies and approve any listing or source-ref updates.
-- [ ] Approve and apply website/GitHub metadata and commercial enquiry/renewal process.
-- [ ] Rerun CI checks and documented full eval suite before release; record results.
-- [ ] Obtain explicit approval before merge, tag publication, commercial release,
-      or live marketplace change. None is performed by this preparation task.
+- [x] Record all maintainer business decisions and rights/provenance confirmations.
+- [x] Prepare LICENSE, customer docs, Order Form template and publisher-only launch guidance.
+- [x] Set plugin manifest and changelog to proposed version 5.0.0.
+- [x] Confirm remote main still identifies the audited PolyForm boundary on 2026-11-03.
+- [x] Identify the pinned community MIT snapshot and leave the external listing unchanged.
+- [ ] Complete legal review and obtain final approval of the agreement; then remove draft labels.
+- [ ] Confirm actual publication date and update the planned date if it changes.
+- [ ] Review/dispose of the two full-smoke failures; run required release evals and installation rehearsal.
+- [ ] With explicit approval, publish the historical tag using the command above without rewriting history.
+- [ ] With explicit approval, merge and publish v5.0.0 with legacy-rights and trial notices.
+- [ ] Apply approved GitHub/website metadata and commercial enquiry guidance at launch.
+- [ ] Before any later external-catalog commercial update, confirm its policies and obtain approval.
 
-## Suggested pull request
-
-Title: Prepare draft annual organization licensing and preserve legacy grants
-
-Body:
-
-Make It Work currently has PolyForm licensing without an annual subscription
-model. Prepare a draft commercial agreement for future expressly designated
-releases: one 30-day organization trial, then renewable annual licensing with
-unlimited developers and subscription maintenance. Align README, support,
-contribution policy and both manifest license references; preserve prior PolyForm
-and MIT grants with verbatim archived texts and immutable snapshot links.
-
-This is Draft — Pending Legal Review. Ownership/contributor clearance, third-party
-provenance, legal placeholders, marketplace policy confirmation, acceptance and
-approval of the proposed commercial release version remain blockers to release. Plugin version is bumped from
-4.19.2 to 5.0.0; workflow skills and execution code are unchanged. Version 5.0.0
-remains unreleased and the agreement remains Draft — Pending Legal Review. No enforcement, payment
-platform, live settings, published tag, release, or catalog change is included.
-Do not merge this preparation until the release gates and approvals are resolved.
-
-Validation: see the validation record below. Suggested legacy tag command and
-commercial release checklist are included in this migration record.
+The publisher marketplace source follows the default branch. Merging can make
+new code installable before a separate GitHub Release is created. Coordinate
+merge, notices, and tag/release publication. Existing user rights to prior
+snapshots remain intact. No live marketplace listing has been edited.
 
 ## Validation record
 
-Checks run locally with Node `v23.9.0` and Claude Code `2.1.309`:
+- Initial helper tests: 328 passed; eval-runner tests: 34 passed.
+- On the version-bump delivery, all 362 tests passed again. Manifest,
+  marketplace, skill, 100-case eval inventory and documentation/archive checks passed.
+- CI on commit `bab04f35e68808cd2d877c93eec4b8318ffa7b50` passed the repository's
+  `Validate plugin` workflow using its pinned tool versions.
+- The initial sandbox smoke attempt was blocked by missing shell authentication.
+  The subsequent authenticated pre-push run exercised all 13 skills: **11 passed,
+  2 failed**, reported usage $4.42. Local report:
+  `evals/results/smoke-2026-11-03T13-30-44-730Z/summary.json`.
+- `shape-the-epic-rich-input-autopilot`: grader expected a direct Write call and
+  could not verify Markdown rendered through `scripts/epic.mjs`; it also flagged
+  heading capitalization.
+- `slice-the-epic-well-specified-epic-autopilot`: approach preview appeared only in
+  tool output; final summary differed from the saved table and omitted the exact
+  recommended starting slice and linked overview.
+- Those skills, helpers and graders are unchanged by this licensing branch.
+  Both failures remain unresolved rather than being reported as passes. No
+  out-of-scope workflow changes were made.
 
-| Check | Result |
-| --- | --- |
-| `node --test skills/implement/scripts/*.test.mjs skills/execute/scripts/*.test.mjs scripts/*.test.mjs` | 328 passed, 0 failed |
-| `node --test evals/*.test.mjs` | 34 passed, 0 failed |
-| `node evals/validate.mjs` | 100 eval cases validated; smoke covers 13 skills |
-| `claude plugin validate .claude-plugin/plugin.json --strict` | Passed; directory advisory for missing icon |
-| `claude plugin validate .claude-plugin/marketplace.json --strict` | Passed |
-| `claude plugin validate skills --strict` | Passed |
-| Documentation/manifest consistency inspection | Passed: matching custom reference, unchanged identity/source and matching proposed 5.0.0 version in manifest/changelog, local Markdown links and draft notices |
-| Prior-license archive comparison | Byte-for-byte matches to the audited PolyForm base and MIT v2.1.0 |
-| Workflow scope check | No changes under skills, scripts, evals, or .github |
-| `git diff --check` and new-document whitespace inspection | Passed |
-| `node evals/run-suite.mjs smoke` | Blocked: shell not signed in; exit 69, no model run started |
+Consolidation checks passed: all 362 automated tests, both manifest validators,
+skill validation, the 100-case eval inventory, local Markdown links, immutable
+license archive bytes, approved-term consistency, neutral public wording, and
+`git diff --check`. Workflow and CI files remain unchanged. The focused pre-push
+smoke result is recorded in PR #75. Use `MIW_SMOKE_CASES=deliver-no-package` for
+the focused pre-push run,
+as permitted by CONTRIBUTING: it loads the committed plugin snapshot and tests
+its stop behavior without changing product workflows. This does not replace the
+required full release suite or make the previous failures pass. The missing-icon
+advisory is an existing listing-asset absence; CLI validation accepts the custom
+license reference. No real user marketplace installation/update was performed.
 
-The icon advisory concerns an existing absence of a listing asset, not license
-schema rejection. It does not change the CLI validation result or establish
-directory policy approval. No real marketplace install/update was performed,
-because that would change local marketplace state; unchanged source/identity and
-passing package checks support compatibility but do not substitute for a release
-installation rehearsal. CI pins Node 22 and Claude Code 2.1.267; that exact pair
-was not reproduced locally. Run CI on the approved PR, sign in and run smoke
-before opening it, and run the full model eval suite and installation rehearsal
-before release. Full model evals were not run in this documentation-only task.
+## Pull request
 
-Local raw test outputs are `/tmp/miw-licensing-helper-tests.log`,
-`/tmp/miw-licensing-eval-tests.log`, `/tmp/miw-licensing-eval-validate.log`, and
-`/tmp/miw-licensing-smoke.log`. No model subagents were used. The pre-existing
-untracked `output/` directory was left untouched. The follow-up delivery is authorized to commit these changes, push the dedicated
-branch, and open a draft PR. Merge, tag publication, commercial release, and live
-marketplace changes remain unapproved.
+[PR #75](https://github.com/insideout-ai/make-it-work/pull/75), branch
+`chore/commercial-annual-licensing`.
 
+Suggested title: Prepare annual organization licensing for Make It Work 5.0.0
 
-### Version-bump validation (2026-11-03)
-
-At the maintainer's request, bump the proposed plugin version to 5.0.0 and
-prepare a committed branch and draft PR. Manifest/marketplace/skill validation,
-100-case eval inventory validation, version/reference/link/archive consistency,
-and diff checks passed again. The combined helper/eval-runner test command
-passed all 362 tests. Workflow files remain unchanged. This version bump does
-not make the draft agreement effective or authorize a commercial release.
+Description should lead with the 30-day self-service trial and annual organization
+subscription, summarize the confirmed terms and preserved historical grants,
+identify the draft's final approval gate and publisher-only launch, and report
+all validation including unresolved full-smoke failures. No enforcement, payment
+platform, workflow behavior, live metadata, public tag, release or catalog update
+is included. Keep the PR draft until the final agreement/release gates are resolved.
+The pre-existing untracked `output/` directory is unrelated and remains untouched.

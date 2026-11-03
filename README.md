@@ -268,25 +268,31 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ## Install
 
-Choose one installation channel. Installing the plugin from both marketplaces can make it unclear which copy Claude Code is loading.
+> **License notice for future approved commercial versions:** Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Each organization has one self-service 30-day trial from its first installation or execution; no registration, email approval, or credit card is required. Record that earliest date. After the trial, continued use requires an annual organization subscription. The current agreement remains **Draft — Pending Legal Review**, and previously published versions retain their original terms.
 
-### Anthropic community marketplace
+### InsideOut AI marketplace — commercial launch channel
 
-Use the community marketplace for the curated distribution. Community catalog updates may lag behind a new upstream release; use the InsideOut AI marketplace when you need the newest publisher release immediately.
-
-```text
-/plugin marketplace add anthropics/claude-plugins-community
-/plugin install make-it-work@claude-community
-```
-
-### InsideOut AI marketplace
-
-Use the publisher's marketplace for the direct upstream distribution:
+The planned commercial 5.0.0 release will use the publisher's marketplace. After
+release approval, install it with:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
 /plugin install make-it-work@insideout-ai
 ```
+
+### Existing community marketplace installs
+
+The community catalog currently pins an older commit,
+[`aac589f`](https://github.com/insideout-ai/make-it-work/tree/aac589f62e2eded9333767a0490c0a1b1751cd0e),
+containing MIT-licensed version 1.0.0, as checked on 2026-11-03. Its listing is
+unchanged by this preparation. Commercial distribution there is deferred until
+its requirements are confirmed and a catalog update is approved. Existing users
+retain the terms of the version they received. The community channel should not
+be treated as an installation source for commercial 5.0.0.
+
+When switching channels, select one plugin copy in `/plugin` to avoid duplicate
+workflows. Review the commercial terms before installing or upgrading to a
+commercially licensed version.
 
 Reload Claude Code after installation if the skills do not appear immediately:
 
@@ -296,20 +302,21 @@ Reload Claude Code after installation if the skills do not appear immediately:
 
 ## Update
 
-Update the marketplace metadata first, then update the plugin from the same channel you used to install it.
-
-Community marketplace:
-
-```text
-/plugin marketplace update claude-community
-/plugin update make-it-work@claude-community
-```
-
-InsideOut AI marketplace:
+For the planned commercial channel, review the license terms, update the
+publisher's marketplace metadata, then update the plugin:
 
 ```text
 /plugin marketplace update insideout-ai
 /plugin update make-it-work@insideout-ai
+```
+
+For an existing community installation, marketplace refreshes continue to use
+that catalog's pinned version until its operator changes the listing. They do
+not switch the installation to the InsideOut AI commercial channel:
+
+```text
+/plugin marketplace update claude-community
+/plugin update make-it-work@claude-community
 ```
 
 Run `/reload-plugins` or restart Claude Code after updating.
@@ -402,17 +409,19 @@ See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report su
 
 ## Licensing
 
-The proposed [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) is **Draft — Pending Legal Review**. The plugin manifest is bumped to **5.0.0** for this proposed transition; it remains unreleased. Ownership clearance, completed legal details, and an expressly designated commercial release are required before it takes effect. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies that custom draft; it is not an OSI-approved license.
+The proposed [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) is **Draft — Pending Legal Review**. The plugin manifest is bumped to **5.0.0** for this proposed transition; it remains unreleased. The agreed business decisions and maintainer ownership confirmations are recorded in the [migration record](docs/licensing/MIGRATION.md); final legal approval and an expressly designated commercial release are still required before it takes effect. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies that custom draft; it is not an OSI-approved license.
 
 For versions expressly released under the approved commercial agreement:
 
-- Each organization receives one 30-day internal business evaluation, starting at first installation or execution, whichever happens first. Reinstallation or upgrades do not restart it.
-- Continued organizational use requires a paid annual subscription, renewed after 12 months. It covers unlimited employees and authorized contractors, internal repositories, installations, and internal modifications. Affiliates require express inclusion in the Order Form.
+- Each organization receives one self-service 30-day internal business evaluation, with no registration, email approval, or credit card required. It starts at first installation or execution, whichever happens first. The organization is responsible for tracking that date; reinstallation or upgrades do not restart it.
+- Continued organizational use requires a paid annual subscription. Renewal is manual, with a new quote/Order Form and annual payment upfront; there is no automatic renewal or billing. Complete renewal before expiry for uninterrupted use. The subscription covers unlimited employees and authorized contractors, internal repositories, installations, and internal modifications. Affiliates require express inclusion in the Order Form.
 - Generally available updates, improvements, bug fixes, and ongoing maintenance are included while subscribed. Support SLAs require a separate written agreement.
+- The software is provided “as is” and “as available,” without guarantees of error-free operation, accurate generated output, or suitability for a particular purpose. Express subscription obligations, agreed refund rights, and rights that cannot legally be excluded remain protected.
+- Paid fees are nonrefundable for a change of mind or non-use. If you terminate because of our material breach that remains uncured after 30 days’ written notice, unused prepaid subscription fees are refunded pro rata. Refunds required by law or separately agreed in writing remain available.
 - Redistribution, resale, sublicensing, and offering the plugin itself as a hosted commercial service are prohibited, subject to GitHub platform rights and independent third-party terms.
 - You retain ownership of your own code, requirements, documents, and generated artifacts, and can keep using them after expiration. Embedded Software and third-party materials retain their applicable terms.
 
-See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for licensing enquiries. Pricing and purchase arrangements are not defined by this preparation branch. Trial and subscription compliance currently relies on legal terms; no activation or technical enforcement has been added.
+To purchase an annual organization license, email [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). You and InsideOut AI agree on a quote/Order Form identifying the organization, annual price, subscription dates, and legal terms. The paid term starts only after annual payment upfront and written confirmation of the 12-month license and agreed dates. Unpaid purchases or renewals do not start or extend a paid term; there is no automatic payment grace period or right to continue after expiry. A [draft Order Form template](docs/licensing/ORDER-FORM-TEMPLATE.md) is available for review. Pricing, currency, and payment instructions are agreed in the Order Form; no public price or online checkout is defined here. See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for product information. Trial and subscription compliance currently relies on legal terms; no activation or technical enforcement has been added.
 
 ### Previously published versions
 
