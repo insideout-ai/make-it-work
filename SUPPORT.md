@@ -4,7 +4,7 @@
 
 Under the [commercial agreement](LICENSE), an active annual organization license includes access to generally available updates, improvements, bug fixes, and ongoing maintenance releases during the subscription. It does not promise a particular fix, release cadence, response time, resolution time, or support SLA; any such commitment requires a separate written agreement. Renewal is manual, with a new quote/Order Form and annual payment upfront; there is no automatic renewal or billing. Complete renewal before expiry for uninterrupted commercial-version use and maintenance. An unpaid renewal does not extend the term, and there is no automatic payment grace period. If the subscription expires, those rights end; customer-generated work and prior-license rights remain unaffected.
 
-For licensing and renewal enquiries, email [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). Annual licenses are purchased by an agreed quote/Order Form with annual payment upfront, followed by written confirmation of the 12-month license and agreed subscription dates. See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for product information. Do not post license documents or payment details in public issues. The agreement is approved; 5.0.0 remains unreleased pending publication approval.
+For licensing and renewal enquiries, email [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). Annual licenses are purchased by an agreed quote/Order Form with annual payment upfront, followed by written confirmation of the 12-month license and agreed subscription dates. See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for product information. Do not post license documents or payment details in public issues. Version 5.0.0 is the first commercial release, effective 2026-11-03.
 
 ## Warranty
 
@@ -16,7 +16,7 @@ Paid fees are nonrefundable for a change of mind, non-use, or voluntary cancella
 
 ## Distribution channels
 
-Commercial 5.0.0 will launch through the InsideOut AI marketplace after approval.
+Commercial 5.0.0 is distributed through the InsideOut AI marketplace.
 The existing community listing remains pinned to an older MIT-licensed snapshot;
 its commercial update is deferred pending policy confirmation and approval.
 Check the [installation guidance](README.md#install) before switching channels.

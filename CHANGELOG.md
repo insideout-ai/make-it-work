@@ -6,16 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [5.0.0] — Unreleased
+## [5.0.0] — 2026-11-03
 
-### Licensing (agreement approved; release pending)
+### Licensing
 
-- Incorporate the maintainer-approved business terms: Erez Morabia trading as InsideOut AI; licensing by email; self-service trial; annual payment upfront and manual renewal; defined refund, warranty, liability and termination terms; public governing-law neutrality with law and courts agreed in paid customer documents. Planned effective date is 2026-11-03, conditional on publication.
+- Incorporate the maintainer-approved business terms: Erez Morabia trading as InsideOut AI; licensing by email; self-service trial; annual payment upfront and manual renewal; defined refund, warranty, liability and termination terms; public governing-law neutrality with law and courts agreed in paid customer documents. Effective date is 2026-11-03.
 - Use the InsideOut AI marketplace for commercial launch guidance. Leave the community listing at its existing MIT-licensed snapshot until its commercial distribution requirements are confirmed. Defer external code/documentation patches; issues and suggestions remain welcome.
 
 - Approve the Make It Work Commercial Software License Agreement — Version 1.0 on 2026-11-03, for future expressly designated commercial versions: one 30-day organization trial, then a renewable 12-month organization subscription with unlimited developers and internal installations; generally available updates, improvements, bug fixes, and maintenance included while subscribed.
-- Prepare matching custom license references in both manifests and update licensing, contribution, and support documentation. No trial tracking, payment integration, activation, or workflow changes are included; bump the plugin version from 4.19.2 to 5.0.0 to distinguish this proposed licensing transition. This is not a published commercial release.
-- Preserve all previously granted rights: previously published PolyForm Internal Use License 1.0.0 versions and earlier MIT versions retain their original terms. Archive the prior texts and identify the last audited PolyForm commit in [the migration record](docs/licensing/MIGRATION.md). Maintainer ownership, partner-permission, and final agreement approvals are recorded; release validation and publication approval remain pending.
+- Prepare matching custom license references in both manifests and update licensing, contribution, and support documentation. No trial tracking, payment integration, activation, or workflow changes are included; bump the plugin version from 4.19.2 to 5.0.0 to distinguish this proposed licensing transition. Version 5.0.0 is the first commercial release.
+- Preserve all previously granted rights: previously published PolyForm Internal Use License 1.0.0 versions and earlier MIT versions retain their original terms. Archive the prior texts and identify the last audited PolyForm commit in [the migration record](docs/licensing/MIGRATION.md). Maintainer ownership, partner-permission, and final agreement approvals are recorded; the maintainer authorized publication with the two documented smoke failures accepted as known issues.
 
 ### Changed
 
