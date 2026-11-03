@@ -1,0 +1,27 @@
+README.md
+  s_829fde07ad9726::t_c84859c5df1a3c 3,271,275,304,411
+CHANGELOG.md
+  s_829fde07ad9726::t_c84859c5df1a3c 9,11,13,17-18
+docs/licensing/MIGRATION.md
+  s_829fde07ad9726::t_c84859c5df1a3c 3,5-7,122,169,223-226,230-232,281,307-308,365,385-403
+SUPPORT.md
+  s_829fde07ad9726::t_c84859c5df1a3c 7,19
+LICENSE
+  s_829fde07ad9726::t_c84859c5df1a3c 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "cfc43d4a14206f430ebed44e3ba13a25bbe83d0d",
+  "prompts": {},
+  "sessions": {
+    "s_829fde07ad9726": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a197f4-ac5f-7320-8db8-7e4a1bd309cf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
