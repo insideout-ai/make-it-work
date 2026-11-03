@@ -1,0 +1,32 @@
+docs/licensing/MIGRATION.md
+  s_829fde07ad9726::t_2cc468c999e9dd 3,70-72,79,121,168,218-221,226,304,359,362-363,365-382
+LICENSE
+  s_829fde07ad9726::t_2cc468c999e9dd 7-8,10,12-17
+SUPPORT.md
+  s_829fde07ad9726::t_2cc468c999e9dd 3,5,7,9,13,15
+CHANGELOG.md
+  s_829fde07ad9726::t_2cc468c999e9dd 9,11,13,16
+  s_829fde07ad9726::t_b9048e2e77faf9 18
+CONTRIBUTING.md
+  s_829fde07ad9726::t_2cc468c999e9dd 19,81,83
+README.md
+  s_829fde07ad9726::t_2cc468c999e9dd 3,271,276,412,414,424
+docs/licensing/ORDER-FORM-TEMPLATE.md
+  s_829fde07ad9726::t_2cc468c999e9dd 3-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "df164ff6964d9a24674b08071d20ff3da57bc754",
+  "prompts": {},
+  "sessions": {
+    "s_829fde07ad9726": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a197f4-ac5f-7320-8db8-7e4a1bd309cf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
