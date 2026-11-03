@@ -1,5 +1,11 @@
 # Support
 
+## Commercial maintenance — proposed terms
+
+Under the [draft commercial agreement](LICENSE), an active annual organization license includes access to generally available updates, improvements, bug fixes, and ongoing maintenance releases during the subscription. It does not promise a particular fix, release cadence, response time, resolution time, or support SLA; any such commitment requires a separate written agreement. Maintenance access ends when the subscription expires. Earlier versions retain their original licensing terms.
+
+For licensing and renewal enquiries, visit [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work). Do not post license documents or payment details in public issues. The commercial transition remains **Draft — Pending Legal Review**.
+
 ## Before opening an issue
 
 Please check the [README troubleshooting guide](README.md#troubleshooting), update the marketplace and plugin, and reload Claude Code. This resolves most installation and stale-version problems.

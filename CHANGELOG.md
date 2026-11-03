@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.0.0] — Draft, pending legal review (unreleased)
+
+### Licensing (draft; not a commercial release)
+
+- Prepare the Make It Work Commercial Software License Agreement — Version 1.0, **Draft — Pending Legal Review**, for future expressly designated commercial versions: one 30-day organization trial, then a renewable 12-month organization subscription with unlimited developers and internal installations; generally available updates, improvements, bug fixes, and maintenance included while subscribed.
+- Prepare matching custom license references in both manifests and update licensing, contribution, and support documentation. No trial tracking, payment integration, activation, or workflow changes are included; bump the plugin version from 4.19.2 to 5.0.0 to distinguish this proposed licensing transition. This is not a published commercial release.
+- Preserve all previously granted rights: previously published PolyForm Internal Use License 1.0.0 versions and earlier MIT versions retain their original terms. Archive the prior texts and identify the last audited PolyForm commit in [the migration record](docs/licensing/MIGRATION.md). Ownership confirmation, legal approval, and completed legal details remain release blockers.
+
 ### Changed
 
 - Chat autonomy changes in `implement` now queue for the next phase. The active phase and open questions/approvals retain their original mode; later requests replace or cancel the queue. Saved state and the dashboard distinguish effective and queued modes, and the phase transition audits application without retroactive approval or guessed answers.

@@ -1,98 +1,203 @@
-PolyForm Internal Use License 1.0.0
+Make It Work Commercial Software License Agreement — Version 1.0
 
-<https://polyformproject.org/licenses/internal-use/1.0.0>
+Draft — Pending Legal Review
+SPDX custom reference: LicenseRef-Make-It-Work-Commercial-1.0
 
-Copyright (c) 2026 InsideOut AI
+Licensor: [FULL LEGAL NAME OF LICENSOR], trading as InsideOut AI
+Licensing contact: [LICENSING CONTACT EMAIL]
+Governing jurisdiction: [GOVERNING JURISDICTION]
+Commercial effective date: [COMMERCIAL EFFECTIVE DATE]
 
-## Acceptance
+0. Draft status and application
 
-In order to get any license under these terms, you must agree
-to them as both strict obligations and conditions to all
-your licenses.
+This is a proposed agreement, not an effective commercial license or a statement
+that all relicensing rights have been confirmed. It must not be used for a
+commercial release until ownership and third-party rights are confirmed, legal
+review is complete, and the placeholders above are completed. The proposed
+manifest reference identifies this draft only. This preparation branch does not
+relicense previously published code or start a trial for its existing users.
+Prior grants remain governed by their original terms; see section 8 and the
+archived texts in docs/licensing/.
 
-## Copyright License
+Once approved and effective, this agreement applies only to versions of Make It
+Work expressly released by Licensor under this agreement (the Software). Public
+availability of source code does not make those versions open-source licensed.
+An individual accepting for an organization represents that they are authorized
+to bind it. The organization accepting these terms is Customer. Licensor must
+present these terms and obtain acceptance before installation or execution of a
+commercially licensed version. A written order accepted by both parties (Order
+Form) identifies Customer, fees, currency, payment due date, subscription start
+and end dates, and any expressly included affiliates or additional terms.
 
-The licensor grants you a copyright license for the software
-to do everything you might do with the software that would
-otherwise infringe the licensor's copyright in it for any
-permitted purpose.  However, you may only make changes or
-new works based on the software according to [Changes and New
-Works License](#changes-and-new-works-license), and you may
-not distribute the software.
+1. Free trial
 
-## Changes and New Works License
+Customer may evaluate the Software for its internal business operations for one
+30-day evaluation period per organization, beginning at its first installation
+or execution of a commercially licensed version, whichever occurs first. The
+trial includes use by Customer's employees and authorized contractors solely on
+Customer's behalf, and internal modifications for that evaluation. Reinstalling,
+upgrading, using a different developer account or machine, or removing trial
+records does not restart or extend the trial. Use of an earlier version under a
+prior license does not itself trigger this trial.
 
-The licensor grants you an additional copyright license to
-make changes and new works based on the software for any
-permitted purpose.
+After 30 days, continued use of commercially licensed versions requires an
+active paid annual subscription. Without one, Customer must stop using those
+versions and remove operational copies, including internal modifications.
+Customer may retain an inaccessible archival copy solely as required by law,
+not for execution or further use. Customer's own artifacts and prior-license
+rights are unaffected. The trial carries no payment obligation unless Customer
+separately orders a subscription; it does not automatically convert to paid use.
 
-## Patent License
+2. Annual organization license
 
-The licensor grants you a patent license for the software that
-covers patent claims the licensor can license, or becomes able
-to license, that you would infringe by using the software.
+Subject to payment and compliance, Licensor grants Customer a nonexclusive,
+nontransferable license for a 12-month subscription term to install, execute,
+copy internally, and internally modify the Software for Customer's internal
+business operations. Unlimited employees and authorized contractors may use it
+solely on Customer's behalf, across unlimited internal repositories and
+installations. Contractors receive no independent license and must be bound by
+restrictions at least as protective as these terms; Customer is responsible for
+their use. Internal access by these authorized users is permitted and is not
+prohibited redistribution or sublicensing.
 
-## Fair Use
+Customer means the single legal organization named in the Order Form. Parent
+companies, subsidiaries, and other affiliates are excluded unless expressly
+included in that Order Form. No seat-based or repository-based limit applies
+within the licensed organization. Continued use after the 12-month term requires
+renewal; the license is not perpetual, including for copies downloaded or
+modified while subscribed. Customer may use and deliver its own work products,
+including commercial products, as described in section 5.
 
-You may have "fair use" rights for the software under the
-law. These terms do not limit them.
+3. Restrictions and public hosting
 
-## Internal Business Use
+Except for authorized internal access above or express written permission from
+Licensor, Customer must not redistribute, resell, sublicense, rent, lend, or
+transfer the Software or its modifications, or offer the plugin itself as a
+hosted commercial service. Customer must preserve applicable copyright, license,
+and third-party notices and must not misrepresent ownership or remove notices
+from internal copies. No trademark rights are granted.
 
-Use of the software for the internal business operations of
-you and your company is use for a permitted purpose.
+These restrictions do not limit rights required by applicable law, rights under
+prior licenses, or independent third-party licenses. They do not restrict
+GitHub's or its users' rights to host, view, and fork the public repository
+through GitHub functionality under applicable GitHub terms. Such hosting rights
+do not independently grant a right to execute commercially licensed versions
+outside these terms or to redistribute them outside those platform rights.
 
-## No Other Rights
+4. Fees, payment, and renewal
 
-These terms do not allow you to sublicense or transfer any of
-your licenses to anyone else, or prevent the licensor from
-granting licenses to anyone else.  These terms do not imply
-any other licenses.
+Fees, currency, taxes, payment method, and due dates are specified in the Order
+Form; this agreement sets no price. Customer pays applicable transaction taxes
+other than taxes on Licensor's income. Fees are nonrefundable except as expressly
+agreed or required by law. Licensor may suspend the subscription for overdue,
+undisputed payment after written notice and a 15-day opportunity to cure; any
+termination for breach follows section 9.
 
-## Patent Defense
+Renewal requires a new Order Form or other written agreement; there is no
+automatic renewal or charge unless separately and expressly agreed. Licensor
+will disclose proposed renewal fees before Customer agrees to renew. A renewal
+begins on the agreed date and lasts 12 months. A gap in subscription provides no
+right to use commercially licensed versions during that gap. Expiration or
+nonrenewal has the same cessation and removal obligations as trial expiration.
 
-If you make any written claim that the software infringes or
-contributes to infringement of any patent, your patent license
-for the software granted under these terms ends immediately. If
-your company makes such a claim, your patent license ends
-immediately for work on behalf of your company.
+5. Intellectual property and Customer artifacts
 
-## Violations
+As between the parties, InsideOut AI, through the legal Licensor identified
+above, retains ownership of the Software and its intellectual property, only to
+the extent it owns or is authorized to license those rights. Third-party rights
+are reserved. This statement is subject to confirmation of ownership and is not
+an assignment of contributor or third-party rights. Customer retains rights it
+holds in its own internal modifications, subject to Licensor's rights in the
+underlying Software and the use restrictions in this agreement. No ownership of
+Customer modifications is automatically transferred to Licensor.
 
-The first time you are notified in writing that you have
-violated any of these terms, or done anything with the software
-not covered by your licenses, your licenses can nonetheless
-continue if you come into full compliance with these terms,
-and take practical steps to correct past violations, within
-32 days of receiving notice.  Otherwise, all your licenses
-end immediately.
+Customer retains ownership of its own code, requirements, documents, data, and
+artifacts generated using Make It Work, to the extent those rights exist. No
+ownership in those materials is transferred to Licensor. Customer may continue
+to use, modify, distribute, and commercialize those materials after expiration
+or termination without a Make It Work subscription. This does not grant rights
+to distribute embedded copies of the Software, its proprietary templates or
+other pre-existing materials, or third-party content. Ordinary generated work
+products are not Software merely because Make It Work helped create them.
+Licensor makes no promise that AI-generated output is unique, copyrightable,
+accurate, or free of third-party claims.
 
-## No Liability
+6. Maintenance
 
-***As far as the law allows, the software comes as is, without
-any warranty or condition, and the licensor will not be liable
-to you for any damages arising out of these terms or the use
-or nature of the software, under any kind of legal claim.***
+An active annual subscription includes access to generally available updates,
+improvements, bug fixes, and ongoing maintenance releases for the Software
+during the subscription. Licensor does not commit to any particular release,
+feature, fix, response time, resolution time, or support service-level agreement
+unless separately agreed in writing. Updates remain subject to the applicable
+commercial license; downloading them does not restart a trial or extend the
+subscription. Access to new updates and maintenance ends on expiration.
 
-## Definitions
+7. Third-party components and services
 
-The **licensor** is the individual or entity offering these
-terms, and the **software** is the software the licensor makes
-available under these terms.
+Separately identified third-party components remain under their own licenses;
+this agreement does not replace those licenses or restrict their independent
+grants. Required notices must be preserved. Claude Code, AI providers, issue
+trackers, and other external tools are supplied under their respective terms.
+Customer obtains necessary accounts, permissions, and subscriptions and is
+responsible for deciding what data to send to them and reviewing generated work.
+Their fees are not included unless an Order Form says otherwise. Licensor does
+not control their availability, processing practices, outputs, or changes.
+This agreement does not authorize telemetry or collection of Customer content.
 
-**You** refers to the individual or entity agreeing to these
-terms.
+8. Previously published versions
 
-**Your company** is any legal entity, sole proprietorship,
-or other kind of organization that you work for, plus all
-organizations that have control over, are under the control of,
-or are under common control with that organization.  **Control**
-means ownership of substantially all the assets of an entity,
-or the power to direct its management and policies by vote,
-contract, or otherwise.  Control can be direct or indirect.
+Rights granted under previously published versions, including the PolyForm
+Internal Use License 1.0.0 and the earlier MIT License, are expressly preserved
+under those original terms. Previously published versions remain available in
+repository history under their original licensing terms. This agreement neither
+revokes nor narrows those grants, imposes a subscription on their exercise, nor
+converts them to this license. It applies only to versions expressly released
+under the new commercial agreement. Continued access to prior versions does not
+include later commercial updates or maintenance. Prior-license terms govern any
+breach or termination of prior-license rights, independently of this agreement.
 
-**Your licenses** are all the licenses granted to you for the
-software under these terms.
+9. Termination
 
-**Use** means anything you do with the software requiring one
-of your licenses.
+Either party may terminate for the other's material breach if not cured within
+30 days after written notice describing the breach. Customer may discontinue use
+at any time; doing so does not excuse accrued payment obligations. Trial and
+subscription rights also expire at their stated end without notice. Upon
+expiration or termination, Customer must stop using the applicable commercially
+licensed Software and remove operational copies and modifications, subject to
+the legally required archival exception in section 1. Accrued payment duties,
+ownership, restrictions, disclaimers, liability limits, dispute provisions, and
+prior-license protections survive as relevant. Customer's own artifacts remain
+Customer's property and may continue to be used under section 5.
+
+10. Warranties and liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE, MAINTENANCE, AND UPDATES
+ARE PROVIDED AS IS AND AS AVAILABLE, WITHOUT WARRANTIES, INCLUDING IMPLIED
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
+NONINFRINGEMENT. Customer is responsible for testing changes, reviewing output,
+and maintaining appropriate backups.
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, NEITHER PARTY IS LIABLE FOR INDIRECT,
+INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR LOST PROFITS, REVENUE,
+OR DATA ARISING UNDER THIS AGREEMENT. Each party's aggregate liability under
+this agreement is limited to fees paid or payable under it for the 12 months
+preceding the event giving rise to the claim. That cap does not excuse Customer's
+payment obligations or limit liability for fraud, willful misconduct, or
+infringement or misappropriation of the other party's intellectual property.
+Neither the exclusions nor the cap limits liability that applicable law does
+not permit the parties to exclude or limit. Mandatory statutory rights remain.
+
+11. General terms
+
+The laws of [GOVERNING JURISDICTION], excluding its conflict-of-laws rules,
+govern this agreement; its competent courts have jurisdiction over disputes,
+subject to mandatory law. Notices to Licensor go to [LICENSING CONTACT EMAIL]
+and to Customer at its Order Form contact. Amendments require written agreement;
+new website text alone does not change an existing subscription's terms. An
+Order Form overrides this agreement only where it expressly identifies the
+provision being varied. This agreement and applicable Order Form are the entire
+agreement for the covered commercial versions, without superseding prior grants
+or independent third-party terms. An unenforceable provision will be limited to
+the extent necessary and the remaining provisions remain effective. Failure to
+enforce a provision is not a waiver. Neither party may assign this agreement
+without the other's written consent. No rights are granted by implication.

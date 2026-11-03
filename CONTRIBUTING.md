@@ -2,7 +2,7 @@
 
 Thank you for helping improve `make-it-work`. Contributions can address plugin packaging, documentation, or the behavior of an individual skill.
 
-Before starting substantial work, open an issue so the intended outcome and scope can be discussed. For vulnerabilities, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+Before starting substantial work, review the contribution policy below and open an issue so the intended outcome and scope can be discussed. For vulnerabilities, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
 
 ## Development setup
 
@@ -16,7 +16,7 @@ cd make-it-work
 git switch -c your-change
 ```
 
-Load the working tree directly in Claude Code:
+Execution requires applicable rights under the snapshot's license or separate written contributor permission. The draft agreement does not grant development rights by itself. Once authorized, load the working tree directly in Claude Code:
 
 ```sh
 claude --plugin-dir .
@@ -78,7 +78,13 @@ Keep each pull request focused on one outcome. In the description, include:
 - Screenshots or transcripts only when they add useful evidence, with sensitive data removed.
 - Any compatibility or migration impact.
 
-By contributing, you agree that your contribution is provided under this repository's [PolyForm Internal Use License 1.0.0](LICENSE).
+## Contribution licensing policy — pending legal review
+
+The [commercial agreement](LICENSE) is **Draft — Pending Legal Review**: a proposed outbound customer license, not a contributor assignment or CLA. Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent.
+
+Until legal review establishes an inbound contribution agreement, maintainers must not merge new external code or documentation contributions intended for a commercial release. Issues and suggestions remain welcome. Before submitting a patch, arrange written contribution terms with the maintainers; do not assume the customer trial permits external distribution of modified plugin code. GitHub platform view/fork rights remain unaffected.
+
+Human/legal review must confirm existing contributors' ownership and employer or contractor obligations, obtain assignments or express commercial relicensing and distribution permissions where needed, and approve an inbound agreement (such as an appropriate CLA) for future contributions. No CLA execution or rights clearance is implied by opening a PR. See the [migration record](docs/licensing/MIGRATION.md) for unresolved questions.
 
 For a focused change, select relevant pre-push smoke cases explicitly, for example:
 

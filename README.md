@@ -1,5 +1,7 @@
 # make-it-work
 
+> **Commercial licensing transition — Draft — Pending Legal Review.** Proposed terms: one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. No commercial release is authorized by this draft. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
+
 > From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — orchestrate an epic with `drive-the-epic`, or take a ticket through implementation with `implement`.
 
 Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
@@ -397,6 +399,26 @@ Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, hand
 If the problem persists, [open a GitHub issue](https://github.com/insideout-ai/make-it-work/issues) with your Claude Code version, installation channel, and the relevant error message.
 
 See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report suspected vulnerabilities privately by following [SECURITY.md](SECURITY.md).
+
+## Licensing
+
+The proposed [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) is **Draft — Pending Legal Review**. The plugin manifest is bumped to **5.0.0** for this proposed transition; it remains unreleased. Ownership clearance, completed legal details, and an expressly designated commercial release are required before it takes effect. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies that custom draft; it is not an OSI-approved license.
+
+For versions expressly released under the approved commercial agreement:
+
+- Each organization receives one 30-day internal business evaluation, starting at first installation or execution, whichever happens first. Reinstallation or upgrades do not restart it.
+- Continued organizational use requires a paid annual subscription, renewed after 12 months. It covers unlimited employees and authorized contractors, internal repositories, installations, and internal modifications. Affiliates require express inclusion in the Order Form.
+- Generally available updates, improvements, bug fixes, and ongoing maintenance are included while subscribed. Support SLAs require a separate written agreement.
+- Redistribution, resale, sublicensing, and offering the plugin itself as a hosted commercial service are prohibited, subject to GitHub platform rights and independent third-party terms.
+- You retain ownership of your own code, requirements, documents, and generated artifacts, and can keep using them after expiration. Embedded Software and third-party materials retain their applicable terms.
+
+See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for licensing enquiries. Pricing and purchase arrangements are not defined by this preparation branch. Trial and subscription compliance currently relies on legal terms; no activation or technical enforcement has been added.
+
+### Previously published versions
+
+Previously published versions retain their original terms, including **PolyForm Internal Use License 1.0.0** and earlier **MIT** grants. Existing rights are not revoked and no subscription is imposed on their exercise. The last audited PolyForm snapshot is plugin version **4.19.2**, commit [`8d57b84`](https://github.com/insideout-ai/make-it-work/tree/8d57b84fd0df8a99960bd29c2d2e1465f04ad7ea), with its [original LICENSE](https://github.com/insideout-ai/make-it-work/blob/8d57b84fd0df8a99960bd29c2d2e1465f04ad7ea/LICENSE). Existing releases `v2.0.0` and `v2.1.0` are MIT licensed; there is no published PolyForm release tag in the audited remote inventory.
+
+Use the [licensing migration record](docs/licensing/MIGRATION.md) for immutable checkout instructions, archived license texts, the proposed legacy tag, ownership questions, and commercial release gates. Do not assume the marketplace's default branch preserves an older license; review terms before upgrading. The commercial agreement applies only to versions expressly released under it, and does not retroactively apply to these snapshots.
 
 ## Development
 
