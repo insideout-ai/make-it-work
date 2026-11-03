@@ -1,0 +1,46 @@
+docs/licensing/MIGRATION.md
+  s_829fde07ad9726::t_06c54595bee323 53-55,272-281,283-300
+  s_829fde07ad9726::t_ea035b851a1f53 304-313
+  s_829fde07ad9726::t_f9c742cc712bcb 1-52,56-110,112-164,166-235,237-260,264-271
+  s_829fde07ad9726::t_1cd4f9bd256e29 111,165,236,262-263,282,301-303
+  s_829fde07ad9726::t_97c384ee99d6bd 261
+SUPPORT.md
+  s_829fde07ad9726::t_ac2312c6f9be4f 3-8
+.claude-plugin/marketplace.json
+  s_829fde07ad9726::t_ac2312c6f9be4f 19
+CONTRIBUTING.md
+  s_829fde07ad9726::t_06c54595bee323 19,83
+  s_829fde07ad9726::t_ac2312c6f9be4f 5,81-82,84-87
+LICENSE
+  s_829fde07ad9726::t_ac2312c6f9be4f 1-203
+docs/licensing/POLYFORM-INTERNAL-USE-1.0.0.txt
+  s_829fde07ad9726::t_d453e2f9027d47 1-98
+docs/licensing/MIT.txt
+  s_829fde07ad9726::t_d453e2f9027d47 1-21
+.claude-plugin/plugin.json
+  s_829fde07ad9726::t_1cd4f9bd256e29 6
+  s_829fde07ad9726::t_ac2312c6f9be4f 13
+CHANGELOG.md
+  s_829fde07ad9726::t_1cd4f9bd256e29 9-10,14
+  s_829fde07ad9726::t_ac2312c6f9be4f 11-13,15-16
+README.md
+  s_829fde07ad9726::t_ac2312c6f9be4f 3-4,403-404,406-421
+  s_829fde07ad9726::t_1cd4f9bd256e29 405
+  s_829fde07ad9726::t_cf817a4882d29a 422
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "bab04f35e68808cd2d877c93eec4b8318ffa7b50",
+  "prompts": {},
+  "sessions": {
+    "s_829fde07ad9726": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a197f4-ac5f-7320-8db8-7e4a1bd309cf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
