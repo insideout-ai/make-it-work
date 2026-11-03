@@ -16,7 +16,7 @@ cd make-it-work
 git switch -c your-change
 ```
 
-Execution requires applicable rights under the snapshot's license or separate written contributor permission. The draft agreement does not grant development rights by itself. Once authorized, load the working tree directly in Claude Code:
+Execution requires applicable rights under the snapshot's license or separate written contributor permission. The commercial agreement applies only to versions expressly released under it. Once authorized, load the working tree directly in Claude Code:
 
 ```sh
 claude --plugin-dir .
@@ -78,9 +78,9 @@ Keep each pull request focused on one outcome. In the description, include:
 - Screenshots or transcripts only when they add useful evidence, with sensitive data removed.
 - Any compatibility or migration impact.
 
-## Contribution licensing policy — pending legal review
+## Contribution licensing policy
 
-The [commercial agreement](LICENSE) is **Draft — Pending Legal Review**: a proposed outbound customer license, not a contributor assignment or CLA. Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent.
+The [commercial agreement](LICENSE) is an approved outbound customer license, not a contributor assignment or CLA. Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent.
 
 For the initial commercial release, code and documentation changes are maintained by Erez Morabia and Yael Morabia (Rabinovitz). External code or documentation patches are deferred until a contributor agreement is ready and the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions rather than submitting an external patch. Customer rights to make internal modifications under an applicable license and GitHub platform view/fork rights remain unaffected.
 

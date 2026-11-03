@@ -1,6 +1,6 @@
 # make-it-work
 
-> **Commercial licensing transition — Draft — Pending Legal Review.** Proposed terms: one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. No commercial release is authorized by this draft. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
+> **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. The agreement is approved; 5.0.0 remains unreleased pending publication approval. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
 
 > From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — orchestrate an epic with `drive-the-epic`, or take a ticket through implementation with `implement`.
 
@@ -268,12 +268,12 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ## Install
 
-> **License notice for future approved commercial versions:** Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Each organization has one self-service 30-day trial from its first installation or execution; no registration, email approval, or credit card is required. Record that earliest date. After the trial, continued use requires an annual organization subscription. The current agreement remains **Draft — Pending Legal Review**, and previously published versions retain their original terms.
+> **License notice for commercial versions:** Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Each organization has one self-service 30-day trial from its first installation or execution; no registration, email approval, or credit card is required. Record that earliest date. After the trial, continued use requires an annual organization subscription. The agreement is approved for the unreleased 5.0.0 version; previously published versions retain their original terms.
 
 ### InsideOut AI marketplace — commercial launch channel
 
 The planned commercial 5.0.0 release will use the publisher's marketplace. After
-release approval, install it with:
+publication, install it with:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -409,9 +409,9 @@ See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report su
 
 ## Licensing
 
-The proposed [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) is **Draft — Pending Legal Review**. The plugin manifest is bumped to **5.0.0** for this proposed transition; it remains unreleased. The agreed business decisions and maintainer ownership confirmations are recorded in the [migration record](docs/licensing/MIGRATION.md); final legal approval and an expressly designated commercial release are still required before it takes effect. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies that custom draft; it is not an OSI-approved license.
+The [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) was approved by the maintainer on **2026-11-03**. The plugin manifest is bumped to **5.0.0**; it remains unreleased pending publication approval. The agreed business decisions, maintainer ownership confirmations, and approval record are in the [migration record](docs/licensing/MIGRATION.md). The agreement applies only to versions expressly released under it. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies the custom agreement; it is not an OSI-approved license.
 
-For versions expressly released under the approved commercial agreement:
+For versions expressly released under the commercial agreement:
 
 - Each organization receives one self-service 30-day internal business evaluation, with no registration, email approval, or credit card required. It starts at first installation or execution, whichever happens first. The organization is responsible for tracking that date; reinstallation or upgrades do not restart it.
 - Continued organizational use requires a paid annual subscription. Renewal is manual, with a new quote/Order Form and annual payment upfront; there is no automatic renewal or billing. Complete renewal before expiry for uninterrupted use. The subscription covers unlimited employees and authorized contractors, internal repositories, installations, and internal modifications. Affiliates require express inclusion in the Order Form.
@@ -421,7 +421,7 @@ For versions expressly released under the approved commercial agreement:
 - Redistribution, resale, sublicensing, and offering the plugin itself as a hosted commercial service are prohibited, subject to GitHub platform rights and independent third-party terms.
 - You retain ownership of your own code, requirements, documents, and generated artifacts, and can keep using them after expiration. Embedded Software and third-party materials retain their applicable terms.
 
-To purchase an annual organization license, email [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). You and InsideOut AI agree on a quote/Order Form identifying the organization, annual price, subscription dates, and legal terms. The paid term starts only after annual payment upfront and written confirmation of the 12-month license and agreed dates. Unpaid purchases or renewals do not start or extend a paid term; there is no automatic payment grace period or right to continue after expiry. A [draft Order Form template](docs/licensing/ORDER-FORM-TEMPLATE.md) is available for review. Pricing, currency, and payment instructions are agreed in the Order Form; no public price or online checkout is defined here. See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for product information. Trial and subscription compliance currently relies on legal terms; no activation or technical enforcement has been added.
+To purchase an annual organization license, email [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). You and InsideOut AI agree on a quote/Order Form identifying the organization, annual price, subscription dates, and legal terms. The paid term starts only after annual payment upfront and written confirmation of the 12-month license and agreed dates. Unpaid purchases or renewals do not start or extend a paid term; there is no automatic payment grace period or right to continue after expiry. A [Order Form template](docs/licensing/ORDER-FORM-TEMPLATE.md) is available for customer-specific completion. Pricing, currency, and payment instructions are agreed in the Order Form; no public price or online checkout is defined here. See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for product information. Trial and subscription compliance currently relies on legal terms; no activation or technical enforcement has been added.
 
 ### Previously published versions
 

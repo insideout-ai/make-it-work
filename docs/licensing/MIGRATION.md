@@ -1,6 +1,6 @@
 # Commercial licensing migration record
 
-Status: **Draft — Pending Legal Review; all business decisions confirmed**.
+Status: **Final agreement approved by the maintainer on 2026-11-03; release pending**.
 Initial audit: 2026-11-01. Consolidation and remote recheck: 2026-11-03.
 Branch: `chore/commercial-annual-licensing`. Nothing here authorizes a merge,
 commercial release, marketplace publication, or live settings change.
@@ -67,15 +67,16 @@ to apply those licenses to all future code.
 
 The maintainer subsequently supplied ownership, partner-permission, and provenance
 confirmations, recorded below. They are not independent legal verification or a
-signed assignment. All requested business decisions are now settled; final
-legal approval and release execution remain pending.
+signed assignment. All requested business decisions are settled, and the maintainer subsequently
+approved the final agreement and removal of draft labels on 2026-11-03. Release
+execution remains pending; no independent external legal opinion is implied.
 
 ### Hosting and marketplace requirements
 
 [GitHub Terms D.4–D.6](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)
 require hosting and public view/fork rights, and address inbound contributions.
 A blanket ban on all copying/forking would conflict with public hosting. The
-draft preserves platform rights while restricting redistribution outside them.
+agreement preserves platform rights while restricting redistribution outside them.
 Counsel must confirm this treatment and the applicable account agreement.
 
 [Claude manifest documentation](https://code.claude.com/docs/en/plugins-reference)
@@ -117,7 +118,7 @@ No live catalog was edited, submitted, or installed during this task.
 
 Earlier MIT versions also retain their MIT rights. No prior rights are revoked.
 Only a separately identified future release will carry the approved commercial
-terms. This branch bumps the plugin manifest from 4.19.2 to 5.0.0 for the proposed transition. Version 5.0.0 remains unreleased and the agreement remains a non-effective draft.
+terms. This branch bumps the plugin manifest from 4.19.2 to 5.0.0 for the proposed transition. Version 5.0.0 remains unreleased. The approved agreement applies upon publication of an expressly designated commercial version.
 
 ## Preserve and access the PolyForm snapshot
 
@@ -164,7 +165,7 @@ existing external MIT listing unchanged and commercial updates there deferred.
 | Licensor and brand | Erez Morabia, trading as InsideOut AI. InsideOut AI remains the plugin author/brand. |
 | Contact | insideoutaitech@gmail.com for licensing, renewal, and contractual notices. |
 | Public geography | No country or court selected in public terms. Paid Order Forms or separate agreements must specify agreed governing law and courts. A trial without a separate agreement has no express choice. |
-| Effective date | Planned 2026-11-03, conditional on approval and publication of 5.0.0. If publication slips, update to the actual publication date. |
+| Effective date | Planned 2026-11-03, conditional on publication of 5.0.0. If publication slips, update to the actual publication date. |
 | Trial | Self-service, one 30-day trial per organization from first installation/execution; no registration, email approval, or credit card. Organization records the earliest date. |
 | Organization scope | Unlimited employees/authorized contractors, internal repositories/installations and internal modifications; affiliates excluded unless expressly included in an Order Form. |
 | Purchase | Email contact, agreed quote/Order Form, annual fee paid upfront, then written confirmation of the 12-month license and dates. No price, currency, or payment method invented. |
@@ -214,14 +215,15 @@ as a substitute for legal review.
 
 There are **no further business-policy questions** in this migration. What remains:
 
-1. Final approval of the consolidated agreement after legal review. Draft labels
-   remain until approved. The repository audit and maintainer confirmations do
-   not constitute an independent legal opinion or signed third-party consent.
+1. Final approval is recorded: the maintainer approved the consolidated agreement
+   and authorized removing draft labels and marking PR #75 ready for review.
+   The repository audit and maintainer confirmations do not constitute an
+   independent legal opinion or signed third-party consent.
 2. Release validation and disposition of the two earlier full-smoke failures,
    plus the documented full eval suite/installation rehearsal before release.
 3. Customer-specific quotes/Order Forms must supply price, currency, payment
    details, legal organization, dates, and agreed law/courts. The
-   [Order Form template](ORDER-FORM-TEMPLATE.md) is prepared for review, not a sale.
+   [Order Form template](ORDER-FORM-TEMPLATE.md) is approved as a template; customer-specific completion is not a sale by itself.
 4. Explicit authorization for merge, historical-tag publication, commercial tag
    and release, or live marketplace/metadata changes. The planned date alone
    grants none of those permissions. External catalog approval is deferred with
@@ -299,7 +301,7 @@ access to those systems. No live metadata was changed during this preparation.
 - [x] Set plugin manifest and changelog to proposed version 5.0.0.
 - [x] Confirm remote main still identifies the audited PolyForm boundary on 2026-11-03.
 - [x] Identify the pinned community MIT snapshot and leave the external listing unchanged.
-- [ ] Complete legal review and obtain final approval of the agreement; then remove draft labels.
+- [x] Obtain final maintainer approval of the agreement and remove draft labels. No independent external legal review is represented.
 - [ ] Confirm actual publication date and update the planned date if it changes.
 - [ ] Review/dispose of the two full-smoke failures; run required release evals and installation rehearsal.
 - [ ] With explicit approval, publish the historical tag using the command above without rewriting history.
@@ -354,8 +356,27 @@ Suggested title: Prepare annual organization licensing for Make It Work 5.0.0
 
 Description should lead with the 30-day self-service trial and annual organization
 subscription, summarize the confirmed terms and preserved historical grants,
-identify the draft's final approval gate and publisher-only launch, and report
+identify the maintainer's final approval and publisher-only launch, and report
 all validation including unresolved full-smoke failures. No enforcement, payment
 platform, workflow behavior, live metadata, public tag, release or catalog update
-is included. Keep the PR draft until the final agreement/release gates are resolved.
+is included. The maintainer authorized marking the PR ready for review; merge
+and release publication remain separately unapproved.
 The pre-existing untracked `output/` directory is unrelated and remains untouched.
+
+
+## Final maintainer approval — 2026-11-03
+
+After being presented with the consolidated agreement, Order Form template,
+validation results, the two earlier unresolved full-smoke failures, and the fact
+that no independent legal review had been performed, the maintainer replied
+“I approve” to removing the draft labels and marking PR #75 ready for review.
+This approval is recorded as the maintainer's final approval of the license
+wording and template, not a claim of outside legal sign-off.
+
+LICENSE section 0 now describes applicability and prior-license preservation
+without internal draft instructions. Customer documentation and the changelog
+reflect approval while retaining the unreleased status of version 5.0.0. No
+commercial version was published by this approval. Merge, release/tag publication,
+and live marketplace or metadata changes still require separate authorization.
+If publication occurs after the planned 2026-11-03 date, update the effective
+date to the actual release date before publication.

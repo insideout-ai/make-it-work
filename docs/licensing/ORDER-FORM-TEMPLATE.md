@@ -1,7 +1,8 @@
 # Make It Work annual organization license — Order Form template
 
-**Draft — Pending Legal Review.** Do not use for a customer order until the
-commercial agreement is approved and the applicable version is released.
+The commercial agreement was approved by the maintainer on 2026-11-03. Complete
+this template for a specific customer order only when the applicable commercial
+version is released.
 This template introduces no public price, payment method, court, or support SLA.
 Complete the customer-specific fields and obtain both parties' agreement.
 

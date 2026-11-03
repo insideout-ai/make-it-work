@@ -1,27 +1,21 @@
 Make It Work Commercial Software License Agreement — Version 1.0
 
-Draft — Pending Legal Review
 SPDX custom reference: LicenseRef-Make-It-Work-Commercial-1.0
 
 Licensor: Erez Morabia, trading as InsideOut AI.
 Licensing contact: insideoutaitech@gmail.com
-Commercial effective date: 2026-11-03 (planned; subject to approval and publication
-of version 5.0.0).
+Commercial effective date: 2026-11-03 (planned publication date for version 5.0.0;
+applies only upon publication of that commercial version).
 
-0. Draft status and application
+0. Application and licensing history
 
-This is a proposed agreement, not an effective commercial license or a
-statement that all relicensing rights have been confirmed. It must not be used
-for a commercial release until ownership and third-party rights are confirmed,
-legal review is complete, and the release details above are finalized. The
-proposed manifest reference identifies this draft only. This preparation branch
-does not relicense previously published code or start a trial for its existing
-users. Prior grants remain governed by their original terms; see section 8 and
-the archived texts in docs/licensing/.
+This agreement applies only to versions of Make It Work expressly released by
+Licensor under this agreement (the Software). Public availability of source code
+does not make those versions open-source licensed. Approval of these terms does
+not itself publish a commercial version, relicense previously published code,
+or start a trial for existing users. Prior grants remain governed by their
+original terms; see section 8 and the archived texts in docs/licensing/.
 
-Once approved and effective, this agreement applies only to versions of Make It
-Work expressly released by Licensor under this agreement (the Software). Public
-availability of source code does not make those versions open-source licensed.
 An individual accepting for an organization represents that they are authorized
 to bind it. The organization accepting these terms is Customer. Before the
 first installation or execution of a commercially licensed version, an
