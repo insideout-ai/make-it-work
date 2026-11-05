@@ -1,0 +1,20 @@
+README.md
+  s_829fde07ad9726::t_7ed6d2f16e49fb 5
+  s_829fde07ad9726::t_4e349a742555f9 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3e735c4dbcf24e1f13377d7034c4bdbc66483511",
+  "prompts": {},
+  "sessions": {
+    "s_829fde07ad9726": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a197f4-ac5f-7320-8db8-7e4a1bd309cf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
