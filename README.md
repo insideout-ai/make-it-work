@@ -1,8 +1,8 @@
 # make-it-work
 
-> **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. Version 5.0.0 is the first commercial release, effective November 3, 2026. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
-
 > From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — orchestrate an epic with `drive-the-epic`, or take a ticket through implementation with `implement`.
+
+> **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. Version 5.0.0 is the first commercial release, effective November 3, 2026. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
 
 Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
 
