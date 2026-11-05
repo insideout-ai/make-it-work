@@ -1,0 +1,133 @@
+skills/close-the-gaps/SKILL.md
+  s_829fde07ad9726::t_581d119bb5c55f 3,52,74,90-104,250-255,464-465,515
+  s_829fde07ad9726::t_a1ec7886146d8f 516
+docs/deterministic-artifacts.md
+  s_c8a7631e4b310b::t_3194a49e446c25 43-46,55-57
+  s_c8a7631e4b310b::t_2d0c8568616290 29
+CHANGELOG.md
+  s_829fde07ad9726::t_581d119bb5c55f 25
+  s_829fde07ad9726::t_c435ecb05d1a88 12,27
+  s_829fde07ad9726::t_4c2ac35df2f398 9-11,13-24,26
+docs/autopilot-log-schema.md
+  s_c8a7631e4b310b::t_9a7469539ccdf2 25-26
+  s_c8a7631e4b310b::t_19ed3858306b56 40-41
+scripts/decision-log.mjs
+  s_c8a7631e4b310b::t_d51f5b816532e0 4,220
+  s_c8a7631e4b310b::t_0e0e43827e2755 83-89
+  s_c8a7631e4b310b::t_19ed3858306b56 216-217
+scripts/repo-assessment.test.mjs
+  s_c8a7631e4b310b::t_3194a49e446c25 7,51-72
+  s_c8a7631e4b310b::t_d51f5b816532e0 3,24-29
+  s_c8a7631e4b310b::t_69a29027cb8210 30,73
+scripts/decision-log.test.mjs
+  s_c8a7631e4b310b::t_19ed3858306b56 106,112,119,123-136
+  s_c8a7631e4b310b::t_0e0e43827e2755 9,137-138,149-166
+  s_c8a7631e4b310b::t_d51f5b816532e0 139-148,167
+  s_c8a7631e4b310b::t_0e14cdb82bfacf 168
+skills/close-the-gaps/references/slack-context-search.md
+  s_829fde07ad9726::t_581d119bb5c55f 1-112
+scripts/epic.test.mjs
+  s_c8a7631e4b310b::t_0e0e43827e2755 15-21,24-31
+  s_c8a7631e4b310b::t_f2107f524b293e 32
+skills/shape-the-epic/references/autopilot.md
+  s_c8a7631e4b310b::t_4289e55834159b 57
+  s_c8a7631e4b310b::t_aae73002ab0af0 32,34,36,39,42
+  s_c8a7631e4b310b::t_19ed3858306b56 59
+  s_c8a7631e4b310b::t_a817e0a650a5c3 58
+evals/run-suite.mjs
+  s_c8a7631e4b310b::t_e2672796cb6714 47,53
+skills/find-the-repos/SKILL.md
+  s_c8a7631e4b310b::t_19ed3858306b56 128
+  s_c8a7631e4b310b::t_3194a49e446c25 164
+evals/implement/dashboard-autonomous-start/case.yaml
+  s_829fde07ad9726::t_8698bd19a116ed 1-5
+evals/implement/dashboard-autonomous-start/fixture.sh
+  s_829fde07ad9726::t_8698bd19a116ed 1-16
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/epic-structure-sections.md
+  s_c8a7631e4b310b::t_ba39ca8e30e757 3,7
+evals/close-the-gaps/README.md
+  s_829fde07ad9726::t_56b637ce97c09b 66-74
+evals/grade-headless.test.mjs
+  s_c8a7631e4b310b::t_3a78e84ee43698 57-89
+evals/suites.json
+  s_829fde07ad9726::t_8698bd19a116ed 56
+  s_829fde07ad9726::t_0fd94ef13fd258 11
+  s_c8a7631e4b310b::t_6e21f323243ab4 43
+evals/find-the-repos/README.md
+  s_c8a7631e4b310b::t_6e21f323243ab4 36
+evals/implement/dashboard-autonomous-start/graders/dashboard-link-in-chat.md
+  s_829fde07ad9726::t_8698bd19a116ed 1-16,18-19,27-29
+  s_829fde07ad9726::t_f95dba692603cf 17,20-26
+evals/implement/README.md
+  s_829fde07ad9726::t_8698bd19a116ed 95-98,100-104
+  s_829fde07ad9726::t_3885d1a95160d0 105-115
+  s_829fde07ad9726::t_d7c557427a158d 116-126
+  s_829fde07ad9726::t_0fd94ef13fd258 99
+evals/shape-the-epic/shape-the-epic-sparse-input-autopilot/graders/open-items-populated.md
+  s_c8a7631e4b310b::t_ba39ca8e30e757 3,7
+skills/implement/SKILL.md
+  s_829fde07ad9726::t_3e315f783cfdaf 17-19,23-27,29
+  s_829fde07ad9726::t_7bd225cee729cd 20-22,28,30-40,211,262,267
+evals/run-suite-args.test.mjs
+  s_c8a7631e4b310b::t_e2672796cb6714 3,6-8,10-17
+  s_829fde07ad9726::t_d5b513752c2b5b 9,18
+scripts/lib/artifacts.mjs
+  s_c8a7631e4b310b::t_d51f5b816532e0 2,95
+README.md
+  s_829fde07ad9726::t_581d119bb5c55f 134-135
+scripts/repo-assessment.mjs
+  s_c8a7631e4b310b::t_30634d273ea402 4,6,11-28,30-31,41-47,114,137-166,172-183,189-190
+  s_c8a7631e4b310b::t_9a7469539ccdf2 167-171
+evals/implement/dashboard-autonomous-start/prompt.md
+  s_829fde07ad9726::t_8698bd19a116ed 1-17
+scripts/epic.mjs
+  s_c8a7631e4b310b::t_0e0e43827e2755 4,62-63,67,73-81
+evals/run-batches.test.mjs
+  s_c8a7631e4b310b::t_e2672796cb6714 48-73
+evals/find-the-repos/run-all.sh
+  s_c8a7631e4b310b::t_6e21f323243ab4 23,29
+skills/slice-the-epic/SKILL.md
+  s_c8a7631e4b310b::t_ba39ca8e30e757 164
+  s_c8a7631e4b310b::t_39c48389dadc6d 22-23,25-26
+  s_c8a7631e4b310b::t_2d0c8568616290 24,67
+evals/README.md
+  s_c8a7631e4b310b::t_6e21f323243ab4 81-84
+  s_829fde07ad9726::t_6e469895a13cdc 28-29
+  s_c8a7631e4b310b::t_e2672796cb6714 35-36,38,41,94
+  s_829fde07ad9726::t_0fd94ef13fd258 14
+  s_829fde07ad9726::t_7a332fc79bff2e 22-23,39-40
+evals/close-the-gaps/slack-context-search-manual.md
+  s_829fde07ad9726::t_56b637ce97c09b 1-20
+.claude-plugin/plugin.json
+  s_829fde07ad9726::t_cf6a43b1705c12 6
+skills/implement/references/controller.md
+  s_829fde07ad9726::t_b15ee76698e63a 13-25
+skills/implement/scripts/workflow.mjs
+  s_829fde07ad9726::t_1a3040f8ddec14 519-522,527-534
+skills/implement/scripts/workflow.test.mjs
+  s_829fde07ad9726::t_c64fe42ec9e2b7 12-13,24,42-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "c60b1a446e3f1e06c058f9cb176458c9bacd7481",
+  "prompts": {},
+  "sessions": {
+    "s_829fde07ad9726": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a197f4-ac5f-7320-8db8-7e4a1bd309cf",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_c8a7631e4b310b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a28b-9a75-76f1-acaf-a272921408cc",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
