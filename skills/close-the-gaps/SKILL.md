@@ -1,6 +1,6 @@
 ---
 name: close-the-gaps
-description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode (export every question to a file to answer outside the session) and Slack modes (draft or explicitly send the questions as a direct message to the Product Manager); re-invoke with the questions file to inject the answers and resume. Use when refining a ticket before dev starts."
+description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, optionally searches connected Slack channels for related ticket context with consent, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode (export every question to a file to answer outside the session) and Slack modes (draft or explicitly send the questions as a direct message to the Product Manager); re-invoke with the questions file to inject the answers and resume. Use when refining a ticket before dev starts."
 disable-model-invocation: true
 ---
 
@@ -49,6 +49,7 @@ This file is a run artifact: never treat it as a Phase 3 "code finding," never e
 |---|---|---|---|
 | Phase 1 | ticket-fetch failure, nothing pasted | `checkpoint` | Hard-stop exception above — stop and require a human. |
 | Phase 1 | pending offline export (resume / overwrite / abort) | `checkpoint` | Hard-stop exception above — stop and require a human. Never auto-select "overwrite it and continue this fresh session." |
+| Phase 1A | optional Slack context search | `checkpoint` | Skip without asking unless the user explicitly requested channel research for this ticket; then search within that scope. Slack delivery flags never grant research consent. |
 | Phase 5 | mode choice (answer here / draft in Slack / send via Slack / export to a file), no mode flag passed | `askUserQuestion` | Choose `Answer here (Recommended)`; never automatically authorize sending. |
 | Phase 5A | per-question wave batch | `askUserQuestion` | Choose the option labeled `(Recommended)`. |
 | Phase 5A | genuinely open-ended question (no pre-enumerable answer) | `open_text` | Answer with your own best inference from Phase 2–3 findings, prefixed `[autopilot best-guess]`. |
@@ -70,7 +71,7 @@ At the end of an autopilot run, print a short human-readable summary of every au
 
 ## Phase 1 — Ticket Ingestion
 
-**0. Detect an injection run first.** If the argument is a path to an existing `*-questions.md` file, this is an **injection** run: read the file in full, skip the rest of Phase 1, restore the original ticket content, the loaded-skills list, and the code findings from its `## Session Context` section — then re-read each skill named in that list, so its content is available for Phase 6's re-check — and go directly to **Phase 5C — Offline Injection**.
+**0. Detect an injection run first.** If the argument is a path to an existing `*-questions.md` file, this is an **injection** run: read the file in full, skip the rest of Phase 1, restore the original ticket content, the loaded-skills list, the code findings, and any `### Related Channel Context` from its `## Session Context` section — then re-read each skill named in that list, so its content is available for Phase 6's re-check — and go directly to **Phase 5C — Offline Injection**.
 
 Otherwise, ingest the ticket as usual:
 
@@ -83,6 +84,21 @@ Otherwise, ingest the ticket as usual:
 - **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
 - Record the selected mode flag (`--offline`, `--slack`, or `--slack-send`) for Phase 5. Reject conflicting mode flags before any analysis. `--slack` always means draft-only; generic or legacy Slack selection does not authorize sending.
 - Acknowledge to the user: "Loaded ticket [ID]: [summary]. Starting analysis..."
+
+---
+
+## Phase 1A — Optional Slack Context Search
+
+Follow [the Slack context-search contract](references/slack-context-search.md)
+after ticket ingestion and before drafting refinement questions. When Slack
+channel search is connected, offer **Search Slack** or **Skip** once. After
+consent, search **all accessible channels by default**, using ticket identifiers
+and relevant terms; channel selection is optional. Use read-only tools, summarize
+useful findings with message links, and surface conflicts rather than treating
+Slack discussions as unquestionable requirements. An unavailable or unsuccessful
+search does not block refinement. Autopilot skips unless explicitly requested.
+This is independent of later PM message delivery and applies when run by
+implement too. Injection/resume restores saved context without a fresh search.
 
 ---
 
@@ -230,6 +246,12 @@ Write the file to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` 
 ### Code Findings
 
 - Q1 — `<path/to/file>`: <one-sentence summary of the Phase 3 finding this question is based on>
+
+### Related Channel Context
+
+<Optional: research choice, scope, queries, retrieval date, outcome, concise
+findings and actual Slack message links. Preserve conflicts as unresolved.
+Omit for older sessions with no recorded context; this is not the PM delivery block.>
 
 ## Questions
 
@@ -439,6 +461,8 @@ Include every applicable question here, including skipped ones — the Decision 
 
 ### Output rules
 
+- When Slack research informed refinement, preserve its short `## Related Channel Context` evidence summary and source links per the context-search contract. It is reference evidence, not a substitute for the ticket's Decision Log or unresolved questions.
+
 - Preserve the original ticket's section names, order, and formatting wherever possible.
 - Do not rewrite the whole ticket from scratch — make surgical edits and additions only.
 - Use `Scenario Outline` with `Examples` tables for parameterized Gherkin cases.
@@ -487,6 +511,8 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 **Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided, Autonomous, or Autopilot), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
 
 **Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current interview progress and answers; never restart refinement just to change mode.
+
+**Slack context research** — Phase 1A is separate from the saved answer destination. Offer it in Guided/Autonomous when channel search is available, even when questions will be answered here or sent to the PM. Reuse explicit saved research consent/context, honor effective autonomy, and report the choice through implement's existing workflow-decision/pending-input contract. Autopilot skips unless the user explicitly requested research; `slack-draft`/`slack-send` alone do not grant this consent.
 
 **Answer mode** — ignore `--offline`; use [implement's refinement-destination contract](../implement/references/refinement-destination.md) before the first product-question wave. Verify the choice in the supplied workflow state, honoring a later explicit destination instruction. Do not show standalone Phase 5's export-mode choice when a destination is already resolved. If it is missing, recover an unambiguous Audit-log choice or ask the destination question now in Guided/Autonomous, including Slack capability discovery and an explanation when unavailable. Save the resolved destination and audit it before asking product questions; preserve answers already given. Autopilot defaults a missing choice to `here` as policy without asking. Use Phase 5D draft mode for `slack-draft` (`--slack`), send mode for `slack-send` (`--slack-send`), and Phase 5A for `here`. An absent Slack flag alone never proves that the user chose live questions. A saved explicit Slack choice remains effective under Autopilot; Autopilot itself never selects sending. When `implement` passes a pending questions file's path instead of the ticket, this is an injection run: follow Phase 5C without choosing a destination or making any send call. (`implement` stops before calling this skill when an offline questions file is pending that its own run did not create.)
 

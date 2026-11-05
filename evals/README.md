@@ -11,7 +11,7 @@ signed in, use `claude auth login` interactively and retry. It never requests
 or stores an API key.
 
 ```sh
-node evals/run-suite.mjs smoke --dry-run  # inspect the 13 selected cases
+node evals/run-suite.mjs smoke --dry-run  # inspect the selected smoke cases
 node evals/run-suite.mjs smoke            # before every PR
 node evals/run-suite.mjs full             # on demand and before a release
 node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # retry one case
@@ -19,21 +19,26 @@ bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before
 ```
 
 `smoke` exercises one representative case for each of the 13 public skills.
+The implement smoke case checks Autonomous startup and dashboard-link presentation
+before further workflow tools; completion-feedback cases remain in the full suite.
 Script-backed skills declare the minimal Read/Bash helper capabilities in
 `suites.json`'s `requiredToolsBySkill`, merged with each case's tools for both
 headless and plugin-eval runs. This keeps the eval environment able to exercise
 the required helpers; the runner still never bypasses tool permissions.
-The `implement` case covers completion feedback rather than the complete
-orchestrator; the latter is checked in the manual end-to-end release rehearsal.
+The complete `implement` orchestrator is checked in full-suite cases and the
+manual end-to-end release rehearsal.
 `full` discovers and runs every `case.yaml` in this tree (45 at the time this
 section was written). The shared inventory in `evals/suites.json` names the
 smoke cases and the cases that need a direct headless run. Adding a new case
 automatically adds it to `full`; adding a skill requires naming its smoke case.
 
-The commands run each case once. Smoke runs up to four isolated cases in
-parallel, in budget-limited waves; full regression remains sequential. The
+The commands run each case once. Smoke starts every selected case in parallel
+in an isolated fixture; full regression remains sequential. The
 cumulative reported-usage limit is $12 for smoke and $45 for full. Override it with
-`--max-cost-usd=N`. Pass `--model=ID` to run every case on that model (both
+`--max-cost-usd=N`. The runner reserves an equal share of the suite budget for
+each concurrent case, including its grading: with all 13 smoke cases and the
+default $12 cap, each receives $0.92. Unused shares cannot be reassigned during
+that run; increase the suite cap if a case needs more headroom. Pass `--model=ID` to run every case on that model (both
 `claude plugin eval` and headless cases); without it each uses its own default,
 which fails if your account can't use it. Pass `--judge-model=ID` to grade `llm`
 checks with that model instead of the default `haiku`, which has been seen voting
@@ -73,6 +78,10 @@ failed cases.
 The `shape-the-epic` smoke case uses the disposable headless path because its
 file write was denied in a real plain-eval smoke run despite `Write` being
 listed in `allowed_tools`.
+The `find-the-repos` smoke case also uses headless execution because the plain
+plugin-eval sandbox denied access to its repository-assessment helper in an
+isolated snapshot. This lets the case exercise inventory and report generation
+without bypassing tool permissions.
 
 For a PR, include the smoke report path and note any failed cases in the PR
 description. For a release, run `full` for the exact release
@@ -82,7 +91,7 @@ whether the skill failed or the grader misread valid output. Do not silently
 turn a failing score into a pass.
 
 Two recent complete 11-case sequential smoke runs reported $2.67 in 9m14s
-and $2.79 in 10m37s. Four-way concurrency is intended to shorten wall time
+and $2.79 in 10m37s. Running every smoke case concurrently is intended to shorten wall time
 without changing case count or materially changing usage, but it has not yet
 been measured against a real Claude run. Budget roughly $15–25 and 1–3 hours
 for the current full suite. New cases and reruns add to both. These are

@@ -1,10 +1,10 @@
 ---
 type: llm
-focus: trace
+focus: { source: file, path: "make-it-work/epic-*.md" }
 weight: 2
 ---
 
-Find the content passed to the `Write` tool call that successfully creates `make-it-work/epic-....md` in this transcript. Its matching `tool_result` must confirm successful file creation. If the write was denied or no epic was saved, FAIL; do not grade the denied draft's content. If multiple writes appear, grade the successful epic write only.
+Judge the saved epic Markdown supplied as evidence, regardless of which permitted tool wrote it. A direct `Write` call or transcript readback is not required. Missing, empty, or ambiguous artifact evidence fails. Heading capitalization and inline Markdown emphasis do not affect the criteria below.
 
 Given the single vague sentence, a correct draft makes missing outcome, scope, behavior, and measurement decisions visible without manufacturing product requirements.
 

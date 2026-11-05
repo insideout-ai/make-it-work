@@ -1,10 +1,10 @@
 ---
 type: llm
-focus: trace
+focus: { source: file, path: "make-it-work/epic-*.md" }
 weight: 3
 ---
 
-Find the content passed to the `Write` tool call that creates `make-it-work/epic-....md` in this transcript, and judge that content (not the chat narration around it). **There may be more than one `Write` attempt at a path containing `epic-` and `.md`** (e.g. a stray attempt at an absolute or incorrectly-nested path that the sandbox denied, alongside the one that actually succeeded inside the working directory). Identify the one that actually succeeded — its `tool_result` says something like "File created successfully", with no accompanying `permission_denials` entry for that same `tool_use_id` — and judge only that one's content. Ignore any denied attempt entirely, even if its content looks superficially plausible.
+Judge the saved epic Markdown supplied as evidence, regardless of which permitted tool wrote it. A direct `Write` call or transcript readback is not required. Missing, empty, or ambiguous artifact evidence fails. Heading capitalization and inline Markdown emphasis do not affect the criteria below.
 
 PASS only if ALL of the following hold:
 1. It contains, in order, top-level sections for: What & Why, Definition of Done, Problem & Value Proposition, Target Users & Permissions, KPIs & Success Metrics, Use Cases & Requirements, Rollout Plan, and Open Items & Out of Scope.

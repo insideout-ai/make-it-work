@@ -45,3 +45,29 @@ test('stops before a wave that cannot fit its reserved cost limit', async () => 
   assert.equal(run.cost, 1);
   assert.match(run.stopped, /Cost limit reached before case-4/);
 });
+
+test('all smoke cases start together while their reserved budgets stay within the suite cap', async () => {
+  const items = Array.from({ length: 13 }, (_, i) => ({ name: `case-${i}` }));
+  const started = [];
+  const allowances = [];
+  let release;
+  const barrier = new Promise((resolve) => { release = resolve; });
+  const pending = runBatches(items, {
+    concurrency: items.length, budget: 12,
+    onStart: () => {},
+    onResult: async () => {},
+    runCase: async (item, allowance) => {
+      started.push(item.name);
+      allowances.push(allowance);
+      await barrier;
+      return { name: item.name, costUsd: allowance, detail: '', status: 'passed' };
+    },
+  });
+  assert.deepEqual(started, items.map((item) => item.name), 'Every case starts before any case finishes');
+  release();
+  const run = await pending;
+  assert.equal(run.results.length, 13);
+  assert.ok(allowances.every((allowance) => allowance === 0.92));
+  assert.ok(run.cost <= 12);
+  assert.equal(run.stopped, undefined);
+});

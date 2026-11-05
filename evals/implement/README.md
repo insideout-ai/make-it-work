@@ -92,3 +92,35 @@ Manual refinement-destination checks (use a disposable ticket; use draft mode or
 - With an explicit Slack destination, preserve it under Autopilot without re-asking. Resume a pending questions file read-only through Phase 5C without choosing a new destination or resending. Reused accepted specs and runs already past refinement must not acquire a new destination prompt.
 
 These destination checks are manual behavioral scenarios, not claims of automated connector or live-session coverage.
+
+
+## Startup dashboard presentation
+
+The smoke case `implement-dashboard-autonomous-start` runs a fresh Autonomous startup and stops
+after its first context check. Its transcript grader requires the clickable
+dashboard link in the next assistant message after initialization, before any
+further workflow tool call; a path present only in controller output fails.
+The controller unit tests cover all autonomy modes, pending-offline creation,
+and path characters needing Markdown URL escaping.
+
+
+Current startup-link validation (2026-11-05): controller and harness unit tests
+pass, but four targeted Autonomous model runs still fail immediate assistant-text
+presentation. The link is returned by initialization, yet the model continues
+with tools and may show it only at completion. In the user's interactive session,
+the apparent dashboard announcement was a thinking block displayed as `· summary`,
+not an assistant text message. The skill and controller handoff now explicitly
+require ordinary text and reject that substitute. The regression remains red;
+this is not yet a verified fix. Latest report:
+`evals/results/smoke-2026-11-05T21-12-15-446Z/summary.json`.
+
+
+Continuation follow-up (2026-11-05): a live session showed the clickable link
+but ended its turn at that announcement. Startup now calls for a text block and
+the Context-check activity/tool in the same assistant response, without waiting
+for acknowledgment. The pending-offline case keeps its real wait. The grader
+now also requires Context check to execute after the link without another user
+message. All 20 controller tests passed. The latest model run did continue
+through Context check without user input, but still omitted the assistant-text
+link, so the overall startup-link regression remains failing. Report:
+`evals/results/smoke-2026-11-05T21-20-16-344Z/summary.json`.

@@ -125,7 +125,7 @@ Read enough context to distinguish a field definition, route, or UI control from
 
 A skill/code file naming another local repo as implementing the **same ticket concept** (for example, the UI mirroring the exact edit lock) can add it to the queue even if the initial list omitted it. Record **referenced by <repo>** plus the referring pointer. Run its exact-concept check, fallback docs, related skills, owner collection, and bounded follow-up. Visit each repo once and deduplicate references.
 
-A specific implementation reference can justify Possible pending local evidence, not automatic Definite. Generic calls-to, event feeds, consumes-from, and upstream/downstream relationships alone do not justify a match or expansion, even when described in the repo's own docs. Flag absent referenced repos without inspecting remote code.
+A specific implementation reference can justify Possible pending local evidence, not automatic Definite. Consuming a ticket-specific event does not establish implementation involvement, even when the exact event name appears in the consumer's own docs. Require evidence that the requested behavior changes that consumer's behavior or contract; a hypothetical future event-contract change is insufficient. Otherwise retain the consumer as No match and note the relationship under affected systems in the report. Apply the same rule to generic calls-to, event feeds, and upstream/downstream relationships. Flag absent referenced repos without inspecting remote code.
 
 ### 3f — Owner evidence for routing
 
@@ -161,7 +161,7 @@ Include a coverage/handoff table: requested operation/behavior, local evidence o
 
 ## Phase 4 — Maintain One Report and Present a Compact Summary
 
-Keep the full assessment in one Markdown report: **implementation headline and handoff first**, followed by central coverage/external gaps, Definite/Possible matches with pointers, and the assessment table/implementation observations. Each candidate gets a report row, including No match, Excluded, and unavailable repos, with actual docs/skills, searches, owner evidence, provenance, and limitations. Do not mirror these detailed sections into the terminal.
+Keep the full assessment in one Markdown report: **implementation headline and handoff first**, followed by central coverage/external gaps, Definite/Possible matches with pointers, and the assessment table/implementation observations. Save it with `repo-assessment.mjs report` as described in [the collector contract](../../docs/deterministic-artifacts.md#repository-assessment-collection). Supply the complete report prose and assessed conclusions; the writer builds the Assessment Evidence table from the complete workspace inventory, including metadata-named missing checkouts. Do not compose that table from just the matches. Do not mirror these detailed sections into the terminal.
 
 ### One file throughout review
 

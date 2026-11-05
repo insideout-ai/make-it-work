@@ -29,17 +29,17 @@ Do not invent numerical baselines, targets, architectural facts, or verification
 
 ## Decision log
 
-Accumulate decisions in memory during Phases 1, 2A, and 2B. After Phase 4 saves the epic, flush the complete array to `make-it-work/shape-the-epic-autopilot-log.jsonl` under the same project root. The JSONL describes this run only and is replaced fresh. Saving the epic takes priority; never delay or withhold it for the log.
+Use the epic input's `decisions` list as the single source for both outputs. Each automatic choice or inferred answer is one `{topic, auto_resolution}` row. Its `auto_resolution` is the complete entry defined by [the shared schema](../../../docs/autopilot-log-schema.md); the epic renderer derives the Proposed decision text and rationale from it. Keep explicit user decisions as ordinary Confirmed rows with provenance, and unresolved questions as ordinary Open / Deferred rows. Do not build a second JSONL payload or add inferred answers outside this shared list.
 
-Field shape follows [the shared schema](../../../docs/autopilot-log-schema.md). This skill uses `askUserQuestion` and `open_text`, never `checkpoint`. Include `phase`, `site`, `kind`, `chosen`, and a one-sentence `rationale` in every entry. For `askUserQuestion`, include the exact constructed `question` and `options` payload and explicit `multiSelect`: `true` for category selection with a chosen-label array, `false` for single-select sites with a chosen-label string. An `open_text` answer is a string with the best-guess prefix; it needs no options. Example sites are `mode-choice`, `focus-1`, `focus-2`, `turn-1`, `part-a-cap-reached`, and `gap-check-metrics`. There are no section-approval entries.
+This skill uses `askUserQuestion` and `open_text`, never `checkpoint`. Each resolution includes `phase`, `site`, `kind`, `chosen`, and `rationale`. Question entries include the exact `question`, `options`, and `multiSelect`: true with chosen-label arrays for focus selection, false with a string for single choices. Open-text answers use a best-guess-prefixed string and omit question/options fields. There are no section-approval entries.
 
-When Bash is permitted, use the shared writer in its own Bash tool call, passing the complete decision array on stdin:
+Save the epic with `epic.mjs write` using that input. Then, in its own Bash call, run the existing log writer on the **same input file**:
 
 ```sh
-node "<skill-dir>/../../scripts/decision-log.mjs" write shape-the-epic --root "<project-root>"
+node "<skill-dir>/../../scripts/decision-log.mjs" write shape-the-epic --root "<project-root>" --input "<epic-input.json>"
 ```
 
-If the supplied mode, focus, and interview context already resolve every site, an empty log is valid: pass `[]` to the writer. Only when Bash is not among your tools at all, use one Write call to the same log path with complete JSONL (an empty file for an empty array). Do not hand-build a log with shell redirection. A shell that refuses one writer command because of its text (e.g. "Contains brace with quote character") does not make Bash unavailable: Write the same JSON payload to `<repo-root>/make-it-work/.decision-log-input.json`, then re-run the same writer command with `--input "<that path>"` in place of the heredoc. Never Write the log file itself in that case. If the log write is denied, report it as non-fatal and finish normally; do not retry or switch tools to bypass the denial. The already-saved epic remains the deliverable.
+The writer extracts every `auto_resolution`, writes the log at `make-it-work/shape-the-epic-autopilot-log.jsonl`, deletes the temporary input, and returns the saved path. No automatic resolutions means an empty log. Keep payload edits and cleanup outside the writer call. Saving the epic takes priority; if the log write is denied, report it as non-fatal without retrying or switching tools. If Bash is unavailable, use one Write call for the log derived from those same nested entries. Never write the log through shell redirection.
 
 Phase 4 creates a new epic, adding a numeric suffix if a timestamped filename already exists. This does not grant permission to overwrite an existing epic or publish a ticket. There is no destructive hard-stop site and no need for `chosen: null`.
 
@@ -54,4 +54,6 @@ Part A: [N] self-answered turn(s) used (cap 6); exit: early (no open threads rem
 Part A: [N] self-answered turn(s) used (cap 6); exit: cap-reached (open threads: [list])
 ```
 
-State `Decision log: saved to make-it-work/shape-the-epic-autopilot-log.jsonl` or `Decision log: write denied — run details are in this summary instead`, as appropriate. Invite consolidated feedback on the generated epic without claiming section approvals.
+Count only Phase 2A `open_text` answers toward Part A's six-turn cap. Report Part B gap-check resolutions separately; a zero-turn Part A can coexist with later gap-check assumptions and unresolved draft items. Explain that distinction when it applies, so “no open threads remaining” describes the discovery interview rather than claiming the entire epic has no open decisions.
+
+Use the writer's successful `Decision log saved to <path>` output to report `Decision log: saved to <path>`. If denied, state `Decision log: write denied — run details are in this summary instead`; report other failures accurately. Invite consolidated feedback on the generated epic without claiming section approvals.

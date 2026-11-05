@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.1.0] — Unreleased
+
+### Added
+
+- Optional read-only Slack context research in `close-the-gaps`, before gap analysis. After consent, search all accessible channels by default, summarize linked findings, and surface conflicting evidence. Autopilot skips unless explicitly requested; offline export/resume preserves context and PM messaging permissions remain separate.
+- Autonomous startup smoke coverage requires a clickable dashboard link in assistant text and continuation through Context check without another user message.
+
+### Changed
+
+- Workflow initialization returns a chat-ready dashboard link and continuation instructions. `implement` must present the link as ordinary assistant text followed by Context check in the same response; pending-offline runs retain their genuine answer wait.
+- Epic shaping uses one decision source for the saved epic and Autopilot log, keeps unresolved categories unchecked, and grades saved Markdown rather than requiring a direct Write call.
+- Epic slicing presents approach choices in chat before artifact generation and copies the saved slice summary and starting-slice recommendation into the completion response.
+- Repository assessment retains workspace-metadata repositories that are absent on disk, writes complete evidence tables, and requires behavioral evidence before treating event consumers as implementation matches.
+- Smoke cases run concurrently within reserved budgets. Repository-discovery smoke uses the headless runner; helper CLIs handle symlinked entry points and report the saved decision-log path.
+
+### Known issues
+
+- Dashboard startup presentation is not yet reliable in model runs: the controller returns the correct link, but the latest targeted regression still omitted it from assistant text. A live run also stopped after presenting the link; continuation instructions and a regression check now cover that case. This version does not claim a verified end-to-end fix.
+
 ## [5.0.0] — 2026-11-03
 
 ### Licensing

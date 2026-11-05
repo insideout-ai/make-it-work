@@ -10,6 +10,19 @@ node <controller> init --root <artifact-root> --input <init.json>
 
 This creates the state from the maintained template, captures plugin version, time and repository snapshots, and creates the dashboard. It refuses to overwrite a run. The branch guard still precedes initialization. The controller does not create a branch, choose product scope or grant publication consent.
 
+**Required startup presentation and continuation:** successful `init` returns
+`startup_message`, a chat-ready **Open implementation dashboard** Markdown link,
+and a mode-appropriate `next_action`. Run initialization by itself. For a normal
+new run, the next assistant response must contain the link as an ordinary text
+block followed by the Context-check activity/tool call in that same response.
+Do not end the turn, wait for acknowledgment or ask whether to continue at the
+announcement. Tool output, thinking and `· summary` updates do not count as the
+text block. For pending offline refinement, include the link in the existing
+stop message, explain how to supply answers/resume, and keep that genuine pause.
+Initialization failure produces no success announcement; report the error.
+Use `inspect` later if full fields are needed. Ordinary refresh/resume does not
+emit another startup link. No state field asserts that the user saw the link.
+
 Before every phase transition, run `inspect --root <root> --state <state>` and use its `state_hash` as `expected_hash` in a saved event JSON. Every event has a stable `id` (reuse that exact event on retry), `event`, and `repos`. Run `apply --root <root> --state <state> --input <event.json>`. Do not hand-edit phase/status, loop counters, audit transition rows or fingerprints on controller-enabled runs.
 
 - `handoff`: supply the actual `handoff` path, optional `previous_review`, and `related_failures` after semantic triage. A human question is saved as a blocking pending input before returning; present its saved question/choices, then use `resolve-input` with the returned pending ID. Internal regression triage remains active work; only an actual unresolved human classification opens an input wait. A manual-walkthrough route also requires the walkthrough to have happened and `manual_evidence_complete: true`.

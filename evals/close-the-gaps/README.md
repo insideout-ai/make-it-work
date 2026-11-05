@@ -63,3 +63,12 @@ This is the only case in this suite that needs that manual step, and it's an add
 - Doesn't cover the Phase 5C "conflicting checkboxes" hard-stop (more than one box checked on the same question) — a plausible fifth case, omitted here to keep the suite to the same size as the branches `go-deep`'s pilot covered; worth adding if this suite grows.
 - `close-the-gaps-live-autopilot` and `close-the-gaps-negative-control` share one fixture (same ticket, same tiny fixture repo) — intentional, mirrors how `go-deep`'s `fresh-onboarding`/`negative-control` share a fixture.
 - `AskUserQuestion`'s availability inside `claude plugin eval` sandboxes is itself environment-dependent (see `evals/go-deep/README.md`'s note); this skill's autopilot path never calls it on the happy path anyway, so it mainly affects how `close-the-gaps-negative-control` behaves once it reaches a question it can't resolve unattended.
+
+
+## Optional Slack context research
+
+See [the connected Slack context-search scenarios](slack-context-search-manual.md)
+for consent, all-channel default scope, explicit channel limits, Autopilot,
+read-only behavior, conflict handling, and export/resume checks. These require a
+test Slack connection and are manual coverage; the existing offline/autopilot
+fixtures do not simulate a connected search provider.

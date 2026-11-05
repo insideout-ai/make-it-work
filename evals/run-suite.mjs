@@ -20,7 +20,6 @@ const judgeModel = judgeModelArg?.slice('--judge-model='.length);
 const caseArgs = argv.filter((arg) => arg.startsWith('--case='));
 const requestedCases = caseArgs.map((arg) => arg.slice('--case='.length));
 const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'smoke' ? 12 : 45;
-const concurrency = tier === 'smoke' ? 4 : 1;
 
 if (!['smoke', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
     requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
@@ -45,12 +44,13 @@ if (missingCases.length) {
 }
 const requestedSet = new Set(requestedCases);
 const selected = requestedCases.length ? tierCases.filter((item) => requestedSet.has(item.name)) : tierCases;
+const concurrency = tier === 'smoke' ? selected.length : 1;
 if (dryRun) {
   for (const item of selected) {
     const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
     process.stdout.write(`${item.skill}\t${item.name}\t${mode}\n`);
   }
-  process.stdout.write(`${selected.length} cases; budget $${budget.toFixed(2)}. No model invoked.\n`);
+  process.stdout.write(`${selected.length} cases; ${concurrency} concurrent; budget $${budget.toFixed(2)}. No model invoked.\n`);
   process.exit(0);
 }
 

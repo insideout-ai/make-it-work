@@ -12,9 +12,23 @@ test('scope, fixed section order and consolidated open items derive from the act
   assert.equal(markdown.match(/Retention undecided/g).length, 2); assert.doesNotMatch(markdown, /^## Rollout Plan$/m);
   assert.ok(markdown.indexOf('| 1 | Save') < markdown.indexOf('| 2 | Retention'));
 });
-test('readiness and confirmed decisions cannot be manufactured from a proposal', () => {
-  const ready = input(); ready.categories[0].ready = true; assert.throws(() => renderEpic(ready), /unresolved/);
+test('readiness remains unchecked with unresolved content and confirmations require provenance', () => {
+  const ready = input(); ready.categories[0].ready = true; assert.match(renderEpic(ready), /\[ \] Use Cases/);
+  ready.categories[0].open_items = [];
+  for (const unconfirmed of [true, ['Unknown dependency'], 'Unknown dependency']) {
+    ready.categories[0].unconfirmed = unconfirmed;
+    assert.match(renderEpic(ready), /\[ \] Use Cases/);
+  }
   const proposed = input(); proposed.decisions[0].status = 'Confirmed'; assert.throws(() => renderEpic(proposed), /provenance/);
+});
+test('automatic decision rows derive their text, rationale and proposed status from the shared resolution', () => {
+  const spec = input();
+  spec.decisions.push({ topic: 'Retention proposal', status: 'Confirmed', decision: 'Wrong competing text',
+    auto_resolution: { phase: 'Phase 2B', site: 'gap-check-retention', kind: 'open_text',
+      chosen: '[autopilot best-guess] Keep drafts for one week.', rationale: 'Proposed for review.' } });
+  const markdown = renderEpic(spec);
+  assert.match(markdown, /Retention proposal \| \[autopilot best-guess\] Keep drafts for one week\. \| Proposed for review\. \| Proposed/);
+  assert.doesNotMatch(markdown, /Wrong competing text/);
 });
 test('category headings remain nested under their section while fenced examples and input stay intact', () => {
   const spec = input();

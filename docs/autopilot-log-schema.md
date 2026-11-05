@@ -22,6 +22,8 @@ JSON
 
 The writer accepts JSON on stdin or via `--input "<repo-root>/make-it-work/.decision-log-input.json"`. Either is valid; the file form is useful when the shell refuses inline JSON. The writer reads and then deletes that input file. Never write the log file itself directly or switch transport to retry a denied log write.
 
+For `write shape-the-epic`, `--input` also accepts the same version-1 epic input used to save the epic. It extracts the `auto_resolution` entry from every decision row, so the epic and run log share one decision source. Save the epic first; the log writer consumes and deletes the input file afterward. Ordinary object/array payloads remain supported.
+
 For a ticket-scoped workflow, pass `--ticket "<TICKET>"` to every writer call. Its log lives in `make-it-work/<TICKET>/`; project-wide skills omit the option and keep their log directly in `make-it-work/`.
 
 `init` creates an empty log for a new run. `append` accepts one decision object
@@ -34,6 +36,8 @@ writer validates the schema, serializes one JSON object per line, preserves
 an existing log on malformed input, and rejects symlinked artifact directories.
 It does not infer a choice: the skill still constructs and selects each
 decision according to its own resolution table.
+
+After a successful `init`, `append`, or `write`, the CLI prints `Decision log saved to <absolute-path>`. It prints this only after the atomic write completes; failures exit nonzero without a success message. Use the returned path to report the saved log.
 
 This command does **not** bypass tool permissions. If Bash is unavailable,
 the skill may use its existing Write/Edit path for the same JSONL contract;

@@ -9,7 +9,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$REPO_ROOT"
 
 for case_name in \
-  find-the-repos-happy-path \
   find-the-repos-technical-fallback \
   find-the-repos-single-repo-refusal \
   find-the-repos-unrelated-clones \
@@ -21,9 +20,10 @@ do
 done
 
 node evals/run-suite.mjs full \
+  --case=find-the-repos-happy-path \
   --case=find-the-repos-evidence-drilldown \
   --case=find-the-repos-catalog-workspace \
   --case=find-the-repos-combined-intake \
   --case=find-the-repos-confirm-pending \
   --case=find-the-repos-large-workspace \
-  --case=find-the-repos-revise-report --max-cost-usd=6
+  --case=find-the-repos-revise-report --max-cost-usd=6 --judge-model=sonnet
