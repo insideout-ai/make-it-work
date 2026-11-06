@@ -1,0 +1,27 @@
+skills/implement/references/testing-readiness.md
+  s_0ec3850d6727c5::t_35ac019cd84346 7-8
+CHANGELOG.md
+  s_0ec3850d6727c5::t_35ac019cd84346 9-12
+skills/define-test-strategy/SKILL.md
+  s_0ec3850d6727c5::t_35ac019cd84346 80-82
+README.md
+  s_0ec3850d6727c5::t_35ac019cd84346 174-175
+skills/implement/SKILL.md
+  s_0ec3850d6727c5::t_35ac019cd84346 88,576-577,631,652
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "16c37c08d784fed8b03a776ffe89b25fbfbe1c32",
+  "prompts": {},
+  "sessions": {
+    "s_0ec3850d6727c5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1afbf-26e2-7cc0-9c9b-5db910183004",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
