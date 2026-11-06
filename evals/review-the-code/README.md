@@ -216,3 +216,12 @@ doesn't generalize). Both transcripts were read in full, not just graded:
 The requirements-authority cases use the headless harness so transcripts and generated reports remain available for diagnosis. A live plain-plugin-eval run of the positive control produced no report and its temporary trace was unavailable; retain that failed attempt rather than treating a later retry as the original pass.
 
 Invoke these cases with the canonical slash command at the start of the prompt. A model-initiated Skill-tool load is rejected by `disable-model-invocation`; manually locating an installed plugin can select stale cached instructions. Preserve that invocation restriction and use the directly loaded skill's base directory.
+
+
+## Assertion evidence for parity
+
+`review-the-code-false-parity` supplies a truly passing happy-path test and a structurally valid ledger falsely claiming that the same scenario verifies parity. The reviewer must challenge AC2's coverage claim, not merely find the error/cancellation mismatch. `review-the-code-shared-parity` is the positive control: one shared scenario contains actual reference comparisons for successful creation, validation/failover and cancellation and legitimately supports both ACs. Both invoke the existing review workflow without adding review stages or changing production instructions.
+
+Run `node --test evals/review-parity-fixtures.test.mjs` for credential-free fixture checks. After approval of model usage, run `node evals/run-suite.mjs full --case=review-the-code-false-parity --case=review-the-code-shared-parity --max-cost-usd=4`. Keep failures and uncertainty in the report; propose workflow changes separately only if the results justify them.
+
+Live validation on 2026-11-06 against committed workflow `d4acff0`: the false-coverage case passed, and the strengthened shared-coverage control passed with an Approve/CLEAN verdict. The first positive control was graded failed after the reviewer suggested valid additional input coverage and literal contract anchors; those were added to the fixture, with no production workflow changes. Protected source/test/spec/plan/ledger hashes and both isolated snapshots were unchanged by review. Both deterministic fixture checks and all 43 eval-harness tests passed. Consolidated local report: `evals/results/parity-coverage-verification-2026-11-06/summary.json`. This demonstrates the two synthetic behaviors, not reliability across all integration work.
