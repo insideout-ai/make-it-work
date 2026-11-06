@@ -1,0 +1,36 @@
+docs/deterministic-artifacts.md
+  s_18e0c68e142857::t_bdcb78dc8ef630 67
+scripts/review-report.mjs
+  s_18e0c68e142857::t_bdcb78dc8ef630 19-25,27,50,52-53
+skills/plan-the-work/SKILL.md
+  s_18e0c68e142857::t_bdcb78dc8ef630 412
+CHANGELOG.md
+  s_18e0c68e142857::t_d8306e39bbd28c 25-27
+skills/implement/scripts/final-package.test.mjs
+  s_18e0c68e142857::t_bdcb78dc8ef630 1,257-276
+  s_18e0c68e142857::t_3ede45a40693d7 277
+skills/implement/scripts/final-package.mjs
+  s_18e0c68e142857::t_bdcb78dc8ef630 88
+scripts/review-report.test.mjs
+  s_18e0c68e142857::t_bdcb78dc8ef630 7,15-72,92-106
+skills/implement/references/handoffs.md
+  s_18e0c68e142857::t_bdcb78dc8ef630 41
+skills/review-the-code/SKILL.md
+  s_18e0c68e142857::t_bdcb78dc8ef630 262,265-267,280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "84b3bc423e9579777e5a85c1a5b3bde502f4049e",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
