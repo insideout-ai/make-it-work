@@ -409,6 +409,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **All modes:**
 
+- **Actionable review scope:** address routed `fix`/`replan` findings and explicitly resolved `human` decisions. A Minor `Route: fix` is actionable; `Route: advisory` is not. Do not add correction steps for advisory nits just because they appear in the same report. They remain visibly unfixed unless explicitly promoted for correction.
 - The test-writing sub-phase runs exactly as in a standalone run; this skill never commits anything, under either invocation.
 - Retain the readiness policy through initial, replan and amend modes; newly affected repos go back to `implement` for readiness before drafting their steps. Validate a supplied policy with `node "<base>/../implement/scripts/testing-policy.mjs" check --plan <plan-path> --required` before returning. Planning never installs tooling or silently downgrades an automated row to manual.
 - **Baseline blocked:** if Step 5 point 5 finds a regression test already failing, stop drafting and return `Blocked: pre-existing failing regression — <test file / name>`. A suite recorded as `regression not runnable locally — <reason>` is not a failure and never returns `Blocked:`. When `implement` comes back with the user's decision ("call it out and proceed" or "stop"), apply it and continue.

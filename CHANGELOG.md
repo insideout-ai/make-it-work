@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Honor explicit Minor finding routes through the existing fix/replan/human-decision paths instead of silently excluding them from actionable review handoffs. Reject contradictory route/actionability flags and retain existing fix-loop limits.
+- Mark nonblocking Minor findings as `advisory`, show them as unfixed in the report, chat summary and final package, and exclude them from fix scope. Major/Critical findings cannot be advisory.
+- Preserve standalone Minor advisory defaults and the existing actionable handoff schema. Existing saved reviews are not rewritten.
 - Lightweight fix rounds now checkpoint the diagnosis in their existing report and audit log before dispatching a fresh fix agent, including on resume. Completed fix handoffs reject missing or stale checkpoint evidence.
 - Diagnosis smoke graders distinguish an active dispatch from a seeded corrective attempt, so the first actual correction is counted correctly.
 

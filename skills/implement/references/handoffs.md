@@ -38,7 +38,7 @@ For a run with `verification_version: 1`, a `done` Execute handoff also has `art
 
 Lightweight has no plan or verification artifact: its handoffs carry the state's current `plan_version` (1 unless the user downgraded after a replan), and the spec is Review's requirements source.
 
-Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route": "fix | replan | human", "region": "path:symbol or function", "introduced_by_fix_of": "#N or step N" | null }`. Use a stable region label across rounds. `CLEAN` has no actionable findings; minor nits remain in the Markdown review. The validator derives the expected outcome from the finding routes and rejects a disagreement.
+Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route": "fix | replan | human", "region": "path:symbol or function", "introduced_by_fix_of": "#N or step N" | null }`. Use a stable region label across rounds. `CLEAN` has no actionable findings. A Minor `fix`, `replan` or `human` finding is actionable and must appear here like any other severity. Only nonblocking Minor findings explicitly marked `Route: advisory` stay out of this list; they remain visibly unfixed in the Markdown review, chat summary and final package. The advisory route never enters the handoff schema or fix scope. The validator derives the expected outcome from the finding routes and rejects a disagreement.
 
 ## After each stage
 

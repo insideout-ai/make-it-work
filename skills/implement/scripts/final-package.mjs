@@ -85,7 +85,7 @@ function markdown(pkg) {
   lines.push('## Evidence', '');
   for (const [name, item] of Object.entries(pkg.evidence)) lines.push(`- ${name}: [${item.path}](${path.basename(item.path)})`);
   lines.push(`- Known unrelated regressions: ${pkg.known_regressions.length ? pkg.known_regressions.join('; ') : 'none'}`);
-  lines.push(`- Open review nits: ${pkg.open_nits.length ? pkg.open_nits.join('; ') : 'none'}`);
+  lines.push(`- Open review nits (unfixed): ${pkg.open_nits.length ? pkg.open_nits.join('; ') : 'none'}`);
   lines.push(`- Decided findings: ${pkg.decided_findings.length ? pkg.decided_findings.join('; ') : 'none'}`, '');
   if (pkg.acceptance) {
     lines.push('## Acceptance verification', '', '| Criterion | Scenario | Status | Evidence |', '| --- | --- | --- | --- |');
