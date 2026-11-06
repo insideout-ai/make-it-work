@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-assumption-low-risk
+tags: [plan-the-work, assumptions]
+context:
+  scaffold_script: fixture.sh

@@ -386,3 +386,36 @@ against the schema in `skills/plan-the-work/SKILL.md`'s Autopilot Mode section. 
   written to tolerate both shapes rather than assume one; worth a look if a future skill's
   autopilot-log grading needs to inspect `options` structurally rather than just confirm text
   survives verbatim within it.
+
+## Evidence for design-critical assumptions
+
+Three headless planning evals use a dependency-injected transfer client, with no
+live endpoint, credentials, configured test runner or dependency installation:
+
+- `plan-assumption-unsupported`: the header is only correlation metadata. Expect
+  an actionable blocker or bounded validation task that blocks dependent retries;
+  a mock cannot establish server-side duplicate suppression.
+- `plan-assumption-supported`: the accepted API v2 contract establishes replay
+  safety within the requested scope. Expect a cited evidence-based plan without
+  a redundant mandatory probe or new provider-approval step.
+- `plan-assumption-low-risk`: only local display formatting changes. Expect
+  ordinary planning without blocking on irrelevant provider capabilities.
+
+Graders distinguish blocked planning from a completed plan. Fixture tests show
+that identical wrapper requests can lead to different acceptance counts under
+two possible transports; forwarding a header alone cannot prove a remote fact.
+Live-run verification also compares the original source, accepted spec and
+provider-contract hashes. The boundary grader accepts the CLI's preloaded
+CLAUDE.md/rules and slash-command skill context without redundant Read calls;
+the provider contract and source must still be investigated. No workflow stage or assumption-review agent is added.
+
+```sh
+node --test evals/assumption-fixtures.test.mjs
+node evals/run-suite.mjs full --case=plan-assumption-unsupported --max-cost-usd=4
+node evals/run-suite.mjs full --case=plan-assumption-supported --max-cost-usd=4
+node evals/run-suite.mjs full --case=plan-assumption-low-risk --max-cost-usd=4
+```
+
+Use a frozen plugin snapshot for parallel live runs and separate
+`MIW_EVAL_REPORT_ROOT` directories. Keep original reports if a grader or fixture
+needs correction; do not reinterpret a failed run as a pass without evidence.

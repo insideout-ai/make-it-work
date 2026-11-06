@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - A requirements-conflict controller route that pauses dependent work, invalidates downstream evidence, returns to refinement, and requires explicit revised-spec approval in every autonomy mode.
 - Evidence-backed diagnosis records before corrective execution attempts, including learning from unsuccessful attempts, durable history and audit entries.
+- Evidence requirements for design-critical planning assumptions, with blocked validation tasks for unresolved guarantees and normal planning for supported or low-risk choices.
 - Behavioral review and diagnosis evals, plus deterministic fixture coverage.
 
 ### Changed

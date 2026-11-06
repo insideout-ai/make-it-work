@@ -99,7 +99,10 @@
     "execute-diagnosis-first",
     "execute-diagnosis-repeat",
     "execute-diagnosis-unknown",
-    "implement-diagnosis-lightweight"
+    "implement-diagnosis-lightweight",
+    "plan-assumption-unsupported",
+    "plan-assumption-supported",
+    "plan-assumption-low-risk"
   ],
   "requiredToolsBySkill": {
     "drive-the-epic": ["Read", "Bash"],
