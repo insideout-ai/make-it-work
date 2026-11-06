@@ -1,0 +1,30 @@
+scripts/questions.mjs
+  s_3d1970d4ccfb7e::t_b14fbd03a19b77 54-55,71-72
+evals/close-the-gaps/README.md
+  s_3d1970d4ccfb7e::t_07114b0e8037c0 33-42
+scripts/questions.test.mjs
+  s_3d1970d4ccfb7e::t_b14fbd03a19b77 22,24-34
+skills/close-the-gaps/SKILL.md
+  s_3d1970d4ccfb7e::t_07114b0e8037c0 458,494
+  s_3d1970d4ccfb7e::t_48e1f0f54477ea 26-27,58,67,216-230,319,346,381,398,402,404,460,469,540
+  s_3d1970d4ccfb7e::t_d875993222b867 317
+  s_3d1970d4ccfb7e::t_cda001988fbe0e 541
+docs/deterministic-artifacts.md
+  s_3d1970d4ccfb7e::t_b14fbd03a19b77 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "b6f60d54727ba1b095582d95d5f8c45a85000910",
+  "prompts": {},
+  "sessions": {
+    "s_3d1970d4ccfb7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1afc0-b0d2-7801-a739-879691f962db",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
