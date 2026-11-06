@@ -6,8 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.0] — 2026-11-06
+
+### Added
+
+- A requirements-conflict controller route that pauses dependent work, invalidates downstream evidence, returns to refinement, and requires explicit revised-spec approval in every autonomy mode.
+- Evidence-backed diagnosis records before corrective execution attempts, including learning from unsuccessful attempts, durable history and audit entries.
+- Behavioral review and diagnosis evals, plus deterministic fixture coverage.
+
 ### Changed
 
+- Review code and implementation plans against the accepted refined spec. The original ticket provides context; plan assumptions cannot amend requirements.
+- Refresh the README overview, quick start and skill catalog, and include its banner asset.
 - Renamed `review-the-pr` to `review-the-code` across workflow dispatch, dashboards, documentation and evals. The old command remains a deprecated alias; existing review reports and legacy decision logs remain readable.
 
 ## [5.3.0] — 2026-11-06
