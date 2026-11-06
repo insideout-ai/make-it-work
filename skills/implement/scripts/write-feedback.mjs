@@ -6,6 +6,7 @@ import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 import { fileURLToPath } from 'node:url';
 import { parseDecisionCell } from './workflow-decisions.mjs';
+import { parseNoteCell } from './audit-notes.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -81,10 +82,11 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     if (Number(number) !== index + 1 || !ISO_UTC.test(time) || Number.isNaN(Date.parse(time))) {
       fail(`Invalid Audit log number or timestamp at row ${index + 1}.`);
     }
-    return { number: index + 1, time, from, to, outcome, ...parseDecisionCell(outcome) };
+    return { number: index + 1, time, from, to, outcome, ...parseDecisionCell(outcome), ...parseNoteCell(outcome) };
   });
   if (rows.length === 0) fail('Audit log is empty.');
-  const finalRow = rows.at(-1);
+  const finalRow = rows.findLast((row) => !row.note || row.from !== row.to);
+  if (!finalRow) fail('Audit log has no workflow evidence.');
   if (finalRow.to !== phase) fail('Final Audit log destination and phase field disagree.');
   if (status === 'Complete' && finalRow.to !== 'complete') fail('Final Audit log row must enter complete.');
   if (status === 'Stopped' && !/\b(limit|cap|exhausted)\b/i.test(`${fields.pause_reason} ${finalRow.outcome}`)) {
@@ -115,7 +117,7 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     return [];
   });
   const explicitReviews = rows.filter((row) =>
-    !(row.from === row.to && row.outcome.startsWith('Decision: ')) && /\bReview cycle \d+\b/i.test(row.outcome)
+    !(row.from === row.to && (row.note || row.outcome.startsWith('Decision: '))) && /\bReview cycle \d+\b/i.test(row.outcome)
   ).length;
   const enteredReviews = rows.filter((row) => row.to === 'review' && row.from !== 'review').length;
   // Distinctive compounds in Audit prose are often project terminology. They

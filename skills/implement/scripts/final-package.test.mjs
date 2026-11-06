@@ -4,6 +4,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { parseState } from './render-status.mjs';
+import { lastWorkRow } from './workflow-decisions.mjs';
 
 const cli = path.resolve('skills/implement/scripts/final-package.mjs');
 function git(repo, ...args) { return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim(); }
@@ -55,6 +57,12 @@ test('builds a binary-safe working-tree package and invalidates approval on chan
   await writeFile(path.join(root, 'src/new.txt'), 'new\n');
   await writeFile(path.join(root, 'src/image.bin'), Buffer.from([0, 1, 2, 3, 255]));
   const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const audited = parseState(await readFile(state, 'utf8'));
+  assert.equal(audited.audit.at(-1).note.kind, 'result');
+  assert.ok(audited.audit.at(-1).outcome.includes(built.sha256));
+  assert.equal(lastWorkRow(audited.audit).number, 1);
+  run('build', root, state, '--draft', draft, '--repo', root);
+  assert.equal(parseState(await readFile(state, 'utf8')).audit.length, audited.audit.length);
   const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(pkg.repos[0].paths, ['src/existing.txt', 'src/image.bin', 'src/new.txt']);
   assert.deepEqual(pkg.open_nits, ['Simplify the local name.']);

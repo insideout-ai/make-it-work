@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import { generateDashboard, parseState } from './render-status.mjs';
 import { decisionCell, decisionText, lastWorkRow, validateDecision } from './workflow-decisions.mjs';
+import { appendAuditCell, noteCell, parseNoteCell } from './audit-notes.mjs';
 
 function fail(message) { throw new Error(message); }
 
@@ -21,7 +22,7 @@ async function replaceAtomically(target, contents) {
   }
 }
 
-function replaceActivity(markdown, activity) {
+function replaceActivity(markdown, activity, time) {
   if (typeof activity !== 'string' || !activity.trim() || /[\r\n]/.test(activity)) {
     fail('Activity must be one non-empty line.');
   }
@@ -31,29 +32,35 @@ function replaceActivity(markdown, activity) {
     return `${prefix} ${activity.trim()}`;
   });
   if (replacements !== 1) fail('State file must contain exactly one current_activity field.');
-  const timestamp = activity.trim() === 'none' ? 'none' : new Date().toISOString();
+  const timestamp = activity.trim() === 'none' ? 'none' : time;
   if (/^current_activity_updated_at:/m.test(next)) {
     return next.replace(/^current_activity_updated_at:[^\r\n]*/m, `current_activity_updated_at: ${timestamp}`);
   }
   return next.replace(/^(current_activity:[^\r\n]*)/m, `$1\ncurrent_activity_updated_at: ${timestamp}`);
 }
 
-/** Updates activity and the derived dashboard as one recoverable checkpoint. */
+/** Persist activity history before rendering; a retry repairs the snapshot. */
 export async function checkpointDashboard(statePath, { activity } = {}) {
   const absoluteStatePath = path.resolve(statePath);
+  const info = await lstat(absoluteStatePath);
+  if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
   const original = await readFile(absoluteStatePath, 'utf8');
-  parseState(original, absoluteStatePath);
+  const state = parseState(original, absoluteStatePath);
   if (activity === undefined) return generateDashboard(absoluteStatePath);
 
-  const updated = replaceActivity(original, activity);
+  const time = new Date().toISOString();
+  let updated = replaceActivity(original, activity, time);
+  if (activity.trim() !== 'none') {
+    const last = state.audit.findLast((row) => row.note?.kind === 'activity');
+    if (state.fields.current_activity === activity.trim() && last?.to === state.fields.phase &&
+        last.time === state.fields.current_activity_updated_at && last.outcome === `Activity: ${activity.trim()}`) {
+      return generateDashboard(absoluteStatePath);
+    }
+    updated = appendAuditCell(updated, state, noteCell({ kind: 'activity', id: randomUUID(), text: activity.trim() }), time);
+  }
   parseState(updated, absoluteStatePath);
   await replaceAtomically(absoluteStatePath, updated);
-  try {
-    return await generateDashboard(absoluteStatePath);
-  } catch (error) {
-    await replaceAtomically(absoluteStatePath, original);
-    throw error;
-  }
+  return generateDashboard(absoluteStatePath);
 }
 
 async function refreshExistingDashboard(statePath) {
@@ -66,6 +73,25 @@ async function refreshExistingDashboard(statePath) {
     throw error;
   }
   return generateDashboard(statePath);
+}
+
+/** Called by evidence-producing scripts after their operation succeeds. */
+export async function checkpointResult(statePath, { id, text, reference }) {
+  const cell = noteCell({ kind: 'result', id, text, reference });
+  const absoluteStatePath = path.resolve(statePath);
+  const info = await lstat(absoluteStatePath);
+  if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
+  const original = await readFile(absoluteStatePath, 'utf8');
+  const state = parseState(original, absoluteStatePath);
+  const existing = state.audit.find((row) => row.note?.kind === 'result' && row.note.id === id);
+  if (existing) {
+    if (existing.outcome !== parseNoteCell(cell).outcome) fail(`Result id ${id} already records a different result.`);
+    return { row: existing.number, dashboard: await refreshExistingDashboard(absoluteStatePath) };
+  }
+  const updated = appendAuditCell(original, state, cell, new Date().toISOString());
+  parseState(updated, absoluteStatePath);
+  await replaceAtomically(absoluteStatePath, updated);
+  return { row: state.audit.length + 1, dashboard: await refreshExistingDashboard(absoluteStatePath) };
 }
 
 /** Save a decision once; rendering failure must not erase its audit evidence. */

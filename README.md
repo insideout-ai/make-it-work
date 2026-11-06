@@ -278,7 +278,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.0.0 through the publisher's marketplace:
+Install commercial version 5.2.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work

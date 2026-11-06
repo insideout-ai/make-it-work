@@ -9,6 +9,7 @@ import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
+import { checkpointResult } from './dashboard-checkpoint.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -217,7 +218,9 @@ async function build(root, statePath, repos, bases, draftPath) {
   for (const repo of result.repos) await atomicWrite(path.join(runDirectory(root, result.pkg.ticket), repo.diff_file), repo.diff);
   await atomicWrite(target.md, result.md);
   await atomicWrite(target.json, `${JSON.stringify(result.pkg, null, 2)}\n`);
-  return { package: target.md, json: target.json, sha256: sha(JSON.stringify(result.pkg)) };
+  const hash = sha(JSON.stringify(result.pkg));
+  await checkpointResult(statePath, { id: `final-package:${hash}`, text: 'Final approval package built.', reference: `${path.relative(root, target.md)}; sha256:${hash}` });
+  return { package: target.md, json: target.json, sha256: hash };
 }
 
 export async function checkFinalPackage(root, statePath, requireApproval = false) {

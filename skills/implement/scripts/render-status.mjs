@@ -8,6 +8,7 @@ import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.
 import { readDelivery } from './delivery-progress.mjs';
 import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
+import { parseNoteCell } from './audit-notes.mjs';
 import { pendingInputs } from './pending-input.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
@@ -224,6 +225,7 @@ function parseAudit(value) {
       to: cells[3],
       outcome: cells[4],
       ...parseDecisionCell(cells[4]),
+      ...parseNoteCell(cells[4]),
     };
   });
 }
@@ -379,6 +381,7 @@ export function buildTimeline(state) {
   let activeSlot = null;
 
   for (const row of state.audit) {
+    if (row.note && row.from === row.to) continue;
     if (row.to === 'spec-approval' || row.to === 'plan-approval') continue;
 
     if (!CANONICAL_PHASES.has(row.to) && !(adaptive && row.to === 'lightweight')) continue;

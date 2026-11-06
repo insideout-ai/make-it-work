@@ -12,16 +12,31 @@ This creates the state from the maintained template, captures plugin version, ti
 
 **Required startup presentation and continuation:** successful `init` returns
 `startup_message`, a chat-ready **Open implementation dashboard** Markdown link,
-and a mode-appropriate `next_action`. Run initialization by itself. For a normal
-new run, the next assistant response must contain the link as an ordinary text
-block followed by the Context-check activity/tool call in that same response.
+and a structured `next_action` with `type: assistant_message`, the exact chat
+`text`, and `delivery_status: not_sent`. The command only returns the message;
+it has not delivered assistant chat. Run initialization by itself.
+Immediately send `next_action.text` to user-visible assistant chat before any
+further tool call, including activity checkpoints and reference reads. For a
+normal run, `continuation: continue_context_check_without_user_reply` then
+continues into Context check in the same turn. If only tool calls/results have
+occurred since init, the message remains unsent; emit it before the next tool.
 Do not end the turn, wait for acknowledgment or ask whether to continue at the
 announcement. Tool output, thinking and `· summary` updates do not count as the
-text block. For pending offline refinement, include the link in the existing
-stop message, explain how to supply answers/resume, and keep that genuine pause.
+text block. For pending offline refinement, `continuation` is
+`wait_for_offline_answers`: include the link in the existing stop message,
+explain how to supply answers/resume, and keep that genuine pause.
 Initialization failure produces no success announcement; report the error.
 Use `inspect` later if full fields are needed. Ordinary refresh/resume does not
 emit another startup link. No state field asserts that the user saw the link.
+
+The skill-scoped `startup-presentation.mjs` hooks check the current session's
+transcript: PostToolUse returns an immediate presentation reminder after init,
+and PreToolUse/Stop hold work or a terminal response until the assistant chat
+contains the correct clickable link. Tool output, thinking, code blocks and
+other dashboard targets do not satisfy it. The hooks write no files, grant no
+permissions, and require no user acknowledgment. A new user turn clears an old
+startup obligation so Resume does not reannounce it. Hook support follows
+[Claude Code's skill hook contract](https://code.claude.com/docs/en/hooks#hooks-in-skills-and-agents).
 
 Before every phase transition, run `inspect --root <root> --state <state>` and use its `state_hash` as `expected_hash` in a saved event JSON. Every event has a stable `id` (reuse that exact event on retry), `event`, and `repos`. Run `apply --root <root> --state <state> --input <event.json>`. Do not hand-edit phase/status, loop counters, audit transition rows or fingerprints on controller-enabled runs.
 

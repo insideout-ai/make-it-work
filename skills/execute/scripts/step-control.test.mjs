@@ -169,7 +169,8 @@ test('dashboard updates at dispatch, verified completion and failure without tre
   assert.match(await html(), /Checking the first step before continuing/);
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at, later);
   await run({ action: 'complete', steps: [evidence(1)] });
-  assert.doesNotMatch(await html(), /Running step 1/); assert.match(await html(), /1 of 2 steps verified complete/);
+  assert.doesNotMatch((await html()).split('<h2>Audit log</h2>')[0], /Running step 1/); assert.match(await html(), /1 of 2 steps verified complete/);
+  assert.match(await html(), /Activity: Running step 1/);
   await checkpointDashboard(statePath, { activity: 'Preparing the second step inputs.' });
   const completedAt = parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at;
   await run({ action: 'complete', steps: [evidence(1)] });
@@ -178,7 +179,7 @@ test('dashboard updates at dispatch, verified completion and failure without tre
   await run({ action: 'start', id: 'second-step', steps: [2] });
   assert.match(await html(), /Running step 2 of 2 — Second/); assert.match(await html(), /1 of 2 verified complete/);
   await run({ action: 'stop', reason: 'execution-failed', detail: 'Agent exited unexpectedly' });
-  assert.doesNotMatch(await html(), /Running step 2/); assert.match(await html(), /Execution stopped at step 2/);
+  assert.doesNotMatch((await html()).split('<h2>Audit log</h2>')[0], /Running step 2/); assert.match(await html(), /Execution stopped at step 2/);
   assert.match(await readFile(file, 'utf8'), /Step 1 of 2 complete/);
 });
 test('running-step display survives resume but rejects changed plans and reports batches accurately', async (t) => {
@@ -192,7 +193,7 @@ test('running-step display survives resume but rejects changed plans and reports
   await assert.rejects(generateDashboard(statePath), /changed plan/);
   await writeFile(file, original);
   await run({ action: 'complete', steps: [evidence(1), evidence(2)] });
-  assert.doesNotMatch(await html(), /Running steps/); assert.match(await html(), /2 of 2 steps verified complete/);
+  assert.doesNotMatch((await html()).split('<h2>Audit log</h2>')[0], /Running steps/); assert.match(await html(), /2 of 2 steps verified complete/);
 });
 test('an explicitly resolved stop can repair edited unfinished work before the parent resumes the workflow', async (t) => {
   const { file, statePath, html, run } = await dashboardFixture(t);
@@ -205,7 +206,7 @@ test('an explicitly resolved stop can repair edited unfinished work before the p
   await run({ action: 'resolve-stop', source: 'user', via: 'chat', reason: 'Confirmed the expected behavior.' });
   const saved = parseState(await readFile(statePath, 'utf8'));
   assert.equal(saved.fields.status, 'Stopped'); assert.equal(saved.fields.current_activity, 'none');
-  assert.doesNotMatch(await html(), /Running step 1/);
+  assert.doesNotMatch((await html()).split('<h2>Audit log</h2>')[0], /Running step 1/);
 });
 test('explicit user guidance can resolve a stopped invocation while preserving its history', async (t) => {
   const { file, run } = await fixture(t);

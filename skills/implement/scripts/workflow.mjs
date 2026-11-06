@@ -526,10 +526,15 @@ cli(import.meta.url, async (argv) => {
   if (!o.root) fail('Usage: workflow.mjs init|inspect|apply --root ROOT [--state STATE] [--input EVENT.json]');
   if (o.command === 'init') {
     const initialized = await initializeWorkflow(o.root, await jsonInput(o.input));
+    const offline = initialized.fields.pause_reason === 'offline refinement pending';
     return { startup_message: initialized.startup_message,
-      next_action: initialized.fields.pause_reason === 'offline refinement pending'
-        ? 'Include startup_message as ordinary assistant text in the documented offline-refinement stop message; explain how to supply answers and resume. Remain paused for those answers.'
-        : 'In the same assistant response, emit startup_message unchanged in an ordinary text block, then invoke the next Context-check activity/tool after that block. Do not end the turn at the link, wait for acknowledgment, or ask whether to continue. Thinking/progress summaries do not count.',
+      next_action: {
+        type: 'assistant_message',
+        delivery_status: 'not_sent',
+        text: initialized.startup_message,
+        instruction: 'Your very next output must be an assistant chat text block containing text above. This command has NOT sent that chat message. Emit it now, before another tool call. If only tool calls/results have occurred since init, the message is still unsent. A later claim that it was sent does not deliver it.',
+      },
+      continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply',
       state: initialized.state, dashboard: initialized.dashboard };
   }
   if (!o.state) fail('--state is required.');
