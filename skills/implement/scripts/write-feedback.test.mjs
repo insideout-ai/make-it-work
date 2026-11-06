@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -99,6 +99,38 @@ test('same run replaces only its block and preserves user text and other runs', 
   assert.match(once, /<!-- run:2025-12-01T09:00:00Z -->/);
   assert.doesNotMatch(once, /stale placeholder/);
   assert.equal((once.match(/<!-- run:2026-01-03T10:00:00Z -->/g) ?? []).length, 1);
+});
+
+test('session export contains only current run and refreshes after clarification', async (t) => {
+  const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z');
+  const { statePath, feedbackPath } = await workspace(t, state);
+  const older = await readFile(path.join(EVAL_ROOT, 'feedback-idempotent/fixture/fixture-artifacts/implement-feedback.md'), 'utf8');
+  await writeFile(feedbackPath, older);
+  const analysis = diagnosis(inspectState(state));
+  const result = await writeFeedback(statePath, { analysis });
+  assert.equal(result.sessionOutputPath, path.join(path.dirname(statePath), 'workflow-feedback.md'));
+  const exported = await readFile(result.sessionOutputPath, 'utf8');
+  assert.match(exported, /Reporter: Anonymous/);
+  assert.match(exported, /Map every acceptance path/);
+  assert.doesNotMatch(exported, /2025-12-01|User note|DEMO/);
+  assert.equal((exported.match(/<!-- run:/g) ?? []).length, 1);
+  analysis.clarifications.push({ question: 'Was the requirement available?', answer: 'It was available before planning' });
+  await writeFeedback(statePath, { analysis });
+  assert.match(await readFile(result.sessionOutputPath, 'utf8'), /It was available before planning/);
+  assert.match(await readFile(feedbackPath, 'utf8'), /User note: keep this sentence/);
+  assert.equal(await readFile(statePath, 'utf8'), state);
+  assert.equal((await readdir(path.dirname(statePath))).some((name) => name.endsWith('.tmp')), false);
+});
+
+test('session export refuses a symlink without changing its target or cumulative feedback', async (t) => {
+  const { statePath, feedbackPath } = await workspace(t, finish(await fixture('feedback-clean')));
+  const target = path.join(path.dirname(feedbackPath), 'private-note.md');
+  await writeFile(target, 'Keep this private');
+  await writeFile(feedbackPath, 'Existing feedback');
+  await symlink(target, path.join(path.dirname(statePath), 'workflow-feedback.md'));
+  await assert.rejects(writeFeedback(statePath), /Session feedback path must be a regular file/);
+  assert.equal(await readFile(target, 'utf8'), 'Keep this private');
+  assert.equal(await readFile(feedbackPath, 'utf8'), 'Existing feedback');
 });
 
 test('malformed markers are preserved and reported while appending a new block', async () => {

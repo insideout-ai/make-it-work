@@ -257,6 +257,13 @@ export async function writeFeedback(statePath, { analysis = null, limitStop = fa
   assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, summary.ticket);
   const block = renderBlock(summary, analysis);
   const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
+  const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
+  try {
+    const info = await lstat(sessionOutputPath);
+    if (!info.isFile()) fail('Session feedback path must be a regular file, not a symlink or directory.');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
   let existing = null;
   let mode;
   try {
@@ -275,7 +282,16 @@ export async function writeFeedback(statePath, { analysis = null, limitStop = fa
   } finally {
     await unlink(temporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
-  return { ...summary, outputPath, warning: result.warning };
+  const sessionTemporary = path.join(path.dirname(sessionOutputPath), `.workflow-feedback.${randomUUID()}.tmp`);
+  try {
+    await writeFile(sessionTemporary, `${HEADER}\n${block}\n`, { flag: 'wx', mode: 0o600 });
+    await rename(sessionTemporary, sessionOutputPath);
+  } catch (error) {
+    fail(`Cumulative feedback saved, but session feedback could not be saved: ${error.message}`);
+  } finally {
+    await unlink(sessionTemporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
+  }
+  return { ...summary, outputPath, sessionOutputPath, warning: result.warning };
 }
 
 async function main() {
