@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { spawnSync } from 'node:child_process';
-import { caseTools, pluginEvalArgs } from './run-suite-args.mjs';
+import { spawnSync, execFileSync } from 'node:child_process';
+import { caseTools, pluginEvalArgs, caseWorkingDirectory } from './run-suite-args.mjs';
+import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 test('dry-run starts every selected smoke case concurrently and leaves full sequential', () => {
   const script = new URL('./run-suite.mjs', import.meta.url);
@@ -51,4 +54,21 @@ test('passes allowed tools and scaffold for a Bash-enabled case', () => {
   const args = pluginEvalArgs({ name: 'implement-autopilot-full', caseReportDir: '/tmp/report',
     remaining: 5, tools: ['Read', 'Bash'], scaffold: true });
   assert.deepEqual(args.slice(-4), ['--allow-tools', 'Read', 'Bash', '--scaffold']);
+});
+
+
+test('headless workdir starts inside the selected repo and rejects traversal, files and escaping links', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'eval-working-directory-'));
+  const outside = await mkdtemp(path.join(os.tmpdir(), 'eval-working-directory-outside-'));
+  t.after(() => Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]));
+  const child = path.join(root, 'connector-app');
+  await mkdir(child); await writeFile(path.join(root, 'file.txt'), 'text');
+  await symlink(outside, path.join(root, 'escape'));
+  execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: child });
+  assert.equal(await caseWorkingDirectory(root), await realpath(root));
+  const cwd = await caseWorkingDirectory(root, 'connector-app');
+  assert.equal(execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, encoding: 'utf8' }).trim(), await realpath(child));
+  for (const invalid of ['', '../outside', '/tmp', 'connector-app/../../outside', 'connector-app\\..\\outside', 'file.txt', 'escape', 'missing']) {
+    await assert.rejects(caseWorkingDirectory(root, invalid));
+  }
 });

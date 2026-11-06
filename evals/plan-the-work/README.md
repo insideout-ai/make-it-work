@@ -419,3 +419,12 @@ node evals/run-suite.mjs full --case=plan-assumption-low-risk --max-cost-usd=4
 Use a frozen plugin snapshot for parallel live runs and separate
 `MIW_EVAL_REPORT_ROOT` directories. Keep original reports if a grader or fixture
 needs correction; do not reinterpret a failed run as a pass without evidence.
+
+
+## Deferred repository dependencies
+
+`plan-the-work-deferred-wiring` tests whether connector-only planning finds the chain from a unique DB type constraint to a new gateway type, callback lookup changes and missing central routing entries. `plan-the-work-safe-deferral` permits two providers under one type and tests whether safe connector-only work can proceed with registration/activation gates. Neither case requires unrelated repos to be edited. Both use the existing planning workflow and an explicit read-only workspace boundary.
+
+Run `node --test evals/deferred-scope-fixtures.test.mjs` for credential-free fixture validation. Model runs require approval; use `node evals/run-suite.mjs full --case=plan-the-work-deferred-wiring --case=plan-the-work-safe-deferral --max-cost-usd=3`. These are planning-stage evals, not a complete implement/repository-discovery or release rehearsal.
+
+Live validation on 2026-11-06 against committed planner `84b3bc4`: both deferred-scope cases passed. The unique-key case planned the type-8 callback change and identified missing type-8 routing plus registration/activation gates; the control supported type-7 reuse and retained existing callback/routing behavior with external activation gates. Both runs preserved sibling repo contents and all repo HEADs; the plugin snapshot remained unchanged. Both fixture checks and all 48 current eval-harness tests passed. Local summary: `evals/results/deferred-scope-verification-2026-11-06/summary.json`. No workflow instructions were changed by this eval work. Parallel uncommitted assumption-policy changes were excluded; full implement startup/repository discovery is not established by these planning-stage cases.

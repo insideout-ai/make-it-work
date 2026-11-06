@@ -7,7 +7,7 @@ import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
 import { gradeHeadlessCase } from './grade-headless.mjs';
-import { caseTools, pluginEvalArgs } from './run-suite-args.mjs';
+import { caseTools, pluginEvalArgs, caseWorkingDirectory } from './run-suite-args.mjs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
@@ -95,7 +95,8 @@ function promptConfig(markdown) {
     .split(',').map((tool) => tool.trim()).filter(Boolean) ?? [];
   const maxTurns = Number(match[1].match(/^max_turns:\s*(\d+)/m)?.[1] ?? 100);
   const timeoutSeconds = Number(match[1].match(/^timeout_seconds:\s*(\d+)/m)?.[1] ?? 1800);
-  return { tools, maxTurns, timeoutSeconds, body: match[2].trim() };
+  const workingDirectory = match[1].match(/^working_directory:[ \t]*(.+)$/m)?.[1]?.trim() ?? '.';
+  return { tools, maxTurns, timeoutSeconds, workingDirectory, body: match[2].trim() };
 }
 
 async function runCase(item, remaining) {
@@ -108,7 +109,7 @@ async function runCase(item, remaining) {
   let caseCost = 0;
   let status = 'failed';
   let detail = '';
-  let fixtureDir;
+  let fixtureDir, workingDirectory;
   if (headless) {
     fixtureDir = await mkdtemp(path.join(os.tmpdir(), 'make-it-work-eval-'));
     if (item.scaffold) {
@@ -119,10 +120,15 @@ async function runCase(item, remaining) {
           status: 'failed', detail: 'fixture setup failed', fixtureDir };
       }
     }
+    try { workingDirectory = await caseWorkingDirectory(fixtureDir, prompt.workingDirectory); }
+    catch (error) {
+      return { name: item.name, skill: item.skill, mode: 'headless', costUsd: 0,
+        status: 'failed', detail: `Invalid working_directory: ${error.message}`, fixtureDir };
+    }
     const args = ['-p', prompt.body, '--plugin-dir', REPO_ROOT, '--allowedTools', ...tools,
       '--max-turns', String(prompt.maxTurns), '--max-budget-usd', remaining.toFixed(2),
       '--output-format', 'stream-json', '--verbose', ...(model ? ['--model', model] : [])];
-    result = await command('claude', args, fixtureDir, prompt.timeoutSeconds);
+    result = await command('claude', args, workingDirectory, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'transcript.jsonl'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'stderr.txt'), result.stderr || '');
     try {
@@ -171,7 +177,7 @@ async function runCase(item, remaining) {
     }
   }
   return { name: item.name, skill: item.skill, mode: headless ? 'headless' : 'plugin-eval',
-    costUsd: caseCost, status, detail, fixtureDir,
+    costUsd: caseCost, status, detail, fixtureDir, workingDirectory,
     report: path.relative(REPO_ROOT, caseReportDir) };
 }
 

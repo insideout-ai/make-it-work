@@ -62,6 +62,10 @@ export async function validateEvalTree(root = EVAL_ROOT) {
     if (byName.has(item.name)) errors.push(`duplicate case name: ${item.name}`);
     byName.set(item.name, item);
     if (!(await exists(path.join(item.dir, 'prompt.md')))) errors.push(`${item.name}: missing prompt.md`);
+    else {
+      const frontmatter = (await textFile(path.join(item.dir, 'prompt.md'))).match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '';
+      if (/^working_directory:/m.test(frontmatter) && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}: working_directory requires a headless case`);
+    }
     const graderDir = path.join(item.dir, 'graders');
     if (!(await exists(graderDir))) {
       errors.push(`${item.name}: missing graders directory`);
