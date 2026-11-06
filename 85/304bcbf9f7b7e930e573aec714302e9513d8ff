@@ -1,0 +1,40 @@
+scripts/review-report.test.mjs
+  s_18e0c68e142857::t_ec147da89d7f5c 7,15-72,92-106
+.claude-plugin/plugin.json
+  s_18e0c68e142857::t_b5e16f1d4e9ead 6
+CHANGELOG.md
+  s_18e0c68e142857::t_b5e16f1d4e9ead 9-16
+skills/implement/scripts/final-package.test.mjs
+  s_18e0c68e142857::t_ec147da89d7f5c 1,257-276
+  s_18e0c68e142857::t_fd685009192413 277
+README.md
+  s_18e0c68e142857::t_b5e16f1d4e9ead 357
+docs/deterministic-artifacts.md
+  s_18e0c68e142857::t_0e3c1faca1d3f6 67
+scripts/review-report.mjs
+  s_18e0c68e142857::t_eb1b4f9622ed0a 19-25,27,50,52-53
+skills/implement/references/handoffs.md
+  s_18e0c68e142857::t_26194e13d69655 41
+skills/implement/scripts/final-package.mjs
+  s_18e0c68e142857::t_3b20525dbdc8d8 88
+skills/plan-the-work/SKILL.md
+  s_18e0c68e142857::t_09bfec83254ecb 412
+skills/review-the-code/SKILL.md
+  s_18e0c68e142857::t_d1e0b474143f55 262,265-267,280
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "85304bcbf9f7b7e930e573aec714302e9513d8ff",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
