@@ -1,0 +1,91 @@
+evals/implement/implement-repo-start-local/case.yaml
+  s_18e0c68e142857::t_3d5e41650f7919 1-5
+evals/plan-the-work/plan-the-work-safe-deferral/graders/dependency-decision.md
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-11
+evals/implement/implement-repo-start-dependencies/case.yaml
+  s_18e0c68e142857::t_3d5e41650f7919 1-5
+evals/implement/implement-repo-start-local/prompt.md
+  s_18e0c68e142857::t_3d5e41650f7919 1-16
+evals/plan-the-work/plan-the-work-deferred-wiring/prompt.md
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-13
+evals/implement/README.md
+  s_18e0c68e142857::t_1b366b7d24c4eb 186
+  s_18e0c68e142857::t_eb96a09ef5f550 189-190
+  s_18e0c68e142857::t_3d5e41650f7919 182-185,187-188
+evals/implement/implement-repo-start-local/fixture.sh
+  s_18e0c68e142857::t_3d5e41650f7919 1-5
+evals/plan-the-work/plan-the-work-safe-deferral/fixture.sh
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-5
+evals/implement/implement-repo-start-local/graders/scope-decision.md
+  s_18e0c68e142857::t_3d5e41650f7919 1-9
+evals/plan-the-work/plan-the-work-deferred-wiring/graders/writes-contained.md
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-7
+evals/deferred-scope-fixtures.test.mjs
+  s_3d1970d4ccfb7e::t_de78c36e4b5896 1-43
+evals/plan-the-work/README.md
+  s_18e0c68e142857::t_d41a65e0481076 429-430
+  s_18e0c68e142857::t_bf81fa035f5b3a 422-428
+evals/run-suite-args.test.mjs
+  s_18e0c68e142857::t_8d7a74e0ee7b8c 4-7,58-73
+  s_18e0c68e142857::t_bb8dabd14c45ab 3,74
+evals/implement/startup-scope-fixture.mjs
+  s_18e0c68e142857::t_3d5e41650f7919 1-3,5-14,36-41,46-50
+  s_18e0c68e142857::t_1b366b7d24c4eb 4,15-35,42-45
+evals/plan-the-work/plan-the-work-deferred-wiring/graders/dependency-decision.md
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-11
+evals/plan-the-work/plan-the-work-safe-deferral/graders/writes-contained.md
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-7
+evals/plan-the-work/deferred-scope-fixture.mjs
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-117
+evals/implement/implement-repo-start-dependencies/fixture.sh
+  s_18e0c68e142857::t_3d5e41650f7919 1-5
+evals/plan-the-work/plan-the-work-deferred-wiring/fixture.sh
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-5
+evals/plan-the-work/plan-the-work-safe-deferral/case.yaml
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-5
+evals/plan-the-work/plan-the-work-safe-deferral/prompt.md
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-13
+evals/implement/implement-repo-start-dependencies/prompt.md
+  s_18e0c68e142857::t_1b366b7d24c4eb 10,12
+  s_18e0c68e142857::t_3d5e41650f7919 1-9,11,13-16
+evals/run-suite.mjs
+  s_18e0c68e142857::t_8d7a74e0ee7b8c 10,98-99,112,123-127,131,180
+evals/plan-the-work/plan-the-work-deferred-wiring/case.yaml
+  s_18e0c68e142857::t_bf81fa035f5b3a 1-5
+evals/suites.json
+  s_18e0c68e142857::t_3d5e41650f7919 61-62
+  s_18e0c68e142857::t_bf81fa035f5b3a 71-72
+evals/run-suite-args.mjs
+  s_18e0c68e142857::t_8d7a74e0ee7b8c 1-3,18-28
+  s_18e0c68e142857::t_e46cc74e7e2dc4 29
+evals/implement/implement-repo-start-dependencies/graders/scope-decision.md
+  s_18e0c68e142857::t_3d5e41650f7919 1-11
+evals/startup-scope-fixtures.test.mjs
+  s_18e0c68e142857::t_e8ec8dd2a9085b 1-32
+evals/validate.mjs
+  s_18e0c68e142857::t_0ee37f010f1a31 65-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1522f51d35cccc132384714632da7dc3e6c7bb0d",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_3d1970d4ccfb7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1afc0-b0d2-7801-a739-879691f962db",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
