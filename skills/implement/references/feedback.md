@@ -108,7 +108,7 @@ Use these attribution rules:
 | A requirement or edge case was never clarified, although the ambiguity was visible | `close-the-gaps` |
 | The approved spec contained the requirement but the plan omitted or mis-modeled it | `plan-the-work` |
 | The plan was adequate but the implementation departed from it | `execute` |
-| Review missed an observable issue in an earlier cycle, produced an unsupported finding, or surfaced related defects one cycle at a time | `review-the-pr` |
+| Review missed an observable issue in an earlier cycle, produced an unsupported finding, or surfaced related defects one cycle at a time | `review-the-code` |
 | Routing, state, retry, fix, or replan behavior created the extra round | `implement` |
 | A Lightweight implementation or Lightweight fix missed or broke behavior the spec stated | `implement` (Lightweight phase) |
 | An escalation: the initial risk assessment underrated the change, or Lightweight was the wrong mode | `implement` (risk assessment) |

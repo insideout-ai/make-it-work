@@ -332,7 +332,7 @@ verified by directly running `node test.js` against it (fails as expected:
   (which still gets produced even if the underlying tool call is
   unavailable), not on a `tool_used: AskUserQuestion` assertion.
 - Six other agents were modifying sibling skills (`close-the-gaps`,
-  `define-test-strategy`, `plan-the-work`, `review-the-pr`, `run-regression`,
+  `define-test-strategy`, `plan-the-work`, `review-the-code`, `run-regression`,
   `slice-the-epic`) concurrently with this work, each possibly running
   `claude plugin eval` at the same time. If a `claude plugin eval` run shows
   an odd sandbox/lock failure unrelated to `execute`'s own logic, consider
@@ -346,3 +346,35 @@ verified by directly running `node test.js` against it (fails as expected:
   in this suite can exercise it. `implement` itself has no automated eval
   suite either. Verified manually instead, via hand-traced scenarios
   recorded in that item's own plan.
+
+## Diagnosis before corrective attempts
+
+The headless cases `execute-diagnosis-first`, `execute-diagnosis-repeat`, and
+`execute-diagnosis-unknown` resume an active Inline controller step after an
+actual failed check. The repeat case retains a real failed null-guard correction
+and its attempt record; the unknown-cause case splits the call path across two
+modules. `implement-diagnosis-lightweight` resumes a review-requested Lightweight
+fix against the same accepted behavior.
+
+Graders inspect the source, saved diagnosis/report, audit log, and tool ordering.
+They require diagnosis before correction, actual passing checks afterward,
+unchanged assertions, and no agent commit or publication. The seeded correction
+cannot satisfy the repeat case's new-attempt requirement. Unknown-cause grading
+accepts a targeted runtime probe or evidence-based inspection of the call path.
+Fixture tests verify that all cases start genuinely red, become green with the
+intended correction, and refuse to overwrite an existing fixture repository.
+
+```sh
+node --test evals/diagnosis-fixtures.test.mjs
+node evals/run-suite.mjs full --case=execute-diagnosis-first --max-cost-usd=6
+node evals/run-suite.mjs full --case=execute-diagnosis-repeat --max-cost-usd=6
+node evals/run-suite.mjs full --case=execute-diagnosis-unknown --max-cost-usd=6
+node evals/run-suite.mjs full --case=implement-diagnosis-lightweight --max-cost-usd=6
+```
+
+Each command runs in a disposable workspace. For parallel execution, launch
+separate runner processes with a distinct `MIW_EVAL_REPORT_ROOT` per process so
+reports cannot collide. Include `execute-full-pass` and
+`implement-lightweight-run` as compatibility checks. These cases are registered
+in the headless inventory; the repository's standard one-case-per-skill smoke
+tier is unchanged.

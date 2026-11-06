@@ -1,10 +1,82 @@
-# make-it-work
+# Make It Work
 
-> From idea to delivery: make your codebase AI-ready with context skills, shape requirements, slice work, plan implementation, review changes against the requirements and codebase guidance — orchestrate an epic with `drive-the-epic`, or take a ticket through implementation with `implement`.
+**From idea to delivery, grounded in your codebase.**
+
+Workflow skills for Claude Code that connect project knowledge, requirements, implementation, verification, and review. Built for engineering teams working on large, complex codebases with domain rules and history worth understanding.
+
+![Make It Work by InsideOut AI: a rough idea becomes a structured blueprint, code, verified work, and a delivered package.](docs/assets/make-it-work-banner.png)
+
+[Quick start](#quick-start) · [Skills](#skills) · [Detailed guide](#how-it-works) · [Example workflows](#example-workflows) · [Licensing](#licensing)
+
+> Commercial software: a 30-day organization trial, then an annual subscription. [Review the license](LICENSE) before installing.
+
+```text
+ UNDERSTAND       DEFINE          PLAN           BUILD          VERIFY         DELIVER
+┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│ Codebase │    │ Epics &  │    │ Small    │    │ Code &   │    │ Checks & │    │ Commit & │
+│ context  │ ─▶ │ tickets  │ ─▶ │ steps    │ ─▶ │ tests    │ ─▶ │ review   │ ─▶ │ PR       │
+└──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘    └──────────┘
+```
+
+Onboard the codebase with **go-deep → define-test-strategy**, then choose your starting point:
+
+- **Have an idea or epic?** [drive-the-epic](skills/drive-the-epic/SKILL.md) shapes it into a reviewed epic and ordered slices, ready for a separate implementation run.
+- **Have a ticket?** [implement](skills/implement/SKILL.md) takes it through refinement, implementation, independent review, and documentation sync. It chooses Lightweight or TDD based on risk.
+
+After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and open a PR with your separate, explicit approval.
+
+## Skills
+
+13 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
+
+| What you need | Skill | What you get |
+| --- | --- | --- |
+| Understand an existing codebase | [go-deep](skills/go-deep/SKILL.md) | Project guidance, architecture and product context, domain and use-case skills |
+| Establish how to test it | [define-test-strategy](skills/define-test-strategy/SKILL.md) | Test strategy, runnable commands, and a map from features to tests |
+| Take an idea through shaping and slicing | [drive-the-epic](skills/drive-the-epic/SKILL.md) | A reviewed epic, ordered slices, and resumable progress |
+| Take a ticket through implementation | [implement](skills/implement/SKILL.md) | A refined spec, reviewed changes, synced documentation, and a final package |
+| Define or improve an epic | [shape-the-epic](skills/shape-the-epic/SKILL.md) | Product or technical-debt requirements with explicit open questions |
+| Break a requirement into smaller work | [slice-the-epic](skills/slice-the-epic/SKILL.md) | Independently valuable stories, dependencies, and a starting slice |
+| Locate the affected repositories | [find-the-repos](skills/find-the-repos/SKILL.md) | An evidence-backed repository and ownership assessment |
+| Resolve gaps before development | [close-the-gaps](skills/close-the-gaps/SKILL.md) | Clarified requirements and Gherkin acceptance criteria |
+| Turn a spec into an implementation plan | [plan-the-work](skills/plan-the-work/SKILL.md) | Small steps, verification criteria, and acceptance traceability |
+| Carry out an agreed plan | [execute](skills/execute/SKILL.md) | Verified steps and the plan's completion-gate result |
+| Check for regressions | [run-regression](skills/run-regression/SKILL.md) | Full or scoped test results, with unavailable checks made explicit |
+| Review changes against project intent | [review-the-code](skills/review-the-code/SKILL.md) | A verdict and findings grounded in requirements, code, and project guidance |
+| Publish a completed implementation | [deliver](skills/deliver/SKILL.md) | An approved commit, push, and new or updated PR |
+
+## Quick start
+
+Requires [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated. You can paste requirements directly; fetching ticket IDs requires a configured tracker integration.
 
 > **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. Version 5.0.0 is the first commercial release, effective November 3, 2026. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
+>
+> Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Record the organization's earliest installation or execution date as the start of its trial.
 
-Built for engineering teams working on large, complex codebases. Not greenfield side projects. When your codebase has history, domain rules, and legacy decisions baked in, "generally smart" isn't enough. Claude needs to know *your* project.
+Install from the publisher's marketplace:
+
+```text
+/plugin marketplace add insideout-ai/make-it-work
+/plugin install make-it-work@insideout-ai
+```
+
+Onboard each repository once:
+
+```text
+/make-it-work:go-deep
+/make-it-work:define-test-strategy
+```
+
+Then start with an epic or a ticket:
+
+```text
+/make-it-work:drive-the-epic path/to/brief.md
+/make-it-work:implement APP-123
+```
+
+Choose the skill that matches your work; these are separate entry points. [Installation details](#install) cover existing marketplace installs and plugin reloads. [Usage](#usage) lists options, and [example workflows](#example-workflows) show how the skills fit together.
+
+---
 
 ## The problem
 
@@ -125,7 +197,7 @@ Use it when a ticket or epic feels too big and needs to become sprint-sized stor
 
 `find-the-repos` first checks whether the ticket's exact identifiers, endpoints, and UI labels already exist, leading the report with **verify and finish** when implementation is found. It then shortlists repos using docs, domain/use-case skills, and bounded code searches; specific code evidence can establish **Definite** even without docs. Workspace detection accepts catalog metadata, repo lists, and workspace configs as well as CLAUDE.md. It assesses **all repos by default**, even in a large sibling-repo workspace without grouping metadata; no repo-selection round is required. You can explicitly narrow the scope. Genuine workspace/scope choices use AskUserQuestion when available, without giant checkbox lists. One report, `<TICKET>-repos.md`, holds all assessment details, ownership sources/conflicts, and external routing; comments, revisions, and confirmation update that same file. The terminal shows only a compact **Definite repos / Owner(s) / Evidence** table, with supporting types `product.md`, `architecture.md`, `context skills`, and/or `code`, plus a report link and review prompt. Pasted tickets can use a provisional slug without borrowing related ticket keys.
 
-Unlike the fixed `close-the-gaps → plan-the-work → execute → review-the-pr` pipeline, `find-the-repos` ships standalone: nothing else in this plugin calls it yet. Run it on its own, before that pipeline starts, whenever a ticket's home repo isn't already obvious.
+Unlike the fixed `close-the-gaps → plan-the-work → execute → review-the-code` pipeline, `find-the-repos` ships standalone: nothing else in this plugin calls it yet. Run it on its own, before that pipeline starts, whenever a ticket's home repo isn't already obvious.
 
 ---
 
@@ -155,21 +227,23 @@ Pass a ticket ID or a spec path, or let the skill derive the ticket from the cur
 
 Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate — the tests mapped to the plan's touched domains/use-cases across registered locations, plus the full suites required by its existing product-repo verification policy, or just the full suite when the plan records no tokens or none of their repos has a test strategy — and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
 
-Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `plan-the-work` to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `execute` → `review-the-pr` pipeline.
+Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `plan-the-work` to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `execute` → `review-the-code` pipeline.
 
 ---
 
-### `/make-it-work:review-the-pr`
+### `/make-it-work:review-the-code`
+
+`/make-it-work:review-the-pr` remains available as a deprecated alias for this command.
 
 Acts as a reviewer grounded in the project's own documentation instead of generic intuition. Runs three passes - business correctness against the `uc-*` skills, regression safety against the `domain-*` skills and architectural constraints, and coding standards against `CLAUDE.md` - then a docs-sync check to confirm skills were updated alongside behavior. A relevant new or changed test missing from the shared map, or with a stale relationship, is flagged as Minor. Review refreshes relevant relationships in memory without saving project metadata; source annotations are never required, and uncertain scope remains unresolved. Emits a verdict-first, evidence-dense report, both as a pasteable file and a scannable chat summary.
 
-Use it to review a pull request or diff in any repo that keeps the `go-deep` knowledge base (`CLAUDE.md` plus `uc-*`/`domain-*` skills and `.claude/rules` docs).
+Use it to review a pull request or diff in any repo that keeps the `go-deep` knowledge base (`CLAUDE.md` plus `uc-*`/`domain-*` skills and `.claude/rules` docs). Within `implement`, it reviews uncommitted working-tree changes before a PR exists. The accepted refined spec is the requirements source of truth; the plan cannot override it. Conflicts requiring a requirements decision return to refinement, and the revised spec requires explicit approval in every autonomy mode.
 
 ---
 
 ### `/make-it-work:implement`
 
-Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, runs `close-the-gaps`, assesses the ticket's risk, implements it in the matching mode, reviews it with `review-the-pr`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
+Orchestrates the whole pipeline for one ticket: it checks that the project has its `go-deep` context, runs `close-the-gaps`, assesses the ticket's risk, implements it in the matching mode, reviews it with `review-the-code`, and finishes by syncing the project's skills and rules files with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
 
 `implement` never runs `go-deep`, including through nested stages, in any autonomy mode. It keeps documentation updates scoped to the ticket and recommends a separate `go-deep` run at completion when broader documentation gaps remain. Missing or incomplete essential project context still stops startup with instructions to run onboarding or repair separately.
 
@@ -189,7 +263,7 @@ flowchart TD
     Review -- "changes requested (Lightweight)" --> Light
     Review -- "repeat findings or new risk" --> Escalate["Escalate to TDD"] --> Plan
 
-    Execute -- "passed" --> Review["review-the-pr"]
+    Execute -- "passed" --> Review["review-the-code"]
     Execute -- "tests failing or stuck" --> FixPlan["fix the plan"]
 
     Review -- "clean" --> FinalSync["Final context sync"] --> Complete(["Complete"])
@@ -241,6 +315,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 ## Usage
 
 ```
+/make-it-work:drive-the-epic path/to/brief.md # Shape an epic, review it, and prepare ordered slices
 /make-it-work:go-deep                        # Scaffold full project docs from scratch
 /make-it-work:define-test-strategy [repo]    # Build a repo's test-strategy skill and non-intrusive test map; run once per repo
 /make-it-work:run-regression [full | full:<repo> | <repo>:UC-<id> | <repo>:domain-<name> ...]  # Run the regression suite, full or scoped
@@ -256,21 +331,22 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:plan-the-work TICKET-123       # Turn a refined spec into an implementation plan
 /make-it-work:plan-the-work path/to/spec.md  # Plan from an explicit local spec
 /make-it-work:execute [TICKET-ID | path/to/plan.md]  # Execute a plan step by step, then run the completion gate
-/make-it-work:review-the-pr                  # Review a PR against the project's own skills and CLAUDE.md
+/make-it-work:review-the-code                  # Review code changes against the project's own skills and CLAUDE.md
 /make-it-work:implement TICKET-123           # Run the whole pipeline for a ticket, with saved state
 /make-it-work:implement TICKET-123 --autopilot # Run the pipeline unattended using safe documented defaults
 /make-it-work:implement TICKET-123 --mode tdd # Force a run mode (lightweight or tdd) instead of the assessed one
 /make-it-work:implement path/to/spec.md      # Start the pipeline from an existing spec
 /make-it-work:implement                      # Resume an in-progress implement run
+/make-it-work:deliver TICKET-123             # Preview and approve commit, push, and PR creation
 ```
 
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated.
-- A project workspace, ideally a Git repository. `go-deep`, `define-test-strategy`, and `review-the-pr` inspect the repository's code and documentation. `plan-the-work` does the same and, when a test framework is configured in the target project, also writes per-step progression and regression test files, left uncommitted in the working tree.
+- A project workspace, ideally a Git repository. `go-deep`, `define-test-strategy`, and `review-the-code` inspect the repository's code and documentation. `plan-the-work` does the same and, when a test framework is configured in the target project, also writes per-step progression and regression test files, left uncommitted in the working tree.
 - For ticket IDs such as `TICKET-123`, a separately installed and configured issue-tracker integration. You can always paste the ticket content instead.
 
-`review-the-pr` is most effective after `go-deep` has created the project's `CLAUDE.md`, `.claude/rules` documentation, and domain/use-case skills.
+`review-the-code` is most effective after `go-deep` has created the project's `CLAUDE.md`, `.claude/rules` documentation, and domain/use-case skills.
 
 ## Install
 
@@ -366,7 +442,7 @@ Run a scoped regression check against the domain you're actively working on:
 Review the current pull request against the repository's documented product behavior and architecture:
 
 ```text
-/make-it-work:review-the-pr
+/make-it-work:review-the-code
 ```
 
 Run the whole pipeline for a ticket, from refinement to a reviewed, context-synced implementation:
@@ -403,7 +479,7 @@ Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, hand
 - **The PM hasn't answered in Slack yet:** re-invoking with the questions file reports an unsent draft, unconfirmed delivery, or no reply yet, then lets you keep waiting or answer the questions live. Resume reads the existing thread without sending again.
 - **An offline questions file is stuck pending:** re-invoke `close-the-gaps` with that file's path to inject the answers and resume, or invoke the ticket again and choose to overwrite it and start fresh.
 - **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123/TICKET-123-spec.md`.
-- **`review-the-pr` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.
+- **`review-the-code` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.
 - **`implement` says the project context is incomplete:** run `/make-it-work:go-deep` and choose its "Repair existing docs" mode, then run `implement` again.
 - **`implement` stopped mid-run:** read the stop reason in chat, in `make-it-work/<TICKET>/<TICKET>-state.md` (`pause_reason`), or in `make-it-work/<TICKET>/<TICKET>-status.html`'s "Waiting on you" section, address it, and run `implement` again — it resumes from the saved phase.
 - **The plugin is installed twice:** remove or disable one copy in `/plugin` and keep the marketplace channel you want to follow.

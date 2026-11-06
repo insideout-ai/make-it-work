@@ -5,6 +5,18 @@ import { args, atomicWrite, cli, digest, fail, integer, jsonInput, requireText, 
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { inspectPlan, updatePlan, executionDashboardState, checkpointExecutionActivity, completedActivity } from './plan-status.mjs';
 import { traceability, validateVerification } from '../../implement/scripts/verification.mjs';
+import { checkpointResult } from '../../implement/scripts/dashboard-checkpoint.mjs';
+
+function diagnosisRecord(input, repeated) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) fail('A fix-attempt diagnosis is required.');
+  const record = {};
+  for (const field of ['failure', 'evidence', 'cause', 'next_change', 'expected_result', ...(repeated ? ['prior_result'] : [])]) {
+    requireText(input[field], `Diagnosis ${field}`);
+    if (/[\x00-\x1f\x7f]/.test(input[field])) fail(`Diagnosis ${field} must be a single line.`);
+    record[field] = input[field].trim();
+  }
+  return record;
+}
 
 export function mutateExecution(journal, event, steps, completed) {
   const value = structuredClone(journal);
@@ -12,8 +24,9 @@ export function mutateExecution(journal, event, steps, completed) {
     if (!value.stopped) fail('There is no stopped execution to resolve.');
     if (event.source !== 'user' || !['chat', 'question'].includes(event.via)) fail('Resolving a correctness stop requires explicit user guidance.');
     requireText(event.reason, 'Resolution guidance');
-    (value.history ??= []).push({ stopped: value.stopped, attempts: value.attempts, reason: event.reason });
+    (value.history ??= []).push({ stopped: value.stopped, attempts: value.attempts, attempt_events: value.attempt_events, diagnoses: value.diagnoses, reason: event.reason });
     value.stopped = null; value.stop_detail = null; value.attempts = {}; value.attempt_events = {};
+    value.diagnoses = {};
     value.active_steps = []; value.active_dispatch = null;
     return value;
   }
@@ -39,6 +52,8 @@ export function mutateExecution(journal, event, steps, completed) {
     const prior = value.attempt_events?.[event.id];
     if (prior !== undefined) {
       if (prior !== number) fail('Attempt id belongs to another step.');
+      const saved = value.diagnoses?.[event.id];
+      if (saved && event.diagnosis !== undefined && JSON.stringify(diagnosisRecord(event.diagnosis, saved.attempt > 1)) !== JSON.stringify(saved.diagnosis)) fail('Attempt id already records a different diagnosis.');
       return value;
     }
     if (number <= completed || !steps[number - 1]) fail('Attempt requires an unfinished existing step.');
@@ -47,8 +62,10 @@ export function mutateExecution(journal, event, steps, completed) {
     if (steps[number - 1].depends.some((dep) => dep > completed)) fail('Step dependencies are incomplete.');
     const attempts = value.attempts[number] ?? 0;
     if (attempts >= 5) fail('Retry limit reached; no sixth fix attempt.');
+    const diagnosis = diagnosisRecord(event.diagnosis, attempts > 0);
     value.attempts[number] = attempts + 1;
     (value.attempt_events ??= {})[event.id] = number;
+    (value.diagnoses ??= {})[event.id] = { step: number, attempt: attempts + 1, diagnosis };
   } else if (event.action === 'stop') {
     if (!['guardrail', 'retry-limit', 'execution-failed'].includes(event.reason)) fail('Invalid execution stop.');
     if (event.reason === 'execution-failed' || event.detail !== undefined) {
@@ -115,7 +132,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
         validateVerification(evidence, { ticket, planVersion, plan });
         for (let n = 1; n <= status.completed; n += 1) if (!evidence.steps.some((step) => step.number === n)) fail(`Completed step ${n} has no evidence.`);
       }
-      if (event.action === 'inspect') return { ...status, attempts: journal.attempts, stopped: journal.stopped, active_steps: journal.active_steps ?? [], active_dispatch: journal.active_dispatch ?? null, started_at: journal.active_steps?.length ? journal.started_at : null, next: journal.stopped ? [] : nextBatch(steps, status.completed, event.parallel === true) };
+      if (event.action === 'inspect') return { ...status, attempts: journal.attempts, diagnoses: journal.diagnoses ?? {}, stopped: journal.stopped, active_steps: journal.active_steps ?? [], active_dispatch: journal.active_dispatch ?? null, started_at: journal.active_steps?.length ? journal.started_at : null, next: journal.stopped ? [] : nextBatch(steps, status.completed, event.parallel === true) };
     }
     if (event.action !== 'complete') {
       journal = mutateExecution(journal, event, steps, status.completed);
@@ -127,6 +144,18 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
         if (await checkpointExecutionActivity(planPath, dashboardState, activity)) {
           journal.activity_dispatch = event.id;
           await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
+        }
+      } else if (event.action === 'begin-attempt' && journal.diagnoses?.[event.id]) {
+        // The journal persists first; replay repairs a failed audit/render checkpoint.
+        const dashboard = await executionDashboardState(planPath, dashboardState);
+        const statePath = dashboardState || dashboard?.path;
+        if (statePath) {
+          const { step, attempt, diagnosis: d } = journal.diagnoses[event.id];
+          await checkpointResult(statePath, {
+            id: `fix-diagnosis-${digest(JSON.stringify([path.resolve(planPath), journal.history?.length ?? 0, event.id]))}`,
+            text: `Step ${step}, fix attempt ${attempt}: ${d.failure}; cause: ${d.cause}; next: ${d.next_change}; expected: ${d.expected_result}${d.prior_result ? `; previous result: ${d.prior_result}` : ''}`,
+            reference: `${journalPath}#${event.id}; ${d.evidence}`,
+          });
         }
       } else if (event.action === 'stop') {
         await checkpointExecutionActivity(planPath, dashboardState, `Execution stopped${journal.last_active_steps?.length ? ` at step ${journal.last_active_steps.join(', ')}` : ''}: ${journal.stopped}${journal.stop_detail ? ` — ${journal.stop_detail}` : ''}. ${status.completed} of ${status.total} steps verified complete.`, true);

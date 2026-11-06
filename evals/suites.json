@@ -73,7 +73,9 @@
     "rr-scoped-explicit",
     "rr-embedded-tests",
     "rr-index-reuse",
-    "review-the-pr-embedded-tests",
+    "review-the-code-embedded-tests",
+    "review-the-code-plan-conflict",
+    "review-the-code-refined-authority",
     "shape-the-epic-rich-input-autopilot",
     "shape-the-epic-technical-debt-outcomes",
     "shape-the-epic-jira-full-description",
@@ -91,7 +93,11 @@
     "implement-publication-resume",
     "implement-delivery-prepare",
     "implement-delivery-decline",
-    "implement-delivery-stale"
+    "implement-delivery-stale",
+    "execute-diagnosis-first",
+    "execute-diagnosis-repeat",
+    "execute-diagnosis-unknown",
+    "implement-diagnosis-lightweight"
   ],
   "requiredToolsBySkill": {
     "drive-the-epic": ["Read", "Bash"],
@@ -105,7 +111,7 @@
     "slice-the-epic": ["Read", "Bash"],
     "shape-the-epic": ["Read", "Bash"],
     "find-the-repos": ["Read", "Bash"],
-    "review-the-pr": ["Read", "Bash"]
+    "review-the-code": ["Read", "Bash"]
   },
   "extraTools": {
     "execute-resume-inline": ["Bash"],

@@ -120,6 +120,14 @@ Invoke each status-script command in its own Bash tool call. Do not join it with
 
 Every step in Phase 2 applies the two stop conditions defined here, plus the one standing rule at the end of this section. Do not proceed past either stop condition on your own judgment — both hand control to Phase 3, which owns how the halt is reported.
 
+### Diagnosis before a corrective attempt
+
+Before changing code to address an observed failed check, record what failed (expected versus observed), the actual evidence and affected path, the suspected cause, the bounded next change, and the observation that would support or reject it. Apply the product-behavior guardrail below before choosing a correction. This applies to the first correction after failure and every later correction, in both execution modes; ordinary initial implementation and read-only investigation do not need an attempt record.
+
+If the cause is unknown, say so and run a targeted diagnostic check that can distinguish plausible causes before editing. Read-only probes and test invocations do not consume fix attempts. After an unsuccessful correction, also record what its result taught you and why the next change is justified by new evidence or a revised explanation. Rewording the same unsuccessful patch is not a diagnosis. If no supported correction is available, report the blocker through the existing execution-failure stop path rather than spending the remaining budget on guesses; requirements uncertainty still uses the guardrail.
+
+For controller-enabled runs, save this through `begin-attempt` per [Durable step control](references/step-control.md) before editing; a failed checkpoint blocks that correction. The helper retains the diagnosis with the attempt and writes an audit result when a workflow state is available. Standalone/legacy runs retain the same information in their existing execution notes and include it in any stop report. Pass this requirement to step subagents with the retry policy. A script checks that the record exists, not whether its causal explanation is correct.
+
 ### Retry limit
 
 A step's own named test(s) — the `**Tests:**` field's command(s), each run from its own repo root, or (when that repo has no test-strategy location and no configured framework) the corresponding row(s) in the plan's shared `## Test Plan` table — are that step's sole success criterion. A Tests line recorded as `not runnable locally` is never run, retried, or counted as an attempt; it is reported in the step's checkpoint instead. When a fix attempt is made and the test(s) are re-run:

@@ -559,7 +559,7 @@ test('keeps completed stages minimal and retains approval details and fix histor
   const { html } = await renderFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
 
   assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 11);
-  assert.equal((html.match(/Review<span class="phase-skill">\(review-the-pr\)<\/span>/g) ?? []).length, 2);
+  assert.equal((html.match(/Review<span class="phase-skill">\(review-the-code\)<\/span>/g) ?? []).length, 2);
   const completedStages = html.slice(html.indexOf('<div class="phase-timeline">'), html.indexOf('<div class="phase-step optional-step">'));
   assert.doesNotMatch(completedStages, /phase-mode|Spec approved by user|Approved as-is|Step 2 of 2 complete/);
   assert.ok(html.includes(approval));

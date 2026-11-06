@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed `review-the-pr` to `review-the-code` across workflow dispatch, dashboards, documentation and evals. The old command remains a deprecated alias; existing review reports and legacy decision logs remain readable.
+
 ## [5.3.0] — 2026-11-06
 
 ### Added
