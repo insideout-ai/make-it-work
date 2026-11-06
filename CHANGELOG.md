@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Show a concise final-package build result and package link in the dashboard audit log, keeping the approval fingerprint in the saved evidence rather than displaying the full hash.
 - Save a standalone current-session `workflow-feedback.md` beside implementation package artifacts, refresh it after feedback clarifications, and link it in the terminal summary without altering the approved package. Offer optional manual sharing by emailing the reviewed session file to insideoutaitech@gmail.com.
 - Explain `implement` workflow feedback in plain language and show a concise result in the terminal chat summary, including the main cause and suggested improvement when analyzed, rather than only reporting an internal classification and file path.
 - Make `implement`'s prohibition on inline `go-deep` explicit across nested stages and all autonomy modes, including the test-strategy prerequisite prompt. Keep ticket-scoped documentation sync and recommend a separate `go-deep` run at completion when broader gaps remain; preserve the startup context prerequisite.

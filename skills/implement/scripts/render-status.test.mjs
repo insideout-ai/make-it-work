@@ -147,6 +147,26 @@ test('hides controller retry markers while preserving outcome text and saved aud
   assert.ok(parseState(state).audit[1].outcome.includes(marker));
 });
 
+test('package build audit links the package without displaying its approval fingerprint', async (t) => {
+  const hash = createHash('sha256').update('final package').digest('hex');
+  const reference = `make-it-work/DEMO/DEMO-final-package.md; sha256:${hash}`;
+  const state = stateMarkdown({
+    fields: { phase: 'final-approval', final_package_version: '1' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'review', 'final-approval', 'Review clean'],
+      ['2026-01-01T10:01:00Z', 'final-approval', 'final-approval', `Result: Final approval package built.; evidence: ${reference}`],
+      ['2026-01-01T10:02:00Z', 'final-approval', 'final-approval', `Result: Final approval package built.; evidence: ${reference} [audit-note: result; id: final-package:${hash}]`],
+    ],
+  });
+  const { directory, html } = await renderFixture(t, state);
+  assert.match(html, /Final approval package built\. <a href="DEMO-final-package\.md"[^>]*>View package<\/a>/);
+  assert.doesNotMatch(html, new RegExp(hash));
+  assert.match(html, /\(\+1m\)/);
+  const saved = await readFile(path.join(directory, 'DEMO-state.md'), 'utf8');
+  assert.equal(saved, state);
+  assert.ok(parseState(saved).audit[1].outcome.includes(reference));
+});
+
 test('keeps refinement activity outside the connected timeline and above artifacts', async (t) => {
   const activity = ('Starting refinement — exploring the dashboard income-limit code, then resolving open questions. ' + 'Additional context. '.repeat(20)).trim();
   const { html } = await renderFixture(t, stateMarkdown({

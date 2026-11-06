@@ -582,6 +582,17 @@ function displayOutcome(outcome) {
   return clean;
 }
 
+function renderAuditOutcome(state, outcome) {
+  const text = displayOutcome(outcome);
+  const packageResult = text.match(/^Result: Final approval package built\.?; evidence: (.+); sha256:\s*[a-f0-9]{64}(?: \[audit-note: result; id: final-package:[a-f0-9]{64}\])?$/i);
+  const filename = `${state.fields.ticket}-final-package.md`;
+  const expectedPath = runArtifact(state.fields.ticket, filename);
+  if (packageResult && packageResult[1] === expectedPath) {
+    return `Final approval package built. <a href="${encodeURIComponent(filename)}" title="${escapeHtml(expectedPath)}">View package</a>`;
+  }
+  return escapeHtml(text);
+}
+
 function renderAuditRows(state, invalidTimestampFrom) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
@@ -595,7 +606,7 @@ function renderAuditRows(state, invalidTimestampFrom) {
     }
     const warning = row.number === invalidTimestampFrom
       ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${escapeHtml(displayOutcome(row.outcome))}${warning}${duration}</td></tr>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${renderAuditOutcome(state, row.outcome)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
