@@ -1,0 +1,212 @@
+evals/execute/diagnosis-repeat/prompt.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-15
+skills/implement/scripts/workflow.mjs
+  s_18e0c68e142857::t_987bb36246b4af 109,124,126,181,184-193,360,451
+  s_18e0c68e142857::t_64126617974b2d 474-475
+evals/execute/diagnosis-unknown/prompt.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-15
+evals/implement/diagnosis-lightweight/graders/diagnosis-order.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-8
+evals/review-the-code/autopilot-full-info/graders/review-content.md
+  s_18e0c68e142857::t_e911de036014c3 1-27
+skills/review-the-code/SKILL.md
+  s_18e0c68e142857::t_e911de036014c3 2-3,7,12,32,38,75-76,239,254
+docs/assets/make-it-work-banner.prompt.txt
+  s_3d1970d4ccfb7e::t_ce5c94a23350a1 1-4
+evals/execute/diagnosis-first/graders/diagnosis-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+skills/implement/references/controller.md
+  s_18e0c68e142857::t_ffa11304cbff76 45
+  s_18e0c68e142857::t_987bb36246b4af 53
+evals/review-the-code/run-all.sh
+  s_18e0c68e142857::t_e911de036014c3 1-88
+evals/implement/diagnosis-lightweight/graders/source-correct.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/review-the-code/autopilot-full-info/case.yaml
+  s_18e0c68e142857::t_e911de036014c3 1-5
+evals/execute/diagnosis-first/graders/diagnosis-order.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/implement/diagnosis-lightweight/prompt.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-13
+skills/implement/references/handoffs.md
+  s_18e0c68e142857::t_ffa11304cbff76 73-77
+evals/execute/diagnosis-first/case.yaml
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+evals/review-the-code/autopilot-bare/graders/autopilot-log-exists.md
+  s_18e0c68e142857::t_e911de036014c3 1-5
+CHANGELOG.md
+  s_18e0c68e142857::t_e911de036014c3 9-12
+.github/ISSUE_TEMPLATE/feature_request.yml
+  s_18e0c68e142857::t_e911de036014c3 47
+evals/execute/diagnosis-repeat/fixture.sh
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+evals/execute/diagnosis-unknown/graders/diagnosis-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/execute/diagnosis-unknown/graders/diagnosis-order.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-8
+evals/review-the-code/review-the-code-refined-authority/case.yaml
+  s_18e0c68e142857::t_e911de036014c3 1-5
+evals/diagnosis-fixtures.test.mjs
+  s_3d1970d4ccfb7e::t_638a91ecff12c4 1-17,20-44,46-50
+  s_3d1970d4ccfb7e::t_c9d365780101d2 18-19,45
+evals/execute/diagnosis-first/graders/source-correct.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+README.md
+  s_3d1970d4ccfb7e::t_e8ff9f01a6435b 1,3-44,46-50,53-63,65-79,318,340
+  s_18e0c68e142857::t_df239bf07fef9a 240,334
+  s_18e0c68e142857::t_e911de036014c3 45,200,230,234-236,246,266,346,349,445,482
+skills/implement/scripts/write-feedback.mjs
+  s_18e0c68e142857::t_e911de036014c3 27
+evals/execute/diagnosis-unknown/fixture.sh
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+skills/execute/SKILL.md
+  s_3d1970d4ccfb7e::t_228c41946ac62a 123-130
+evals/review-the-code/review-the-code-plan-conflict/prompt.md
+  s_18e0c68e142857::t_20ee7a7cfaa19f 9-11
+  s_18e0c68e142857::t_e911de036014c3 1-8
+evals/execute/diagnosis-first/prompt.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-13
+evals/review-the-code/negative-control/case.yaml
+  s_18e0c68e142857::t_e911de036014c3 1-5
+evals/review-the-code/review-the-code-refined-authority/prompt.md
+  s_18e0c68e142857::t_e911de036014c3 1-8
+  s_18e0c68e142857::t_20ee7a7cfaa19f 9-11
+skills/implement/references/feedback.md
+  s_18e0c68e142857::t_e911de036014c3 111
+evals/review-the-code/negative-control/fixture.sh
+  s_18e0c68e142857::t_e911de036014c3 1-24
+evals/execute/diagnosis-repeat/case.yaml
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+evals/review-the-code/autopilot-full-info/graders/autopilot-log-content.md
+  s_18e0c68e142857::t_e911de036014c3 1-23
+skills/execute/references/step-control.md
+  s_3d1970d4ccfb7e::t_228c41946ac62a 7,12
+evals/execute/diagnosis-first/graders/audit-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/review-the-code/autopilot-bare/graders/review-content.md
+  s_18e0c68e142857::t_e911de036014c3 1-26
+evals/implement/diagnosis-lightweight/fixture.sh
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+skills/implement/SKILL.md
+  s_18e0c68e142857::t_987bb36246b4af 442-447,449,592
+  s_3d1970d4ccfb7e::t_228c41946ac62a 490
+  s_18e0c68e142857::t_e911de036014c3 3,29,83,91,112,387,591
+  s_3d1970d4ccfb7e::t_36b56be63ba027 430,486
+  s_18e0c68e142857::t_ffa11304cbff76 411,448
+  s_3d1970d4ccfb7e::t_da7e53f7255ac2 399,487
+evals/review-the-code/autopilot-full-info/prompt.md
+  s_18e0c68e142857::t_e911de036014c3 1-18
+evals/execute/diagnosis-unknown/graders/source-correct.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/execute/diagnosis-fixture.mjs
+  s_3d1970d4ccfb7e::t_7799930609272c 1-2,4-108,110,112-142
+  s_3d1970d4ccfb7e::t_f9e7b93c0c09e1 109,111
+  s_3d1970d4ccfb7e::t_9f0d6e3883d9f1 3
+skills/implement/scripts/workflow.test.mjs
+  s_18e0c68e142857::t_971a82c2d5b942 318
+  s_18e0c68e142857::t_a1e6097367b203 273-317,319-330
+evals/review-the-code/autopilot-bare/prompt.md
+  s_18e0c68e142857::t_e911de036014c3 1-9
+evals/review-the-code/autopilot-full-info/graders/autopilot-log-exists.md
+  s_18e0c68e142857::t_e911de036014c3 1-5
+evals/review-the-code/negative-control/prompt.md
+  s_18e0c68e142857::t_e911de036014c3 1-9
+skills/implement/scripts/workflow-integration.test.mjs
+  s_3d1970d4ccfb7e::t_228c41946ac62a 78
+evals/implement/diagnosis-lightweight/graders/diagnosis-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/execute/diagnosis-repeat/graders/diagnosis-order.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-8
+evals/implement/diagnosis-lightweight/case.yaml
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+skills/implement/scripts/render-status.test.mjs
+  s_18e0c68e142857::t_e911de036014c3 562
+evals/suites.json
+  s_18e0c68e142857::t_df239bf07fef9a 77-78
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 96-100,114
+  s_18e0c68e142857::t_e911de036014c3 76
+evals/review-the-code/review-the-code-plan-conflict/case.yaml
+  s_18e0c68e142857::t_e911de036014c3 1-5
+evals/execute/diagnosis-unknown/graders/audit-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/review-the-code/embedded-tests/case.yaml
+  s_18e0c68e142857::t_e911de036014c3 1-5
+evals/review-the-code/README.md
+  s_18e0c68e142857::t_20ee7a7cfaa19f 217-218
+  s_18e0c68e142857::t_df239bf07fef9a 215-216
+  s_18e0c68e142857::t_e911de036014c3 1-214
+commands/review-the-pr.md
+  s_18e0c68e142857::t_e911de036014c3 1-11
+skills/implement/scripts/render-status.mjs
+  s_18e0c68e142857::t_e911de036014c3 82
+evals/execute/diagnosis-first/fixture.sh
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+evals/README.md
+  s_18e0c68e142857::t_e911de036014c3 116
+evals/execute/diagnosis-repeat/graders/source-correct.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/execute/diagnosis-unknown/case.yaml
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-5
+evals/implement/diagnosis-lightweight/graders/audit-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/execute/diagnosis-repeat/graders/audit-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/review-the-code/embedded-tests/prompt.md
+  s_18e0c68e142857::t_e911de036014c3 1-15
+skills/execute/scripts/step-control.mjs
+  s_3d1970d4ccfb7e::t_3ecfde69f13641 8-19,27,29,55-56,65,68,135,148-158
+  s_18e0c68e142857::t_f8be8cc14a6d25 159
+skills/execute/scripts/step-control.test.mjs
+  s_18e0c68e142857::t_6cd24fff4c828d 235,254,266,289-307
+  s_3d1970d4ccfb7e::t_228c41946ac62a 16,32,110,214,220
+  s_18e0c68e142857::t_33bdcffb09cfee 228-234,236-253,255-265,267-288
+scripts/decision-log.mjs
+  s_18e0c68e142857::t_e911de036014c3 11
+evals/execute/README.md
+  s_3d1970d4ccfb7e::t_6277bf4dfd3b8c 349-380
+  s_18e0c68e142857::t_e911de036014c3 335
+skills/plan-the-work/SKILL.md
+  s_18e0c68e142857::t_e911de036014c3 13,354
+  s_18e0c68e142857::t_987bb36246b4af 29-30,56,388
+  s_18e0c68e142857::t_09814746be5d15 389
+evals/review-the-code/autopilot-bare/case.yaml
+  s_18e0c68e142857::t_e911de036014c3 1-5
+.github/ISSUE_TEMPLATE/bug_report.yml
+  s_18e0c68e142857::t_e911de036014c3 31
+evals/review-the-code/autopilot-bare/graders/autopilot-log-content.md
+  s_18e0c68e142857::t_e911de036014c3 1-21
+evals/execute/diagnosis-repeat/graders/diagnosis-record.md
+  s_3d1970d4ccfb7e::t_a9118eda21e32a 1-7
+evals/review-the-code/review-the-code-plan-conflict/fixture.sh
+  s_18e0c68e142857::t_24f4462ff2a86e 1-31
+evals/review-the-code/review-the-code-plan-conflict/graders/requirements-authority.md
+  s_18e0c68e142857::t_6be8702cd9f4cf 1-7
+evals/review-the-code/review-the-code-refined-authority/fixture.sh
+  s_18e0c68e142857::t_11558e9adbcdd5 1-28
+evals/review-the-code/review-the-code-refined-authority/graders/requirements-authority.md
+  s_18e0c68e142857::t_6a1ceca233edd1 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d02f3c80f1eb061a78e5f24b384fc49caf2a1b46",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_3d1970d4ccfb7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1afc0-b0d2-7801-a739-879691f962db",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
