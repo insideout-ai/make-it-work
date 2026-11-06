@@ -230,6 +230,9 @@ After the coverage report, print a summary of the run (on the "Coverage report o
 
 ## When run by implement
 
+
+**Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.
+
 **Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md). When followed inline, save the exact narrated activity before strategy/test-map inventory, analysis and writing. If this work is delegated to a subagent, the parent checkpoints the description before dispatch and retains it while waiting; the subagent must not write workflow activity or dashboards. Standalone runs and older runs without a dashboard do not create one.
 
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.

@@ -358,6 +358,9 @@ Do not paste the full plan in chat unless the user asks.
 
 ## When run by implement
 
+
+**Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.
+
 **Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md). In this inline session, save the exact narrated activity before investigating code, drafting/amending the plan, or verifying it. Before delegating work, save its description and retain it while waiting; only the main session writes activity or dashboards. Standalone runs and older runs without a dashboard do not create one.
 
 **Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
@@ -380,6 +383,8 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 - When a review triggered the escalation, `implement` also passes that review report and the decided findings list; treat both as constraints, as in Replan mode.
 
 **Replan mode** (`N > 1`, with the previous plan path, a feedback path — the review report or `execute`'s saved report — and the decided findings list):
+
+**Workspace scope revision:** when the parent supplies a scope-change reason and `scope_previous_plan`, use that saved plan (if not `none`) and the approved workspace selection report as the replan baseline/feedback. Preserve valid implementation/tests and cover the expanded scope. If no earlier plan exists, author an initial plan at `make-it-work/<TICKET>/<TICKET>-plan-v<N>.md` using the current working tree and any Lightweight report as baseline; do not require an invented previous plan or review report. Emit `mode: replan` for this versioned result. This explicit scope-revision route bypasses standalone filename-collision questions without overwriting earlier plans. Normal review/gate replans below keep their existing inputs.
 
 - Write `make-it-work/<TICKET>/<TICKET>-plan-v<N>.md`, without the overwrite / `-v2` / abort question.
 - Read the previous plan and the feedback in full before Step 4. Treat every failed assumption, `Route: replan` finding, `Route: fix` finding, decided `Route: human` finding, or `execute` stop as a constraint the new plan must resolve.
