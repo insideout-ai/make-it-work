@@ -4,6 +4,8 @@ Record the user's testing setup, strategy scope and automated/manual verificatio
 
 Run inside `implement`'s Plan phase, before invoking `plan-the-work`, and before entering Execute with a reused standalone plan. A Lightweight run never enters Plan and skips readiness; an escalation into Plan runs it as usual. The branch guard, workflow state, dashboard and spec already exist. Read the spec to identify affected product repos; inspect only relevant test locations. This is setup owned by the orchestrator, outside planning's read-only investigation. Keep the dashboard in Plan while doing it.
 
+Every `define-test-strategy` call here runs under its **When run by implement** contract, in every autonomy mode. Pass the prohibition on running `go-deep` inline: skip its standalone onboarding offer, keep missing UC/domain mapping pending, and append the affected repo and concrete gap to Context discoveries for the completion recommendation. Do not turn testing readiness into full project onboarding or documentation repair. The initial Context check's missing/incomplete-context stop remains unchanged.
+
 ## Inspect and choose
 
 Follow [activity.md](activity.md) throughout this Plan-phase work: narrate and checkpoint before inspecting setup, refreshing the strategy/map, establishing tooling and verifying it. Pass the resolved `implement` directory and activity contract into nested inline skills. If any work is delegated, the parent saves its description before dispatch and retains it while waiting; subagents must not write workflow activity or dashboards. After a result arrives, save the actual next activity before continuing.

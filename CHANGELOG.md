@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Make `implement`'s prohibition on inline `go-deep` explicit across nested stages and all autonomy modes, including the test-strategy prerequisite prompt. Keep ticket-scoped documentation sync and recommend a separate `go-deep` run at completion when broader gaps remain; preserve the startup context prerequisite.
+
 ## [5.1.0] — Unreleased
 
 ### Added

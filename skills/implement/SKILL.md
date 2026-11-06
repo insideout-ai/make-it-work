@@ -85,6 +85,7 @@ Read each one with the Read tool when its phase starts — **never** start them 
 
 - Pass the exact **workflow state path**, even for an older run without a dashboard, the current autonomy, and the workflow-decision audit contract to each stage (including readiness and nested regression). The workflow state path does not authorize dashboard backfill. Inline stages share this session's autonomy-change handling; dispatched subagents do not own it.
 - Pass the resolved `implement` directory and [activity checkpoint contract](references/activity.md) into inline stages and nested skills. The main session owns activity writes, including the description saved before dispatching a subagent and retained while waiting for its result; delegated agents must not write workflow activity or edit HTML. Preserve the contract's legacy single-step Progress-helper exception.
+- Pass this scope constraint to every stage and delegated agent, including nested skills: never invoke or follow `go-deep` inline during `implement`, in any autonomy mode. Defer full onboarding, repair and broad documentation audits; report the affected repo and concrete gap to the parent for Context discoveries and the completion recommendation. Ticket-scoped documentation maintenance still applies.
 - Refinement, planning, and execution run inline in this session; while the current mode is `autopilot`, pass `--autopilot` so their own decision policies replace questions while `execute` dispatches its own per-step subagents. Recompute this from the saved mode for each dispatch, including nested regression; do not reuse the invocation's original flag after a change.
 - Review runs in a fresh subagent, for an independent read of the change (see Review dispatch).
 - Lightweight implementation and its fixes run in a fresh subagent with no stage skill (see Lightweight implementation).
@@ -572,6 +573,8 @@ Runs only after review comes back `CLEAN`. Its job is to make the project's know
 
 Follow `go-deep`'s rules: UC skills describe what the user does and sees, domain skills describe how it is built and where the code lives; keep to the size targets; keep only what someone could not learn by reading the code. Never mention the ticket, its ID, or "this change added…".
 
+Keep this sync scoped to the implemented behavior and discoveries needed to document it. Do not run or follow `go-deep`, rebuild the repository's knowledge base, or repair unrelated pre-existing documentation. Record broader gaps in Context discoveries with the repo, evidence and deferred work; include material limitations in the final package. A deferred gap does not waive a required implementation, validation or review stop.
+
 Write the updates directly, without a confirmation step, at both autonomy levels. Add the files changed to `context_updated`.
 
 **Reconcile test maps after documentation edits.** For each affected product repo with a current test-strategy, follow [references/final-sync-mapping.md](references/final-sync-mapping.md) and `<base>/../../docs/test-map-contract.md` against the finished documentation tree. Inspect baseline readiness first, then reassess the affected behavior and documentation with bounded inputs. Pre-existing incomplete onboarding is not an implicit full-rebuild task. Persist meaningful map updates and regenerate `.claude/testing/TEST-MAP.md`; include changed paths in `context_updated` and disclose remaining uncertainty in the final package. Do not modify source/tests for mapping or migrate old metadata.
@@ -625,6 +628,7 @@ For a run with `final_package_version: 1`, reach this section only after the Fin
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
 - **Final package** — for a new run, its path and whether Guided approval was recorded; omit for older runs.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
+- **Recommended follow-up** — only when Context discoveries or stage reports identify broader documentation gaps left outside this ticket's sync: recommend running `/make-it-work:go-deep` separately in each affected repo, naming the concrete reason and suggesting "Repair existing docs" for an existing knowledge base. This is an informational recommendation; do not launch it, ask to launch it, or delay Completion. Omit when no such gaps remain.
 - **Ticket updates** — when a tracker destination was supplied/configured, report confirmed publications and any local-only, skipped, deferred, unsupported, failed or uncertain operations from the publication journal.
 - **Replans used** — the count.
 - **Workflow feedback** — `make-it-work/implement-feedback.md`, stating whether this run was recorded as minimal or received a detailed retrospective. If feedback could not be written, state why instead.
@@ -645,7 +649,7 @@ Finally, for every completed run with `final_package_version: 1`, run `node "<ba
 
 - Never commit anything, push, or open a PR.
 - Never start on a detached HEAD. Never start on the base branch unless the user explicitly chose to proceed anyway at the branch guard.
-- Never run `go-deep`, and never start a stage skill through the Skill tool.
+- Never run `go-deep` directly or through a stage, nested skill or delegated agent, in any autonomy mode; recommend a separate run at completion when broader documentation gaps remain. Never start a stage skill through the Skill tool.
 - Never skip a checkpoint write, and never exceed a limit in the Transition table.
 - Never skip the refined spec, the independent review, or the final context sync in any mode. Never escalate more than once, and never downgrade TDD to Lightweight without the user's explicit request.
 - Never answer a stage's question on the user's behalf, and never classify an uncertain regression without asking — except when `--autopilot` invokes that stage's own documented autopilot resolution. Autopilot never resolves its documented hard stops.
