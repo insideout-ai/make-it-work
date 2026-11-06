@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Refresh the README overview, quick start and skill catalog, and include its banner asset.
 - Renamed `review-the-pr` to `review-the-code` across workflow dispatch, dashboards, documentation and evals. The old command remains a deprecated alias; existing review reports and legacy decision logs remain readable.
 
+### Fixed
+
+- Lightweight fix rounds now checkpoint the diagnosis in their existing report and audit log before dispatching a fresh fix agent, including on resume. Completed fix handoffs reject missing or stale checkpoint evidence.
+- Diagnosis smoke graders distinguish an active dispatch from a seeded corrective attempt, so the first actual correction is counted correctly.
+
 ## [5.3.0] — 2026-11-06
 
 ### Added

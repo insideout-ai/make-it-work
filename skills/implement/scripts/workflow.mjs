@@ -12,6 +12,7 @@ import { createPendingInput, pendingAnswer, pendingInputs } from './pending-inpu
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
 import { planHash } from '../../../scripts/lib/plan.mjs';
 import { approvedScope, readScope } from './workspace-scope.mjs';
+import { inspectLightweightFix } from './lightweight-fix.mjs';
 export { planHash } from '../../../scripts/lib/plan.mjs';
 
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
@@ -378,6 +379,9 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
+    if (handoff?.stage === 'implement' && handoff.status === 'done' && state.fields.mode === 'lightweight' && Number(state.fields.fix_cycle) > 0) {
+      await inspectLightweightFix(root, statePath, handoff.artifacts.report);
+    }
     if (handoff?.stage === 'plan' && handoff.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
       const policy = testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
       if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
