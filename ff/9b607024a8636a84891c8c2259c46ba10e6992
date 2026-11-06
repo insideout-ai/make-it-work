@@ -1,0 +1,45 @@
+evals/review-the-code/review-the-code-false-parity/fixture.sh
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-5
+evals/review-the-code/review-the-code-shared-parity/case.yaml
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-5
+evals/review-parity-fixtures.test.mjs
+  s_18e0c68e142857::t_c3e7c2401e9690 1-48
+evals/review-the-code/review-the-code-shared-parity/prompt.md
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-15
+evals/review-the-code/parity-fixture.mjs
+  s_18e0c68e142857::t_c3e7c2401e9690 177-179
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-2,5-68,74-75,83-176,180-187
+  s_18e0c68e142857::t_7bb513bb674fc4 3-4,69-73,76-82,188-191
+evals/review-the-code/review-the-code-shared-parity/fixture.sh
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-5
+evals/review-the-code/README.md
+  s_18e0c68e142857::t_a1f4d67d4fb46d 219-225
+  s_18e0c68e142857::t_c1622a24b63a95 226-227
+evals/review-the-code/review-the-code-false-parity/graders/coverage-evidence.md
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-9
+evals/review-the-code/review-the-code-false-parity/case.yaml
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-5
+evals/review-the-code/review-the-code-false-parity/prompt.md
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-15
+evals/suites.json
+  s_18e0c68e142857::t_a1f4d67d4fb46d 79-80
+evals/review-the-code/review-the-code-shared-parity/graders/coverage-evidence.md
+  s_18e0c68e142857::t_a1f4d67d4fb46d 1-6,8-9
+  s_18e0c68e142857::t_5f314d5a628833 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ff9b607024a8636a84891c8c2259c46ba10e6992",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
