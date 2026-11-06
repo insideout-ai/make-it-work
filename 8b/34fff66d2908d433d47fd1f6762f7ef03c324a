@@ -1,0 +1,67 @@
+evals/plan-the-work/assumption-low-risk/graders/plan-exists.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/suites.json
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 102-105
+evals/plan-the-work/assumption-unsupported/fixture.sh
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/plan-the-work/assumption-unsupported/graders/planning-boundaries.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-7
+  s_3d1970d4ccfb7e::t_5e9c9ee1d0e2c1 8-9
+evals/plan-the-work/assumption-supported/fixture.sh
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/plan-the-work/README.md
+  s_3d1970d4ccfb7e::t_bd31cef72b0e2d 389-407,411-421
+  s_3d1970d4ccfb7e::t_6bc818959d720c 408-410
+evals/plan-the-work/assumption-low-risk/fixture.sh
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/plan-the-work/assumption-low-risk/prompt.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-15
+evals/plan-the-work/assumption-supported/prompt.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-15
+evals/plan-the-work/assumption-supported/case.yaml
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/plan-the-work/assumption-supported/graders/planning-boundaries.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-7
+  s_3d1970d4ccfb7e::t_5e9c9ee1d0e2c1 8-9
+evals/plan-the-work/assumption-supported/graders/plan-exists.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/plan-the-work/assumption-unsupported/graders/assumption-handling.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-7
+CHANGELOG.md
+  s_3d1970d4ccfb7e::t_3b306b0a5c4404 15
+evals/plan-the-work/assumption-supported/graders/assumption-handling.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-7
+skills/plan-the-work/SKILL.md
+  s_3d1970d4ccfb7e::t_2ea9f13f5a934e 30
+evals/plan-the-work/assumption-low-risk/graders/planning-boundaries.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-7
+  s_3d1970d4ccfb7e::t_5e9c9ee1d0e2c1 8-9
+evals/plan-the-work/assumption-fixture.mjs
+  s_3d1970d4ccfb7e::t_fe32410b4a61f6 1-113
+evals/plan-the-work/assumption-unsupported/prompt.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-15
+evals/assumption-fixtures.test.mjs
+  s_3d1970d4ccfb7e::t_521f7b13562f52 1-48
+evals/plan-the-work/assumption-low-risk/graders/assumption-handling.md
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-7
+evals/plan-the-work/assumption-low-risk/case.yaml
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+evals/plan-the-work/assumption-unsupported/case.yaml
+  s_3d1970d4ccfb7e::t_6f4cf68db76e6b 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8b34fff66d2908d433d47fd1f6762f7ef03c324a",
+  "prompts": {},
+  "sessions": {
+    "s_3d1970d4ccfb7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1afc0-b0d2-7801-a739-879691f962db",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
