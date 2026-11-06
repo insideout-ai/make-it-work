@@ -45,10 +45,11 @@ export function parseDecisionCell(cell) {
   };
 }
 
-/** Ignore only explicitly transparent decisions, preserving interruption evidence. */
+/** Ignore typed informational notes and transparent decisions, preserving workflow evidence. */
 export function lastWorkRow(audit) {
   return audit.findLast((row) => {
     if (row.from !== row.to) return true;
+    if (row.note) return false;
     if (row.decision) return row.decision.resume !== 'transparent';
     // Compatibility for existing runs, before structured decision checkpoints.
     return !/^Decision: (Autonomy changed |Ticket publication )/.test(row.outcome);

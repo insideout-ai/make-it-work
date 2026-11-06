@@ -30,6 +30,16 @@ For a live Slack check, use a test recipient: select **Draft in Slack** and veri
 
 For Jira recipient discovery, use a disposable ticket whose **Product Manager custom field** differs from its built-in Reporter. Verify the skill resolves the custom field's actual name-to-`customfield_<id>` mapping and uses its populated value, including when omitted from the initial issue response. A confirmed missing/empty PM field permits a clearly labeled Reporter fallback; unavailable or ambiguous field discovery must ask for the PM (or export offline in Autopilot), without treating omission as empty or guessing a custom-field ID. These are manual connector checks, not automated coverage.
 
+For partial-answer refinement, check these scenarios in a disposable project (Slack delivery requires a test recipient):
+
+- Answer one question, skip another, and skip a gate with dependent questions. Verify independent questions continue, dependents remain unresolved, and the final choice offers exactly **Proceed with TBDs** and **Pause and send to Product**.
+- Choose **Proceed with TBDs**. Verify the spec preserves the answer and lists both skipped and blocked items with their conditions. Unasked dependent questions have no Decision Log row; no message is drafted or sent.
+- Choose **Pause and send to Product** in a fresh run. Verify the saved file retains answered selections and original Q-numbers, clears only deferred selections for Product to answer, and the message asks only unresolved questions with answered decisions as context. No spec is generated. With Slack unavailable, verify the same preserved file is offered for manual forwarding without claiming delivery.
+- Resume that file with Product replies, then without replies and choose to answer unresolved questions live. Verify existing answers survive both paths and dependent questions become applicable only after their gate resolves. A second unresolved handoff requires a fresh explicit selection; an unknown delivery is reconciled without resending.
+- Answer everything. Verify no unresolved-items choice appears. Under Autopilot, resume a file with a checked Skip and verify it proceeds with TBDs without sending. Under implement, verify a partial handoff pauses via `QUESTIONS_SENT`, while proceeding returns `SPEC_SAVED` with the unresolved count for existing readiness gates.
+
+These interaction scenarios are manual coverage; `scripts/questions.test.mjs` covers skipped-gate propagation, counts, and preserving answers when the gate is later resolved.
+
 ## `.claude/`-exposure: why this skill is mostly plain-eval-testable
 
 Before this work, `close-the-gaps` wrote nothing under `.claude/` at all. Adding `--autopilot` adds exactly one such path: the decision log, `make-it-work/<TICKET>/close-the-gaps-autopilot-log.jsonl` (per the shared convention — see `skills/close-the-gaps/SKILL.md`'s Autopilot Mode section). Everything else the skill writes — `make-it-work/<TICKET>/<TICKET>-questions.md`, `make-it-work/<TICKET>/<TICKET>-spec.md` — is a normal, unblocked path. That puts this skill in the "one specific blocked path among otherwise-unblocked output" bucket (the same bucket `define-test-strategy` is in for its `.claude/skills/test-strategy/SKILL.md`), not the "substantially under `.claude/`" bucket `go-deep` was in.
@@ -63,3 +73,12 @@ This is the only case in this suite that needs that manual step, and it's an add
 - Doesn't cover the Phase 5C "conflicting checkboxes" hard-stop (more than one box checked on the same question) — a plausible fifth case, omitted here to keep the suite to the same size as the branches `go-deep`'s pilot covered; worth adding if this suite grows.
 - `close-the-gaps-live-autopilot` and `close-the-gaps-negative-control` share one fixture (same ticket, same tiny fixture repo) — intentional, mirrors how `go-deep`'s `fresh-onboarding`/`negative-control` share a fixture.
 - `AskUserQuestion`'s availability inside `claude plugin eval` sandboxes is itself environment-dependent (see `evals/go-deep/README.md`'s note); this skill's autopilot path never calls it on the happy path anyway, so it mainly affects how `close-the-gaps-negative-control` behaves once it reaches a question it can't resolve unattended.
+
+
+## Optional Slack context research
+
+See [the connected Slack context-search scenarios](slack-context-search-manual.md)
+for consent, all-channel default scope, explicit channel limits, Autopilot,
+read-only behavior, conflict handling, and export/resume checks. These require a
+test Slack connection and are manual coverage; the existing offline/autopilot
+fixtures do not simulate a connected search provider.

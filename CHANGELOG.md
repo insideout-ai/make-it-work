@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.2.0] — 2026-11-06
+
+### Added
+
+- Partial-answer refinement in `close-the-gaps`: answer what is known, then pause and send only unresolved questions to Product or generate the refined ticket with explicit TBDs. Preserve answered decisions, question IDs and unresolved dependencies through handoff and resume.
+- Persistent Activity and Result entries in the implementation audit. Regression, verification and final-package scripts record observed outcomes and evidence references; retries preserve history without duplicate rows or changes to workflow readiness, approvals or resume classification.
+- Optional read-only Slack context research in `close-the-gaps`, before gap analysis. After consent, search all accessible channels by default, summarize linked findings, and surface conflicting evidence. Autopilot skips unless explicitly requested; offline export/resume preserves context and PM messaging permissions remain separate.
+- Autonomous startup smoke coverage requires a clickable dashboard link in assistant text and continuation through Context check without another user message.
+- Include the existing static Sprint Guide test-map preview under `output/test-map-preview/`; it is reference output, not a live assessment or evidence that tests passed.
+
+### Changed
+
+- Workflow initialization returns a chat-ready dashboard link and continuation instructions. `implement` must present the link as ordinary assistant text followed by Context check in the same response; pending-offline runs retain their genuine answer wait.
+- Epic shaping uses one decision source for the saved epic and Autopilot log, keeps unresolved categories unchecked, and grades saved Markdown rather than requiring a direct Write call.
+- Epic slicing presents approach choices in chat before artifact generation and copies the saved slice summary and starting-slice recommendation into the completion response.
+- Repository assessment retains workspace-metadata repositories that are absent on disk, writes complete evidence tables, and requires behavioral evidence before treating event consumers as implementation matches.
+- Smoke cases run concurrently within reserved budgets. Repository-discovery smoke uses the headless runner; helper CLIs handle symlinked entry points and report the saved decision-log path.
+
+### Fixed
+
+- Enforce dashboard startup presentation with skill-scoped transcript hooks: hold further tool execution until the actual clickable link appears in assistant chat, allow a bounded transcript-flush delay, and continue Context check without another user message. Regression grading distinguishes denied tool attempts from executed work.
+- Preserve activity audit evidence if dashboard rendering fails, and repair the snapshot on retry. Keep completed activity history visible without treating narration as a phase result or inflating workflow-feedback counters.
+- Show a concise final-package build result and package link in the dashboard audit log, keeping the approval fingerprint in the saved evidence rather than displaying the full hash.
+- Save a standalone current-session `workflow-feedback.md` beside implementation package artifacts, refresh it after feedback clarifications, and link it in the terminal summary without altering the approved package. Offer optional manual sharing by emailing the reviewed session file to insideoutaitech@gmail.com.
+- Explain `implement` workflow feedback in plain language and show a concise result in the terminal chat summary, including the main cause and suggested improvement when analyzed, rather than only reporting an internal classification and file path.
+- Make `implement`'s prohibition on inline `go-deep` explicit across nested stages and all autonomy modes, including the test-strategy prerequisite prompt. Keep ticket-scoped documentation sync and recommend a separate `go-deep` run at completion when broader gaps remain; preserve the startup context prerequisite.
+
 ## [5.0.0] — 2026-11-03
 
 ### Licensing

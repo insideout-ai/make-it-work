@@ -77,7 +77,9 @@ Check whether `go-deep` has already run in the target repo. Any one of these sig
 - `CLAUDE.md` contains go-deep markers (Skill Loading Gate, Skills Reference, or After Any Feature Change sections)
 - `.claude/rules/architecture.md` or `.claude/rules/product.md` exists
 
-If none is found, warn the user that the use-case and domain inventory for `<Repo ID>` is missing, then ask with one `AskUserQuestion` call (`multiSelect: false`) (autopilot: see Autopilot Mode):
+**When run by `implement`:** if none is found, warn that the use-case and domain inventory for `<Repo ID>` is missing, set the **partial** flag and continue without the offer below in every autonomy mode. Never invoke or follow `go-deep` inline. Return the repo and missing inventory to the caller for Context discoveries and a separate-run recommendation at completion. This overrides the standalone offer, including Guided and Autonomous runs.
+
+**Standalone runs:** if none is found, warn the user that the use-case and domain inventory for `<Repo ID>` is missing, then ask with one `AskUserQuestion` call (`multiSelect: false`) (autopilot: see Autopilot Mode):
 - `{ label: "Run go-deep now (Recommended)", description: "Run go-deep for this repo first, then continue with its use cases and domains." }`
 - `{ label: "Continue without it", description: "Write locations, layers, commands and prerequisites now; UC/domain mapping stays pending go-deep." }`
 

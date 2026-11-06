@@ -13,6 +13,26 @@ Do not write an entry for a pause, user-requested stop, branch/context/setup fai
 
 The terminal state-file write and dashboard regeneration happen first. Feedback failure or unanswered feedback questions never re-open, downgrade, or block the implementation run.
 
+## Explain the feedback to the user
+
+Use plain language in chat; keep terms such as `minimal`, `inspect`, writer classification and dispatch gates in internal reasoning and artifacts. Before inspecting a completed run, say: "Implementation is complete. I’m recording workflow feedback and checking whether any extra rounds need analysis." For an eligible limit stop, say: "The run has stopped at its retry limit. I’m reviewing what led to the extra rounds and recording possible workflow improvements." If analysis is needed, explain: "I’m reviewing why extra rounds were needed and whether the workflow could prevent them next time."
+
+Include the feedback result in the terminal chat summary for both completed runs and eligible limit stops, not just the file location:
+
+- With no fix, replan or escalation events, say: "No fix rounds, replanning or switch from Lightweight to TDD were needed; a short workflow note was saved."
+- After detailed analysis, give a brief account of why extra rounds were needed and the main suggested workflow improvement, if supported. Distinguish a suggestion from an applied change. If no workflow change is recommended, say so; preserve material uncertainty rather than presenting a tentative cause as fact.
+- Link the writer's `sessionOutputPath` (`make-it-work/<TICKET>/workflow-feedback.md`) as **Save this session's feedback** for the full saved details. The cumulative `make-it-work/implement-feedback.md` remains available locally. If analysis or saving failed, state what could not be completed rather than claiming feedback was saved. Keep the implementation's completed or stopped status explicit.
+
+Summarize only this run's feedback, following the share-safe rules below. Do not paste the full retrospective or imply its recommendations have been applied. Keep the existing terminal summary concise.
+
+## Session export beside the final package
+
+Every successful writer call also saves `make-it-work/<TICKET>/workflow-feedback.md` and returns `sessionOutputPath`. This standalone Markdown file contains the standard header and only the current run's sanitized feedback block, never previous runs or user-authored cumulative-file notes. Clarification updates replace the session export as well as updating the cumulative entry.
+
+The export lives beside the final approval package as a post-completion companion. Do not change the approved package, its manifest, hash or approval to add feedback: the retrospective occurs after Completion. Eligible limit stops also get an export even when no final package exists. The export is local and uncommitted; it is removed if the user later deletes the ticket artifact folder, while the cumulative file remains separate. Share the session export only, never the implementation package, transcript or cumulative feedback file.
+
+Sharing uses a manual download-and-email flow. When detailed feedback has been saved, invite the user to review the linked session export, save/download it, and attach only that file to an email to InsideOut AI at [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). Use a generic suggested subject such as "make-it-work workflow feedback" without ticket or customer identifiers. For example: "To share this feedback with InsideOut AI, review and save the session report, then email it as an attachment to insideoutaitech@gmail.com. Sharing is optional." Do not launch an email application, attach files, send a message or claim submission. The user chooses whether to send; no additional sharing approval prompt or wait is needed. An email sent by the user can identify the sender even though the report itself is sanitized.
+
 ## Stable run identity and safe updates
 
 The feedback writer uses the state file's real `start_time` verbatim as the run ID and renders the immutable `plugin_version` captured when the run began. A missing or `none` start time makes the run ineligible: report its error, but leave the terminal workflow state unchanged. A legacy state without `plugin_version` is labelled `not captured (legacy run)`; never backfill it from the currently installed plugin.

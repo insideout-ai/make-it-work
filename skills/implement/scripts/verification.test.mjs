@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { readVerification, traceability, validateVerification } from './verification.mjs';
+import { parseState } from './render-status.mjs';
 
 const plan = '# Plan\n\n## Steps\n\n### Step 1 — Implement\n\n## Test Plan\n\n| Scenario | Type | File / command |\n| --- | --- | --- |\n| Happy path | Unit | test.js |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 saves a record | Happy path |\n\n## Definition of Done\n';
 const ledger = () => ({ version: 1, ticket: 'DEMO', plan_version: 1,
@@ -42,6 +43,23 @@ test('checks a ledger file stays inside the run root', async (t) => {
   const result = JSON.parse(execFileSync(process.execPath, [cli, 'check', '--root', root, '--file', 'make-it-work/DEMO/DEMO-verification-v1.json',
     '--ticket', 'DEMO', '--plan-version', '1', '--plan', planPath, '--outcome', 'PASSED'], { encoding: 'utf8' }));
   assert.equal(result.valid, true);
+  const statePath = path.join(root, 'make-it-work/DEMO/DEMO-state.md');
+  const fixture = await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8');
+  await writeFile(statePath, fixture);
+  const before = parseState(fixture);
+  const auditedArgs = [cli, 'check', '--root', root, '--file', 'make-it-work/DEMO/DEMO-verification-v1.json',
+    '--ticket', 'DEMO', '--plan-version', '1', '--plan', planPath, '--outcome', 'PASSED', '--state', statePath];
+  execFileSync(process.execPath, auditedArgs);
+  const saved = await readFile(statePath, 'utf8');
+  const state = parseState(saved);
+  assert.deepEqual(state.fields, before.fields);
+  assert.equal(state.audit.at(-1).note.kind, 'result');
+  assert.match(state.audit.at(-1).outcome, /Gate: pass; acceptance: 1\/1 verified/);
+  execFileSync(process.execPath, auditedArgs);
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-verification-v1.json'), JSON.stringify({ ...ledger(), acceptance: [] }));
+  assert.throws(() => execFileSync(process.execPath, auditedArgs, { stdio: 'pipe' }));
+  assert.equal(await readFile(statePath, 'utf8'), saved);
   await assert.rejects(readVerification(root, '../DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1 }), /Invalid verification artifact path/);
 });
 

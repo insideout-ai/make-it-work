@@ -54,6 +54,39 @@ test('epic artifact graders accept script output and reject missing, empty or in
   }
 });
 
+test('epic semantic graders receive saved Markdown without a Write call or transcript readback', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-epic-semantic-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const graderDir = path.join(root, 'graders');
+  await mkdir(graderDir);
+  for (const [caseName, graderName] of [
+    ['shape-the-epic-rich-input-autopilot', 'epic-structure-sections.md'],
+    ['shape-the-epic-sparse-input-autopilot', 'open-items-populated.md'],
+  ]) {
+    const definition = await readFile(path.join('evals/shape-the-epic', caseName, 'graders', graderName), 'utf8');
+    await writeFile(path.join(graderDir, graderName), definition);
+  }
+  const input = { version: 1, title: 'Saved Search Alerts', mode: 'product',
+    categories: [{ id: 3, assessed: true, ready: false, content: 'Outcome remains TBD.',
+      open_items: ['Decide the customer outcome before defining acceptance.'] }] };
+  let calls = 0;
+  const judge = async (prompt) => {
+    calls += 1;
+    assert.equal(prompt.split('<evidence>\n')[1].split('\n</evidence>')[0], renderEpic(input));
+    return { stdout: JSON.stringify({ structured_output: { verdict: 'PASS', reason: 'Artifact evidence received.' } }) };
+  };
+  const grade = () => gradeHeadlessCase({ graderDir, fixtureDir: root, transcript, budgetUsd: 1, judge });
+  assert.equal((await grade()).passed, false, 'Missing artifacts fail before calling the judge');
+  assert.equal(calls, 0);
+  const { files: [file] } = await writeEpic(path.join(root, 'make-it-work'), input);
+  assert.equal((await grade()).passed, true);
+  assert.equal(calls, 4, 'Both graders judge the saved file');
+  await writeFile(path.join(root, 'make-it-work', 'epic-another.md'), renderEpic(input));
+  assert.equal((await grade()).passed, false, 'Ambiguous artifacts fail before calling the judge');
+  assert.equal(calls, 4);
+  await rm(file);
+});
+
 test('file evidence globs reject ambiguity, traversal and symlink escapes', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'miw-evidence-glob-'));
   t.after(() => rm(root, { recursive: true, force: true }));

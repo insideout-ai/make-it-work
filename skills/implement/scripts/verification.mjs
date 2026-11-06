@@ -1,8 +1,11 @@
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { runArtifact, runDirectory } from './artifact-layout.mjs';
 import { testingPolicy, validateManualEvidence } from './testing-policy.mjs';
+import { checkpointResult } from './dashboard-checkpoint.mjs';
+import { parseState } from './render-status.mjs';
 
 const fail = (message) => { throw new Error(message); };
 const nonempty = (value, name) => {
@@ -144,11 +147,21 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const options = {};
   while (args.length) {
     const flag = args.shift();
-    if (!['--root', '--file', '--ticket', '--plan-version', '--plan', '--outcome'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
+    if (!['--root', '--file', '--ticket', '--plan-version', '--plan', '--outcome', '--state'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
     options[flag.slice(2).replaceAll('-', '_')] = args.shift();
   }
   if (action !== 'check' || !options.root || !options.file || !options.ticket || !options.plan_version) fail('Usage: verification.mjs check --root ROOT --file RELATIVE --ticket TICKET --plan-version N [--plan PLAN --outcome OUTCOME]');
   const plan = options.plan ? await readFile(options.plan, 'utf8') : null;
-  await readVerification(options.root, options.file, { ticket: options.ticket, planVersion: Number(options.plan_version), plan, outcome: options.outcome ?? null });
+  const ledger = await readVerification(options.root, options.file, { ticket: options.ticket, planVersion: Number(options.plan_version), plan, outcome: options.outcome ?? null });
+  if (options.state) {
+    const state = parseState(await readFile(options.state, 'utf8'), options.state);
+    if (state.fields.ticket !== options.ticket || state.fields.plan_version !== options.plan_version) fail('Verification audit must belong to this ticket and plan version.');
+    const hash = createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
+    await checkpointResult(options.state, {
+      id: `verification:${hash}:${options.outcome ?? 'partial'}`,
+      text: `Verification ledger validated${options.outcome ? ` for ${options.outcome}` : ' (partial check)'}. Gate: ${ledger.gate?.result ?? 'not recorded'}; acceptance: ${ledger.acceptance.filter((item) => item.status !== 'unverified').length}/${ledger.acceptance.length} verified.`,
+      reference: `${options.file}; sha256:${hash}`,
+    });
+  }
   console.log(JSON.stringify({ valid: true }));
 }

@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { realpath } from 'node:fs/promises';
+import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { args, cli, fail, jsonInput, requireText } from './lib/artifacts.mjs';
+import { args, cli, digest, fail, jsonInput, requireText } from './lib/artifacts.mjs';
+import { checkpointResult } from '../skills/implement/scripts/dashboard-checkpoint.mjs';
+import { parseState } from '../skills/implement/scripts/render-status.mjs';
 
 export function parseScope(tokens) {
   const remaining = tokens.filter((token) => token !== '--autopilot');
@@ -79,7 +81,12 @@ function combineRuns(runs) {
   }
   return result.map((item) => item.run);
 }
-export async function runRegression(input, { env = process.env } = {}) {
+export async function runRegression(input, { env = process.env, statePath, auditId } = {}) {
+  if (statePath || auditId) {
+    if (!statePath || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(auditId ?? '')) fail('Audited regression requires a state path and stable audit id.');
+    const state = parseState(await readFile(statePath, 'utf8'), statePath);
+    if (state.fields.phase !== 'execute' || state.fields.status !== 'In Progress') fail('Audited regression requires active execution.');
+  }
   if (input.version !== 1 || !['full', 'tokens'].includes(input.mode) || !Array.isArray(input.runs)) fail('Invalid regression manifest.');
   if (!Array.isArray(input.not_run ?? []) || !Array.isArray(input.unmapped ?? [])) fail('Not-run and unmapped scope must be arrays.');
   const result = { version: 1, mode: input.mode, workspace: Boolean(input.workspace), full_requested: input.runs.some((run) => run.scope === 'full'), runs: [], not_run: structuredClone(input.not_run ?? []), unmapped: structuredClone(input.unmapped ?? []), overall: null };
@@ -119,6 +126,18 @@ export async function runRegression(input, { env = process.env } = {}) {
       ...(await runCommand(c, cwd, { env, timeoutMs: run.timeout_ms ?? 300000 })) });
   }
   result.overall = result.runs.some((run) => run.result === 'fail') ? 'fail' : result.runs.length ? 'pass' : null;
+  if (statePath) {
+    try {
+      await checkpointResult(statePath, {
+        id: `regression:${auditId}`,
+        text: `Completion gate: ${result.overall?.toUpperCase() ?? 'NO RESULT'}. ${result.runs.length} run(s); ${result.not_run.length} not run; ${result.unmapped.length} unmapped.`,
+        reference: `regression ${auditId}; manifest sha256:${digest(JSON.stringify(input))}; result sha256:${digest(JSON.stringify(result))}`,
+      });
+    } catch (error) {
+      error.regressionResult = result;
+      throw error;
+    }
+  }
   return result;
 }
 const displayCommand = (c) => c ? [c.bin, ...c.args].map((part) => /[\s'"$`]/.test(part) ? `'${part.replaceAll("'", "'\\''")}'` : part).join(' ') : 'None';
@@ -141,8 +160,15 @@ export function regressionReport(result) {
   return lines.join('\n');
 }
 cli(import.meta.url, async (argv) => {
-  const o = args(argv, ['--input', '--format']);
-  if (o.command !== 'run') fail('Usage: regression.mjs run --input MANIFEST.json [--format text]');
-  const result = await runRegression(await jsonInput(o.input));
+  const o = args(argv, ['--input', '--format', '--state', '--audit-id']);
+  if (o.command !== 'run') fail('Usage: regression.mjs run --input MANIFEST.json [--format text] [--state STATE --audit-id ID]');
+  const input = await jsonInput(o.input);
+  let result;
+  try { result = await runRegression(input, { statePath: o.state, auditId: o['audit-id'] }); }
+  catch (error) {
+    // Keep observed test evidence available even when its audit/HTML needs repair.
+    if (error.regressionResult) process.stdout.write(`${o.format === 'text' ? regressionReport(error.regressionResult) : JSON.stringify(error.regressionResult)}\n`);
+    throw error;
+  }
   return o.format === 'text' ? regressionReport(result) : result;
 });

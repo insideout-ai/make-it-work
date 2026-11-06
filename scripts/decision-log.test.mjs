@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { normalizeEntry, updateLog } from './decision-log.mjs';
+import { renderEpic } from './epic.mjs';
 
 const SCRIPT = path.join(import.meta.dirname, 'decision-log.mjs');
 const checkpoint = {
@@ -102,18 +103,67 @@ test('CLI reads JSON from an --input file and removes it after use', async (t) =
   const { root, log } = await workspace(t);
   let result = spawnSync(process.execPath, [SCRIPT, 'init', 'execute', '--root', root], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `Decision log saved to ${log}\n`);
   const payload = path.join(root, 'make-it-work', '.decision-log-input.json');
   await writeFile(payload, JSON.stringify(question));
   result = spawnSync(process.execPath, [SCRIPT, 'append', 'execute', '--root', root, '--input', payload],
     { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `Decision log saved to ${log}\n`);
   assert.equal((await readFile(log, 'utf8')).trim().split('\n').length, 1);
   await assert.rejects(stat(payload));
   await writeFile(payload, '{bad json');
   result = spawnSync(process.execPath, [SCRIPT, 'append', 'execute', '--root', root, '--input', payload],
     { encoding: 'utf8' });
   assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, '');
   assert.match(result.stderr, /Invalid decision JSON/);
+});
+
+test('CLI write confirms the persisted path and never claims success for a failed write', async (t) => {
+  const { root, log } = await workspace(t);
+  const run = () => spawnSync(process.execPath, [SCRIPT, 'write', 'execute', '--root', root],
+    { input: JSON.stringify([checkpoint]), encoding: 'utf8' });
+  let result = run();
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `Decision log saved to ${log}\n`);
+  assert.deepEqual(JSON.parse((await readFile(log, 'utf8')).trim()), checkpoint);
+  await rm(log);
+  await mkdir(log);
+  result = run();
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /regular file/);
+});
+
+test('decision-log CLI executes through a symlink and reports the saved file', async (t) => {
+  const { root, log } = await workspace(t);
+  const alias = path.join(root, 'decision-log-link.mjs');
+  await symlink(SCRIPT, alias);
+  const result = spawnSync(process.execPath, [alias, 'init', 'execute', '--root', root], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, `Decision log saved to ${log}\n`);
+  assert.equal(await readFile(log, 'utf8'), '');
+});
+
+test('shaping renders its epic and writes every automatic resolution from the same input file', async (t) => {
+  const { root } = await workspace(t);
+  const choices = [question, { phase: 'Phase 2B', site: 'gap-check-editing', kind: 'open_text',
+    chosen: '[autopilot best-guess] Edits affect future digests.', rationale: 'Proposed for review.' }];
+  const epic = { version: 1, mode: 'product', title: 'Alerts', categories: [
+    { id: 3, assessed: true, ready: true, content: 'Save searches.' }],
+    decisions: [{ topic: 'Goal', decision: 'Save searches.', status: 'Confirmed', source: 'user', reference: 'Brief' },
+      ...choices.map((auto_resolution) => ({ topic: auto_resolution.site, auto_resolution }))] };
+  const markdown = renderEpic(epic);
+  for (const choice of choices) assert.ok(markdown.includes(choice.chosen));
+  const payload = path.join(root, 'epic-input.json');
+  await writeFile(payload, JSON.stringify(epic));
+  const result = spawnSync(process.execPath, [SCRIPT, 'write', 'shape-the-epic', '--root', root, '--input', payload], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const log = path.join(root, 'make-it-work', 'shape-the-epic-autopilot-log.jsonl');
+  assert.equal(result.stdout, `Decision log saved to ${log}\n`);
+  assert.deepEqual((await readFile(log, 'utf8')).trim().split('\n').map(JSON.parse), choices.map((entry) => normalizeEntry(entry, 'shape-the-epic')));
+  await assert.rejects(stat(payload));
 });
 
 test('CLI reads JSON from stdin and leaves invalid input untouched', async (t) => {

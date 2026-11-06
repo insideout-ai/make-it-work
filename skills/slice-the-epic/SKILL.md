@@ -19,7 +19,11 @@ Turn an oversized requirement into a small, ordered backlog of independently dem
 
 ## Autopilot Mode
 
-When invoked with `--autopilot`, evaluate the same clarification condition and construct the same approach choices as the interactive path. Resolve those sites without calling `AskUserQuestion` or waiting for an answer. When choosing an approach, first send a chat preview of every candidate with its fit, tradeoff and 2–3 example slice titles, then announce the automatic selection and generate/save the backlog. Autopilot skips the wait, not this preview; an approach section inside the saved backlog or decision log does not replace the preceding chat message.
+When invoked with `--autopilot`, resolve necessary clarification without calling `AskUserQuestion` or waiting for an answer. Deliver the work in this order:
+
+1. Start your reply with 2–3 approaches, each with its fit, tradeoff and 2–3 example slice titles. End that message with “I'll use [recommended approach] automatically.” If the user already chose an approach, state that choice instead. Send this message before running any artifact helper or writing backlog input.
+2. Generate and save the overview and slice files, then write the decision log.
+3. Send the completion response with the writer's unchanged `chat_summary` and a link to the overview.
 
 **Hard-stop exception:** none. This skill saves a fresh timestamped set of overview and slice files, adding a numeric suffix on a filename collision; it never overwrites an earlier set. Skip Jira creation, native dependency links, and the associated source-ticket summary comment even if an integration is available: do not offer creation, ask for Jira values, create tickets or links, or post comments in autopilot. Reading a supplied Jira source remains allowed. The "Wrap up" offer remains non-blocking.
 
@@ -60,7 +64,7 @@ Build 2–3 tailored candidate approaches from the techniques below. An option m
 
 Before generating the full backlog, show each candidate's technique or combination, why it fits this epic, the main tradeoff, and 2–3 example slice titles. Make the options meaningfully different in boundaries, order, or feedback opportunities; do not add a weak third choice merely to fill a slot. Recommend one based on independent value, manageable scope, dependencies, and early risk reduction.
 
-Use `node <plugin-root>/scripts/slices.mjs preview --input <approaches.json>` to validate and render the candidates (see [the slice artifact contract](../../docs/deterministic-artifacts.md#slice-artifacts)). Send its output as visible assistant text before drafting the backlog; tool output and thinking do not replace that message. Then apply the existing interactive or autopilot selection policy. When the user already supplied an approach, honor it without constructing alternatives.
+Present the candidates directly in assistant chat text before running artifact helpers or writing backlog input; no preview file or command is needed. In autopilot, announce the automatic selection in that same message, then draft and save the backlog. In interactive mode, ask for the choice below and wait. When the user already supplied an approach, honor it without constructing alternatives.
 
 Ask the user to choose through `AskUserQuestion`: one question in the `questions` array, a short `header` such as `Slicing`, `multiSelect: false`, and 2–3 options with `label` and `description`. Put the recommended option first with `(Recommended)` in its label. Claude supplies a free-text Other choice automatically. If the tool is unavailable, show numbered options and wait for a number or written choice. In interactive mode, stop here until the user responds; previews are not the completed backlog. In autopilot, apply the resolution table instead.
 
@@ -157,7 +161,7 @@ In autopilot, skip this step entirely, including dependency links and the source
 
 ## Wrap up
 
-Include the complete **Slice summary** table directly in the terminal/chat completion response and link the shared overview containing the same table. Briefly state the number of slices, approach, recommended starting point, parallel opportunities, and proposed MVP boundary when useful. After Jira creation, also include the complete created-ticket list and report failed, pending, or uncertain slices as required by the Jira reference. Report native dependency-link results (created, already present, failed, pending, or uncertain) and the source summary comment separately, with links when available. Otherwise state whether Jira creation was declined, unavailable, or skipped in autopilot. The files contain the full stories, so the chat summary need not repeat their detailed criteria. Offer to refine or split specific slices further, but do not require another decision point or impose a fixed number of slicing rounds.
+Copy the writer's complete `chat_summary` verbatim into the completion response: preserve its table text, file links, and `Recommended starting slice` line. Add a Markdown link to the saved overview, the slice count, selected approach, parallel opportunities, and proposed MVP boundary when useful. If saving was denied, use the summary and complete-content fallback described above. After Jira creation, also include the complete created-ticket list and report failed, pending, or uncertain slices as required by the Jira reference. Report native dependency-link results (created, already present, failed, pending, or uncertain) and the source summary comment separately, with links when available. Otherwise state whether Jira creation was declined, unavailable, or skipped in autopilot. The files contain the full stories, so the chat summary need not repeat their detailed criteria. Offer to refine or split specific slices further, but do not require another decision point or impose a fixed number of slicing rounds.
 
 ## Handling common concerns
 

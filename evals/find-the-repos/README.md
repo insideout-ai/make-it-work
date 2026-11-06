@@ -33,7 +33,7 @@ To run all eleven model cases:
 bash evals/find-the-repos/run-all.sh
 ```
 
-The first five use plugin eval with Read, Glob, Grep, Write, Edit, and AskUserQuestion. Bash is not granted to the model. Search must prefer Grep and distinguish source hits from documentation/test clues. The remaining six are registered as headless and use isolated fixtures with automatic grading, for example:
+The four older cases other than happy-path use plugin eval with Read, Glob, Grep, Write, Edit, and AskUserQuestion. Search must prefer Grep and distinguish source hits from documentation/test clues. The happy-path smoke case and six newer cases use isolated headless fixtures with the declared Read/Bash helper tools and automatic grading. The happy-path case moved to this runner because the plain plugin-eval sandbox denied reads of the repository-assessment helper in an isolated snapshot. For example:
 
 ```sh
 node evals/run-suite.mjs full --case=find-the-repos-evidence-drilldown --max-cost-usd=3

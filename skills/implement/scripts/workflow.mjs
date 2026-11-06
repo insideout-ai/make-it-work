@@ -516,12 +516,27 @@ export async function initializeWorkflow(root, input) {
   const markdown = `# Workflow state — ${input.ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | ${time} | start | ${fields.phase} | New ${input.autonomy} run; ${requireText(input.branch_guard, 'Branch guard outcome').replaceAll('|', '&#124;')} |\n`;
   parseState(markdown, statePath);
   await writeFile(statePath, markdown, { flag: 'wx' });
-  return { state: statePath, dashboard: await generateDashboard(statePath), fields };
+  const dashboard = await generateDashboard(statePath);
+  const target = encodeURI(dashboard).replace(/[?#]/g, (character) => encodeURIComponent(character));
+  return { state: statePath, dashboard,
+    startup_message: `[Open implementation dashboard](<${target}>)`, fields };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--root', '--state', '--input']);
   if (!o.root) fail('Usage: workflow.mjs init|inspect|apply --root ROOT [--state STATE] [--input EVENT.json]');
-  if (o.command === 'init') return initializeWorkflow(o.root, await jsonInput(o.input));
+  if (o.command === 'init') {
+    const initialized = await initializeWorkflow(o.root, await jsonInput(o.input));
+    const offline = initialized.fields.pause_reason === 'offline refinement pending';
+    return { startup_message: initialized.startup_message,
+      next_action: {
+        type: 'assistant_message',
+        delivery_status: 'not_sent',
+        text: initialized.startup_message,
+        instruction: 'Your very next output must be an assistant chat text block containing text above. This command has NOT sent that chat message. Emit it now, before another tool call. If only tool calls/results have occurred since init, the message is still unsent. A later claim that it was sent does not deliver it.',
+      },
+      continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply',
+      state: initialized.state, dashboard: initialized.dashboard };
+  }
   if (!o.state) fail('--state is required.');
   if (o.command === 'inspect') { const markdown = await readFile(await within(o.root, o.state), 'utf8'); return { ...parseState(markdown, o.state), state_hash: digest(markdown) }; }
   if (o.command === 'apply') return applyWorkflow({ root: o.root, statePath: o.state, input: await jsonInput(o.input) });

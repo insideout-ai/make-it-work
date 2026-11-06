@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { lstat, mkdir, open, readFile, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -91,7 +92,7 @@ export function args(argv, allowed) {
   return { command, ...options };
 }
 export function cli(meta, main) {
-  if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(meta)) {
+  if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(meta))) {
     Promise.resolve().then(() => main(process.argv.slice(2))).then((result) => {
       if (result !== undefined) process.stdout.write(`${typeof result === 'string' ? result : JSON.stringify(result)}\n`);
     }).catch((error) => { process.stderr.write(`${error.message}\n`); process.exitCode = 1; });

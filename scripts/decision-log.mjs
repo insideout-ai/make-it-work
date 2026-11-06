@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { chmod, lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -79,6 +80,13 @@ export function normalizeEntry(value, skill) {
 }
 
 export function normalizeEntries(input, skill, command) {
+  // Shaping keeps the automatic resolution beside the epic decision it supplies.
+  // Both artifact writers consume this same input instead of separate payloads.
+  if (skill === 'shape-the-epic' && command === 'write' && input?.version === 1 && Array.isArray(input.categories)) {
+    if (!Array.isArray(input.decisions)) fail('Epic input requires a decisions array.');
+    input = input.decisions.filter((decision) => decision.auto_resolution !== undefined)
+      .map((decision) => decision.auto_resolution);
+  }
   if (command === 'append' && Array.isArray(input)) fail('append accepts exactly one decision object.');
   const entries = Array.isArray(input) ? input : [input];
   return entries.map((entry) => normalizeEntry(entry, skill));
@@ -205,10 +213,11 @@ async function main(args) {
   }
   const input = command === 'init' ? undefined :
     inputFile ? await readInputFile(inputFile) : await readStdin();
-  await updateLog({ ...options, skill, command, input });
+  const savedPath = await updateLog({ ...options, skill, command, input });
+  process.stdout.write(`Decision log saved to ${savedPath}\n`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   main(process.argv.slice(2)).catch((error) => {
     process.stderr.write(`decision-log: ${error.message}\n`);
     process.exitCode = 1;

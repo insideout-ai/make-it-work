@@ -9,8 +9,8 @@ import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
 
-async function fixture(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'workflow-controller-'));
+async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
+  const root = await mkdtemp(path.join(os.tmpdir(), prefix));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...argv) => execFileSync('git', ['-C', root, ...argv], { stdio: 'pipe' });
   git('init', '-b', 'main'); git('config', 'user.email', 'test@example.invalid'); git('config', 'user.name', 'Test');
@@ -21,7 +21,7 @@ async function fixture(t) {
   await writeFile(path.join(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
   await writeFile(path.join(root, '.claude/rules/product.md'), '# Product');
   await writeFile(path.join(root, '.claude/rules/architecture.md'), '# Architecture');
-  const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing feature branch' });
+  const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing feature branch', ...init });
   const statePath = result.state;
   let id = 0;
   const apply = async (event, extra = {}) => applyWorkflow({ root, statePath, input: {
@@ -39,6 +39,45 @@ test('initializes from the maintained template and never overwrites a run', asyn
   assert.match(await readFile(result.dashboard, 'utf8'), /DEMO/);
   await assert.rejects(initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' }), /EEXIST/);
 });
+test('startup handoff links the created dashboard for all modes and offline pauses, including special path characters', async (t) => {
+  for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
+    for (const offline_pending of [false, true]) {
+      const { result } = await fixture(t, { prefix: 'workflow space #?%-', init: { autonomy, offline_pending } });
+      assert.match(await readFile(result.dashboard, 'utf8'), /DEMO/);
+      const target = result.startup_message.match(/^\[Open implementation dashboard\]\(<([^>]+)>\)$/)?.[1];
+      assert.ok(target, 'The initializer must provide a chat-ready Markdown link');
+      assert.equal(decodeURIComponent(target), result.dashboard, 'The link must resolve to the created file, including reserved path characters');
+      assert.equal(result.fields.status, offline_pending ? 'Paused' : 'In Progress');
+      assert.equal(Object.hasOwn(result.fields, 'startup_message'), false, 'Presentation output must not alter persisted workflow state');
+    }
+  }
+});
+test('init CLI prioritizes the startup message in a concise successful handoff', async (t) => {
+  const { root } = await fixture(t);
+  const inputPath = path.join(root, 'init-cli.json');
+  await writeFile(inputPath, JSON.stringify({ ticket: 'CLI', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' }));
+  const script = new URL('./workflow.mjs', import.meta.url).pathname;
+  const result = JSON.parse(execFileSync(process.execPath, [script, 'init', '--root', root, '--input', inputPath], { encoding: 'utf8' }));
+  assert.match(result.startup_message, /^\[Open implementation dashboard\]/);
+  assert.equal(result.next_action.type, 'assistant_message');
+  assert.equal(result.next_action.text, result.startup_message);
+  assert.equal(result.next_action.delivery_status, 'not_sent');
+  assert.equal(result.continuation, 'continue_context_check_without_user_reply');
+  assert.match(await readFile(result.dashboard, 'utf8'), /CLI/);
+  assert.equal(parseState(await readFile(result.state, 'utf8')).fields.autonomy, 'autonomous');
+});
+test('offline init CLI preserves its genuine answer wait instead of starting Context check', async (t) => {
+  const { root } = await fixture(t);
+  const inputPath = path.join(root, 'offline-init.json');
+  await writeFile(inputPath, JSON.stringify({ ticket: 'OFFLINE', autonomy: 'autonomous', offline_pending: true, base: 'main', repos: [root], branch_guard: 'Existing branch' }));
+  const result = JSON.parse(execFileSync(process.execPath, [new URL('./workflow.mjs', import.meta.url).pathname, 'init', '--root', root, '--input', inputPath], { encoding: 'utf8' }));
+  assert.equal(result.next_action.type, 'assistant_message');
+  assert.equal(result.next_action.text, result.startup_message);
+  assert.equal(result.next_action.delivery_status, 'not_sent');
+  assert.equal(result.continuation, 'wait_for_offline_answers');
+  assert.match(result.startup_message, /Open implementation dashboard/);
+  assert.equal(parseState(await readFile(result.state, 'utf8')).fields.status, 'Paused');
+});
 test('checkpoint clears activity, increments review once, and preserves unrelated state', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   await apply('context-ready');
@@ -54,9 +93,10 @@ test('checkpoint clears activity, increments review once, and preserves unrelate
   assert.equal(next.fields.current_activity_updated_at, 'none');
   const html = await readFile(next.dashboard, 'utf8');
   assert.match(html, /Plan is in progress\. No activity details have been reported yet\./);
-  assert.doesNotMatch(html, /Writing the refined spec|Last updated:/);
+  assert.doesNotMatch(html.split('<h2>Audit log</h2>')[0], /Writing the refined spec|Last updated:/);
+  assert.match(html, /Activity: Writing the refined spec/);
   assert.equal(next.fields.spec_hash, digest('# Spec'));
-  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 4);
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 5);
 });
 test('status boundaries clear activity and its timestamp; same-phase mode changes preserve both', () => {
   const state = fields('plan', { current_activity: 'Drafting the plan.', current_activity_updated_at: '2026-01-01T10:00:00Z' });

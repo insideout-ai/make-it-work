@@ -8,8 +8,9 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { generateDashboard, parseState } from './render-status.mjs';
-import { checkpointDashboard, checkpointDecision } from './dashboard-checkpoint.mjs';
+import { checkpointDashboard, checkpointDecision, checkpointResult } from './dashboard-checkpoint.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
+import { runRegression } from '../../../scripts/regression.mjs';
 import { inspectState } from './write-feedback.mjs';
 import { initializePublication, updatePublication } from './ticket-publication.mjs';
 
@@ -147,6 +148,26 @@ test('hides controller retry markers while preserving outcome text and saved aud
   assert.ok(parseState(state).audit[1].outcome.includes(marker));
 });
 
+test('package build audit links the package without displaying its approval fingerprint', async (t) => {
+  const hash = createHash('sha256').update('final package').digest('hex');
+  const reference = `make-it-work/DEMO/DEMO-final-package.md; sha256:${hash}`;
+  const state = stateMarkdown({
+    fields: { phase: 'final-approval', final_package_version: '1' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'review', 'final-approval', 'Review clean'],
+      ['2026-01-01T10:01:00Z', 'final-approval', 'final-approval', `Result: Final approval package built.; evidence: ${reference}`],
+      ['2026-01-01T10:02:00Z', 'final-approval', 'final-approval', `Result: Final approval package built.; evidence: ${reference} [audit-note: result; id: final-package:${hash}]`],
+    ],
+  });
+  const { directory, html } = await renderFixture(t, state);
+  assert.match(html, /Final approval package built\. <a href="DEMO-final-package\.md"[^>]*>View package<\/a>/);
+  assert.doesNotMatch(html, new RegExp(hash));
+  assert.match(html, /\(\+1m\)/);
+  const saved = await readFile(path.join(directory, 'DEMO-state.md'), 'utf8');
+  assert.equal(saved, state);
+  assert.ok(parseState(saved).audit[1].outcome.includes(reference));
+});
+
 test('keeps refinement activity outside the connected timeline and above artifacts', async (t) => {
   const activity = ('Starting refinement — exploring the dashboard income-limit code, then resolving open questions. ' + 'Additional context. '.repeat(20)).trim();
   const { html } = await renderFixture(t, stateMarkdown({
@@ -224,6 +245,11 @@ test('dashboard checkpoint updates activity and its rendered snapshot together',
   assert.ok(Date.parse(timestamp) >= before && Date.parse(timestamp) <= after);
   assert.match(html, /phase-activity">Inspecting project context\.<\/p>/);
   assert.ok(html.includes(`Last updated: <time class="ts" datetime="${timestamp}" data-ts="${timestamp}">${timestamp}</time>`));
+  assert.equal(parseState(state).audit.at(-1).outcome, 'Activity: Inspecting project context.');
+  assert.equal(lastWorkRow(parseState(state).audit).number, 1);
+
+  await checkpointDashboard(statePath, { activity: 'Inspecting project context.' });
+  assert.equal(await readFile(statePath, 'utf8'), state);
 
   await checkpointDashboard(statePath);
   assert.equal(await readFile(statePath, 'utf8'), state);
@@ -233,7 +259,8 @@ test('dashboard checkpoint updates activity and its rendered snapshot together',
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at, 'none');
   const cleared = await readFile(outputPath, 'utf8');
   assert.match(cleared, /No activity details have been reported yet/);
-  assert.doesNotMatch(cleared, /Inspecting project context|Last updated:/);
+  assert.match(cleared, /Activity: Inspecting project context/);
+  assert.doesNotMatch(cleared, /Last updated:|audit-note:/);
 });
 
 test('retains a delegated-work description through refresh and decisions until the parent reports its result', async (t) => {
@@ -254,10 +281,11 @@ test('retains a delegated-work description through refresh and decisions until t
   await checkpointDashboard(statePath, { activity: 'The test strategy is ready; drafting the implementation plan.' });
   const finished = await readFile(outputPath, 'utf8');
   assert.match(finished, /The test strategy is ready; drafting the implementation plan\./);
-  assert.ok(!finished.includes(activity));
+  assert.ok(!finished.includes(`<p class="phase-activity">${activity}</p>`));
+  assert.ok(finished.includes(`Activity: ${activity}`));
 });
 
-test('dashboard checkpoint restores activity when rendering fails', async (t) => {
+test('activity audit survives a render failure and identical retry repairs without a duplicate', async (t) => {
   const directory = await workspace(t);
   const statePath = path.join(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({
@@ -265,9 +293,105 @@ test('dashboard checkpoint restores activity when rendering fails', async (t) =>
     rows: [['2026-01-01T10:00:00Z', 'start', 'execute', 'Execution started']],
   }));
 
-  const original = await readFile(statePath, 'utf8');
   await assert.rejects(checkpointDashboard(statePath, { activity: 'Running a step.' }), /Could not read the plan required for timeline progress/);
-  assert.equal(await readFile(statePath, 'utf8'), original);
+  const saved = await readFile(statePath, 'utf8');
+  assert.equal(parseState(saved).audit.at(-1).outcome, 'Activity: Running a step.');
+  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await checkpointDashboard(statePath, { activity: 'Running a step.' });
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+});
+
+test('informational results are idempotent, escape text, and never replace resume or approval evidence', async (t) => {
+  const { directory, outputPath } = await renderFixture(t, stateMarkdown({
+    fields: { phase: 'final-approval', final_package_version: '1' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'final-approval', 'Context synced']],
+  }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const before = parseState(await readFile(statePath, 'utf8'));
+  const input = { id: 'package-1', text: 'Built <package> | ready', reference: 'file.md \\ & evidence' };
+  await checkpointResult(statePath, input);
+  const saved = await readFile(statePath, 'utf8');
+  await checkpointResult(statePath, input);
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+  await assert.rejects(checkpointResult(statePath, { ...input, text: 'Different result' }), /different result/);
+  await assert.rejects(checkpointResult(statePath, { ...input, reference: undefined }), /evidence reference/);
+  const state = parseState(saved);
+  assert.deepEqual(state.fields, before.fields);
+  assert.equal(lastWorkRow(state.audit).number, 1);
+  assert.equal(state.audit.at(-1).outcome, 'Result: Built <package> | ready; evidence: file.md \\ & evidence');
+  const html = await readFile(outputPath, 'utf8');
+  assert.match(html, /Result: Built &lt;package&gt; \| ready/);
+  assert.doesNotMatch(html, /audit-note:|package-1/);
+});
+
+test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {
+  const { directory } = await renderFixture(t, stateMarkdown({
+    fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
+    rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Execution started']],
+  }), planMarkdown());
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const originalFields = parseState(await readFile(statePath, 'utf8')).fields;
+  for (const [id, code, expected] of [['pass', '', 'PASS'], ['fail', 'process.exit(2)', 'FAIL'], ['missing', null, 'NO RESULT']]) {
+    await runRegression({ version: 1, mode: 'tokens', runs: [{ repo: 'app', cwd: directory, scope: 'full', command: code === null ? null : { bin: process.execPath, args: ['-e', code] } }] }, { statePath, auditId: id });
+    const state = parseState(await readFile(statePath, 'utf8'));
+    assert.ok(state.audit.at(-1).outcome.startsWith(`Result: Completion gate: ${expected}.`));
+    assert.deepEqual(state.fields, originalFields);
+    assert.equal(lastWorkRow(state.audit).number, 1);
+  }
+});
+
+test('result history survives render failure and retry repairs it without another event', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const dashboardPath = path.join(directory, 'DEMO-status.html');
+  await writeFile(statePath, stateMarkdown({ fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
+    rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Execution started']] }));
+  await writeFile(dashboardPath, 'Previous dashboard');
+  const result = { id: 'gate-1', text: 'Completion gate: FAIL.', reference: 'gate evidence' };
+  await assert.rejects(checkpointResult(statePath, result), /Could not read the plan/);
+  const saved = await readFile(statePath, 'utf8');
+  assert.equal(parseState(saved).audit.at(-1).note.kind, 'result');
+  assert.equal(await readFile(dashboardPath, 'utf8'), 'Previous dashboard');
+  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await checkpointResult(statePath, result);
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+  assert.match(await readFile(dashboardPath, 'utf8'), /Result: Completion gate: FAIL/);
+});
+
+test('regression CLI retains observed evidence when audit rendering fails, without rerunning for repair', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await writeFile(statePath, stateMarkdown({ fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
+    rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Execution started']] }));
+  await writeFile(path.join(directory, 'DEMO-status.html'), 'Previous dashboard');
+  const manifest = path.join(directory, 'gate.json');
+  await writeFile(manifest, JSON.stringify({ version: 1, mode: 'full', runs: [{ repo: 'app', cwd: directory, scope: 'full',
+    command: { bin: process.execPath, args: ['-e', 'require("node:fs").appendFileSync("gate-ran", "once\\n")'] } }] }));
+  assert.throws(() => execFileSync(process.execPath, [path.resolve('scripts/regression.mjs'), 'run', '--input', manifest,
+    '--state', statePath, '--audit-id', 'gate-v1'], { stdio: 'pipe' }), (error) => {
+    assert.equal(JSON.parse(error.stdout.toString()).overall, 'pass');
+    assert.match(error.stderr.toString(), /Could not read the plan/);
+    return true;
+  });
+  const saved = await readFile(statePath, 'utf8');
+  assert.equal(parseState(saved).audit.at(-1).note.id, 'regression:gate-v1');
+  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await checkpointDashboard(statePath);
+  assert.equal(await readFile(path.join(directory, 'gate-ran'), 'utf8'), 'once\n');
+  assert.equal(await readFile(statePath, 'utf8'), saved);
+});
+
+test('result notes neither create a legacy dashboard nor inflate feedback review counts', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await writeFile(statePath, stateMarkdown({ fields: { status: 'Complete', phase: 'complete' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Review cycle 1 complete']] }));
+  const before = inspectState(await readFile(statePath, 'utf8'));
+  const result = await checkpointResult(statePath, { id: 'late-check', text: 'Review cycle 99 evidence checked.', reference: 'file.md' });
+  assert.equal(result.dashboard, null);
+  const after = inspectState(await readFile(statePath, 'utf8'));
+  assert.equal(after.reviewCycles, before.reviewCycles);
+  assert.deepEqual(after.events, before.events);
 });
 
 test('accepts and describes fully autonomous autopilot runs', async (t) => {

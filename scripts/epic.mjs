@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { args, cell, cli, fail, jsonInput, requireText, slug, writeSet } from './lib/artifacts.mjs';
+import { normalizeEntry } from './decision-log.mjs';
 
 export const CATEGORIES = {
   product: [[3, 'What & Why'], [7, 'Definition of Done'], [1, 'Problem & Value Proposition'], [2, 'Target Users & Permissions'], [4, 'KPIs & Success Metrics'], [5, 'Use Cases & Requirements'], [6, 'Rollout Plan']],
@@ -58,18 +59,26 @@ export function renderEpic(input, existing = null) {
     if (typeof category.ready !== 'boolean') fail(`Category ${id} requires a semantic readiness decision.`);
     const gaps = category.open_items ?? [];
     if (!Array.isArray(gaps) || !Array.isArray(category.exclusions ?? [])) fail('Open items/exclusions must be arrays.');
-    if (category.ready && (gaps.length || category.unconfirmed === true)) fail(`Category ${id} cannot be ready with material unresolved decisions.`);
+    const unconfirmed = Array.isArray(category.unconfirmed) ? category.unconfirmed.length > 0 : Boolean(category.unconfirmed);
+    const ready = category.ready && !gaps.length && !unconfirmed;
     lines.push(`## ${title}`, '', nestedContent(category.content), '');
     for (const item of gaps) { requireText(item, 'Open item'); lines.push(`> Open item: ${item}`, ''); open.push(item); }
     for (const item of category.exclusions ?? []) { requireText(item, 'Exclusion'); lines.push(`> Out of scope: ${item}`, ''); exclusions.push(item); }
-    readiness.push(`- [${category.ready ? 'x' : ' '}] ${title}`);
+    readiness.push(`- [${ready ? 'x' : ' '}] ${title}`);
   }
   for (const [title, content] of old) if (!['Open Items & Out of Scope', 'Readiness checklist', 'Readiness Checklist', 'Decision log', 'Decision Log'].includes(title)) lines.push(content, '');
   lines.push('## Open Items & Out of Scope', '', '### Open Items (TBD)', '', ...([...new Set(open)].length ? [...new Set(open)].map((item) => `- ${requireText(item, 'Open item')}`) : ['None noted.']), '', '### Out of Scope', '', ...([...new Set(exclusions)].length ? [...new Set(exclusions)].map((item) => `- ${requireText(item, 'Exclusion')}`) : ['None noted.']), '', '## Readiness checklist', '', ...readiness, '');
   if (omitted.length) lines.push('**Not assessed:**', '', ...omitted.map((title) => `- ${title}`), '');
   const statuses = ['Confirmed', 'Proposed', 'Open / Deferred', 'Out of scope'];
-  const decisions = input.decisions ?? [];
-  if (!Array.isArray(decisions)) fail('Decisions must be an array.');
+  if (!Array.isArray(input.decisions ?? [])) fail('Decisions must be an array.');
+  const decisions = (input.decisions ?? []).map((decision) => {
+    if (decision.auto_resolution === undefined) return decision;
+    const resolution = normalizeEntry(decision.auto_resolution, 'shape-the-epic');
+    if (resolution.chosen === null || resolution.kind === 'checkpoint') fail('Shaping automatic decisions must resolve a question.');
+    const chosen = Array.isArray(resolution.chosen) ? resolution.chosen.join(', ') : resolution.chosen;
+    return { topic: decision.topic, decision: resolution.kind === 'open_text' ? chosen : `${chosen} _(autopilot)_`,
+      rationale: resolution.rationale, status: 'Proposed' };
+  });
   for (const decision of decisions) {
     if (!statuses.includes(decision.status)) fail('Invalid decision status.');
     requireText(decision.topic, 'Decision topic'); requireText(decision.decision, 'Decision text');
