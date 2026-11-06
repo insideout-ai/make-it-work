@@ -6,6 +6,8 @@ These helpers own mechanical operations. Read the section for the current skill 
 
 Before Phase 5C handles an offline file, run `node <plugin-root>/scripts/questions.mjs inspect --file <questions.md>`. Use its conflicts, unanswered IDs, active TBD count and decision IDs rather than manually counting checkboxes or evaluating nested conditions. Only active questions enter the Decision Log. Conflicts remain hard stops under Autopilot. Reverify code premises and reconcile conflicting hand-entered/Slack answers under the existing semantic contract; the parser does not settle them.
 
+A skipped gate leaves its descendants `blocked-by-tbd`, recursively, rather than `not-applicable`. These count as unresolved TBD items and remain in `unanswered`, but do not enter `decision_ids` until actually asked. Defer them until the gate is resolved; carry them into the Product handoff or final TBD list with their conditions. Only a resolved answer that rules out the condition makes a question `not-applicable`.
+
 For live refinement/planning, first identify semantic question dependencies, then pass `[{"id":"Q1","depends":[]}, {"id":"Q2","depends":["Q1"]}]` to `questions.mjs waves --input <json>`. Use the returned batches (maximum four) and recompute after answers materially change the graph. The helper detects missing IDs/cycles; it does not infer dependencies from prose.
 
 `exactSlackAnswer` accepts an exact option label or letter, or the full answer to an open question. Natural-language ambiguity stays unresolved for the existing model/user path. Slack recipient selection, source provenance, latest-message precedence, delivery reconciliation and code drift remain outside this parser.

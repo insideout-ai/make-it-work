@@ -51,7 +51,8 @@ export function resolveQuestions(questions) {
       if (q.condition && !parent) continue;
       let status, answer = null;
       if (parent?.status === 'not-applicable') status = 'not-applicable';
-      else if (parent && !['answered', 'tbd'].includes(parent.status)) status = 'waiting-for-parent';
+      else if (parent && ['tbd', 'blocked-by-tbd'].includes(parent.status)) status = 'blocked-by-tbd';
+      else if (parent && parent.status !== 'answered') status = 'waiting-for-parent';
       else if (parent && label(parent.answer ?? '') !== label(q.condition.equals)) status = 'not-applicable';
       else if (q.options.length) {
         const selected = q.options.filter((option) => option.checked);
@@ -67,8 +68,8 @@ export function resolveQuestions(questions) {
   }
   const active = resolved.filter((q) => q.status !== 'not-applicable');
   return { answers: resolved, conflicts: resolved.filter((q) => q.status === 'conflict'),
-    unanswered: active.filter((q) => ['blank', 'waiting-for-parent'].includes(q.status)).map((q) => q.id),
-    tbd_items: resolved.filter((q) => q.status === 'tbd').length,
+    unanswered: active.filter((q) => ['blank', 'waiting-for-parent', 'blocked-by-tbd'].includes(q.status)).map((q) => q.id),
+    tbd_items: resolved.filter((q) => ['tbd', 'blocked-by-tbd'].includes(q.status)).length,
     decision_ids: resolved.filter((q) => ['answered', 'tbd'].includes(q.status)).map((q) => q.id),
     waves: questionWaves(questions) };
 }

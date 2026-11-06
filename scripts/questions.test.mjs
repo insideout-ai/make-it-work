@@ -19,9 +19,19 @@ test('question DAG splits independent waves into batches of at most four and rej
   assert.throws(() => questionWaves([{ id: 'a', depends: ['b'] }, { id: 'b', depends: ['a'] }]), /cycle/);
   assert.throws(() => questionWaves([{ id: 'a', depends: ['missing'] }]), /Unknown/);
 });
-test('TBD counts derive from active answers and exact Slack mapping refuses ambiguous natural language', () => {
+test('skipping a gate preserves unresolved descendants until the gate is answered', () => {
   const questions = parseQuestions(doc.replace('[x] No (Recommended)', '[x] Skip — decide later (TBD)'));
-  assert.equal(resolveQuestions(questions).tbd_items, 1);
+  const result = resolveQuestions(questions);
+  assert.equal(result.tbd_items, 3);
+  assert.deepEqual(result.answers.map((q) => q.status), ['tbd', 'blocked-by-tbd', 'blocked-by-tbd', 'answered']);
+  assert.deepEqual(result.unanswered, ['Q2', 'Q3']);
+  assert.deepEqual(result.decision_ids, ['Q1', 'Q4']);
+  questions[0].options[0] = { label: 'Yes', checked: true };
+  const resumed = resolveQuestions(questions);
+  assert.equal(resumed.conflicts[0].id, 'Q2');
+  assert.equal(resumed.answers.find((q) => q.id === 'Q4').answer, 'Team supplied context');
+});
+test('exact Slack mapping refuses ambiguous natural language', () => {
   const q = parseQuestions(doc)[0];
   assert.deepEqual(exactSlackAnswer(q, 'Q1: B'), { chosen: 'Yes' });
   assert.equal(exactSlackAnswer(q, 'Probably yes, depending on rollout'), null);
