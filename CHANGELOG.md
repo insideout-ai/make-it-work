@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.1] — 2026-11-06
+
+### Fixed
+
+- Honor explicit Minor finding routes through the existing fix/replan/human-decision paths instead of silently excluding them from actionable review handoffs. Reject contradictory route/actionability flags and retain existing fix-loop limits.
+- Mark nonblocking Minor findings as `advisory`, show them as unfixed in the report, chat summary and final package, and exclude them from fix scope. Major/Critical findings cannot be advisory.
+- Preserve standalone Minor advisory defaults and the existing actionable handoff schema. Existing saved reviews are not rewritten.
+
 ## [5.4.0] — 2026-11-06
 
 ### Added

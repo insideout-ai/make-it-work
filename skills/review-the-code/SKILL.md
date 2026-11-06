@@ -259,9 +259,12 @@ With no plan (Lightweight mode), the review cycle number above 1 alone marks a r
 
 **Finding routes** — tag every numbered finding with exactly one route:
 
-- `Route: fix` — fixable within the current approach (includes an unresolved `plan-the-work` stub).
+- `Route: fix` — a correction required in this run within the current approach (includes an unresolved `plan-the-work` stub). This is actionable even when severity is Minor; it produces Request changes and enters the existing fix loop.
 - `Route: replan` — the approach itself, or an assumption the plan relies on, is wrong. With no plan, it means the change needs the planned, test-first workflow; `implement` escalates to it.
 - `Route: human` — needs a product, business, or architectural decision no document settles (the "question to the author" cases above).
+- `Route: advisory` — Minor only: nonblocking polish or maintenance left unfixed. Use this default for optional nits, including nonblocking test-map maintenance. Keep it in both report tiers and the final package as an unfixed advisory; exclude it from actionable handoffs and fix scope. Do not print `Route: fix` for an item you intend to leave unresolved. Severity and disposition are distinct: not every Minor must block completion.
+
+The optional renderer `actionable` flag must agree with the route. In particular, `fix` with `actionable: false` is invalid. Replanning and fix amendments address only actionable findings; advisory items do not become correction work merely because the report also contains a fix.
 
 **Outcome line** — end both the Tier 1 report and the Tier 2 chat summary with exactly one line:
 
@@ -274,4 +277,4 @@ Orchestrator outcome: CLEAN | FIX_REQUIRED | REPLAN_REQUIRED | HUMAN_DECISION
 
 **No questions** — never ask the user anything in this mode. Anything that would need a question becomes a `Route: human` finding.
 
-**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `review-<N>.json` under `make-it-work/<TICKET>/<TICKET>-handoffs/`. Use the actual saved Tier 1 review report as the `report` artifact. Record the current `review_cycle`, each actionable finding's id, route, stable code region, and `Introduced by fix of:` value (`null` for `none`); include the context gaps for final sync. The Minor test-map findings from Step 4 stay out of `findings`, so a Minor-only review remains `CLEAN`. Do not write this file for an older run. End the Tier 2 chat summary with `Handoff: <path>` after the `Orchestrator outcome:` line so `implement` can validate and route it.
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `review-<N>.json` under `make-it-work/<TICKET>/<TICKET>-handoffs/`. Use the actual saved Tier 1 review report as the `report` artifact. Record the current `review_cycle`, each actionable finding's id, route, stable code region, and `Introduced by fix of:` value (`null` for `none`); include the context gaps for final sync. Only `Route: advisory` Minor findings stay out of `findings`. An advisory-only review remains `CLEAN`; a Minor `Route: fix` finding must be included and produces `FIX_REQUIRED` unless another actionable route has precedence. Include all counts and keep unfixed advisory items visible in the Markdown report and chat summary. Do not write this file for an older run. End the Tier 2 chat summary with `Handoff: <path>` after the `Orchestrator outcome:` line so `implement` can validate and route it.
