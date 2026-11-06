@@ -278,7 +278,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.2.0 through the publisher's marketplace:
+Install commercial version 5.3.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -449,3 +449,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for local testing and pull-request guidan
 ---
 
 Built by [insideout-ai](https://github.com/insideout-ai)
+
+
+### Implement across repositories
+
+Launch `implement` from a folder of Git checkouts; no workspace-root `CLAUDE.md` or `.git` is required. From inside a service, pass `--workspace /path/to/workspace` to select the wider boundary. `implement` uses `find-the-repos` to assess relevance, then shows one repository-and-branch preview. **Explicit user confirmation is required before creating or switching branches, even in Autopilot.** Revisions to repositories or branch targets require renewed approval.
+
+Workspace artifacts stay together under `<workspace>/make-it-work/<TICKET>/`. Each repository retains its own branch, base, context and test commands. HTML shows approved scope, proposed changes, selection evidence and per-repository Git snapshots alongside the shared pipeline. Single-repo runs retain their existing branch guard and artifact layout. See [the workspace contract](skills/implement/references/workspace.md) for resume, scope changes and delivery.

@@ -105,3 +105,10 @@ Resume with a blocking request returns that same saved question and leaves Pause
 The HTML renders question, choices, recipient, reference/hash, captured “pending since” time and live elapsed wait. It keeps refreshing while a request is open so an already-open page sees resolution. No response is submitted through this static HTML. Completed-run delivery choice/approval continues to use the delivery journal and existing delivery display: it must never set implementation Paused.
 
 Older runs may use the same-phase input lifecycle without enabling the controller or changing legacy hashes. Their existing owning skill still applies phase/approval transitions and ordinary workspace checks after the answer; the pending helper does not migrate those runs or create a missing dashboard.
+
+
+## Workspace runs
+
+Apply [workspace.md](workspace.md) before Start. The controller requires an applied, exact user-approved workspace selection when the artifact root is not the selected Git root or multiple repos are supplied. It persists `workspace_version: 1` and `workspace_contract`; per-repo bases/branches govern new workspace runs. Single-repo initialization retains the existing inputs and behavior. Do not migrate legacy states.
+
+Every checkpoint must retain the approved repository set and branches. `context-ready` checks context independently in each selected repository. `scope-update` is an explicit user event after a paused run's revised selection has been approved/applied. Supply the full `repos`, `source: user`, `via: chat|question`, and `reason`. It installs the revised contract, increments plan version, invalidates readiness/execution/review and returns to context-check; retain and revalidate the spec. Replanning must use a fresh artifact filename to preserve prior evidence. Completed runs reject scope updates.

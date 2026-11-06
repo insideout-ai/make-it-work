@@ -221,6 +221,9 @@ When there are **no findings**, say so plainly in both tiers — `Verdict: Appro
 
 ## When run by implement
 
+
+**Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.
+
 **Activity ownership** — follow [implement's activity contract](../implement/references/activity.md). The parent session saves the independent-review description before dispatch and retains it while awaiting this report. This review subagent must not write workflow activity or dashboards; return the review result for the parent to checkpoint.
 
 This section applies only when `/make-it-work:implement` dispatches the review; a standalone review ignores it entirely and runs every step above as written.

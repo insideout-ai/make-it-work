@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process';
-import { lstat, mkdir, readFile, readdir, readlink, realpath, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, withLock, within } from '../../../scripts/lib/artifacts.mjs';
@@ -12,33 +11,11 @@ import { testingPolicy } from './testing-policy.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
 import { planHash } from '../../../scripts/lib/plan.mjs';
+import { approvedScope, readScope } from './workspace-scope.mjs';
 export { planHash } from '../../../scripts/lib/plan.mjs';
 
-const git = (root, argv) => execFileSync('git', ['-C', root, ...argv], { maxBuffer: 100 * 1024 * 1024 });
-const text = (root, argv) => git(root, argv).toString('utf8').trim();
-export async function snapshot(repos) {
-  if (!Array.isArray(repos) || !repos.length) fail('Snapshot requires explicit repository roots.');
-  const result = [];
-  for (const input of repos) {
-    const root = await realpath(input);
-    if (await realpath(text(root, ['rev-parse', '--show-toplevel'])) !== root) fail(`Not a repo root: ${root}`);
-    const branch = text(root, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
-    const paths = git(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', '.', ':!make-it-work']).toString('utf8').split('\0').filter(Boolean).sort();
-    const untracked = [];
-    for (const file of paths) {
-      const absolute = path.join(root, file);
-      const info = await lstat(absolute);
-      // Git hashes link text, not a possibly escaping target.
-      const hash = info.isSymbolicLink() ? digest(await readlink(absolute)) : text(root, ['hash-object', '--', file]);
-      untracked.push({ file, mode: info.mode & 0o777, hash });
-    }
-    result.push({ root, branch, head: text(root, ['rev-parse', 'HEAD']),
-      fingerprint: digest(Buffer.concat([git(root, ['diff', '--binary', '--no-ext-diff', 'HEAD', '--', '.', ':!make-it-work']), Buffer.from(JSON.stringify(untracked))])) });
-  }
-  result.sort((a, b) => a.root.localeCompare(b.root));
-  if (new Set(result.map((repo) => repo.root)).size !== result.length) fail('Duplicate repository root.');
-  return result;
-}
+import { snapshot } from '../../../scripts/lib/repo-state.mjs';
+export { snapshot } from '../../../scripts/lib/repo-state.mjs';
 function setFields(markdown, fields) {
   return markdown.replace(/(^# Workflow state[^\n]*\n\s*```[^\n]*\n)[\s\S]*?(\n```)/m,
     (_match, begin, end) => begin + Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join('\n') + end);
@@ -87,7 +64,7 @@ function oneLine(value, label) {
 export function transition(state, input, handoff = null, routeOptions = {}) {
   const before = state.fields;
   const f = { ...before };
-  if (['Paused', 'Stopped'].includes(f.status) && !['await-input', 'input-answered', 'autonomy', 'mode', 'resume', 'accept-workspace', 'stop', 'pause'].includes(input.event)) fail('Resume the saved run before transitioning it.');
+  if (['Paused', 'Stopped'].includes(f.status) && !['scope-update', 'await-input', 'input-answered', 'autonomy', 'mode', 'resume', 'accept-workspace', 'stop', 'pause'].includes(input.event)) fail('Resume the saved run before transitioning it.');
   let reason = input.reason || input.event;
   let action;
   if (input.event === 'handoff') {
@@ -201,6 +178,18 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     }
     if (['Paused', 'Stopped'].includes(f.status) && input.blocker_resolved !== true) fail('Resolve the saved blocker before resuming.');
     f.status = 'In Progress'; f.pause_reason = 'none';
+  } else if (input.event === 'scope-update') {
+    explicit(input);
+    if (f.workspace_version !== '1' || f.status === 'Complete') fail('Scope changes require an active workspace run.');
+    requireText(input.reason, 'Scope change reason');
+    if (pendingInputs(f).some((record) => record.blocking)) fail('Resolve the pending input before changing scope.');
+    f.scope_previous_plan = f.plan !== 'none' ? f.plan : f.scope_previous_plan ?? 'none';
+    f.scope_change_reason = input.reason;
+    Object.assign(f, { status: 'In Progress', pause_reason: 'none', phase: 'context-check', plan: 'none', plan_hash: 'none', testing_readiness: 'none',
+      plan_version: String(Number(f.plan_version) + 1), review: 'not-started', review_cycle: '0', fix_cycle: '0',
+      fix_plan_round_steps: 'none', fix_plan_dispatch: 'none', execution: 'not-started', execute_report: 'none', gate: 'none', context_updated: 'none' });
+    if (adaptive(f)) Object.assign(f, { mode: 'tdd', mode_source: 'assessed', risk: 'medium', risk_rationale: 'Repository scope changed; reassess the retained spec before planning.' });
+    reason = `Repository scope changed; revalidate context and retained spec, then replan. ${input.reason}`;
   } else if (input.event === 'accept-workspace') {
     explicit(input);
     requireText(input.reason, 'Accepted workspace reason');
@@ -363,9 +352,23 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const reposInput = input.repos ?? (lifecycle && state.fields.workspace_snapshot ? JSON.parse(state.fields.workspace_snapshot).map((repo) => repo.root) : null);
     if (input.event === 'resume' && !input.repos) fail('Resume requires repository fingerprint checks.');
     if (state.fields.workspace_snapshot && !reposInput && input.event !== 'autonomy') fail('Supply the checkpoint repository roots.');
+    let workspaceContract = state.fields.workspace_version === '1' ? JSON.parse(state.fields.workspace_contract) : null;
+    if (input.event === 'scope-update') workspaceContract = await approvedScope(root, state.fields.ticket, reposInput ?? []);
+    if (workspaceContract && !['scope-update', 'stop', 'pause', 'autonomy'].includes(input.event)) {
+      const scope = await readScope(root, state.fields.ticket);
+      if (scope.hash !== workspaceContract.approval_hash || scope.status !== 'applied' || scope.approval?.hash !== scope.hash) fail('Repository selection is pending; approve, apply and register the scope update first.');
+    }
+    if (workspaceContract && reposInput) {
+      const actual = (await Promise.all(reposInput.map((repo) => realpath(repo)))).sort();
+      if (JSON.stringify(actual) !== JSON.stringify(workspaceContract.repos.map((repo) => repo.root).sort())) fail('Repository scope changed without explicit selection approval.');
+      const current = await snapshot(actual);
+      if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
+    }
     const handoff = await loadHandoff(root, workingState, effective);
     if (handoff?.stage === 'plan' && handoff.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
-      testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
+      const policy = testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
+      if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
+          || policy.some((row) => !workspaceContract.repos.some((repo) => repo.id === row.Repo)))) fail('Verification policy must cover approved product repos and cannot add unapproved repos.');
     }
     let previousReview = effective.previous_review ? JSON.parse(await readFile(await within(root, effective.previous_review), 'utf8')) : null;
     if (handoff?.stage === 'review' && handoff.review_cycle > 1) {
@@ -380,13 +383,20 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       previousReview = candidates[0].candidate;
     }
     if (input.event === 'context-ready') {
-      const context = await contextInventory(root);
-      if (!context.complete) fail(`Project context incomplete: ${context.missing_context.join(', ')}`);
+      for (const repo of workspaceContract?.repos ?? [{ root, id: path.basename(root) }]) {
+        const context = await contextInventory(repo.root);
+        if (!context.complete) fail(`Project context incomplete in ${repo.id}: ${context.missing_context.join(', ')}`);
+      }
     }
     const next = transition(workingState, effective, handoff, { relatedFailures: effective.related_failures ?? null, previousReview });
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
     if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
+    if (input.event === 'scope-update') {
+      f.workspace_contract = JSON.stringify(workspaceContract);
+      f.branch = workspaceContract.repos[0].branch;
+      f.base = workspaceContract.repos[0].base;
+    }
     const preserveBaseline = input.event === 'autonomy'
       || resolution && (!resolution.record.blocking || resolution.nonPositiveApproval)
       || effective.event === 'await-input' && effective.pending?.blocking === false
@@ -482,7 +492,8 @@ export async function initializeWorkflow(root, input) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '')) fail('Unsafe ticket.');
   if (!['guided', 'autonomous', 'autopilot'].includes(input.autonomy)) fail('Choose autonomy first.');
   const repos = await snapshot(input.repos);
-  if (repos.some((repo) => repo.branch === input.base)) {
+  const workspace = repos.length > 1 || repos[0].root !== root ? await approvedScope(root, input.ticket, input.repos) : null;
+  if (!workspace && repos.some((repo) => repo.branch === input.base)) {
     if (input.proceed_on_base !== true) fail('Branch guard requires a feature branch.');
     explicit(input);
   }
@@ -499,8 +510,9 @@ export async function initializeWorkflow(root, input) {
   const time = new Date().toISOString();
   Object.assign(fields, { ticket: input.ticket, controller_version: '1', autonomy: input.autonomy, queued_autonomy: 'none',
     refinement_destination: input.refinement_destination ?? 'here', start_time: time, plugin_version: manifest.version,
-    branch: repos[0].branch, base: requireText(input.base, 'Base branch'), head: repos[0].head,
+    branch: repos[0].branch, base: workspace ? workspace.repos.find((repo) => repo.root === repos[0].root).base : requireText(input.base, 'Base branch'), head: repos[0].head,
     worktree_fingerprint: digest(JSON.stringify(repos)), workspace_snapshot: JSON.stringify(repos) });
+  if (workspace) Object.assign(fields, { workspace_version: '1', workspace_contract: JSON.stringify(workspace) });
   if (!['here', 'slack-draft', 'slack-send'].includes(fields.refinement_destination)) fail('Invalid refinement destination.');
   if (input.offline_pending) {
     Object.assign(fields, { phase: 'close-the-gaps', status: 'Paused', pause_reason: 'offline refinement pending' });

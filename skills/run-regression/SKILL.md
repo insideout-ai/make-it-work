@@ -405,3 +405,8 @@ Overall gate result: PASS
 ## When run within implement
 
 When `execute` supplies a workflow state path, follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report any explicit workflow choice to the main session before dependent work, preserving its source and scope. Standalone runs retain their existing behavior.
+
+## When run by implement
+
+
+**Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.

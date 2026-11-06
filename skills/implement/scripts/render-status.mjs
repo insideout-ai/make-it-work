@@ -10,6 +10,8 @@ import { readPublicationPermission } from './ticket-publication.mjs';
 import { parseDecisionCell } from './workflow-decisions.mjs';
 import { parseNoteCell } from './audit-notes.mjs';
 import { pendingInputs } from './pending-input.mjs';
+import { renderWorkspacePanel } from './workspace-view.mjs';
+import { readScope } from './workspace-scope.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 
@@ -115,7 +117,7 @@ const SKIPPED_TOOLTIP = 'Skipped (Lightweight) — this low-risk run implements 
 const MODE_LABELS = { lightweight: 'Lightweight', tdd: 'TDD' };
 
 const AUTONOMY_TOOLTIP =
-  'guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question. autopilot: resolves every documented safe default without prompting, creates a feature branch from the base branch, and stops with a recorded reason when required facts are missing or contradictory.';
+  'guided: pauses for your approval after the spec, after the plan, and at every human decision along the way. autonomous: no approval gates, and replans automatically when the plan stops holding — still asks every genuine question. autopilot: resolves every documented safe default without prompting, creates a feature branch from the base branch, and stops with a recorded reason when required facts are missing or contradictory. Workspace repository and branch selections always require explicit user confirmation before branch changes, in every mode.';
 const PENDING_AUTONOMY_TOOLTIP =
   'not yet chosen — Context Check and/or Choose Autonomy are still running.';
 
@@ -733,7 +735,7 @@ function renderAutonomyBadge(state) {
   return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null }) {
   const timeline = buildTimeline(state);
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
@@ -762,6 +764,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
+    WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
@@ -832,7 +835,15 @@ export async function generateDashboard(statePath) {
   const delivery = state.fields.status === 'Complete' && state.fields.final_package_version === '1'
     ? await readDelivery(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
   const publication = await readPublicationPermission(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields);
-  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication });
+  const scope = state.fields.workspace_version === '1' ? await readScope(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
+  let verification = null;
+  if (scope) {
+    const { readVerification } = await import('./verification.mjs');
+    try {
+      verification = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {

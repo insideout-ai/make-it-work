@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Find The Repos
 
-Act as the routing step before ticket refinement or planning. Identify the repositories involved and hand back an evidence-backed shortlist, including existing implementation and unassessed external work. This skill ships standalone; nothing else in this plugin calls it.
+Act as the routing step before ticket refinement or planning. Identify the repositories involved and hand back an evidence-backed shortlist, including existing implementation and unassessed external work. This skill also supplies evidence-backed routing inline to `implement` workspace runs.
 
 ## Usage
 
@@ -234,3 +234,8 @@ External systems named in the ticket, not in workspace: <names, unassessed scope
 ```
 
 Keep all report sections; use None for empty match/exclusion lists and None observed for implementation observations. The assessment table still includes unavailable/No match candidates and flags on positive matches. For purely technical tickets, note architecture.md as the primary documentation alongside skills/code. Never present a Pending review report as confirmed, a zero hit as proof of absence, or existing code as proof of ticket completion.
+
+
+## When run by implement
+
+Read the supplied workspace contract at `../implement/references/workspace.md`. Use the parent-resolved workspace boundary, ticket identity/content, artifact root and existing report path. Run the normal bounded assessment and preserve the single evidence report. Do not create branches, run tests or change code/docs. Return the report and proposed Definite shortlist to the parent before standalone Phase 4 confirmation; `implement` owns the combined repository-and-branch approval. Autopilot may assess without questions, but neither its auto-confirmation nor report status authorizes branches. Surface ambiguities and unavailable/external scope. Keep this override limited to orchestrated invocation; standalone confirmation stays unchanged.

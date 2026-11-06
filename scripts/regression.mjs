@@ -82,16 +82,23 @@ function combineRuns(runs) {
   return result.map((item) => item.run);
 }
 export async function runRegression(input, { env = process.env, statePath, auditId } = {}) {
+  let workspaceContract = null;
   if (statePath || auditId) {
     if (!statePath || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(auditId ?? '')) fail('Audited regression requires a state path and stable audit id.');
     const state = parseState(await readFile(statePath, 'utf8'), statePath);
     if (state.fields.phase !== 'execute' || state.fields.status !== 'In Progress') fail('Audited regression requires active execution.');
+    if (state.fields.workspace_version === '1') workspaceContract = JSON.parse(state.fields.workspace_contract);
   }
   if (input.version !== 1 || !['full', 'tokens'].includes(input.mode) || !Array.isArray(input.runs)) fail('Invalid regression manifest.');
   if (!Array.isArray(input.not_run ?? []) || !Array.isArray(input.unmapped ?? [])) fail('Not-run and unmapped scope must be arrays.');
   const result = { version: 1, mode: input.mode, workspace: Boolean(input.workspace), full_requested: input.runs.some((run) => run.scope === 'full'), runs: [], not_run: structuredClone(input.not_run ?? []), unmapped: structuredClone(input.unmapped ?? []), overall: null };
   for (const run of input.runs) {
     requireText(run.repo, 'Run repo'); requireText(run.cwd, 'Run directory');
+    if (workspaceContract) {
+      const selected = workspaceContract.repos.find((repo) => repo.id === run.repo);
+      const cwd = await realpath(run.cwd);
+      if (!selected || cwd !== selected.root && !cwd.startsWith(`${selected.root}${path.sep}`)) fail('Regression command is outside the approved repository scope.');
+    }
     if (!['full', 'scoped'].includes(run.scope)) fail('Invalid run scope.');
     const p = run.prerequisites ?? {};
     if (!Array.isArray(p.env ?? []) || !Array.isArray(p.services ?? []) || (p.env ?? []).some((name) => typeof name !== 'string' || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name))) fail('Malformed prerequisites.');

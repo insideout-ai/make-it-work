@@ -146,6 +146,7 @@ async function prepare(context) {
   const pkg = JSON.parse(await readFile(path.join(runDirectory(root, state.fields.ticket), `${state.fields.ticket}-final-package.json`), 'utf8'));
   const repos = [];
   for (const original of pkg.repos) {
+    if (original.paths.length === 0) continue; // Supporting repos remain bound by the package, but need no delivery.
     const repo = { ...original };
     assertSafeRepo(repo);
     if (utf8(git(repo.path, ['rev-parse', 'HEAD']).stdout) !== repo.head) fail(`HEAD changed in ${repo.name}.`);
@@ -159,6 +160,7 @@ async function prepare(context) {
     repos.push({ name: repo.name, path: repo.path, branch: repo.branch, base: repo.base,
       head: repo.head, paths: repo.paths, target_tree: await targetTree(repo), remote, push_url: pushUrls[0], ...host });
   }
+  if (!repos.length) fail('No changed repositories to deliver.');
   const plan = { version: 1, ticket: pkg.ticket, package_sha256: check.sha256, draft: pkg.draft, repos };
   const hash = sha(JSON.stringify(plan));
   await writeFile(files.preview, preview(plan));

@@ -132,6 +132,18 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   if (!['final-approval', 'complete'].includes(f.phase) || f.review !== 'clean') fail('Final package requires completed context sync and clean review.');
   if (!repoInputs.length) fail('At least one affected repo is required.');
   if (baseInputs.length && baseInputs.length !== repoInputs.length) fail('Pass one --base for each --repo.');
+  if (f.workspace_version === '1') {
+    const contract = JSON.parse(f.workspace_contract);
+    const actual = (await Promise.all(repoInputs.map((repo) => realpath(repo)))).sort();
+    if (JSON.stringify(actual) !== JSON.stringify(contract.repos.map((repo) => repo.root).sort())) fail('Final package must include every approved repository exactly once.');
+    for (let i = 0; i < repoInputs.length; i++) {
+      const canonical = await realpath(repoInputs[i]);
+      const selected = contract.repos.find((entry) => entry.root === canonical);
+      if (baseInputs[i] !== undefined && baseInputs[i] !== selected.base) fail(`Base differs from approved selection in ${selected.id}.`);
+      baseInputs[i] = selected.base;
+      if (git(canonical, ['symbolic-ref', '--quiet', '--short', 'HEAD']).toString('utf8').trim() !== selected.branch) fail(`Branch differs from approved selection in ${selected.id}.`);
+    }
+  }
   const draftRelative = path.relative(root, await realpath(draftPath));
   runArtifactName(draftRelative, f.ticket, 'Draft');
   const draftArtifact = await artifact(root, draftRelative);

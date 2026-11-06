@@ -1,5 +1,54 @@
 # Implement feedback evals
 
+## Workspace implementation cases
+
+- `implement-workspace-approval`: fresh Autopilot at a root with no `.git` or
+  `CLAUDE.md`; assess via find-the-repos and wait at the combined exact repo/branch
+  approval without branch mutations or workflow initialization.
+- `implement-workspace-complete`: resume a synthetic explicitly approved api/web
+  selection, with `main` and `develop` bases, then complete TDD, independent review,
+  final sync and packaging while leaving the unrelated repo untouched.
+- `implement-workspace-single-impact`: the same workspace with only api approved;
+  web source and its develop branch must remain unchanged.
+
+All three fixtures seed only disposable directories. The two continuation fixtures
+record synthetic user consent during setup; they do not test live approval-message
+delivery. The first case tests that Autopilot does not invent that consent.
+
+The shared discovery, exact approval, branch-collision/stale-preview/partial-failure,
+scope expansion and omission protections have deterministic tests in
+`scripts/workspace.test.mjs` and `skills/implement/scripts/workspace-scope.test.mjs`.
+`workflow-integration.test.mjs` executes actual red/green assertions across two repos
+through final packaging, alongside the existing single-repo Guided/Autonomous runs.
+Its clean review artifact is supplied by the test; semantic independent review is
+part of the model-driven cases, not established by that deterministic integration.
+
+Validation during implementation: all 365 script/workflow tests and all 37 eval
+harness tests passed; all three workspace fixture variants seeded successfully and
+the eval tree/dry-run validated.
+
+Live validation on 2026-11-06 passed all 13 smoke cases (reported usage $4.24 of
+the approved $12 cap) and all three selected workspace cases (reported usage $9.21
+of a separate $12 cap). Both runners recorded `repoUnchanged: true` and no budget
+stop. Reports:
+
+- `evals/results/smoke-2026-11-06T09-10-43-281Z/summary.json`
+- `evals/results/full-2026-11-06T09-16-20-921Z/summary.json` (the three selected
+  workspace cases, not the entire full suite)
+
+Independent read-only checks confirmed that both completed final packages were
+current, the cross-repo package used api/main and web/develop, and the single-impact
+package contained only api. Unselected repositories retained clean working trees
+and their original branches. No fixture implementation commits were created.
+Browser visual QA remains unavailable because no browser is connected; automated
+HTML checks cover displayed scope, proposals, evidence and escaping.
+
+After an approved model budget, run:
+
+```sh
+node evals/run-suite.mjs full --case=implement-workspace-approval --case=implement-workspace-complete --case=implement-workspace-single-impact --max-cost-usd=12
+```
+
 These cases resume a seeded `implement` run at `final-sync`, allowing the terminal feedback hook to be exercised without replaying refinement, planning, execution, and review.
 
 - `feedback-clean` verifies the compact entry for a minimal completed run.
@@ -104,7 +153,7 @@ The controller unit tests cover all autonomy modes, pending-offline creation,
 and path characters needing Markdown URL escaping.
 
 
-Current startup-link validation (2026-11-05): controller and harness unit tests
+Historical startup-link validation (2026-11-05): controller and harness unit tests
 pass, but four targeted Autonomous model runs still fail immediate assistant-text
 presentation. The link is returned by initialization, yet the model continues
 with tools and may show it only at completion. In the user's interactive session,
@@ -124,3 +173,9 @@ message. All 20 controller tests passed. The latest model run did continue
 through Context check without user input, but still omitted the assistant-text
 link, so the overall startup-link regression remains failing. Report:
 `evals/results/smoke-2026-11-05T21-20-16-344Z/summary.json`.
+
+Live follow-up (2026-11-06): `implement-dashboard-autonomous-start` passed in the
+13/13 smoke run at `evals/results/smoke-2026-11-06T09-10-43-281Z/summary.json`.
+Its transcript includes the assistant-text dashboard link before continued
+Context-check work. This records one successful live smoke run; the earlier
+failures above remain historical evidence, and browser visual QA is still pending.

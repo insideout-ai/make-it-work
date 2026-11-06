@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-workspace-single-impact
+tags: [implement, workspace, multi-repo]
+context:
+  scaffold_script: fixture.sh

@@ -75,7 +75,7 @@ instructions instead of entering Context check.
 ## Usage
 
 ```
-/make-it-work:implement [TICKET-ID | path/to/spec.md] [--autopilot] [--mode lightweight|tdd]
+/make-it-work:implement [TICKET-ID | path/to/spec.md] [--autopilot] [--mode lightweight|tdd] [--workspace path]
 ```
 
 Or paste the ticket content directly into the chat after invoking.
@@ -88,7 +88,7 @@ Or paste the ticket content directly into the chat after invoking.
 
 ## Autopilot mode
 
-While the current autonomy is `autopilot`, construct every later ordinary implementation question/checkpoint payload exactly as the interactive path would, but do not call `AskUserQuestion` or wait during implementation. `--autopilot` and Start's autonomy question select the initial mode; a later explicit chat request follows **Change autonomy during a run** below. Completion's optional delivery offer happens only after the run is terminal and is always asked, including in Autopilot. Append each orchestration-level resolution with the shared schema in `docs/autopilot-log-schema.md`. When `--autopilot` is supplied and `<TICKET>` is known, initialize `make-it-work/<TICKET>/implement-autopilot-log.jsonl` fresh before Start's existing-run check, so a hard stop there can still be logged, unless an explicit mode-change request in this message overrides the flag; that request uses the reference's log-preservation rule. When Autopilot is selected interactively for a new run, initialize it immediately after that choice, before the branch guard. Log the autonomy selection as the first resolution in either case; the rationale must distinguish a user's selection from a flag-selected default. Use `node "<base>/../../scripts/decision-log.mjs" init|append implement --root "<repo-root>" --ticket "<TICKET>"` in its own Bash call when Bash is available; a denied log write never blocks unrelated pipeline work.
+While the current autonomy is `autopilot`, construct every later ordinary implementation question/checkpoint payload exactly as the interactive path would, but do not call `AskUserQuestion` or wait during implementation. `--autopilot` and Start's autonomy question select the initial mode; a later explicit chat request follows **Change autonomy during a run** below. Workspace repository/branch selection is a separate mandatory explicit approval, including Autopilot; see [workspace.md](references/workspace.md). Completion's optional delivery offer happens only after the run is terminal and is always asked, including in Autopilot. Append each orchestration-level resolution with the shared schema in `docs/autopilot-log-schema.md`. When `--autopilot` is supplied and `<TICKET>` is known, initialize `make-it-work/<TICKET>/implement-autopilot-log.jsonl` fresh before Start's existing-run check, so a hard stop there can still be logged, unless an explicit mode-change request in this message overrides the flag; that request uses the reference's log-preservation rule. When Autopilot is selected interactively for a new run, initialize it immediately after that choice, before the branch guard. Log the autonomy selection as the first resolution in either case; the rationale must distinguish a user's selection from a flag-selected default. Use `node "<base>/../../scripts/decision-log.mjs" init|append implement --root "<repo-root>" --ticket "<TICKET>"` in its own Bash call when Bash is available; a denied log write never blocks unrelated pipeline work.
 
 Auto-resolve only these safe defaults: apply the assessed (or forced) run mode and any escalation; create the suggested ticket-named feature branch when starting on the base branch; retain a clean resumable autopilot run's saved mode; establish the recommended minimal test setup before planning; continue with clear related/unrelated regression classification; choose sequential dispatch; and replan when the existing Autonomous rules already prescribe replan. Honor an explicitly selected manual verification policy without asking again; never infer it from unavailable automated results. Forward `--autopilot` to `close-the-gaps`, `define-test-strategy` during readiness, `plan-the-work`, `execute`, and the Review dispatch; `execute` forwards it to `run-regression` for its automated completion gate.
 
@@ -118,6 +118,7 @@ Read each one with the Read tool when its phase starts — **never** start them 
 - Pass the resolved `implement` directory and [activity checkpoint contract](references/activity.md) into inline stages and nested skills. The main session owns activity writes, including the description saved before dispatching a subagent and retained while waiting for its result; delegated agents must not write workflow activity or edit HTML. Preserve the contract's legacy single-step Progress-helper exception.
 - Pass this scope constraint to every stage and delegated agent, including nested skills: never invoke or follow `go-deep` inline during `implement`, in any autonomy mode. Defer full onboarding, repair and broad documentation audits; report the affected repo and concrete gap to the parent for Context discoveries and the completion recommendation. Ticket-scoped documentation maintenance still applies.
 - Refinement, planning, and execution run inline in this session; while the current mode is `autopilot`, pass `--autopilot` so their own decision policies replace questions while `execute` dispatches its own per-step subagents. Recompute this from the saved mode for each dispatch, including nested regression; do not reuse the invocation's original flag after a change.
+- On workspace runs, pass the saved `workspace_contract` and artifact root through every stage and delegated agent under [the workspace contract](references/workspace.md). It overrides standalone root detection and repo-relative artifact assumptions. Newly discovered repos require explicit scope/branch approval before edits.
 - Review runs in a fresh subagent, for an independent read of the change (see Review dispatch).
 - Lightweight implementation and its fixes run in a fresh subagent with no stage skill (see Lightweight implementation).
 
@@ -267,6 +268,8 @@ Each such sentence must use the dashboard checkpoint helper's `activity` operati
 
 ## Start
 
+**Workspace routing comes first:** read [references/workspace.md](references/workspace.md) before resolving a current branch or running the checks below. Resolve layout and artifact root with the shared helper. A workspace needs no root `CLAUDE.md` or `.git`. For workspace runs, run `find-the-repos` inline, preview the exact repositories and branch actions, and obtain explicit user approval in **every** autonomy mode before creating or switching branches. Then use the per-repository branch helper instead of the single-repo branch guard below. An existing workspace run resumes its saved contract before any new discovery or branch changes.
+
 Resolve the ticket, current branch, base branch, and any existing state file before these checks. Work through them in order. A new run chooses autonomy before creating a branch; an existing run keeps its saved autonomy and goes through Resume before any branch change.
 
 If this message explicitly requests a mode change, apply **Change autonomy during a run** before any saved-Autopilot or flag-mismatch shortcut below. Keep all branch/workspace comparisons and existing-run checks; a mode change does not approve Resume anyway, Redo, or Start over.
@@ -305,6 +308,8 @@ If this message explicitly requests a mode change, apply **Change autonomy durin
 ---
 
 ## Context check
+
+For `workspace_version: 1`, apply this check independently to each approved repository from `workspace_contract`; no root workspace context is required, and unselected siblings are excluded. Pass the explicit repo root to each inventory call. The controller enforces the same checks at `context-ready`.
 
 Run `node "<base>/../../scripts/context-inventory.mjs" inspect --root <project-root>` under [the inventory contract](../../docs/deterministic-artifacts.md#documentation-inventory). Its signals/completeness/missing paths drive the following outcomes; do not manually recreate those filesystem checks. Workspace structure and affected-repo discovery retain their existing rules.
 

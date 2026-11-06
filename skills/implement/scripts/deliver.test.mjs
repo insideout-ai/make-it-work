@@ -207,6 +207,23 @@ test('dashboard checkpoint failure stops before publishing and retains the journ
   assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'refs/heads/DEMO'), '');
 });
 
+test('delivery skips unchanged supporting repositories while retaining them in the approved package', async (t) => {
+  const { root, repo, state, artifacts } = await fixture(t);
+  const support = path.join(root, 'support');
+  git(root, 'clone', '-q', repo, support);
+  git(support, 'branch', 'main', 'origin/main');
+  // No remote setup for support: it must not be prepared for delivery.
+  git(support, 'remote', 'remove', 'origin');
+  await writeFile(state, stateMarkdown());
+  const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', support]);
+  cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
+  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  const prepared = cli(deliveryCli, 'prepare', root, state);
+  assert.deepEqual(prepared.repos.map((entry) => entry.name), ['service']);
+  const pkg = JSON.parse(await readFile(path.join(artifacts, 'DEMO-final-package.json'), 'utf8'));
+  assert.deepEqual(pkg.repos.map((entry) => entry.name), ['service', 'support']);
+});
+
 test('multi-repo partial delivery shows each actual result and resumes without duplicate commits', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   const second = path.join(root, 'service-two');

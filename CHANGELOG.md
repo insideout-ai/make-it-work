@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.3.0] — 2026-11-06
+
+### Added
+
+- End-to-end `implement` support for workspaces containing sibling repositories without a workspace-root `CLAUDE.md` or Git repository. Discover affected repos through `find-the-repos` and retain shared workflow artifacts at the workspace root.
+- A saved repository-and-branch preview with explicit user confirmation before creating or switching branches in every workspace autonomy mode, including Autopilot. Validate the exact selection before applying it, record partial failures, and require renewed approval for scope changes.
+- Per-repository workflow state, branch/base tracking, resume validation, and scope-change replanning. Propagate the approved scope through refinement, testing readiness, planning, execution, regression, independent review, and final context sync.
+- A preflight HTML preview and workflow repository panel with selection evidence, branch/base/HEAD, proposed revisions, selection history, and recorded verification results.
+- Model-driven rehearsals for the approval gate, cross-repository completion, and a ticket affecting only one repository in a larger workspace.
+
+### Changed
+
+- Final packages require every approved repository and its own base branch. Delivery skips unchanged supporting repositories while retaining them in the package's validation scope.
+- Preserve existing single-repository branch guards, artifact paths, dashboards, and legacy-run behavior.
+
 ## [5.2.0] — 2026-11-06
 
 ### Added
