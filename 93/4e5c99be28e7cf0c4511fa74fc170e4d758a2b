@@ -1,0 +1,39 @@
+skills/implement/SKILL.md
+  s_3d1970d4ccfb7e::t_d841b83305ff69 421-422,432-434
+skills/implement/scripts/lightweight-fix.test.mjs
+  s_3d1970d4ccfb7e::t_18e57122e49540 1-2,4-14,16-110
+  s_3d1970d4ccfb7e::t_ee71794dd87260 3,15
+skills/implement/scripts/lightweight-fix.mjs
+  s_3d1970d4ccfb7e::t_fa0974f8323774 1-12,14-16,18-97
+  s_3d1970d4ccfb7e::t_18e57122e49540 13,17
+evals/execute/diagnosis-unknown/graders/diagnosis-record.md
+  s_3d1970d4ccfb7e::t_5962f57bb18d48 7
+skills/implement/references/controller.md
+  s_3d1970d4ccfb7e::t_d841b83305ff69 116-119
+skills/implement/references/lightweight-fix.md
+  s_3d1970d4ccfb7e::t_d841b83305ff69 1-55
+CHANGELOG.md
+  s_3d1970d4ccfb7e::t_719f5854062fd0 23-27
+evals/execute/diagnosis-first/graders/diagnosis-record.md
+  s_3d1970d4ccfb7e::t_5962f57bb18d48 7
+skills/implement/scripts/workflow.mjs
+  s_3d1970d4ccfb7e::t_fa0974f8323774 15,382-384
+evals/implement/diagnosis-lightweight/graders/diagnosis-order.md
+  s_3d1970d4ccfb7e::t_88884da7470e89 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "934e5c99be28e7cf0c4511fa74fc170e4d758a2b",
+  "prompts": {},
+  "sessions": {
+    "s_3d1970d4ccfb7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1afc0-b0d2-7801-a739-879691f962db",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
