@@ -1,0 +1,45 @@
+skills/implement/scripts/acceptance-summary.test.mjs
+  s_18e0c68e142857::t_1ce3a4fcf0fd7c 1-24
+skills/implement/scripts/acceptance-summary.mjs
+  s_18e0c68e142857::t_894878f2bcc42b 1-15
+skills/implement/scripts/final-package.test.mjs
+  s_18e0c68e142857::t_1ce3a4fcf0fd7c 8-9,133-157,161-171
+  s_18e0c68e142857::t_d0e30df4d70499 128,158-160
+  s_18e0c68e142857::t_0394b0ea1f968d 172-173
+skills/implement/references/ticket-publication.md
+  s_18e0c68e142857::t_d0e30df4d70499 38-45
+README.md
+  s_18e0c68e142857::t_c355a1e1714718 281-282
+skills/implement/assets/status-template.html
+  s_18e0c68e142857::t_894878f2bcc42b 22
+skills/implement/references/verification.md
+  s_18e0c68e142857::t_d0e30df4d70499 3-22
+skills/implement/scripts/render-status.test.mjs
+  s_18e0c68e142857::t_5d70b68aa00efd 115-116,119
+  s_18e0c68e142857::t_c5945f82da7d64 114,117-118,120-122
+skills/implement/scripts/final-package.mjs
+  s_18e0c68e142857::t_894878f2bcc42b 13,70-71,79-82,100
+  s_18e0c68e142857::t_f1ae99d81c80b7 265
+CHANGELOG.md
+  s_18e0c68e142857::t_d0e30df4d70499 9-12
+skills/implement/SKILL.md
+  s_18e0c68e142857::t_f1ae99d81c80b7 676-687
+skills/implement/scripts/render-status.mjs
+  s_18e0c68e142857::t_894878f2bcc42b 17,731-738,775,850-852,854-859
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d43e8fbaec07e33240c2a54ea66a49d88e1e038e",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
