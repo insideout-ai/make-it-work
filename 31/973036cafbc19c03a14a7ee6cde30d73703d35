@@ -1,0 +1,43 @@
+README.md
+  s_18e0c68e142857::t_dc47ac73858e02 252-253
+scripts/repo-identity.mjs
+  s_18e0c68e142857::t_4c9ef14ed3ae14 1-28,30-32,38-40,48-50,52-84,86-88
+  s_18e0c68e142857::t_394f2a8b4dd141 29,33-37
+  s_18e0c68e142857::t_9e743a4e90b875 41-47,51
+  s_18e0c68e142857::t_a92c595522a775 85
+scripts/repo-identity.test.mjs
+  s_18e0c68e142857::t_64e789793af837 120-134
+  s_18e0c68e142857::t_394f2a8b4dd141 82-85
+  s_18e0c68e142857::t_3784a2bf27f9bc 1-81,86-119
+skills/run-regression/SKILL.md
+  s_18e0c68e142857::t_fa3dec11d4b3f3 71,169
+  s_18e0c68e142857::t_a92c595522a775 75-81
+CHANGELOG.md
+  s_18e0c68e142857::t_3abe4bf57eafd3 21-23
+  s_18e0c68e142857::t_43c377293ccf1c 24
+scripts/regression.mjs
+  s_18e0c68e142857::t_4c9ef14ed3ae14 8-9,173-176
+  s_18e0c68e142857::t_a92c595522a775 172
+docs/deterministic-artifacts.md
+  s_18e0c68e142857::t_a92c595522a775 5-31
+skills/define-test-strategy/SKILL.md
+  s_18e0c68e142857::t_fa3dec11d4b3f3 71,204
+skills/define-test-strategy/references/test-strategy-template.md
+  s_18e0c68e142857::t_fa3dec11d4b3f3 26,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "31973036cafbc19c03a14a7ee6cde30d73703d35",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
