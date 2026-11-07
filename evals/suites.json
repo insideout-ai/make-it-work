@@ -16,6 +16,10 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "plan-facts-vendor-contract",
+    "plan-facts-prior-notes",
+    "plan-facts-boundary-conflict",
+    "plan-facts-boundary-supported",
     "drive-the-epic-autopilot",
     "drive-the-epic-review-gate",
     "drive-the-epic-scoped-resume",

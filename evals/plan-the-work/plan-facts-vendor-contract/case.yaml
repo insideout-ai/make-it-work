@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-facts-vendor-contract
+tags: [plan-the-work, fact-handoff]
+context:
+  scaffold_script: fixture.sh

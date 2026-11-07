@@ -428,3 +428,75 @@ needs correction; do not reinterpret a failed run as a pass without evidence.
 Run `node --test evals/deferred-scope-fixtures.test.mjs` for credential-free fixture validation. Model runs require approval; use `node evals/run-suite.mjs full --case=plan-the-work-deferred-wiring --case=plan-the-work-safe-deferral --max-cost-usd=3`. These are planning-stage evals, not a complete implement/repository-discovery or release rehearsal.
 
 Live validation on 2026-11-06 against committed planner `84b3bc4`: both deferred-scope cases passed. The unique-key case planned the type-8 callback change and identified missing type-8 routing plus registration/activation gates; the control supported type-7 reuse and retained existing callback/routing behavior with external activation gates. Both runs preserved sibling repo contents and all repo HEADs; the plugin snapshot remained unchanged. Both fixture checks and all 48 current eval-harness tests passed. Local summary: `evals/results/deferred-scope-verification-2026-11-06/summary.json`. No workflow instructions were changed by this eval work. Parallel uncommitted assumption-policy changes were excluded; full implement startup/repository discovery is not established by these planning-stage cases.
+
+## Fact handoff and provenance (review item 5)
+
+Inspection on 2026-11-07 against `1522f51`: planning already requires evidence
+and its limits for design-critical assumptions, recorded in existing
+Assumptions/Risks and affected steps (`skills/plan-the-work/SKILL.md`, Rules
+before you begin). Its requirements-conflict rule blocks dependent planning
+and returns product contradictions to refinement in every autonomy mode.
+`skills/implement/SKILL.md`'s Requirements conflict section owns the explicit
+resolution/revised-spec approval and downstream invalidation.
+Refinement explores relevant code/conflicts (Phase 3/4) and re-verifies recorded
+code findings when resuming answered questions (Phase 5C). That resume check
+does not itself establish general carryover of all prior research facts into a
+new plan. No general fact-ID ledger with per-fact verification status is
+required by these inspected contracts. Whether existing instructions retain
+the important facts reliably remains a behavioral question.
+
+Four prepared headless cases test that behavior without requiring a new ledger:
+
+| Case | Evidence and expected outcome |
+| --- | --- |
+| `plan-facts-vendor-contract` | The accepted spec incorporates a vendor snapshot. Carry body status `REQUIRES_ACTION`, nonempty payment ID and HTTP success predicates into implementation steps and verification; cover malformed/missing/error responses. A happy-path or HTTP-only plan fails. |
+| `plan-facts-prior-notes` | Historical type-7 reuse was never schema-checked. Inspect actual uniqueness/current rows and the approved type-8 proposal; use type 8 and identify the unsupported note in the plan. |
+| `plan-facts-boundary-conflict` | An internal validation throw becomes `FAILOVER` at the provider boundary. Accepted parity and explicit `VALIDATION_ERROR` conflict; stop dependent planning for refinement, even with `--autopilot`. |
+| `plan-facts-boundary-supported` | Accepted refinement already chose external `FAILOVER`, superseding the original ticket and old note. Plan and verify that behavior without reopening a resolved conflict. |
+
+All fixtures use real disposable Git repositories, Node built-in tests and local
+synthetic evidence. SQLite checks use an in-memory database. Baselines retain
+hashes for the source, assertions, accepted spec, notes and contracts, plus Git
+HEAD/branch, for post-run integrity checks. Graders judge facts used in authored
+plans/tests or a justified blocked outcome, not the presence of Read calls or a
+particular artifact format. Planning may add tests/minimal stubs; comparison
+evidence and accepted requirements remain immutable.
+
+Local fixture checks passed on 2026-11-07. No workflow instruction or schema has
+changed. These are planning-entry
+tests with seeded refinement outputs, not an end-to-end test of refinement fact
+extraction, controller conflict resume, execution or review. A passing result
+would support existing behavior in these cases, not prove that no ledger is ever
+useful.
+
+```sh
+node --test evals/fact-handoff-fixtures.test.mjs
+```
+
+After separately approving a model run, select cases through
+`node evals/run-suite.mjs full --case=<case-name> --max-cost-usd=<approved-cap>`
+from a frozen source snapshot. Budget for model execution and graders; the
+remaining session allowance is not a guarantee that all four cases will finish.
+Retain original failed/budget-limited results and compare protected hashes and
+Git state after the run. Preparation does not authorize a paid run.
+
+After explicit go-ahead, all four model cases passed on 2026-11-07 against a
+frozen snapshot of committed workflow `1522f51` with only the prepared evals
+overlaid. The conflict case stopped with no plan/tests/stubs; the consistent
+refinement case produced external parity tests; the prior-notes case rejected
+type-7 reuse using schema/proposal evidence and planned type 8; the vendor case
+carried HTTP/body-status/payment-ID checks and malformed/error inputs into its
+plan and tests. All semantic and planning-boundary graders passed. Post-run
+checks confirmed immutable accepted-spec/evidence/assertion hashes, unchanged
+legacy implementation and passing regression, and preserved Git HEADs/branches.
+The three successful plans added only the expected throwing stub to production
+source; their new tests are intentionally red until implementation. The plugin
+snapshot was unchanged and its workflow trees match committed source.
+
+All **55 eval-harness tests passed**. Model usage was **$1.37125768**, bringing
+tracked cumulative usage to **$11.906557805 of $12**. No retry or workflow change
+was needed. Local summary:
+`evals/results/fact-handoff-verification-2026-11-07/summary.json`.
+These results support retaining existing fact handling for the tested planning
+paths; they do not establish initial-refinement extraction or complete workflow
+behavior and do not justify introducing a dedicated ledger on their own.
