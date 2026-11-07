@@ -1,0 +1,25 @@
+skills/implement/scripts/render-status.test.mjs
+  s_18e0c68e142857::t_4b6e407b347162 577,727,913
+skills/implement/scripts/render-status.mjs
+  s_18e0c68e142857::t_4dcef9431ca7bd 627,654
+README.md
+  s_18e0c68e142857::t_4b6e407b347162 303-304
+skills/implement/SKILL.md
+  s_18e0c68e142857::t_4b6e407b347162 699
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "dfabf1a40e31e143eb9b0e2b2550656361e29a7e",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
