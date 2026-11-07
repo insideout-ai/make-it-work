@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Distinguish workflow completion from criterion-level acceptance verification in final packages, dashboards and completion summaries, using Partially verified with pending criteria and recorded reasons.
 - Record refinement answer sources, surface outstanding Product communication when answers are resolved elsewhere, and revisit recommendations invalidated by new evidence without adding blanket PM approval or automatic messaging.
 
+### Fixed
+
+- Preserve recorded test repository IDs across renamed clones and linked worktrees, derive fresh worktree IDs from the main checkout, and resolve regression scope to the selected checkout without rewriting existing tokens.
+
 ## [5.4.0] — 2026-11-06
 
 ### Added

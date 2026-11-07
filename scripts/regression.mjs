@@ -5,6 +5,8 @@ import path from 'node:path';
 import { args, cli, digest, fail, jsonInput, requireText } from './lib/artifacts.mjs';
 import { checkpointResult } from '../skills/implement/scripts/dashboard-checkpoint.mjs';
 import { parseState } from '../skills/implement/scripts/render-status.mjs';
+import { resolveRepository } from './repo-identity.mjs';
+export { resolveRepository } from './repo-identity.mjs';
 
 export function parseScope(tokens) {
   const remaining = tokens.filter((token) => token !== '--autopilot');
@@ -167,7 +169,11 @@ export function regressionReport(result) {
   return lines.join('\n');
 }
 cli(import.meta.url, async (argv) => {
-  const o = args(argv, ['--input', '--format', '--state', '--audit-id']);
+  const o = args(argv, argv[0] === 'resolve' ? ['--root', '--repo', '--workspace-root'] : ['--input', '--format', '--state', '--audit-id']);
+  if (o.command === 'resolve') {
+    if (!o.root || !o.repo) fail('Usage: regression.mjs resolve --root ROOT --repo ID [--workspace-root ROOT]');
+    return resolveRepository({ root: o.root, repo: o.repo, workspaceRoot: o['workspace-root'] });
+  }
   if (o.command !== 'run') fail('Usage: regression.mjs run --input MANIFEST.json [--format text] [--state STATE --audit-id ID]');
   const input = await jsonInput(o.input);
   let result;

@@ -23,9 +23,9 @@ This is a starting point, seeded by `define-test-strategy` — extend and edit i
 
 ## Repo ID
 
-`<Repo ID>` — the basename of this repo's git toplevel directory at onboarding.
+`<Repo ID>` — the stable identity returned by the plugin's repository-ID resolver.
 
-Map tokens use this ID. If this repo is cloned under a different directory name, existing repo-name resolution may not match — clone it as `<Repo ID>`.
+Map tokens keep this ID across renamed checkouts and linked worktrees. Repository lookup resolves the recorded ID to the selected working tree; temporary directory names do not replace it. Existing IDs are not migrated automatically.
 
 ## Test Locations
 

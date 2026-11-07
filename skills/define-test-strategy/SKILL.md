@@ -68,7 +68,7 @@ Run `pwd` and record it as the **invocation root** before changing directory. Th
 3. **No argument, at a root with no `.git` whose subdirectories have one** → list those repos and ask the user which one to onboard. (autopilot: hard stop)
 4. **None of these resolves** → stop and tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." Do not proceed. (autopilot: hard stop)
 
-Record the **Repo ID**: the basename of the target repo's git toplevel. It goes into the skill's `## Repo ID` and qualifies every UC/domain token.
+Resolve the **Repo ID** with `node "<base>/../../scripts/repo-identity.mjs" identity --root "<target repo>"`. Use its `repoId` for the strategy and every UC/domain token, and its `root` for source/test operations. It preserves an existing strategy/map ID; on a fresh linked worktree it uses the main working tree's name, not the temporary checkout folder. Report returned warnings. Conflicting recorded IDs require explicit resolution, never a silent token migration. A malformed map can still use a valid recorded strategy ID through the normal refresh/discovery path. Bare-owned worktrees without a recorded ID need an explicit token-safe identity rather than a guessed temporary name. The helper is read-only.
 
 ### go-deep prerequisite
 
@@ -201,7 +201,7 @@ Never write or offer a git hook, and never add a checklist item.
 
 A chat-only report: write nothing to disk. On the Phase 1 "Coverage report only" path, read the locations from the existing skill's `## Test Locations`, and the vocabulary per Phase 4 step 1.
 
-Use the Repo ID under the existing skill's `## Repo ID` (on a fresh run it equals Phase 0's). If it differs from the basename Phase 0 recorded, warn that tokens use the recorded ID and the repo should be cloned as `<Repo ID>`, then continue.
+Use the resolved, recorded Repo ID from Phase 0. A renamed checkout or linked worktree does not require cloning or renaming its folder. Conflicting strategy/map IDs must be resolved explicitly before querying or writing; never rewrite tokens just to match a directory name.
 
 1. **Inspect/query.** Follow `## How to Scan` and the shared contract: reuse current mappings, refresh affected portions in memory, and query every vocabulary token. Missing/malformed maps use temporary discovery, never a project rewrite. An older strategy without `## Test Map` needs regeneration; report mapping unavailable instead of interpreting its tag convention. Missing paths or incomplete assessment remain unresolved, not proof of absent coverage. Coverage-only saves no strategy/map updates and creates no project scratch files.
 2. **Report**, keeping mapping kinds and gap lists separate:

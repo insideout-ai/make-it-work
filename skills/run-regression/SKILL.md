@@ -68,9 +68,16 @@ Reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **sin
 
 A bare `full` (Phase 1) iterates every repo in a detected workspace. The step 2 ask above applies only to a bare `full` and to the no-argument path; a token run uses detection only to find the workspace root, since each prefix resolves its own repo.
 
-**Finding a token's repo.** A token's prefix (`<repo>` in `<repo>:UC-08`, `<repo>:domain-velocity` or `full:<repo>`) names a repo. It is cwd's git toplevel when that directory's basename matches `<repo>`; otherwise a same-named subdirectory of cwd; otherwise a same-named subdirectory of the detected workspace root. If none exists, the repo is not found. Check for a directory by matching a file inside it (e.g. Glob `<repo>/*` or `<repo>/.git/HEAD`): Glob returns only files, so a pattern naming just the directory never matches.
+**Finding a token's repo.** Resolve each prefix using `node "<base>/../../scripts/regression.mjs" resolve --root "<invocation root>" --repo "<prefix>"`; add `--workspace-root "<detected workspace>"` only for the workspace already established above. The shared resolver prefers the current checkout when its recorded Repo ID matches, even inside a differently named worktree. Otherwise it searches immediate Git roots within the supplied boundaries. Use returned `root` for code/tests and `repoId` for canonical map tokens; directory aliases remain accepted without changing the stored ID. Report warnings, keep malformed-map fallback under Phase 3, and stop for conflicting IDs or ambiguous matching checkouts rather than choosing another branch. Not found remains a per-prefix validation reason. Do not climb unrelated parents or substitute the main checkout just because its name supplied a fresh worktree's ID.
 
 For token runs, group tokens by prefix. For each prefix, find the repo as above (`repo not found` is a validation reason for that prefix's tokens), read its `.claude/skills/test-strategy/SKILL.md`, and use every location in its `## Test Locations`. Each prefix is one group of runs; Phase 2 onward handles its scope tokens, and Phase 1 handles its `full:<repo>` token.
+
+When implement supplies approved workspace roots, resolve identity within the
+selected root rather than searching unapproved siblings. Its approved repo ID
+still identifies execution-manifest scope; the helper's canonical test ID
+identifies map tokens. Do not change the approved selection to make those names
+match, or use main-tree metadata to switch test execution away from the selected
+checkout.
 
 ### Mode resolution (autopilot: see Autopilot Mode)
 
@@ -159,7 +166,7 @@ If it does not exist, scoped mode is unavailable for that prefix — regardless 
 
 If the strategy exists, validate the prefix and every requested domain/UC token before running anything.
 
-**Prefix.** Phase 0 found the repo by directory name; a prefix with no such directory is `repo not found` for all its tokens. If the directory isn't a git repo, or its strategy has no readable `## Repo ID`, its tokens are `unrecognized repo`. If the strategy's `## Repo ID` differs from the prefix, warn that map tokens use `<Repo ID>` and the repo should be cloned as `<Repo ID>`, then continue, using the recorded Repo ID for canonical tokens and the Phase 3 scan. A `full:<repo>` token is validated only for existence (`repo not found`).
+**Prefix.** Phase 0 resolves the prefix to a selected Git checkout and canonical ID. An unmatched prefix is `repo not found` for its tokens. If its strategy has no readable `## Repo ID`, scope tokens remain `unrecognized repo`. Use the recorded ID for canonical tokens and the Phase 3 scan; a directory alias or temporary worktree name never requires renaming a clone or rewriting map tokens. A `full:<repo>` token still needs no test strategy; use the resolved checkout's existing full-suite command.
 
 **Remainder.** Validate it against that repo's actual inventory.
 
