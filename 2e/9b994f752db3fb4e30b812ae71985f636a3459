@@ -1,0 +1,70 @@
+CHANGELOG.md
+  s_18e0c68e142857::t_8ff532fb261ec2 9-12
+skills/implement/references/ticket-publication.md
+  s_18e0c68e142857::t_8ff532fb261ec2 31-37
+evals/close-the-gaps/close-the-gaps-mixed-sources/graders/decision-context.md
+  s_18e0c68e142857::t_607402fd753031 1-8,10-11
+  s_18e0c68e142857::t_5863ec14ad6817 9
+evals/close-the-gaps/close-the-gaps-stale-recommendation/fixture.sh
+  s_18e0c68e142857::t_607402fd753031 1-5
+evals/close-the-gaps/close-the-gaps-mixed-sources/fixture.sh
+  s_18e0c68e142857::t_607402fd753031 1-5
+evals/close-the-gaps/close-the-gaps-stale-recommendation/graders/decision-context.md
+  s_18e0c68e142857::t_607402fd753031 1-11
+evals/close-the-gaps/close-the-gaps-mixed-sources/case.yaml
+  s_18e0c68e142857::t_607402fd753031 1-5
+evals/close-the-gaps/close-the-gaps-pm-followup/fixture.sh
+  s_18e0c68e142857::t_607402fd753031 1-5
+evals/close-the-gaps/close-the-gaps-stale-recommendation/prompt.md
+  s_18e0c68e142857::t_91570aefce7fe2 3
+  s_18e0c68e142857::t_607402fd753031 1-2,4-13
+evals/close-the-gaps/close-the-gaps-pm-followup/graders/decision-context.md
+  s_18e0c68e142857::t_607402fd753031 1-11
+evals/close-the-gaps/close-the-gaps-pm-followup/case.yaml
+  s_18e0c68e142857::t_607402fd753031 1-5
+evals/close-the-gaps/close-the-gaps-pm-followup/prompt.md
+  s_18e0c68e142857::t_607402fd753031 1-2,4-11
+  s_18e0c68e142857::t_91570aefce7fe2 3
+evals/close-the-gaps/close-the-gaps-stale-recommendation/graders/local-boundary.md
+  s_18e0c68e142857::t_607402fd753031 1-7
+evals/close-the-gaps/close-the-gaps-pm-followup/graders/local-boundary.md
+  s_18e0c68e142857::t_607402fd753031 1-7
+evals/close-the-gaps/close-the-gaps-mixed-sources/prompt.md
+  s_18e0c68e142857::t_91570aefce7fe2 3
+  s_18e0c68e142857::t_607402fd753031 1-2,4-11
+evals/close-the-gaps/close-the-gaps-stale-recommendation/case.yaml
+  s_18e0c68e142857::t_607402fd753031 1-5
+evals/decision-context-fixtures.test.mjs
+  s_18e0c68e142857::t_9b9ce8eb9744d5 1-24,26-65
+  s_18e0c68e142857::t_5863ec14ad6817 25
+evals/close-the-gaps/README.md
+  s_18e0c68e142857::t_b13820b4ba036f 37-38,42-53,55-58
+  s_18e0c68e142857::t_48adcc35d7c5ec 54
+  s_18e0c68e142857::t_9b9ce8eb9744d5 3-36,39-41,59-61
+evals/suites.json
+  s_18e0c68e142857::t_607402fd753031 19-21
+evals/close-the-gaps/close-the-gaps-mixed-sources/graders/local-boundary.md
+  s_18e0c68e142857::t_607402fd753031 1-7
+evals/close-the-gaps/decision-context-fixture.mjs
+  s_18e0c68e142857::t_bb658176219412 1-53,55-74,76-128
+  s_18e0c68e142857::t_5863ec14ad6817 54,75
+skills/close-the-gaps/SKILL.md
+  s_18e0c68e142857::t_8ff532fb261ec2 205,212,386-392,491-492
+  s_18e0c68e142857::t_10c49b5fd0c9e6 493
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2e9b994f752db3fb4e30b812ae71985f636a3459",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
