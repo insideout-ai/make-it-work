@@ -624,7 +624,7 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   const legacy = state.realRowsFrom > 1
     ? ` This is not the full session duration — everything before row ${state.realRowsFrom} happened before any real timestamp was captured.`
     : '';
-  return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of real captured time.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
+  return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
 }
 
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
@@ -651,7 +651,7 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
   const duration = Number.isFinite(invalidTimestampFrom)
     ? 'Elapsed unavailable — an audit timestamp is later than the state checkpoint.'
     : timing
-    ? `Real-timestamped portion of this run: ${timing.total}.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
+    ? `Elapsed time (includes waits and pauses): ${timing.total}. Active processing time is not measured.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
     : 'Elapsed: unknown — no real start timestamp was captured for this run.';
   const deliveryText = {
     offered: 'Delivery decision pending. Changes remain local and uncommitted.',

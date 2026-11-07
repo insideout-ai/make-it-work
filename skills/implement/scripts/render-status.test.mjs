@@ -574,7 +574,7 @@ test('keeps completed stages minimal and retains approval details and fix histor
   assert.ok(html.includes(approval));
   assert.match(html, /Decision: Fix round 1: added 2 steps covering 1 finding/);
   assert.match(completedStages, /phase-duration">2m<\/div>/);
-  assert.match(html, /class="complete"><strong>Implementation complete\.<\/strong> Real-timestamped portion of this run: 12m\./);
+  assert.match(html, /class="complete"><strong>Implementation complete\.<\/strong> Elapsed time \(includes waits and pauses\): 12m\./);
   assert.match(html, /class="phase-step optional-step"[\s\S]*class="phase-dot optional"[^>]+Optional delivery:/);
   assert.match(html, /class="phase-label">Deliver<\/div>[\s\S]*class="phase-mode">Optional<\/div>/);
   assert.doesNotMatch(html, /Optional next step:/);
@@ -724,7 +724,7 @@ test('delivered dashboard shows commit and PR links, stops polling and preserves
   assert.match(html, /Changes committed and pushed; pull requests opened or updated/);
   assert.match(html, /href="https:\/\/github.com\/example\/api\/commit\/a{40}"/);
   assert.match(html, /href="https:\/\/github.com\/example\/api\/pull\/1"/);
-  assert.match(html, /Real-timestamped portion of this run: 1m\./);
+  assert.match(html, /Elapsed time \(includes waits and pauses\): 1m\./);
   assert.match(html, /phase-mode">Delivered<\/div>[\s\S]*phase-duration">2m/);
   assert.doesNotMatch(html, /http-equiv="refresh"|Changes remain local and uncommitted/);
   assert.equal(await readFile(statePath, 'utf8'), completedState());
@@ -910,7 +910,7 @@ test('post-completion delivery decisions preserve implementation timing and feed
   await checkpointDecision(statePath, { ...USER_DECISION, id: 'delivery-plan-abc', topic: 'Delivery approval', choice: 'Deliver this exact plan after Review cycle 7', reference: 'delivery plan hash abc' });
   const after = await readFile(path.join(directory, 'DEMO-status.html'), 'utf8');
   assert.equal(after.match(/<p class="session-timing">.*?<\/p>/)[0], before.match(/<p class="session-timing">.*?<\/p>/)[0]);
-  assert.ok(after.includes('Real-timestamped portion of this run: 10m.'));
+  assert.ok(after.includes('Elapsed time (includes waits and pauses): 10m.'));
   assert.ok(after.includes('Deliver this exact plan after Review cycle 7'));
   const markdown = await readFile(statePath, 'utf8');
   const state = parseState(markdown);
