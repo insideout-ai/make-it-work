@@ -16,10 +16,15 @@ export function reviewResult(input) {
     if (typeof finding.evidence !== 'string' || !finding.evidence.trim()) fail('Finding needs inspected evidence.');
     if (!Array.isArray(finding.locations) || !finding.locations.length) fail('Finding needs source locations.');
     for (const location of finding.locations) if (!Number.isSafeInteger(location.line) || location.line < 1 || typeof location.file !== 'string' || path.isAbsolute(location.file) || location.file.split('/').includes('..')) fail('Invalid finding source location.');
-    const actionable = finding.actionable ?? finding.severity !== 'Minor';
-    if (typeof actionable !== 'boolean' || !actionable && finding.severity !== 'Minor') fail('Major/Critical findings cannot be hidden as non-actionable.');
+    const hasRoute = finding.route !== undefined;
+    if (hasRoute && !['fix', 'replan', 'human', 'advisory'].includes(finding.route)) fail('Invalid finding route.');
+    if (finding.route === 'advisory' && finding.severity !== 'Minor') fail('Only Minor findings may use the advisory route.');
+    const actionable = finding.actionable ?? (hasRoute ? finding.route !== 'advisory' : finding.severity !== 'Minor');
+    if (typeof actionable !== 'boolean') fail('Finding actionable must be a boolean.');
+    if (!actionable && finding.severity !== 'Minor') fail('Major/Critical findings cannot be hidden as non-actionable.');
+    if (hasRoute && actionable !== (finding.route !== 'advisory')) fail('Finding route and actionable contradict each other.');
     if (input.implement) {
-      if (!['fix', 'replan', 'human'].includes(finding.route)) fail('Implement findings require exactly one route.');
+      if (!hasRoute) fail('Implement findings require exactly one route.');
       requireText(finding.region, 'Stable finding region');
     }
     return { ...finding, actionable, id: `#${index + 1}` };
@@ -42,8 +47,10 @@ export function renderReview(input) {
       lines.push(`   Route: ${finding.route}`);
       if (input.implement.review_cycle > 1) lines.push(`   Introduced by fix of: ${finding.introduced_by_fix_of ?? 'none'}`);
     }
+    if (!finding.actionable) lines.push('   Status: Unfixed advisory (not routed)');
     lines.push('');
-    summary.push(`${finding.id.slice(1)}. [${finding.severity}] ${finding.claim} — ${locations.join('; ')}`);
+    const disposition = !finding.actionable ? ' (unfixed advisory; not routed)' : input.implement ? ` (Route: ${finding.route})` : '';
+    summary.push(`${finding.id.slice(1)}. [${finding.severity}] ${finding.claim} — ${locations.join('; ')}${disposition}`);
   }
   for (const [name, items] of [['Pre-existing (not blocking)', input.preexisting], ['Context gaps (for final sync)', input.context_gaps], ['Known unrelated regressions (documented, out of scope)', input.known_regressions], ['Decided (not re-raised)', input.decided]]) {
     if (items?.length) lines.push(`**${name}:**`, ...items.map((item) => `- ${requireText(item, name)}`), '');

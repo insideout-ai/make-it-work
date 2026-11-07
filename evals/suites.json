@@ -16,6 +16,10 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "plan-facts-vendor-contract",
+    "plan-facts-prior-notes",
+    "plan-facts-boundary-conflict",
+    "plan-facts-boundary-supported",
     "drive-the-epic-autopilot",
     "drive-the-epic-review-gate",
     "drive-the-epic-scoped-resume",
@@ -58,6 +62,8 @@
     "implement-empty-strategy",
     "implement-lightweight-run",
     "implement-workspace-approval",
+    "implement-repo-start-dependencies",
+    "implement-repo-start-local",
     "implement-workspace-complete",
     "implement-workspace-single-impact",
     "implement-escalation",
@@ -66,6 +72,8 @@
     "plan-the-work-with-tests",
     "plan-the-work-planned-layer",
     "plan-the-work-embedded-tests",
+    "plan-the-work-deferred-wiring",
+    "plan-the-work-safe-deferral",
     "repair-path",
     "rr-cross-repo",
     "rr-full-fail",
@@ -73,7 +81,11 @@
     "rr-scoped-explicit",
     "rr-embedded-tests",
     "rr-index-reuse",
-    "review-the-pr-embedded-tests",
+    "review-the-code-embedded-tests",
+    "review-the-code-plan-conflict",
+    "review-the-code-refined-authority",
+    "review-the-code-false-parity",
+    "review-the-code-shared-parity",
     "shape-the-epic-rich-input-autopilot",
     "shape-the-epic-technical-debt-outcomes",
     "shape-the-epic-jira-full-description",
@@ -91,7 +103,14 @@
     "implement-publication-resume",
     "implement-delivery-prepare",
     "implement-delivery-decline",
-    "implement-delivery-stale"
+    "implement-delivery-stale",
+    "execute-diagnosis-first",
+    "execute-diagnosis-repeat",
+    "execute-diagnosis-unknown",
+    "implement-diagnosis-lightweight",
+    "plan-assumption-unsupported",
+    "plan-assumption-supported",
+    "plan-assumption-low-risk"
   ],
   "requiredToolsBySkill": {
     "drive-the-epic": ["Read", "Bash"],
@@ -105,7 +124,7 @@
     "slice-the-epic": ["Read", "Bash"],
     "shape-the-epic": ["Read", "Bash"],
     "find-the-repos": ["Read", "Bash"],
-    "review-the-pr": ["Read", "Bash"]
+    "review-the-code": ["Read", "Bash"]
   },
   "extraTools": {
     "execute-resume-inline": ["Bash"],

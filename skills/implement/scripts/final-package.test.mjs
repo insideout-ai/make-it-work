@@ -1,3 +1,4 @@
+import { writeReview } from '../../../scripts/review-report.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -252,4 +253,25 @@ test('old runs keep the exact package shape without adaptive fields', async (t) 
   const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(Object.keys(pkg), ['version', 'ticket', 'draft_path', 'draft_sha256', 'draft', 'evidence', 'validation', 'review', 'open_nits', 'known_regressions', 'decided_findings', 'repos']);
   assert.match(await readFile(built.package, 'utf8'), /^# Final approval — DEMO\n\nReview: clean\. Validation: full-suite — PASS\.\n\n## Changes/);
+});
+
+
+test('a rendered advisory review remains visible as an unfixed nit in the final package', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'package-advisory-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  const reviewed = await writeReview(root, {
+    version: 1, ticket: 'DEMO', branch: 'feature', commit: 'HEAD', working_tree: true,
+    coverage: 'Reviewed against the accepted spec.', repo_roots: { app: root },
+    implement: { plan_version: 1, review_cycle: 1 },
+    findings: [{ severity: 'Minor', route: 'advisory', region: 'src/existing.txt', claim: 'Simplify the local name',
+      evidence: 'The adjacent declaration uses a clearer name.', locations: [{ file: 'src/existing.txt', line: 1 }] }],
+  });
+  assert.equal(reviewed.outcome, 'CLEAN');
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.equal(pkg.open_nits.length, 1);
+  assert.match(pkg.open_nits[0], /Simplify the local name/);
+  assert.match(await readFile(built.package, 'utf8'), /Open review nits \(unfixed\):.*Simplify the local name/);
 });

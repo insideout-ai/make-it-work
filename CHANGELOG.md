@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.0] — 2026-11-06
+
+### Added
+
+- A requirements-conflict controller route that pauses dependent work, invalidates downstream evidence, returns to refinement, and requires explicit revised-spec approval in every autonomy mode.
+- Evidence-backed diagnosis records before corrective execution attempts, including learning from unsuccessful attempts, durable history and audit entries.
+- Evidence requirements for design-critical planning assumptions, with blocked validation tasks for unresolved guarantees and normal planning for supported or low-risk choices.
+- Behavioral review and diagnosis evals, plus deterministic fixture coverage.
+
+### Changed
+
+- Review code and implementation plans against the accepted refined spec. The original ticket provides context; plan assumptions cannot amend requirements.
+- Refresh the README overview, quick start and skill catalog, and include its banner asset.
+- Renamed `review-the-pr` to `review-the-code` across workflow dispatch, dashboards, documentation and evals. The old command remains a deprecated alias; existing review reports and legacy decision logs remain readable.
+
+### Fixed
+
+- Honor explicit Minor finding routes through the existing fix/replan/human-decision paths instead of silently excluding them from actionable review handoffs. Reject contradictory route/actionability flags and retain existing fix-loop limits.
+- Mark nonblocking Minor findings as `advisory`, show them as unfixed in the report, chat summary and final package, and exclude them from fix scope. Major/Critical findings cannot be advisory.
+- Preserve standalone Minor advisory defaults and the existing actionable handoff schema. Existing saved reviews are not rewritten.
+- Lightweight fix rounds now checkpoint the diagnosis in their existing report and audit log before dispatching a fresh fix agent, including on resume. Completed fix handoffs reject missing or stale checkpoint evidence.
+- Diagnosis smoke graders distinguish an active dispatch from a seeded corrective attempt, so the first actual correction is counted correctly.
+
 ## [5.3.0] — 2026-11-06
 
 ### Added

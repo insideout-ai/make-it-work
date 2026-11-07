@@ -12,6 +12,7 @@ import { createPendingInput, pendingAnswer, pendingInputs } from './pending-inpu
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
 import { planHash } from '../../../scripts/lib/plan.mjs';
 import { approvedScope, readScope } from './workspace-scope.mjs';
+import { inspectLightweightFix } from './lightweight-fix.mjs';
 export { planHash } from '../../../scripts/lib/plan.mjs';
 
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
@@ -106,6 +107,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (action.operation === 'fix') startFix(f);
     if (action.operation === 'escalate') reason = escalate(f, input, action.reason);
     if (action.action === 'phase') f.phase = action.phase;
+    if (handoff.stage === 'gaps' && handoff.outcome === 'SPEC_SAVED' && f.spec_revision_pending === 'true' && action.action === 'phase') f.phase = 'spec-approval';
     if (action.action === 'stop') { f.status = 'Stopped'; f.pause_reason = reason; }
     if (action.action === 'pause') { f.status = 'Paused'; f.pause_reason = action.pause_reason; }
   } else if (input.event === 'context-ready') {
@@ -120,8 +122,9 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     }
   } else if (['approve', 'redo', 'skip-approval'].includes(input.event)) {
     if (!['spec-approval', 'plan-approval'].includes(f.phase)) fail('No spec/plan approval is pending.');
-    if (input.event === 'skip-approval') { if (f.autonomy === 'guided') fail('Guided approval cannot be skipped.'); }
+    if (input.event === 'skip-approval') { if (f.autonomy === 'guided' || f.spec_revision_pending === 'true') fail('Required spec/plan approval cannot be skipped.'); }
     else explicit(input);
+    if (f.phase === 'spec-approval' && input.event === 'approve' && f.spec_revision_pending === 'true') f.spec_revision_pending = 'false';
     f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : 'execute');
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
@@ -176,8 +179,19 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
       }
       return { fields: f, unchanged: true, reason: 'The saved input is still pending.' };
     }
+    if (f.phase === 'close-the-gaps' && f.spec_revision_pending === 'true' && ['Paused', 'Stopped'].includes(f.status)) explicit(input);
     if (['Paused', 'Stopped'].includes(f.status) && input.blocker_resolved !== true) fail('Resolve the saved blocker before resuming.');
     f.status = 'In Progress'; f.pause_reason = 'none';
+  } else if (input.event === 'spec-conflict') {
+    if (!['plan', 'plan-approval', 'fix-plan', 'execute', 'lightweight', 'review', 'final-sync', 'final-approval'].includes(f.phase) || f.status !== 'In Progress') fail('Spec conflicts require active dependent work.');
+    if (pendingInputs(f).some((record) => record.blocking)) fail('Resolve the pending input before returning to refinement.');
+    reason = `Spec conflict: ${oneLine(input.reason, 'Spec conflict evidence and decision')}`;
+    const previousPlan = f.plan && f.plan !== 'none' ? f.plan : 'none';
+    Object.assign(f, { phase: 'close-the-gaps', status: 'Paused', pause_reason: reason, spec_revision_pending: 'true',
+      spec_previous_plan: previousPlan, plan: 'none', plan_hash: 'none', testing_readiness: 'none',
+      plan_version: String(Number(f.plan_version) + (previousPlan === 'none' ? 0 : 1)),
+      review: 'not-started', review_cycle: '0', fix_cycle: '0', fix_plan_round_steps: 'none', fix_plan_dispatch: 'none',
+      execution: 'not-started', execute_report: 'none', gate: 'none', execution_mode: 'none', inline_pause_mode: 'none' });
   } else if (input.event === 'scope-update') {
     explicit(input);
     if (f.workspace_version !== '1' || f.status === 'Complete') fail('Scope changes require an active workspace run.');
@@ -344,7 +358,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       effective = { ...input, event: 'await-input' };
     } else if (['skip-approval', 'complete'].includes(input.event) && state.fields.autonomy !== 'guided') {
       const waiting = pendingInputs(state.fields).find((record) => record.blocking && record.kind === 'approval');
-      if (waiting && (input.event === 'skip-approval' && waiting.continuation?.event === 'approval' || input.event === 'complete' && waiting.continuation?.event === 'final-approval')) {
+      if (waiting && (input.event === 'skip-approval' && state.fields.spec_revision_pending !== 'true' && waiting.continuation?.event === 'approval' || input.event === 'complete' && waiting.continuation?.event === 'final-approval')) {
         workingState = { ...state, fields: remainingFields(state.fields, waiting.id).fields };
       }
     }
@@ -365,6 +379,9 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
+    if (handoff?.stage === 'implement' && handoff.status === 'done' && state.fields.mode === 'lightweight' && Number(state.fields.fix_cycle) > 0) {
+      await inspectLightweightFix(root, statePath, handoff.artifacts.report);
+    }
     if (handoff?.stage === 'plan' && handoff.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
       const policy = testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
       if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
@@ -435,7 +452,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
         binding: await bindingFor(root, f.ticket, effective.handoff, 'handoff', true) };
     } else if (handoff?.outcome === 'QUESTIONS_SENT') {
       request = { id: `${input.id}:pm`, kind: 'slack', waiting_for: 'pm', question: 'Waiting for the Product Manager to answer the saved refinement questions.', choices: [], binding: await bindingFor(root, f.ticket, handoff.artifacts.questions, 'artifact', false) };
-    } else if (f.autonomy === 'guided' && ['spec-approval', 'plan-approval'].includes(f.phase) && f.phase !== state.fields.phase) {
+    } else if ((f.autonomy === 'guided' || f.spec_revision_pending === 'true' && f.phase === 'spec-approval') && ['spec-approval', 'plan-approval'].includes(f.phase) && f.phase !== state.fields.phase) {
       const artifact = f.phase === 'spec-approval' ? 'spec' : 'plan';
       request = { id: `${input.id}:approval`, kind: 'approval', question: `Approve the ${artifact === 'spec' ? 'refined specification' : 'implementation plan'}?`, choices: APPROVAL_CHOICES,
         continuation: { event: 'approval' }, binding: await bindingFor(root, f.ticket, f[artifact], 'artifact', false) };
@@ -458,7 +475,8 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       const records = pendingInputs(f);
       if (records.some((record) => record.id === request.id || record.blocking && request.blocking !== false)) fail('An unresolved pending input cannot be replaced; inspect or resolve it first.');
       if (state.audit.some((row) => row.outcome.includes(`[pending-input: ${request.id}]`) || row.outcome.startsWith(`Input ${request.id} resolved:`))) fail('Pending input IDs cannot be reused for a later request.');
-      if (f.autonomy === 'autopilot' && request.blocking !== false && request.kind !== 'slack') fail('Autopilot cannot open an interactive wait; apply its documented default or hard stop.');
+      const requiredSpecApproval = f.spec_revision_pending === 'true' && f.phase === 'spec-approval' && request.kind === 'approval';
+      if (f.autonomy === 'autopilot' && request.blocking !== false && request.kind !== 'slack' && !requiredSpecApproval) fail('Autopilot cannot open an interactive wait; apply its documented default or hard stop.');
       const record = createPendingInput(request, f.phase, new Date().toISOString());
       f.pending_inputs = JSON.stringify([...records, record]);
       if (record.blocking) {

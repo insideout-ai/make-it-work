@@ -75,7 +75,7 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   const regression = () => runRegression({ version: 1, mode: 'full', workspace: Boolean(workspace), runs: repos.map((cwd, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } })) });
   assert.equal((await regression()).overall, 'fail');
   await executionControl(planPath, { action: 'start', id: 'formal-greeting-step-1', steps: [1] }, { dashboardState: statePath });
-  await executionControl(planPath, { action: 'begin-attempt', id: 'formal-greeting-fix-1', step: 1 });
+  await executionControl(planPath, { action: 'begin-attempt', id: 'formal-greeting-fix-1', step: 1, diagnosis: { failure: 'The formal greeting assertion fails.', evidence: 'node test.js output; src/greeting.js lacks greetFormally.', cause: 'The required formal greeting function is missing.', next_change: 'Implement and export greetFormally.', expected_result: 'Formal greeting and existing greeting assertions pass.' } });
   for (const repo of repos) await writeFile(path.join(repo, 'src/greeting.js'), 'function greet(name) { return `Hello, ${name}!`; }\nfunction greetFormally(name) { return `Good day, ${name}.`; }\nmodule.exports = { greet, greetFormally };\n');
   const result = await regression(); assert.equal(result.overall, 'pass');
   const ledgerPath = path.join(directory, 'DEMO-2-verification-v1.json');

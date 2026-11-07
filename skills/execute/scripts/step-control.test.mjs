@@ -13,6 +13,7 @@ import { checkpointDashboard } from '../../implement/scripts/dashboard-checkpoin
 
 const plan = (parallel = false) => `# Plan\n\n## Execution Status\n\n**Mode:** Inline — execute here.\n\n**Progress:** Step 0 of 2 complete.\n\n## Steps\n\n### Step 1 — First\n\n- **Files:** \`src/a.js\`\n- **Depends on:** none\n- **Can run in parallel with:** ${parallel ? '2' : 'none'}\n\n**Verify:** Check A.\n\n### Step 2 — Second\n\n- **Files:** \`src/b.js\`\n- **Depends on:** ${parallel ? 'none' : '1'}\n- **Can run in parallel with:** ${parallel ? '1' : 'none'}\n\n**Verify:** Check B.\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | A works |\n| AC2 | B works |\n`;
 const evidence = (number) => ({ number, checks: [{ type: 'automated', subject: number === 1 ? 'A works' : 'B works', command: 'node --test', result: 'pass', note: 'Actual check passed.' }] });
+const diagnosis = (prior = false) => ({ failure: 'Expected one result; received two.', evidence: 'node --test results.test.js: duplicate selection fails; src/results.js:42 appends a fallback.', cause: 'The fallback also runs after a successful selection.', next_change: 'Restrict the fallback to empty selection.', expected_result: 'Duplicate selection returns one item; empty selection still returns the fallback.', ...(prior ? { prior_result: 'The earlier null guard did not affect nonempty selection; the failure output points to fallback append.' } : {}) });
 async function fixture(t, parallel = false) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'step-control-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -28,7 +29,7 @@ test('parses dependencies and conservatively batches only mutually marked disjoi
 });
 test('persists attempts across invocations and refuses a sixth attempt or later dispatch', async (t) => {
   const { run } = await fixture(t);
-  for (let n = 1; n <= 5; n += 1) assert.equal((await run({ action: 'begin-attempt', id: `fix-${n}`, step: 1 })).attempts[1], n);
+  for (let n = 1; n <= 5; n += 1) assert.equal((await run({ action: 'begin-attempt', id: `fix-${n}`, step: 1, diagnosis: diagnosis(n > 1) })).attempts[1], n);
   assert.equal((await run({ action: 'begin-attempt', id: 'fix-5', step: 1 })).attempts[1], 5);
   await assert.rejects(run({ action: 'begin-attempt', id: 'fix-6', step: 1 }), /sixth/);
   await run({ action: 'stop', reason: 'retry-limit' });
@@ -106,7 +107,7 @@ test('dispatch is durable and distinct from completion or fix-attempt counting',
   assert.equal((await run(start)).started_at, first.started_at);
   await assert.rejects(run({ action: 'start', id: 'duplicate-dispatch', steps: [1] }), /already active/);
   await assert.rejects(run({ action: 'start', id: 'skip', steps: [2] }), /eligible/);
-  await run({ action: 'begin-attempt', id: 'fix-1', step: 1 });
+  await run({ action: 'begin-attempt', id: 'fix-1', step: 1, diagnosis: diagnosis() });
   assert.deepEqual((await run({ action: 'inspect' })).active_steps, [1]);
   await run({ action: 'complete', steps: [evidence(1)] });
   assert.deepEqual((await run({ action: 'inspect' })).active_steps, []);
@@ -210,17 +211,97 @@ test('an explicitly resolved stop can repair edited unfinished work before the p
 });
 test('explicit user guidance can resolve a stopped invocation while preserving its history', async (t) => {
   const { file, run } = await fixture(t);
-  await run({ action: 'begin-attempt', id: 'first-fix', step: 1 });
+  await run({ action: 'begin-attempt', id: 'first-fix', step: 1, diagnosis: diagnosis() });
   await run({ action: 'stop', reason: 'guardrail' });
   await assert.rejects(run({ action: 'resolve-stop', reason: 'Guessed default' }), /explicit user/);
   await writeFile(file, plan().replace('Check A.', 'Check clarified A.'));
   const resolved = await run({ action: 'resolve-stop', source: 'user', via: 'chat', reason: 'Confirmed expected behavior; retry this step.' });
   assert.equal(resolved.stopped, null); assert.equal(resolved.history.length, 1);
-  assert.equal((await run({ action: 'begin-attempt', id: 'new-fix', step: 1 })).attempts[1], 1);
+  assert.equal((await run({ action: 'begin-attempt', id: 'new-fix', step: 1, diagnosis: diagnosis() })).attempts[1], 1);
 });
 test('verification writes cannot target an unrelated source file', async (t) => {
   const { file, options } = await fixture(t);
   const source = path.join(path.dirname(file), 'source.js'); await writeFile(source, 'original source');
   await assert.rejects(executionControl(file, { action: 'complete', steps: [evidence(1)] }, { ...options, ledgerPath: source }), /ledger must match/);
   assert.equal(await readFile(source, 'utf8'), 'original source');
+});
+
+test('a correction requires diagnosis; a repeat also requires learning from the previous outcome', async (t) => {
+  const { run, file } = await fixture(t);
+  const event = { action: 'begin-attempt', id: 'first', step: 1 };
+  await assert.rejects(run(event), /diagnosis is required/);
+  for (const field of Object.keys(diagnosis())) {
+    await assert.rejects(run({ ...event, diagnosis: { ...diagnosis(), [field]: ' ' } }), /Diagnosis/);
+  }
+  await assert.rejects(readFile(`${file}.execution.json`), /ENOENT/);
+  const unknown = { ...diagnosis(), cause: 'Unknown: checking whether selection or fallback adds the duplicate.' };
+  // Investigation/inspection alone neither creates an attempt nor consumes budget.
+  assert.deepEqual((await run({ action: 'inspect' })).attempts, {});
+  const first = await run({ ...event, diagnosis: diagnosis() });
+  assert.equal(first.attempts[1], 1);
+  await assert.rejects(run({ action: 'begin-attempt', id: 'second', step: 1, diagnosis: diagnosis() }), /prior_result/);
+  await assert.rejects(run({ ...event, diagnosis: unknown }), /different diagnosis/);
+  assert.equal((await run(event)).attempts[1], 1);
+  const second = await run({ action: 'begin-attempt', id: 'second', step: 1, diagnosis: diagnosis(true) });
+  assert.equal(second.attempts[1], 2);
+  assert.deepEqual((await run({ action: 'inspect' })).diagnoses.second.diagnosis, diagnosis(true));
+  await run({ action: 'stop', reason: 'guardrail' });
+  await assert.rejects(run({ action: 'begin-attempt', id: 'third', step: 1, diagnosis: diagnosis(true) }), /stopped/);
+  const resolved = await run({ action: 'resolve-stop', source: 'user', via: 'chat', reason: 'Confirmed the intended behavior.' });
+  assert.deepEqual(resolved.diagnoses, {});
+  assert.deepEqual(resolved.history[0].diagnoses, second.diagnoses);
+  assert.equal(resolved.history[0].attempt_events.second, 1);
+});
+
+test('legacy attempt history remains readable while every new correction requires diagnosis', async (t) => {
+  const { file, run } = await fixture(t);
+  await run({ action: 'begin-attempt', id: 'old', step: 1, diagnosis: diagnosis() });
+  const saved = JSON.parse(await readFile(`${file}.execution.json`, 'utf8'));
+  delete saved.diagnoses;
+  await writeFile(`${file}.execution.json`, JSON.stringify(saved));
+  assert.deepEqual((await run({ action: 'inspect' })).diagnoses, {});
+  assert.equal((await run({ action: 'begin-attempt', id: 'old', step: 1 })).attempts[1], 1);
+  await assert.rejects(run({ action: 'begin-attempt', id: 'new', step: 1 }), /diagnosis/);
+  assert.equal((await run({ action: 'begin-attempt', id: 'new', step: 1, diagnosis: diagnosis(true) })).attempts[1], 2);
+});
+
+test('diagnosis audit survives render failure and replay repairs it once without changing progress', async (t) => {
+  const { file, statePath, run } = await dashboardFixture(t);
+  await run({ action: 'start', id: 'dispatch', steps: [1] });
+  const output = statePath.replace('-state.md', '-status.html');
+  await rm(output); await mkdir(output);
+  const event = { action: 'begin-attempt', id: 'diagnosed-fix', step: 1, diagnosis: diagnosis() };
+  await assert.rejects(run(event), /regular file/);
+  assert.equal(JSON.parse(await readFile(`${file}.execution.json`)).attempts[1], 1);
+  await rm(output, { recursive: true });
+  // With no HTML, the explicit state still receives the audit entry.
+  await run(event);
+  let state = parseState(await readFile(statePath, 'utf8'));
+  const notes = () => state.audit.filter((row) => row.note?.kind === 'result');
+  assert.equal(notes().length, 1);
+  assert.match(notes()[0].outcome, /fix attempt 1/);
+  assert.match(notes()[0].outcome, /execution.json#diagnosed-fix/);
+  await generateDashboard(statePath);
+  assert.equal((await run(event)).attempts[1], 1);
+  state = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(notes().length, 1);
+  assert.match(await readFile(file, 'utf8'), /Step 0 of 2 complete/);
+});
+
+test('render failure after audit persistence retains one diagnosis entry across retries', async (t) => {
+  const { file, options } = await fixture(t);
+  const statePath = path.join(path.dirname(file), 'DEMO-state.md');
+  const legacy = (await readFile(new URL('../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', import.meta.url), 'utf8')).replace('phase: final-sync', 'phase: execute');
+  await writeFile(statePath, legacy);
+  await writeFile(statePath.replace('-state.md', '-status.html'), 'Existing dashboard');
+  const event = { action: 'begin-attempt', id: 'render-recovery', step: 1, diagnosis: diagnosis() };
+  for (let n = 0; n < 2; n += 1) {
+    await assert.rejects(executionControl(file, event, { ...options, dashboardState: statePath }), /State must be/);
+    const audit = parseState(await readFile(statePath, 'utf8')).audit;
+    assert.equal(audit.filter((row) => row.note?.kind === 'result').length, 1);
+    assert.equal(JSON.parse(await readFile(`${file}.execution.json`)).attempts[1], 1);
+  }
+  await rm(statePath.replace('-state.md', '-status.html'));
+  await executionControl(file, event, { ...options, dashboardState: statePath });
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.filter((row) => row.note?.kind === 'result').length, 1);
 });

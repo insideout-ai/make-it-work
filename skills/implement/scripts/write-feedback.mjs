@@ -24,7 +24,7 @@ const CONFIDENCE = new Set(['high', 'medium', 'low']);
 const REPLAN_FROM = new Set(['execute', 'review', 'fix-plan']);
 const WORKFLOW_TERMS = new Set([
   'close-the-gaps', 'define-test-strategy', 'find-the-repos', 'go-deep',
-  'plan-the-work', 'review-the-pr', 'run-regression', 'shape-the-epic',
+  'plan-the-work', 'review-the-code', 'review-the-pr', 'run-regression', 'shape-the-epic',
   'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval', 'lightweight',
 ]);
 const ADAPTIVE_MODES = new Set(['none', 'lightweight', 'tdd']);

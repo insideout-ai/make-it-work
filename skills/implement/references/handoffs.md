@@ -38,7 +38,7 @@ For a run with `verification_version: 1`, a `done` Execute handoff also has `art
 
 Lightweight has no plan or verification artifact: its handoffs carry the state's current `plan_version` (1 unless the user downgraded after a replan), and the spec is Review's requirements source.
 
-Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route": "fix | replan | human", "region": "path:symbol or function", "introduced_by_fix_of": "#N or step N" | null }`. Use a stable region label across rounds. `CLEAN` has no actionable findings; minor nits remain in the Markdown review. The validator derives the expected outcome from the finding routes and rejects a disagreement.
+Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route": "fix | replan | human", "region": "path:symbol or function", "introduced_by_fix_of": "#N or step N" | null }`. Use a stable region label across rounds. `CLEAN` has no actionable findings. A Minor `fix`, `replan` or `human` finding is actionable and must appear here like any other severity. Only nonblocking Minor findings explicitly marked `Route: advisory` stay out of this list; they remain visibly unfixed in the Markdown review, chat summary and final package. The advisory route never enters the handoff schema or fix scope. The validator derives the expected outcome from the finding routes and rejects a disagreement.
 
 ## After each stage
 
@@ -70,3 +70,8 @@ The helper checks the ticket, stage, plan version, review cycle, newest handoff 
 Approval gates, state writes, dashboard updates, regression classification, developer answers, and fix/replan counter changes remain with `implement`. Follow [workflow-decisions.md](workflow-decisions.md) for each explicit workflow choice before dependent work; a decision that changes phase belongs in the ordinary transition row. Inline stage choices are recorded as they resolve, rather than buffered until this handoff. The helper returns a decision; it does not mutate state, edit code, answer a question, or approve an artifact. The existing Transition table is the compatibility path for older runs and the source of the detailed side effects of each returned operation.
 
 Ticket publication also belongs to `implement`, under [ticket-publication.md](ticket-publication.md). A valid handoff supplies artifact/evidence inputs, not permission to write externally. Guided artifact approval still precedes publication. Publication uses a separate journal and does not change this handoff schema, helper routing, loop counters or implementation completion status.
+
+
+## Requirements-conflict override
+
+The current accepted refined spec is the requirements authority; a plan is implementation context. A planning requirements conflict returns a blocked handoff with the criterion, evidence and decision needed in `reason` plus `Spec conflict:` in its chat report. Review records an unresolved requirements decision as `Route: human`. Before ordinary blocked/human/replan routing, the parent follows Implement's requirements-conflict section and controller `spec-conflict` event. This pauses dependent work, returns to refinement and requires explicit revised-spec approval in every mode; it does not introduce a new handoff outcome or allow a plan assumption to amend the spec. A clear implementation defect with a correction consistent with the accepted spec retains ordinary fix/replan routing.

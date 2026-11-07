@@ -270,3 +270,61 @@ test('Lightweight implementation, direct fixes and escalation are controller-own
   assert.throws(() => transition(lightweight('final-approval', { fix_cycle: '3' }), { event: 'lightweight-fix', reason: 'x', source: 'user', via: 'chat' }), /limit/);
   assert.throws(() => transition(lightweight('final-approval', { mode: 'tdd' }), { event: 'lightweight-fix', reason: 'x', source: 'user', via: 'chat' }), /Lightweight change request/);
 });
+
+
+test('spec conflicts invalidate dependent evidence and require explicit resolution in every autonomy mode', () => {
+  for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
+    const old = fields('review', { autonomy, spec: 'make-it-work/DEMO/DEMO-spec.md', plan: 'make-it-work/DEMO/DEMO-plan.md',
+      plan_hash: 'old', execution: 'passed', review: 'clean', execute_report: 'old-execute.md', testing_readiness: 'old-readiness.md' });
+    const result = transition(old, { event: 'spec-conflict', reason: 'AC1 requires parity; provider.js:4 contradicts it; confirm intended error behavior.' });
+    assert.equal(result.fields.phase, 'close-the-gaps');
+    assert.equal(result.fields.status, 'Paused');
+    assert.equal(result.fields.spec, old.fields.spec);
+    assert.equal(result.fields.spec_previous_plan, old.fields.plan);
+    assert.equal(result.fields.plan, 'none');
+    assert.equal(result.fields.plan_hash, 'none');
+    assert.equal(result.fields.plan_version, '2');
+    assert.equal(result.fields.replans_used, '0');
+    for (const key of ['execute_report', 'testing_readiness', 'execution_mode']) assert.equal(result.fields[key], 'none');
+    for (const key of ['execution', 'review']) assert.equal(result.fields[key], 'not-started');
+    assert.throws(() => transition(result, { event: 'resume', blocker_resolved: true }), /explicit user/);
+    assert.throws(() => transition(result, { event: 'complete' }), /Resume/);
+    const resumed = transition(result, { event: 'resume', blocker_resolved: true, source: 'user', via: 'chat' });
+    const refined = transition(resumed, { event: 'handoff' }, { version: 1, ticket: 'DEMO', plan_version: 2, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: old.fields.spec }, data: { tbd_items: 0, context_updated: [] } });
+    assert.equal(refined.fields.phase, 'spec-approval');
+    assert.throws(() => transition(refined, { event: 'skip-approval' }), /cannot be skipped/);
+    assert.throws(() => transition(refined, { event: 'approve', source: 'policy' }), /explicit user/);
+    const approved = transition(refined, { event: 'approve', source: 'user', via: 'chat' });
+    assert.equal(approved.fields.spec_revision_pending, 'false');
+    assert.equal(approved.fields.phase, 'plan');
+  }
+  const initial = transition(fields('plan', { plan: 'none' }), { event: 'spec-conflict', reason: 'AC2 conflicts with the vendor contract.' });
+  assert.equal(initial.fields.plan_version, '1');
+  assert.throws(() => transition(fields('complete', { status: 'Complete' }), { event: 'spec-conflict', reason: 'Late finding' }), /active dependent work/);
+});
+
+test('spec conflict persists an approval wait that Autopilot cannot skip', async (t) => {
+  const { root, statePath, apply } = await fixture(t, { init: { autonomy: 'autopilot' } });
+  const spec = 'make-it-work/DEMO/DEMO-spec.md';
+  await writeFile(path.join(root, spec), '# Accepted spec\nAC1: preserve error parity.\n');
+  await apply('mode', { mode: 'tdd', risk: 'medium', source: 'assessed', rationale: 'Requirements affect error parity.' });
+  await apply('context-ready', { reuse_spec: true, spec, source: 'user', via: 'chat' });
+  const conflict = await apply('spec-conflict', { reason: 'AC1 versus provider.js:4; confirm parity. Snapshot: DEMO-spec-before-conflict-v1.md.' });
+  assert.equal(conflict.fields.status, 'Paused');
+  await assert.rejects(apply('resume', { blocker_resolved: true }), /explicit user/);
+  await apply('resume', { blocker_resolved: true, source: 'user', via: 'chat' });
+  // Refinement records the user's decision in the accepted spec before returning.
+  await writeFile(path.join(root, spec), '# Revised spec\nAC1: preserve error parity.\nDecision Log: User confirmed parity; correct the implementation approach.\n');
+  const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
+  await mkdir(path.dirname(path.join(root, handoff)), { recursive: true });
+  await writeFile(path.join(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec }, data: { tbd_items: 0, context_updated: [] } }));
+  const waiting = await apply('handoff', { handoff });
+  assert.equal(waiting.fields.phase, 'spec-approval');
+  assert.equal(waiting.fields.status, 'Paused');
+  await assert.rejects(apply('skip-approval'), /Resume|required|pending|approval/i);
+  const pending = JSON.parse(waiting.fields.pending_inputs).find((record) => record.blocking);
+  const accepted = await apply('resolve-input', { pending_id: pending.id, answer: 'approve', source: 'user', via: 'chat' });
+  assert.equal(accepted.fields.phase, 'plan');
+  assert.equal(accepted.fields.spec_revision_pending, 'false');
+  assert.match(await readFile(statePath, 'utf8'), /Spec conflict: AC1/);
+});

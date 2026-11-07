@@ -79,7 +79,7 @@ const PHASE_INFO = {
   },
   review: {
     label: 'Review',
-    skill: 'review-the-pr',
+    skill: 'review-the-code',
     tooltip: 'an independent pass reviews the implemented change for correctness and quality.',
   },
   'fix-plan': {
