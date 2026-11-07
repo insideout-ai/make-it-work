@@ -6,10 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Changed
-
-- Distinguish workflow completion from criterion-level acceptance verification in final packages, dashboards and completion summaries, using Partially verified with pending criteria and recorded reasons.
-
 ## [5.4.1] — 2026-11-07
 
 ### Added
@@ -18,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Distinguish workflow completion from criterion-level acceptance verification in final packages, dashboards and completion summaries, using Partially verified with pending criteria and recorded reasons.
 - Record refinement answer sources, surface outstanding Product communication when answers are resolved elsewhere, and revisit recommendations invalidated by new evidence without adding blanket PM approval or automatic messaging.
 
 ## [5.4.0] — 2026-11-06
