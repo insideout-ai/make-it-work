@@ -1,0 +1,70 @@
+evals/plan-the-work/plan-facts-boundary-supported/fixture.sh
+  s_18e0c68e142857::t_0b75132c9bad88 4
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-3,5
+evals/plan-the-work/plan-facts-boundary-conflict/case.yaml
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-5
+evals/plan-the-work/plan-facts-boundary-conflict/graders/fact-use.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/plan-facts-prior-notes/graders/fact-use.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/plan-facts-vendor-contract/graders/fact-use.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/fact-handoff-fixture.mjs
+  s_18e0c68e142857::t_b0954b6c29186a 1-102
+evals/plan-the-work/plan-facts-boundary-supported/case.yaml
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-5
+evals/plan-the-work/plan-facts-prior-notes/fixture.sh
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-3,5
+  s_18e0c68e142857::t_0b75132c9bad88 4
+evals/plan-the-work/plan-facts-boundary-supported/prompt.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/README.md
+  s_18e0c68e142857::t_3ac39ebff5c3af 465-466,482-502
+  s_18e0c68e142857::t_822d046d7f3be3 431-464,467-481
+evals/plan-the-work/plan-facts-boundary-conflict/fixture.sh
+  s_18e0c68e142857::t_0b75132c9bad88 4
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-3,5
+evals/plan-the-work/plan-facts-vendor-contract/fixture.sh
+  s_18e0c68e142857::t_0b75132c9bad88 4
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-3,5
+evals/plan-the-work/plan-facts-boundary-supported/graders/fact-use.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/plan-facts-vendor-contract/case.yaml
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-5
+evals/plan-the-work/plan-facts-vendor-contract/prompt.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/plan-facts-prior-notes/case.yaml
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-5
+evals/plan-the-work/plan-facts-boundary-conflict/graders/planning-boundary.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-7
+evals/plan-the-work/plan-facts-prior-notes/graders/planning-boundary.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-7
+evals/plan-the-work/plan-facts-boundary-conflict/prompt.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/plan-facts-prior-notes/prompt.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-11
+evals/plan-the-work/plan-facts-boundary-supported/graders/planning-boundary.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-7
+evals/suites.json
+  s_18e0c68e142857::t_e235082507f4c2 19-22
+evals/fact-handoff-fixtures.test.mjs
+  s_18e0c68e142857::t_64995e625d4964 1-77
+evals/plan-the-work/plan-facts-vendor-contract/graders/planning-boundary.md
+  s_18e0c68e142857::t_90ea56a6a7abe1 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "de09d128c55762d58ff9b3315405f2ff80e42c0c",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
