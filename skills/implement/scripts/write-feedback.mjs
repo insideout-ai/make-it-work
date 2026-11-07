@@ -116,6 +116,15 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     if (row.to === 'plan' && REPLAN_FROM.has(row.from)) return [{ kind: 'Replan', row: row.number }];
     return [];
   });
+  // Only structured execution checkpoints within the workflow count. Historical
+  // prose and notes added after completion do not become new interventions.
+  const guardrailRows = rows.filter((row) => row.number <= finalRow.number && row.from === 'execute' && row.to === 'execute' && row.note?.kind === 'result');
+  const guardrails = guardrailRows.filter((row) => row.note.id.startsWith('guardrail-stop:')).map((row) => {
+    const id = row.note.id.slice('guardrail-stop:'.length);
+    const resolution = guardrailRows.find((entry) => entry.number > row.number && entry.note.id === `guardrail-resolve:${id}`);
+    const channel = resolution?.outcome.match(/^Result: Guardrail resolved with user guidance via (chat|question)\./)?.[1] ?? null;
+    return { row: row.number, resolutionRow: resolution?.number ?? null, source: channel ? 'user' : 'unavailable', via: channel };
+  });
   const explicitReviews = rows.filter((row) =>
     !(row.from === row.to && (row.note || row.outcome.startsWith('Decision: '))) && /\bReview cycle \d+\b/i.test(row.outcome)
   ).length;
@@ -129,6 +138,8 @@ export function inspectState(markdown, { limitStop = false } = {}) {
   return {
     runId, outcome: status === 'Complete' ? 'Complete' : 'Stopped — loop limit',
     minimal: events.length === 0,
+    guardrails,
+    analysisRequired: events.length > 0 || guardrails.length > 0,
     fixRounds: events.filter((event) => event.kind === 'Fix').length,
     replans: events.filter((event) => event.kind === 'Replan').length,
     reviewCycles: explicitReviews || enteredReviews,
@@ -181,6 +192,18 @@ function validateAnalysis(analysis, summary) {
       improvement: safeLine(event.improvement, 'improvement', summary.ticket, summary.sourceCompounds),
     };
   });
+  const expectedGuardrails = summary.guardrails ?? [];
+  const suppliedGuardrails = analysis.guardrails ?? [];
+  if (!Array.isArray(suppliedGuardrails) || suppliedGuardrails.length !== expectedGuardrails.length) fail('Analysis must match each recorded guardrail intervention.');
+  const guardrails = suppliedGuardrails.map((item, index) => {
+    const expected = expectedGuardrails[index];
+    if (item.row !== expected.row || item.resolutionRow !== expected.resolutionRow) fail('Guardrail analysis must match the stop and resolution audit rows.');
+    if (!CONFIDENCE.has(item.confidence)) fail('Invalid guardrail confidence.');
+    return { ...expected, confidence: item.confidence,
+      trigger: safeLine(item.trigger, 'guardrail trigger', summary.ticket, summary.sourceCompounds),
+      resolution: safeLine(item.resolution, 'guardrail resolution', summary.ticket, summary.sourceCompounds),
+      lesson: safeLine(item.lesson, 'guardrail lesson', summary.ticket, summary.sourceCompounds) };
+  });
   const recommendations = safeLines(analysis.recommendations, 'recommendations', summary.ticket, summary.sourceCompounds);
   const openQuestions = safeLines(analysis.openQuestions, 'openQuestions', summary.ticket, summary.sourceCompounds);
   if (recommendations.length === 0) fail('At least one consolidated recommendation is required.');
@@ -189,7 +212,7 @@ function validateAnalysis(analysis, summary) {
     question: safeLine(entry.question, `clarifications[${index}].question`, summary.ticket, summary.sourceCompounds),
     answer: safeLine(entry.answer, `clarifications[${index}].answer`, summary.ticket, summary.sourceCompounds),
   }));
-  return { events, recommendations, openQuestions, clarifications };
+  return { events, guardrails, recommendations, openQuestions, clarifications };
 }
 
 export function renderBlock(summary, analysis = null) {
@@ -200,8 +223,9 @@ export function renderBlock(summary, analysis = null) {
       `- Elapsed: ${summary.adaptive.elapsed}\n` : '') +
     `- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
     `- Fix rounds: ${summary.fixRounds}\n- Replans: ${summary.replans}\n` +
-    `- Review cycles: ${summary.reviewCycles}\n`;
-  if (summary.minimal) {
+    `- Review cycles: ${summary.reviewCycles}\n` +
+    (summary.guardrails?.length ? `- Guardrail interventions: ${summary.guardrails.length}\n` : '');
+  if (summary.minimal && !summary.guardrails?.length) {
     if (analysis !== null) fail('Minimal runs must not include retrospective analysis.');
     return `${prefix}- Workflow feedback: No fix or replan round was needed.\n<!-- /run:${summary.runId} -->`;
   }
@@ -215,7 +239,10 @@ export function renderBlock(summary, analysis = null) {
   const clarificationBlock = validated.clarifications.length
     ? `\n\n### User clarifications\n\n${validated.clarifications.map((entry) =>
       `- Question: ${entry.question}\n  Answer: ${entry.answer}`).join('\n')}` : '';
-  return `${prefix}\n### Extra-round analysis\n\n${eventBlocks.join('\n\n')}\n\n` +
+  const guardrailBlock = validated.guardrails.length ? `### Guardrail interventions\n\n${validated.guardrails.map((item, index) =>
+    `#### Intervention ${index + 1}\n\n- Stop: ${item.trigger}\n- Resolution: ${item.resolution}\n- Decision source: ${item.source}${item.via ? ` via ${item.via}` : ''}\n- Suggested lesson: ${item.lesson}\n- Confidence: ${item.confidence}`
+  ).join('\n\n')}\n\n` : '';
+  return `${prefix}\n` + (eventBlocks.length ? `### Extra-round analysis\n\n${eventBlocks.join('\n\n')}\n\n` : '') + guardrailBlock +
     `### Consolidated recommendations\n\n${validated.recommendations.map((item) => `- ${item}`).join('\n')}` +
     `${clarificationBlock}\n\n### Open questions\n\n` +
     `${validated.openQuestions.length ? validated.openQuestions.map((item) => `- ${item}`).join('\n') : '- None'}\n` +
