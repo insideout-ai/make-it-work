@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.1] — 2026-11-07
+
+### Added
+
+- Confirmed tracker backup comments before replacing nonempty ticket descriptions, with per-version deduplication, full original snapshots and existing publication consent/reconciliation safeguards.
+
 ## [5.4.0] — 2026-11-06
 
 ### Added
