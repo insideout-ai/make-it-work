@@ -663,7 +663,7 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
     declined: 'Delivery was not requested. Changes remain local and uncommitted.',
     unknown: 'Delivery status is unavailable; inspect the delivery records below.',
   }[delivery?.status] ?? 'Changes remain local and uncommitted.';
-  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}</p>`;
+  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}<br><small>Delivery status reflects actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected here.</small></p>`;
 }
 
 function renderDeliveryDetails(delivery, ticket) {
