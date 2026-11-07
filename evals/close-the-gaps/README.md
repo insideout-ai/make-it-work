@@ -1,5 +1,64 @@
 # `close-the-gaps` autopilot smoke test
 
+## Decision sources and Product communication
+
+Three prepared headless regression cases cover the narrow decision-context
+instruction update. They use saved local refinement sessions and synthetic
+receipts; no live Slack or tracker connection is needed or authorized.
+
+| Case | Expected outcome |
+| --- | --- |
+| `close-the-gaps-mixed-sources` | Preserve a user/chat answer, a previously confirmed PM/Slack answer and its recorded reference, a new Autopilot answer, and a checked answer whose author is unknown. Attribute each accurately in the existing Decision Log without inventing roles or a live Slack lookup. |
+| `close-the-gaps-pm-followup` | Complete locally resolved user answers while prominently distinguishing them from PM confirmation in the spec and final response. Preserve sent metadata and the last-known/unverified reply state, without an automatic FYI or an unrequired approval gate. |
+| `close-the-gaps-stale-recommendation` | A user accepts earlier recommendations, but the current export contract makes automatic pagination infeasible. Revisit that question with the changed evidence; retain the unchanged CSV-only choice as user-approved without asking for it again. |
+
+The first two cases use `--autopilot`; the stale-recommendation case is
+interactive and supplies the user's explicit blanket answer in its prompt.
+Graders require authored decisions/artifacts rather than only printed seed
+facts. They accept unknown attribution and unavailable current PM status when
+those are the actual evidence limits. A saved PM reply is historical provenance,
+not proof of a new live service lookup. These cases do not test tracker
+publication, live messaging or the complete implement controller.
+
+Run the credential-free fixture checks with:
+
+```sh
+node --test evals/decision-context-fixtures.test.mjs
+```
+
+Fixture tests check real question-parser states and distinguish a last-known
+sent/no-reply thread from locally answered questions. They also execute the
+current export helper: pagination arguments return the same first 100 of 150
+orders, proving the old recommendation's premise is false in the fixture.
+Protected-file hashes and Git state are retained for future post-run inspection;
+questions-file annotations/status and newly generated refinement artifacts may
+change. Repeat seeding refuses an existing Git repository.
+
+Local fixture checks alone do not establish that the updated skill follows the
+rules. Paid runs require separate budget approval.
+After approval, select the cases with `node evals/run-suite.mjs full
+--case=<case-name> --max-cost-usd=<approved-cap>` from a frozen snapshot, retain
+original grading results, and inspect source/contract hashes and Git history.
+
+Live validation on 2026-11-07: all three cases passed against a frozen snapshot
+of base `872b1ec` with the proposed instruction/eval changes overlaid. The mixed
+case preserved all four source categories; the PM case included the communication
+note in the spec and final response without inventing approval or sending a
+message; the stale case stopped for Q1 while retaining CSV-only as user-approved.
+No instruction or grader correction was needed during this run. Source/contract/
+prior-session hashes, Git HEADs/branches and tracked working trees stayed
+unchanged in all fixtures, and the plugin snapshot was unchanged.
+
+All **65 local checks passed** (58 eval-harness tests plus seven question-helper
+tests). Model usage was **$0.84** (exact cost in the local report), bringing
+tracked cumulative usage to approximately **$12.74 of the newly approved $14**.
+Summary: `evals/results/decision-context-verification-2026-11-07/summary.json`.
+Coverage is standalone refinement from seeded sessions, not live Slack/tracker
+integration, publication-summary behavior or full implement orchestration. The
+stale case stops for input; it does not test resume after that product answer.
+
+## Existing smoke coverage
+
 Seven cases exercising `skills/close-the-gaps/SKILL.md`'s `--autopilot` flag and Slack delivery modes:
 
 - **`close-the-gaps-live-autopilot`** — a pasted ticket, `--autopilot`, no prior state. Exercises the normal Phase 1 → 6 flow end to end: skills loading (none available in this tiny fixture), code exploration, gap analysis, every gap auto-resolved via `(Recommended)` without ever calling `AskUserQuestion`, and the final refined ticket with a Gherkin acceptance-criteria block and a Decision Log where every autopilot-resolved row carries the `_(autopilot)_` marker. Its fixture (`src/orders/model.js` + `status.js`) deliberately has no "admin" role, only "owner" — the ticket's "the admin should mark the order as refunded" is a real gap the skill must surface and resolve one way or another; the grader checking for this accepts any reasonable gap-type label (`Code conflict`, `Missing actor/trigger`, etc.) across three real runs the model used different-but-equally-defensible labels for the same underlying gap.

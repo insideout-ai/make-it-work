@@ -14,6 +14,7 @@ import { renderWorkspacePanel } from './workspace-view.mjs';
 import { readScope } from './workspace-scope.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
+import { summarizeAcceptance } from './acceptance-summary.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -623,7 +624,7 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   const legacy = state.realRowsFrom > 1
     ? ` This is not the full session duration — everything before row ${state.realRowsFrom} happened before any real timestamp was captured.`
     : '';
-  return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of real captured time.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
+  return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
 }
 
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
@@ -650,7 +651,7 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
   const duration = Number.isFinite(invalidTimestampFrom)
     ? 'Elapsed unavailable — an audit timestamp is later than the state checkpoint.'
     : timing
-    ? `Real-timestamped portion of this run: ${timing.total}.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
+    ? `Elapsed time (includes waits and pauses): ${timing.total}. Active processing time is not measured.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
     : 'Elapsed: unknown — no real start timestamp was captured for this run.';
   const deliveryText = {
     offered: 'Delivery decision pending. Changes remain local and uncommitted.',
@@ -662,7 +663,7 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
     declined: 'Delivery was not requested. Changes remain local and uncommitted.',
     unknown: 'Delivery status is unavailable; inspect the delivery records below.',
   }[delivery?.status] ?? 'Changes remain local and uncommitted.';
-  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}</p>`;
+  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}<br><small>Delivery status reflects actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected here.</small></p>`;
 }
 
 function renderDeliveryDetails(delivery, ticket) {
@@ -727,6 +728,14 @@ function renderPublicationBadge(permission) {
   return `<span class="pill ticket-updates-pill ticket-updates-${status}" title="${escapeHtml(tooltip)}">Ticket updates: ${label}</span>`;
 }
 
+function renderAcceptance(state, verification) {
+  if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return '';
+  const summary = summarizeAcceptance(verification?.acceptance);
+  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Verification: Not recorded</h2></section>';
+  const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
+  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
+}
+
 function renderAutonomyBadge(state) {
   const { autonomy, queued_autonomy: queued } = state.fields;
   const pending = queued && queued !== 'none';
@@ -763,6 +772,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
+    ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
@@ -837,10 +847,16 @@ export async function generateDashboard(statePath) {
   const publication = await readPublicationPermission(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields);
   const scope = state.fields.workspace_version === '1' ? await readScope(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
   let verification = null;
-  if (scope) {
-    const { readVerification } = await import('./verification.mjs');
+  const finalVerification = state.fields.verification_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase) && !(isAdaptive(state) && state.fields.mode === 'lightweight');
+  if (scope || finalVerification) {
+    const { readVerification, validateVerification } = await import('./verification.mjs');
     try {
-      verification = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
+      const ledger = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
+      if (finalVerification) {
+        const plan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
+        validateVerification(ledger, { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version), plan, requireComplete: true });
+      }
+      verification = ledger;
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
   const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification });

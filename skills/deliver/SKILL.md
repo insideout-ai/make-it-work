@@ -25,3 +25,9 @@ The delivery helper stages only package paths, checks the resulting tree, runs c
 The helper also checkpoints the existing status HTML from its delivery journal after preparation, approval/start, every commit/push/PR, and terminal success or failure. Implementation stays `Complete`; delivery has its own status, timestamps, activity and per-repo results. A failed delivery may already have committed or pushed some repos: report the actual journal rather than claiming changes remain uncommitted. Dashboard failure saves delivery progress and stops further actions; repair rendering before an explicitly requested retry. Do not hand-edit HTML or create a dashboard for a legacy run that has none.
 
 Already completed deliveries with older version-1 journals are supported: regenerating the dashboard with `dashboard-checkpoint.mjs render --state <state-path>` reads their delivery plan and per-repo results without repeating delivery. An already-open page generated before this integration needs one browser reload after regeneration. New dashboards keep refreshing through the delivery choice, approval and running states, and stop refreshing when delivery is declined, fails, or completes.
+
+The HTML shows delivery actions recorded by make-it-work. Commits, pushes or PRs
+completed outside the plugin are not automatically reflected, so its saved
+delivery status can remain failed/partial after external delivery succeeds.
+Explain this when external completion is known; do not rerun delivery merely to
+refresh the HTML, invent journal receipts, or hand-edit the dashboard.

@@ -202,13 +202,14 @@ For each multiple-choice question in a batch, include it in the `questions` arra
     `{ label: "Skip — decide later (TBD)", description: "Leave this open; it will be listed as an unresolved item in the refined ticket." }`
   - The `AskUserQuestion` tool caps options at 4 per question, so use at most 3 substantive choices + the Skip option. If a gap genuinely has more than 3 meaningful answers, either narrow to the 3 most likely/valuable and let Skip implicitly cover the rest, or split it into two sequential questions (e.g., resolve the category first, then the specific value) rather than forcing a cramped single question.
 - Wait for the whole batch's answers before building the next wave. (autopilot: see Autopilot Mode)
-- Record each answer (or skip) before proceeding.
+- Record each answer (or skip) and its actual source before proceeding: user via chat/question, PM via Slack with the available reply reference, recorded file answer (author unknown unless identified), or Autopilot. Preserve this attribution when answers are resumed or carried into the spec; a user choosing "go with recommended" is a user decision, not an Autopilot answer or evidence of PM approval.
 
 Rules:
 - Batch every mutually-independent question of a wave into a single `AskUserQuestion` call (≤4 per call) — do not artificially split independent questions across separate calls one at a time; that throws away the navigation/revision UI for no reason.
 - Frame questions as **closed (multiple choice)** whenever possible.
 - When the answer cannot be pre-enumerated, ask in plain text instead of calling `AskUserQuestion` with fewer than two options.
 - **Always recommend one option per question.** Place the recommended option first in the list and append `(Recommended)` to its label. Base the recommendation on product best practices, what the codebase already supports, and what is least likely to introduce scope creep. Exception: for a `Cross-cutting concern` question, "do nothing to the existing flow" is often the smallest-scope option but not the safest one — recommend whichever option keeps the system's existing compliance/lifecycle guarantee intact (e.g., new state actually gets cleared where an existing erasure/cleanup flow promises completeness), even if it takes slightly more scope than doing nothing.
+- **Keep recommendations current.** Before applying a blanket answer such as "go with recommended," check it against the latest findings, including returned research. Apply it to the recommendations actually shown; do not extend it to unseen questions. If new evidence invalidates an option, changes its product outcome or materially changes its risk, show the affected recommendation and changed evidence/risk, then resolve only that affected question under the existing autonomy/conflict rules. Never treat the blanket answer as acceptance of a newly substituted option. Unchanged choices need no repeated confirmation or recap.
 - Never place the Skip option first — it should always be last.
 - If a wave's answers create a new gap, unblock a dependent question, or surface a follow-up, fold it into the next wave rather than re-opening or re-batching a wave already asked.
 - Never ask about implementation details, technical choices, or architecture.
@@ -382,6 +383,13 @@ First read [the question-helper contract](../../docs/deterministic-artifacts.md#
 - **Slack unavailable now** (no integration, or the DM can't be read): say so and continue with whatever the file itself holds, so blanks are asked live below.
 - Otherwise, map each reply to its question by its leading `Q<n>`. A reply that clearly selects exactly one recorded option (by letter or by unambiguous wording) or that answers an open-ended question becomes that question's answer — record it as if that box had been checked, or as its `**Your answer:**` text, citing `PM via Slack`. A reply that does not clearly match one option counts as blank: when step 3 below asks it live, show the PM's reply verbatim next to the recorded options. A later reply to the same question supersedes an earlier one. An answer recorded by hand in the file takes precedence over a Slack reply only when the two agree; when they disagree, treat it like conflicting checkboxes (step 1 below).
 
+When questions directed to Product are instead resolved live or by Autopilot,
+retain each answer's actual source alongside the saved answer. Preserve delivery
+metadata separately from local resolution: marking the questions file Answered
+does not mean the PM replied or the Slack thread was closed. Carry that
+distinction into Phase 6's Product follow-up note. Resume is read-only with
+respect to Slack; do not send a resolution FYI or close the thread automatically.
+
 Resolve questions in two passes, since a conditional question can only be evaluated once its gating answer is known:
 
 **Pass 1 — unconditional questions** (no "Answer only if…" label):
@@ -479,6 +487,9 @@ Include every applicable question actually asked here, including skipped ones �
 ```
 
 ### Output rules
+
+- **Decision sources:** keep the existing three-column Decision Log. After the verbatim answer, add a short source annotation in its Answer cell, such as `_(user via chat)_`, `_(PM via Slack: <available reply reference>)_`, or `_(recorded file answer; author unknown)_`. Retain `_(autopilot)_` for automatic answers. Use only known identity/role evidence; never infer that the user is a developer, a PM or an authorized proxy from the input channel alone. If a prior artifact lacks attribution, label its source unknown rather than inventing one. This records provenance without adding a new approval gate.
+- **Product follow-up visibility:** if questions were previously directed to Product and resolved elsewhere, add a concise note directly below the spec title and in the final response: identify which questions were resolved by the user/Autopilot, the last verified PM reply/delivery status (or say it could not be checked), and whether a follow-up was sent. Say `pending PM confirmation` only when a known project rule or explicit instruction actually requires it; otherwise report the outstanding communication without implying the user's decision is invalid. Do not label a local answer or artifact approval as PM approval. Preserve the existing acceptance/readiness rules and any expressly required unresolved approval; do not assume every product decision needs a separate PM gate. No FYI or other message is authorized by this note.
 
 - When Slack research informed refinement, preserve its short `## Related Channel Context` evidence summary and source links per the context-search contract. It is reference evidence, not a substitute for the ticket's Decision Log or unresolved questions.
 

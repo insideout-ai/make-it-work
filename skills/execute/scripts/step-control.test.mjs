@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -10,6 +10,7 @@ import { validateVerification } from '../../implement/scripts/verification.mjs';
 import { initializeWorkflow } from '../../implement/scripts/workflow.mjs';
 import { generateDashboard, parseState } from '../../implement/scripts/render-status.mjs';
 import { checkpointDashboard } from '../../implement/scripts/dashboard-checkpoint.mjs';
+import { inspectState } from '../../implement/scripts/write-feedback.mjs';
 
 const plan = (parallel = false) => `# Plan\n\n## Execution Status\n\n**Mode:** Inline — execute here.\n\n**Progress:** Step 0 of 2 complete.\n\n## Steps\n\n### Step 1 — First\n\n- **Files:** \`src/a.js\`\n- **Depends on:** none\n- **Can run in parallel with:** ${parallel ? '2' : 'none'}\n\n**Verify:** Check A.\n\n### Step 2 — Second\n\n- **Files:** \`src/b.js\`\n- **Depends on:** ${parallel ? 'none' : '1'}\n- **Can run in parallel with:** ${parallel ? '1' : 'none'}\n\n**Verify:** Check B.\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | A works |\n| AC2 | B works |\n`;
 const evidence = (number) => ({ number, checks: [{ type: 'automated', subject: number === 1 ? 'A works' : 'B works', command: 'node --test', result: 'pass', note: 'Actual check passed.' }] });
@@ -218,6 +219,75 @@ test('explicit user guidance can resolve a stopped invocation while preserving i
   const resolved = await run({ action: 'resolve-stop', source: 'user', via: 'chat', reason: 'Confirmed expected behavior; retry this step.' });
   assert.equal(resolved.stopped, null); assert.equal(resolved.history.length, 1);
   assert.equal((await run({ action: 'begin-attempt', id: 'new-fix', step: 1, diagnosis: diagnosis() })).attempts[1], 1);
+});
+
+test('guardrail resolution retains details, steps, timestamps and actual user channel without changing extra-round counts', async (t) => {
+  const { statePath, run } = await dashboardFixture(t);
+  await run({ action: 'start', id: 'guarded-step', steps: [1] });
+  const stopped = await run({ action: 'stop', reason: 'guardrail', detail: 'The expected result needs clarification.' });
+  const repeated = await run({ action: 'stop', reason: 'guardrail', detail: 'The expected result needs clarification.' });
+  assert.equal(stopped.stop_id, repeated.stop_id);
+  assert.equal(stopped.stopped_at, repeated.stopped_at);
+  await assert.rejects(run({ action: 'resolve-stop', source: 'policy', via: 'chat', reason: 'Assumed outcome.' }), /explicit user/);
+  const resolved = await run({ action: 'resolve-stop', source: 'user', via: 'question', reason: 'Confirmed the expected outcome.' });
+  const record = resolved.history.at(-1);
+  assert.equal(record.stop_id, stopped.stop_id);
+  assert.equal(record.stop_detail, 'The expected result needs clarification.');
+  assert.deepEqual(record.affected_steps, [1]);
+  assert.equal(record.stopped_at, stopped.stopped_at);
+  assert.ok(Date.parse(record.resolved_at) >= Date.parse(record.stopped_at));
+  assert.equal(record.source, 'user'); assert.equal(record.via, 'question');
+  await run({ action: 'inspect' });
+  const state = parseState(await readFile(statePath, 'utf8'));
+  const stops = state.audit.filter(row => row.note?.id === `guardrail-stop:${record.stop_id}`);
+  const resolutions = state.audit.filter(row => row.note?.id === `guardrail-resolve:${record.stop_id}`);
+  assert.equal(stops.length, 1); assert.equal(resolutions.length, 1);
+  assert.match(resolutions[0].outcome, /via question/);
+  let completed = (await readFile(statePath, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: execute', 'phase: complete');
+  completed = completed.trimEnd() + `\n| ${state.audit.length + 1} | ${new Date().toISOString()} | execute | complete | Completed |\n`;
+  const feedback = inspectState(completed);
+  assert.equal(feedback.guardrails.length, 1);
+  assert.equal(feedback.guardrails[0].source, 'user');
+  assert.equal(feedback.guardrails[0].via, 'question');
+  assert.equal(feedback.minimal, true);
+  assert.equal(feedback.analysisRequired, true);
+  assert.equal(feedback.fixRounds, 0); assert.equal(feedback.replans, 0);
+});
+
+test('inspect repairs a journaled guardrail checkpoint after dashboard failure without duplicate stop entries', async (t) => {
+  const { statePath, run } = await dashboardFixture(t);
+  const html = statePath.replace(/-state\.md$/, '-status.html');
+  await rename(html, `${html}.saved`);
+  await mkdir(html);
+  await assert.rejects(run({ action: 'stop', reason: 'guardrail', detail: 'Clarification required.' }), /regular file/);
+  await rm(html, { recursive: true }); await rename(`${html}.saved`, html);
+  assert.equal((await run({ action: 'inspect' })).stopped, 'guardrail');
+  await run({ action: 'inspect' });
+  const state = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(state.audit.filter(row => row.note?.id.startsWith('guardrail-stop:')).length, 1);
+});
+
+test('legacy stops retain unavailable metadata explicitly when resolved', () => {
+  const journal = { version: 1, attempts: {}, stopped: 'guardrail', history: [{ stopped: 'guardrail', reason: 'Earlier guidance' }] };
+  const result = mutateExecution(journal, { action: 'resolve-stop', source: 'user', via: 'chat', reason: 'Current guidance' }, [], 0);
+  assert.deepEqual(result.history[0], journal.history[0]);
+  assert.equal(result.history[1].stopped_at, null);
+  assert.equal(result.history[1].stop_detail, null);
+  assert.equal(result.history[1].source, 'user');
+});
+
+test('a supplied workflow state records guardrails without creating a missing legacy dashboard', async (t) => {
+  const { statePath, run } = await dashboardFixture(t);
+  const html = statePath.replace(/-state\.md$/, '-status.html');
+  await rm(html);
+  await run({ action: 'stop', reason: 'guardrail', detail: 'Clarification required.' });
+  await run({ action: 'resolve-stop', source: 'user', via: 'chat', reason: 'Confirmed expected behavior.' });
+  const inspection = await run({ action: 'inspect' });
+  assert.equal(inspection.history.length, 1);
+  assert.equal(inspection.history[0].stop_detail, 'Clarification required.');
+  assert.equal(inspection.history[0].via, 'chat');
+  assert.equal(parseState(await readFile(statePath, 'utf8')).audit.filter(row => row.note?.id.startsWith('guardrail-')).length, 2);
+  await assert.rejects(readFile(html), /ENOENT/);
 });
 test('verification writes cannot target an unrelated source file', async (t) => {
   const { file, options } = await fixture(t);

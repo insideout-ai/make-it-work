@@ -1,5 +1,25 @@
 # Verification evidence for new Implement runs
 
+## Completion presentation
+
+Workflow completion and acceptance verification are separate. The final package
+and dashboard summarize the validated ledger by distinct criterion: all mapped
+scenarios for a criterion need passing automated or manual evidence before it
+counts as verified. A mix is **Partially verified**, with the number of pending
+criteria and their scenarios/reasons visible; no verified criteria is **Pending
+verification**. All recorded criteria verified is **Verified**. Missing/empty
+evidence cannot establish verification. This summarizes plan-traceability
+evidence, not deployment readiness or all possible behavior.
+
+`final-package.mjs check` returns this derived `verification_summary` for the
+terminal chat/publication summary. It does not modify ledger statuses or the
+workflow state, weaken manual-policy checks, or waive acceptance/package
+approval. Ledger `unverified` values remain unchanged; views call them pending
+verification. Lightweight/older runs without an AC ledger retain their existing
+validation reporting. Existing saved packages may require a normal rebuild when
+their rendered Markdown no longer matches the current formatter; do not bypass
+the package check or invent new verification evidence.
+
 This applies when the run state has `verification_version: 1`, and when a plan explicitly selects manual repos in `## Verification Policy` (including standalone execution). Older runs without that policy keep their current reports. Lightweight runs (`mode: lightweight`) have no plan and no ledger; an escalated run produces one from its TDD plan as usual.
 
 `execute` maintains `make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json`. Start a new file for each replan version; resume and fix steps in the same plan version update the same file. It is local run data. Use this shape:

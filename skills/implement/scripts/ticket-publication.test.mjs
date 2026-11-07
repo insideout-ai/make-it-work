@@ -17,8 +17,15 @@ function prepared(journal = initial(), input = request()) {
   return updatePublication(journal, 'prepare', input);
 }
 function begun(journal = initial(), input = request()) {
+  if (input.kind === 'description') journal = backedUp(journal, input.current_description);
   const ready = prepared(journal, input);
   return updatePublication(ready.journal, 'begin', { operation_id: ready.result.operation.id, capabilities, current_description: input.current_description });
+}
+function backedUp(journal = initial(), current_description = 'Original requirements') {
+  const ready = updatePublication(journal, 'prepare-backup', { current_description, capabilities });
+  if (ready.result.action === 'skip') return ready.journal;
+  const started = updatePublication(ready.journal, 'begin', { operation_id: ready.result.operation.id, current_description, capabilities });
+  return updatePublication(started.journal, 'record', { operation_id: ready.result.operation.id, status: 'succeeded', evidence: 'Connector confirmed the full backup comment', receipt: { id: `backup-${ready.result.operation.id}` } }).journal;
 }
 function succeeded(journal = initial(), input = request()) {
   const started = begun(journal, input);
@@ -171,7 +178,7 @@ test('successful comments and attachments are not republished after resume; chan
     const repeated = prepared(done, { ...input, current_description: kind === 'description' ? input.content : input.current_description });
     assert.equal(repeated.result.action, 'skip');
     assert.equal(repeated.result.operation.receipt.id, 'remote-123');
-    assert.equal(repeated.journal.operations.length, 1);
+    assert.equal(repeated.journal.operations.length, kind === 'description' ? 2 : 1);
   }
   const done = succeeded(initial(), request('attachment')).journal;
   const revision = prepared(done, request('attachment', { content: 'Updated plan', filename: 'DEMO-plan-v1-r2.md' }));
@@ -191,6 +198,90 @@ test('description deduplication follows the latest remote version and baseline c
   const draft = prepared(initial(), versionA);
   const rebased = updatePublication(draft.journal, 'baseline', { current_description: 'Reviewed teammate addition', decision }).journal;
   assert.throws(() => updatePublication(rebased, 'begin', { operation_id: draft.result.operation.id, capabilities, current_description: 'Reviewed teammate addition' }), /Only a prepared/);
+});
+
+test('description dispatch requires a confirmed exact backup; ordinary comments cannot substitute', () => {
+  const ready = prepared(initial(), request('description'));
+  const begin = (journal) => updatePublication(journal, 'begin', { operation_id: ready.result.operation.id, capabilities, current_description: 'Original requirements' });
+  assert.throws(() => begin(ready.journal), /Confirm the original-description backup/);
+  const genericComment = succeeded(ready.journal, request('comment', { key: 'ordinary-comment', content: 'Original requirements' })).journal;
+  assert.throws(() => begin(genericComment), /Confirm the original-description backup/);
+  const confirmed = backedUp(genericComment);
+  assert.equal(begin(confirmed).result.operation.status, 'in-flight');
+  assert.equal(confirmed.original_description, 'Original requirements');
+});
+
+test('backup resume deduplicates by exact pre-update version; each changed version needs its own backup', () => {
+  const first = backedUp();
+  const repeated = updatePublication(JSON.parse(JSON.stringify(first)), 'prepare-backup', { current_description: 'Original requirements', capabilities });
+  assert.equal(repeated.result.action, 'skip');
+  assert.equal(repeated.journal.operations.length, 1);
+  assert.match(repeated.result.operation.content, /^## Original description before refinement/);
+  assert.ok(repeated.result.operation.content.endsWith('Original requirements'));
+  const written = succeeded(first, request('description')).journal;
+  // Retry of an already confirmed description is skipped without creating a backup of itself.
+  assert.equal(prepared(written, request('description', { current_description: 'Finalized requirements' })).result.action, 'skip');
+  const revised = prepared(written, request('description', { content: 'Second refinement', current_description: 'Finalized requirements' }));
+  assert.throws(() => updatePublication(revised.journal, 'begin', { operation_id: revised.result.operation.id, capabilities, current_description: 'Finalized requirements' }), /Confirm the original-description backup/);
+  const backed = backedUp(revised.journal, 'Finalized requirements');
+  assert.equal(backed.operations.filter(op => op.backup_hash).length, 2);
+  assert.equal(updatePublication(backed, 'begin', { operation_id: revised.result.operation.id, capabilities, current_description: 'Finalized requirements' }).result.operation.status, 'in-flight');
+});
+
+test('uncertain and failed backups leave descriptions unchanged and reuse existing reconciliation/retry rules', () => {
+  const description = prepared(initial(), request('description'));
+  const ready = updatePublication(description.journal, 'prepare-backup', { current_description: 'Original requirements', capabilities });
+  const input = { operation_id: ready.result.operation.id, current_description: 'Original requirements', capabilities };
+  assert.throws(() => updatePublication(ready.journal, 'begin', { operation_id: description.result.operation.id, current_description: 'Original requirements', capabilities }), /Confirm the original-description backup/);
+  const started = updatePublication(ready.journal, 'begin', input);
+  const unknown = updatePublication(started.journal, 'record', { operation_id: input.operation_id, status: 'unknown', evidence: 'Comment request timed out' }).journal;
+  assert.throws(() => updatePublication(unknown, 'prepare-backup', { current_description: 'Original requirements', capabilities, retry: true }), /Reconcile unresolved/);
+  assert.throws(() => updatePublication(unknown, 'begin', { operation_id: description.result.operation.id, current_description: 'Original requirements', capabilities }), /Confirm the original-description backup/);
+  const found = updatePublication(unknown, 'reconcile', { operation_id: input.operation_id, status: 'succeeded', receipt: { id: 'found-backup' }, evidence: 'Read exact backup from the recorded ticket' }).journal;
+  assert.equal(updatePublication(found, 'prepare-backup', { current_description: 'Original requirements', capabilities }).result.action, 'skip');
+  assert.equal(updatePublication(found, 'begin', { operation_id: description.result.operation.id, current_description: 'Original requirements', capabilities }).result.operation.status, 'in-flight');
+  const absent = updatePublication(unknown, 'reconcile', { operation_id: input.operation_id, status: 'not-applied', evidence: 'Connector audit confirms no comment applied' }).journal;
+  assert.throws(() => updatePublication(absent, 'prepare-backup', { current_description: 'Original requirements', capabilities }), /explicit retry/);
+  assert.equal(updatePublication(absent, 'prepare-backup', { current_description: 'Original requirements', capabilities, retry: true }).result.action, 'ready');
+});
+
+test('backup checks live drift, connector support and saved consent without expanding permissions', () => {
+  const input = { current_description: 'Original requirements', capabilities };
+  assert.throws(() => updatePublication(initial('comments'), 'prepare-backup', input), /outside saved consent/);
+  const noComments = updatePublication(initial(), 'consent', { mode: 'updates', allowed: ['description'], decision }).journal;
+  assert.throws(() => updatePublication(noComments, 'prepare-backup', input), /outside saved consent/);
+  assert.throws(() => updatePublication(initial(), 'prepare-backup', { ...input, capabilities: { description: true } }), /lacks comment/);
+  assert.throws(() => updatePublication(initial(), 'prepare-backup', { ...input, current_description: 'Teammate edits' }), /Live description changed/);
+  const ready = updatePublication(initial(), 'prepare-backup', input);
+  const beginInput = { operation_id: ready.result.operation.id, ...input };
+  assert.throws(() => updatePublication(ready.journal, 'begin', { ...beginInput, current_description: 'Teammate edits' }), /Live description changed/);
+  const revoked = updatePublication(ready.journal, 'consent', { mode: 'local', decision }).journal;
+  assert.throws(() => updatePublication(revoked, 'begin', beginInput), /outside saved consent/);
+  assert.throws(() => prepared(initial(), request('comment', { key: ready.result.operation.key, content: ready.result.operation.content })), /Use prepare-backup/);
+  const changed = updatePublication(backedUp(), 'baseline', { current_description: 'Reviewed teammate edits', decision }).journal;
+  const description = prepared(changed, request('description', { current_description: 'Reviewed teammate edits' }));
+  assert.throws(() => updatePublication(description.journal, 'begin', { operation_id: description.result.operation.id, current_description: 'Reviewed teammate edits', capabilities }), /Confirm the original-description backup/);
+});
+
+test('empty descriptions need no backup; rich-text snapshots retain their complete structure', () => {
+  for (const original_description of [null, '']) {
+    const journal = initializePublication(source, { target, original_description, mode: 'updates', decision });
+    assert.equal(updatePublication(journal, 'prepare-backup', { current_description: original_description, capabilities }).result.action, 'skip');
+    const ready = prepared(journal, request('description', { current_description: original_description }));
+    assert.equal(updatePublication(ready.journal, 'begin', { operation_id: ready.result.operation.id, current_description: original_description, capabilities }).result.operation.status, 'in-flight');
+  }
+  const original = { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Original AC', marks: [{ type: 'strong' }] }] }] };
+  const journal = initializePublication(source, { target, original_description: original, mode: 'updates', decision });
+  const confirmed = backedUp(journal, original);
+  const op = confirmed.operations[0];
+  assert.deepEqual(op.backup_description, original);
+  assert.equal(op.backup_hash, descriptionHash(original));
+  assert.deepEqual(JSON.parse(op.content.split('```json\n')[1].split('\n```')[0]), original);
+  const reordered = { content: original.content, version: 1, type: 'doc' };
+  assert.equal(updatePublication(confirmed, 'prepare-backup', { current_description: reordered, capabilities }).result.action, 'skip');
+  const tampered = structuredClone(confirmed);
+  tampered.operations[0].backup_description.content = [];
+  assert.throws(() => validatePublication(tampered), /Invalid original-description backup/);
 });
 
 test('interrupted or ambiguous writes block retries until read-only reconciliation', () => {
@@ -274,6 +365,29 @@ test('disk journal survives CLI resume and stays bound to its original ticket an
   const original = await readFile(f.state, 'utf8');
   await writeFile(f.state, original.replace(/^start_time: .*$/m, 'start_time: 2026-10-23T10:00:00Z'));
   await assert.rejects(f.command('status'), /does not belong to this run/);
+});
+
+test('disk and CLI resume cannot dispatch a description until its backup receipt is persisted', async (t) => {
+  const f = await fixture(t);
+  const description = await f.command('prepare', request('description'));
+  const beginDescription = { operation_id: description.operation.id, capabilities, current_description: 'Original requirements' };
+  await assert.rejects(f.command('begin', beginDescription), /Confirm the original-description backup/);
+  const backupInput = { capabilities, current_description: 'Original requirements' };
+  await writeFile(f.input, JSON.stringify(backupInput));
+  const script = new URL('./ticket-publication.mjs', import.meta.url);
+  const backup = JSON.parse(execFileSync(process.execPath, [script.pathname, 'prepare-backup', '--root', f.root, '--state', f.state, '--input', f.input], { encoding: 'utf8' }));
+  await f.command('begin', { ...backupInput, operation_id: backup.operation.id });
+  await f.command('record', { operation_id: backup.operation.id, status: 'unknown', evidence: 'Lost response after comment request' });
+  await assert.rejects(f.command('begin', beginDescription), /Confirm the original-description backup/);
+  await f.command('reconcile', { operation_id: backup.operation.id, status: 'succeeded', evidence: 'Read the exact posted backup', receipt: { id: 'original-comment-1', url: `${target.url}#comment-1` } });
+  assert.equal((await f.command('prepare-backup', backupInput)).action, 'skip');
+  await f.command('begin', beginDescription);
+  await f.command('record', { operation_id: description.operation.id, status: 'succeeded', evidence: 'Read back the updated description', receipt: { id: target.issue, description: 'Finalized requirements' } });
+  assert.equal((await f.command('prepare', request('description', { current_description: 'Finalized requirements' }))).action, 'skip');
+  const journal = await f.command('status');
+  assert.equal(journal.original_description, 'Original requirements');
+  assert.equal(journal.operations.length, 2);
+  assert.equal(journal.operations.filter(op => op.backup_hash && op.status === 'succeeded').length, 1);
 });
 
 test('consent changes refresh an existing badge while legacy runs remain without a dashboard', async (t) => {

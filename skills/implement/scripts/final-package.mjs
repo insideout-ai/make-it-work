@@ -10,6 +10,7 @@ import { readVerification } from './verification.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
+import { summarizeAcceptance } from './acceptance-summary.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -66,6 +67,8 @@ async function snapshotRepo(repoPath, base, artifactRoot) {
 }
 
 function markdown(pkg) {
+  const acceptance = summarizeAcceptance(pkg.acceptance);
+  const cell = (value) => String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
   const lines = [
     `# Final approval — ${pkg.ticket}`,
     '',
@@ -73,6 +76,10 @@ function markdown(pkg) {
       ? `Review: ${pkg.review.status}. Validation: ${pkg.validation.result}.`
       : `Review: ${pkg.review.status}. Validation: ${pkg.validation.mode} — ${pkg.validation.result}.`,
     '',
+    ...(acceptance ? [`**Verification: ${acceptance.text}**`, '', ...(acceptance.pending ? [
+      '### Pending verification', '', '| Criterion | Scenario | Verification needed / recorded reason |', '| --- | --- | --- |',
+      ...acceptance.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, note }) => `| ${cell(criterion)} | ${cell(scenario)} | ${cell(note)} |`)), '',
+    ] : [])] : []),
     ...(pkg.adaptive ? [`Mode: ${MODE_LABEL[pkg.adaptive.mode]} (${pkg.adaptive.mode_source}) · Risk: ${pkg.adaptive.risk} · Escalations: ${pkg.adaptive.escalations} / 1`, ''] : []),
     '## Changes',
     '',
@@ -90,8 +97,7 @@ function markdown(pkg) {
   if (pkg.acceptance) {
     lines.push('## Acceptance verification', '', '| Criterion | Scenario | Status | Evidence |', '| --- | --- | --- | --- |');
     for (const item of pkg.acceptance) {
-      const cell = (value) => String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
-      lines.push(`| ${cell(item.criterion)} | ${cell(item.scenario)} | ${item.status} | ${cell(item.note)} |`);
+      lines.push(`| ${cell(item.criterion)} | ${cell(item.scenario)} | ${item.status === 'unverified' ? 'Pending verification' : item.status} | ${cell(item.note)} |`);
     }
     lines.push('');
   }
@@ -256,7 +262,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
     if (error.code !== 'ENOENT') throw error;
   }
   if (requireApproval && !approved) fail('Final package has no current approval.');
-  return { current: true, approved, sha256: hash, package: target.md };
+  return { current: true, approved, sha256: hash, package: target.md, verification_summary: summarizeAcceptance(saved.acceptance) };
 }
 
 export async function approve(root, statePath, expectedHash) {

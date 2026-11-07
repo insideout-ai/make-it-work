@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { lstat, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { args, atomicWrite, cli, digest, fail, integer, jsonInput, requireText, withLock } from '../../../scripts/lib/artifacts.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { inspectPlan, updatePlan, executionDashboardState, checkpointExecutionActivity, completedActivity } from './plan-status.mjs';
@@ -24,8 +25,12 @@ export function mutateExecution(journal, event, steps, completed) {
     if (!value.stopped) fail('There is no stopped execution to resolve.');
     if (event.source !== 'user' || !['chat', 'question'].includes(event.via)) fail('Resolving a correctness stop requires explicit user guidance.');
     requireText(event.reason, 'Resolution guidance');
-    (value.history ??= []).push({ stopped: value.stopped, attempts: value.attempts, attempt_events: value.attempt_events, diagnoses: value.diagnoses, reason: event.reason });
+    (value.history ??= []).push({ stopped: value.stopped, attempts: value.attempts, attempt_events: value.attempt_events, diagnoses: value.diagnoses,
+      stop_id: value.stop_id ?? randomUUID(), stop_detail: value.stop_detail ?? null,
+      affected_steps: value.last_active_steps ?? [], stopped_at: value.stopped_at ?? null,
+      resolved_at: new Date().toISOString(), source: event.source, via: event.via, reason: event.reason });
     value.stopped = null; value.stop_detail = null; value.attempts = {}; value.attempt_events = {};
+    delete value.stop_id; delete value.stopped_at;
     value.diagnoses = {};
     value.active_steps = []; value.active_dispatch = null;
     return value;
@@ -74,10 +79,34 @@ export function mutateExecution(journal, event, steps, completed) {
     }
     if (event.reason === 'retry-limit' && !Object.values(value.attempts).some((n) => n === 5)) fail('Retry limit has not been reached.');
     value.stopped = event.reason;
+    value.stop_id = randomUUID(); value.stopped_at = new Date().toISOString();
     value.stop_detail = event.detail ?? null;
     value.last_active_steps = value.active_steps ?? []; value.active_steps = []; value.active_dispatch = null;
   } else fail('Unsupported execution event.');
   return value;
+}
+
+// Journal first, then idempotent audit checkpoints. Inspect/start repairs an
+// interrupted audit write before another dispatch; no legacy dashboard is created.
+async function checkpointGuardrails(planPath, supplied, journal) {
+  const records = [...(journal.history ?? []).filter((item) => item.stopped === 'guardrail' && item.stop_id)];
+  if (journal.stopped === 'guardrail' && journal.stop_id) records.push({ ...journal, affected_steps: journal.last_active_steps });
+  if (!records.length) return;
+  const dashboard = await executionDashboardState(planPath, supplied, true);
+  const statePath = supplied || dashboard?.path;
+  if (!statePath) return;
+  for (const item of records) {
+    await checkpointResult(statePath, {
+      id: `guardrail-stop:${item.stop_id}`,
+      text: `Guardrail stop. Steps: ${item.affected_steps?.join(', ') || 'unavailable'}. Stopped at: ${item.stopped_at ?? 'unavailable'}. ${item.stop_detail ?? 'Original detail unavailable.'}`,
+      reference: `${planPath}.execution.json#${item.stop_id}`,
+    });
+    if (item.resolved_at) await checkpointResult(statePath, {
+      id: `guardrail-resolve:${item.stop_id}`,
+      text: `Guardrail resolved with user guidance via ${item.via}. Resolved at: ${item.resolved_at}. ${item.reason.replace(/\s+/g, ' ').trim()}`,
+      reference: `${planPath}.execution.json#${item.stop_id}`,
+    });
+  }
 }
 async function readJournal(file, hash, steps, completed, allowEditedStop = false) {
   const stepHashes = steps.map((step) => digest(JSON.stringify(step)));
@@ -109,6 +138,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     const resolving = event.action === 'resolve-stop';
     if (resolving && (event.source !== 'user' || !['chat', 'question'].includes(event.via) || !event.reason)) fail('Resolving a correctness stop requires explicit user guidance.');
     let journal = await readJournal(journalPath, hash, steps, status.completed, resolving);
+    await checkpointGuardrails(planPath, dashboardState, journal);
     if (journal.amendment_pending) {
       if (!ledgerPath || !ticket) fail('Fix amendment requires the existing verification ledger.');
       let ledger;
@@ -132,11 +162,14 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
         validateVerification(evidence, { ticket, planVersion, plan });
         for (let n = 1; n <= status.completed; n += 1) if (!evidence.steps.some((step) => step.number === n)) fail(`Completed step ${n} has no evidence.`);
       }
-      if (event.action === 'inspect') return { ...status, attempts: journal.attempts, diagnoses: journal.diagnoses ?? {}, stopped: journal.stopped, active_steps: journal.active_steps ?? [], active_dispatch: journal.active_dispatch ?? null, started_at: journal.active_steps?.length ? journal.started_at : null, next: journal.stopped ? [] : nextBatch(steps, status.completed, event.parallel === true) };
+      if (event.action === 'inspect') return { ...status, attempts: journal.attempts, diagnoses: journal.diagnoses ?? {}, stopped: journal.stopped,
+        stop_detail: journal.stop_detail ?? null, stopped_at: journal.stopped_at ?? null, history: journal.history ?? [],
+        active_steps: journal.active_steps ?? [], active_dispatch: journal.active_dispatch ?? null, started_at: journal.active_steps?.length ? journal.started_at : null, next: journal.stopped ? [] : nextBatch(steps, status.completed, event.parallel === true) };
     }
     if (event.action !== 'complete') {
       journal = mutateExecution(journal, event, steps, status.completed);
       await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
+      await checkpointGuardrails(planPath, dashboardState, journal);
       if (event.action === 'start') {
         const ids = journal.active_steps;
         const subject = ids.length === 1 ? `step ${ids[0]}` : `steps ${ids.join(', ')}`;
