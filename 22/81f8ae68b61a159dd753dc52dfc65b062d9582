@@ -1,0 +1,45 @@
+skills/execute/references/step-control.md
+  s_18e0c68e142857::t_c414eb089a1120 13,16-28
+skills/execute/scripts/step-control.test.mjs
+  s_18e0c68e142857::t_714a75284e9cae 3,13,223-276
+  s_18e0c68e142857::t_275447f1ff5a35 277-291
+README.md
+  s_18e0c68e142857::t_d83ea182d6ec14 307
+skills/execute/scripts/step-control.mjs
+  s_18e0c68e142857::t_275447f1ff5a35 165-167
+  s_18e0c68e142857::t_a33d54098f1169 4,28-31,33,82,88-95,98,100-103,105,107-109
+  s_18e0c68e142857::t_7eb84137b61378 141,172
+  s_18e0c68e142857::t_714a75284e9cae 106
+  s_18e0c68e142857::t_c414eb089a1120 96-97,99,104
+  s_18e0c68e142857::t_18ae431d3c74ed 110
+skills/implement/SKILL.md
+  s_18e0c68e142857::t_d83ea182d6ec14 666
+CHANGELOG.md
+  s_18e0c68e142857::t_85f22b2f5c3903 17
+skills/implement/scripts/write-feedback.test.mjs
+  s_18e0c68e142857::t_2197f7f8f5855c 9,44-61,87-136
+  s_18e0c68e142857::t_2091cf5604bf7e 137
+skills/implement/scripts/write-feedback.mjs
+  s_18e0c68e142857::t_714a75284e9cae 125
+  s_18e0c68e142857::t_7eb84137b61378 119-124,126-127,141-142,195-206,215,226-228,242-245
+skills/implement/references/feedback.md
+  s_18e0c68e142857::t_d83ea182d6ec14 22-23,70,74,80,84,91,105-112,167-174,181
+  s_18e0c68e142857::t_a69b040a0e1e04 18,82,183
+  s_18e0c68e142857::t_109f97f736cd59 182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2281f8ae68b61a159dd753dc52dfc65b062d9582",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
