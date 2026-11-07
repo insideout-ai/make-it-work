@@ -1,0 +1,40 @@
+skills/implement/references/ticket-publication.md
+  s_18e0c68e142857::t_7d8a05eded0aba 17,19,69-113,126
+  s_18e0c68e142857::t_f63564c644d3a4 33,142
+skills/implement/SKILL.md
+  s_18e0c68e142857::t_7d8a05eded0aba 347
+skills/implement/scripts/ticket-publication.mjs
+  s_18e0c68e142857::t_39135eb7d2a4d0 50-52,55-62,104-108,160-169,215-218,229-237,303
+  s_18e0c68e142857::t_b893eb8078f575 54
+  s_18e0c68e142857::t_ee8eaf34502538 53
+skills/implement/scripts/ticket-publication.test.mjs
+  s_18e0c68e142857::t_ee8eaf34502538 207,279-281
+  s_18e0c68e142857::t_6ee55c79eb746d 285,370-392
+  s_18e0c68e142857::t_b893eb8078f575 20,24-29,181,203-206,208-278,282-284
+  s_18e0c68e142857::t_6951e053dc067d 286
+CHANGELOG.md
+  s_18e0c68e142857::t_8064f813a0c1b5 13
+  s_18e0c68e142857::t_7210c1118a73bc 9,14
+  s_18e0c68e142857::t_96469386b41158 10-12
+README.md
+  s_18e0c68e142857::t_7210c1118a73bc 357
+  s_18e0c68e142857::t_2f837f677d5386 281,456
+.claude-plugin/plugin.json
+  s_18e0c68e142857::t_7210c1118a73bc 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "872b1ec42fd32cf9a0a78e5528812af07668cac2",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
