@@ -16,6 +16,9 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "close-the-gaps-mixed-sources",
+    "close-the-gaps-pm-followup",
+    "close-the-gaps-stale-recommendation",
     "plan-facts-vendor-contract",
     "plan-facts-prior-notes",
     "plan-facts-boundary-conflict",

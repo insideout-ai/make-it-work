@@ -28,6 +28,13 @@ Tailor the wording/options to available capabilities, explicitly naming anything
 
 Publish only the current, successfully validated artifact/evidence, after the normal workflow acceptance point. A file's existence is insufficient. In Guided, the existing spec/plan approval is also required; the initial write consent supplies permission to publish the accepted artifact without another prompt. In Autonomous/Autopilot, use validated handoffs and existing stage-completion rules without inventing a user approval. Switching away from Guided follows the normal gate-skipping rules, not a fabricated approval.
 
+Preserve the refined spec's decision-source annotations and any Product
+follow-up note when publishing it. If using an authorized summary comment, put
+that note near the top rather than burying it in the Decision Log. Artifact
+acceptance and local resolution do not establish PM approval, confirmed Slack
+delivery or a closed PM thread. Report the known status without adding an
+unrequired PM gate or sending an automatic Slack follow-up.
+
 | Checkpoint | Operation | Stable logical key |
 | --- | --- | --- |
 | Accepted close-the-gaps output | `updates`: confirm the original-description backup below, then replace description with the full refined spec, preserving original structure and agreed content. `comments`: publish the spec via the attachment/comment procedure below, using a version/hash-qualified filename for attachments. | `spec` |
