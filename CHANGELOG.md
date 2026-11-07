@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Distinguish workflow completion from criterion-level acceptance verification in final packages, dashboards and completion summaries, using Partially verified with pending criteria and recorded reasons.
+
 ## [5.4.1] — 2026-11-07
 
 ### Added

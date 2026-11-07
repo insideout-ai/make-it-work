@@ -35,6 +35,14 @@ acceptance and local resolution do not establish PM approval, confirmed Slack
 delivery or a closed PM thread. Report the known status without adding an
 unrequired PM gate or sending an automatic Slack follow-up.
 
+For completion comments with an AC ledger, keep **Workflow: Complete** separate
+from **Verification: <verification_summary.text>** returned by the final-package
+check. Put `Partially verified` and its pending criterion count near the top
+when applicable, listing pending criteria/scenarios and the recorded reason or
+needed check. Passing manual evidence counts as verified. Do not turn a passing
+suite into full acceptance verification or invent a release-readiness claim.
+This changes summary content only, not tracker-write consent or workflow gates.
+
 | Checkpoint | Operation | Stable logical key |
 | --- | --- | --- |
 | Accepted close-the-gaps output | `updates`: confirm the original-description backup below, then replace description with the full refined spec, preserving original structure and agreed content. `comments`: publish the spec via the attachment/comment procedure below, using a version/hash-qualified filename for attachments. | `spec` |

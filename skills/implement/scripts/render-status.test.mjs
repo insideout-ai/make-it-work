@@ -111,6 +111,15 @@ async function renderFixture(t, state, plan = null) {
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
+test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
+  const rows = [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']];
+  const current = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows }));
+  assert.match(current.html, /Verification: Not recorded/);
+  assert.doesNotMatch(current.html, /Verification: Verified/);
+  const legacy = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows }));
+  assert.doesNotMatch(legacy.html, /class="acceptance-summary"/);
+});
+
 test('renders a fresh run with active Context Check and no timing paragraph', async (t) => {
   const state = stateMarkdown({
     fields: { current_activity: 'Checking project context.' },

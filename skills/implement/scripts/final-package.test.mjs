@@ -5,7 +5,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { parseState } from './render-status.mjs';
+import { generateDashboard, parseState } from './render-status.mjs';
+import { transition } from './workflow.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 
 const cli = path.resolve('skills/implement/scripts/final-package.mjs');
@@ -124,8 +125,50 @@ test('binds AC verification evidence into the final package', async (t) => {
   assert.equal(pkg.evidence.verification.path, 'make-it-work/DEMO/DEMO-verification-v1.json');
   assert.equal(pkg.acceptance[0].status, 'automated');
   assert.match(await readFile(built.package, 'utf8'), /AC1 works/);
+  assert.match(await readFile(built.package, 'utf8'), /Verification: Verified — 1 of 1 acceptance criteria verified/);
   await writeFile(ledgerPath, JSON.stringify({ ...ledger, acceptance: [{ ...ledger.acceptance[0], status: 'unverified', step: null, note: 'Not checked' }] }));
   assert.throws(() => run('check', root, state), /stale/);
+});
+
+test('a complete workflow reports partial criterion verification consistently in its package and single-repo dashboard', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-partial-verification-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1'));
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 parity | Happy path |\n| AC1 parity | Failure path |\n| AC2 display | Observe display |\n');
+  const ledger = { version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [
+      { type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' },
+      { type: 'manual', subject: 'Observe display', command: null, result: 'pass', note: 'Observed display' },
+    ] }],
+    gate: { mode: 'full-suite', result: 'pass', note: 'Full suite passed' },
+    acceptance: [
+      { criterion: 'AC1 parity', scenario: 'Happy path', status: 'automated', step: 1, note: 'Passed' },
+      { criterion: 'AC1 parity', scenario: 'Failure path', status: 'unverified', step: null, note: 'Reference <unavailable>' },
+      { criterion: 'AC2 display', scenario: 'Observe display', status: 'manual', step: 1, note: 'Observed display' },
+    ] };
+  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify(ledger));
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const markdown = await readFile(built.package, 'utf8');
+  assert.match(markdown, /Verification: Partially verified — 1 of 2 acceptance criteria pending/);
+  assert.ok(markdown.indexOf('### Pending verification') < markdown.indexOf('## Changes'));
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.equal(pkg.acceptance[1].status, 'unverified');
+  const checked = run('check', root, state);
+  assert.equal(checked.current, true);
+  assert.equal(checked.verification_summary.text, 'Partially verified — 1 of 2 acceptance criteria pending');
+  const parsed = parseState(await readFile(state, 'utf8'));
+  assert.equal(transition(parsed, { event: 'complete' }).fields.status, 'Complete');
+  const completed = (await readFile(state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: final-approval', 'phase: complete');
+  await writeFile(state, completed);
+  const html = await readFile(await generateDashboard(state), 'utf8');
+  assert.match(html, /Implementation complete\./);
+  assert.match(html, /Verification: Partially verified/);
+  assert.match(html, /1 of 2 acceptance criteria pending/);
+  assert.match(html, /Reference &lt;unavailable&gt;/);
+  assert.doesNotMatch(html, /Reference <unavailable>/);
+  assert.equal(parseState(await readFile(state, 'utf8')).fields.status, 'Complete');
 });
 
 test('builds with matching scoped+full gate modes and rejects a mismatch', async (t) => {

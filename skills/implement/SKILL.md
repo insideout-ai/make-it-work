@@ -673,6 +673,18 @@ The feedback file is local working data. Never upload, submit, email, or post it
 
 For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
 
+When the package check returns `verification_summary`, begin the summary with
+**Workflow: Complete** and **Verification: <verification_summary.text>**. List
+each pending criterion and its scenarios' recorded reason/verification needed.
+Use `Partially verified` when some criteria have passing evidence and others
+remain pending; use `Pending verification` when none are verified. A criterion
+counts as verified only when all its mapped scenarios have passing automated or
+manual evidence. Do not count traceability rows as separate criteria, infer AC
+coverage from the suite result, or invent a successful check to clear a pending
+item. This is presentation, not a new workflow state, approval or release gate;
+existing manual-policy completion requirements still apply. A missing summary
+(legacy/Lightweight/no AC ledger) cannot establish full AC verification.
+
 - **Mode** — for an adaptive run: the mode, assessed risk and its source, rationale, and each escalation with its reason. Omit for older runs.
 - **Implemented** — the plan's `## What This Changes`, in a sentence or two; with no plan, the Lightweight report's `## Summary`.
 - **Validation** — in Lightweight mode, "Lightweight — no regression gate; verified by independent review", plus the checks the report lists. Otherwise, from `execute`'s final report: steps completed, automated suites actually run, and manual evidence where selected. For `VERIFIED_MANUALLY`, state "Manual verification completed; automated regression unavailable" with `gate: none`, never an automated PASS. Include readiness/setup changes and retained coverage limitations.
