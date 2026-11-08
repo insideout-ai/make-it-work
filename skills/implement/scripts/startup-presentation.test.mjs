@@ -35,7 +35,7 @@ test('initialization failures and Resume do not impose a startup announcement', 
   assert.equal(pendingStartup([...startup(), assistant(text(initialized.startup_message)), ...startup()]).dashboard, dashboard);
 });
 
-test('tool-time link reminders are advisory while Stop requires actual chat delivery', async (t) => {
+test('init, tool and Stop holds require actual chat delivery', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'startup-presentation-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const transcript = path.join(root, 'transcript.jsonl');
@@ -43,12 +43,12 @@ test('tool-time link reminders are advisory while Stop requires actual chat deli
   await write(startup());
   const before = await readFile(transcript, 'utf8');
   const held = await startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript });
-  assert.equal(held.hookSpecificOutput.permissionDecision, undefined);
-  assert.ok(held.hookSpecificOutput.additionalContext.includes(initialized.startup_message));
+  assert.equal(held.hookSpecificOutput.permissionDecision, 'deny');
+  assert.ok(held.hookSpecificOutput.permissionDecisionReason.includes(initialized.startup_message));
   assert.equal((await startupHook({ hook_event_name: 'Stop', transcript_path: transcript })).decision, 'block');
   const reminder = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_response: { stdout: JSON.stringify(initialized) } });
-  assert.equal(reminder.decision, undefined);
-  assert.ok(reminder.hookSpecificOutput.additionalContext.includes(initialized.startup_message));
+  assert.equal(reminder.decision, 'block');
+  assert.ok(reminder.reason.includes(initialized.startup_message));
   assert.equal(await readFile(transcript, 'utf8'), before);
   await write([...startup(), assistant(text(initialized.startup_message))]);
   assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript }), {});
@@ -63,9 +63,9 @@ test('a chat link flushed shortly after tool dispatch releases the hold automati
   const events = startup();
   await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
   const checking = startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript });
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await new Promise((resolve) => setTimeout(resolve, 1800));
   await writeFile(transcript, [...events, assistant(text(initialized.startup_message))].map(JSON.stringify).join('\n') + '\n');
-  assert.equal((await checking).hookSpecificOutput.permissionDecision, undefined);
+  assert.deepEqual(await checking, {});
   assert.deepEqual(await startupHook({ hook_event_name: 'Stop', transcript_path: transcript }), {});
 });
 

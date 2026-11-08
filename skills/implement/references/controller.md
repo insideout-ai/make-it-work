@@ -29,8 +29,9 @@ Initialization failure produces no success announcement; report the error.
 Use `inspect` later if full fields are needed. Ordinary refresh/resume does not
 emit another startup link. No state field asserts that the user saw the link.
 
-The skill-scoped startup hooks use advisory PostToolUse/PreToolUse reminders
-rather than denying tools while a chat record is buffered. Stop requires the
+The skill-scoped startup hooks block immediately after successful init to require
+the assistant chat action. PreToolUse and Stop allow up to four seconds for a
+buffered chat record before enforcing a missing announcement. Stop requires the
 actual assistant chat link and continuation of every In Progress phase. Diagnostic
 request dumps are not conversation events; a partially appended final JSONL line
 is retried/ignored until it is complete. A new user turn clears the fresh-start

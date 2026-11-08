@@ -52,9 +52,11 @@ hooks:
 3. After sending the chat message, follow `continuation`. A normal
    run continues into Context check in the same turn, without a user reply.
 
-The skill's startup-presentation hooks reinforce this order. Tool-time reminders
-are advisory because assistant chat can appear before its transcript record is
-flushed; do not repeat a link already sent. Stop requires the actual chat link
+The skill's startup-presentation hooks reinforce this order. The immediate
+post-init reminder requires the assistant chat action. PreToolUse waits up to
+four seconds for buffered transcript writes before holding a genuinely missing
+announcement. Partial final JSONL writes and diagnostic request replays do not
+count as missing or new announcements; do not repeat a link already sent. Stop requires the actual chat link
 and checks that a fresh run is no longer In Progress at any stage. Continue the
 saved stage in this turn until completion or a genuine saved pause/stop. Pending
 offline-answer waits retain their existing behavior.

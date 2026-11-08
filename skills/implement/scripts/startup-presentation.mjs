@@ -91,13 +91,13 @@ function advisory(event, reason) {
 export async function startupHook(input) {
   if (input.hook_event_name === 'PostToolUse' && input.tool_name === 'Bash' && !input.tool_response?.interrupted) {
     const initialized = startupResult(input.tool_response?.stdout);
-    if (initialized) return advisory('PostToolUse', reminder(initialized));
+    if (initialized) return { decision: 'block', reason: reminder(initialized) };
   }
   if (!['PreToolUse', 'PostToolUse', 'Stop'].includes(input.hook_event_name) || !input.transcript_path) return {};
   let progress;
-  // Tool-time checks are advisory: chat may precede its buffered JSONL record.
-  // Stop enforces delivery and continuation after allowing the transcript to flush.
-  const attempts = input.hook_event_name === 'Stop' ? 40 : 0;
+  // Chat may precede its buffered JSONL record. Allow a longer bounded flush
+  // before enforcing a missing announcement, without accepting tool-only links.
+  const attempts = input.hook_event_name === 'PostToolUse' ? 0 : 40;
   for (let attempt = 0; attempt <= attempts; attempt += 1) {
     if (attempt) await delay(100);
     const lines = (await readFile(input.transcript_path, 'utf8')).split('\n');
@@ -113,7 +113,9 @@ export async function startupHook(input) {
   if (!progress.initialized) return {};
   if (!progress.announced) return input.hook_event_name === 'Stop'
     ? { decision: 'block', reason: reminder(progress.initialized) }
-    : advisory(input.hook_event_name, reminder(progress.initialized));
+    : input.hook_event_name === 'PreToolUse'
+      ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
+      : advisory(input.hook_event_name, reminder(progress.initialized));
   const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop');
   if (input.hook_event_name === 'Stop') return hold;
   // Keep recovery tools available; mutation is detected after execution, not rolled back.
