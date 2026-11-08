@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Combine final documentation updates, final approval and completion into one Finalizing → Complete dashboard milestone, with activity details and a combined duration while preserving approval gates, audit history and feedback loops.
+- Preserve unresolved epic questions in affected slices, distinguish proposed answers from firm criteria, and retain recorded resolutions through shaping-to-slicing handoffs.
+
+### Fixed
+
+- Validate fresh test-strategy handoffs against the report generator output so unfinished refresh commands are corrected before the turn ends.
+- Reject automatically marked shaping decisions without their shared audit metadata before saving an epic or decision log.
 
 ## [5.4.1] — 2026-11-07
 

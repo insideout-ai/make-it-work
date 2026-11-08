@@ -175,6 +175,16 @@ Read this section before applying standalone save/log/Jira behavior. The parent 
 
 Keep this skill's approach preview, interactive choice or autopilot selection, thin-slice reasoning, complete criteria, graph validation, and visible summary table. Checkpoint each blocking question and actual answer through the parent; reuse saved answers on resume. Keep stable IDs across revisions, retain unaffected slice content, and explicitly report removed slices for retirement rather than recycling their IDs.
 
+Carry the parent's latest epic open questions and unconfirmed proposals into
+slicing, including inline unknowns and recorded decisions. Before saving, check
+that no criterion silently answers one of those questions. Put each relevant
+unknown in the affected slice's `open_items`, with its source or decision
+reference. If suggesting a resolution, label it as a proposal outside firm
+acceptance criteria. Neither Autopilot nor a Needs refinement label makes an
+unsupported criterion accepted. A recorded resolution reflected in the latest
+epic may become firm; preserve that resolution rather than copying an obsolete
+question from a historical artifact. Leave unrelated slice content intact.
+
 Place the semantic `slices.mjs` input directly in the parent’s reusable `.event.json` under the event’s `input`, extended with per-slice `open_items` and `parallel: {suitability: candidate|sequential|unassessed, reason: ...}`, plus justified `parallel_groups` arrays. Hard prerequisites and recommended sequence retain their existing meanings. A dependency wave is not automatically safe concurrent implementation; use `unassessed` when evidence is missing.
 
 Use the parent's `slices` event instead of the standalone write command. It invokes the same graph checker and set writer, saves the overview and every complete slice **inside the run folder**, updates the dashboard and handoff, and returns `chat_summary`. Display that full summary. Use the returned actual paths; do not write a second set to the root `make-it-work/` directory.

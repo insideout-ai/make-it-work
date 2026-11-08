@@ -43,3 +43,24 @@ test('scoped-resume fixture and local graders distinguish pending revision from 
   assert.equal((await grade(f, 'scoped-resume', 'html-view.md')).passed, true);
   const after = await inspectEpicRun(f); assert.deepEqual(after.state.epic, before.state.epic); assert.deepEqual(after.state.slices_input.slices[0], before.state.slices_input.slices[0]);
 });
+
+test('uncertainty fixtures retain an unresolved source or a real user resolution without new state fields', async (t) => {
+  for (const kind of ['unresolved','resolved']) {
+    const f = await fixture(t, 'uncertainty-'+kind);
+    const { state, directory } = await inspectEpicRun(f);
+    const baseline=JSON.parse(await readFile(path.join(f.root,'uncertainty-baseline.json'),'utf8'));
+    assert.equal(state.phase,'slice'); assert.equal(state.status,'In Progress');
+    assert.deepEqual(state.epic_input,baseline.epic_input);assert.deepEqual(state.sources,baseline.sources);
+    if(kind==='unresolved'){
+      assert.ok(state.open_items.some(s=>s.includes('Unauthenticated')));
+      assert.equal(baseline.userDecisions.length,0);
+    }else{
+      assert.deepEqual(state.open_items,[]);assert.ok(baseline.userDecisions.length>=1);
+      assert.match(state.epic_input.categories[1].content,/ask them to log in/);
+      assert.notEqual(state.epic.path,'requirement.md');
+      assert.ok((await readFile(path.join(directory,'requirement.md'),'utf8')).includes('undecided'));
+    }
+    assert.equal((await grade(f,'uncertainty-'+kind,'prepared-state.md')).passed,false);
+    assert.equal((await grade(f,'uncertainty-'+kind,'no-questions.md')).passed,true);
+  }
+});

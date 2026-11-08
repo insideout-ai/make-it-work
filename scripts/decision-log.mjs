@@ -79,11 +79,21 @@ export function normalizeEntry(value, skill) {
     .filter((key) => Object.hasOwn(value, key)).map((key) => [key, value[key]]));
 }
 
+export function assertShapingResolutions(decisions) {
+  for (const decision of decisions) {
+    if (decision.auto_resolution !== undefined || typeof decision.decision !== 'string') continue;
+    if (/^\s*\[autopilot best-guess\](?:\s|$)/i.test(decision.decision) || /_\(autopilot\)_\s*$/i.test(decision.decision)) {
+      fail(`Automatic shaping decision "${decision.topic ?? 'unnamed'}" requires auto_resolution metadata; keep the question/answer/rationale in the shared input before saving the epic or audit log.`);
+    }
+  }
+}
+
 export function normalizeEntries(input, skill, command) {
   // Shaping keeps the automatic resolution beside the epic decision it supplies.
   // Both artifact writers consume this same input instead of separate payloads.
   if (skill === 'shape-the-epic' && command === 'write' && input?.version === 1 && Array.isArray(input.categories)) {
     if (!Array.isArray(input.decisions)) fail('Epic input requires a decisions array.');
+    assertShapingResolutions(input.decisions);
     input = input.decisions.filter((decision) => decision.auto_resolution !== undefined)
       .map((decision) => decision.auto_resolution);
   }

@@ -65,3 +65,10 @@ command is not a runnable alternative. Missing/incorrect artifacts cannot be
 replaced by success claims, while honestly blocked writes retain their existing
 partial-output policy. The strategy defaults to the report link before final
 snapshots, avoiding an unnecessary post-generation strategy edit.
+
+The skill-scoped Stop check validates a fresh report handoff using the actual
+final assistant message. An unfinished template refresh command is corrected
+using the generator output or report link in the same turn. It writes no files,
+adds no user approval, and leaves honest blocked writes and later unrelated
+questions alone. Unit/CLI tests cover resolved links/commands, templates,
+truncated generator output, transcript timing and aliased script paths.

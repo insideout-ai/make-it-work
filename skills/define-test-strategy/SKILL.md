@@ -2,6 +2,12 @@
 name: define-test-strategy
 description: "Onboards or refreshes a repo's test-strategy skill and shared test map: discovers tests across repos without modifying source/tests, discusses layers and adoption, records commands and prerequisites, maintains evidence-backed UC/domain relationships, and reports coverage."
 disable-model-invocation: true
+hooks:
+  Stop:
+    - hooks:
+        - type: command
+          command: 'node "${CLAUDE_PLUGIN_ROOT}/scripts/refresh-handoff.mjs"'
+          timeout: 10
 ---
 
 # Define the Test Strategy
@@ -173,6 +179,12 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
 Read [the strategy consistency contract](../../docs/deterministic-artifacts.md#test-strategy-consistency). Its required `test-strategy.mjs check` validates the candidate and actual selected-layer projection before reporting it ready. In Phase 6, use its `pointer` command instead of manually editing/deduplicating the CLAUDE.md table; this narrow script write is an explicit exception to the Write/Edit-only rule. All semantic refresh/conflict/blocked-write rules remain active.
 
 Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Record each discovered/reassessed test's strategy layer, or `unknown` when unclear. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. After final strategy/pointer changes, complete semantic reassessment and record final snapshots per the contract, so metadata edits do not immediately stale the map. Then generate `.claude/testing/TEST-MAP.md` with `node "<base>/../../scripts/test-map-report.mjs" --root "<target-repo>" --write`, per the contract's Developer report section. Link the report's resolved Refresh command from the strategy, or copy the actual command printed by the generator. Do not generate it on the coverage-report-only path; disclose a failed report write separately from successfully saved metadata.
+
+The skill's Stop hook checks the final handoff after a fresh report generation.
+If it contains an unfinished template refresh command, correct the chat message
+using the generator's exact resolved command or the report link. This is output
+validation, not a user approval or pause; it writes no files and does not apply
+to old reports, blocked report writes, or report-only paths without generation.
 
 Use the template's report link and instruction to follow its resolved Refresh
 command as the default. Save that link before final snapshots; generating the
