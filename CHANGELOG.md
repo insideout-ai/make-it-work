@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Accept connector-provided tracker hostnames, persist their normalized HTTPS origins, and report field-specific target errors while retaining publication consent and issue-origin checks.
 - Preserve recorded test repository IDs across renamed clones and linked worktrees, derive fresh worktree IDs from the main checkout, and resolve regression scope to the selected checkout without rewriting existing tokens.
 
 ## [5.4.0] — 2026-11-06

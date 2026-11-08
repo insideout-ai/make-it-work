@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -13,6 +13,57 @@ const decision = { source: 'user', text: 'Allow these updates for DEMO during th
 const capabilities = { description: true, attachment: true, comment: true };
 const initial = (mode = 'updates') => initializePublication(source, { target, original_description: 'Original requirements', mode, decision });
 const request = (kind = 'comment', overrides = {}) => ({ kind, key: kind === 'attachment' ? 'plan-v1' : 'spec', content: 'Finalized requirements', filename: kind === 'attachment' ? 'DEMO-plan-v1.md' : undefined, current_description: 'Original requirements', capabilities, ...overrides });
+const withTarget = (overrides) => initializePublication(source, { target: { ...target, ...overrides }, original_description: null });
+
+test('normalizes connector hostnames and preserves explicit HTTP/HTTPS sites and ticket URLs', () => {
+  for (const [site, url, origin] of [
+    ['example.atlassian.net', target.url, target.site],
+    ['  EXAMPLE.atlassian.net  ', target.url, target.site],
+    ['example.atlassian.net:443', target.url, target.site],
+    ['example.atlassian.net:8443', 'https://example.atlassian.net:8443/browse/DEMO?view=detail#comment-1', 'https://example.atlassian.net:8443'],
+    ['http://tracker.internal:8080/', 'http://tracker.internal:8080/issues/DEMO', 'http://tracker.internal:8080'],
+    ['https://example.atlassian.net/context?view=detail', target.url, target.site],
+    ['[::1]:8443', 'https://[::1]:8443/browse/DEMO', 'https://[::1]:8443'],
+  ]) {
+    const journal = withTarget({ site, url });
+    assert.equal(journal.target.site, origin);
+    assert.equal(journal.target.url, url);
+    assert.equal(journal.version, 1);
+    assert.doesNotThrow(() => validatePublication(JSON.parse(JSON.stringify(journal)), source));
+  }
+});
+
+test('invalid sites and issue URLs fail with field-specific errors', () => {
+  for (const site of [undefined, null, {}, '', ' ', '//example.atlassian.net', 'example.atlassian.net/path',
+    'example.atlassian.net?x=1', 'example.atlassian.net#fragment', 'user@example.atlassian.net',
+    'example.atlassian.net:invalid', 'example.atlassian.net:65536', 'bad host', 'https:/example.atlassian.net',
+    'ftp://example.atlassian.net', 'mailto:user@example.atlassian.net', 'https://user:secret@example.atlassian.net',
+    'https://example.\tatlassian.net', 'https://example.atlassian.net\\other']) {
+    assert.throws(() => withTarget({ site }), /^Error: target\.site /);
+  }
+  for (const url of [undefined, null, {}, '', 'example.atlassian.net/browse/DEMO', 'https:/example.atlassian.net',
+    'https://', 'ftp://example.atlassian.net/DEMO', 'javascript:alert(1)', 'https://user:secret@example.atlassian.net/browse/DEMO']) {
+    assert.throws(() => withTarget({ url }), /^Error: target\.url /);
+  }
+});
+
+test('normalization never repairs a mismatched scheme, hostname or port by changing the ticket URL', () => {
+  for (const url of ['http://example.atlassian.net/browse/DEMO', 'https://other.atlassian.net/browse/DEMO',
+    'https://example.atlassian.net:8443/browse/DEMO']) {
+    assert.throws(() => withTarget({ site: 'example.atlassian.net', url }), /target\.url.*on that site/);
+  }
+  assert.throws(() => withTarget({ site: 'example.atlassian.net:8443' }), /target\.url.*on that site/);
+});
+
+test('a normalized hostname still defaults to local and needs explicit consent for publication', () => {
+  const bareTarget = { ...target, site: 'example.atlassian.net' };
+  const local = initializePublication(source, { target: bareTarget, original_description: null });
+  assert.equal(local.mode, 'local');
+  assert.deepEqual(local.allowed, []);
+  assert.throws(() => updatePublication(local, 'prepare', request()), /outside saved consent/);
+  assert.throws(() => initializePublication(source, { target: bareTarget, original_description: null,
+    mode: 'updates', decision: { source: 'default', text: 'Autopilot default' } }), /explicit user consent/);
+});
 function prepared(journal = initial(), input = request()) {
   return updatePublication(journal, 'prepare', input);
 }
@@ -333,7 +384,7 @@ test('superseded prepared content cannot be dispatched, and capability loss stop
   assert.throws(() => updatePublication(tampered, 'begin', { operation_id: second.result.operation.id, capabilities }), /hash does not match/);
 });
 
-async function fixture(t) {
+async function fixture(t, { initialize = true } = {}) {
   const temp = await mkdtemp(path.join(os.tmpdir(), 'ticket-publication-'));
   t.after(() => rm(temp, { recursive: true, force: true }));
   const root = await realpath(temp);
@@ -348,10 +399,31 @@ async function fixture(t) {
     if (value !== undefined) await writeFile(input, JSON.stringify(value));
     return publicationCommand({ ...options, action });
   }
+  if (!initialize) return { root, state, input, command };
   const init = await command('init', { target, original_description: 'Original requirements', mode: 'updates', decision });
   await writeFile(state, (await readFile(state, 'utf8')).replace(/^ticket: DEMO$/m, `ticket: DEMO\nticket_publication: ${init.journal}`));
   return { root, state, input, init, command };
 }
+test('CLI hostname initialization persists the canonical target through resume and failed init leaves no journal', async (t) => {
+  const f = await fixture(t, { initialize: false });
+  const script = new URL('./ticket-publication.mjs', import.meta.url);
+  const args = (action) => [script.pathname, action, '--root', f.root, '--state', f.state, '--input', f.input];
+  const before = await readFile(f.state, 'utf8');
+  await writeFile(f.input, JSON.stringify({ target: { ...target, site: 'example.atlassian.net/bad-path' }, original_description: null }));
+  assert.throws(() => execFileSync(process.execPath, args('init'), { encoding: 'utf8', stdio: 'pipe' }),
+    (error) => error.status === 1 && /ticket-publication: target\.site/.test(error.stderr));
+  assert.equal(await readFile(f.state, 'utf8'), before);
+  assert.deepEqual((await readdir(path.dirname(f.state))).sort(), ['DEMO-state.md', 'publication-input.json']);
+  await writeFile(f.input, JSON.stringify({ target: { ...target, site: 'example.atlassian.net' },
+    original_description: 'Original requirements', mode: 'updates', decision }));
+  const init = JSON.parse(execFileSync(process.execPath, args('init'), { encoding: 'utf8' }));
+  await writeFile(f.state, before.replace(/^ticket: DEMO$/m, 'ticket: DEMO\nticket_publication: ' + init.journal));
+  const resumed = JSON.parse(execFileSync(process.execPath, args('status'), { encoding: 'utf8' }));
+  assert.deepEqual(resumed.target, target);
+  const ready = await f.command('prepare', request());
+  const dispatch = await f.command('begin', { operation_id: ready.operation.id, capabilities });
+  assert.deepEqual(dispatch.target, target);
+});
 test('disk journal survives CLI resume and stays bound to its original ticket and run', async (t) => {
   const f = await fixture(t);
   const ready = await f.command('prepare', request('attachment'));

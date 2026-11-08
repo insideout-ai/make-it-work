@@ -20,13 +20,30 @@ function canonical(value) {
 }
 export const descriptionHash = (value) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+function targetUrl(value, name) {
+  const input = text(value, name).trim();
+  if (/[\u0000-\u001f\u007f\\]/.test(input)) fail(name + ' must be a valid absolute HTTP or HTTPS URL.');
+  let url;
+  try { url = new URL(input); }
+  catch { fail(name + ' must be a valid absolute HTTP or HTTPS URL.'); }
+  if (!/^https?:\/\//i.test(input) || !['https:', 'http:'].includes(url.protocol)) {
+    fail(name + ' must be an absolute HTTP or HTTPS URL.');
+  }
+  if (url.username || url.password) fail(name + ' must not contain credentials.');
+  return url;
+}
 function target(value) {
   text(value?.tracker, 'target.tracker');
   text(value?.issue, 'target.issue');
-  const site = new URL(value.site);
-  const url = new URL(value.url);
-  if (!['https:', 'http:'].includes(site.protocol) || site.username || site.password || url.username || url.password || url.origin !== site.origin) {
-    fail('Target must name a tracker site and an issue URL on that site, without credentials.');
+  const input = text(value.site, 'target.site').trim();
+  const absolute = /^[a-z][a-z0-9+.-]*:\/\//i.test(input);
+  if (!absolute && !/^(?:\[[0-9a-f:.]+\]|[^:/\\?#@\s]+)(?::[0-9]+)?$/i.test(input)) {
+    fail('target.site must be a hostname with an optional port, or a full HTTP or HTTPS URL.');
+  }
+  const site = targetUrl(absolute ? input : 'https://' + input, 'target.site');
+  const url = targetUrl(value.url, 'target.url');
+  if (url.origin !== site.origin) {
+    fail('target.url must identify an issue on that site (same scheme, hostname and port as target.site).');
   }
   return { tracker: value.tracker, site: site.origin, issue: value.issue, url: url.href };
 }
