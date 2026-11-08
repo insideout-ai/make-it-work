@@ -1,0 +1,29 @@
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_36e7b47fd5eebc 64-73
+skills/implement/scripts/startup-presentation.test.mjs
+  s_e8cdb860e0eee3::t_ced927a7feb770 195-196
+  s_e8cdb860e0eee3::t_491025f21827de 189-194,197-270,277,282-284
+  s_e8cdb860e0eee3::t_cb85bf6c145b8b 271-276,278-281
+skills/implement/references/controller.md
+  s_e8cdb860e0eee3::t_36e7b47fd5eebc 41-50
+skills/implement/scripts/startup-presentation.mjs
+  s_e8cdb860e0eee3::t_ced927a7feb770 35-36,38-45,55-56,61-79
+  s_e8cdb860e0eee3::t_76faf10781742a 80
+  s_e8cdb860e0eee3::t_fcad0149941a1b 85,90,98,111-115,156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e8f928debcbda73abc2519129a09736fe1ae4456",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
