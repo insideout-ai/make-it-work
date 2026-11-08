@@ -1,0 +1,36 @@
+scripts/test-strategy.mjs
+  s_0fad2979134b53::t_2c38720024500a 2,4,129-130,132-135,140-144
+scripts/test-strategy.test.mjs
+  s_0fad2979134b53::t_2cac83f69778fb 28,49
+  s_0fad2979134b53::t_2c38720024500a 44-47,50-53
+skills/define-test-strategy/SKILL.md
+  s_0fad2979134b53::t_2cac83f69778fb 6-11,191-193
+  s_0fad2979134b53::t_dc8563d504357f 194
+scripts/refresh-handoff.mjs
+  s_0fad2979134b53::t_4fefe28e38d85a 20-23
+  s_0fad2979134b53::t_2cac83f69778fb 13-16,19,24-30,32-39,41-46,49-50,52-53,55-56,61-62,64-65,99-105
+  s_0fad2979134b53::t_1b7213f699504d 17-18,31,40,47-48,51,54,57-60
+scripts/refresh-handoff.test.mjs
+  s_0fad2979134b53::t_1b7213f699504d 76-78
+  s_0fad2979134b53::t_4fefe28e38d85a 8,59-75,79-95
+docs/deterministic-artifacts.md
+  s_0fad2979134b53::t_2cac83f69778fb 52
+evals/define-test-strategy/fresh-tests/graders/nonintrusive-map.md
+  s_0fad2979134b53::t_2cac83f69778fb 31-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "5f37bd7d5133d7d66c534ffa0379a1738fff6bfc",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
