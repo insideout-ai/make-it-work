@@ -1,0 +1,23 @@
+scripts/test-strategy.test.mjs
+  s_0fad2979134b53::t_24700dbdb0f84e 40
+scripts/test-strategy.mjs
+  s_0fad2979134b53::t_24700dbdb0f84e 84
+skills/define-test-strategy/SKILL.md
+  s_0fad2979134b53::t_24700dbdb0f84e 172-173,223
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "633a0dc767ff9d362c063633a971143053532f09",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
