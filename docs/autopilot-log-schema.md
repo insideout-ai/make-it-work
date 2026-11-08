@@ -24,6 +24,14 @@ The writer accepts JSON on stdin or via `--input "<repo-root>/make-it-work/.deci
 
 For `write shape-the-epic`, `--input` also accepts the same version-1 epic input used to save the epic. It extracts the `auto_resolution` entry from every decision row, so the epic and run log share one decision source. Save the epic first; the log writer consumes and deletes the input file afterward. Ordinary object/array payloads remain supported.
 
+Epic decision rows explicitly marked `[autopilot best-guess]` or `_(autopilot)_`
+require their actual `auto_resolution` payload. The epic renderer/writer and
+shared log extraction reject a marked row without that metadata before saving
+an epic or replacing the audit log. Ordinary manual proposals remain supported;
+this does not reconstruct missing historical decisions or replay old artifacts.
+Correct the shared input from the actual resolved question/answer rather than
+inventing a past payload or stripping its automatic provenance marker.
+
 For a ticket-scoped workflow, pass `--ticket "<TICKET>"` to every writer call. Its log lives in `make-it-work/<TICKET>/`; project-wide skills omit the option and keep their log directly in `make-it-work/`.
 
 `init` creates an empty log for a new run. `append` accepts one decision object

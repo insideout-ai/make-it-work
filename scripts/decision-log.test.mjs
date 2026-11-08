@@ -180,3 +180,19 @@ test('CLI reads JSON from stdin and leaves invalid input untouched', async (t) =
   assert.match(result.stderr, /Invalid decision JSON/);
   assert.equal(await readFile(log, 'utf8'), original);
 });
+
+test('shaping log rejects an unlogged best guess before overwriting a prior audit', async (t) => {
+  const { root } = await workspace(t);
+  const log = path.join(root, 'make-it-work/shape-the-epic-autopilot-log.jsonl');
+  const resolution = { phase: 'Phase 2B', site: 'dependency', kind: 'open_text', chosen: '[autopilot best-guess] Reuse email.', rationale: 'Proposed, unverified dependency.' };
+  const valid = { version: 1, categories: [], decisions: [{ topic: 'Email', auto_resolution: resolution }] };
+  await updateLog({ root, skill: 'shape-the-epic', command: 'write', input: valid });
+  const before = await readFile(log, 'utf8');
+  const invalid = structuredClone(valid);
+  invalid.decisions.push({ topic: 'Logged-out handling', decision: '[autopilot best-guess] Ask the visitor to log in.', status: 'Proposed' });
+  await assert.rejects(updateLog({ root, skill: 'shape-the-epic', command: 'write', input: invalid }), /Logged-out handling.*requires auto_resolution/);
+  assert.equal(await readFile(log, 'utf8'), before);
+  invalid.decisions[1] = { topic: 'Logged-out handling', auto_resolution: { ...resolution, site: 'logged-out', chosen: '[autopilot best-guess] Ask the visitor to log in.' } };
+  await updateLog({ root, skill: 'shape-the-epic', command: 'write', input: invalid });
+  assert.equal((await readFile(log, 'utf8')).trim().split('\n').length, 2);
+});

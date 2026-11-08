@@ -59,6 +59,15 @@ A slice input has `version: 1`, `title`, `goal`, `approach`, `rationale`, `slice
 
 Use `unassessed` when evidence is insufficient; do not automatically classify a dependency wave as a safe parallel group. `parallel_groups` is an array of ID arrays such as `[["S-2", "S-3"]]`. All members must be candidates without a transitive hard dependency on one another. Reasons are grounded proposals, not claims that future worker/worktree isolation already exists.
 
+Stage handoffs must preserve unresolved requirements semantically, not merely
+copy a global list. Read the latest `epic_input`, `open_items` and decisions,
+including inline open questions. Populate each affected slice's `open_items` and
+keep any suggested resolution visibly proposed, outside firm acceptance
+criteria. Record an actual resolution through the existing decision/revision
+flow before promoting it to a requirement. A global Needs refinement flag is not
+an exception to this content rule. These are uses of existing fields; the
+controller's readiness calculation and lifecycle are unchanged.
+
 The controller checks graph consistency and protects unaffected slice content during scoped revisions. Keep IDs stable through title refinements. Retire removed slices explicitly before saving a replacement set. Local `Complete` means preparation ended; epic/slice open items and external prerequisites keep affected slice preparation at `Needs refinement`. Every implementation status remains `Not started` in this version.
 
 ## Stage logs and dashboard

@@ -366,6 +366,10 @@ function isAdaptive(state) {
 }
 
 function slotInfo(slot) {
+  if (slot.finalizing) return {
+    label: slot.completed ? 'Complete' : 'Finalizing', skill: '',
+    tooltip: 'updates project documentation and prepares the completed work for final review.',
+  };
   return slot.lightweightFix ? LIGHTWEIGHT_FIX_INFO : PHASE_INFO[slot.phase];
 }
 
@@ -413,6 +417,34 @@ export function buildTimeline(state) {
     activeSlot = nextSlot;
   }
 
+  return { slots, activeSlot };
+}
+
+// Project adjacent final phases without changing the workflow's canonical timeline.
+export function groupFinalization(timeline) {
+  const slots = [];
+  let activeSlot = null;
+  for (const slot of timeline.slots) {
+    if (!['final-sync', 'final-approval', 'complete'].includes(slot.phase)) {
+      slots.push(slot);
+      if (slot === timeline.activeSlot) activeSlot = slot;
+      continue;
+    }
+    let group = slots.at(-1);
+    if (!group?.finalizing) {
+      group = { ...slot, finalizing: true, completed: false };
+      slots.push(group);
+    }
+    if (slot.activationRow) {
+      group.activationRow ??= slot.activationRow;
+      group.phase = slot.phase;
+      if (slot.phase === 'complete') {
+        group.completed = true;
+        group.completionRow = slot.activationRow;
+      }
+    }
+    if (slot === timeline.activeSlot) activeSlot = group;
+  }
   return { slots, activeSlot };
 }
 
@@ -501,13 +533,18 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       }
       modeText = `${planStatus.mode} · Step ${localComplete} of ${state.fixPlanRoundSteps} complete`;
     }
+    if (isActive && slot.finalizing && !slot.completed) {
+      const awaiting = state.pendingInputs?.some((input) => input.kind === 'approval' && input.phase === 'final-approval');
+      modeText = slot.phase === 'final-sync' ? 'Updating project docs'
+        : awaiting ? 'Awaiting final approval' : 'Preparing final review';
+    }
     if (dotState === 'skipped') modeText = 'Skipped';
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
     if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
 
-    if (passed && slot.phase !== 'complete') {
+    if (passed && (slot.phase !== 'complete' || slot.finalizing)) {
       const activatedIndex = activated.indexOf(slot);
-      const next = activated[activatedIndex + 1];
+      const next = slot.completionRow ? { activationRow: slot.completionRow } : activated[activatedIndex + 1];
       if (next) {
         const duration = slot.activationRow.number < state.realRowsFrom || next.activationRow.number < state.realRowsFrom ||
           next.activationRow.number >= invalidTimestampFrom
@@ -517,7 +554,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       }
     }
 
-    if (isActive) {
+    if (isActive && !(slot.finalizing && slot.completed && state.fields.status === 'Complete')) {
       const slug = state.fields.status.toLowerCase().replaceAll(' ', '-');
       pieces.push(`  <div class="phase-status status-${slug}">${escapeHtml(state.fields.status)}</div>`);
     }
@@ -745,7 +782,7 @@ function renderAutonomyBadge(state) {
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null }) {
-  const timeline = buildTimeline(state);
+  const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
@@ -810,7 +847,7 @@ export async function generateDashboard(statePath) {
   const state = parseState(stateMarkdown, absoluteStatePath);
   assertRunState(path.dirname(path.dirname(path.dirname(absoluteStatePath))), absoluteStatePath, state.fields.ticket);
   const invalidTimestampFrom = state.audit.find((row) => row.epoch > stateInfo.mtimeMs + 60_000)?.number ?? Infinity;
-  const timeline = buildTimeline(state);
+  const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   let planStatus = null;
   if (needsPlan) {

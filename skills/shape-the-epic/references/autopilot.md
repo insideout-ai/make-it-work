@@ -39,6 +39,15 @@ Save the epic with `epic.mjs write` using that input. Then, in its own Bash call
 node "<skill-dir>/../../scripts/decision-log.mjs" write shape-the-epic --root "<project-root>" --input "<epic-input.json>"
 ```
 
+Before saving the epic, check every automatically inferred answer and choice,
+including gap-check assumptions. Each must have its own `auto_resolution` in the
+shared epic input; a plain Proposed row with a best-guess marker is incomplete.
+The epic and log writers reject orphaned automatic markers so they cannot save
+an epic while silently omitting its inferred decisions from the audit. Correct
+the shared input and retry validation; do not remove a marker to hide an automatic
+inference or label it as a user-confirmed fact. Ordinary explicit user decisions
+retain their provenance and do not need invented automatic resolutions.
+
 The writer extracts every `auto_resolution`, writes the log at `make-it-work/shape-the-epic-autopilot-log.jsonl`, deletes the temporary input, and returns the saved path. No automatic resolutions means an empty log. Keep payload edits and cleanup outside the writer call. Saving the epic takes priority; if the log write is denied, report it as non-fatal without retrying or switching tools. If Bash is unavailable, use one Write call for the log derived from those same nested entries. Never write the log through shell redirection.
 
 Phase 4 creates a new epic, adding a numeric suffix if a timestamped filename already exists. This does not grant permission to overwrite an existing epic or publish a ticket. There is no destructive hard-stop site and no need for `chosen: null`.

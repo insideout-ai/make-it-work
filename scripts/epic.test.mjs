@@ -60,3 +60,24 @@ test('orchestrated requirements use short versioned names and preserve full titl
   assert.equal(path.basename(first.files[0]), 'requirement.md'); assert.equal(path.basename(second.files[0]), 'requirement-v2.md');
   assert.ok(old.includes(spec.title)); assert.equal(await readFile(first.files[0], 'utf8'), old);
 });
+
+test('automatic markers require audit metadata while ordinary proposals and quoted evidence remain supported', () => {
+  for (const decision of ['[autopilot best-guess] Reuse email infrastructure.', 'Product (Recommended) _(autopilot)_']) {
+    const spec = input(); spec.decisions.push({ topic: 'Missing audit', decision, status: 'Proposed' });
+    assert.throws(() => renderEpic(spec), /Missing audit.*requires auto_resolution/);
+  }
+  const spec = input(); spec.decisions.push({ topic: 'Human proposal', decision: 'Consider a digest later.', status: 'Proposed' });
+  spec.decisions.push({ topic: 'Quoted history', decision: 'The old draft said "[autopilot best-guess]"; this is unresolved.', status: 'Open / Deferred' });
+  assert.doesNotThrow(() => renderEpic(spec));
+});
+
+test('invalid automatic audit metadata prevents a new epic artifact without damaging a prior draft', async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'epic-audit-validation-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const prior = await writeEpic(dir, input()); const body = await readFile(prior.files[0], 'utf8');
+  const spec = input(); spec.decisions.push({ topic: 'Unlogged assumption', decision: '[autopilot best-guess] Existing email is reusable.', status: 'Proposed' });
+  await assert.rejects(writeEpic(dir, spec), /requires auto_resolution/);
+  assert.equal(await readFile(prior.files[0], 'utf8'), body);
+  const { readdir } = await import('node:fs/promises');
+  assert.equal((await readdir(dir)).length, 1);
+});

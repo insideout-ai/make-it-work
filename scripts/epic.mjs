@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { args, cell, cli, fail, jsonInput, requireText, slug, writeSet } from './lib/artifacts.mjs';
-import { normalizeEntry } from './decision-log.mjs';
+import { normalizeEntry, assertShapingResolutions } from './decision-log.mjs';
 
 export const CATEGORIES = {
   product: [[3, 'What & Why'], [7, 'Definition of Done'], [1, 'Problem & Value Proposition'], [2, 'Target Users & Permissions'], [4, 'KPIs & Success Metrics'], [5, 'Use Cases & Requirements'], [6, 'Rollout Plan']],
@@ -71,6 +71,7 @@ export function renderEpic(input, existing = null) {
   if (omitted.length) lines.push('**Not assessed:**', '', ...omitted.map((title) => `- ${title}`), '');
   const statuses = ['Confirmed', 'Proposed', 'Open / Deferred', 'Out of scope'];
   if (!Array.isArray(input.decisions ?? [])) fail('Decisions must be an array.');
+  assertShapingResolutions(input.decisions ?? []);
   const decisions = (input.decisions ?? []).map((decision) => {
     if (decision.auto_resolution === undefined) return decision;
     const resolution = normalizeEntry(decision.auto_resolution, 'shape-the-epic');

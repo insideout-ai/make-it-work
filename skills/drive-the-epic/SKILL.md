@@ -47,6 +47,22 @@ Autopilot: forward `--autopilot` to shaping and slicing. The controller records 
 
 Follow `slice-the-epic`'s approach preview and choice, complete story/evidence requirements, graph validation, and visible summary table. Save the semantic slice set through the controller. Supply each slice's explicit parallel suitability (`candidate`, `sequential`, or `unassessed`) and reason. Identify proposed parallel groups only where justified; hard-dependency independence alone does not prove concurrent implementation is safe. Do not invent a staffing plan or start workers.
 
+Before submitting the slice set, compare each proposed requirement and acceptance
+criterion with the latest epic and recorded decisions. Carry unresolved questions,
+explicit TBDs and unconfirmed proposals into slicing, including those written
+inline in epic content rather than only in its Open Items list. Put each relevant
+unknown in the affected slice's existing `open_items`; keeping it only at epic
+or overview level, or showing Needs refinement, does not qualify a firm criterion.
+
+Do not settle an unknown by inference. For example, if the epic leaves logged-out
+handling unspecified, do not add an unconditional “Then I am asked to log in.”
+Keep the login behavior as an open question; an optional suggested answer belongs
+in a clearly labeled proposal, outside firm acceptance criteria. Autopilot can
+finish preparation with that question open. A firm criterion requires a recorded
+resolution and the corresponding update through the existing decision/revision
+flow. Use the latest resolved epic when a question has actually been answered;
+do not revive historical uncertainty or alter unrelated requirements.
+
 The saved handoff retains stable IDs, full requirements, source/epic context, hard prerequisites, recommended order, external prerequisites, open items, and proposed parallel groups. Each slice reserves its own implementation status/run/dashboard/results, initially **Not started**. Epic-level preparation progress remains distinct. Future implementation orchestration will reuse this handoff; it is outside this phase.
 
 ## Checkpoints, changes, and failures

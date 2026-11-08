@@ -113,7 +113,9 @@
     "implement-diagnosis-lightweight",
     "plan-assumption-unsupported",
     "plan-assumption-supported",
-    "plan-assumption-low-risk"
+    "plan-assumption-low-risk",
+    "drive-the-epic-uncertainty-unresolved",
+    "drive-the-epic-uncertainty-resolved"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -126,6 +128,12 @@
         ".claude/testing/TEST-MAP.md",
         ".claude/skills/test-strategy/SKILL.md"
       ]
+    },
+    "drive-the-epic-uncertainty-unresolved": {
+      "uncertainty-handoff.md": ["uncertainty-baseline.json"]
+    },
+    "drive-the-epic-uncertainty-resolved": {
+      "uncertainty-handoff.md": ["uncertainty-baseline.json"]
     }
   },
   "requiredToolsBySkill": {

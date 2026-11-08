@@ -1,6 +1,6 @@
 # Drive the Epic evals
 
-Four isolated headless model cases exercise full autopilot preparation, the interactive full-epic review gate, a scoped slice-only resume, and an inaccessible sole Jira source. The new-skill smoke case is `drive-the-epic-autopilot`.
+Six isolated headless model cases exercise full autopilot preparation, the interactive full-epic review gate, a scoped slice-only resume, an inaccessible sole Jira source, and unresolved/resolved uncertainty handoffs. The new-skill smoke case is `drive-the-epic-autopilot`.
 
 ```sh
 node evals/run-suite.mjs smoke --case=drive-the-epic-autopilot --dry-run
@@ -20,3 +20,11 @@ node evals/validate.mjs
 Successful autopilot/resume cases also check that per-event JSON, duplicate decision journals, stage JSONL files, and leftover scratch input do not accumulate.
 
 Those deterministic tests verify orchestration gates, graph consistency, scoped invalidation, artifact integrity, checkpoint recovery, and HTML links. They do not substitute for model-level skill-following evals; report whether the authenticated model cases actually ran.
+
+Uncertainty handoff regressions start at slicing with a saved epic, avoiding
+unrelated shaping choices. `drive-the-epic-uncertainty-unresolved` keeps login
+handling unknown in affected slices without firm invented criteria. The paired
+`drive-the-epic-uncertainty-resolved` records an explicit user answer and epic
+revision first; slicing must use that latest resolution instead of reopening a
+historical question. Both preserve source/epic state and never implement work.
+The semantic grader receives the fixture baseline alongside final state.
