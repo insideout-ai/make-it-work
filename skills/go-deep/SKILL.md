@@ -42,6 +42,23 @@ The onboarding review titles are **Checkpoint 1 of 4 — Scope**, **Checkpoint 2
 
 When invoked with `--autopilot`, still **construct** every discovery question/options payload exactly as the interactive path below would — the 2–4 option count, `Use your best judgment` placed last where it applies, and the `(Recommended)` label rules still apply. Construct and display each checkpoint's written review and its three choices too, but don't call any question tool, end the turn, or wait at a checkpoint. Auto-resolve per the table below instead. Keep each site's existing log `kind`: approval sites remain `checkpoint`; genuinely open-ended questions remain `open_text` whether displayed through a tool or plain text.
 
+**Discovery resolution order:** classify the unresolved question, construct its
+payload, resolve it, then append that decision before using the answer. When
+there are clear alternatives, use `askUserQuestion` with the same question,
+options and recommended choice as the interactive path. Autopilot skips asking
+and waiting; it does not skip constructing those choices. Do not answer first
+as an `open_text` best guess or relabel an earlier guess as a structured choice.
+Reserve `open_text` for answers that genuinely cannot be pre-enumerated.
+
+When code leaves the alternatives unresolved, include and recommend an option
+that preserves that uncertainty rather than asserting an unsupported domain
+fact. For example, if code mentions owner and admin without defining their
+relationship, offer “Keep relationship unresolved (Recommended)”, “Same role”,
+“Different roles”, and “Use your best judgment” last. Autopilot chooses the
+recommended unresolved option and carries that open question into the docs;
+it does not mark an automatic choice as human-confirmed. Use the evidence for
+each actual question rather than copying this example as a fixed questionnaire.
+
 **Hard-stop exception:** autopilot must never select "Run fresh onboarding" (the path that replaces existing docs wholesale). If that workflow-choice site is reached and "Repair existing docs" isn't a valid option for some reason, stop and require a human rather than proceeding unattended. In practice this exception is never actually triggered by the table below, since the Recommended option at that site is always "Repair existing docs" — but it is a named, explicit rule, not an implicit consequence of always picking the recommended option.
 
 **Decision log:** write `make-it-work/go-deep-autopilot-log.jsonl` at repo root, overwritten fresh at the start of each autopilot run (it describes that run only). Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`), `multiSelect` is a genuine boolean, so `chosen` can be a string, an array of strings, the `open_text` free-text answer, or `null`. No `repo` field — this skill has no per-repo-resolved site. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 0"`, `"Phase 2"`. `site` examples: `"workflow-choice"`, `"staleness-window"`, `"per-question"`, `"confirm-scope"`.
@@ -122,6 +139,12 @@ First, analyze the existing codebase to understand what's already there:
 
 **Phase 2: Targeted Questions**
 After code discovery, announce how many questions you have. Use the question tool policy above for both multiple-choice and genuinely open-ended questions. Ask only one question at a time, and only about information that could not be determined from code analysis. If there are no unresolved questions, continue directly to Confirm Scope.
+
+Decide whether each answer can be expressed as clear alternatives **before**
+resolving it. Use the multiple-choice path for such decisions in every mode,
+including Autopilot; use free text only for genuinely non-enumerable answers.
+If the code cannot establish a domain fact, recommend retaining that uncertainty
+as an explicit open item instead of inventing a definitive relationship.
 
 Announce first:
 > "I've analyzed the codebase and have [N] questions. I'll ask them one at a time."

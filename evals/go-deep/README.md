@@ -141,3 +141,14 @@ Autopilot must continue without question-tool calls or waiting for chat replies,
 
 - Doesn't cover the destructive "Run fresh onboarding" path, 2 of 4 repair-action types, or the single-choice-plus-filler repair-action variant — see the implementation plan's coverage discussion.
 - `AskUserQuestion`'s availability is itself environment-dependent: unreachable inside `claude plugin eval` sandboxes (even when granted) and inside `--plugin-dir` headless runs (`TaskCreate`/`TaskUpdate` also weren't available there) — `go-deep` degrades gracefully in both cases. Worth a `SendFeedback` note; not a blocker for this plugin's own behavior.
+
+## Phase 2 choice construction in Autopilot
+
+For unresolved questions with clear alternatives, Autopilot constructs the same
+question/options payload as interactive discovery, selects its recommendation,
+and logs it before using the answer. It does not replace that step with an
+open-text guess. In the role-ambiguity fixture, the recommendation must preserve
+the unknown owner/admin relationship. The grader requires that specific
+structured choice; an unrelated multiple-choice entry cannot satisfy it.
+Genuinely non-enumerable questions remain `open_text`. Automatic resolutions do
+not become human-confirmed facts.

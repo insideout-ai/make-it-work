@@ -68,7 +68,7 @@ Run `pwd` and record it as the **invocation root** before changing directory. Th
 3. **No argument, at a root with no `.git` whose subdirectories have one** → list those repos and ask the user which one to onboard. (autopilot: hard stop)
 4. **None of these resolves** → stop and tell the user: "Could not identify the project root. Please launch from the repo root, a service subdirectory, or the workspace root." Do not proceed. (autopilot: hard stop)
 
-Record the **Repo ID**: the basename of the target repo's git toplevel. It goes into the skill's `## Repo ID` and qualifies every UC/domain token.
+Resolve the **Repo ID** with `node "<base>/../../scripts/repo-identity.mjs" identity --root "<target repo>"`. Use its `repoId` for the strategy and every UC/domain token, and its `root` for source/test operations. It preserves an existing strategy/map ID; on a fresh linked worktree it uses the main working tree's name, not the temporary checkout folder. Report returned warnings. Conflicting recorded IDs require explicit resolution, never a silent token migration. A malformed map can still use a valid recorded strategy ID through the normal refresh/discovery path. Bare-owned worktrees without a recorded ID need an explicit token-safe identity rather than a guessed temporary name. The helper is read-only.
 
 ### go-deep prerequisite
 
@@ -174,6 +174,15 @@ Read [the strategy consistency contract](../../docs/deterministic-artifacts.md#t
 
 Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Record each discovered/reassessed test's strategy layer, or `unknown` when unclear. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. After final strategy/pointer changes, complete semantic reassessment and record final snapshots per the contract, so metadata edits do not immediately stale the map. Then generate `.claude/testing/TEST-MAP.md` with `node "<base>/../../scripts/test-map-report.mjs" --root "<target-repo>" --write`, per the contract's Developer report section. Link the report's resolved Refresh command from the strategy, or copy the actual command printed by the generator. Do not generate it on the coverage-report-only path; disclose a failed report write separately from successfully saved metadata.
 
+Use the template's report link and instruction to follow its resolved Refresh
+command as the default. Save that link before final snapshots; generating the
+report afterward does not require another strategy edit. Never add an
+unfinished invocation such as `node <make-it-work>/...` to the saved strategy
+or call it the actual command in the handoff. If copying a command instead,
+copy the generator's resolved output exactly and complete the required semantic
+reassessment/final snapshots after any strategy edit. In the handoff, either
+link the report and name its Refresh command or give the actual runnable command.
+
 - **Fresh** → write the file from the template, frontmatter included.
 - **Strategy discussion** → include `## Strategy Decisions` per Phase 3a when conducted, or preserve an existing section when no new discussion is needed. Record explicit changes agreed in this discussion with their rationale; they need no second approval under the refresh-conflict rule. Defaults cannot supersede explicit user/project choices.
 - **Selected-layer consistency** → before saving, check every selected layer in current or saved Strategy Decisions has a Layers row, a matching-status Where New Tests Go row (or explicit `TBD` destination), and appropriate Coverage Decision Guidance. `planned`/`deferred` rows have Example command `none`; no unconfigured layer or command is promoted into Test Locations. For example, user-selected unit plus component coverage with only unit tooling means Unit configured and Component planned in both tables, with component behavior mapped to Component (setup required).
@@ -201,7 +210,7 @@ Never write or offer a git hook, and never add a checklist item.
 
 A chat-only report: write nothing to disk. On the Phase 1 "Coverage report only" path, read the locations from the existing skill's `## Test Locations`, and the vocabulary per Phase 4 step 1.
 
-Use the Repo ID under the existing skill's `## Repo ID` (on a fresh run it equals Phase 0's). If it differs from the basename Phase 0 recorded, warn that tokens use the recorded ID and the repo should be cloned as `<Repo ID>`, then continue.
+Use the resolved, recorded Repo ID from Phase 0. A renamed checkout or linked worktree does not require cloning or renaming its folder. Conflicting strategy/map IDs must be resolved explicitly before querying or writing; never rewrite tokens just to match a directory name.
 
 1. **Inspect/query.** Follow `## How to Scan` and the shared contract: reuse current mappings, refresh affected portions in memory, and query every vocabulary token. Missing/malformed maps use temporary discovery, never a project rewrite. An older strategy without `## Test Map` needs regeneration; report mapping unavailable instead of interpreting its tag convention. Missing paths or incomplete assessment remain unresolved, not proof of absent coverage. Coverage-only saves no strategy/map updates and creates no project scratch files.
 2. **Report**, keeping mapping kinds and gap lists separate:

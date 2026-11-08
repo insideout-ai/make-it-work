@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: close-the-gaps-stale-recommendation
+tags: [close-the-gaps, decision-context]
+context:
+  scaffold_script: fixture.sh

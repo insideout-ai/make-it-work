@@ -53,3 +53,15 @@ Byte/content freshness is deterministic; inferred relationships require semantic
 review. Unsupported discovery/selection and unavailable repos remain unresolved,
 not proof of absent coverage or passing verification. A live eval pass requires
 an actual signed-in run; an authored grader or dry run is not a pass.
+
+## Saved developer-report evidence
+
+The fresh-tests report/layer grader receives the final map, generated report
+and saved strategy from runner-owned `graderEvidenceFiles` configuration,
+alongside the trace for generation, failures and snapshot behavior. It checks
+actual file contents without requiring a chat read-back. A strategy may link
+to the report and direct readers to its resolved Refresh command; an unfinished
+command is not a runnable alternative. Missing/incorrect artifacts cannot be
+replaced by success claims, while honestly blocked writes retain their existing
+partial-output policy. The strategy defaults to the report link before final
+snapshots, avoiding an unnecessary post-generation strategy edit.

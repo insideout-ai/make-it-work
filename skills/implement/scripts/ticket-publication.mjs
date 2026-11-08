@@ -20,13 +20,30 @@ function canonical(value) {
 }
 export const descriptionHash = (value) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+function targetUrl(value, name) {
+  const input = text(value, name).trim();
+  if (/[\u0000-\u001f\u007f\\]/.test(input)) fail(name + ' must be a valid absolute HTTP or HTTPS URL.');
+  let url;
+  try { url = new URL(input); }
+  catch { fail(name + ' must be a valid absolute HTTP or HTTPS URL.'); }
+  if (!/^https?:\/\//i.test(input) || !['https:', 'http:'].includes(url.protocol)) {
+    fail(name + ' must be an absolute HTTP or HTTPS URL.');
+  }
+  if (url.username || url.password) fail(name + ' must not contain credentials.');
+  return url;
+}
 function target(value) {
   text(value?.tracker, 'target.tracker');
   text(value?.issue, 'target.issue');
-  const site = new URL(value.site);
-  const url = new URL(value.url);
-  if (!['https:', 'http:'].includes(site.protocol) || site.username || site.password || url.username || url.password || url.origin !== site.origin) {
-    fail('Target must name a tracker site and an issue URL on that site, without credentials.');
+  const input = text(value.site, 'target.site').trim();
+  const absolute = /^[a-z][a-z0-9+.-]*:\/\//i.test(input);
+  if (!absolute && !/^(?:\[[0-9a-f:.]+\]|[^:/\\?#@\s]+)(?::[0-9]+)?$/i.test(input)) {
+    fail('target.site must be a hostname with an optional port, or a full HTTP or HTTPS URL.');
+  }
+  const site = targetUrl(absolute ? input : 'https://' + input, 'target.site');
+  const url = targetUrl(value.url, 'target.url');
+  if (url.origin !== site.origin) {
+    fail('target.url must identify an issue on that site (same scheme, hostname and port as target.site).');
   }
   return { tracker: value.tracker, site: site.origin, issue: value.issue, url: url.href };
 }
@@ -46,6 +63,19 @@ function permitted(journal, kind, capabilities) {
 function descriptionMatches(journal, input) {
   if (!Object.hasOwn(input, 'current_description')) fail('Read the current description before replacing it.');
   if (descriptionHash(input.current_description) !== journal.description_baseline) fail('Live description changed; reconcile before replacement.');
+}
+const hasDescription = (value) => value !== null && value !== '';
+function backupContent(description) {
+  // Retain rich-text structure losslessly when the tracker did not return plain text.
+  const body = typeof description === 'string' ? description : `\`\`\`json\n${JSON.stringify(canonical(description), null, 2)}\n\`\`\``;
+  return `## Original description before refinement\n\nPreserved before a description update as a historical snapshot, not the refined requirements.\n\n${body}`;
+}
+function requireDescriptionBackup(journal, description) {
+  if (!hasDescription(description)) return;
+  const fingerprint = descriptionHash(description);
+  if (!journal.operations.some((op) => op.kind === 'comment' && op.backup_hash === fingerprint && op.status === 'succeeded')) {
+    fail('Confirm the original-description backup comment before replacing this description.');
+  }
 }
 function attachmentFilename(value) {
   if (typeof value !== 'string' || !value || path.basename(value) !== value || /[\\/\r\n]/.test(value) || ['.', '..'].includes(value)) fail('Attachment requires a plain filename.');
@@ -88,6 +118,11 @@ export function validatePublication(journal) {
     if (op.attachment_fallback && (op.kind !== 'comment' || journal.decisions[op.consent_revision - 1].artifact_comments !== true)) fail('Artifact comment was prepared outside saved consent.');
     if (op.kind === 'attachment') attachmentFilename(op.filename);
     else if (op.filename !== null) fail('Only attachments have filenames.');
+    if (op.backup_hash !== undefined || Object.hasOwn(op, 'backup_description')) {
+      if (op.kind !== 'comment' || !Object.hasOwn(op, 'backup_description') || !hasDescription(op.backup_description) ||
+          op.backup_hash !== descriptionHash(op.backup_description) || op.key !== `description-backup:${op.backup_hash}` ||
+          op.content !== backupContent(op.backup_description)) fail('Invalid original-description backup.');
+    }
     if (op.status === 'succeeded') {
       text(op.receipt?.id, 'receipt.id');
       if (op.kind === 'description' && !Object.hasOwn(op.receipt, 'description')) fail('A successful description operation requires its remote description.');
@@ -139,7 +174,16 @@ export function updatePublication(previous, action, input = {}) {
     journal.description_reconciliations.push({ description: input.current_description, decision: input.decision, at: now });
     return { journal, result: { description_baseline: journal.description_baseline } };
   }
-  if (action === 'prepare') {
+  const preparingBackup = action === 'prepare-backup';
+  if (preparingBackup) {
+    permitted(journal, 'description', input.capabilities);
+    descriptionMatches(journal, input);
+    if (journal.operations.some((op) => op.kind === 'description' && ['in-flight', 'unknown'].includes(op.status))) fail('Reconcile the unresolved description write before preparing its backup.');
+    if (!hasDescription(input.current_description)) return { journal, result: { action: 'skip', reason: 'The current description is empty.' } };
+    input = { ...input, kind: 'comment', key: `description-backup:${descriptionHash(input.current_description)}`, content: backupContent(input.current_description), filename: null };
+  }
+  if (action === 'prepare' || preparingBackup) {
+    if (!preparingBackup && input.key?.startsWith('description-backup:')) fail('Use prepare-backup for an original-description backup.');
     const artifactRequest = input.kind === 'attachment' && input.fallback_to_comment === true;
     if (artifactRequest && (input.capabilities?.attachment !== true || !journal.allowed.includes('attachment'))) {
       if (journal.artifact_comments !== true) fail('Artifact-comment fallback is outside saved consent.');
@@ -185,6 +229,10 @@ export function updatePublication(previous, action, input = {}) {
       operation.source_hash = sourceHash;
       if (sourceContent !== input.content) operation.source_content = sourceContent;
     }
+    if (preparingBackup) {
+      operation.backup_description = input.current_description;
+      operation.backup_hash = descriptionHash(input.current_description);
+    }
     journal.operations.push(operation);
     return { journal, result: { action: 'ready', operation } };
   }
@@ -195,7 +243,15 @@ export function updatePublication(previous, action, input = {}) {
     if (operation.status !== 'prepared') fail('Only a prepared operation can begin; reconcile uncertain writes instead of retrying.');
     if (operation.consent_revision !== journal.consent_revision) fail('Consent changed; prepare this update again.');
     if (hash(operation.content) !== operation.content_hash) fail('Prepared content hash does not match.');
-    if (operation.kind === 'description') descriptionMatches(journal, input);
+    if (operation.kind === 'description') {
+      descriptionMatches(journal, input);
+      requireDescriptionBackup(journal, input.current_description);
+    }
+    if (operation.backup_hash !== undefined) {
+      permitted(journal, 'description', input.capabilities);
+      descriptionMatches(journal, input);
+      if (descriptionHash(input.current_description) !== operation.backup_hash) fail('Live description changed since backup preparation.');
+    }
     operation.status = 'in-flight';
     operation.started_at = now;
     return { journal, result: { target: journal.target, operation } };
@@ -261,7 +317,7 @@ function args(argv) {
     if (!['--root', '--state', '--input'].includes(rest[i]) || !rest[i + 1] || options[rest[i]]) fail('Expected --root, --state, and optionally --input <JSON file>.');
     options[rest[i]] = rest[i + 1];
   }
-  if (!['init', 'consent', 'baseline', 'prepare', 'begin', 'record', 'reconcile', 'status'].includes(action) || !options['--root'] || !options['--state'] || (action !== 'status' && !options['--input'])) fail('Usage: ticket-publication.mjs init|consent|baseline|prepare|begin|record|reconcile|status --root <root> --state <state.md> [--input <JSON file>]');
+  if (!['init', 'consent', 'baseline', 'prepare-backup', 'prepare', 'begin', 'record', 'reconcile', 'status'].includes(action) || !options['--root'] || !options['--state'] || (action !== 'status' && !options['--input'])) fail('Usage: ticket-publication.mjs init|consent|baseline|prepare-backup|prepare|begin|record|reconcile|status --root <root> --state <state.md> [--input <JSON file>]');
   return { action, ...options };
 }
 

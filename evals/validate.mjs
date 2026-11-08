@@ -64,7 +64,7 @@ export async function validateEvalTree(root = EVAL_ROOT) {
     if (!(await exists(path.join(item.dir, 'prompt.md')))) errors.push(`${item.name}: missing prompt.md`);
     else {
       const frontmatter = (await textFile(path.join(item.dir, 'prompt.md'))).match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? '';
-      if (/^working_directory:/m.test(frontmatter) && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}: working_directory requires a headless case`);
+      if (/^working_directory:/m.test(frontmatter)) errors.push(`${item.name}: working_directory is not supported by the native CLI; use suites.json workingDirectories`);
     }
     const graderDir = path.join(item.dir, 'graders');
     if (!(await exists(graderDir))) {
@@ -107,6 +107,36 @@ export async function validateEvalTree(root = EVAL_ROOT) {
   for (const skill of publicSkills) if (!smokeSkills.has(skill)) errors.push(`no smoke case for ${skill}`);
 
   for (const name of suites.headless ?? []) if (!byName.has(name)) errors.push(`unknown headless case: ${name}`);
+  if (suites.workingDirectories !== undefined && (!suites.workingDirectories || typeof suites.workingDirectories !== 'object' || Array.isArray(suites.workingDirectories))) {
+    errors.push('workingDirectories must be an object keyed by case name');
+  } else for (const [name, directory] of Object.entries(suites.workingDirectories ?? {})) {
+    if (!byName.has(name)) errors.push(`unknown workingDirectories case: ${name}`);
+    if (!(suites.headless ?? []).includes(name)) errors.push(`${name}: workingDirectories requires a headless case`);
+    if (typeof directory !== 'string' || !directory.trim() || path.isAbsolute(directory) || directory.includes('\\') || directory.includes('\0') || directory.split('/').includes('..')) {
+      errors.push(`${name}: workingDirectories must name a relative directory inside the fixture`);
+    }
+  }
+  if (suites.graderEvidenceFiles !== undefined && (!suites.graderEvidenceFiles || typeof suites.graderEvidenceFiles !== 'object' || Array.isArray(suites.graderEvidenceFiles))) {
+    errors.push('graderEvidenceFiles must be an object keyed by case name');
+  } else for (const [name, graders] of Object.entries(suites.graderEvidenceFiles ?? {})) {
+    const item = byName.get(name);
+    if (!item) { errors.push(`unknown graderEvidenceFiles case: ${name}`); continue; }
+    if (!(suites.headless ?? []).includes(name)) errors.push(`${name}: graderEvidenceFiles requires a headless case`);
+    if (!graders || typeof graders !== 'object' || Array.isArray(graders)) {
+      errors.push(`${name}: graderEvidenceFiles must map grader filenames to file arrays`); continue;
+    }
+    for (const [grader, files] of Object.entries(graders)) {
+      if (!/^[a-z0-9][a-z0-9._-]*\.md$/i.test(grader) || !(await exists(path.join(item.dir, 'graders', grader)))) {
+        errors.push(`${name}: unknown graderEvidenceFiles grader: ${grader}`);
+      } else if (field(await textFile(path.join(item.dir, 'graders', grader)), 'type') !== 'llm') {
+        errors.push(`${name}/${grader}: saved evidence requires an llm grader`);
+      }
+      if (!Array.isArray(files) || !files.length || new Set(files).size !== files.length ||
+          files.some((file) => typeof file !== 'string' || !file.trim() || path.isAbsolute(file) || file.includes('\\') || file.includes('\0') || file.includes('*') || file.split('/').includes('..'))) {
+        errors.push(`${name}/${grader}: evidence files must be unique literal relative paths inside the fixture`);
+      }
+    }
+  }
   for (const [skill, tools] of Object.entries(suites.requiredToolsBySkill ?? {})) {
     if (!publicSkills.includes(skill) || !Array.isArray(tools) || tools.some((tool) => !['Read', 'Bash'].includes(tool))) errors.push(`invalid scripted skill tools: ${skill}`);
   }

@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.1] — 2026-11-07
+
+### Added
+
+- Confirmed tracker backup comments before replacing nonempty ticket descriptions, with per-version deduplication, full original snapshots and existing publication consent/reconciliation safeguards.
+
+### Changed
+
+- Construct enumerable go-deep discovery choices before Autopilot resolution, retaining unsupported domain relationships as open questions and reserving free text for non-enumerable answers.
+- Keep fresh implementation runs moving after the dashboard announcement: require Context check to advance or a genuine pause/stop to be saved before ending the turn.
+- Preserve guardrail stop/resolution details and decision provenance, checkpoint interventions durably, and analyze them separately from extra rounds in workflow feedback.
+- Distinguish workflow completion from criterion-level acceptance verification in final packages, dashboards and completion summaries, using Partially verified with pending criteria and recorded reasons.
+- Record refinement answer sources, surface outstanding Product communication when answers are resolved elsewhere, and revisit recommendations invalidated by new evidence without adding blanket PM approval or automatic messaging.
+
+### Fixed
+
+- Accept connector-provided tracker hostnames, persist their normalized HTTPS origins, and report field-specific target errors while retaining publication consent and issue-origin checks.
+- Preserve recorded test repository IDs across renamed clones and linked worktrees, derive fresh worktree IDs from the main checkout, and resolve regression scope to the selected checkout without rewriting existing tokens.
+
 ## [5.4.0] — 2026-11-06
 
 ### Added

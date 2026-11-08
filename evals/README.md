@@ -31,6 +31,12 @@ manual end-to-end release rehearsal.
 section was written). The shared inventory in `evals/suites.json` names the
 smoke cases and the cases that need a direct headless run. Adding a new case
 automatically adds it to `full`; adding a skill requires naming its smoke case.
+For a headless case that starts below the fixture root, set
+`workingDirectories[caseName]` to a relative directory in `suites.json`.
+The runner resolves it after scaffolding and rejects missing directories, files,
+traversal and symlinks outside the fixture. Other cases start at the fixture root.
+Keep runner-only settings out of `prompt.md` frontmatter: the native CLI validates
+all prompt files even when running a single selected case.
 
 The commands run each case once. Smoke starts every selected case in parallel
 in an isolated fixture; full regression remains sequential. The
@@ -122,3 +128,11 @@ MIW_SMOKE_CASES=drive-the-epic-autopilot git push
 ```
 
 Use comma-separated case names for multiple smoke cases. The hook still tests a committed snapshot and records its report; an unset selection runs the full suite. Document the selected scope in the PR.
+
+Headless graders may receive additional saved artifacts through
+`suites.json` → `graderEvidenceFiles[caseName][graderFilename]`. Entries are
+literal relative file paths inside that case's disposable fixture. The runner
+adds their contents to the grader's existing evidence and marks missing files
+NOT PRESENT, preserving trace-based checks for honestly blocked writes.
+Traversal, glob paths and symlink escapes fail before the judge is invoked.
+These runner-only settings stay out of native CLI frontmatter.

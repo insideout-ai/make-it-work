@@ -322,3 +322,41 @@ test('sparse epic turn-cap check accepts only a bounded summary', async () => {
   assert.match('Part A: 6 self-answered turn(s) used (cap 6); exit: cap-reached (open threads: roles)', expression);
   assert.doesNotMatch('Part A: 7 self-answered turn(s) used (cap 6); exit: early (no open threads remaining)', expression);
 });
+
+test('runner-owned artifact evidence supplies saved files and explicit missing markers alongside trace', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-grader-artifacts-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const graderDir = path.join(root, 'graders'); await mkdir(graderDir);
+  await writeFile(path.join(graderDir, 'check.md'), '---\ntype: llm\nfocus: trace\n---\nInspect actual artifacts and write outcomes.\n');
+  await writeFile(path.join(root, 'report.md'), 'Refresh: npm run test:map\n');
+  let calls = 0;
+  const judge = async (prompt) => {
+    calls++;
+    assert.match(prompt, /SAVED ARTIFACT: report\.md\nRefresh: npm run test:map/);
+    assert.match(prompt, /SAVED ARTIFACT: missing\.md\nNOT PRESENT/);
+    assert.match(prompt, /TRANSCRIPT EVIDENCE:\n.*TOOL Bash:/s);
+    return { stdout: JSON.stringify({ structured_output: { verdict: 'PASS', reason: 'Saved and absent artifacts are explicit; trace retained.' } }) };
+  };
+  const grade = await gradeHeadlessCase({ graderDir, fixtureDir: root, transcript, budgetUsd: 1,
+    evidenceFiles: { 'check.md': ['report.md', 'missing.md'] }, judge });
+  assert.equal(grade.passed, true); assert.equal(calls, 2);
+  assert.equal(await readFile(path.join(root, 'report.md'), 'utf8'), 'Refresh: npm run test:map\n');
+});
+
+test('supplemental evidence rejects traversal, globs, directories and symlink escapes before judging', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-grader-artifact-safety-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const fixtureDir = path.join(root, 'fixture'); await mkdir(fixtureDir);
+  const graderDir = path.join(root, 'graders'); await mkdir(graderDir);
+  await writeFile(path.join(graderDir, 'check.md'), '---\ntype: llm\nfocus: trace\n---\nInspect artifacts.\n');
+  await writeFile(path.join(root, 'outside.md'), 'outside');
+  await symlink(path.join(root, 'outside.md'), path.join(fixtureDir, 'escape.md'));
+  let calls = 0;
+  const judge = async () => { calls++; throw new Error('Must not invoke judge'); };
+  for (const files of [['../outside.md'], [path.join(root, 'outside.md')], ['*.md'], ['bad\\path'], ['bad\0path'], ['escape.md'], ['.'], 'report.md']) {
+    const grade = await gradeHeadlessCase({ graderDir, fixtureDir, transcript, budgetUsd: 1,
+      evidenceFiles: { 'check.md': files }, judge });
+    assert.equal(grade.passed, false, JSON.stringify(files));
+  }
+  assert.equal(calls, 0);
+});

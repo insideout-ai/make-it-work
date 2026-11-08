@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { inspectState, renderBlock, upsertBlock, writeFeedback } from './write-feedback.mjs';
+import { noteCell } from './audit-notes.mjs';
 
 const EVAL_ROOT = path.resolve(import.meta.dirname, '../../../evals/implement');
 const SCRIPT_PATH = path.join(import.meta.dirname, 'write-feedback.mjs');
@@ -40,6 +41,24 @@ function diagnosis(summary) {
   };
 }
 
+function guardrailState(markdown, { resolved = true, afterComplete = false } = {}) {
+  const stop = noteCell({ kind: 'result', id: 'guardrail-stop:sample', text: 'Guardrail stop. A private-example expectation requires clarification.', reference: 'private-source' });
+  const resolution = noteCell({ kind: 'result', id: 'guardrail-resolve:sample', text: 'Guardrail resolved with user guidance via chat. Confirmed private-example behavior.', reference: 'private-source' });
+  const lines = markdown.split('\n');
+  const insertAt = afterComplete ? lines.length : lines.findIndex(line => /^\| \d+ \| .*\| execute \| review \|/.test(line));
+  assert.ok(insertAt >= 0);
+  const phase = afterComplete ? 'complete' : 'execute';
+  lines.splice(insertAt, 0, `| 0 | 2026-01-01T10:03:10Z | ${phase} | ${phase} | ${stop} |`, ...(resolved ? [`| 0 | 2026-01-01T10:03:20Z | ${phase} | ${phase} | ${resolution} |`] : []));
+  let number = 0;
+  return lines.map(line => /^\| \d+ \|/.test(line) ? line.replace(/^\| \d+ \|/, `| ${++number} |`) : line).join('\n');
+}
+
+function guardrailAnalysis(summary) {
+  return { ...diagnosis(summary), guardrails: summary.guardrails.map(item => ({ row: item.row, resolutionRow: item.resolutionRow,
+    trigger: 'An expected outcome required clarification', resolution: item.resolutionRow ? 'The user clarified the intended outcome' : 'Resolution was not recorded',
+    lesson: 'No workflow change recommended', confidence: 'high' })) };
+}
+
 async function workspace(t, state) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'implement-feedback-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -63,6 +82,57 @@ test('minimal run is counted from Audit log and written without analysis', async
   assert.match(feedback, /- Minimal path: Yes/);
   assert.match(feedback, /- Review cycles: 1/);
   assert.doesNotMatch(feedback, /Extra-round analysis|DEMO/);
+});
+
+test('a resolved guardrail receives neutral analysis while preserving a minimal execution path and zero extra rounds', async (t) => {
+  const state = guardrailState(finish(await fixture('feedback-clean')));
+  const summary = inspectState(state);
+  assert.equal(summary.minimal, true);
+  assert.equal(summary.analysisRequired, true);
+  assert.equal(summary.fixRounds, 0); assert.equal(summary.replans, 0);
+  assert.deepEqual(summary.events, []);
+  assert.equal(summary.guardrails.length, 1);
+  assert.equal(summary.guardrails[0].source, 'user'); assert.equal(summary.guardrails[0].via, 'chat');
+  assert.throws(() => renderBlock(summary), /Analysis must be a JSON object/);
+  const f = await workspace(t, state);
+  const analysis = guardrailAnalysis(summary);
+  const first = await writeFeedback(f.statePath, { analysis });
+  const original = await readFile(f.feedbackPath, 'utf8');
+  await writeFeedback(f.statePath, { analysis });
+  assert.equal(await readFile(f.feedbackPath, 'utf8'), original);
+  assert.match(original, /Minimal path: Yes/);
+  assert.match(original, /Guardrail interventions: 1/);
+  assert.match(original, /Decision source: user via chat/);
+  assert.match(original, /No workflow change recommended/);
+  assert.doesNotMatch(original, /Extra-round analysis|private-example|private-source/);
+  assert.equal(await readFile(first.sessionOutputPath, 'utf8'), original);
+  assert.equal(await readFile(f.statePath, 'utf8'), state);
+});
+
+test('guardrail analysis matches actual stop/resolution rows and enforces share-safe paraphrases', async () => {
+  const summary = inspectState(guardrailState(finish(await fixture('feedback-clean'))));
+  const analysis = guardrailAnalysis(summary);
+  assert.throws(() => renderBlock(summary, { ...analysis, guardrails: [] }), /each recorded guardrail/);
+  const wrong = structuredClone(analysis); wrong.guardrails[0].resolutionRow += 1;
+  assert.throws(() => renderBlock(summary, wrong), /audit rows/);
+  const raw = structuredClone(analysis); raw.guardrails[0].trigger = 'The private-example requirement needed clarification';
+  assert.throws(() => renderBlock(summary, raw), /project terminology/);
+  const unresolved = inspectState(guardrailState(finish(await fixture('feedback-clean')), { resolved: false }));
+  assert.equal(unresolved.guardrails[0].resolutionRow, null);
+  assert.equal(unresolved.guardrails[0].source, 'unavailable');
+  assert.match(renderBlock(unresolved, guardrailAnalysis(unresolved)), /Resolution was not recorded/);
+});
+
+test('guardrails coexist with extra rounds without becoming fixes, and post-completion notes are excluded', async () => {
+  const extra = inspectState(guardrailState(finish(await fixture('feedback-nonminimal'))));
+  const original = inspectState(finish(await fixture('feedback-nonminimal')));
+  assert.equal(extra.fixRounds, original.fixRounds); assert.equal(extra.replans, original.replans);
+  assert.equal(extra.events.length, original.events.length);
+  assert.equal(extra.guardrails.length, 1);
+  assert.match(renderBlock(extra, guardrailAnalysis(extra)), /Extra-round analysis/);
+  const late = inspectState(guardrailState(finish(await fixture('feedback-clean')), { afterComplete: true }));
+  assert.deepEqual(late.guardrails, []);
+  assert.equal(late.analysisRequired, false);
 });
 
 test('non-minimal run counts reset cycles from history and formats structured diagnosis', async (t) => {

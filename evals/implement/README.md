@@ -151,6 +151,12 @@ dashboard link in the next assistant message after initialization, before any
 further workflow tool call; a path present only in controller output fails.
 The controller unit tests cover all autonomy modes, pending-offline creation,
 and path characters needing Markdown URL escaping.
+The startup Stop hook also requires a normal fresh controller run to continue
+beyond `context-check / In Progress` after the link is posted. A final response
+containing the link alone does not release that hold. Local hook tests cover
+all three autonomy modes, normal Context completion, saved pauses/stops, offline
+waits, Resume, and unavailable or malformed state. Tools remain available after
+the link so the assistant can continue or checkpoint a genuine blocker.
 
 
 Historical startup-link validation (2026-11-05): controller and harness unit tests
@@ -185,6 +191,6 @@ failures above remain historical evidence, and browser visual QA is still pendin
 
 `implement-repo-start-dependencies` starts with an explicitly accepted cross-repo spec and reuse/TDD consent inside connector-app, without --workspace or expanded repository consent. Refinement is already resolved so unrelated product questions do not obscure scope handling. It must surface a blocking workspace/repository approval before implementation or an unapproved connector-only plan. `implement-repo-start-local` checks that ordinary single-repo startup reaches Context check without unnecessary scope questions.
 
-Both use headless `working_directory: connector-app`, which changes the actual child-process cwd while retaining the fixture root for grading. No workflow behavior is changed by these evals. The optional harness field accepts only a relative directory that resolves inside the fixture; existing cases default to the fixture root. Run `node --test evals/startup-scope-fixtures.test.mjs evals/run-suite-args.test.mjs` for local checks, and after approval `node evals/run-suite.mjs full --case=implement-repo-start-dependencies --case=implement-repo-start-local --max-cost-usd=2` for model checks.
+Both use the runner-owned `suites.json` `workingDirectories` entries set to `connector-app`, which changes the actual child-process cwd while retaining the fixture root for grading. No workflow behavior is changed by these evals. The optional runner setting stays out of native CLI prompt frontmatter and accepts only a relative directory that resolves inside the fixture; existing cases default to the fixture root. Run `node --test evals/startup-scope-fixtures.test.mjs evals/run-suite-args.test.mjs` for local checks, and after approval `node evals/run-suite.mjs full --case=implement-repo-start-dependencies --case=implement-repo-start-local --max-cost-usd=2` for model checks.
 
 Live validation on 2026-11-06 against committed workflow `8b34fff`: both startup-scope cases passed. The cross-repo run stopped read-only for actual repository/workspace approval before initialization or branch changes; the local run initialized its dashboard and passed Context check without workspace selection. Summary metadata confirms actual cwd was the connector Git repo. Protected source/test/spec files, all repository branches and HEADs, and sibling working trees were unchanged. The plugin snapshot was unchanged and all 51 current eval-harness tests passed. Local summary: `evals/results/repo-start-scope-verification-2026-11-06/summary.json`. This validates the accepted-spec startup and ordinary Context paths, not approval resume or full implementation. No workflow instructions changed; only eval fixtures and optional headless cwd support were added.

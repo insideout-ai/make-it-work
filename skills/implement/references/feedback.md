@@ -15,11 +15,12 @@ The terminal state-file write and dashboard regeneration happen first. Feedback 
 
 ## Explain the feedback to the user
 
-Use plain language in chat; keep terms such as `minimal`, `inspect`, writer classification and dispatch gates in internal reasoning and artifacts. Before inspecting a completed run, say: "Implementation is complete. I’m recording workflow feedback and checking whether any extra rounds need analysis." For an eligible limit stop, say: "The run has stopped at its retry limit. I’m reviewing what led to the extra rounds and recording possible workflow improvements." If analysis is needed, explain: "I’m reviewing why extra rounds were needed and whether the workflow could prevent them next time."
+Use plain language in chat; keep terms such as `minimal`, `inspect`, writer classification and dispatch gates in internal reasoning and artifacts. Before inspecting a completed run, say: "Implementation is complete. I’m recording workflow feedback and checking whether any extra rounds need analysis." For an eligible limit stop, say: "The run has stopped at its retry limit. I’m reviewing what led to the extra rounds and recording possible workflow improvements." If extra-round analysis is needed, explain: "I’m reviewing why extra rounds were needed and whether the workflow could prevent them next time." For a guardrail-only review, say: "A guardrail intervention was recorded. I’m reviewing its resolution and whether it suggests a workflow improvement."
 
 Include the feedback result in the terminal chat summary for both completed runs and eligible limit stops, not just the file location:
 
-- With no fix, replan or escalation events, say: "No fix rounds, replanning or switch from Lightweight to TDD were needed; a short workflow note was saved."
+- With no fix, replan, escalation or recorded guardrail interventions, say: "No fix rounds, replanning or switch from Lightweight to TDD were needed; a short workflow note was saved."
+- For recorded guardrail interventions, summarize the stop and resolution neutrally, even if no extra rounds occurred. A safeguard catching an ambiguity is not automatically a failure.
 - After detailed analysis, give a brief account of why extra rounds were needed and the main suggested workflow improvement, if supported. Distinguish a suggestion from an applied change. If no workflow change is recommended, say so; preserve material uncertainty rather than presenting a tentative cause as fact.
 - Link the writer's `sessionOutputPath` (`make-it-work/<TICKET>/workflow-feedback.md`) as **Save this session's feedback** for the full saved details. The cumulative `make-it-work/implement-feedback.md` remains available locally. If analysis or saving failed, state what could not be completed rather than claiming feedback was saved. Keep the implementation's completed or stopped status explicit.
 
@@ -66,28 +67,28 @@ Resolve `<base>` to this skill's directory. After the terminal checkpoint and da
 node "<base>/scripts/write-feedback.mjs" inspect --state "make-it-work/<TICKET>/<TICKET>-state.md"
 ```
 
-For an exhausted fix, review, or replan limit stop, also pass `--limit-stop`; never pass it for any other stop. The script rejects ineligible state. Its JSON summary supplies `minimal`, the counts, and the ordered `events` (`kind` and Audit-log `row`). It reads the Audit log chronologically; never substitute the live counters, which can reset after replanning.
+For an exhausted fix, review, or replan limit stop, also pass `--limit-stop`; never pass it for any other stop. The script rejects ineligible state. Its JSON summary supplies `minimal`, `analysisRequired`, the counts, the ordered `events` (`kind` and Audit-log `row`), and separate `guardrails` (stop `row`, `resolutionRow` or null, known source/channel). It reads the Audit log chronologically; never substitute the live counters, which can reset after replanning.
 
 The writer counts transitions into `fix-plan` (including zero-step rounds) and, for Lightweight runs, `review`/`final-approval` → `lightweight` fix rounds as `Fix`; explicit replans from execute/review/fix-plan back to plan as `Replan`; any row whose outcome starts with `Escalation:` (Lightweight → TDD) as `Escalation`, never as a Replan; and review-cycle rows (falling back to transitions into review). A run with no fix, replan, or escalation event is minimal, even if an approval was redone or execution retried internally. Adaptive runs (`adaptive_version: 1`) also get `Mode: <mode> (<risk> risk, <assessed|user>)`, `Escalations: <n>`, `Stages skipped:` and `Elapsed:` lines (the risk rationale stays in the state file, since it may name project terms); older runs do not.
 
-For a minimal run, write the compact block immediately:
+For `analysisRequired: false`, write the compact block immediately:
 
 ```sh
 node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md"
 ```
 
-Do not dispatch retrospective analysis or ask feedback questions for a minimal run.
+Do not dispatch retrospective analysis or ask feedback questions when `analysisRequired` is false. `minimal` still measures the path through Fix/Replan/Escalation rounds; a guardrail does not change those counts or imply a failed run. A recorded guardrail sets `analysisRequired: true` even on a minimal path.
 
-## Investigate a non-minimal run
+## Investigate extra rounds or guardrail interventions
 
-The `inspect` result's `minimal: false` is a dispatch gate: call the Agent tool once to start a fresh general-purpose retrospective subagent **before** drafting analysis JSON or calling `write --analysis`. Evidence already read in this session, an apparently obvious cause, or a nearly finished terminal report does not waive this gate. The orchestrator may inspect and sanitize the returned JSON, but must not replace the subagent's diagnosis with its own. If dispatch is unavailable or fails, report that the feedback retrospective could not be completed; keep the workflow's terminal state and do not write an invented non-minimal diagnosis.
+The `inspect` result's `analysisRequired: true` is a dispatch gate: call the Agent tool once to start a fresh general-purpose retrospective subagent **before** drafting analysis JSON or calling `write --analysis`. Evidence already read in this session, an apparently obvious cause, or a nearly finished terminal report does not waive this gate. The orchestrator may inspect and sanitize the returned JSON, but must not replace the subagent's diagnosis with its own. If dispatch is unavailable or fails, report that the feedback retrospective could not be completed; keep the workflow's terminal state and do not write an invented non-minimal diagnosis.
 
 Give that subagent this reference and the minimum available evidence needed from:
 
 - the state file and its complete Audit log;
 - the refined spec;
 - every version of the plan, including amended fix steps and `Design reset` notes;
-- the saved execute report and any Lightweight implementation report; and
+- the saved execute report, execution journal/history and any Lightweight implementation report; and
 - the review report.
 
 Reports may have been overwritten by later cycles. Treat the Audit-log trigger summaries, fix-step root-cause text, and versioned plan design resets as the durable evidence for earlier rounds. Inspect the final diff or code only when those artifacts cannot establish whether execution departed from an adequate plan.
@@ -100,6 +101,14 @@ For each fix, replan, or escalation event, determine:
 4. Preventability: `likely`, `partial`, `unavoidable`, or `unclear`.
 5. The owning workflow skill, if any.
 6. One specific, generalizable skill improvement and its confidence (`high`, `medium`, or `low`), or `No workflow change recommended` when the cause was project-specific or unavoidable.
+
+For each recorded guardrail intervention, separately paraphrase the stop and
+resolution, describe any evidence-supported lesson (or `No workflow change
+recommended`), and give confidence. Do not invent a resolution where its row is
+null or treat correct safeguard behavior as a workflow defect. Only structured
+execution checkpoints recorded within the terminal workflow boundary count;
+older unstructured history is not guessed from prose. Post-workflow findings
+are outside this feedback feature.
 
 Use these attribution rules:
 
@@ -155,13 +164,23 @@ The retrospective subagent returns one share-safe JSON object. Create a uniquely
     "improvement": "Specific generalizable improvement",
     "confidence": "high"
   }],
+  "guardrails": [{
+    "row": 8,
+    "resolutionRow": 9,
+    "trigger": "An expected outcome required clarification",
+    "resolution": "The user clarified the intended outcome",
+    "lesson": "No workflow change recommended",
+    "confidence": "high"
+  }],
   "recommendations": ["Deduplicated recommendation"],
   "clarifications": [],
   "openQuestions": []
 }
 ```
 
-`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` (`Fix`, `Replan`, or `Escalation`) and `row`. Valid `rootCause` values are the categories in Investigate a non-minimal run; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
+`guardrails` must match the inspection list one-for-one using its exact `row` and `resolutionRow` (null when not recorded). Keep trigger/resolution/lesson share-safe and distinguish reported evidence from inference. Source/channel are derived from saved checkpoints, not invented by the subagent. Omit `guardrails` or use an empty array when none were recorded. A guardrail-only analysis uses `events: []`.
+
+`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` (`Fix`, `Replan`, or `Escalation`) and `row`. Valid `rootCause` values are the categories in Investigate extra rounds or guardrail interventions; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
 
 ```sh
 node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --analysis "<temporary-analysis.json>"

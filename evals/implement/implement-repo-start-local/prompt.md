@@ -1,6 +1,5 @@
 ---
 tags: [implement, repo-start, scope]
-working_directory: connector-app
 allowed_tools: [Read, Glob, Grep, Bash, Write, Edit, Agent, Skill, AskUserQuestion]
 max_turns: 90
 timeout_seconds: 900

@@ -2,6 +2,33 @@
 
 These helpers own mechanical operations. Read the section for the current skill only. Semantic analysis supplies the inputs; scripts validate relationships and render derived output. None of these helpers grants permission to write to an external service. Do not switch tools/paths to bypass denied writes.
 
+## Repository identity
+
+Use `repo-identity.mjs identity --root <selected-repo>` before writing a test
+strategy or test-map namespace. It returns the canonical `repoId` and the
+selected Git `root`, preserving a recorded strategy/map ID when available.
+Readable, conflicting recorded IDs stop for explicit resolution. A malformed
+map with a valid strategy ID returns a warning and retains that ID; it does not
+bypass the map's normal refresh/discovery rules. Neither artifact is rewritten
+by identity lookup.
+
+For fresh linked worktrees, the fallback comes from Git's main working-tree
+metadata rather than a temporary directory name. Fresh bare-owned worktrees or
+unresolvable owner layouts need an explicit recorded token-safe ID. Existing
+IDs, including historical temporary ones, are never migrated automatically.
+
+Use `regression.mjs resolve --root <invocation-root> --repo <prefix>` for token
+lookup; `--workspace-root` is optional and must name an already selected
+workspace. It prefers a matching current checkout, supports recorded IDs in
+renamed folders and directory aliases, and searches only immediate Git roots
+within supplied boundaries. Multiple matches require explicit checkout
+selection. Use returned `root` for tests and `repoId` for map tokens. Main-tree
+metadata supplies a default name, never permission to run code in another tree.
+Within implement, approved workspace IDs/roots remain the execution scope:
+resolve identity in the approved checkout, keep its approved ID in manifests
+where the contract requires it, and use its canonical test ID for map queries.
+Neither identity nor token lookup widens approved scope or changes branches.
+
 ## Refinement questions
 
 Before Phase 5C handles an offline file, run `node <plugin-root>/scripts/questions.mjs inspect --file <questions.md>`. Use its conflicts, unanswered IDs, active TBD count and decision IDs rather than manually counting checkboxes or evaluating nested conditions. Only active questions enter the Decision Log. Conflicts remain hard stops under Autopilot. Reverify code premises and reconcile conflicting hand-entered/Slack answers under the existing semantic contract; the parser does not settle them.

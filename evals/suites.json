@@ -16,6 +16,9 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "close-the-gaps-mixed-sources",
+    "close-the-gaps-pm-followup",
+    "close-the-gaps-stale-recommendation",
     "plan-facts-vendor-contract",
     "plan-facts-prior-notes",
     "plan-facts-boundary-conflict",
@@ -112,6 +115,19 @@
     "plan-assumption-supported",
     "plan-assumption-low-risk"
   ],
+  "workingDirectories": {
+    "implement-repo-start-dependencies": "connector-app",
+    "implement-repo-start-local": "connector-app"
+  },
+  "graderEvidenceFiles": {
+    "dts-fresh-tests": {
+      "developer-report-and-layers.md": [
+        ".claude/testing/test-map.json",
+        ".claude/testing/TEST-MAP.md",
+        ".claude/skills/test-strategy/SKILL.md"
+      ]
+    }
+  },
   "requiredToolsBySkill": {
     "drive-the-epic": ["Read", "Bash"],
     "implement": ["Read", "Bash"],

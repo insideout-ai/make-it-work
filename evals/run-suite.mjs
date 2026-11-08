@@ -95,8 +95,7 @@ function promptConfig(markdown) {
     .split(',').map((tool) => tool.trim()).filter(Boolean) ?? [];
   const maxTurns = Number(match[1].match(/^max_turns:\s*(\d+)/m)?.[1] ?? 100);
   const timeoutSeconds = Number(match[1].match(/^timeout_seconds:\s*(\d+)/m)?.[1] ?? 1800);
-  const workingDirectory = match[1].match(/^working_directory:[ \t]*(.+)$/m)?.[1]?.trim() ?? '.';
-  return { tools, maxTurns, timeoutSeconds, workingDirectory, body: match[2].trim() };
+  return { tools, maxTurns, timeoutSeconds, body: match[2].trim() };
 }
 
 async function runCase(item, remaining) {
@@ -120,10 +119,10 @@ async function runCase(item, remaining) {
           status: 'failed', detail: 'fixture setup failed', fixtureDir };
       }
     }
-    try { workingDirectory = await caseWorkingDirectory(fixtureDir, prompt.workingDirectory); }
+    try { workingDirectory = await caseWorkingDirectory(fixtureDir, suites.workingDirectories?.[item.name]); }
     catch (error) {
       return { name: item.name, skill: item.skill, mode: 'headless', costUsd: 0,
-        status: 'failed', detail: `Invalid working_directory: ${error.message}`, fixtureDir };
+        status: 'failed', detail: `Invalid workingDirectories entry: ${error.message}`, fixtureDir };
     }
     const args = ['-p', prompt.body, '--plugin-dir', REPO_ROOT, '--allowedTools', ...tools,
       '--max-turns', String(prompt.maxTurns), '--max-budget-usd', remaining.toFixed(2),
@@ -141,6 +140,7 @@ async function runCase(item, remaining) {
         const grading = await gradeHeadlessCase({
           graderDir: path.join(item.dir, 'graders'), transcript: result.stdout,
           fixtureDir, budgetUsd: Math.max(0, remaining - caseCost), judgeModel,
+          evidenceFiles: suites.graderEvidenceFiles?.[item.name],
         });
         caseCost += grading.judgeCostUsd;
         await writeFile(path.join(caseReportDir, 'grader-results.json'),

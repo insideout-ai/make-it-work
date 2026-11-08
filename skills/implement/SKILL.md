@@ -57,6 +57,10 @@ init, the next tool/terminal response is held until the session transcript
 contains the actual assistant chat link. Emit the link and retry the held work;
 no user confirmation or state-field acknowledgment is involved. These hooks
 write no files and do not affect Resume or sessions without a fresh init.
+For a normal controller startup, the Stop hook also checks the saved state after
+that announcement: while Context check is still In Progress, continue in the
+same turn. A genuine question or blocker must use the documented saved pause or
+stop. Pending offline-answer waits retain their existing behavior.
 
 The link is an announcement, not a stopping point. Do not end the turn after
 showing it, request acknowledgment, ask whether to continue, or require the user
@@ -344,7 +348,7 @@ When the question will be shown and the user supplied an explicit tracker ticket
 - **Guided (Recommended)** — pauses for approval after the spec (with the assessed run mode), after the plan when the run has one, and for every human decision.
 - **Autonomous** — no approval gates, and replans automatically when the plan stops holding. It still asks every question a stage asks and every uncertain regression, and stops at the loop limits and at completion.
 - **Autopilot** — runs without approval or stage-question prompts, with ticket updates off unless separately explicitly authorized. It uses the policy in Autopilot mode and stops safely when no documented default exists.
-- **Autopilot + update ticket** — when eligible, the same unattended implementation plus updates to **<issue> at <site>**: refined description replacement, accepted plans as attachments or comments when uploads are unavailable, significant blocker comments, implementation/review/verification summaries and one final HTML dashboard attachment at completion for Jira where uploads are supported. Name the actual supported operations and anything unavailable in this option's description or question body, so selection authorizes a concrete scope. Comments-only connectors remain eligible; their offer excludes description replacement and uploads.
+- **Autopilot + update ticket** — when eligible, the same unattended implementation plus updates to **<issue> at <site>**: refined description replacement after preserving each nonempty description being replaced in an original-description comment, accepted plans as attachments or comments when uploads are unavailable, significant blocker comments, implementation/review/verification summaries and one final HTML dashboard attachment at completion for Jira where uploads are supported. Name the actual supported operations and anything unavailable in this option's description or question body, so selection authorizes a concrete scope. Comments-only connectors remain eligible; their offer excludes description replacement and uploads. If backup comments are unavailable, exclude nonempty description replacement too.
 
 Offer the three ordinary choices plus the combined option only when eligible. Keep **Guided (Recommended)** as the recommended default. Both Autopilot choices persist `autonomy: autopilot`; do not add a fourth autonomy enum, dispatch flag or execution policy.
 
@@ -663,7 +667,7 @@ Read `<base>/references/feedback.md` in full and follow it. The deterministic fe
 
 Follow that reference's **Explain the feedback to the user** guidance for progress messages and the terminal summary. Describe the purpose and findings in plain language; do not narrate internal writer classification or call the user's run "minimal" or "non-minimal" in chat.
 
-Use the writer's `inspect` result to decide whether the run is minimal. For a non-minimal run, the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+Use the writer's `inspect` result to decide whether analysis is needed. When `analysisRequired` is true (extra rounds or recorded in-workflow guardrail interventions), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
 
 The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later. Under `autopilot`, do not ask the retrospective's optional clarification questions: preserve material uncertainty in the writer input's `openQuestions` and finish the terminal report.
 
@@ -672,6 +676,18 @@ The feedback file is local working data. Never upload, submit, email, or post it
 ## Completion
 
 For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
+
+When the package check returns `verification_summary`, begin the summary with
+**Workflow: Complete** and **Verification: <verification_summary.text>**. List
+each pending criterion and its scenarios' recorded reason/verification needed.
+Use `Partially verified` when some criteria have passing evidence and others
+remain pending; use `Pending verification` when none are verified. A criterion
+counts as verified only when all its mapped scenarios have passing automated or
+manual evidence. Do not count traceability rows as separate criteria, infer AC
+coverage from the suite result, or invent a successful check to clear a pending
+item. This is presentation, not a new workflow state, approval or release gate;
+existing manual-policy completion requirements still apply. A missing summary
+(legacy/Lightweight/no AC ledger) cannot establish full AC verification.
 
 - **Mode** — for an adaptive run: the mode, assessed risk and its source, rationale, and each escalation with its reason. Omit for older runs.
 - **Implemented** — the plan's `## What This Changes`, in a sentence or two; with no plan, the Lightweight report's `## Summary`.
@@ -684,7 +700,7 @@ For a run with `final_package_version: 1`, reach this section only after the Fin
 - **Ticket updates** — when a tracker destination was supplied/configured, report confirmed publications and any local-only, skipped, deferred, unsupported, failed or uncertain operations from the publication journal.
 - **Replans used** — the count.
 - **Workflow feedback** — a brief result and a **Save this session's feedback** link to the writer's `sessionOutputPath` (`make-it-work/<TICKET>/workflow-feedback.md`), following the feedback reference's **Explain the feedback to the user** guidance: say whether extra rounds were needed and, when analyzed, summarize the main cause and suggested improvement or the conclusion that no workflow change is recommended. Preserve material uncertainty and do not imply suggestions were applied. The export is a post-completion companion beside the approved package, not a change to its approval. If analysis or saving failed, state that limitation instead of claiming success.
-- **Elapsed** — if `start_time` is a real captured timestamp (not `none`), the plain delta between it and this transition's own just-logged timestamp, as a human-readable duration (e.g. "2h 14m") — convert both ISO timestamps to epoch seconds via the host's `date` utility and subtract; this is a duration, not a display timestamp, so no timezone conversion is needed. If `start_time` is `none` (this run began before real start-timestamp capture existed), state "Elapsed: unknown — no real start timestamp was captured for this run" instead of estimating or backfilling one.
+- **Elapsed time (includes waits and pauses)** — if `start_time` is a real captured timestamp (not `none`), the plain delta between it and this transition's own just-logged timestamp, as a human-readable duration (e.g. "2h 14m") — convert both ISO timestamps to epoch seconds via the host's `date` utility and subtract; this is a duration, not a display timestamp, so no timezone conversion is needed. If `start_time` is `none` (this run began before real start-timestamp capture existed), state "Elapsed: unknown — no real start timestamp was captured for this run" instead of estimating or backfilling one. State that active processing time is not measured. Do not subtract guessed idle time or present checkpoint intervals as active work.
 - **Cost** — not shown; no tool surfaces token-usage or billing data to this session. Check your own client's `/usage` command instead.
 
 After the summary, state: "Implementation is complete; code changes remain local and uncommitted. Ticket artifacts are in `make-it-work/<TICKET>/`; delete that directory yourself when you no longer need them." On a separate line, state: "Workflow feedback is kept separately in `make-it-work/implement-feedback.md`. It is cumulative across runs; keep it if you plan to review or share it." If this run's feedback write failed, say so in the summary and phrase this note as the usual location rather than claiming the run was recorded. These notes are not questions; never delete anything.
