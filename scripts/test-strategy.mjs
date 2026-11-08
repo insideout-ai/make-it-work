@@ -80,7 +80,8 @@ export async function updateStrategyPointer(root) {
   catch (error) { if (error.code === 'ENOENT') return { changed: false, skipped: 'No CLAUDE.md' }; throw error; }
   const result = strategyPointer(await readFile(file, 'utf8'));
   if (result.changed) await atomicWrite(file, result.markdown);
-  return { changed: result.changed, skipped: result.skipped ?? null };
+  return { changed: result.changed, skipped: result.skipped ?? null,
+    ...(result.changed ? { next_action: { type: 'reassess-map', instruction: 'Reassess affected map locations from actual test assertions and UC/domain evidence after this CLAUDE.md change, before advancing snapshots or discovery signatures. Replacing a hash alone is not reassessment. Then record final baselines and regenerate TEST-MAP.md.' } } : {}) };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--file', '--root', '--input']);

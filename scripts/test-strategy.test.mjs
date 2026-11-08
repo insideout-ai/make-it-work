@@ -32,7 +32,13 @@ test('disk pointer requires both valid saved artifacts before touching CLAUDE.md
   await assert.rejects(updateStrategyPointer(root), /ENOENT/); assert.equal(await readFile(path.join(root, 'CLAUDE.md'), 'utf8'), claude);
   await writeFile(path.join(root, '.claude/testing/test-map.json'), JSON.stringify({ schemaVersion: 1, productRepo: 'app', tokens: [], repos: [{ id: 'app', root: '.' }], locations: [{ id: 'local', repo: 'app', paths: ['.'], config: [], complete: true, assessedTokens: [] }], tests: [], mappings: [], decisions: [], snapshots: {}, discovery: {} }));
   const pointer = () => JSON.parse(execFileSync(process.execPath, [new URL('./test-strategy.mjs', import.meta.url).pathname, 'pointer', '--root', root], { encoding: 'utf8' }));
-  assert.deepEqual(pointer(), { changed: true, skipped: null });
+  const savedMap = await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8');
+  const changed = pointer();
+  assert.equal(changed.changed, true);
+  assert.equal(changed.skipped, null);
+  assert.equal(changed.next_action.type, 'reassess-map');
+  assert.match(changed.next_action.instruction, /actual test assertions/);
+  assert.equal(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'), savedMap, 'Pointer writes must not advance map baselines');
   const updated = await readFile(path.join(root, 'CLAUDE.md'), 'utf8');
   assert.equal((updated.match(/\| \/test-strategy \|/g) ?? []).length, 1);
   assert.deepEqual(pointer(), { changed: false, skipped: null });
