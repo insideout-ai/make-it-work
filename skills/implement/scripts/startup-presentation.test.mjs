@@ -173,3 +173,16 @@ test('buffered partial transcript lines and diagnostic replay events do not manu
   assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript }), {});
   assert.deepEqual(await startupHook({ hook_event_name: 'Stop', transcript_path: transcript }), {});
 });
+
+
+test('synthetic Stop feedback cannot release a fresh-run continuation or premature-edit hold', async (t) => {
+ const run = await freshRun(t, 'autopilot');
+ run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: continue.' } });
+ await run.saveEvents();
+ assert.match((await run.check()).reason, /Continue Context check/);
+ await writeFile(path.join(run.root, 'app.js'), 'premature edit');
+ await run.apply('stop');
+ run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: recover the skipped stages.' } });
+ await run.saveEvents();
+ assert.match((await run.check()).reason, /Application files changed/);
+});

@@ -36,7 +36,7 @@ export function startupProgress(events) {
     if (!['assistant', 'user'].includes(event.type)) continue;
     const role = event.message?.role ?? event.type;
     const content = event.message?.content;
-    if (role === 'user' && !event.isMeta && (typeof content === 'string' ||
+    if (role === 'user' && !event.isMeta && !event.isSynthetic && (typeof content === 'string' ||
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
       // A new user turn is Resume, not a fresh-run announcement obligation.
       initialized = null;

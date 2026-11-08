@@ -34,8 +34,9 @@ the assistant chat action. PreToolUse and Stop allow up to four seconds for a
 buffered chat record before enforcing a missing announcement. Stop requires the
 actual assistant chat link and continuation of every In Progress phase. Diagnostic
 request dumps are not conversation events; a partially appended final JSONL line
-is retried/ignored until it is complete. A new user turn clears the fresh-start
-obligation, preserving Resume behavior.
+is retried/ignored until it is complete. A genuine new user turn clears the fresh-start
+obligation, preserving Resume behavior; synthetic hook feedback and diagnostic
+request replays do not clear it.
 
 Initialization returns an `implementation_baseline` for every approved repo;
 this is immutable transcript evidence, not a new persisted state field. It covers

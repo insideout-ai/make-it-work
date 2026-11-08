@@ -88,8 +88,22 @@ test('evidence checks cover PostToolUse, ignore diagnostic replays and do not co
  assert.deepEqual(evidenceDeliveryHold(evidenceEvents(cut).map((event) => ({ ...event, type: 'api-request-blob' }))), {});
  const partial = { ...pointerPacket, reassessment_evidence: { files: [{ file: 'missing.js', status: 'unavailable' }], complete: false, remaining_files: 1 } };
  assert.deepEqual(evidenceDeliveryHold(evidenceEvents(partial)), {}, 'Delivery check is not a semantic freshness verdict');
+ for (const meta of [{ isSynthetic: true }, { isMeta: true }]) {
+  const feedback = { type: 'user', ...meta, message: { role: 'user', content: [{ type: 'text', text: 'Stop hook feedback: retrieve evidence.' }] } };
+  assert.equal(evidenceDeliveryHold([...evidenceEvents(cut), feedback]).decision, 'block');
+ }
  const events = [...evidenceEvents(cut), { type: 'user', message: { role: 'user', content: 'Stop this run.' } }];
  assert.deepEqual(evidenceDeliveryHold(events), {});
  const failed = evidenceEvents(cut); failed[1].message.content[0].is_error = true;
  assert.deepEqual(evidenceDeliveryHold(failed), {});
+});
+
+
+test('synthetic hook feedback and request replays cannot clear the refresh-command hold', () => {
+ for (const meta of [{ isSynthetic: true }, { isMeta: true }]) {
+  const feedback = { type: 'user', ...meta, message: { role: 'user', content: 'Stop hook feedback: correct the placeholder.' } };
+  assert.equal(refreshHandoff([...generated(), feedback, message(bad)]).decision, 'block');
+ }
+ const replay = { type: 'api-request-blob', message: { role: 'user', content: 'An old request dump' } };
+ assert.equal(refreshHandoff([...generated(), replay, message(bad)]).decision, 'block');
 });
