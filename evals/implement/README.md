@@ -151,6 +151,12 @@ dashboard link in the next assistant message after initialization, before any
 further workflow tool call; a path present only in controller output fails.
 The controller unit tests cover all autonomy modes, pending-offline creation,
 and path characters needing Markdown URL escaping.
+The startup Stop hook also requires a normal fresh controller run to continue
+beyond `context-check / In Progress` after the link is posted. A final response
+containing the link alone does not release that hold. Local hook tests cover
+all three autonomy modes, normal Context completion, saved pauses/stops, offline
+waits, Resume, and unavailable or malformed state. Tools remain available after
+the link so the assistant can continue or checkpoint a genuine blocker.
 
 
 Historical startup-link validation (2026-11-05): controller and harness unit tests

@@ -57,6 +57,10 @@ init, the next tool/terminal response is held until the session transcript
 contains the actual assistant chat link. Emit the link and retry the held work;
 no user confirmation or state-field acknowledgment is involved. These hooks
 write no files and do not affect Resume or sessions without a fresh init.
+For a normal controller startup, the Stop hook also checks the saved state after
+that announcement: while Context check is still In Progress, continue in the
+same turn. A genuine question or blocker must use the documented saved pause or
+stop. Pending offline-answer waits retain their existing behavior.
 
 The link is an announcement, not a stopping point. Do not end the turn after
 showing it, request acknowledgment, ask whether to continue, or require the user

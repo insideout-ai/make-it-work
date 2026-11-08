@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { parseState } from './render-status.mjs';
 
 export function startupResult(output) {
   if (typeof output !== 'string') return null;
@@ -26,8 +27,9 @@ function hasLink(text, dashboard) {
   });
 }
 
-export function pendingStartup(events) {
-  let pending = null;
+export function startupProgress(events) {
+  let initialized = null;
+  let announced = false;
   const bashCalls = new Set();
   for (const event of events) {
     const role = event.message?.role ?? event.type;
@@ -35,7 +37,8 @@ export function pendingStartup(events) {
     if (role === 'user' && !event.isMeta && (typeof content === 'string' ||
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
       // A new user turn is Resume, not a fresh-run announcement obligation.
-      pending = null;
+      initialized = null;
+      announced = false;
       bashCalls.clear();
     }
     if (!Array.isArray(content)) continue;
@@ -44,13 +47,30 @@ export function pendingStartup(events) {
       if (role === 'user' && part.type === 'tool_result' && !part.is_error && bashCalls.has(part.tool_use_id)) {
         const output = typeof part.content === 'string' ? part.content :
           Array.isArray(part.content) ? part.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n') : '';
-        const initialized = startupResult(output);
-        if (initialized) pending = initialized;
+        const result = startupResult(output);
+        if (result) { initialized = result; announced = false; }
       }
-      if (pending && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', pending.dashboard)) pending = null;
+      if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;
     }
   }
-  return pending;
+  return { initialized, announced };
+}
+
+export function pendingStartup(events) {
+  const { initialized, announced } = startupProgress(events);
+  return announced ? null : initialized;
+}
+
+async function continuationHold(initialized) {
+  if (initialized?.continuation !== 'continue_context_check_without_user_reply') return {};
+  let fields;
+  try {
+    ({ fields } = parseState(await readFile(initialized.state, 'utf8'), initialized.state));
+  } catch (error) {
+    return { decision: 'block', reason: `Startup continuation could not verify the saved workflow state: ${error.message}. Inspect and repair the state or checkpoint a genuine blocker before ending the turn. Do not ask the user for a message merely to continue startup.` };
+  }
+  if (fields.phase !== 'context-check' || fields.status !== 'In Progress') return {};
+  return { decision: 'block', reason: 'The dashboard link has been shared, but this fresh run is still in Context check with status In Progress. Continue Context check now in this same turn; do not repeat the link or ask the user to send another message. If a genuine question or blocker prevents continuation, save the documented pause or stop before reporting it.' };
 }
 
 function reminder(initialized) {
@@ -71,8 +91,9 @@ export async function startupHook(input) {
     if (attempt) await delay(100);
     const transcript = await readFile(input.transcript_path, 'utf8');
     const events = transcript.split('\n').filter((line) => line.trim()).map((line) => JSON.parse(line));
-    pending = pendingStartup(events);
-    if (!pending) return {};
+    const progress = startupProgress(events);
+    pending = progress.announced ? null : progress.initialized;
+    if (!pending) return input.hook_event_name === 'Stop' ? continuationHold(progress.initialized) : {};
   }
   if (input.hook_event_name === 'Stop') return { decision: 'block', reason: reminder(pending) };
   return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(pending) } };

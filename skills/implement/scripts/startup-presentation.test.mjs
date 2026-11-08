@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { execFileSync } from 'node:child_process';
+import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
+import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { pendingStartup, startupHook } from './startup-presentation.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
@@ -63,4 +66,71 @@ test('a chat link flushed shortly after tool dispatch releases the hold automati
   await new Promise((resolve) => setTimeout(resolve, 50));
   await writeFile(transcript, [...events, assistant(text(initialized.startup_message))].map(JSON.stringify).join('\n') + '\n');
   assert.deepEqual(await checking, {});
+});
+
+async function freshRun(t, autonomy, offline = false) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-continuation-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+  git('init', '-q', '-b', 'main');
+  git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Baseline', '--allow-empty');
+  git('switch', '-qc', 'feature');
+  await mkdir(path.join(root, '.claude/rules'), { recursive: true });
+  await mkdir(path.join(root, '.claude/skills/domain-demo'), { recursive: true });
+  await writeFile(path.join(root, 'CLAUDE.md'), '# Skill Loading Gate\n');
+  await writeFile(path.join(root, '.claude/rules/product.md'), '# Product\n');
+  await writeFile(path.join(root, '.claude/rules/architecture.md'), '# Architecture\n');
+  await writeFile(path.join(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
+  const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy, base: 'main', repos: [root], branch_guard: 'Existing feature branch', offline_pending: offline });
+  const initialized = { ...result, continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply' };
+  const events = [assistant({ type: 'tool_use', id: 'init', name: 'Bash' }),
+    { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'init', content: JSON.stringify(initialized) }] } },
+    assistant(text(result.startup_message + '\nSend another message to continue.'))];
+  const transcript = path.join(root, 'transcript.jsonl');
+  const saveEvents = () => writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
+  await saveEvents();
+  const check = () => startupHook({ hook_event_name: 'Stop', transcript_path: transcript });
+  let id = 0;
+  const apply = async (event) => applyWorkflow({ root, statePath: result.state, input: { id: `event-${++id}`, event, repos: [root], reason: 'Recorded checkpoint', expected_hash: digest(await readFile(result.state, 'utf8')) } });
+  return { root, result, events, transcript, saveEvents, check, apply };
+}
+
+test('all autonomy modes must continue after the link, but tools and a completed Context check are released', async (t) => {
+  for (const mode of ['guided', 'autonomous', 'autopilot']) {
+    const run = await freshRun(t, mode);
+    const before = await readFile(run.result.state, 'utf8');
+    const held = await run.check();
+    assert.equal(held.decision, 'block');
+    assert.match(held.reason, /Continue Context check now/);
+    assert.equal(await readFile(run.result.state, 'utf8'), before);
+    assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript }), {});
+    await run.apply('context-ready');
+    assert.deepEqual(await run.check(), {});
+  }
+});
+
+test('saved pauses, stops and offline waits are allowed after the link', async (t) => {
+  for (const event of ['pause', 'stop']) {
+    const run = await freshRun(t, 'autonomous');
+    await run.apply(event);
+    assert.deepEqual(await run.check(), {});
+  }
+  const offline = await freshRun(t, 'autonomous', true);
+  assert.deepEqual(await offline.check(), {});
+});
+
+test('a new user turn clears continuation and missing or invalid state cannot silently clear it', async (t) => {
+  const run = await freshRun(t, 'autonomous');
+  const original = await readFile(run.result.state, 'utf8');
+  await writeFile(run.result.state, 'invalid state');
+  assert.match((await run.check()).reason, /could not verify the saved workflow state/);
+  await rm(run.result.state);
+  assert.equal((await run.check()).decision, 'block');
+  await writeFile(run.result.state, original);
+  for (const content of ['Resume', [text('Resume')]]) {
+    run.events.push({ type: 'user', message: { role: 'user', content } });
+    await run.saveEvents();
+    assert.deepEqual(await run.check(), {});
+  }
+  assert.deepEqual(await startupHook({ hook_event_name: 'Stop' }), {});
 });
