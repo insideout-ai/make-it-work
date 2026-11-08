@@ -54,6 +54,8 @@ Replace the absolute checkout path. The helper refuses to run from the plugin ch
 
 ## Interpreting results
 
+The rich-input handoff graders accept equivalent success wording such as "The decision log is at <path>" when the write evidence supports it. A bare path, a future save intention, or a success claim after a denied/failed write remains insufficient. The final-message grader checks the handoff; the trace grader verifies its outcome against the write evidence.
+
 Inspect the successful saved artifact and transcript when an LLM grader fails. Prior runs showed judge variance on long traces and occasional plugin-loading failures; those findings do not establish that the revised workflow passes. The current cases must be rerun against the changed instructions.
 
 The suite covers interview entry and a supplied completed-interview handoff, but not a full multi-turn live interview or consolidated revision. It does not yet exercise collision handling, an explicitly requested design appendix, or backlog identifiers requested by the user.
