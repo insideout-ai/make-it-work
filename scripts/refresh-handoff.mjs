@@ -10,7 +10,59 @@ function resultText(part) {
   return typeof part.content === 'string' ? part.content : Array.isArray(part.content)
     ? part.content.filter((p) => p.type === 'text').map((p) => p.text).join('\n') : '';
 }
+// This verifies delivery of the full data packet, not semantic mapping quality.
+export function evidenceDeliveryHold(events) {
+  const bash = new Set();
+  const pending = new Map();
+  const finalize = new Map();
+  let lastEvidenceRoot = null;
+  const field = (text, name) => {
+    for (const match of text.matchAll(/"(operation|root|reassessment_command)"\s*:\s*("(?:\\.|[^"\\])*")/g)) {
+      if (match[1] === name) return JSON.parse(match[2]);
+    }
+    return null;
+  };
+  for (const event of events) {
+    if (!['assistant', 'user'].includes(event.type)) continue;
+    const role = event.message?.role ?? event.type;
+    const content = event.message?.content;
+    if (role === 'user' && !event.isMeta && (typeof content === 'string' ||
+        Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
+      pending.clear(); finalize.clear(); lastEvidenceRoot = null; bash.clear();
+    }
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      if (role === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') bash.add(part.id);
+      if (role !== 'user' || part.type !== 'tool_result' || part.is_error || !bash.has(part.tool_use_id)) continue;
+      const text = resultText(part);
+      if (field(text, 'operation') === 'pointer-update') {
+        const root = field(text, 'root');
+        if (!pending.has(root)) pending.set(root, { command: field(text, 'reassessment_command'), callId: part.tool_use_id });
+      }
+      for (const line of text.split('\n')) {
+        let value;
+        try { value = JSON.parse(line); } catch { continue; }
+        if (['pointer-update', 'mapping-evidence'].includes(value?.operation) && typeof value.root === 'string' &&
+            Array.isArray(value.reassessment_evidence?.files) && typeof value.reassessment_evidence.complete === 'boolean') {
+          const held = pending.get(value.root) ?? pending.get(null);
+          if (held && held.callId !== part.tool_use_id) finalize.set(value.root, part.tool_use_id);
+          pending.delete(value.root);
+          pending.delete(null);
+          lastEvidenceRoot = value.root;
+        }
+      }
+      if (lastEvidenceRoot && finalize.get(lastEvidenceRoot) !== part.tool_use_id && /^(?:Generated \.claude\/testing\/TEST-MAP\.md from the saved map\.|\.claude\/testing\/TEST-MAP\.md is already up to date\.)\r?$/m.test(text)) finalize.delete(lastEvidenceRoot);
+    }
+  }
+  if (!pending.size) return finalize.size ? { decision: 'block', reason: 'The full reassessment evidence is now available. Complete semantic reassessment from those assertions and documents, inspect and record the final snapshots/discovery as appropriate, and regenerate TEST-MAP.md in a separate tool call before handing off. A success claim alone does not finish recovery.' } : {};
+  const [root, held] = pending.entries().next().value;
+  const command = held.command;
+  return { decision: 'block', reason: `The post-pointer reassessment evidence was truncated before delivery${root ? ' for ' + root : ''}. Do not claim fresh mappings from hashes or a partial packet. Run the read-only command below in its own tool call WITHOUT cut/head or output truncation, review the actual assertions and mapped documentation, complete any deferred reads, then reassess mappings and record final snapshots/discovery and regenerate TEST-MAP.md before the final handoff. Do not rerun the pointer write merely to fetch evidence. No user approval is required.\n\n${command ?? 'Run scripts/test-strategy.mjs evidence --root <the selected product repo> without truncation.'}` };
+}
+
 export function refreshHandoff(events, lastAssistantMessage) {
+  const evidenceHold = evidenceDeliveryHold(events);
+  if (evidenceHold.decision) return evidenceHold;
   let command = null, lastText = '', generated = false;
   const bash = new Set();
   for (const event of events) {
@@ -44,6 +96,13 @@ export function refreshHandoff(events, lastAssistantMessage) {
     : `The report was generated, but the final handoff contains an unfinished refresh command. Replace the placeholder with this exact resolved command, or link the report and direct the user to its Refresh line:\n\n${command}\n\nCorrect the assistant message and finish in this turn; no user acknowledgment is required.` };
 }
 export async function refreshHandoffHook(input) {
+  if (input.hook_event_name === 'PostToolUse') {
+    if (input.tool_name !== 'Bash' || input.tool_response?.interrupted) return {};
+    return evidenceDeliveryHold([
+      { type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', name: 'Bash', id: 'post' }] } },
+      { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'post', content: input.tool_response?.stdout ?? '' }] } },
+    ]);
+  }
   if (input.hook_event_name !== 'Stop' || !input.transcript_path) return {};
   // Let the final assistant chat record reach the transcript before checking it.
   await delay(75);

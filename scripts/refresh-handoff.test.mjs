@@ -5,7 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { refreshHandoff,refreshHandoffHook } from './refresh-handoff.mjs';
+import { refreshHandoff,refreshHandoffHook,evidenceDeliveryHold } from './refresh-handoff.mjs';
 const command="node '/plugin version/scripts/test-map-report.mjs' --root . --write";
 const message=(text)=>({type:'assistant',message:{role:'assistant',content:[{type:'text',text}]}});
 const output=(text,error=false)=>({type:'user',message:{role:'user',content:[{type:'tool_result',tool_use_id:'report',content:text,is_error:error}]}});
@@ -55,4 +55,41 @@ test('truncated generator output still blocks a template and the CLI works throu
 test('the Stop payload final message takes precedence over a stale transcript chat block',()=>{
  assert.equal(refreshHandoff([...generated(),message('Checking the report next.')],bad).decision,'block');
  assert.deepEqual(refreshHandoff([...generated(),message(bad)],'Use the report’s resolved Refresh line.'),{});
+});
+
+
+const pointerPacket = { changed: true, operation: 'pointer-update', root: "/tmp/repo's space", reassessment_command: "node '/plugin/test-strategy.mjs' evidence --root '/tmp/repo'", reassessment_evidence: { files: [{ file: 'test.js', status: 'read', content: 'assert.equal(actual, expected)' }], complete: true, remaining_files: 0 } };
+const evidenceEvents = (value, id = 'evidence') => [
+ { type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', name: 'Bash', id }] } },
+ { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: typeof value === 'string' ? value : JSON.stringify(value) }] } },
+];
+
+test('truncated pointer data holds the handoff and full read-only evidence delivery releases it', () => {
+ const cut = JSON.stringify(pointerPacket).slice(0, -10);
+ const events = evidenceEvents(cut);
+ const held = evidenceDeliveryHold(events);
+ assert.equal(held.decision, 'block');
+ assert.ok(held.reason.includes(pointerPacket.reassessment_command));
+ assert.match(held.reason, /WITHOUT cut\/head/);
+ assert.equal(refreshHandoff([...events, message('The map is fresh.')]).decision, 'block');
+ const recovered = { operation: 'mapping-evidence', root: pointerPacket.root, reassessment_evidence: pointerPacket.reassessment_evidence };
+ const recovery = [...events, ...evidenceEvents(recovered, 'recovery')];
+ assert.match(evidenceDeliveryHold(recovery).reason, /regenerate TEST-MAP/);
+ assert.deepEqual(evidenceDeliveryHold([...recovery, ...generated()]), {});
+ assert.deepEqual(evidenceDeliveryHold(evidenceEvents(pointerPacket)), {});
+ assert.equal(evidenceDeliveryHold([...events, ...evidenceEvents({ ...recovered, root: '/another/repo' }, 'other')]).decision, 'block');
+ assert.equal(evidenceDeliveryHold([...events, ...evidenceEvents({ changed: false, skipped: null }, 'unchanged')]).decision, 'block');
+});
+
+test('evidence checks cover PostToolUse, ignore diagnostic replays and do not conflate a fully delivered partial packet with semantic success', async () => {
+ const cut = JSON.stringify(pointerPacket).slice(0, -10);
+ assert.equal((await refreshHandoffHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_response: { stdout: cut } })).decision, 'block');
+ assert.deepEqual(await refreshHandoffHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_response: { stdout: JSON.stringify(pointerPacket) } }), {});
+ assert.deepEqual(evidenceDeliveryHold(evidenceEvents(cut).map((event) => ({ ...event, type: 'api-request-blob' }))), {});
+ const partial = { ...pointerPacket, reassessment_evidence: { files: [{ file: 'missing.js', status: 'unavailable' }], complete: false, remaining_files: 1 } };
+ assert.deepEqual(evidenceDeliveryHold(evidenceEvents(partial)), {}, 'Delivery check is not a semantic freshness verdict');
+ const events = [...evidenceEvents(cut), { type: 'user', message: { role: 'user', content: 'Stop this run.' } }];
+ assert.deepEqual(evidenceDeliveryHold(events), {});
+ const failed = evidenceEvents(cut); failed[1].message.content[0].is_error = true;
+ assert.deepEqual(evidenceDeliveryHold(failed), {});
 });

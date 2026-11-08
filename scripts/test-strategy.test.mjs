@@ -25,7 +25,7 @@ test('pointer insertion is idempotent, removes duplicates and preserves unrelate
   assert.equal(strategyPointer('# No inventory').changed, false);
 });
 test('disk pointer requires both valid saved artifacts before touching CLAUDE.md', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'strategy-pointer-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const root = await mkdtemp(path.join(os.tmpdir(), "strategy-pointer's space-")); t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(path.join(root, '.claude/skills/test-strategy'), { recursive: true }); await mkdir(path.join(root, '.claude/testing'), { recursive: true });
   const claude = '# Project\n\n## Skills Reference\n\nExisting table.\n'; await writeFile(path.join(root, 'CLAUDE.md'), claude);
   await writeFile(path.join(root, '.claude/skills/test-strategy/SKILL.md'), strategy);
@@ -41,9 +41,16 @@ test('disk pointer requires both valid saved artifacts before touching CLAUDE.md
   assert.equal(pointerEvidence.status, 'read');
   assert.match(pointerEvidence.content, /\| \/test-strategy \|/);
   assert.equal(changed.reassessment_evidence.complete, true);
-  assert.deepEqual(changed.next_action.context_paths, ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']);
-  assert.match(changed.next_action.instruction, /actual test assertions/);
+  assert.equal(changed.operation, 'pointer-update');
+  assert.match(changed.reassessment_command, /evidence.*--root/);
+  assert.match(changed.next_action.instruction, /do not pipe/);
+  assert.match(changed.next_action.instruction, /asserted behavior/);
   assert.equal(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'), savedMap, 'Pointer writes must not advance map baselines');
+  const evidence = JSON.parse(execFileSync('/bin/sh', ['-c', changed.reassessment_command], { encoding: 'utf8' }));
+  assert.equal(evidence.operation, 'mapping-evidence');
+  assert.equal(evidence.root, changed.root);
+  assert.deepEqual(evidence.reassessment_evidence, changed.reassessment_evidence);
+  assert.equal(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'), savedMap);
   const updated = await readFile(path.join(root, 'CLAUDE.md'), 'utf8');
   assert.equal((updated.match(/\| \/test-strategy \|/g) ?? []).length, 1);
   assert.deepEqual(pointer(), { changed: false, skipped: null });

@@ -28,3 +28,9 @@ post-edit context, test assertions and mapped documentation. Judge whether the
 agent reviews that evidence before advancing baselines. A next_action alone, a
 filename/hash list, incomplete packet or success claim cannot replace that work.
 Deferred/unavailable inputs must remain unresolved until actually inspected.
+
+A premature baseline write can be repaired in the same run, but recovery must
+show actual complete evidence inspection and semantic reassessment, followed by
+final snapshots/discovery and report regeneration. A later apology, new success
+claim or a repeated hash-only stamp is not recovery. Judge the repaired final
+state only when those concrete recovery steps are visible.

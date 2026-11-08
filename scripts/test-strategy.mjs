@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { args, atomicWrite, cli, fail, jsonInput, section, table, within } from './lib/artifacts.mjs';
 import { validateMap } from './test-map.mjs';
 
@@ -125,13 +126,22 @@ export async function updateStrategyPointer(root) {
   catch (error) { if (error.code === 'ENOENT') return { changed: false, skipped: 'No CLAUDE.md' }; throw error; }
   const result = strategyPointer(await readFile(file, 'utf8'));
   if (result.changed) await atomicWrite(file, result.markdown);
+  const actualRoot = await realpath(root);
+  const quote = (text) => "'" + text.replaceAll("'", "'\\''") + "'";
   return { changed: result.changed, skipped: result.skipped ?? null,
-    ...(result.changed ? { reassessment_evidence: await reassessmentEvidence(root, map), next_action: { type: 'reassess-map', context_paths: ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md'], instruction: 'Review the supplied post-pointer reassessment_evidence contents and read any deferred/unavailable inputs separately; file lists and hashes are not inspected evidence. Reassess affected map locations from actual test assertions and UC/domain evidence after this CLAUDE.md change, before advancing snapshots or discovery signatures. Replacing a hash alone is not reassessment. Then record final baselines and regenerate TEST-MAP.md.' } } : {}) };
+    ...(result.changed ? { operation: 'pointer-update', root: actualRoot,
+      reassessment_command: [process.execPath, fileURLToPath(import.meta.url), 'evidence', '--root', actualRoot].map(quote).join(' '),
+      next_action: { type: 'reassess-map', instruction: 'Review the complete post-pointer evidence; do not pipe this output through cut/head or otherwise truncate it. If truncated, run reassessment_command without truncation. Reassess asserted behavior against mapped documentation before final snapshots/discovery and regenerate TEST-MAP.md. A hash update or success claim alone is not reassessment.' },
+      reassessment_evidence: await reassessmentEvidence(root, map) } : {}) };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--file', '--root', '--input']);
   if (o.command === 'pointer' && o.root) return updateStrategyPointer(o.root);
-  if (o.command !== 'check' || !o.file) fail('Usage: test-strategy.mjs check --file STRATEGY [--input DECISIONS] | pointer --root ROOT');
+  if (o.command === 'evidence' && o.root) {
+    const map = validateMap(JSON.parse(await readFile(await within(o.root, '.claude/testing/test-map.json'), 'utf8')));
+    return { operation: 'mapping-evidence', root: await realpath(o.root), reassessment_evidence: await reassessmentEvidence(o.root, map) };
+  }
+  if (o.command !== 'check' || !o.file) fail('Usage: test-strategy.mjs check --file STRATEGY [--input DECISIONS] | pointer|evidence --root ROOT');
   const result = validateStrategy(await readFile(o.file, 'utf8'), o.input ? await jsonInput(o.input) : undefined);
   if (!result.valid) process.exitCode = 1;
   return result;

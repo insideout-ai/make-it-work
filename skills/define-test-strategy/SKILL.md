@@ -3,6 +3,12 @@ name: define-test-strategy
 description: "Onboards or refreshes a repo's test-strategy skill and shared test map: discovers tests across repos without modifying source/tests, discusses layers and adoption, records commands and prerequisites, maintains evidence-backed UC/domain relationships, and reports coverage."
 disable-model-invocation: true
 hooks:
+  PostToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PLUGIN_ROOT}/scripts/refresh-handoff.mjs"'
+          timeout: 10
   Stop:
     - hooks:
         - type: command
@@ -182,7 +188,10 @@ Read [the strategy consistency contract](../../docs/deterministic-artifacts.md#t
 
 Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Record each discovered/reassessed test's strategy layer, or `unknown` when unclear. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. Finish writing and validating the candidate artifacts here; Phase 6 owns the pointer, final semantic reassessment, final baselines and developer report in that order. Do not capture final snapshots or generate the final report before the pointer phase, since the pointer edit would immediately stale them. Coverage-report-only writes no artifacts; disclose blocked writes without bypassing them.
 
-The skill's Stop hook checks the final handoff after a fresh report generation.
+The skill's PostToolUse/Stop hooks hold truncated post-pointer evidence delivery. Run the returned read-only `evidence` command without cut/head or truncation, review the full assertions/documentation, finish reassessment, and record final baselines/report before handing off. The delivery check does not judge semantic correctness or permit skipping deferred reads. It writes nothing and does not retry a denied metadata write.
+
+The skill's Stop hook also checks the final handoff after a fresh report generation.
+
 If it contains an unfinished template refresh command, correct the chat message
 using the generator's exact resolved command or the report link. This is output
 validation, not a user approval or pause; it writes no files and does not apply
