@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, section, table, within } from './lib/artifacts.mjs';
 import { validateMap } from './test-map.mjs';
@@ -69,6 +69,51 @@ export function strategyPointer(markdown) {
   const output = markdown.slice(0, start) + body + markdown.slice(end);
   return { changed: output !== markdown, markdown: output };
 }
+// Supply the actual post-pointer inputs, not a freshness verdict or automatic baseline update.
+export async function reassessmentEvidence(root, map, { maxFiles = 16, maxBytes = 24576 } = {}) {
+  const refs = new Map();
+  const add = (repo, file, optional = false) => {
+    const key = JSON.stringify([repo, file]);
+    const previous = refs.get(key);
+    refs.set(key, { repo, file, optional: previous ? previous.optional && optional : optional });
+  };
+  for (const file of ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']) add(map.productRepo, file, file !== 'CLAUDE.md');
+  for (const location of map.locations) for (const file of location.config) add(location.repo, file);
+  for (const test of map.tests) add(map.locations.find((location) => location.id === test.location).repo, test.file);
+  for (const mapping of map.mappings) for (const evidence of mapping.evidence ?? []) add(evidence.repo, evidence.file);
+  const files = [];
+  let bytes = 0;
+  let deferred = 0;
+  const remainingPaths = [];
+  for (const ref of refs.values()) {
+    if (files.length >= maxFiles) {
+      deferred++;
+      if (remainingPaths.length < 16) remainingPaths.push({ repo: ref.repo, file: ref.file });
+      continue;
+    }
+    const { optional, ...identity } = ref;
+    try {
+      const repo = map.repos.find((entry) => entry.id === ref.repo);
+      const file = await within(path.resolve(root, repo.root), ref.file);
+      if ((await stat(file)).size > maxBytes - bytes) {
+        files.push({ ...identity, status: 'deferred', reason: 'Evidence byte limit; read this file separately.' });
+        continue;
+      }
+      const content = await readFile(file, 'utf8');
+      if (Buffer.byteLength(content) > maxBytes - bytes) {
+        files.push({ ...identity, status: 'deferred', reason: 'File changed during reading; read separately.' });
+        continue;
+      }
+      bytes += Buffer.byteLength(content);
+      files.push({ ...identity, status: 'read', content });
+    } catch (error) {
+      files.push({ ...identity, status: optional && error.code === 'ENOENT' ? 'absent' : 'unavailable', reason: error.message });
+    }
+  }
+  return { files, remaining_files: deferred, remaining_paths: remainingPaths, complete: deferred === 0 && files.every((file) => ['read', 'absent'].includes(file.status)),
+    note: 'These are actual file contents read after the pointer edit. Review asserted behavior against documentation; no semantic assessment or baseline update has been performed. Read deferred/unavailable inputs separately before claiming complete reassessment.' };
+}
+
 export async function updateStrategyPointer(root) {
   const strategy = await readFile(await within(root, '.claude/skills/test-strategy/SKILL.md'), 'utf8');
   const validation = validateStrategy(strategy);
@@ -81,7 +126,7 @@ export async function updateStrategyPointer(root) {
   const result = strategyPointer(await readFile(file, 'utf8'));
   if (result.changed) await atomicWrite(file, result.markdown);
   return { changed: result.changed, skipped: result.skipped ?? null,
-    ...(result.changed ? { next_action: { type: 'reassess-map', context_paths: ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md'], instruction: 'Explicitly read the actual contents of the listed context_paths when present, even if they were auto-loaded earlier; file lists and hashes are not inspected evidence. Reassess affected map locations from actual test assertions and UC/domain evidence after this CLAUDE.md change, before advancing snapshots or discovery signatures. Replacing a hash alone is not reassessment. Then record final baselines and regenerate TEST-MAP.md.' } } : {}) };
+    ...(result.changed ? { reassessment_evidence: await reassessmentEvidence(root, map), next_action: { type: 'reassess-map', context_paths: ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md'], instruction: 'Review the supplied post-pointer reassessment_evidence contents and read any deferred/unavailable inputs separately; file lists and hashes are not inspected evidence. Reassess affected map locations from actual test assertions and UC/domain evidence after this CLAUDE.md change, before advancing snapshots or discovery signatures. Replacing a hash alone is not reassessment. Then record final baselines and regenerate TEST-MAP.md.' } } : {}) };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--file', '--root', '--input']);

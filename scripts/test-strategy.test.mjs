@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { strategyPointer, updateStrategyPointer, validateStrategy } from './test-strategy.mjs';
+import { strategyPointer, updateStrategyPointer, validateStrategy, reassessmentEvidence } from './test-strategy.mjs';
 const strategy = `## Repo ID\n\n\`app\`\n\n## Layers\n\n| Layer | Status | Example command |\n| --- | --- | --- |\n| Unit | configured | npm test |\n| Component | planned | none |\n\n## Test Locations\n\n| Location | Repo | Layers | Test files | Full-suite command | Run from |\n| --- | --- | --- | --- | --- | --- |\n| . | app | Unit | test/*.js | npm test | . |\n\n## Where New Tests Go\n\n| Layer | Status | Repo | Directory | File naming |\n| --- | --- | --- | --- | --- |\n| Unit | configured | app | test | *.js |\n| Component | planned | app | TBD | TBD |\n\n## Coverage Decision Guidance\n\nUnit for isolated behavior. Component (setup required) for rendering.\n\n## Test Map\n\nUse shared map.\n`;
 test('planned/configured consistency preserves selected future layers without activating commands', () => {
   assert.equal(validateStrategy(strategy, { selected_layers: [{ layer: 'Component', status: 'planned' }] }).valid, true);
@@ -37,6 +37,10 @@ test('disk pointer requires both valid saved artifacts before touching CLAUDE.md
   assert.equal(changed.changed, true);
   assert.equal(changed.skipped, null);
   assert.equal(changed.next_action.type, 'reassess-map');
+  const pointerEvidence = changed.reassessment_evidence.files.find((file) => file.file === 'CLAUDE.md');
+  assert.equal(pointerEvidence.status, 'read');
+  assert.match(pointerEvidence.content, /\| \/test-strategy \|/);
+  assert.equal(changed.reassessment_evidence.complete, true);
   assert.deepEqual(changed.next_action.context_paths, ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']);
   assert.match(changed.next_action.instruction, /actual test assertions/);
   assert.equal(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'), savedMap, 'Pointer writes must not advance map baselines');
@@ -44,4 +48,29 @@ test('disk pointer requires both valid saved artifacts before touching CLAUDE.md
   assert.equal((updated.match(/\| \/test-strategy \|/g) ?? []).length, 1);
   assert.deepEqual(pointer(), { changed: false, skipped: null });
   assert.equal(await readFile(path.join(root, 'CLAUDE.md'), 'utf8'), updated);
+});
+
+
+test('post-pointer evidence includes assertions and mapped docs, and never treats bounded or escaping inputs as reviewed', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'strategy-evidence-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(path.join(root, 'CLAUDE.md'), '# Current context');
+  await writeFile(path.join(root, 'test.js'), 'assert.equal(createTask("x").status, "open");');
+  await writeFile(path.join(root, 'requirement.md'), 'New tasks start open.');
+  const map = { productRepo: 'app', repos: [{ id: 'app', root: '.' }], locations: [{ id: 'local', repo: 'app', config: [] }],
+    tests: [{ location: 'local', file: 'test.js' }], mappings: [{ evidence: [{ repo: 'app', file: 'requirement.md' }] }] };
+  const pack = await reassessmentEvidence(root, map);
+  assert.equal(pack.complete, true);
+  assert.match(pack.files.find((file) => file.file === 'test.js').content, /assert.equal/);
+  assert.match(pack.files.find((file) => file.file === 'requirement.md').content, /start open/);
+  assert.equal((await reassessmentEvidence(root, map, { maxFiles: 1 })).complete, false);
+  assert.ok((await reassessmentEvidence(root, map, { maxFiles: 1 })).remaining_files > 0);
+  assert.ok((await reassessmentEvidence(root, map, { maxFiles: 1 })).remaining_paths.some((file) => file.file === 'test.js'));
+  const limited = await reassessmentEvidence(root, map, { maxBytes: 1 });
+  assert.equal(limited.complete, false);
+  assert.ok(limited.files.some((file) => file.status === 'deferred'));
+  map.mappings[0].evidence.push({ repo: 'app', file: '../outside.md' });
+  const escaped = await reassessmentEvidence(root, map);
+  assert.equal(escaped.complete, false);
+  assert.equal(escaped.files.find((file) => file.file === '../outside.md').status, 'unavailable');
 });

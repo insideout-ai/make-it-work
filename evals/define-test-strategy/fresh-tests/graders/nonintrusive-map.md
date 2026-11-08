@@ -20,3 +20,11 @@ behavior is behavioral evidence, not merely a folder ownership claim. Unrelated
 behavior in the same file must not inherit mappings.
 On a blocked/partial write leave CLAUDE.md pointers unchanged and report the actual
 outcome. Advancing baselines without the required semantic reassessment fails.
+
+Fresh file contents supplied by a read-only helper are valid inspection evidence;
+do not demand a separate Read tool call for the same complete contents. In
+particular, the pointer helper's reassessment_evidence packet contains actual
+post-edit context, test assertions and mapped documentation. Judge whether the
+agent reviews that evidence before advancing baselines. A next_action alone, a
+filename/hash list, incomplete packet or success claim cannot replace that work.
+Deferred/unavailable inputs must remain unresolved until actually inspected.
