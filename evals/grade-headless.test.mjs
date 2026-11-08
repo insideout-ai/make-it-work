@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { updateStrategyPointer } from '../scripts/test-strategy.mjs';
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -297,7 +299,7 @@ test('parses every headless grader definition', async () => {
     const item = cases.find((entry) => entry.name === name);
     for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
       const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
-      assert.ok(['file_exists', 'regex', 'tool_used', 'llm'].includes(grader.type), `${name}/${filename}`);
+      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer'].includes(grader.type), `${name}/${filename}`);
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
   }
@@ -378,4 +380,46 @@ test('Bash helper writes retain command/result identity and error status for sem
     const expected = `TOOL RESULT SOURCE ${call.id}: Bash ${JSON.stringify({ command: call.command })}\nTOOL RESULT ${call.id}: ${JSON.stringify(call.content)}\nTOOL RESULT ERROR ${call.id}: ${call.is_error}`;
     assert.ok(readableTrace.includes(expected));
   }
+});
+
+
+test('strategy pointer grading checks actual saved state and helper receipts without guessing transcript chronology', async (t) => {
+ const root = await mkdtemp(path.join(os.tmpdir(), 'pointer-grade-'));
+ t.after(() => rm(root, { recursive: true, force: true }));
+ const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
+ git('init', '-q', '-b', 'main');
+ const original = '# Project\n\n## Skills Reference\n\nExisting domain table.\n';
+ await writeFile(path.join(root, 'CLAUDE.md'), original);
+ git('add', 'CLAUDE.md'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Seed');
+ await mkdir(path.join(root, '.claude/skills/test-strategy'), { recursive: true });
+ await mkdir(path.join(root, '.claude/testing'), { recursive: true });
+ const strategy = await readFile('evals/fixtures/multi-repo-workspace/payments-api/claude-dir/skills/test-strategy/SKILL.md', 'utf8');
+ const map = { schemaVersion: 1, productRepo: 'payments-api', tokens: [], repos: [{ id: 'payments-api', root: '.' }], locations: [{ id: 'local', repo: 'payments-api', paths: ['.'], config: [], complete: true, assessedTokens: [] }], tests: [], mappings: [], decisions: [], snapshots: {}, discovery: {} };
+ await writeFile(path.join(root, '.claude/skills/test-strategy/SKILL.md'), strategy);
+ await writeFile(path.join(root, '.claude/testing/test-map.json'), JSON.stringify(map));
+ const receipt = await updateStrategyPointer(root);
+ const events = [
+  { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'pointer', name: 'Bash', input: { command: 'node scripts/test-strategy.mjs pointer --root .' } }] } },
+  { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'pointer', content: JSON.stringify(receipt), is_error: false }] } },
+  { type: 'result', result: 'Strategy and pointer saved.' },
+ ];
+ const context = transcriptContext(events.map(JSON.stringify).join('\n'), root);
+ const grader = { name: 'pointer', type: 'strategy_pointer' };
+ const grade = () => gradeHeadlessLocal(grader, context);
+ assert.equal((await grade()).passed, true);
+ assert.equal((await gradeHeadlessLocal(grader, transcriptContext(JSON.stringify({ type: 'result', result: 'Done' }), root))).passed, false, 'A changed pointer needs a helper receipt');
+ const canonical = await readFile(path.join(root, 'CLAUDE.md'), 'utf8');
+ await writeFile(path.join(root, 'CLAUDE.md'), canonical + '\n| /test-strategy | duplicate | duplicate |\n');
+ assert.equal((await grade()).passed, false);
+ await writeFile(path.join(root, 'CLAUDE.md'), canonical);
+ await rm(path.join(root, '.claude/testing/test-map.json'));
+ assert.equal((await grade()).passed, false, 'Dangling pointer must fail');
+ await writeFile(path.join(root, 'CLAUDE.md'), original);
+ context.events.push({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'blocked', content: 'Permission denied', is_error: true }] } });
+ assert.equal((await grade()).passed, true, 'Blocked partial write must preserve the pointer');
+ await writeFile(path.join(root, '.claude/testing/test-map.json'), JSON.stringify(map));
+ assert.equal((await grade()).passed, false, 'Written metadata requires a pointer when Skills Reference exists');
+ await writeFile(path.join(root, 'CLAUDE.md'), '# No Skills Reference\n');
+ git('add', 'CLAUDE.md'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'No orientation section');
+ assert.equal((await grade()).passed, true, 'Missing inventory section is a supported skip');
 });

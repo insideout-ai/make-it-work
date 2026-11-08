@@ -128,7 +128,7 @@
         ".claude/testing/TEST-MAP.md",
         ".claude/skills/test-strategy/SKILL.md"
       ],
-      "pointer-consistent.md": [
+      "nonintrusive-map.md": [
         "CLAUDE.md",
         ".claude/skills/test-strategy/SKILL.md",
         ".claude/testing/test-map.json"

@@ -34,3 +34,12 @@ show actual complete evidence inspection and semantic reassessment, followed by
 final snapshots/discovery and report regeneration. A later apology, new success
 claim or a repeated hash-only stamp is not recovery. Judge the repaired final
 state only when those concrete recovery steps are visible.
+
+Do not require private reasoning, a spoken review narrative or no-op changes to
+mappings/completeness/assessedTokens. Reassessment may correctly retain existing
+relationships when complete fresh post-edit assertions and documentation support
+them. Judge those relationships against the supplied final map and actual fresh
+contents. Fail unsupported/contradicted relationships, missing or truncated
+evidence followed by a freshness claim, or an unreviewed change hidden by a hash
+update. The evidence packet is input, not an automatic semantic verdict; assess
+whether the resulting mappings are supported by those inspected inputs.

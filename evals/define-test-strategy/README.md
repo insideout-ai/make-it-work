@@ -73,4 +73,4 @@ adds no user approval, and leaves honest blocked writes and later unrelated
 questions alone. Unit/CLI tests cover resolved links/commands, templates,
 truncated generator output, transcript timing and aliased script paths.
 
-The fresh-tests pointer grader receives the saved CLAUDE.md, strategy and map. It treats the supported pointer helper as a write, uses changed/skipped results instead of requiring a Write/Edit call, and accepts an already-current pointer without rewriting it. Grading still rejects dangling or duplicate newly added pointers, writes before validated artifacts, denial bypasses and unsupported reporting.
+The fresh-tests pointer grader deterministically validates the saved CLAUDE.md, strategy and map, compares the pointer against the committed fixture baseline, and checks the supported helper receipt. It accepts an already-current pointer without rewriting it and does not infer chronology from later tool readbacks. Grading still rejects dangling or duplicate newly added pointers, writes before validated artifacts, denial bypasses and unsupported reporting.
