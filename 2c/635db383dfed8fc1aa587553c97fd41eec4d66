@@ -1,0 +1,53 @@
+scripts/lib/delivery-scope.mjs
+  s_e8cdb860e0eee3::t_a13d31dbb52d8c 1-30,33-46
+  s_e8cdb860e0eee3::t_07f0936480b8af 31-32
+skills/implement/scripts/review-scope.test.mjs
+  s_e8cdb860e0eee3::t_e76cbafc1069b6 58-128
+  s_e8cdb860e0eee3::t_5a2dd30e12bbd6 1-57,129-163
+skills/implement/scripts/final-package.mjs
+  s_e8cdb860e0eee3::t_a13d31dbb52d8c 15,187
+  s_e8cdb860e0eee3::t_ce11b6489dabd7 14,201-206,208
+skills/implement/scripts/review-scope.mjs
+  s_e8cdb860e0eee3::t_a13d31dbb52d8c 1-13,17-65,69-75,79-80,83-87,89-104,106-112
+  s_e8cdb860e0eee3::t_576299285bb5ca 14-16,66-68,76-78,81-82,88,105
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_ca3353bcdb620c 13-14
+docs/deterministic-artifacts.md
+  s_e8cdb860e0eee3::t_9b33dddbf71bea 99-115
+evals/implement/implement-autopilot-full/graders/delivery-review-scope.md
+  s_e8cdb860e0eee3::t_c183ce8e63f35d 1-6
+evals/implement/lightweight-run/graders/delivery-review-scope.md
+  s_e8cdb860e0eee3::t_2c14cdf319c35b 1-6
+scripts/review-report.mjs
+  s_e8cdb860e0eee3::t_19bc8b96a7444f 7,101
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_19e6e80390b739 185-186,526,568-584,647-664,674,684-686
+skills/implement/references/controller.md
+  s_e8cdb860e0eee3::t_32922c32655340 83-84,158-171
+skills/implement/scripts/render-status.mjs
+  s_e8cdb860e0eee3::t_11f7ad06ed59da 283
+skills/implement/scripts/workflow-integration.test.mjs
+  s_e8cdb860e0eee3::t_3d1243b2372398 13,92-98,104-106,108
+skills/implement/scripts/workflow.mjs
+  s_e8cdb860e0eee3::t_c386a4f369fce9 19,49-56,148-158,359-363,377,428-431,555
+skills/implement/scripts/workflow.test.mjs
+  s_e8cdb860e0eee3::t_62a5d792846631 35,37,54
+skills/review-the-code/SKILL.md
+  s_e8cdb860e0eee3::t_84b098d97d3540 245-263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2c635db383dfed8fc1aa587553c97fd41eec4d66",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
