@@ -1,0 +1,27 @@
+evals/slice-the-epic/ambiguous-epic-autopilot/graders/log-write-attempted.md
+  s_18e0c68e142857::t_038d520daffe4d 19-43
+  s_18e0c68e142857::t_519794d62f38f8 11-18
+  s_18e0c68e142857::t_de190ef7ae9099 2-3,6-10
+evals/slice-the-epic/well-specified-epic-autopilot/graders/log-write-attempted.md
+  s_18e0c68e142857::t_519794d62f38f8 11-18
+  s_18e0c68e142857::t_038d520daffe4d 19-43
+  s_18e0c68e142857::t_0f12e068059e06 2-3,6-10
+evals/slice-the-epic/README.md
+  s_18e0c68e142857::t_be8d04c3c04925 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "efb118074080f118703f2d8c68b7f607dd6a5bd6",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
