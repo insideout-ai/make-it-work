@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { recordHookEvent } from './hook-feedback.mjs';
 
 export function startupResult(output) {
   if (typeof output !== 'string') return null;
@@ -125,6 +126,19 @@ function advisory(event, reason) {
   return { hookSpecificOutput: { hookEventName: event, additionalContext: reason } };
 }
 
+async function observeHook(input, progress, events, output, kind = 'clear') {
+  if (!progress.initialized?.continuation) return output;
+  try {
+    const state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state);
+    if (input.hook_event_name === 'Stop' && kind === 'clear' && state.fields.status === 'In Progress' && progress.agents.length) kind = 'agent-wait';
+    await recordHookEvent({ statePath: progress.initialized.state, state, input, events, kind, agents: progress.agents });
+    return output;
+  } catch {
+    // Observability must not change the hook's enforcement or workflow status.
+    return { ...output, systemMessage: 'Workflow hook feedback could not be recorded; retrospective evidence may be incomplete.' };
+  }
+}
+
 export async function startupHook(input) {
   if (input.hook_event_name === 'PostToolUse' && input.tool_name === 'Bash' && !input.tool_response?.interrupted) {
     const initialized = startupResult(input.tool_response?.stdout);
@@ -132,13 +146,14 @@ export async function startupHook(input) {
   }
   if (!['PreToolUse', 'PostToolUse', 'Stop'].includes(input.hook_event_name) || !input.transcript_path) return {};
   let progress;
+  let events;
   // Chat may precede its buffered JSONL record. Allow a longer bounded flush
   // before enforcing a missing announcement, without accepting tool-only links.
   const attempts = input.hook_event_name === 'PostToolUse' ? 0 : 40;
   for (let attempt = 0; attempt <= attempts; attempt += 1) {
     if (attempt) await delay(100);
     const lines = (await readFile(input.transcript_path, 'utf8')).split('\n');
-    const events = [];
+    events = [];
     for (let index = 0; index < lines.length; index += 1) {
       if (!lines[index].trim()) continue;
       try { events.push(JSON.parse(lines[index])); }
@@ -148,15 +163,19 @@ export async function startupHook(input) {
     if (!progress.initialized || progress.announced) break;
   }
   if (!progress.initialized) return {};
-  if (!progress.announced) return input.hook_event_name === 'Stop'
+  if (!progress.announced) return observeHook(input, progress, events, input.hook_event_name === 'Stop'
     ? { decision: 'block', reason: reminder(progress.initialized) }
     : input.hook_event_name === 'PreToolUse'
       ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
-      : advisory(input.hook_event_name, reminder(progress.initialized));
+      : advisory(input.hook_event_name, reminder(progress.initialized)), 'missing-dashboard-link');
   const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop', progress.agents);
-  if (input.hook_event_name === 'Stop') return hold;
+  if (input.hook_event_name === 'Stop') {
+    const kind = !hold.reason ? 'clear' : hold.reason.startsWith('Application files changed') ? 'premature-implementation'
+      : hold.reason.startsWith('Startup continuation could not verify') ? 'state-unavailable' : 'active-stage';
+    return observeHook(input, progress, events, hold, kind);
+  }
   // Keep recovery tools available; mutation is detected after execution, not rolled back.
-  return hold.reason ? advisory(input.hook_event_name, hold.reason) : {};
+  return observeHook(input, progress, events, hold.reason ? advisory(input.hook_event_name, hold.reason) : {});
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

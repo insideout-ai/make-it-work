@@ -7,6 +7,7 @@ import { assertRunState } from './artifact-layout.mjs';
 import { fileURLToPath } from 'node:url';
 import { parseDecisionCell } from './workflow-decisions.mjs';
 import { parseNoteCell } from './audit-notes.mjs';
+import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -50,7 +51,7 @@ function tableCells(line) {
   return cells;
 }
 
-export function inspectState(markdown, { limitStop = false } = {}) {
+export function inspectState(markdown, { limitStop = false, hookEvents = [] } = {}) {
   const fieldBlock = markdown.match(/^```\s*\r?\n([\s\S]*?)^```/m)?.[1];
   if (!fieldBlock) fail('Missing state field block.');
   const fields = Object.fromEntries([...fieldBlock.matchAll(/^([a-z_]+):\s*(.*?)\s*$/gm)]
@@ -135,11 +136,15 @@ export function inspectState(markdown, { limitStop = false } = {}) {
     [...row.outcome.matchAll(/\b[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b/g)]
       .map(([term]) => term.toLowerCase())
       .filter((term) => !WORKFLOW_TERMS.has(term))))];
+  const runtime = summarizeHookEvents(hookEvents, runId, finalRow.time);
   return {
+    hookInterventions: runtime.interventions,
+    agentWaits: runtime.waits,
+    hookAnalysis: [...runtime.interventions, ...runtime.waits.filter((item) => item.occurrences > 1)],
     runId, outcome: status === 'Complete' ? 'Complete' : 'Stopped — loop limit',
     minimal: events.length === 0,
     guardrails,
-    analysisRequired: events.length > 0 || guardrails.length > 0,
+    analysisRequired: events.length > 0 || guardrails.length > 0 || runtime.analysisRequired,
     fixRounds: events.filter((event) => event.kind === 'Fix').length,
     replans: events.filter((event) => event.kind === 'Replan').length,
     reviewCycles: explicitReviews || enteredReviews,
@@ -204,6 +209,17 @@ function validateAnalysis(analysis, summary) {
       resolution: safeLine(item.resolution, 'guardrail resolution', summary.ticket, summary.sourceCompounds),
       lesson: safeLine(item.lesson, 'guardrail lesson', summary.ticket, summary.sourceCompounds) };
   });
+  const expectedHooks = summary.hookAnalysis ?? [];
+  const suppliedHooks = analysis.hooks ?? [];
+  if (!Array.isArray(suppliedHooks) || suppliedHooks.length !== expectedHooks.length) fail('Analysis must match each hook intervention or repeated agent wait.');
+  const hooks = suppliedHooks.map((item, index) => {
+    const expected = expectedHooks[index];
+    if (item.id !== expected.id || !CONFIDENCE.has(item.confidence)) fail('Hook analysis must match the recorded observation and confidence.');
+    return { ...expected, confidence: item.confidence,
+      trigger: safeLine(item.trigger, 'hook trigger', summary.ticket, summary.sourceCompounds),
+      resolution: safeLine(item.resolution, 'hook resolution', summary.ticket, summary.sourceCompounds),
+      lesson: safeLine(item.lesson, 'hook lesson', summary.ticket, summary.sourceCompounds) };
+  });
   const recommendations = safeLines(analysis.recommendations, 'recommendations', summary.ticket, summary.sourceCompounds);
   const openQuestions = safeLines(analysis.openQuestions, 'openQuestions', summary.ticket, summary.sourceCompounds);
   if (recommendations.length === 0) fail('At least one consolidated recommendation is required.');
@@ -212,7 +228,7 @@ function validateAnalysis(analysis, summary) {
     question: safeLine(entry.question, `clarifications[${index}].question`, summary.ticket, summary.sourceCompounds),
     answer: safeLine(entry.answer, `clarifications[${index}].answer`, summary.ticket, summary.sourceCompounds),
   }));
-  return { events, guardrails, recommendations, openQuestions, clarifications };
+  return { events, guardrails, hooks, recommendations, openQuestions, clarifications };
 }
 
 export function renderBlock(summary, analysis = null) {
@@ -224,8 +240,10 @@ export function renderBlock(summary, analysis = null) {
     `- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
     `- Fix rounds: ${summary.fixRounds}\n- Replans: ${summary.replans}\n` +
     `- Review cycles: ${summary.reviewCycles}\n` +
-    (summary.guardrails?.length ? `- Guardrail interventions: ${summary.guardrails.length}\n` : '');
-  if (summary.minimal && !summary.guardrails?.length) {
+    (summary.guardrails?.length ? `- Guardrail interventions: ${summary.guardrails.length}\n` : '') +
+    (summary.hookInterventions?.length ? `- Hook interventions: ${summary.hookInterventions.reduce((sum, item) => sum + item.occurrences, 0)} (${summary.hookInterventions.length} episodes)\n` : '') +
+    (summary.agentWaits?.length ? `- Agent wait observations: ${summary.agentWaits.reduce((sum, item) => sum + item.occurrences, 0)} (${summary.agentWaits.length} episodes)\n` : '');
+  if (!summary.analysisRequired) {
     if (analysis !== null) fail('Minimal runs must not include retrospective analysis.');
     return `${prefix}- Workflow feedback: No fix or replan round was needed.\n<!-- /run:${summary.runId} -->`;
   }
@@ -242,7 +260,10 @@ export function renderBlock(summary, analysis = null) {
   const guardrailBlock = validated.guardrails.length ? `### Guardrail interventions\n\n${validated.guardrails.map((item, index) =>
     `#### Intervention ${index + 1}\n\n- Stop: ${item.trigger}\n- Resolution: ${item.resolution}\n- Decision source: ${item.source}${item.via ? ` via ${item.via}` : ''}\n- Suggested lesson: ${item.lesson}\n- Confidence: ${item.confidence}`
   ).join('\n\n')}\n\n` : '';
-  return `${prefix}\n` + (eventBlocks.length ? `### Extra-round analysis\n\n${eventBlocks.join('\n\n')}\n\n` : '') + guardrailBlock +
+  const hookBlock = validated.hooks.length ? `### Hook interventions and repeated waits\n\n${validated.hooks.map((item, index) =>
+    `#### Observation ${index + 1}\n\n- Kind: ${item.kind}\n- Phase: ${item.phase}\n- Occurrences: ${item.occurrences}\n- Resolution observed: ${item.resolvedAt ? 'Yes' : 'No'}\n- Trigger: ${item.trigger}\n- Resolution: ${item.resolution}\n- Suggested lesson: ${item.lesson}\n- Confidence: ${item.confidence}`
+  ).join('\n\n')}\n\n` : '';
+  return `${prefix}\n` + (eventBlocks.length ? `### Extra-round analysis\n\n${eventBlocks.join('\n\n')}\n\n` : '') + guardrailBlock + hookBlock +
     `### Consolidated recommendations\n\n${validated.recommendations.map((item) => `- ${item}`).join('\n')}` +
     `${clarificationBlock}\n\n### Open questions\n\n` +
     `${validated.openQuestions.length ? validated.openQuestions.map((item) => `- ${item}`).join('\n') : '- None'}\n` +
@@ -279,11 +300,16 @@ export function upsertBlock(existing, summary, block) {
   return { text: `${existing}${existing.endsWith('\n') ? '\n' : '\n\n'}${block}\n`, warning };
 }
 
-export async function writeFeedback(statePath, { analysis = null, limitStop = false } = {}) {
+export async function inspectFeedback(statePath, { limitStop = false } = {}) {
   const state = await readFile(statePath, 'utf8');
   const summary = inspectState(state, { limitStop });
   if (path.basename(statePath) !== `${summary.ticket}-state.md`) fail('State filename and ticket field disagree.');
   assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, summary.ticket);
+  return inspectState(state, { limitStop, hookEvents: await readHookEvents(statePath) });
+}
+
+export async function writeFeedback(statePath, { analysis = null, limitStop = false } = {}) {
+  const summary = await inspectFeedback(statePath, { limitStop });
   const block = renderBlock(summary, analysis);
   const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
   const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
@@ -337,7 +363,7 @@ async function main() {
   }
   if (!statePath || (mode === 'inspect' && analysisPath)) fail('Provide --state; --analysis is write-only.');
   if (mode === 'inspect') {
-    const summary = inspectState(await readFile(statePath, 'utf8'), { limitStop });
+    const summary = await inspectFeedback(statePath, { limitStop });
     const { ticket: _ticket, ...shareSafe } = summary;
     process.stdout.write(`${JSON.stringify(shareSafe)}\n`);
     return;

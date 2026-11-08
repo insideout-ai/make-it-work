@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { pendingStartup, startupHook } from './startup-presentation.mjs';
+import { readHookEvents } from './hook-feedback.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
 const initialized = { startup_message: `[Open implementation dashboard](<${encodeURI(dashboard).replace('#', '%23')}>)`,
@@ -281,4 +282,37 @@ test('one completed child does not close another live wait, and TaskOutput close
       message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'output', content: 'Done' }] } });
   await run.saveEvents();
   assert.equal((await run.check()).decision, 'block');
+});
+
+
+test('hook decisions persist deduplicated observations and record a later release without rewriting state', async (t) => {
+  const run = await activeAgentRun(t);
+  const state = await readFile(run.result.state, 'utf8');
+  await run.check(); await run.check();
+  let events = await readHookEvents(run.result.state);
+  assert.equal(events.length, 1); assert.equal(events[0].kind, 'active-stage');
+  run.launch(); await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  events = await readHookEvents(run.result.state);
+  assert.equal(events.length, 2); assert.equal(events[1].kind, 'agent-wait');
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>worker</task-id>\n<status>completed</status>\n</task-notification>' });
+  run.events.push(assistant(text('The agent finished; processing the hand-back.'))); await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  assert.equal(await readFile(run.result.state, 'utf8'), state);
+  const paused = state.replace('status: In Progress', 'status: Paused');
+  await writeFile(run.result.state, paused);
+  assert.deepEqual(await run.check(), {});
+  events = await readHookEvents(run.result.state);
+  assert.equal(events.at(-1).kind, 'clear');
+  assert.equal(await readFile(run.result.state, 'utf8'), paused)
+});
+
+test('journal write failures are visible without releasing enforcement or blocking an otherwise valid yield', async (t) => {
+  const run = await activeAgentRun(t);
+  await mkdir(path.join(path.dirname(run.result.state), 'hook-events.jsonl'));
+  const blocked = await run.check();
+  assert.equal(blocked.decision, 'block'); assert.match(blocked.systemMessage, /could not be recorded/);
+  run.launch(); await run.saveEvents();
+  const allowed = await run.check();
+  assert.equal(allowed.decision, undefined); assert.match(allowed.systemMessage, /could not be recorded/);
 });

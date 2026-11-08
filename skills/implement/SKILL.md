@@ -69,7 +69,9 @@ agent launched in the current Execute, Lightweight, Review or Fix phase. The
 workflow stays In Progress; yielding does not complete or pause it. Completion,
 failure or a runtime inventory showing the agent is no longer running restores
 the continuation requirement. A waiting claim, shell job or agent from an earlier
-phase does not qualify. On hand-back, verify the result and continue the stage.
+phase does not qualify. On hand-back, verify the result and continue the stage. The hooks record local,
+sanitized interruption and wait observations for terminal workflow feedback;
+recording failures do not change enforcement or the saved workflow status.
 
 New initialization also captures a read-only baseline of application files in
 every approved repository. Before the first authorized Execute or Lightweight
@@ -692,7 +694,7 @@ Read `<base>/references/feedback.md` in full and follow it. The deterministic fe
 
 Follow that reference's **Explain the feedback to the user** guidance for progress messages and the terminal summary. Describe the purpose and findings in plain language; do not narrate internal writer classification or call the user's run "minimal" or "non-minimal" in chat.
 
-Use the writer's `inspect` result to decide whether analysis is needed. When `analysisRequired` is true (extra rounds or recorded in-workflow guardrail interventions), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+Use the writer's `inspect` result to decide whether analysis is needed. When `analysisRequired` is true (extra rounds, recorded in-workflow guardrails, hook interventions or repeated agent waits), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
 
 The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later. Under `autopilot`, do not ask the retrospective's optional clarification questions: preserve material uncertainty in the writer input's `openQuestions` and finish the terminal report.
 
