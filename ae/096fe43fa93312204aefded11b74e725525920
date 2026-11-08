@@ -1,0 +1,23 @@
+evals/define-test-strategy/fresh-tests/graders/nonintrusive-map.md
+  s_0fad2979134b53::t_9a70904234a764 7-10,12-34,36-42,44-48
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/decision-log-write-attempted.md
+  s_0fad2979134b53::t_e9da3a15566c2b 12
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/review-summary.md
+  s_0fad2979134b53::t_6b8badcb60265d 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ae096fe43fa93312204aefded11b74e725525920",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
