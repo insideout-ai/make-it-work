@@ -1,0 +1,90 @@
+evals/define-test-strategy/README.md
+  s_18e0c68e142857::t_c5258e2bae3ddf 68-74
+evals/drive-the-epic.test.mjs
+  s_18e0c68e142857::t_56047757dfc8a3 46-66
+docs/autopilot-log-schema.md
+  s_18e0c68e142857::t_c5258e2bae3ddf 27-34
+scripts/decision-log.mjs
+  s_18e0c68e142857::t_cef99da00b6e52 82-90,96
+evals/drive-the-epic/README.md
+  s_18e0c68e142857::t_c5258e2bae3ddf 3
+  s_18e0c68e142857::t_56047757dfc8a3 23-30
+scripts/decision-log.test.mjs
+  s_18e0c68e142857::t_cef99da00b6e52 183-198
+evals/suites.json
+  s_18e0c68e142857::t_56047757dfc8a3 116-118,131-132,134-135
+  s_18e0c68e142857::t_3a735bb10c08b0 133,136
+evals/drive-the-epic/uncertainty-resolved/case.yaml
+  s_18e0c68e142857::t_56047757dfc8a3 1-5
+scripts/epic.mjs
+  s_18e0c68e142857::t_cef99da00b6e52 4,74
+evals/drive-the-epic/uncertainty-seed.mjs
+  s_18e0c68e142857::t_56047757dfc8a3 1-22
+scripts/refresh-handoff.mjs
+  s_18e0c68e142857::t_dac5e3a1a04c62 1-12,15-20,22-28,30-35,42-50,52-58
+  s_18e0c68e142857::t_6337e01dfa936f 13,36-39,51
+  s_18e0c68e142857::t_c70ef1010ba933 14,21,29,40-41
+scripts/epic.test.mjs
+  s_18e0c68e142857::t_cef99da00b6e52 63-83
+skills/define-test-strategy/SKILL.md
+  s_18e0c68e142857::t_dac5e3a1a04c62 5-10,183-187
+  s_18e0c68e142857::t_6a81bb1f548a90 188
+evals/drive-the-epic/uncertainty-resolved/graders/uncertainty-handoff.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-31
+evals/drive-the-epic/uncertainty-unresolved/case.yaml
+  s_18e0c68e142857::t_56047757dfc8a3 1-5
+evals/drive-the-epic/uncertainty-resolved/prompt.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-14
+evals/drive-the-epic/uncertainty-unresolved/fixture.sh
+  s_18e0c68e142857::t_56047757dfc8a3 1-5
+evals/drive-the-epic/uncertainty-unresolved/graders/no-questions.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-3,5-7
+  s_18e0c68e142857::t_3a735bb10c08b0 4
+evals/drive-the-epic/uncertainty-unresolved/graders/uncertainty-handoff.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-31
+evals/drive-the-epic/uncertainty-resolved/graders/prepared-state.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-8
+scripts/refresh-handoff.test.mjs
+  s_18e0c68e142857::t_6337e01dfa936f 53-58
+  s_18e0c68e142857::t_dac5e3a1a04c62 1,3-5,8-40,52
+  s_18e0c68e142857::t_c70ef1010ba933 2,6-7,41-51
+skills/shape-the-epic/references/autopilot.md
+  s_18e0c68e142857::t_cef99da00b6e52 42-50
+CHANGELOG.md
+  s_18e0c68e142857::t_dac5e3a1a04c62 32
+  s_18e0c68e142857::t_cef99da00b6e52 33
+  s_18e0c68e142857::t_4a0782bd3943cf 23
+evals/drive-the-epic/uncertainty-unresolved/prompt.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-14
+evals/drive-the-epic/uncertainty-resolved/fixture.sh
+  s_18e0c68e142857::t_56047757dfc8a3 1-5
+evals/drive-the-epic/uncertainty-resolved/graders/no-questions.md
+  s_18e0c68e142857::t_3a735bb10c08b0 4
+  s_18e0c68e142857::t_56047757dfc8a3 1-3,5-7
+evals/drive-the-epic/uncertainty-unresolved/graders/prepared-state.md
+  s_18e0c68e142857::t_56047757dfc8a3 1-8
+evals/drive-the-epic/autopilot/graders/handoff-quality.md
+  s_18e0c68e142857::t_67f0671dacadc5 7-13
+skills/drive-the-epic/SKILL.md
+  s_18e0c68e142857::t_82529d56a35aef 50-65
+skills/drive-the-epic/references/controller.md
+  s_18e0c68e142857::t_2b48839f589bc4 62-70
+skills/slice-the-epic/SKILL.md
+  s_18e0c68e142857::t_eab6f628e1344b 178-187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "104347edced498cf39f84131e82473e6ea59422c",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
