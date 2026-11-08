@@ -16,12 +16,14 @@ and a structured `next_action` with `type: assistant_message`, the exact chat
 `text`, and `delivery_status: not_sent`. The command only returns the message;
 it has not delivered assistant chat. Run initialization by itself.
 Immediately send `next_action.text` to user-visible assistant chat before any
-further tool call, including activity checkpoints and reference reads. For a
+further tool call, including activity checkpoints and reference reads. Use a
+standalone assistant response with no tool calls, then finish that response. Stop
+confirms the runtime text and automatically resumes the active run. For a
 normal run, `continuation: continue_context_check_without_user_reply` then
 continues into Context check in the same turn. If only tool calls/results have
 occurred since init, the message remains unsent; emit it before the next tool.
-Do not end the turn, wait for acknowledgment or ask whether to continue at the
-announcement. Tool output, thinking and `· summary` updates do not count as the
+This internal response boundary is not a workflow pause. Do not wait for
+acknowledgment or ask whether to continue at the announcement. Tool output, thinking and `· summary` updates do not count as the
 text block. For pending offline refinement, `continuation` is
 `wait_for_offline_answers`: include the link in the existing stop message,
 explain how to supply answers/resume, and keep that genuine pause.
@@ -30,9 +32,18 @@ Use `inspect` later if full fields are needed. Ordinary refresh/resume does not
 emit another startup link. No state field asserts that the user saw the link.
 
 The skill-scoped startup hooks block immediately after successful init to require
-the assistant chat action. PreToolUse and Stop allow up to four seconds for a
-buffered chat record before enforcing a missing announcement. Stop requires the
-actual assistant chat link and continuation of every In Progress phase. Diagnostic
+the assistant chat action. Stop matches the exact clickable dashboard link in
+its runtime `last_assistant_message`, which remains available when the transcript
+has not flushed. A run-local `startup-confirmation.json` receipt binds that
+observation to the session/transcript, initialization call, immutable start time
+and dashboard; it contains hashes, not message text or an approval. Tool hooks
+accept a matching receipt while the transcript catches up. An invalid or stale
+receipt never grants confirmation. Legacy clients without runtime Stop text
+retain the bounded transcript fallback. If a tool was denied after a link
+streamed, finish the standalone response rather than repeating the link or
+retrying tools. The normal announcement confirmation boundary is not counted as
+a hook failure in workflow feedback. Stop still requires continuation of every
+In Progress phase, and a receipt does not release premature-edit protection. Diagnostic
 request dumps are not conversation events; a partially appended final JSONL line
 is retried/ignored until it is complete. A genuine new user turn clears the fresh-start
 obligation, preserving Resume behavior; synthetic hook feedback and diagnostic

@@ -316,3 +316,66 @@ test('journal write failures are visible without releasing enforcement or blocki
   const allowed = await run.check();
   assert.equal(allowed.decision, undefined); assert.match(allowed.systemMessage, /could not be recorded/);
 });
+
+test('Stop confirms runtime assistant text before the transcript flushes and subsequent tools use its receipt', async (t) => {
+  const run = await freshRun(t, 'autonomous');
+  run.events.splice(2, 1);
+  await run.saveEvents();
+  const before = await readFile(run.transcript, 'utf8');
+  const input = { hook_event_name: 'Stop', transcript_path: run.transcript, session_id: 'runtime-session', last_assistant_message: run.result.startup_message };
+  const stop = await startupHook(input);
+  assert.equal(stop.decision, 'block');
+  assert.match(stop.reason, /Continue Context check now/);
+  assert.doesNotMatch(stop.reason, /still needs an ASSISTANT/);
+  assert.equal(await readFile(run.transcript, 'utf8'), before);
+  assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, session_id: 'runtime-session' }), {});
+  assert.deepEqual(await readHookEvents(run.result.state), []); // expected internal boundary, not an interruption
+  const receipt = await readFile(path.join(path.dirname(run.result.state), 'startup-confirmation.json'), 'utf8');
+  assert.doesNotMatch(receipt, /Open implementation dashboard|runtime-session|DEMO-status|\/Users\/|\/tmp\//);
+});
+
+test('runtime text is not confirmation on tool hooks, and a code sample cannot confirm Stop', async (t) => {
+  const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
+  const input = { transcript_path: run.transcript, last_assistant_message: run.result.startup_message };
+  const tool = await startupHook({ ...input, hook_event_name: 'PostToolUse' });
+  assert.match(tool.hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  const stop = await startupHook({ ...input, hook_event_name: 'Stop', last_assistant_message: `\`\`\`markdown\n${run.result.startup_message}\n\`\`\`` });
+  assert.match(stop.reason, /ASSISTANT CHAT MESSAGE/);
+  await assert.rejects(readFile(path.join(path.dirname(run.result.state), 'startup-confirmation.json')), { code: 'ENOENT' });
+});
+
+test('a confirmation receipt cannot cross sessions, initializations, runs or dashboard targets', async (t) => {
+  const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
+  const input = { hook_event_name: 'Stop', transcript_path: run.transcript, session_id: 'first', last_assistant_message: run.result.startup_message };
+  await startupHook(input);
+  const check = (session_id = 'first') => startupHook({ hook_event_name: 'PostToolUse', transcript_path: run.transcript, session_id });
+  assert.deepEqual(await check(), {});
+  assert.match((await check('other')).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  const receiptPath = path.join(path.dirname(run.result.state), 'startup-confirmation.json');
+  const original = await readFile(receiptPath, 'utf8');
+  for (const key of ['runId', 'initializationHash', 'dashboardHash']) {
+    const modified = JSON.parse(original); modified[key] = 'stale'; await writeFile(receiptPath, JSON.stringify(modified));
+    assert.match((await check()).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  }
+  await writeFile(receiptPath, '{partial');
+  assert.match((await check()).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  await startupHook(input); // actual Stop evidence repairs a malformed regular-file receipt
+  assert.deepEqual(await check(), {});
+});
+
+test('runtime announcement confirmation preserves premature-edit and stage-continuation guards', async (t) => {
+  const run = await freshRun(t, 'autopilot'); run.events.splice(2, 1); await run.saveEvents();
+  await writeFile(path.join(run.root, 'app.js'), 'premature implementation');
+  const held = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
+  assert.equal(held.decision, 'block'); assert.match(held.reason, /Application files changed/);
+  assert.equal((await readHookEvents(run.result.state))[0].kind, 'premature-implementation');
+});
+
+
+test('receipt write failure is visible while runtime confirmation still requires stage continuation', async (t) => {
+  const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
+  await mkdir(path.join(path.dirname(run.result.state), 'startup-confirmation.json'));
+  const result = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
+  assert.equal(result.decision, 'block'); assert.match(result.reason, /Continue Context check now/);
+  assert.match(result.systemMessage, /receipt could not be saved/);
+});

@@ -7,6 +7,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
+import { readStartupConfirmation, saveStartupConfirmation, isConfirmationBoundary, hasDashboardLink as hasLink } from './startup-confirmation.mjs';
 
 export function startupResult(output) {
   if (typeof output !== 'string') return null;
@@ -21,16 +22,9 @@ export function startupResult(output) {
   return null;
 }
 
-function hasLink(text, dashboard) {
-  // Code samples are not a clickable chat announcement.
-  const prose = text.replace(/```[\s\S]*?```/g, '').replace(/`[^`]*`/g, '');
-  return [...prose.matchAll(/\[Open implementation dashboard\]\(<?([^>\n]*?)>?\)/g)].some((match) => {
-    try { return decodeURIComponent(match[1]) === dashboard; } catch { return false; }
-  });
-}
-
 export function startupProgress(events) {
   let initialized = null;
+  let initializationId = null;
   let announced = false;
   const bashCalls = new Set();
   const agentCalls = new Map();
@@ -51,6 +45,7 @@ export function startupProgress(events) {
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
       // A new user turn is Resume, not a fresh-run announcement obligation.
       initialized = null;
+      initializationId = null;
       announced = false;
       bashCalls.clear();
       agentCalls.clear();
@@ -83,12 +78,12 @@ export function startupProgress(events) {
         const output = typeof part.content === 'string' ? part.content :
           Array.isArray(part.content) ? part.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n') : '';
         const result = startupResult(output);
-        if (result) { initialized = result; announced = false; agentCalls.clear(); agents.clear(); }
+        if (result) { initialized = result; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); }
       }
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;
     }
   }
-  return { initialized, announced, agents: [...agents.values()] };
+  return { initialized, initializationId, announced, agents: [...agents.values()] };
 }
 
 export function pendingStartup(events) {
@@ -119,7 +114,7 @@ async function continuationHold(initialized, toolCheck = false, agents = []) {
 }
 
 function reminder(initialized) {
-  return `The implementation dashboard has been created, but its link still needs an ASSISTANT CHAT MESSAGE. Tool output does not send it. Before any further tool call, emit this exact clickable link in ordinary assistant text:\n\n${initialized.startup_message}\n\nThen continue Context check in this turn without waiting for user acknowledgment. For a pending offline refinement, keep its documented answer wait instead. Do not claim the link was already shared unless it appears in assistant chat.`;
+  return `The implementation dashboard has been created, but its link still needs an ASSISTANT CHAT MESSAGE. Tool output does not send it. Before any further tool call, emit this exact clickable link in ordinary assistant text:\n\n${initialized.startup_message}\n\nSend it as a standalone assistant response with no tool calls. For a normal run the Stop hook will confirm the runtime assistant text and continue the workflow automatically; no user reply is needed. If the link has already streamed, finish the response without more tools instead of repeating it.\n\nThen continue Context check in this turn without waiting for user acknowledgment. For a pending offline refinement, keep its documented answer wait instead. Do not claim the link was already shared unless it appears in assistant chat.`;
 }
 
 function advisory(event, reason) {
@@ -147,6 +142,8 @@ export async function startupHook(input) {
   if (!['PreToolUse', 'PostToolUse', 'Stop'].includes(input.hook_event_name) || !input.transcript_path) return {};
   let progress;
   let events;
+  let confirmation;
+  let confirmationError;
   // Chat may precede its buffered JSONL record. Allow a longer bounded flush
   // before enforcing a missing announcement, without accepting tool-only links.
   const attempts = input.hook_event_name === 'PostToolUse' ? 0 : 40;
@@ -160,6 +157,16 @@ export async function startupHook(input) {
       catch (error) { if (index !== lines.length - 1) throw error; } // partial append
     }
     progress = startupProgress(events);
+    if (progress.initialized) {
+      confirmation = await readStartupConfirmation(input, progress);
+      const runtimeLink = input.hook_event_name === 'Stop' && typeof input.last_assistant_message === 'string' &&
+        hasLink(input.last_assistant_message, progress.initialized.dashboard);
+      if (runtimeLink && !isConfirmationBoundary(input, confirmation)) {
+        try { confirmation = await saveStartupConfirmation(input, progress); }
+        catch { confirmationError = 'Startup text was confirmed, but its local receipt could not be saved; later hooks may need the transcript to catch up.'; }
+      }
+      if (runtimeLink || confirmation) progress.announced = true;
+    }
     if (!progress.initialized || progress.announced) break;
   }
   if (!progress.initialized) return {};
@@ -170,9 +177,11 @@ export async function startupHook(input) {
       : advisory(input.hook_event_name, reminder(progress.initialized)), 'missing-dashboard-link');
   const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop', progress.agents);
   if (input.hook_event_name === 'Stop') {
-    const kind = !hold.reason ? 'clear' : hold.reason.startsWith('Application files changed') ? 'premature-implementation'
+    const expectedBoundary = isConfirmationBoundary(input, confirmation) && hold.reason?.startsWith('The dashboard link has been shared');
+    const kind = !hold.reason || expectedBoundary ? 'clear' : hold.reason.startsWith('Application files changed') ? 'premature-implementation'
       : hold.reason.startsWith('Startup continuation could not verify') ? 'state-unavailable' : 'active-stage';
-    return observeHook(input, progress, events, hold, kind);
+    const output = confirmationError ? { ...hold, systemMessage: confirmationError } : hold;
+    return observeHook(input, progress, events, output, kind);
   }
   // Keep recovery tools available; mutation is detected after execution, not rolled back.
   return observeHook(input, progress, events, hold.reason ? advisory(input.hook_event_name, hold.reason) : {});

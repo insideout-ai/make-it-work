@@ -78,6 +78,8 @@ test('init CLI prioritizes the startup message in a concise successful handoff',
   assert.equal(result.next_action.type, 'assistant_message');
   assert.equal(result.next_action.text, result.startup_message);
   assert.equal(result.next_action.delivery_status, 'not_sent');
+  assert.match(result.next_action.instruction, /standalone assistant response, with no tool calls/);
+  assert.match(result.next_action.instruction, /automatically continues Context check without a user reply/);
   assert.equal(result.continuation, 'continue_context_check_without_user_reply');
   assert.equal(result.implementation_baseline[0].root, await realpath(root));
   assert.match(await readFile(result.dashboard, 'utf8'), /CLI/);

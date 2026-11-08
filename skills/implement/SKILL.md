@@ -38,7 +38,9 @@ hooks:
 2. The initializer returns `next_action.type: assistant_message`. Perform that
    action immediately: send `next_action.text` as a user-visible assistant chat
    message before calling any further tool, including an activity checkpoint,
-   a reference read, or Context check. For example:
+   a reference read, or Context check. Send a standalone assistant response with
+   no tool calls, then finish that response. The Stop hook confirms its runtime
+   text and continues the active workflow automatically. For example:
 
    [Open implementation dashboard](</absolute/project/make-it-work/TICKET/TICKET-status.html>)
 
@@ -49,14 +51,21 @@ hooks:
    has not been shared in chat. Emit it now; a later assertion that it was sent
    does not count.
 
-3. After sending the chat message, follow `continuation`. A normal
-   run continues into Context check in the same turn, without a user reply.
+3. After that internal response boundary, follow `continuation`. A normal
+   run continues into Context check for the same user request, without a reply,
+   acknowledgment or approval. Do not wait for the user to restart it.
 
 The skill's startup-presentation hooks reinforce this order. The immediate
-post-init reminder requires the assistant chat action. PreToolUse waits up to
-four seconds for buffered transcript writes before holding a genuinely missing
-announcement. Partial final JSONL writes and diagnostic request replays do not
-count as missing or new announcements; do not repeat a link already sent. Stop requires the actual chat link
+post-init reminder requires the assistant chat action. Stop confirms the exact
+clickable link from its runtime `last_assistant_message` rather than waiting for
+the asynchronously written transcript. It saves a local confirmation receipt
+bound to the session, initialization, run start and dashboard. Later tool hooks
+can use that receipt while the transcript catches up. This is evidence of
+assistant output, not evidence that a person read or approved it. Older runtimes
+without that payload retain the bounded transcript fallback. Partial final JSONL
+writes and diagnostic request replays do not count as new announcements.
+If a tool was denied after the link streamed, finish the standalone response;
+do not repeat the link or keep retrying tools. Stop requires the actual chat link
 and checks that a fresh run is no longer In Progress at any stage. Continue the
 saved stage in this turn until completion or a genuine saved pause/stop. Pending
 offline-answer waits retain their existing behavior.
@@ -87,9 +96,10 @@ is complete or ask the user to accept it as the default escape. Only a genuine
 external blocker justifies asking for guidance. A new user turn clears the fresh
 startup obligation; these hooks do not replace Resume checks or retrofit old runs.
 
-The link is an announcement, not a stopping point. Do not end the turn after
-showing it, request acknowledgment, ask whether to continue, or require the user
-to type another message. Continue through the chosen autonomy's normal workflow
+The standalone announcement response is an internal verification boundary, not
+a workflow pause. Do not request acknowledgment, ask whether to continue, or
+require another user message. Let the Stop hook resume the active run, then
+continue through the chosen autonomy's normal workflow
 until a genuine documented question, approval, pause, stop, or completion.
 Use an ordinary assistant text block; thinking/progress updates displayed as
 `· summary` can strip links and do not count. Do not claim to open a browser.
@@ -270,7 +280,7 @@ The renderer owns parsing and validating the state and current plan, calculating
 
 **Workflow decision audit:** read [references/workflow-decisions.md](references/workflow-decisions.md) at Start and Resume. Record every explicit user workflow choice from questions, chat or invocation options, including approvals, refusals, permission scope/revocation and channel selection. Decisions that change phase belong in that transition row; use `dashboard-checkpoint.mjs decision` for other decisions. Carry pre-state choices into the first row. Distinguish user choices from automatic policy/defaults, reference exact approved versions, preserve history and refresh the existing dashboard. Stages report choices to the main session before dependent work. The reference defines the shared input and resume contract; permission journals remain authoritative.
 
-For controller runs, run `workflow.mjs init` alone and perform its `next_action`: send `next_action.text` unchanged in user-visible assistant chat before any further tool. Then follow `continuation`, continuing Context check in the same turn for a normal new run. Do not end the turn or await acknowledgment at this announcement. For the pending-offline path, include it in the existing documented stop message. Do not combine initialization and context checking in one tool call. For legacy creation paths, after successful dashboard creation, display a clickable Markdown link labeled **Open implementation dashboard**, targeting the actual HTML file's resolved absolute path. Wrap the link target in angle brackets when its path contains spaces. Present the link in assistant chat, not only in tool output or as a code-formatted path. Show it once, in whichever of Start's two creation points creates the state file first for this ticket (New run's first chat message, before Context Check; or Pending offline refinement's stop message). Never repeat it at later checkpoints, and never mention it for Resume. Providing the link does not require automatically opening a browser.
+For controller runs, run `workflow.mjs init` alone and perform its `next_action`: send `next_action.text` unchanged as a standalone user-visible assistant response with no tool calls. Finish that response so Stop can confirm the runtime text; it continues a normal new run automatically without a user reply. Then follow `continuation` into Context check. Do not await acknowledgment. For the pending-offline path, include it in the existing documented stop message. Do not combine initialization and context checking in one tool call. For legacy creation paths, after successful dashboard creation, display a clickable Markdown link labeled **Open implementation dashboard**, targeting the actual HTML file's resolved absolute path. Wrap the link target in angle brackets when its path contains spaces. Present the link in assistant chat, not only in tool output or as a code-formatted path. Show it once, in whichever of Start's two creation points creates the state file first for this ticket (New run's first chat message, before Context Check; or Pending offline refinement's stop message). Never repeat it at later checkpoints, and never mention it for Resume. Providing the link does not require automatically opening a browser.
 
 ---
 
@@ -328,7 +338,7 @@ If this message explicitly requests a mode change, apply **Change autonomy durin
    - Capture a real timestamp into `start_time` (same capture rule as the Checkpoint rule's `Time` cell).
    - Before the first state-file write, read `<base>/../../.claude-plugin/plugin.json` and record its exact nonempty `version` value in `plugin_version`. Do not derive it from the cache directory name, package metadata in the target repository, or a chat message. If the manifest cannot be read or has no version, stop and report that error rather than creating an unattributed run. `plugin_version` is immutable for the run: every later checkpoint, resume, and feedback write preserves it unchanged.
    - Create the state file with `phase: context-check`, `status: In Progress`, the selected `autonomy` and resolved `refinement_destination`, and every other field at its template default (including `real_rows_from: 1`). Log the first Audit-log row: `From: start`, `To: context-check`, with an `Outcome / reason` recording the autonomy choice, refinement destination and its source, any `--mode` flag, and branch-guard outcome (e.g. `New Guided run; Refinement questions: here (user choice); branch <name> created per branch-guard choice` or `New Autopilot run; Refinement questions: here (policy default); proceeding on existing feature branch`). Fold these pre-state choices into this one row; no separate decision rows can be written before the state file exists.
-   - Create the progress dashboard (`make-it-work/<TICKET>/<TICKET>-status.html` — see Progress dashboard below) from those fields. Immediately perform the initializer's assistant-message action before calling any further tool, then continue with Context check in the same turn. Do not end the turn or wait for acknowledgment at the link. For legacy initialization, use the clickable **Open implementation dashboard** link described above.
+   - Create the progress dashboard (`make-it-work/<TICKET>/<TICKET>-status.html` — see Progress dashboard below) from those fields. Immediately perform the initializer's standalone assistant-message action before calling any further tool. Finish that response so Stop confirms it and automatically continues Context check. Do not wait for acknowledgment at the link. For legacy initialization, use the clickable **Open implementation dashboard** link described above.
    - For an explicitly supplied tracker ticket, follow the ticket-publication reference's **Start and consent** procedure once. Save scoped consent separately from autonomy; publication unavailable, declined or unanswered leaves the implementation workflow local. Under Autopilot, use existing explicit permission or retain local without prompting. Do not configure a tracker for a local spec/pasted requirement without an explicit destination.
    - *Only then* run **Context check**. **If its outcome is "stop"** (no signal at all, or incomplete, per Context check's own Outcomes), set `status: Stopped` explicitly — not `Paused`: there is no mid-run point to resume into until the user has run `go-deep` externally and re-invokes `implement`, which is effectively a fresh attempt, not a resumable pause. Log this as the phase's own Audit-log row (`From`=`To`=`context-check`, `Outcome / reason`: the exact stop message shown to the user), regenerate the dashboard, then stop exactly as Context check's own Outcomes already specify.
    - If Context check succeeds, check whether `make-it-work/<TICKET>/<TICKET>-spec.md` and/or `make-it-work/<TICKET>/<TICKET>-plan.md` already exist from standalone runs. If so, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Under `autopilot`, stop rather than choosing between stale artifacts.
