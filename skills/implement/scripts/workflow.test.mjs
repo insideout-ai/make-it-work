@@ -32,9 +32,9 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
 
-test('final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
+test('legacy final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
+  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace(/^review_scope_version: 1\n/m, '').replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
   const input = { event: 'sync-complete', id: 'sync-paths', repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')), context_updated: ['.claude/rules/product.md', '.claude/rules/architecture.md'] };
   const first = await applyWorkflow({ root, statePath, input });
   assert.equal(first.fields.context_updated, '.claude/rules/product.md, .claude/rules/architecture.md');
@@ -51,6 +51,7 @@ test('final sync persists context paths, preserves earlier updates and replays w
 test('initializes from the maintained template and never overwrites a run', async (t) => {
   const { root, statePath, result } = await fixture(t);
   assert.equal(result.fields.controller_version, '1');
+  assert.equal(result.fields.review_scope_version, '1');
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.plugin_version, result.fields.plugin_version);
   assert.match(await readFile(result.dashboard, 'utf8'), /DEMO/);
   await assert.rejects(initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' }), /EEXIST/);

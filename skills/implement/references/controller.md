@@ -80,7 +80,8 @@ Before every phase transition, run `inspect --root <root> --state <state>` and u
 - `handoff`: supply the actual `handoff` path, optional `previous_review`, and `related_failures` after semantic triage. A human question is saved as a blocking pending input before returning; present its saved question/choices, then use `resolve-input` with the returned pending ID. Internal regression triage remains active work; only an actual unresolved human classification opens an input wait. A manual-walkthrough route also requires the walkthrough to have happened and `manual_evidence_complete: true`.
 - `context-ready`: after the documented context check and artifact-reuse decision. For accepted reuse, supply `reuse_spec: true`; complete the existing reuse/hash checks first.
 - `approve`, `redo`: compatibility events for a spec/plan gate that has no saved pending input. Guided entry to those phases now creates a Paused approval request automatically; answer that request with `resolve-input` instead. `skip-approval` is allowed only outside Guided, except that a spec revision after `spec-conflict` always requires explicit approval. It clears an otherwise optional approval wait without claiming user approval.
-- `sync-complete`: after the finished final context sync; supply `context_updated` as an array of every changed documentation/map/report path (relative to artifact root, including `../repo/` paths for approved sibling repos), or `[]` when none. Paths must resolve to existing files in approved repos. The controller merges/deduplicates these with earlier stage updates before advancing to final approval (or legacy completion). Omitting the field retains legacy compatibility; new stage calls must supply it. Replaying the same event does not duplicate updates.
+- `sync-complete`: after the finished final context sync; supply `context_updated` as an array of every changed documentation/map/report path (relative to artifact root, including `../repo/` paths for approved sibling repos), or `[]` when none. Paths must resolve to existing files in approved repos. The controller merges/deduplicates these with earlier stage updates before advancing to final approval (or legacy completion). For `review_scope_version: 1`, it first checks the full delivery diff against the bound review evidence. Scope changes return to Review with a new review cycle and a `next_action`; unchanged coverage advances normally. The existing review cap applies, without incrementing fix/replan counts. Omitting the field retains legacy compatibility; new stage calls must supply it. Replaying the same event does not duplicate updates.
+- `refresh-review`: for an active final-sync/final-approval run with `review_scope_version: 1`, rechecks actual delivery scope and returns drifted content to Review before packaging. It refuses an unchanged reviewed tree and preserves fix/replan counts. It cannot reopen Complete.
 - `complete`: checks the current final package, requiring its exact approval in Guided, before recording Complete.
 - `mode` (adaptive runs): supply `risk`, `mode` (`lightweight`/`tdd`), `source: assessed|user` and a one-line `rationale`; a user source also needs `via: question|chat|flag`. Apply it after risk assessment and before the refinement handoff or a reused spec's `context-ready`, and again for a Guided override or a user's downgrade. Spec acceptance then routes by mode.
 - `handoff` with `escalate: "<reason>"` (plus optional raised `risk` and `rationale`) applies a reassessment escalation; Lightweight review routes apply `fix` (counted against the fix limit) or `escalate` themselves. The controller sets `mode: tdd`, `escalations: 1`, resets review/fix counters and writes the `Escalation:` row without consuming a replan.
@@ -154,3 +155,17 @@ Every checkpoint must retain the approved repository set and branches. `context-
 ## Lightweight fix evidence
 
 Completed `implement` handoffs in Lightweight fix rounds (`fix_cycle > 0`) require the saved report/audit diagnosis checkpoint described in [lightweight-fix.md](lightweight-fix.md). It binds the current round to its accepted spec and fix source. Initial implementation and blocked handoffs do not require it. Checkpoint and inspect before the fresh fix-agent dispatch; handoff validation cannot retroactively establish correct ordering or prove dispatch.
+
+## Delivery-aligned review
+
+New runs carry `review_scope_version: 1`. Before each independent-review dispatch,
+run `review-scope.mjs prepare --root ROOT --state STATE` and pass its exact target
+path and hash to the reviewer. The helper and final package use the shared
+`scripts/lib/delivery-scope.mjs` snapshot: full branch-to-base diffs, all approved
+repo roots/bases and tracked/untracked content, excluding `make-it-work/`.
+The review renderer binds report evidence to this target. A clean review handoff
+must match both that snapshot and the current delivered paths; narrower or stale
+evidence cannot advance the controller. The package rechecks coverage and exact
+repo/base selection, and hashes the target/diff artifacts as evidence. Hashes
+establish scope/freshness, not proof of semantic inspection. No new human approval
+is introduced. Older saved runs without the marker retain legacy behavior.

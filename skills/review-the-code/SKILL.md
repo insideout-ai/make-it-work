@@ -242,6 +242,25 @@ When the plan has `## Verification Policy`, review its per-repo choices alongsid
 
 **Skipped prompts** — do not run Step 0 (PR link), and skip Step 1's requirements question and its branch-pair confirmation. The requirements source of truth is the current accepted refined spec, including its explicitly accepted revisions. The original ticket is provenance/context; refinement may legitimately complete or change it. The plan describes how to implement the spec and cannot amend its requirements. Read the spec and inspect the diff before reading the plan, then check both code→spec and plan→spec. Inspect assumptions, scope exclusions, deferred behavior and reference deviations for conflicts with the spec; these are review subjects, not automatic defects. A plan approval or a Decided finding does not authorize a requirements deviation unless that decision was explicitly incorporated into the accepted refined spec. Cite the affected spec criterion and inspected evidence for each conflict. A clear code/plan defect with an unambiguous correction within the spec routes to `fix` or `replan` as appropriate. A contradiction requiring a requirements decision routes to `human`, even if the code follows the plan; it cannot receive CLEAN. Never resolve such a conflict by reverting to the original ticket or silently changing the spec.
 
+**Delivery scope contract** — when supplied `review_scope_version: 1`, read the
+parent's exact `review_target` JSON and verify its dispatched hash before judging
+the change. Its repo roots, base/merge-base and complete path list are the same
+snapshot final packaging will deliver, including earlier branch commits. Read
+its binary-safe diff artifacts and inspect every affected file. Do not override
+it with a HEAD-only or current-ticket-only diff, or exclude inherited files
+because they predate this run. Distinguish inherited work's requirements from
+the current accepted spec; inspect it against its available project context and
+record any material limitation honestly rather than inventing requirements.
+
+Write through `scripts/review-report.mjs` with the supplied `review_target` and
+`review_target_sha256`, plus `implement.review_scope_version: 1`. Record `scope:
+branch` and all actually inspected paths for every approved repo. The writer
+requires target-aligned evidence and detects scope changes during review. Do not
+hand-write a CLEAN handoff after a rejected report or imply that merely listing
+paths proves semantic review. Return the stale-scope error to the parent so it
+can prepare and review the updated target. Later final-sync changes may cause
+another review round; those changes must receive review before packaging.
+
 **Diff to review** — the work is not committed and there is no PR, so review the working tree against the base:
 
 - Tracked changes: `git diff $(git merge-base <base> HEAD)` — this covers committed and uncommitted work together.

@@ -10,6 +10,7 @@ import { writeReview } from '../../../scripts/review-report.mjs';
 import { executionControl } from '../../execute/scripts/step-control.mjs';
 import { updatePlan } from '../../execute/scripts/plan-status.mjs';
 import { applyWorkflow, initializeWorkflow } from './workflow.mjs';
+import { prepareReviewScope } from './review-scope.mjs';
 import { prepareScope, approveScope, runScope } from './workspace-scope.mjs';
 import { realpath } from 'node:fs/promises';
 
@@ -88,14 +89,23 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   const execution = await apply('handoff', { handoff: await saveHandoff('execute', { outcome: 'PASSED', artifacts: { report: 'make-it-work/DEMO-2/DEMO-2-execute.md', verification: 'make-it-work/DEMO-2/DEMO-2-verification-v1.json' }, data: { discoveries: [], failing_tests: [], gate: 'full-suite' } }) });
   assert.equal(execution.fields.review_cycle, '1');
   // This test supplies a clean review artifact; semantic independence is exercised by the separate forward-test rehearsal.
-  const review = await writeReview(root, { version: 1, ticket: 'DEMO-2', branch: 'DEMO-2', commit: `working tree on ${initialHead}`, working_tree: true, coverage: 'Compared with the formal-greeting spec and actual passing assertions.', findings: [], repo_roots: workspace ? { api: sourceRoot, web: secondRoot } : { 'tiny-greeter-full': root }, implement: { handoff_version: 1, plan_version: 1, review_cycle: 1 } });
+  const roots = workspace ? { api: sourceRoot, web: secondRoot } : { 'tiny-greeter-full': root };
+  const target = await prepareReviewScope(root, statePath);
+  const review = await writeReview(root, { version: 1, ticket: 'DEMO-2', branch: 'DEMO-2', commit: `working tree on ${initialHead}`, working_tree: true,
+    coverage: 'Compared the full delivery target with the formal-greeting spec and actual passing assertions.', findings: [], repo_roots: roots,
+    review_target: target.review_target, review_target_sha256: target.sha256,
+    review_scope: target.repos.map((repo) => ({ repo: Object.keys(roots).find((key) => roots[key] === repo.root), base: repo.base, scope: 'branch', paths: repo.paths })),
+    implement: { handoff_version: 1, plan_version: 1, review_cycle: 1, review_scope_version: 1 } });
   await apply('handoff', { handoff: path.relative(root, review.handoff) }); await apply('sync-complete');
   const draft = path.join(directory, 'DEMO-2-final-draft.json');
   await writeFile(draft, JSON.stringify({ commit_message: 'Add formal greeting', pr_title: 'Add formal greeting', pr_description: 'Add formal greeting while preserving greet. Actual node test.js assertions pass.' }));
   const helper = path.resolve('skills/implement/scripts/final-package.mjs');
   execFileSync(process.execPath, [helper, 'build', '--root', root, '--state', statePath, '--draft', draft, ...repos.flatMap((repo) => ['--repo', repo]), ...(workspace ? [] : ['--base', 'main'])], { stdio: 'pipe' });
+  const scopedPackage = JSON.parse(await readFile(path.join(directory, 'DEMO-2-final-package.json'), 'utf8'));
+  assert.ok(scopedPackage.review_scope.every((repo) => repo.status === 'covered'));
+  assert.ok(scopedPackage.evidence.review_target);
   if (workspace) {
-    const pkg = JSON.parse(await readFile(path.join(directory, 'DEMO-2-final-package.json'), 'utf8'));
+    const pkg = scopedPackage;
     assert.deepEqual(pkg.repos.map((repo) => repo.base), ['main', 'develop']);
     assert.throws(() => execFileSync(process.execPath, [helper, 'build', '--root', root, '--state', statePath, '--draft', draft, '--repo', sourceRoot], { stdio: 'pipe' }), /every approved repository/);
     assert.match(await readFile(initialized.dashboard, 'utf8'), /Full suite: pass/);

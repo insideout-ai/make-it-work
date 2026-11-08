@@ -11,6 +11,8 @@ import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
+import { checkReviewScope } from './review-scope.mjs';
+import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../scripts/lib/review-evidence.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
@@ -38,34 +40,6 @@ async function artifact(root, relative) {
 }
 
 function textFileName(ticket, name) { return `${ticket}-final-${name}`; }
-function uniquePaths(changed, untracked) { return [...new Set([...changed, ...untracked])].sort(); }
-
-async function snapshotRepo(repoPath, base, artifactRoot) {
-  const repo = await realpath(repoPath);
-  if (repo === artifactRoot && !base) fail('A base branch is required.');
-  const name = path.basename(repo);
-  const top = git(repo, ['rev-parse', '--show-toplevel']).toString('utf8').trim();
-  if (await realpath(top) !== repo) fail(`Not a repository root: ${repoPath}`);
-  const branch = git(repo, ['symbolic-ref', '--quiet', '--short', 'HEAD']).toString('utf8').trim();
-  const head = git(repo, ['rev-parse', 'HEAD']).toString('utf8').trim();
-  const baseSha = git(repo, ['rev-parse', '--verify', `${base}^{commit}`]).toString('utf8').trim();
-  const mergeBase = git(repo, ['merge-base', baseSha, head]).toString('utf8').trim();
-  const excludes = ['--', '.', ':(exclude)make-it-work'];
-  const trackedDiff = git(repo, ['diff', '--binary', '--no-ext-diff', mergeBase, ...excludes]);
-  const changed = git(repo, ['diff', '--name-only', mergeBase, ...excludes]).toString('utf8').split('\n').filter(Boolean);
-  const untracked = git(repo, ['ls-files', '--others', '--exclude-standard', '-z', ...excludes]).toString('utf8').split('\0').filter(Boolean).sort();
-  const pieces = [trackedDiff];
-  for (const relative of untracked) {
-    const absolute = path.resolve(repo, relative);
-    if (!absolute.startsWith(`${repo}${path.sep}`)) fail(`Untracked path escapes repo: ${relative}`);
-    pieces.push(git(repo, ['diff', '--no-index', '--binary', '--no-ext-diff', '--', '/dev/null', relative], { acceptDiff: true }));
-  }
-  const diff = Buffer.concat(pieces);
-  return {
-    name, path: repo, base, base_sha: baseSha, merge_base: mergeBase, branch, head,
-    paths: uniquePaths(changed, untracked), diff_sha256: sha(diff), diff,
-  };
-}
 
 function markdown(pkg) {
   const acceptance = summarizeAcceptance(pkg.acceptance);
@@ -210,7 +184,7 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   const repos = [];
   const seen = new Set();
   for (let i = 0; i < repoInputs.length; i += 1) {
-    const snap = await snapshotRepo(repoInputs[i], baseInputs[i] ?? f.base, root);
+    const snap = await snapshotDeliveryRepo(repoInputs[i], baseInputs[i] ?? f.base);
     if (seen.has(snap.name)) fail(`Duplicate repo name: ${snap.name}`);
     seen.add(snap.name);
     snap.diff_file = textFileName(f.ticket, `${snap.name}.diff`);
@@ -224,7 +198,14 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
     if (reviewEvidence.version !== 1 || reviewEvidence.ticket !== f.ticket || reviewEvidence.report_sha256 !== evidence.review.sha256 || !Array.isArray(reviewEvidence.repos)) fail('Review evidence does not match the current report; rerun review.');
     evidence.review_scope = await artifact(root, reviewEvidencePath);
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (f.review_scope_version === '1') {
+    const checked = await checkReviewScope(root, path.join(root, runArtifact(f.ticket, `${f.ticket}-state.md`)));
+    evidence.review_target = await artifact(root, checked.target.path);
+    for (const [index, relative] of checked.target_diffs.entries()) evidence[`review_target_diff_${index}`] = await artifact(root, relative);
+    if (JSON.stringify(repos.map(({ diff, diff_file, ...repo }) => repo)) !== JSON.stringify(checked.repos)) fail('Final package repositories or bases differ from the reviewed delivery scope.');
+  }
   const reviewScope = compareReviewScope(reviewEvidence, repos);
+  if (f.review_scope_version === '1' && reviewScope.some((repo) => repo.status !== 'covered')) fail('Final package contains changes outside independent review coverage. Rerun review on the full delivery diff.');
   const pkg = {
     version: 1, ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
     draft, evidence, validation,

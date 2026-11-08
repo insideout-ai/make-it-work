@@ -182,7 +182,8 @@ For a new run, create the real directory `make-it-work/<TICKET>/` under the arti
 
 ```
 ticket: <TICKET>
-handoff_version: 1             # new runs use validated JSON handoffs; absent on older runs
+handoff_version: 1
+review_scope_version: 1       # full delivery diff required for clean review and packaging             # new runs use validated JSON handoffs; absent on older runs
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | lightweight | review | fix-plan | final-sync | final-approval | complete
 final_package_version: 1       # new runs build a content-bound final package; absent on older runs
@@ -522,7 +523,7 @@ Append every unrelated test to Known regressions as a bullet `- <repo>: <file> �
 
 ### Review
 
-Increment `review_cycle`, then dispatch the review as described in Review dispatch.
+Controller runs increment `review_cycle` when entering Review; do not increment it again. Older runs retain their existing counter checkpoint. Then follow Review dispatch.
 
 ### Fix
 
@@ -564,7 +565,23 @@ Plan then runs testing readiness and `plan-the-work` in initial mode with `escal
 
 See Final context sync below.
 
-### Final approval (new runs only)
+#For `review_scope_version: 1`, `sync-complete` checks the final tree against the
+reviewed delivery target. If documentation, test-map files or other delivery
+content changed, it saves the context paths and returns to Review with an
+explicit `next_action`; follow that action rather than building a package. This
+uses the existing review-cycle cap and does not consume a fix/replan round. Once
+the current full diff has been independently reviewed, run final sync again
+without rewriting unchanged context. Packaging requires covered scope for every
+delivered file and binds the target and its diff artifacts into its evidence.
+
+If later edits during final approval invalidate coverage, apply the controller's
+`refresh-review` event, then prepare and dispatch the new target. It verifies
+actual scope drift before returning to Review; an already-reviewed tree does not
+consume another review cycle. Completed runs retain their existing terminal and
+new-run rules. Saved runs without `review_scope_version` keep legacy disclosure
+behavior; do not retrofit the marker to a historical run.
+
+## Final approval (new runs only)
 
 After Final context sync, runs with `final_package_version: 1` checkpoint `phase: final-approval` and follow the Final approval package section below. Older runs proceed directly to Completion.
 
@@ -627,6 +644,24 @@ For `autopilot`, use the Autonomous column only where it requires no human decis
 
 ## Review dispatch
 
+For a run with `review_scope_version: 1`, prepare its delivery scope before every
+review dispatch (including re-reviews):
+
+```sh
+node <base>/scripts/review-scope.mjs prepare --root <artifact-root> --state <state-path>
+```
+
+The helper freezes the same full branch-to-base diff used by final packaging,
+including earlier unmerged commits, staged/unstaged changes, untracked files and
+all approved repositories. Read the returned paths and bases; inspect the
+included branch history and disclose earlier branch work. Do not silently narrow
+the review to this ticket's uncommitted files or use HEAD as its comparison base.
+Pass the exact `review_target` and `sha256` to the reviewer. A changed target or
+source tree requires preparing and reviewing the current snapshot again; an old
+report does not certify newly added paths. Do not claim inspection merely
+because a path appears in the target. Earlier branch work remains in the review
+and delivery scope; distinguish its requirement provenance from this ticket.
+
 Before dispatching, narrate and checkpoint that an independent background agent is reviewing the change. Keep that activity visible while awaiting the review, per [references/activity.md](references/activity.md); include in the prompt that the subagent must not write workflow activity or the dashboard. After it returns, checkpoint the next activity or apply the resulting phase/stop transition.
 
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
@@ -636,6 +671,7 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 - in Lightweight mode, pass no plan path — the spec is the sole requirements source — and skip the two bullets below. For a re-review, pass the previous review's actionable findings with their regions (from its handoff) so Review can flag repeat offenders;
 - when `gate: none`, pass whether this is an explicit manual policy (`VERIFIED_MANUALLY`) or the late `GATE_NO_RESULT` fallback. Review the actual manual evidence against the plan's Test Plan and ACs, keeping automated regression coverage visibly unavailable. For mixed policies, inspect manual evidence alongside the automated result;
 - for `verification_version: 1`, pass the verified `make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json` path. Ask Review to read it against the plan's AC traceability table, treating `unverified` rows as visible gaps rather than assuming the full-suite result proves them. Review does not rerun tests merely to populate evidence.
+- for `review_scope_version: 1`, pass that flag, the target path and its exact hash. Require the reviewer to inspect the complete target and write through `review-report.mjs` with `review_target`, `review_target_sha256`, `implement.review_scope_version: 1`, all actual branch-scope paths and every approved repo. A HEAD-only or partial report cannot satisfy this target. The controller independently checks the evidence before accepting CLEAN; do not bypass a failed scope check by writing a handoff manually.
 - require Review to record the actual reviewed paths and comparison base through the review renderer's `review_scope`, plus `ui_verification`. For UI changes, perform a browser walkthrough when available: exercise the changed behavior and inspect layout and relevant states. Record the observed result; when browser access/setup is unavailable, record `pending` with the concrete reason and unchecked behavior. Use `not-applicable` only with a reason for changes without UI impact. Unit tests and code inspection do not establish browser verification. A failed walkthrough is a review finding under the normal routing rules, not a passed or unavailable check.
 - ask it to return the chat summary, ending with the `Orchestrator outcome:` line for an older run, or that line followed by `Handoff: <path>` for a version 1 run.
 
@@ -645,7 +681,9 @@ Then read `make-it-work/<TICKET>/<TICKET>-review.md`. For a version 1 run, recor
 
 ## Final context sync
 
-Runs only after review comes back `CLEAN`. Its job is to make the project's knowledge base describe the system as it now is — reusable knowledge for future work, not a record of this ticket.
+Runs only after review comes back `CLEAN`. On a repeated final-sync pass, retain
+already-correct context and test-map artifacts; do not rewrite or regenerate them
+without a real content change. Its job is to make the project's knowledge base describe the system as it now is — reusable knowledge for future work, not a record of this ticket.
 
 **Inputs:**
 

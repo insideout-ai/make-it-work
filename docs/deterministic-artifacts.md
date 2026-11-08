@@ -96,3 +96,20 @@ Supply `ui_verification: {status: "passed" | "pending" | "not-applicable", note:
 After the adversarial semantic review, use `review-report.mjs write --root <artifact-root> --input <review.json>` for both report tiers and, on version-1 handoff runs, the JSON handoff. Input has `version: 1`, `ticket`, `branch`, `commit`, `coverage`, `findings`, optional `solid`, `preexisting`, `context_gaps`, `known_regressions`, `decided`, and explicit `repo_roots` keyed by repo ID. Each finding supplies `severity`, `claim`, inspected `evidence`, `locations: [{repo?,file,line}]`, optional `rule`, and in implement mode `route`, stable `region`, and `introduced_by_fix_of` (or null). Set `working_tree: true` for local uncommitted reviews; otherwise use an exact hex commit or HEAD and the helper reads locations at that Git revision.
 
 Supply `implement: {plan_version,review_cycle,handoff_version:1}` for version-1 handoff callers. Older implement callers still supply `implement` but omit `handoff_version`: they receive routes and outcome lines without a new handoff. Standalone callers omit `implement`. In implement mode, each finding explicitly chooses `route: fix|replan|human|advisory`. Routes `fix`, `replan` and `human` are actionable at every severity, including Minor; `advisory` is allowed only for nonblocking Minor nits. The optional `actionable` boolean must agree with the route; contradictory input is rejected rather than silently dropping a fix. Advisory findings stay visible as unfixed in both report tiers and the final package, but are excluded from the actionable handoff. Standalone Minor findings with no route retain their advisory default; standalone Major/Critical findings cannot be hidden. Older implement inputs that used `route: fix` with `actionable: false` must explicitly choose `route: advisory` instead. Existing saved reports/handoffs are not rewritten. The helper derives counts, verdict, route precedence and Markdown/JSON from one findings list, validates source file/line bounds before saving, and allocates a fresh review handoff. Known hosted source links may be supplied as a location's `url`. Display its returned summary. Location validation checks existence and bounds, not whether the finding is true; source-chain verification, severity/business impact, semantic route choice and adequate review coverage remain the reviewer's responsibility.
+
+
+### Review and delivery scope
+
+Fresh implement runs (`review_scope_version: 1`) prepare a frozen delivery target
+with `skills/implement/scripts/review-scope.mjs prepare --root ROOT --state STATE`.
+The target contains all selected roots/bases and the complete binary-safe diff,
+including earlier branch commits. Pass its returned path/hash to independent
+review. The report input must include `review_target`, `review_target_sha256`,
+`implement.review_scope_version: 1` and branch-scoped evidence for every path.
+The renderer rejects HEAD-only, omitted-path or drifted targets before writing
+a clean report, evidence or handoff. The controller separately validates CLEAN.
+Final sync routes changed delivery content back to independent Review under the
+existing cap. Final packages require full matching coverage and bind the target
+and its diff artifacts. Later final-approval drift uses `refresh-review`; the
+helper refuses an unchanged tree. Standalone reviews and legacy saved runs keep
+the existing partial/unknown-scope disclosure behavior.

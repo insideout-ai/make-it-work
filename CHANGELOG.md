@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Bind independent review to the full delivery diff, reject narrower or stale review evidence, and return final-sync changes to review before packaging.
+
 - Allow implementation runs to yield while runtime-verified delegated agents are working, restoring stage-continuation checks when those agents finish or fail.
 - Record hook interruptions, repeated agent waits and observed resolutions in local workflow feedback without inflating fix or replan counts.
 - Confirm dashboard announcements from runtime Stop text and preserve a run-bound receipt so delayed transcript writes do not trigger repeated link announcements or tool denials.
