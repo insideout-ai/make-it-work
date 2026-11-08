@@ -360,3 +360,22 @@ test('supplemental evidence rejects traversal, globs, directories and symlink es
   }
   assert.equal(calls, 0);
 });
+
+
+test('Bash helper writes retain command/result identity and error status for semantic grading', () => {
+  const calls = [
+    { id: 'pointer', command: 'node scripts/test-strategy.mjs check --file strategy.md; node scripts/test-strategy.mjs pointer --root .; git diff CLAUDE.md', content: '{"valid":true}\n{"changed":true,"skipped":null}', is_error: false },
+    { id: 'already-current', command: 'node scripts/test-strategy.mjs pointer --root .', content: '{"changed":false,"skipped":null}', is_error: false },
+    { id: 'blocked', command: 'node scripts/test-strategy.mjs pointer --root .', content: 'Permission denied', is_error: true },
+  ];
+  const events = calls.flatMap(({ id, command, content, is_error }) => [
+    { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', id, input: { command } }] } },
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content, is_error }] } },
+  ]);
+  events.push({ type: 'result', result: 'Inspect actual pointer results.' });
+  const { readableTrace } = transcriptContext(events.map(JSON.stringify).join('\n'), '/fixture');
+  for (const call of calls) {
+    const expected = `TOOL RESULT SOURCE ${call.id}: Bash ${JSON.stringify({ command: call.command })}\nTOOL RESULT ${call.id}: ${JSON.stringify(call.content)}\nTOOL RESULT ERROR ${call.id}: ${call.is_error}`;
+    assert.ok(readableTrace.includes(expected));
+  }
+});

@@ -89,8 +89,10 @@ plugin-eval sandbox denied access to its repository-assessment helper in an
 isolated snapshot. This lets the case exercise inventory and report generation
 without bypassing tool permissions.
 
-For a PR, include the smoke report path and note any failed cases in the PR
-description. For a release, run `full` for the exact release
+Every PR requires a complete passing smoke run before ready-for-review or merge.
+Include its report path and investigate failed cases in the PR description.
+Focused reruns do not replace the passing full suite. Draft PRs may remain open
+while fixes and results are pending. For a release, run `full` for the exact release
 commit and complete `docs/eval-release-checklist.md`. A failing LLM grader is
 an investigation trigger: read the transcript or generated file and record
 whether the skill failed or the grader misread valid output. Do not silently

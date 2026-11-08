@@ -127,6 +127,11 @@
         ".claude/testing/test-map.json",
         ".claude/testing/TEST-MAP.md",
         ".claude/skills/test-strategy/SKILL.md"
+      ],
+      "pointer-consistent.md": [
+        "CLAUDE.md",
+        ".claude/skills/test-strategy/SKILL.md",
+        ".claude/testing/test-map.json"
       ]
     },
     "drive-the-epic-uncertainty-unresolved": {

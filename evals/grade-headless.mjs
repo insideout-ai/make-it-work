@@ -82,11 +82,15 @@ async function readEvidence(focus, context) {
 
 function readableTrace(events) {
   const lines = [];
+  const bashCalls = new Map();
   for (const event of events) {
     if (event.type === 'assistant') {
       for (const part of event.message?.content ?? []) {
         if (part.type === 'text') lines.push(`ASSISTANT: ${part.text}`);
-        if (part.type === 'tool_use') lines.push(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
+        if (part.type === 'tool_use') {
+          lines.push(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
+          if (part.name === 'Bash' && part.id) bashCalls.set(part.id, part.input);
+        }
       }
     } else if (event.type === 'user') {
       const content = event.message?.content;
@@ -95,7 +99,12 @@ function readableTrace(events) {
         // Skill bodies arrive as user text, not tool results. Keep their evidence
         // visible to the judge while preserving its role as transcript data.
         if (part.type === 'text') lines.push(`USER CONTEXT: ${part.text}`);
-        else if (part.type === 'tool_result') lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
+        else if (part.type === 'tool_result') {
+          const call = bashCalls.get(part.tool_use_id);
+          if (call) lines.push(`TOOL RESULT SOURCE ${part.tool_use_id}: Bash ${JSON.stringify(call)}`);
+          lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
+          if (part.is_error !== undefined) lines.push(`TOOL RESULT ERROR ${part.tool_use_id}: ${part.is_error}`);
+        }
       }
     } else if (event.type === 'result') lines.push(`FINAL: ${event.result}`);
   }

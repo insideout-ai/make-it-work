@@ -216,6 +216,8 @@ Edit only the target repo's `CLAUDE.md`. Run this phase only when Phase 5 wrote 
    Add the row if missing, replace it if it differs, and drop duplicates. Leave other rows in the table alone.
    If `CLAUDE.md` or its `## Skills Reference` is missing, add nothing, never invent the section, and report it in the summary (autopilot: see Autopilot Mode).
 
+Use `test-strategy.mjs pointer`'s actual result in the summary: `changed: true` means the helper updated the pointer; `changed: false` with no skip means it was already current. A nonempty `skipped` explains why no pointer was added. Do not infer that this run edited a file from `git status` alone.
+
 Never write or offer a git hook, and never add a checklist item.
 
 ## Phase 7 — Live Coverage Report
