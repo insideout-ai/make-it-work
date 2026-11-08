@@ -1,0 +1,27 @@
+scripts/refresh-handoff.mjs
+  s_0fad2979134b53::t_4a47a68d9118d2 29,69,72
+scripts/refresh-handoff.test.mjs
+  s_0fad2979134b53::t_1766b87a5ef040 91-94,100-109
+skills/implement/references/controller.md
+  s_0fad2979134b53::t_56d34e88622da0 37-39
+skills/implement/scripts/startup-presentation.mjs
+  s_0fad2979134b53::t_8c24ecad82b08b 39
+skills/implement/scripts/startup-presentation.test.mjs
+  s_0fad2979134b53::t_c42593cad890ce 176-188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "0baaa32a505864f23ec81c6d7f66a1832057d471",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
