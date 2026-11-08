@@ -31,6 +31,12 @@ manual end-to-end release rehearsal.
 section was written). The shared inventory in `evals/suites.json` names the
 smoke cases and the cases that need a direct headless run. Adding a new case
 automatically adds it to `full`; adding a skill requires naming its smoke case.
+For a headless case that starts below the fixture root, set
+`workingDirectories[caseName]` to a relative directory in `suites.json`.
+The runner resolves it after scaffolding and rejects missing directories, files,
+traversal and symlinks outside the fixture. Other cases start at the fixture root.
+Keep runner-only settings out of `prompt.md` frontmatter: the native CLI validates
+all prompt files even when running a single selected case.
 
 The commands run each case once. Smoke starts every selected case in parallel
 in an isolated fixture; full regression remains sequential. The

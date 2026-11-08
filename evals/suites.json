@@ -115,6 +115,10 @@
     "plan-assumption-supported",
     "plan-assumption-low-risk"
   ],
+  "workingDirectories": {
+    "implement-repo-start-dependencies": "connector-app",
+    "implement-repo-start-local": "connector-app"
+  },
   "requiredToolsBySkill": {
     "drive-the-epic": ["Read", "Bash"],
     "implement": ["Read", "Bash"],

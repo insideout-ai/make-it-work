@@ -8,6 +8,7 @@ import test from 'node:test';
 import { caseWorkingDirectory } from './run-suite-args.mjs';
 import { resolveWorkspace } from '../scripts/workspace.mjs';
 import { contextInventory } from '../scripts/context-inventory.mjs';
+const suites = JSON.parse(await readFile(new URL('./suites.json', import.meta.url), 'utf8'));
 const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
 for (const name of ['implement-repo-start-dependencies', 'implement-repo-start-local']) {
   test(`${name}: starts in a real single repo with usable context and unchanged sibling evidence`, async (t) => {
@@ -15,7 +16,7 @@ for (const name of ['implement-repo-start-dependencies', 'implement-repo-start-l
     t.after(() => rm(root, { recursive: true, force: true }));
     const fixture = path.join(import.meta.dirname, 'implement', name, 'fixture.sh');
     execFileSync('bash', [fixture], { cwd: root, env, stdio: 'pipe' });
-    const cwd = await caseWorkingDirectory(root, 'connector-app');
+    const cwd = await caseWorkingDirectory(root, suites.workingDirectories[name]);
     assert.equal(execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, encoding: 'utf8' }).trim(), await realpath(path.join(root, 'connector-app')));
     assert.equal(execFileSync('git', ['branch', '--show-current'], { cwd, encoding: 'utf8' }).trim(), 'startup-eval');
     const resolved = await resolveWorkspace(cwd);
