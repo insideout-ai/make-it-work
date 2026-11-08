@@ -140,6 +140,7 @@ async function runCase(item, remaining) {
         const grading = await gradeHeadlessCase({
           graderDir: path.join(item.dir, 'graders'), transcript: result.stdout,
           fixtureDir, budgetUsd: Math.max(0, remaining - caseCost), judgeModel,
+          evidenceFiles: suites.graderEvidenceFiles?.[item.name],
         });
         caseCost += grading.judgeCostUsd;
         await writeFile(path.join(caseReportDir, 'grader-results.json'),

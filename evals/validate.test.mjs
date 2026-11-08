@@ -30,6 +30,20 @@ test('runner-owned working directories validate without adding native prompt fie
   for (const invalid of ['', '/tmp', '../outside', 'connector-app/../../outside', 'connector-app\\outside', 'bad\0path', null, 1]) {
     assert.match((await check({ ...suites, workingDirectories: { 'example-case': invalid } })).join('\n'), /relative directory inside the fixture/);
   }
+  const evidence = { 'example-case': { 'check.md': ['report.md'] } };
+  assert.deepEqual(await check({ ...suites, graderEvidenceFiles: evidence }), []);
+  assert.match((await check({ ...suites, headless: [], graderEvidenceFiles: evidence })).join('\n'), /requires a headless case/);
+  assert.match((await check({ ...suites, graderEvidenceFiles: { missing: {} } })).join('\n'), /unknown graderEvidenceFiles case/);
+  for (const invalid of [null, [], 'file.md']) {
+    assert.match((await check({ ...suites, graderEvidenceFiles: invalid })).join('\n'), /must be an object/);
+    assert.match((await check({ ...suites, graderEvidenceFiles: { 'example-case': invalid } })).join('\n'), /must map grader filenames/);
+  }
+  for (const grader of ['missing.md', '../check.md']) {
+    assert.match((await check({ ...suites, graderEvidenceFiles: { 'example-case': { [grader]: ['report.md'] } } })).join('\n'), /unknown graderEvidenceFiles grader/);
+  }
+  for (const files of [[], ['report.md', 'report.md'], ['../outside.md'], ['/tmp/private.md'], ['*.md'], ['bad\\path'], ['bad\0path'], [1], 'report.md']) {
+    assert.match((await check({ ...suites, graderEvidenceFiles: { 'example-case': { 'check.md': files } } })).join('\n'), /unique literal relative paths/);
+  }
   for (const headless of [[], ['example-case']]) {
     assert.match((await check({ ...suites, headless }, '---\nworking_directory: connector-app\n---\nRun case.\n')).join('\n'), /not supported by the native CLI/);
   }
