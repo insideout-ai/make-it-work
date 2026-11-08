@@ -37,6 +37,7 @@ test('disk pointer requires both valid saved artifacts before touching CLAUDE.md
   assert.equal(changed.changed, true);
   assert.equal(changed.skipped, null);
   assert.equal(changed.next_action.type, 'reassess-map');
+  assert.deepEqual(changed.next_action.context_paths, ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']);
   assert.match(changed.next_action.instruction, /actual test assertions/);
   assert.equal(await readFile(path.join(root, '.claude/testing/test-map.json'), 'utf8'), savedMap, 'Pointer writes must not advance map baselines');
   const updated = await readFile(path.join(root, 'CLAUDE.md'), 'utf8');

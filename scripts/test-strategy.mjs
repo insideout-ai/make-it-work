@@ -81,7 +81,7 @@ export async function updateStrategyPointer(root) {
   const result = strategyPointer(await readFile(file, 'utf8'));
   if (result.changed) await atomicWrite(file, result.markdown);
   return { changed: result.changed, skipped: result.skipped ?? null,
-    ...(result.changed ? { next_action: { type: 'reassess-map', instruction: 'Reassess affected map locations from actual test assertions and UC/domain evidence after this CLAUDE.md change, before advancing snapshots or discovery signatures. Replacing a hash alone is not reassessment. Then record final baselines and regenerate TEST-MAP.md.' } } : {}) };
+    ...(result.changed ? { next_action: { type: 'reassess-map', context_paths: ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md'], instruction: 'Explicitly read the actual contents of the listed context_paths when present, even if they were auto-loaded earlier; file lists and hashes are not inspected evidence. Reassess affected map locations from actual test assertions and UC/domain evidence after this CLAUDE.md change, before advancing snapshots or discovery signatures. Replacing a hash alone is not reassessment. Then record final baselines and regenerate TEST-MAP.md.' } } : {}) };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--file', '--root', '--input']);
