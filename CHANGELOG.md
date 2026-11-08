@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Construct enumerable go-deep discovery choices before Autopilot resolution, retaining unsupported domain relationships as open questions and reserving free text for non-enumerable answers.
 - Keep fresh implementation runs moving after the dashboard announcement: require Context check to advance or a genuine pause/stop to be saved before ending the turn.
 - Preserve guardrail stop/resolution details and decision provenance, checkpoint interventions durably, and analyze them separately from extra rounds in workflow feedback.
 - Distinguish workflow completion from criterion-level acceptance verification in final packages, dashboards and completion summaries, using Partially verified with pending criteria and recorded reasons.
