@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.4] — 2026-11-08
+
+### Fixed
+
+- Allow implementation runs to yield while runtime-verified delegated agents are working, restoring stage-continuation checks when those agents finish or fail.
+- Record hook interruptions, repeated agent waits and observed resolutions in local workflow feedback without inflating fix or replan counts.
+- Confirm dashboard announcements from runtime Stop text and preserve a run-bound receipt so delayed transcript writes do not trigger repeated link announcements or tool denials.
+
 ## [5.4.3] — 2026-11-08
 
 ### Fixed
