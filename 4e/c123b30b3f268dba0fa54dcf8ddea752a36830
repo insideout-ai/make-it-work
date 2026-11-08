@@ -1,0 +1,23 @@
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_e46b690524ef6f 9-16
+README.md
+  s_e8cdb860e0eee3::t_e46b690524ef6f 365
+.claude-plugin/plugin.json
+  s_e8cdb860e0eee3::t_e46b690524ef6f 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4ec123b30b3f268dba0fa54dcf8ddea752a36830",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
