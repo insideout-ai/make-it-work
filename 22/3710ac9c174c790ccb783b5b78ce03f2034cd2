@@ -1,0 +1,51 @@
+skills/implement/scripts/final-package.test.mjs
+  s_e2e50c2554aa0e::t_76ea044c4029b5 108-145
+skills/implement/scripts/workflow.test.mjs
+  s_e2e50c2554aa0e::t_76ea044c4029b5 35-50
+docs/deterministic-artifacts.md
+  s_e2e50c2554aa0e::t_ebe792b24741c2 92-95
+scripts/lib/review-evidence.mjs
+  s_e2e50c2554aa0e::t_ebe792b24741c2 31-32
+  s_e2e50c2554aa0e::t_ae88f8bdd4e00b 1-30,33-60
+skills/implement/references/controller.md
+  s_e2e50c2554aa0e::t_ebe792b24741c2 61
+skills/implement/scripts/workflow.mjs
+  s_e2e50c2554aa0e::t_8c258f031bfe4d 132-138,396-404
+skills/implement/scripts/final-package.mjs
+  s_e2e50c2554aa0e::t_8c258f031bfe4d 14,94,220-227
+  s_e2e50c2554aa0e::t_fb4203b1fb6900 234,276
+skills/review-the-code/SKILL.md
+  s_e2e50c2554aa0e::t_ebe792b24741c2 166-169
+skills/implement/scripts/deliver.mjs
+  s_e2e50c2554aa0e::t_fb4203b1fb6900 165
+  s_e2e50c2554aa0e::t_8c258f031bfe4d 13,166-167
+CHANGELOG.md
+  s_e2e50c2554aa0e::t_ebe792b24741c2 12
+skills/implement/scripts/deliver.test.mjs
+  s_e2e50c2554aa0e::t_3d2009885035b0 108
+  s_e2e50c2554aa0e::t_95cab71df927c3 88-89,94-95
+scripts/review-report.mjs
+  s_e2e50c2554aa0e::t_8c258f031bfe4d 99,101
+  s_e2e50c2554aa0e::t_ebe792b24741c2 7,59-61
+scripts/review-evidence.test.mjs
+  s_e2e50c2554aa0e::t_a322a5f54d0edf 3,10
+  s_e2e50c2554aa0e::t_fbeba7f3d14991 1-2,4-9,11-49
+skills/implement/SKILL.md
+  s_e2e50c2554aa0e::t_ebe792b24741c2 617,647,712
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "223710ac9c174c790ccb783b5b78ce03f2034cd2",
+  "prompts": {},
+  "sessions": {
+    "s_e2e50c2554aa0e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc0f-417d-7062-b7e8-611cb9c126bd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
