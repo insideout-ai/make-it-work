@@ -1,0 +1,43 @@
+evals/define-test-strategy/fresh-tests/graders/pointer-consistent.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 7-8,10-18,20-33
+evals/define-test-strategy/README.md
+  s_0fad2979134b53::t_ab9bd853e6cd94 75-76
+.github/pull_request_template.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 29-30
+evals/README.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 92-95
+evals/slice-the-epic/README.md
+  s_0fad2979134b53::t_ab9bd853e6cd94 44-45
+CONTRIBUTING.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 69
+skills/define-test-strategy/SKILL.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 219-220
+evals/slice-the-epic/well-specified-epic-autopilot/graders/no-clarifying-pause.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 7-8,10-24
+evals/grade-headless.test.mjs
+  s_0fad2979134b53::t_ab9bd853e6cd94 363-381
+evals/suites.json
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 130-134
+skills/slice-the-epic/SKILL.md
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 45-46
+evals/grade-headless.mjs
+  s_0fad2979134b53::t_e7d9ddd06ff1b0 85,90-93,102-107
+scripts/test-strategy.test.mjs
+  s_0fad2979134b53::t_ab9bd853e6cd94 2,34-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e06fc0f2060765615e26c098fcaacce51efe0e5b",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
