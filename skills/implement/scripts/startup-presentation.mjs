@@ -32,7 +32,17 @@ export function startupProgress(events) {
   let initialized = null;
   let announced = false;
   const bashCalls = new Set();
+  const agentCalls = new Map();
+  const agents = new Map();
   for (const event of events) {
+    // Task notifications are runtime events, not diagnostic request replays or
+    // agent-authored claims. A queued completion must close the wait immediately.
+    const notification = event.type === 'queue-operation' && event.operation === 'enqueue' ? event.content : null;
+    if (typeof notification === 'string' && notification.startsWith('<task-notification>')) {
+      const id = notification.match(/<task-id>([^<]+)<\/task-id>/)?.[1];
+      const status = notification.match(/<status>([^<]+)<\/status>/)?.[1];
+      if (['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(status)) agents.delete(id);
+    }
     if (!['assistant', 'user'].includes(event.type)) continue;
     const role = event.message?.role ?? event.type;
     const content = event.message?.content;
@@ -42,20 +52,42 @@ export function startupProgress(events) {
       initialized = null;
       announced = false;
       bashCalls.clear();
+      agentCalls.clear();
+      agents.clear();
     }
     if (!Array.isArray(content)) continue;
     for (const part of content) {
       if (role === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') bashCalls.add(part.id);
+      if (initialized && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
+        agentCalls.set(part.id, part.name);
+      }
+      if (role === 'user' && part.type === 'tool_result' && !part.is_error && agentCalls.has(part.tool_use_id)) {
+        const result = event.toolUseResult;
+        if (['Agent', 'Task'].includes(agentCalls.get(part.tool_use_id)) && result?.isAsync === true && result.status === 'async_launched' && typeof result.agentId === 'string') {
+          agents.set(result.agentId, { id: result.agentId, launchedAt: Date.parse(event.timestamp) });
+        }
+        // A runtime inventory can invalidate stale launch evidence. Peers are
+        // deliberately excluded: only this session's delegated agents qualify.
+        const inventory = agentCalls.get(part.tool_use_id) === 'ListAgents' && Array.isArray(result?.sections)
+          ? result.sections.find((section) => section.kind === 'subagents') : null;
+        if (inventory && Array.isArray(inventory.rows)) {
+          for (const id of agents.keys()) {
+            if (!inventory.rows.some((row) => row.id === id && ['running', 'busy'].includes(row.status))) agents.delete(id);
+          }
+        }
+        const task = result?.task;
+        if (agentCalls.get(part.tool_use_id) === 'TaskOutput' && task && ['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(task.status)) agents.delete(task.task_id);
+      }
       if (role === 'user' && part.type === 'tool_result' && !part.is_error && bashCalls.has(part.tool_use_id)) {
         const output = typeof part.content === 'string' ? part.content :
           Array.isArray(part.content) ? part.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n') : '';
         const result = startupResult(output);
-        if (result) { initialized = result; announced = false; }
+        if (result) { initialized = result; announced = false; agentCalls.clear(); agents.clear(); }
       }
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;
     }
   }
-  return { initialized, announced };
+  return { initialized, announced, agents: [...agents.values()] };
 }
 
 export function pendingStartup(events) {
@@ -63,7 +95,7 @@ export function pendingStartup(events) {
   return announced ? null : initialized;
 }
 
-async function continuationHold(initialized, toolCheck = false) {
+async function continuationHold(initialized, toolCheck = false, agents = []) {
   if (initialized?.continuation !== 'continue_context_check_without_user_reply') return {};
   let state;
   try {
@@ -76,6 +108,11 @@ async function continuationHold(initialized, toolCheck = false) {
   if (toolCheck) return {};
   const { fields } = state;
   if (fields.status !== 'In Progress') return {};
+  const enteredPhase = state.audit.findLast((row) => row.to === fields.phase && row.from !== row.to)?.epoch;
+  // Yielding to a live child is not workflow completion. Preserve In Progress
+  // and all completion gates; a child from an earlier phase cannot release Stop.
+  if (['execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
+      agents.some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
   if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };
   return { decision: 'block', reason: 'The dashboard link has been shared, but this fresh run is still in Context check with status In Progress. Continue Context check now in this same turn; do not repeat the link or ask the user to send another message. If a genuine question or blocker prevents continuation, save the documented pause or stop before reporting it.' };
 }
@@ -116,7 +153,7 @@ export async function startupHook(input) {
     : input.hook_event_name === 'PreToolUse'
       ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
       : advisory(input.hook_event_name, reminder(progress.initialized));
-  const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop');
+  const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop', progress.agents);
   if (input.hook_event_name === 'Stop') return hold;
   // Keep recovery tools available; mutation is detected after execution, not rolled back.
   return hold.reason ? advisory(input.hook_event_name, hold.reason) : {};

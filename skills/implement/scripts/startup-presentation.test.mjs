@@ -186,3 +186,99 @@ test('synthetic Stop feedback cannot release a fresh-run continuation or prematu
  await run.saveEvents();
  assert.match((await run.check()).reason, /Application files changed/);
 });
+
+async function activeAgentRun(t, phase = 'execute') {
+  const run = await freshRun(t, 'autonomous');
+  const epoch = Date.now() + 10;
+  const state = (await readFile(run.result.state, 'utf8')).replace('phase: context-check', `phase: ${phase}`)
+    .replace(/(## Audit log\n[\s\S]*?)(?=\n## |$)/, (section) => `${section.trimEnd()}\n| 2 | ${new Date(epoch).toISOString()} | context-check | ${phase} | Stage entered |\n`);
+  await writeFile(run.result.state, state.replace(/^mode: none$/m, `mode: ${phase === 'lightweight' ? 'lightweight' : 'tdd'}`)
+    .replace(/^mode_source: none$/m, 'mode_source: assessed').replace(/^risk: none$/m, 'risk: medium'));
+  const launch = (id = 'worker', at = epoch + 1) => {
+    run.events.push(assistant({ type: 'tool_use', id: `launch-${id}`, name: 'Agent' }),
+      { type: 'user', timestamp: new Date(at).toISOString(), toolUseResult: { isAsync: true, status: 'async_launched', agentId: id },
+        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: `launch-${id}`, content: 'Agent launched.' }] } });
+  };
+  return { ...run, launch, epoch };
+}
+
+test('live agents permit yielding in their active stage without completing or pausing the workflow', async (t) => {
+  for (const phase of ['execute', 'review', 'lightweight', 'fix-plan']) {
+    const run = await activeAgentRun(t, phase);
+    run.launch();
+    run.events.push(assistant(text('The delegated agent is still running; waiting for its report.')));
+    await run.saveEvents();
+    const state = await readFile(run.result.state, 'utf8');
+    assert.deepEqual(await run.check(), {});
+    assert.equal(await readFile(run.result.state, 'utf8'), state);
+    run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: continue.' } });
+    await run.saveEvents();
+    assert.deepEqual(await run.check(), {});
+  }
+});
+
+test('completion or failure notifications restore the active-stage continuation hold', async (t) => {
+  for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
+    const run = await activeAgentRun(t, 'review');
+    run.launch();
+    run.events.push({ type: 'queue-operation', operation: 'enqueue', content: `<task-notification>\n<task-id>worker</task-id>\n<status>${status}</status>\n</task-notification>` });
+    await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('runtime inventories invalidate stale agents without treating busy peers as live children', async (t) => {
+  for (const status of ['completed', 'failed', 'idle', null]) {
+    const run = await activeAgentRun(t);
+    run.launch();
+    run.events.push(assistant({ type: 'tool_use', id: 'inventory', name: 'ListAgents' }),
+      { type: 'user', toolUseResult: { sections: [
+        { kind: 'subagents', rows: status ? [{ id: 'worker', status }] : [] },
+        { kind: 'sessions', rows: [{ id: 'worker', status: 'busy' }] },
+      ] }, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'inventory', content: 'Inventory' }] } });
+    await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('waiting claims, diagnostic replays, shell jobs and earlier-stage launches cannot bypass Stop', async (t) => {
+  const run = await activeAgentRun(t, 'review');
+  run.launch('old-worker', run.epoch - 1);
+  run.events.push(assistant(text('Still waiting for a background agent.')),
+    assistant({ type: 'tool_use', id: 'shell', name: 'Bash' }),
+    { type: 'user', toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'shell-job' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'shell', content: 'background shell' }] } },
+    { type: 'api-request-blob', toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'replay' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'launch-old-worker', content: 'diagnostic' }] } });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+});
+
+test('agent waits never release missing-link or premature-implementation protection', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  const launch = [assistant({ type: 'tool_use', id: 'launch', name: 'Agent' }),
+    { type: 'user', timestamp: new Date().toISOString(), toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'worker' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'launch', content: 'Launched' }] } }];
+  run.events.splice(2, 1); // remove the announcement
+  run.events.push(...launch);
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /ASSISTANT CHAT MESSAGE/);
+  run.events.push(assistant(text(run.result.startup_message)));
+  await writeFile(path.join(run.root, 'app.js'), 'premature edit');
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /Application files changed/);
+});
+
+test('one completed child does not close another live wait, and TaskOutput closes the last child', async (t) => {
+  const run = await activeAgentRun(t);
+  run.launch('first');
+  run.launch('second');
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>first</task-id>\n<status>completed</status>\n</task-notification>' });
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  run.events.push(assistant({ type: 'tool_use', id: 'output', name: 'TaskOutput' }),
+    { type: 'user', toolUseResult: { task: { task_id: 'second', status: 'completed' } },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'output', content: 'Done' }] } });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+});

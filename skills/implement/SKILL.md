@@ -61,6 +61,16 @@ and checks that a fresh run is no longer In Progress at any stage. Continue the
 saved stage in this turn until completion or a genuine saved pause/stop. Pending
 offline-answer waits retain their existing behavior.
 
+When a delegated background agent is still running, yield with a brief waiting
+update and let its completion notification resume the session. Do not launch
+shell sleeps, file watches or repeated status polls merely to keep the turn open.
+The Stop hook permits this wait only with runtime launch evidence for a live
+agent launched in the current Execute, Lightweight, Review or Fix phase. The
+workflow stays In Progress; yielding does not complete or pause it. Completion,
+failure or a runtime inventory showing the agent is no longer running restores
+the continuation requirement. A waiting claim, shell job or agent from an earlier
+phase does not qualify. On hand-back, verify the result and continue the stage.
+
 New initialization also captures a read-only baseline of application files in
 every approved repository. Before the first authorized Execute or Lightweight
 stage, tool hooks detect changes relative to that baseline and Stop blocks a

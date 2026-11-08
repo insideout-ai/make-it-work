@@ -38,6 +38,16 @@ is retried/ignored until it is complete. A genuine new user turn clears the fres
 obligation, preserving Resume behavior; synthetic hook feedback and diagnostic
 request replays do not clear it.
 
+An active background-agent wait is the exception to continuing in the same
+turn: runtime launch evidence for an agent in the current Execute, Lightweight,
+Review or Fix phase permits yielding until its completion notification. Keep
+the saved workflow In Progress; do not manufacture a pause or completion. Do
+not use shell sleeps, file watches or repeated polls to avoid Stop. The hook
+restores the continuation hold when the runtime reports completion/failure or
+an inventory shows the agent is no longer running. Earlier-phase agents and
+assistant-authored waiting claims do not release the hold. Process the hand-back
+and continue the documented stage when the session resumes.
+
 Initialization returns an `implementation_baseline` for every approved repo;
 this is immutable transcript evidence, not a new persisted state field. It covers
 tracked, staged and untracked application changes and preserves pre-existing dirty
