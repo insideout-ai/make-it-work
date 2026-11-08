@@ -1,0 +1,38 @@
+evals/define-test-strategy/fresh-tests/graders/nonintrusive-map.md
+  s_0fad2979134b53::t_065c0f829bc72f 37-45
+evals/define-test-strategy/fresh-tests/graders/pointer-consistent.md
+  s_0fad2979134b53::t_065c0f829bc72f 2,6-12
+skills/shape-the-epic/references/autopilot.md
+  s_0fad2979134b53::t_065c0f829bc72f 66-67
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/review-summary.md
+  s_0fad2979134b53::t_065c0f829bc72f 11
+evals/grade-headless.test.mjs
+  s_0fad2979134b53::t_065c0f829bc72f 302
+  s_0fad2979134b53::t_b42eee4ee233d2 2-3,384-425
+evals/suites.json
+  s_0fad2979134b53::t_065c0f829bc72f 131
+evals/validate.mjs
+  s_0fad2979134b53::t_065c0f829bc72f 78,81
+evals/grade-headless.mjs
+  s_0fad2979134b53::t_065c0f829bc72f 1,4-5,124-158,161
+evals/README.md
+  s_0fad2979134b53::t_a62c5f4358e494 56
+evals/define-test-strategy/README.md
+  s_0fad2979134b53::t_f411e59c684396 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ef0da2346f5a307c936ac90f9b0200a28769a117",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
