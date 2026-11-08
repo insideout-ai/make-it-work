@@ -1,0 +1,27 @@
+evals/implement/README.md
+  s_18e0c68e142857::t_73ea446354c81c 154-159
+skills/implement/scripts/startup-presentation.test.mjs
+  s_18e0c68e142857::t_73ea446354c81c 2,6-8,70-136
+skills/implement/scripts/startup-presentation.mjs
+  s_18e0c68e142857::t_1be002b7cc201d 7,30-32,40-41,50-51,53,56-73,94-96
+skills/implement/SKILL.md
+  s_18e0c68e142857::t_1be002b7cc201d 60-63
+CHANGELOG.md
+  s_18e0c68e142857::t_73ea446354c81c 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8e5789d293bfa9693eab0a7ae3a9acaac5f20d25",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
