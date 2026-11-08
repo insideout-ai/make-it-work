@@ -1,0 +1,35 @@
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_2353aa3bbcf9c5 41-43,54-56,59-68,99-102,283,341
+skills/implement/scripts/startup-presentation.mjs
+  s_e8cdb860e0eee3::t_fba997257bfa56 10
+  s_e8cdb860e0eee3::t_2353aa3bbcf9c5 117
+  s_e8cdb860e0eee3::t_4946113dbe44e4 27,48,81,86,145-146,160-169,180-181,183-184
+skills/implement/scripts/startup-presentation.test.mjs
+  s_e8cdb860e0eee3::t_fba997257bfa56 319-372,376,381
+  s_e8cdb860e0eee3::t_3149994369067b 373-375,377-380
+skills/implement/scripts/workflow.mjs
+  s_e8cdb860e0eee3::t_2353aa3bbcf9c5 589
+skills/implement/references/controller.md
+  s_e8cdb860e0eee3::t_2353aa3bbcf9c5 19-21,25-26,35-46
+skills/implement/scripts/startup-confirmation.mjs
+  s_e8cdb860e0eee3::t_4946113dbe44e4 1-11,19-46,49-65
+  s_e8cdb860e0eee3::t_fba997257bfa56 12-18,47-48
+skills/implement/scripts/workflow.test.mjs
+  s_e8cdb860e0eee3::t_950b7cf93d1788 81-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d66c63b35718411f30768bdc925254b9898712a2",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
