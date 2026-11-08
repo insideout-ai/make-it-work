@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.2] — 2026-11-08
+
+### Changed
+
+- Combine final documentation updates, final approval and completion into one Finalizing → Complete dashboard milestone, with activity details and a combined duration while preserving approval gates, audit history and feedback loops.
+
 ## [5.4.1] — 2026-11-07
 
 ### Added

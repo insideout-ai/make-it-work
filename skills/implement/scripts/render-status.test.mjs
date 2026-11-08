@@ -7,7 +7,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { generateDashboard, parseState } from './render-status.mjs';
+import { generateDashboard, parseState, buildTimeline, groupFinalization, renderStatus } from './render-status.mjs';
 import { checkpointDashboard, checkpointDecision, checkpointResult } from './dashboard-checkpoint.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 import { runRegression } from '../../../scripts/regression.mjs';
@@ -494,13 +494,13 @@ test('accepts new handoff-enabled runs and legacy runs without the field', () =>
   assert.throws(() => parseState(stateMarkdown({ fields: { plugin_version: 'latest' }, rows })), /Unsupported plugin_version/);
 });
 
-test('shows final approval only for package-enabled runs', async (t) => {
+test('groups finalization for both legacy and package-enabled runs', async (t) => {
   const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
   const legacy = await renderFixture(t, stateMarkdown({ rows }));
   assert.doesNotMatch(legacy.html, /class="phase-label[^"]*">Final Approval/);
   const current = await renderFixture(t, stateMarkdown({ fields: { final_package_version: '1' }, rows }));
-  assert.match(current.html, /class="phase-label[^"]*">Final Approval/);
-  assert.equal((current.html.match(/phase-dot not-reached/g) ?? []).length, 7);
+  assert.match(current.html, /class="phase-label[^"]*">Finalizing/);
+  assert.equal((current.html.match(/phase-dot not-reached/g) ?? []).length, 5);
   assert.doesNotMatch(current.html, /phase-step optional-step/);
   assert.throws(() => parseState(stateMarkdown({ fields: { phase: 'final-approval' }, rows })), /requires final_package_version/);
 });
@@ -515,7 +515,7 @@ test('renders pending offline refinement without activating a timeline dot', asy
   });
   const { html } = await renderFixture(t, state);
 
-  assert.equal((html.match(/phase-dot not-reached/g) ?? []).length, 7);
+  assert.equal((html.match(/phase-dot not-reached/g) ?? []).length, 6);
   assert.doesNotMatch(html, /phase-dot current/);
   assert.doesNotMatch(html, /<meta http-equiv="refresh"/);
   assert.match(html, /Waiting on you:<\/strong> offline refinement pending/);
@@ -567,7 +567,7 @@ test('keeps completed stages minimal and retains approval details and fix histor
   });
   const { html } = await renderFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
 
-  assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 11);
+  assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 9);
   assert.equal((html.match(/Review<span class="phase-skill">\(review-the-code\)<\/span>/g) ?? []).length, 2);
   const completedStages = html.slice(html.indexOf('<div class="phase-timeline">'), html.indexOf('<div class="phase-step optional-step">'));
   assert.doesNotMatch(completedStages, /phase-mode|Spec approved by user|Approved as-is|Step 2 of 2 complete/);
@@ -996,7 +996,7 @@ test('lightweight run skips Plan and Execute and adds Fix (Lightweight) re-entri
     ],
   }));
   const timeline = timelineHtml(html);
-  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Fix (Lightweight)', 'Final Sync', 'Complete']);
+  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Fix (Lightweight)', 'Finalizing']);
   assert.equal((timeline.match(/phase-dot skipped" title="[a-z]+: Skipped \(Lightweight\)/g) ?? []).length, 2);
   assert.match(timeline, /phase-dot passed[^>]+lightweight: a fresh subagent implements the approved spec/);
   assert.match(timeline, /phase-dot current spinning[^>]+lightweight: a fresh subagent fixes the review findings/);
@@ -1028,7 +1028,7 @@ test('escalation from review inserts Plan and Execute after the active slot in o
     ],
   }));
   const timeline = timelineHtml(html);
-  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Plan', 'Execute', 'Review', 'Final Sync', 'Complete']);
+  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Review', 'Plan', 'Execute', 'Review', 'Finalizing']);
   assert.equal((timeline.match(/phase-dot skipped/g) ?? []).length, 2);
   assert.match(timeline, /phase-dot passed" title="plan: Escalated: review found &lt;auth&gt; changes — [^"]+">✓[\s\S]*?Escalated to TDD/);
   assert.doesNotMatch(html, /workflow-event:|sha256:/);
@@ -1051,7 +1051,7 @@ test('escalation from a stopped lightweight phase keeps baseline Review after th
       ['2026-01-01T10:04:00Z', 'lightweight', 'plan', 'Escalation: implementation touched shared schema'],
     ],
   }));
-  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Plan', 'Review', 'Final Sync', 'Complete']);
+  assert.deepEqual(timelineLabels(html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Implement (Lightweight)', 'Plan', 'Review', 'Finalizing']);
   assert.match(timelineHtml(html), /phase-dot current spinning" title="plan: Escalated: implementation touched shared schema/);
 });
 
@@ -1061,7 +1061,7 @@ test('mode pill appears only for adaptive runs and cycle counters stay out of th
   assert.doesNotMatch(legacy.html, /mode-pill|Mode: |Escalations|phase-dot skipped|Lightweight report/);
   assert.match(legacy.html, /<div class="label">Plan<\/div><span class="none">Not yet created<\/span>/);
   assert.match(legacy.html, /<div class="label">Execute<\/div><span class="none">Not yet created<\/span>/);
-  assert.deepEqual(timelineLabels(legacy.html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Review', 'Final Sync', 'Complete']);
+  assert.deepEqual(timelineLabels(legacy.html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Review', 'Finalizing']);
 
   const pending = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'none', mode: 'none', mode_source: 'none', risk_rationale: 'none' }, rows }));
   assert.match(pending.html, /Mode: Not yet assessed/);
@@ -1101,4 +1101,75 @@ test('rejects invalid adaptive fields', () => {
   assert.throws(() => parseState(stateMarkdown({ fields: { phase: 'lightweight' }, rows })), /Phase lightweight requires adaptive_version: 1/);
   assert.throws(() => parseState(stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, escalations: '2' }, rows })), /"escalations" exceeds its limit of 1/);
   assert.throws(() => parseState(stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, mode: 'tdd', phase: 'lightweight' }, rows })), /Phase lightweight requires mode: lightweight/);
+});
+
+test('finalization shows active details, pending approval, pause and stop states', async (t) => {
+  for (const [phase, detail] of [['final-sync', 'Updating project docs'], ['final-approval', 'Preparing final review']]) {
+    for (const status of ['In Progress', 'Paused', 'Stopped']) {
+      const { html } = await renderFixture(t, stateMarkdown({
+        fields: { phase, status, final_package_version: '1' },
+        rows: [['2026-01-01T10:00:00Z', 'review', phase, 'Ready']],
+      }));
+      assert.equal(timelineLabels(html).filter((label) => label === 'Finalizing').length, 1);
+      assert.match(timelineHtml(html), new RegExp(detail));
+      assert.match(timelineHtml(html), new RegExp(status === 'Stopped' ? 'phase-dot failed' : status === 'Paused' ? 'phase-dot current"' : 'phase-dot current spinning'));
+      if (status === 'In Progress') assert.match(html, /Finalizing in progress/);
+    }
+  }
+  const state = parseState(stateMarkdown({
+    fields: { phase: 'final-approval', status: 'Paused', final_package_version: '1' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'final-approval', 'Ready']],
+  }));
+  state.pendingInputs = [{ kind: 'approval', phase: 'final-approval', choices: [], blocking: true, question: 'Approve?', requested_at: '2026-01-01T10:00:00Z' }];
+  const html = renderStatus({ state, template: '{{PHASE_TIMELINE}}', logoBase64: '' });
+  assert.match(html, /Awaiting final approval/);
+});
+
+test('completed finalization times the whole attempt and ignores later delivery rows', async (t) => {
+  for (const version of [undefined, '1']) {
+    const fields = { phase: 'complete', status: 'Complete', ...(version ? { final_package_version: version } : {}) };
+    const rows = [
+      ['2026-01-01T10:00:00Z', 'review', 'final-sync', 'Clean'],
+      ...(version ? [['2026-01-01T10:01:22Z', 'final-sync', 'final-approval', 'Docs updated']] : []),
+      ['2026-01-01T10:01:39Z', version ? 'final-approval' : 'final-sync', 'complete', 'Complete'],
+      ['2026-01-01T10:05:00Z', 'complete', 'complete', 'Delivery prepared'],
+    ];
+    const { html } = await renderFixture(t, stateMarkdown({ fields, rows }));
+    const timeline = timelineHtml(html);
+    assert.equal(timelineLabels(html).filter((label) => label === 'Complete').length, 1);
+    assert.match(timeline, /phase-duration">1m 39s/);
+    assert.doesNotMatch(timeline, /phase-status status-complete|Final Sync|Final Approval/);
+    const state = parseState(stateMarkdown({ fields, rows }));
+    const legacy = renderStatus({ state: { ...state, realRowsFrom: 2 }, template: '{{PHASE_TIMELINE}}', logoBase64: '' });
+    assert.match(legacy, /phase-duration">—/);
+    const invalid = renderStatus({ state, invalidTimestampFrom: 2, template: '{{PHASE_TIMELINE}}', logoBase64: '' });
+    assert.match(invalid, /phase-duration">—/);
+  }
+});
+
+test('final approval feedback retains separate finalization attempts', async (t) => {
+  const rows = [
+    ['2026-01-01T09:59:00Z', 'start', 'review', 'Review started'],
+    ['2026-01-01T10:00:00Z', 'review', 'final-sync', 'Clean'],
+    ['2026-01-01T10:01:00Z', 'final-sync', 'final-approval', 'Ready'],
+    ['2026-01-01T10:02:00Z', 'final-approval', 'fix-plan', 'Changes requested'],
+    ['2026-01-01T10:03:00Z', 'fix-plan', 'execute', 'Fix ready'],
+    ['2026-01-01T10:04:00Z', 'execute', 'review', 'Fixed'],
+    ['2026-01-01T10:05:00Z', 'review', 'final-sync', 'Clean again'],
+    ['2026-01-01T10:06:00Z', 'final-sync', 'final-approval', 'Ready again'],
+    ['2026-01-01T10:07:00Z', 'final-approval', 'complete', 'Complete'],
+  ];
+  const stateText = stateMarkdown({ fields: { phase: 'complete', status: 'Complete', final_package_version: '1' }, rows });
+  const state = parseState(stateText);
+  const raw = buildTimeline(state);
+  const before = JSON.stringify(raw);
+  const grouped = groupFinalization(raw);
+  assert.equal(JSON.stringify(raw), before);
+  assert.equal(grouped.slots.filter((slot) => slot.finalizing).length, 2);
+  const { html } = await renderFixture(t, stateText);
+  assert.equal(timelineLabels(html).filter((label) => label === 'Finalizing').length, 1);
+  assert.equal(timelineLabels(html).filter((label) => label === 'Complete').length, 1);
+  const finalSteps = timelineHtml(html).split('<div class="phase-step">').filter((step) => /phase-label">(?:Finalizing|Complete)</.test(step));
+  assert.equal(finalSteps.length, 2);
+  for (const step of finalSteps) assert.match(step, /phase-duration">2m/);
 });
