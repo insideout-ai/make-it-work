@@ -1,0 +1,37 @@
+evals/grade-headless.mjs
+  s_18e0c68e142857::t_5b551c18b73fae 165,180,182-197
+evals/validate.mjs
+  s_18e0c68e142857::t_c8450b9a0074f5 119-139
+evals/define-test-strategy/README.md
+  s_18e0c68e142857::t_f4e7537910966f 56-67
+evals/validate.test.mjs
+  s_18e0c68e142857::t_238d73661b0b49 33-46
+evals/define-test-strategy/fresh-tests/graders/developer-report-and-layers.md
+  s_18e0c68e142857::t_f4e7537910966f 7-11,13-39,41-42
+evals/README.md
+  s_18e0c68e142857::t_f4e7537910966f 131-138
+evals/suites.json
+  s_18e0c68e142857::t_f4e7537910966f 122-130
+skills/define-test-strategy/SKILL.md
+  s_18e0c68e142857::t_f4e7537910966f 177-185
+evals/grade-headless.test.mjs
+  s_18e0c68e142857::t_c8450b9a0074f5 325-362
+evals/run-suite.mjs
+  s_18e0c68e142857::t_5b551c18b73fae 143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "70c591cbb3f8c7b7b4929b297f1a7975d8f8eacc",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
