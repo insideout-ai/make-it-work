@@ -1,0 +1,39 @@
+CHANGELOG.md
+  s_0fad2979134b53::t_21cc4620c07b1c 9-12
+evals/implement/README.md
+  s_0fad2979134b53::t_bbfbc7a88e1fe4 197-202
+evals/implement/implement-autopilot-full/graders/stage-order.md
+  s_0fad2979134b53::t_a54a24916f824d 1-22
+skills/implement/SKILL.md
+  s_0fad2979134b53::t_7baa5653ff6e2c 7,55-74
+skills/implement/references/controller.md
+  s_0fad2979134b53::t_3b3d0972810f54 32-53
+skills/implement/scripts/implementation-guard.mjs
+  s_0fad2979134b53::t_60a75c2410da66 1-33
+skills/implement/scripts/implementation-guard.test.mjs
+  s_0fad2979134b53::t_66050366b974aa 1-69
+skills/implement/scripts/startup-presentation.mjs
+  s_0fad2979134b53::t_2deffd65823c84 8,36,66,68,70,74-79,87-90,92,94,96-101,103-111,113-120
+skills/implement/scripts/startup-presentation.test.mjs
+  s_0fad2979134b53::t_f6acfae63f409a 38,46-47,50-51,68-69,90,99,109,138-175
+skills/implement/scripts/workflow.mjs
+  s_0fad2979134b53::t_673ac2ef52cf60 19,328-333,347,512,559-560,576
+skills/implement/scripts/workflow.test.mjs
+  s_0fad2979134b53::t_12d1ac9c78242b 3,66,84-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "a9cf0cba0461caf237402c56fe82eaee463e9621",
+  "prompts": {},
+  "sessions": {
+    "s_0fad2979134b53": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb9f-e835-7021-aade-a86dab3637ad",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
