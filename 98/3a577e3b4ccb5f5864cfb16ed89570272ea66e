@@ -1,0 +1,26 @@
+skills/implement/references/ticket-publication.md
+  s_18e0c68e142857::t_d54526f945bd4a 133-142
+CHANGELOG.md
+  s_18e0c68e142857::t_d54526f945bd4a 25
+skills/implement/scripts/ticket-publication.mjs
+  s_18e0c68e142857::t_524688db4e9481 25
+  s_18e0c68e142857::t_84b9224e009eb2 23-24,26-34,38-46
+skills/implement/scripts/ticket-publication.test.mjs
+  s_18e0c68e142857::t_67a82ef7e368b6 3,16-66,387,402,407-426
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "983a577e3b4ccb5f5864cfb16ed89570272ea66e",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
