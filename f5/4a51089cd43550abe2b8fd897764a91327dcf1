@@ -1,0 +1,31 @@
+evals/validate.test.mjs
+  s_18e0c68e142857::t_acbef62aeb228b 1-36
+evals/implement/README.md
+  s_18e0c68e142857::t_1ecb712cefc95a 188
+evals/suites.json
+  s_18e0c68e142857::t_1ecb712cefc95a 118-121
+evals/validate.mjs
+  s_18e0c68e142857::t_1ecb712cefc95a 67,110-118
+evals/run-suite.mjs
+  s_18e0c68e142857::t_1ecb712cefc95a 98,122,125
+evals/README.md
+  s_18e0c68e142857::t_1ecb712cefc95a 34-39
+evals/startup-scope-fixtures.test.mjs
+  s_18e0c68e142857::t_1ecb712cefc95a 11,19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "f54a51089cd43550abe2b8fd897764a91327dcf1",
+  "prompts": {},
+  "sessions": {
+    "s_18e0c68e142857": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b0fd-5294-7872-adf0-778d0b2ddff6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
