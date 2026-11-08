@@ -129,6 +129,13 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : 'execute');
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
+    if (input.context_updated !== undefined) {
+      if (!Array.isArray(input.context_updated)) fail('context_updated must be an array of paths.');
+      const updated = input.context_updated.map((file) => oneLine(file, 'Context path'));
+      if (updated.some((file) => /, /.test(file))) fail('Context paths cannot contain the field separator ", ".');
+      const previous = !f.context_updated || f.context_updated === 'none' ? [] : f.context_updated.split(', ');
+      f.context_updated = [...new Set([...previous, ...updated])].join(', ') || 'none';
+    }
     f.phase = f.final_package_version === '1' ? 'final-approval' : 'complete';
     if (f.phase === 'complete') f.status = 'Complete';
   } else if (input.event === 'complete') {
@@ -386,6 +393,15 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
+    if (effective.event === 'sync-complete' && effective.context_updated !== undefined) {
+      if (!Array.isArray(effective.context_updated)) fail('context_updated must be an array of paths.');
+      const approvedRoots = await Promise.all((reposInput ?? [root]).map((repo) => realpath(repo)));
+      for (const file of effective.context_updated) {
+        oneLine(file, 'Context path');
+        const resolved = await realpath(path.resolve(root, file));
+        if (!approvedRoots.some((repo) => resolved.startsWith(`${repo}${path.sep}`)) || !(await lstat(resolved)).isFile()) fail('Context path must be a file in an approved repository.');
+      }
+    }
     if (handoff?.stage === 'implement' && handoff.status === 'done' && state.fields.mode === 'lightweight' && Number(state.fields.fix_cycle) > 0) {
       await inspectLightweightFix(root, statePath, handoff.artifacts.report);
     }

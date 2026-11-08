@@ -105,6 +105,44 @@ test('includes every explicitly affected repository', async (t) => {
   assert.equal(run('check', root, state).current, true);
 });
 
+test('delivery scope distinguishes reviewed changes from earlier commits in the same file and binds browser evidence', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-review-scope-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  git(root, 'switch', '-qc', 'feature');
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(path.join(root, 'src/existing.txt'), 'earlier branch work\n');
+  git(root, 'add', 'src/existing.txt');
+  git(root, '-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'Earlier work');
+  await writeFile(path.join(root, 'src/existing.txt'), 'earlier branch work\ninvoice change\n');
+  const reviewInput = { version: 1, ticket: 'DEMO', branch: 'feature', commit: git(root, 'rev-parse', 'HEAD'), working_tree: true,
+    coverage: 'Reviewed only current invoice edits', findings: [], repo_roots: { app: root },
+    review_scope: [{ repo: 'app', base: 'main', scope: 'working-tree', paths: ['src/existing.txt'] }],
+    ui_verification: { status: 'pending', note: 'Browser unavailable; invoice header layout unchecked.' } };
+  await writeReview(root, reviewInput);
+  let built = run('build', root, state, '--draft', draft, '--repo', root);
+  let pkg = JSON.parse(await readFile(built.json, 'utf8'));
+  assert.equal(pkg.review_scope[0].status, 'partial');
+  assert.deepEqual(pkg.review_scope[0].uncovered_paths, ['src/existing.txt']);
+  assert.match(await readFile(built.package, 'utf8'), /invoice header layout unchecked/);
+  assert.equal(run('check', root, state).ui_verification.status, 'pending');
+  // A review of the entire branch covers earlier work as well.
+  reviewInput.review_scope[0].scope = 'branch';
+  reviewInput.ui_verification = { status: 'passed', note: 'Opened dashboard; checked header and empty state.' };
+  await writeReview(root, reviewInput);
+  built = run('build', root, state, '--draft', draft, '--repo', root);
+  pkg = JSON.parse(await readFile(built.json, 'utf8'));
+  assert.equal(pkg.review_scope[0].status, 'covered');
+  assert.equal(pkg.ui_verification.status, 'passed');
+  const evidencePath = path.join(dir, 'DEMO-review-evidence.json');
+  const evidence = JSON.parse(await readFile(evidencePath, 'utf8'));
+  evidence.ui_verification.note = 'Changed observation';
+  await writeFile(evidencePath, JSON.stringify(evidence));
+  assert.throws(() => run('check', root, state), /stale/);
+  await writeFile(path.join(dir, 'DEMO-review.md'), '# Different report\n');
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /does not match the current report/);
+});
+
 test('binds AC verification evidence into the final package', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-verification-'));
   t.after(() => rm(root, { recursive: true, force: true }));
