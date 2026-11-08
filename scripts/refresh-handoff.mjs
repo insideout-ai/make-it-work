@@ -5,6 +5,9 @@ import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 
+const RECOVERY_MARKER = '[DTS handoff recovery]';
+const recoveryReminder = `${RECOVERY_MARKER} After recovery, send one complete self-contained final handoff: both metadata paths (.claude/skills/test-strategy/SKILL.md and .claude/testing/test-map.json), report/resolved refresh command, mapped/uncovered/unresolved use cases and domains, CLAUDE.md pointer outcome, decision-log path and actual write outcome when applicable, tests-run/not-run and commit status. Repeat all required details; do not say the earlier summary stands or refer the user to an earlier message.`;
+
 const unfinished = (text) => /<[a-z][a-z0-9 _-]*>[^`\n]*test-map-report\.mjs/i.test(text);
 function resultText(part) {
   return typeof part.content === 'string' ? part.content : Array.isArray(part.content)
@@ -63,7 +66,7 @@ export function evidenceDeliveryHold(events) {
 export function refreshHandoff(events, lastAssistantMessage) {
   const evidenceHold = evidenceDeliveryHold(events);
   if (evidenceHold.decision) return evidenceHold;
-  let command = null, lastText = '', generated = false;
+  let command = null, lastText = '', generated = false, recovering = false, logAttempted = false;
   const bash = new Set();
   for (const event of events) {
     if (!['assistant', 'user'].includes(event.type)) continue;
@@ -71,10 +74,12 @@ export function refreshHandoff(events, lastAssistantMessage) {
     const content = event.message?.content;
     if (role === 'user' && !event.isMeta && !event.isSynthetic && (typeof content === 'string' ||
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
-      command = null; lastText = ''; generated = false; bash.clear();
+      command = null; lastText = ''; generated = false; recovering = false; logAttempted = false; bash.clear();
     }
+    if (role === 'user' && (event.isMeta || event.isSynthetic) && JSON.stringify(content).includes(RECOVERY_MARKER)) recovering = true;
     if (!Array.isArray(content)) continue;
     for (const part of content) {
+      if (role === 'assistant' && part.type === 'tool_use' && /define-test-strategy/.test(JSON.stringify(part.input)) && /decision-log\.mjs|autopilot-log\.jsonl/.test(JSON.stringify(part.input))) logAttempted = true;
       if (role === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') bash.add(part.id);
       if (role === 'user' && part.type === 'tool_result' && !part.is_error && bash.has(part.tool_use_id)) {
         const text = resultText(part);
@@ -89,6 +94,12 @@ export function refreshHandoff(events, lastAssistantMessage) {
   // Stop provides the actual final text even before its transcript record flushes.
   // https://code.claude.com/docs/en/hooks#stop-input
   const handoff = typeof lastAssistantMessage === 'string' ? lastAssistantMessage : lastText;
+  if (generated && recovering) {
+    const missing = ['.claude/skills/test-strategy/SKILL.md', '.claude/testing/test-map.json'].filter((file) => !handoff.includes(file));
+    if (!/coverage|uncovered|unmapped|untested|UC-/i.test(handoff)) missing.push('coverage and uncovered/unresolved scope');
+    if (logAttempted && !handoff.includes('define-test-strategy-autopilot-log.jsonl')) missing.push('decision-log path and outcome');
+    if (missing.length) return { decision: 'block', reason: `The corrected handoff is missing ${missing.join(', ')}. ${recoveryReminder}` };
+  }
   const badHandoff = handoff.split('\n').some((line) => unfinished(line) && !/\b(?:example only|template only|not runnable|do not run|don't run)\b/i.test(line));
   if (!generated || !badHandoff) return {};
   if (!command) return { decision: 'block', reason: 'The report was generated, but the final handoff contains an unfinished refresh command. Link the generated TEST-MAP.md and direct the user to its Refresh line, or read and copy the actual resolved command. Correct the message in this turn without waiting for user acknowledgment.' };
@@ -99,16 +110,18 @@ export function refreshHandoff(events, lastAssistantMessage) {
 export async function refreshHandoffHook(input) {
   if (input.hook_event_name === 'PostToolUse') {
     if (input.tool_name !== 'Bash' || input.tool_response?.interrupted) return {};
-    return evidenceDeliveryHold([
+    const result = evidenceDeliveryHold([
       { type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', name: 'Bash', id: 'post' }] } },
       { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'post', content: input.tool_response?.stdout ?? '' }] } },
     ]);
+    return result.decision ? { ...result, reason: result.reason + '\n\n' + recoveryReminder } : result;
   }
   if (input.hook_event_name !== 'Stop' || !input.transcript_path) return {};
   // Let the final assistant chat record reach the transcript before checking it.
   await delay(75);
   const events = (await readFile(input.transcript_path, 'utf8')).split('\n').filter((s) => s.trim()).map(JSON.parse);
-  return refreshHandoff(events, input.last_assistant_message);
+  const result = refreshHandoff(events, input.last_assistant_message);
+  return result.decision && !result.reason.includes(RECOVERY_MARKER) ? { ...result, reason: result.reason + '\n\n' + recoveryReminder } : result;
 }
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {

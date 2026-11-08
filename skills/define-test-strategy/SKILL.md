@@ -190,7 +190,8 @@ Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md
 
 The skill's PostToolUse/Stop hooks hold truncated post-pointer evidence delivery. Run the returned read-only `evidence` command without cut/head or truncation, review the full assertions/documentation, finish reassessment, and record final baselines/report before handing off. The delivery check does not judge semantic correctness or permit skipping deferred reads. It writes nothing and does not retry a denied metadata write.
 
-The skill's Stop hook also checks the final handoff after a fresh report generation.
+The skill's Stop hook also checks the final handoff after a fresh report generation. After any hook correction, send a complete replacement handoff, including the coverage report and every required summary outcome/path below. Do not send an incremental correction that says the rest of an earlier summary stands.
+
 
 If it contains an unfinished template refresh command, correct the chat message
 using the generator's exact resolved command or the report link. This is output

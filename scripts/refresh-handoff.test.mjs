@@ -107,3 +107,17 @@ test('synthetic hook feedback and request replays cannot clear the refresh-comma
  const replay = { type: 'api-request-blob', message: { role: 'user', content: 'An old request dump' } };
  assert.equal(refreshHandoff([...generated(), replay, message(bad)]).decision, 'block');
 });
+
+
+test('hook recovery requires a self-contained final handoff instead of an incremental correction', () => {
+ const feedback = { type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: [DTS handoff recovery]' } };
+ const events = [...generated(), feedback];
+ const incomplete = 'Corrected refresh: use the report. The earlier summary stands.';
+ assert.equal(refreshHandoff(events, incomplete).decision, 'block');
+ const complete = `.claude/skills/test-strategy/SKILL.md and .claude/testing/test-map.json saved. Coverage: UC-02, UC-03 and domain-notifications uncovered. Refresh: ${command}. Pointer updated; tests not run; nothing committed.`;
+ assert.deepEqual(refreshHandoff(events, complete), {});
+ const log = { type: 'assistant', message: { role: 'assistant', content: [{ type: 'tool_use', name: 'Bash', id: 'log', input: { command: 'node scripts/decision-log.mjs write define-test-strategy --root .' } }] } };
+ assert.equal(refreshHandoff([...events, log], complete).decision, 'block');
+ assert.deepEqual(refreshHandoff([...events, log], complete + ' Decision log saved to make-it-work/define-test-strategy-autopilot-log.jsonl.'), {});
+ assert.deepEqual(refreshHandoff([...events, { type: 'user', message: { role: 'user', content: 'Explain the refresh command.' } }], 'Use the report.'), {});
+});
