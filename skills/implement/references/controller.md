@@ -29,14 +29,28 @@ Initialization failure produces no success announcement; report the error.
 Use `inspect` later if full fields are needed. Ordinary refresh/resume does not
 emit another startup link. No state field asserts that the user saw the link.
 
-The skill-scoped `startup-presentation.mjs` hooks check the current session's
-transcript: PostToolUse returns an immediate presentation reminder after init,
-and PreToolUse/Stop hold work or a terminal response until the assistant chat
-contains the correct clickable link. Tool output, thinking, code blocks and
-other dashboard targets do not satisfy it. The hooks write no files, grant no
-permissions, and require no user acknowledgment. A new user turn clears an old
-startup obligation so Resume does not reannounce it. Hook support follows
-[Claude Code's skill hook contract](https://code.claude.com/docs/en/hooks#hooks-in-skills-and-agents).
+The skill-scoped startup hooks use advisory PostToolUse/PreToolUse reminders
+rather than denying tools while a chat record is buffered. Stop requires the
+actual assistant chat link and continuation of every In Progress phase. Diagnostic
+request dumps are not conversation events; a partially appended final JSONL line
+is retried/ignored until it is complete. A new user turn clears the fresh-start
+obligation, preserving Resume behavior.
+
+Initialization returns an `implementation_baseline` for every approved repo;
+this is immutable transcript evidence, not a new persisted state field. It covers
+tracked, staged and untracked application changes and preserves pre-existing dirty
+work. Workflow artifacts, .claude, docs and Markdown are excluded. Before the
+first Execute/Lightweight audit entry, tool hooks report unexpected changes and
+Stop rejects an early bailout even if a stop checkpoint refreshed workspace
+fingerprints. Recovery tools remain available and no edits are rolled back.
+Authorized implementation releases the guard for later fixes/replans. Older
+initializers and offline waits retain compatibility. This is fresh-run detection,
+not a shell sandbox or an artifact/Resume validation replacement.
+
+`context-ready` returns a `next_action` with the exact next stage and its required
+continuation. Follow that stage's skill; passing Context check does not authorize
+application edits. Other pending-input and handoff continuation fields retain
+their existing meaning.
 
 Before every phase transition, run `inspect --root <root> --state <state>` and use its `state_hash` as `expected_hash` in a saved event JSON. Every event has a stable `id` (reuse that exact event on retry), `event`, and `repos`. Run `apply --root <root> --state <state> --input <event.json>`. Do not hand-edit phase/status, loop counters, audit transition rows or fingerprints on controller-enabled runs.
 

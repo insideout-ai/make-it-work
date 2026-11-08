@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Detect application edits before an authorized implementation stage, prevent early-stop bailouts from hiding skipped stages, return an explicit post-context stage action, and make dashboard-link reminders tolerate buffered transcripts.
+
 ## [5.4.2] — 2026-11-08
 
 ### Changed

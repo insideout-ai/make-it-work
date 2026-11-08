@@ -35,7 +35,7 @@ test('initialization failures and Resume do not impose a startup announcement', 
   assert.equal(pendingStartup([...startup(), assistant(text(initialized.startup_message)), ...startup()]).dashboard, dashboard);
 });
 
-test('post-init reminder, tool hold and terminal hold clear only after the chat link appears', async (t) => {
+test('tool-time link reminders are advisory while Stop requires actual chat delivery', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'startup-presentation-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const transcript = path.join(root, 'transcript.jsonl');
@@ -43,12 +43,12 @@ test('post-init reminder, tool hold and terminal hold clear only after the chat 
   await write(startup());
   const before = await readFile(transcript, 'utf8');
   const held = await startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript });
-  assert.equal(held.hookSpecificOutput.permissionDecision, 'deny');
-  assert.ok(held.hookSpecificOutput.permissionDecisionReason.includes(initialized.startup_message));
+  assert.equal(held.hookSpecificOutput.permissionDecision, undefined);
+  assert.ok(held.hookSpecificOutput.additionalContext.includes(initialized.startup_message));
   assert.equal((await startupHook({ hook_event_name: 'Stop', transcript_path: transcript })).decision, 'block');
   const reminder = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_response: { stdout: JSON.stringify(initialized) } });
-  assert.equal(reminder.decision, 'block');
-  assert.ok(reminder.reason.includes(initialized.startup_message));
+  assert.equal(reminder.decision, undefined);
+  assert.ok(reminder.hookSpecificOutput.additionalContext.includes(initialized.startup_message));
   assert.equal(await readFile(transcript, 'utf8'), before);
   await write([...startup(), assistant(text(initialized.startup_message))]);
   assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript }), {});
@@ -65,7 +65,8 @@ test('a chat link flushed shortly after tool dispatch releases the hold automati
   const checking = startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript });
   await new Promise((resolve) => setTimeout(resolve, 50));
   await writeFile(transcript, [...events, assistant(text(initialized.startup_message))].map(JSON.stringify).join('\n') + '\n');
-  assert.deepEqual(await checking, {});
+  assert.equal((await checking).hookSpecificOutput.permissionDecision, undefined);
+  assert.deepEqual(await startupHook({ hook_event_name: 'Stop', transcript_path: transcript }), {});
 });
 
 async function freshRun(t, autonomy, offline = false) {
@@ -86,7 +87,7 @@ async function freshRun(t, autonomy, offline = false) {
   const events = [assistant({ type: 'tool_use', id: 'init', name: 'Bash' }),
     { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'init', content: JSON.stringify(initialized) }] } },
     assistant(text(result.startup_message + '\nSend another message to continue.'))];
-  const transcript = path.join(root, 'transcript.jsonl');
+  const transcript = path.join(root, 'make-it-work/transcript.jsonl');
   const saveEvents = () => writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
   await saveEvents();
   const check = () => startupHook({ hook_event_name: 'Stop', transcript_path: transcript });
@@ -95,7 +96,7 @@ async function freshRun(t, autonomy, offline = false) {
   return { root, result, events, transcript, saveEvents, check, apply };
 }
 
-test('all autonomy modes must continue after the link, but tools and a completed Context check are released', async (t) => {
+test('all modes continue through active stages while tools remain available', async (t) => {
   for (const mode of ['guided', 'autonomous', 'autopilot']) {
     const run = await freshRun(t, mode);
     const before = await readFile(run.result.state, 'utf8');
@@ -105,7 +106,7 @@ test('all autonomy modes must continue after the link, but tools and a completed
     assert.equal(await readFile(run.result.state, 'utf8'), before);
     assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript }), {});
     await run.apply('context-ready');
-    assert.deepEqual(await run.check(), {});
+    assert.match((await run.check()).reason, /still In Progress at close-the-gaps/);
   }
 });
 
@@ -133,4 +134,42 @@ test('a new user turn clears continuation and missing or invalid state cannot si
     assert.deepEqual(await run.check(), {});
   }
   assert.deepEqual(await startupHook({ hook_event_name: 'Stop' }), {});
+});
+
+
+test('early application edits cannot be hidden by recording a same-phase stop', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  await writeFile(path.join(run.root, 'app.js'), 'export const fallbackDays = 30;');
+  const afterWrite = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', transcript_path: run.transcript });
+  assert.match(afterWrite.hookSpecificOutput.additionalContext, /Application files changed/);
+  await run.apply('stop');
+  const held = await run.check();
+  assert.equal(held.decision, 'block');
+  assert.match(held.reason, /Recording Stopped.*does not complete recovery/);
+  assert.equal(await readFile(path.join(run.root, 'app.js'), 'utf8'), 'export const fallbackDays = 30;');
+  run.events.push({ type: 'user', message: { role: 'user', content: 'Keep the edits; stop this run.' } });
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+});
+
+test('refinement edits are detected while documentation changes are permitted', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  await run.apply('context-ready');
+  await writeFile(path.join(run.root, '.claude/rules/product.md'), '# Updated rules');
+  await writeFile(path.join(run.root, 'notes.md'), '# Refinement');
+  await run.apply('stop');
+  assert.deepEqual(await run.check(), {});
+  await writeFile(path.join(run.root, 'app.js'), 'export const amount = 10;');
+  assert.match((await run.check()).reason, /Application files changed/);
+});
+
+test('buffered partial transcript lines and diagnostic replay events do not manufacture a new init', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-partial-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const transcript = path.join(root, 'transcript.jsonl');
+  const events = [...startup(), assistant(text(initialized.startup_message)),
+    { type: 'api-request-blob', message: startup()[1].message }];
+  await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n{"type":');
+  assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript }), {});
+  assert.deepEqual(await startupHook({ hook_event_name: 'Stop', transcript_path: transcript }), {});
 });

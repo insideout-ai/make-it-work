@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -63,6 +63,7 @@ test('init CLI prioritizes the startup message in a concise successful handoff',
   assert.equal(result.next_action.text, result.startup_message);
   assert.equal(result.next_action.delivery_status, 'not_sent');
   assert.equal(result.continuation, 'continue_context_check_without_user_reply');
+  assert.equal(result.implementation_baseline[0].root, await realpath(root));
   assert.match(await readFile(result.dashboard, 'utf8'), /CLI/);
   assert.equal(parseState(await readFile(result.state, 'utf8')).fields.autonomy, 'autonomous');
 });
@@ -80,7 +81,9 @@ test('offline init CLI preserves its genuine answer wait instead of starting Con
 });
 test('checkpoint clears activity, increments review once, and preserves unrelated state', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await apply('context-ready');
+  const ready = await apply('context-ready');
+  assert.equal(ready.next_action.phase, 'close-the-gaps');
+  assert.match(ready.next_action.instruction, /does not authorize application edits/);
   const dir = path.join(root, 'make-it-work/DEMO');
   await mkdir(path.join(dir, 'DEMO-handoffs'));
   await writeFile(path.join(dir, 'DEMO-spec.md'), '# Spec');

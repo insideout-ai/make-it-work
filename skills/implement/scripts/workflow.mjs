@@ -16,6 +16,7 @@ import { inspectLightweightFix } from './lightweight-fix.mjs';
 export { planHash } from '../../../scripts/lib/plan.mjs';
 
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
+import { implementationBaseline } from './implementation-guard.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
 function setFields(markdown, fields) {
   return markdown.replace(/(^# Workflow state[^\n]*\n\s*```[^\n]*\n)[\s\S]*?(\n```)/m,
@@ -324,6 +325,12 @@ async function resolveInput(root, statePath, state, input) {
   }
   return { state: { ...state, fields }, input: nextInput, record, response, finalApproval, nonPositiveApproval };
 }
+
+function contextAction(fields) {
+  return { next_action: { type: 'stage', phase: fields.phase,
+    instruction: `Continue ${fields.phase} now using its documented stage skill. Context check does not authorize application edits. Do not implement directly or end the turn while work remains active.` } };
+}
+
 export async function applyWorkflow({ root, statePath, input, render = refresh }) {
   root = await realpath(root);
   statePath = await within(root, statePath);
@@ -337,7 +344,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const prior = state.audit.find((row) => row.outcome.includes(`[workflow-event: ${input.id};`));
     if (prior) {
       if (!prior.outcome.includes(marker)) fail('Event id already records a different event.');
-      return { replayed: true, fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
+      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : {}), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     }
     if (input.expected_hash !== digest(original)) fail('Workflow state changed; inspect and recompute the event.');
     let workingState = state, effective = input, resolution = null, replaced = null;
@@ -502,7 +509,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     parseState(updated, statePath);
     await atomicWrite(statePath, updated);
     // Keep the event on render failure. Replaying its id refreshes without recounting.
-    return { fields: f, pending: pendingInputs(f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
+    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : {}), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
 export async function initializeWorkflow(root, input) {
@@ -549,7 +556,8 @@ export async function initializeWorkflow(root, input) {
   const dashboard = await generateDashboard(statePath);
   const target = encodeURI(dashboard).replace(/[?#]/g, (character) => encodeURIComponent(character));
   return { state: statePath, dashboard,
-    startup_message: `[Open implementation dashboard](<${target}>)`, fields };
+    startup_message: `[Open implementation dashboard](<${target}>)`,
+    implementation_baseline: await implementationBaseline(repos.map((repo) => repo.root)), fields };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--root', '--state', '--input']);
@@ -565,7 +573,7 @@ cli(import.meta.url, async (argv) => {
         instruction: 'Your very next output must be an assistant chat text block containing text above. This command has NOT sent that chat message. Emit it now, before another tool call. If only tool calls/results have occurred since init, the message is still unsent. A later claim that it was sent does not deliver it.',
       },
       continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply',
-      state: initialized.state, dashboard: initialized.dashboard };
+      state: initialized.state, dashboard: initialized.dashboard, implementation_baseline: initialized.implementation_baseline };
   }
   if (!o.state) fail('--state is required.');
   if (o.command === 'inspect') { const markdown = await readFile(await within(o.root, o.state), 'utf8'); return { ...parseState(markdown, o.state), state_hash: digest(markdown) }; }

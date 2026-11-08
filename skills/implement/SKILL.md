@@ -4,7 +4,7 @@ description: "Orchestrates the make-it-work pipeline for one ticket — context 
 disable-model-invocation: true
 hooks:
   PostToolUse:
-    - matcher: Bash
+    - matcher: '*'
       hooks:
         - type: command
           command: 'node "${CLAUDE_PLUGIN_ROOT}/skills/implement/scripts/startup-presentation.mjs"'
@@ -52,15 +52,26 @@ hooks:
 3. After sending the chat message, follow `continuation`. A normal
    run continues into Context check in the same turn, without a user reply.
 
-The skill's startup-presentation hooks reinforce this order. After a successful
-init, the next tool/terminal response is held until the session transcript
-contains the actual assistant chat link. Emit the link and retry the held work;
-no user confirmation or state-field acknowledgment is involved. These hooks
-write no files and do not affect Resume or sessions without a fresh init.
-For a normal controller startup, the Stop hook also checks the saved state after
-that announcement: while Context check is still In Progress, continue in the
-same turn. A genuine question or blocker must use the documented saved pause or
-stop. Pending offline-answer waits retain their existing behavior.
+The skill's startup-presentation hooks reinforce this order. Tool-time reminders
+are advisory because assistant chat can appear before its transcript record is
+flushed; do not repeat a link already sent. Stop requires the actual chat link
+and checks that a fresh run is no longer In Progress at any stage. Continue the
+saved stage in this turn until completion or a genuine saved pause/stop. Pending
+offline-answer waits retain their existing behavior.
+
+New initialization also captures a read-only baseline of application files in
+every approved repository. Before the first authorized Execute or Lightweight
+stage, tool hooks detect changes relative to that baseline and Stop blocks a
+terminal response even if a same-phase stop was saved. Workflow artifacts,
+Markdown, project context under .claude and docs are excluded so refinement and
+planning can write their documented outputs. Existing local edits are preserved.
+This detects completed tool mutations; it does not undo them or sandbox Bash.
+On a violation, preserve the edits and recover through refinement, risk assessment,
+the approved implementation route and independent review. Resume the saved phase
+if an internal failure was checkpointed as Stopped. Never claim a bypassed change
+is complete or ask the user to accept it as the default escape. Only a genuine
+external blocker justifies asking for guidance. A new user turn clears the fresh
+startup obligation; these hooks do not replace Resume checks or retrofit old runs.
 
 The link is an announcement, not a stopping point. Do not end the turn after
 showing it, request acknowledgment, ask whether to continue, or require the user
