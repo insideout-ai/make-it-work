@@ -1,0 +1,25 @@
+skills/implement/references/planning-tests.md
+  s_e8cdb860e0eee3::t_5017f203948707 8-9
+skills/implement/scripts/planning-tests.mjs
+  s_e8cdb860e0eee3::t_9e07ff03584fe0 52
+skills/implement/scripts/planning-tests.test.mjs
+  s_e8cdb860e0eee3::t_408b922042626b 179-185
+skills/plan-the-work/SKILL.md
+  s_e8cdb860e0eee3::t_c7cb354332862d 260
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3c9fec7acd9d6102b88b794b7d14b8fbb71daa11",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
