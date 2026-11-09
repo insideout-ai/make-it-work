@@ -1,0 +1,5 @@
+Turn 1 user: Fix the empty-input bug. Please verify with the existing tests.
+Turn 2 assistant: I will inspect the validation path and test it.
+Turn 3 tool result: validator returns success for empty string.
+Turn 4 tool result: added rejection; tests 3 passed, 0 failed.
+Turn 5 assistant: The validator rejects empty input. All three tests pass; changes remain local.

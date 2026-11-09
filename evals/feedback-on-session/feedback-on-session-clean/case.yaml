@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: feedback-on-session-clean
+tags: [feedback-on-session, regression]
+context:
+  scaffold_script: fixture.sh

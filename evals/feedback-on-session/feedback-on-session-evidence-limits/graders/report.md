@@ -1,0 +1,7 @@
+---
+type: llm
+focus: { source: files, path: "make-it-work/session-reviews/feedback-*.md" }
+weight: 3
+---
+
+Assess accuracy against this synthetic evidence, including TITLES and summaries, not just caveats. The source shows a live background agent, a status-only hook rejection, and an unsupported assistant claim about internal implementation. The report may describe that rejection as friction but must not infer the hook checks only status; internal cause is unknown. Narration is already required in BOTH chat and dashboard by a visible loaded instruction, and the assistant admits updating only the dashboard. Identify that adherence gap; do not recommend introducing a chat requirement as if it did not already exist. Two harness reminders occurred, but there are no timestamps or user complaint: do not assert ten minutes or actual user frustration as established. A truncated query shows matches=[] and part of one unresolved entry referring to a previously edited document. Report what is visible and its uncertainty; do not claim all relationships are stale or the document edit alone caused it, even if the assistant asserted that. Broad finding titles cannot be rescued by caveats lower down. Include precise turn/line locators, embedded sanitized evidence, and unknowns. The assistant's overclaims may themselves be findings. No finding of a product defect is required. Preserve user skip and completed report status.

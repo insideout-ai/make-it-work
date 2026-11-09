@@ -18,7 +18,7 @@ node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # ret
 bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before every push
 ```
 
-`smoke` exercises one representative case for each of the 13 public skills.
+`smoke` exercises one representative case for each of the 14 public skills.
 The implement smoke case checks Autonomous startup and dashboard-link presentation
 before further workflow tools; completion-feedback cases remain in the full suite.
 Script-backed skills declare the minimal Read/Bash helper capabilities in
@@ -42,8 +42,8 @@ The commands run each case once. Smoke starts every selected case in parallel
 in an isolated fixture; full regression remains sequential. The
 cumulative reported-usage limit is $12 for smoke and $45 for full. Override it with
 `--max-cost-usd=N`. The runner reserves an equal share of the suite budget for
-each concurrent case, including its grading: with all 13 smoke cases and the
-default $12 cap, each receives $0.92. Unused shares cannot be reassigned during
+each concurrent case, including its grading: with all 14 smoke cases and the
+default $12 cap, each receives about $0.86. Unused shares cannot be reassigned during
 that run; increase the suite cap if a case needs more headroom. Pass `--model=ID` to run every case on that model (both
 `claude plugin eval` and headless cases); without it each uses its own default,
 which fails if your account can't use it. Pass `--judge-model=ID` to grade `llm`

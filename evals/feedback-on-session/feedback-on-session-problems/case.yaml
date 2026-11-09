@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: feedback-on-session-problems
+tags: [feedback-on-session, smoke]
+context:
+  scaffold_script: fixture.sh

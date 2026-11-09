@@ -31,7 +31,7 @@ Git hook once:
 bash scripts/install-pre-push-hook.sh
 ```
 
-The hook runs the 13-skill smoke suite against a disposable snapshot of the
+The hook runs the 14-skill smoke suite against a disposable snapshot of the
 commit being pushed, using your existing Claude Code sign-in before each push.
 It reports failures but does not block the push or PR. It does not request an
 API key or run in CI. Installation is local to your clone; the installer
@@ -66,7 +66,7 @@ node --test evals/*.test.mjs
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
-Before opening a pull request, run the 13-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Each PR must have a complete passing 13-case smoke run before it is marked ready for review or merged. Record its report path and investigated failures in the PR description. Focused reruns help diagnose fixes but do not replace a passing full smoke run; do not waive failures as unrelated. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI. Draft PRs may be opened while fixes or smoke results are pending; readiness and merge require the passing full smoke evidence above.
+Before opening a pull request, run the 14-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Each PR must have a complete passing 14-case smoke run before it is marked ready for review or merged. Record its report path and investigated failures in the PR description. Focused reruns help diagnose fixes but do not replace a passing full smoke run; do not waive failures as unrelated. The full plugin eval suite is available with `node evals/run-suite.mjs full` and is required before a release. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI. Draft PRs may be opened while fixes or smoke results are pending; readiness and merge require the passing full smoke evidence above.
 
 ## Pull requests
 
