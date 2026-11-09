@@ -96,3 +96,60 @@ Supply `ui_verification: {status: "passed" | "pending" | "not-applicable", note:
 After the adversarial semantic review, use `review-report.mjs write --root <artifact-root> --input <review.json>` for both report tiers and, on version-1 handoff runs, the JSON handoff. Input has `version: 1`, `ticket`, `branch`, `commit`, `coverage`, `findings`, optional `solid`, `preexisting`, `context_gaps`, `known_regressions`, `decided`, and explicit `repo_roots` keyed by repo ID. Each finding supplies `severity`, `claim`, inspected `evidence`, `locations: [{repo?,file,line}]`, optional `rule`, and in implement mode `route`, stable `region`, and `introduced_by_fix_of` (or null). Set `working_tree: true` for local uncommitted reviews; otherwise use an exact hex commit or HEAD and the helper reads locations at that Git revision.
 
 Supply `implement: {plan_version,review_cycle,handoff_version:1}` for version-1 handoff callers. Older implement callers still supply `implement` but omit `handoff_version`: they receive routes and outcome lines without a new handoff. Standalone callers omit `implement`. In implement mode, each finding explicitly chooses `route: fix|replan|human|advisory`. Routes `fix`, `replan` and `human` are actionable at every severity, including Minor; `advisory` is allowed only for nonblocking Minor nits. The optional `actionable` boolean must agree with the route; contradictory input is rejected rather than silently dropping a fix. Advisory findings stay visible as unfixed in both report tiers and the final package, but are excluded from the actionable handoff. Standalone Minor findings with no route retain their advisory default; standalone Major/Critical findings cannot be hidden. Older implement inputs that used `route: fix` with `actionable: false` must explicitly choose `route: advisory` instead. Existing saved reports/handoffs are not rewritten. The helper derives counts, verdict, route precedence and Markdown/JSON from one findings list, validates source file/line bounds before saving, and allocates a fresh review handoff. Known hosted source links may be supplied as a location's `url`. Display its returned summary. Location validation checks existence and bounds, not whether the finding is true; source-chain verification, severity/business impact, semantic route choice and adequate review coverage remain the reviewer's responsibility.
+
+
+### Review and delivery scope
+
+Fresh implement runs (`review_scope_version: 1`) prepare a frozen delivery target
+with `skills/implement/scripts/review-scope.mjs prepare --root ROOT --state STATE`.
+The target contains all selected roots/bases and the complete binary-safe diff,
+including earlier branch commits. Pass its returned path/hash to independent
+review. The report input must include `review_target`, `review_target_sha256`,
+`implement.review_scope_version: 1` and branch-scoped evidence for every path.
+The renderer rejects HEAD-only, omitted-path or drifted targets before writing
+a clean report, evidence or handoff. The controller separately validates CLEAN.
+Final sync routes changed delivery content back to independent Review under the
+existing cap. Final packages require full matching coverage and bind the target
+and its diff artifacts. Later final-approval drift uses `refresh-review`; the
+helper refuses an unchanged tree. Standalone reviews and legacy saved runs keep
+the existing partial/unknown-scope disclosure behavior.
+
+### Clause-level acceptance evidence
+
+New Implement runs carry `acceptance_evidence_version: 1` alongside `verification_version: 1`. The accepted plan has three-column AC traceability (`Acceptance criterion | Requirement clause | Test scenario`); acceptance rows preserve each exact clause. Verified rows require the cited step/scenario/type to contain a concrete assertion or manual observation with `clause`, `expected`, `observed`, and `source`. The controller and final package reject name-only evidence or omitted planned clauses; explicit unverified rows remain pending. Package and dashboard summaries aggregate all clauses/scenarios under each criterion. The independent review compares the inventory to the spec and inspects cited evidence for semantic coverage. Historical runs are not migrated. See [verification contract](../skills/implement/references/verification.md).
+
+### Planning test authorizations
+
+Fresh initializer output includes per-path implementation-baseline evidence.
+Before changing tests in Plan, `planning-tests.mjs authorize` checks the active
+TDD phase, accepted spec, approved repo and exact draft-step test declaration,
+then records the original file image in a run-bound local receipt. The startup
+guard exempts only those exact test paths (or bounded embedded-test regions),
+while comparing all other changes with the original baseline. It rejects early,
+undeclared, deleted, stale or out-of-scope changes and changed HEADs. Ordinary
+stage continuation and review remain required. Receipt prefix/suffix bytes are
+local working data, never automatically exported. See the [planning-test
+contract](../skills/implement/references/planning-tests.md).
+
+### Readiness before planning
+
+New runs opt into `testing_readiness_version: 1`. The parent begins a pending
+checkpoint, waits for readiness handbacks, reconciles the structured report and
+completes it with `testing-readiness.mjs`. Runtime hooks reject beginning/completing
+readiness under a live current-phase delegate. Planners check before starting;
+test authorization, plan handoff, Execute entry and final packages require the
+same current report/policy proof. Completion changes only the existing readiness
+pointer and records an informational Result, without new approvals or counters.
+Existing-run markers are not backfilled. See the [readiness contract](../skills/implement/references/testing-readiness.md).
+
+### Final-package assurance presentation
+
+New package builds add `assurance_version: 1` and lead with a derived assurance
+headline. `final-package.mjs check` returns `assurance_summary` alongside the
+ledger-only `verification_summary`. Pending/missing acceptance evidence, partial
+or unknown delivery review, pending browser checks, absent automated gates,
+open review nits and known unrelated regressions prevent the qualified
+`Recorded checks complete` headline. These facts remain separate from workflow
+completion, Guided approval and release readiness. Existing package hashes and
+legacy Markdown are preserved on check; a rebuild uses the new format and normal
+approval binding. See the [verification contract](../skills/implement/references/verification.md).

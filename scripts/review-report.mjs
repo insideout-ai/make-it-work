@@ -4,6 +4,7 @@ import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, requireText, withLock, within } from './lib/artifacts.mjs';
 import { validateHandoff } from '../skills/implement/scripts/handoff.mjs';
+import { validateReviewScopeInput } from '../skills/implement/scripts/review-scope.mjs';
 import { captureReviewEvidence, uiVerification } from './lib/review-evidence.mjs';
 
 export function reviewResult(input) {
@@ -97,6 +98,7 @@ export async function writeReview(root, input) {
   const report = path.join(directory, `${input.ticket}-review.md`);
   return withLock(report, async () => {
     const evidence = await captureReviewEvidence(input, rendered.markdown);
+    await validateReviewScopeInput(root, input, evidence);
     await atomicWrite(report, rendered.markdown);
     await atomicWrite(path.join(directory, `${input.ticket}-review-evidence.json`), JSON.stringify(evidence, null, 2) + '\n');
     let handoff = null;

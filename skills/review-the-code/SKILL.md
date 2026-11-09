@@ -236,11 +236,30 @@ This section applies only when `/make-it-work:implement` dispatches the review; 
 
 **Inputs** — the dispatch prompt provides: the ticket key, the spec path, the current plan path (absent in Lightweight mode, which has no plan), the base branch, the literal `no PR`, the review cycle number, the list of known unrelated regressions (may be empty), and the list of decided findings (may be empty).
 
-When the prompt also provides a verification-ledger path, read it with the plan's AC traceability table. Check whether each claimed automated/manual verification has actual step evidence and call out unverified criteria in the report's coverage discussion; do not infer AC coverage from a passing full suite alone. This is an evidence review, not an instruction to rerun tests. The absence of the optional path on an older run changes nothing.
+When the prompt also provides a verification-ledger path, read it with the plan's AC traceability table. Check whether each claimed automated/manual verification has actual step evidence and call out unverified criteria in the report's coverage discussion; do not infer AC coverage from a passing full suite alone. This is an evidence review, not an instruction to rerun tests. For `acceptance_evidence_version: 1`, compare the clause inventory with every material condition/output in the accepted spec, then inspect the cited test assertions or retained manual observations. Verify the evidence actually asserts each clause, including included/excluded data, boundaries, ordering, error paths and parity where required. A passing named test that only asserts a total does not prove ordering or parity. Missing clauses and unsupported verified claims are findings; genuine unverified rows stay visible. This is source/evidence inspection, not a request to rerun tests. The absence of the optional path on an older run changes nothing.
 
 When the plan has `## Verification Policy`, review its per-repo choices alongside that evidence. For manual repos, check the concrete actions/observations and nearby regression scenarios; automated coverage remains unavailable even after successful manual verification. An unperformed manual scenario or a missing AC observation is a verification gap, not evidence of success. Mixed policies require both automated results and manual observations. Proposals in a strategy's `## Recommended Setup` are not installed tooling or executed tests.
 
 **Skipped prompts** — do not run Step 0 (PR link), and skip Step 1's requirements question and its branch-pair confirmation. The requirements source of truth is the current accepted refined spec, including its explicitly accepted revisions. The original ticket is provenance/context; refinement may legitimately complete or change it. The plan describes how to implement the spec and cannot amend its requirements. Read the spec and inspect the diff before reading the plan, then check both code→spec and plan→spec. Inspect assumptions, scope exclusions, deferred behavior and reference deviations for conflicts with the spec; these are review subjects, not automatic defects. A plan approval or a Decided finding does not authorize a requirements deviation unless that decision was explicitly incorporated into the accepted refined spec. Cite the affected spec criterion and inspected evidence for each conflict. A clear code/plan defect with an unambiguous correction within the spec routes to `fix` or `replan` as appropriate. A contradiction requiring a requirements decision routes to `human`, even if the code follows the plan; it cannot receive CLEAN. Never resolve such a conflict by reverting to the original ticket or silently changing the spec.
+
+**Delivery scope contract** — when supplied `review_scope_version: 1`, read the
+parent's exact `review_target` JSON and verify its dispatched hash before judging
+the change. Its repo roots, base/merge-base and complete path list are the same
+snapshot final packaging will deliver, including earlier branch commits. Read
+its binary-safe diff artifacts and inspect every affected file. Do not override
+it with a HEAD-only or current-ticket-only diff, or exclude inherited files
+because they predate this run. Distinguish inherited work's requirements from
+the current accepted spec; inspect it against its available project context and
+record any material limitation honestly rather than inventing requirements.
+
+Write through `scripts/review-report.mjs` with the supplied `review_target` and
+`review_target_sha256`, plus `implement.review_scope_version: 1`. Record `scope:
+branch` and all actually inspected paths for every approved repo. The writer
+requires target-aligned evidence and detects scope changes during review. Do not
+hand-write a CLEAN handoff after a rejected report or imply that merely listing
+paths proves semantic review. Return the stale-scope error to the parent so it
+can prepare and review the updated target. Later final-sync changes may cause
+another review round; those changes must receive review before packaging.
 
 **Diff to review** — the work is not committed and there is no PR, so review the working tree against the base:
 

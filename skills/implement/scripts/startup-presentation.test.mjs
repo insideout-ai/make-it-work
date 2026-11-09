@@ -7,6 +7,9 @@ import { execFileSync } from 'node:child_process';
 import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { pendingStartup, startupHook } from './startup-presentation.mjs';
+import { testingReadiness } from './testing-readiness.mjs';
+import { authorizePlanningTests } from './planning-tests.mjs';
+import { readHookEvents } from './hook-feedback.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
 const initialized = { startup_message: `[Open implementation dashboard](<${encodeURI(dashboard).replace('#', '%23')}>)`,
@@ -185,4 +188,266 @@ test('synthetic Stop feedback cannot release a fresh-run continuation or prematu
  run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: recover the skipped stages.' } });
  await run.saveEvents();
  assert.match((await run.check()).reason, /Application files changed/);
+});
+
+async function activeAgentRun(t, phase = 'execute') {
+  const run = await freshRun(t, 'autonomous');
+  const epoch = Date.now() + 10;
+  const state = (await readFile(run.result.state, 'utf8')).replace('phase: context-check', `phase: ${phase}`)
+    .replace(/(## Audit log\n[\s\S]*?)(?=\n## |$)/, (section) => `${section.trimEnd()}\n| 2 | ${new Date(epoch).toISOString()} | context-check | ${phase} | Stage entered |\n`);
+  await writeFile(run.result.state, state.replace(/^mode: none$/m, `mode: ${phase === 'lightweight' ? 'lightweight' : 'tdd'}`)
+    .replace(/^mode_source: none$/m, 'mode_source: assessed').replace(/^risk: none$/m, 'risk: medium'));
+  const launch = (id = 'worker', at = epoch + 1) => {
+    run.events.push(assistant({ type: 'tool_use', id: `launch-${id}`, name: 'Agent' }),
+      { type: 'user', timestamp: new Date(at).toISOString(), toolUseResult: { isAsync: true, status: 'async_launched', agentId: id },
+        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: `launch-${id}`, content: 'Agent launched.' }] } });
+  };
+  return { ...run, launch, epoch };
+}
+
+test('live agents permit yielding in their active stage without completing or pausing the workflow', async (t) => {
+  for (const phase of ['plan', 'execute', 'review', 'lightweight', 'fix-plan']) {
+    const run = await activeAgentRun(t, phase);
+    run.launch();
+    run.events.push(assistant(text('The delegated agent is still running; waiting for its report.')));
+    await run.saveEvents();
+    const state = await readFile(run.result.state, 'utf8');
+    assert.deepEqual(await run.check(), {});
+    assert.equal(await readFile(run.result.state, 'utf8'), state);
+    run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: continue.' } });
+    await run.saveEvents();
+    assert.deepEqual(await run.check(), {});
+  }
+});
+
+test('completion or failure notifications restore the active-stage continuation hold', async (t) => {
+  for (const phase of ['plan', 'review']) for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
+    const run = await activeAgentRun(t, phase);
+    run.launch();
+    run.events.push({ type: 'queue-operation', operation: 'enqueue', content: `<task-notification>\n<task-id>worker</task-id>\n<status>${status}</status>\n</task-notification>` });
+    await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('runtime inventories invalidate stale agents without treating busy peers as live children', async (t) => {
+  for (const status of ['completed', 'failed', 'idle', null]) {
+    const run = await activeAgentRun(t);
+    run.launch();
+    run.events.push(assistant({ type: 'tool_use', id: 'inventory', name: 'ListAgents' }),
+      { type: 'user', toolUseResult: { sections: [
+        { kind: 'subagents', rows: status ? [{ id: 'worker', status }] : [] },
+        { kind: 'sessions', rows: [{ id: 'worker', status: 'busy' }] },
+      ] }, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'inventory', content: 'Inventory' }] } });
+    await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('waiting claims, diagnostic replays, shell jobs and earlier-stage launches cannot bypass Stop', async (t) => {
+  const run = await activeAgentRun(t, 'review');
+  run.launch('old-worker', run.epoch - 1);
+  run.events.push(assistant(text('Still waiting for a background agent.')),
+    assistant({ type: 'tool_use', id: 'shell', name: 'Bash' }),
+    { type: 'user', toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'shell-job' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'shell', content: 'background shell' }] } },
+    { type: 'api-request-blob', toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'replay' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'launch-old-worker', content: 'diagnostic' }] } });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+});
+
+test('agent waits never release missing-link or premature-implementation protection', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  const launch = [assistant({ type: 'tool_use', id: 'launch', name: 'Agent' }),
+    { type: 'user', timestamp: new Date().toISOString(), toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'worker' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'launch', content: 'Launched' }] } }];
+  run.events.splice(2, 1); // remove the announcement
+  run.events.push(...launch);
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /ASSISTANT CHAT MESSAGE/);
+  run.events.push(assistant(text(run.result.startup_message)));
+  await writeFile(path.join(run.root, 'app.js'), 'premature edit');
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /Application files changed/);
+});
+
+test('one completed child does not close another live wait, and TaskOutput closes the last child', async (t) => {
+  const run = await activeAgentRun(t);
+  run.launch('first');
+  run.launch('second');
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>first</task-id>\n<status>completed</status>\n</task-notification>' });
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  run.events.push(assistant({ type: 'tool_use', id: 'output', name: 'TaskOutput' }),
+    { type: 'user', toolUseResult: { task: { task_id: 'second', status: 'completed' } },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'output', content: 'Done' }] } });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+});
+
+
+test('hook decisions persist deduplicated observations and record a later release without rewriting state', async (t) => {
+  const run = await activeAgentRun(t);
+  const state = await readFile(run.result.state, 'utf8');
+  await run.check(); await run.check();
+  let events = await readHookEvents(run.result.state);
+  assert.equal(events.length, 1); assert.equal(events[0].kind, 'active-stage');
+  run.launch(); await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  events = await readHookEvents(run.result.state);
+  assert.equal(events.length, 2); assert.equal(events[1].kind, 'agent-wait');
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>worker</task-id>\n<status>completed</status>\n</task-notification>' });
+  run.events.push(assistant(text('The agent finished; processing the hand-back.'))); await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  assert.equal(await readFile(run.result.state, 'utf8'), state);
+  const paused = state.replace('status: In Progress', 'status: Paused');
+  await writeFile(run.result.state, paused);
+  assert.deepEqual(await run.check(), {});
+  events = await readHookEvents(run.result.state);
+  assert.equal(events.at(-1).kind, 'clear');
+  assert.equal(await readFile(run.result.state, 'utf8'), paused)
+});
+
+test('journal write failures are visible without releasing enforcement or blocking an otherwise valid yield', async (t) => {
+  const run = await activeAgentRun(t);
+  await mkdir(path.join(path.dirname(run.result.state), 'hook-events.jsonl'));
+  const blocked = await run.check();
+  assert.equal(blocked.decision, 'block'); assert.match(blocked.systemMessage, /could not be recorded/);
+  run.launch(); await run.saveEvents();
+  const allowed = await run.check();
+  assert.equal(allowed.decision, undefined); assert.match(allowed.systemMessage, /could not be recorded/);
+});
+
+test('Stop confirms runtime assistant text before the transcript flushes and subsequent tools use its receipt', async (t) => {
+  const run = await freshRun(t, 'autonomous');
+  run.events.splice(2, 1);
+  await run.saveEvents();
+  const before = await readFile(run.transcript, 'utf8');
+  const input = { hook_event_name: 'Stop', transcript_path: run.transcript, session_id: 'runtime-session', last_assistant_message: run.result.startup_message };
+  const stop = await startupHook(input);
+  assert.equal(stop.decision, 'block');
+  assert.match(stop.reason, /Continue Context check now/);
+  assert.doesNotMatch(stop.reason, /still needs an ASSISTANT/);
+  assert.equal(await readFile(run.transcript, 'utf8'), before);
+  assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, session_id: 'runtime-session' }), {});
+  assert.deepEqual(await readHookEvents(run.result.state), []); // expected internal boundary, not an interruption
+  const receipt = await readFile(path.join(path.dirname(run.result.state), 'startup-confirmation.json'), 'utf8');
+  assert.doesNotMatch(receipt, /Open implementation dashboard|runtime-session|DEMO-status|\/Users\/|\/tmp\//);
+});
+
+test('runtime text is not confirmation on tool hooks, and a code sample cannot confirm Stop', async (t) => {
+  const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
+  const input = { transcript_path: run.transcript, last_assistant_message: run.result.startup_message };
+  const tool = await startupHook({ ...input, hook_event_name: 'PostToolUse' });
+  assert.match(tool.hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  const stop = await startupHook({ ...input, hook_event_name: 'Stop', last_assistant_message: `\`\`\`markdown\n${run.result.startup_message}\n\`\`\`` });
+  assert.match(stop.reason, /ASSISTANT CHAT MESSAGE/);
+  await assert.rejects(readFile(path.join(path.dirname(run.result.state), 'startup-confirmation.json')), { code: 'ENOENT' });
+});
+
+test('a confirmation receipt cannot cross sessions, initializations, runs or dashboard targets', async (t) => {
+  const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
+  const input = { hook_event_name: 'Stop', transcript_path: run.transcript, session_id: 'first', last_assistant_message: run.result.startup_message };
+  await startupHook(input);
+  const check = (session_id = 'first') => startupHook({ hook_event_name: 'PostToolUse', transcript_path: run.transcript, session_id });
+  assert.deepEqual(await check(), {});
+  assert.match((await check('other')).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  const receiptPath = path.join(path.dirname(run.result.state), 'startup-confirmation.json');
+  const original = await readFile(receiptPath, 'utf8');
+  for (const key of ['runId', 'initializationHash', 'dashboardHash']) {
+    const modified = JSON.parse(original); modified[key] = 'stale'; await writeFile(receiptPath, JSON.stringify(modified));
+    assert.match((await check()).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  }
+  await writeFile(receiptPath, '{partial');
+  assert.match((await check()).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
+  await startupHook(input); // actual Stop evidence repairs a malformed regular-file receipt
+  assert.deepEqual(await check(), {});
+});
+
+test('runtime announcement confirmation preserves premature-edit and stage-continuation guards', async (t) => {
+  const run = await freshRun(t, 'autopilot'); run.events.splice(2, 1); await run.saveEvents();
+  await writeFile(path.join(run.root, 'app.js'), 'premature implementation');
+  const held = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
+  assert.equal(held.decision, 'block'); assert.match(held.reason, /Application files changed/);
+  assert.equal((await readHookEvents(run.result.state))[0].kind, 'premature-implementation');
+});
+
+
+test('receipt write failure is visible while runtime confirmation still requires stage continuation', async (t) => {
+  const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
+  await mkdir(path.join(path.dirname(run.result.state), 'startup-confirmation.json'));
+  const result = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
+  assert.equal(result.decision, 'block'); assert.match(result.reason, /Continue Context check now/);
+  assert.match(result.systemMessage, /receipt could not be saved/);
+});
+
+test('authorized Plan test edits remove only the premature-edit hold; active-stage and production guards remain', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  const spec = 'make-it-work/DEMO/DEMO-spec.md';
+  await writeFile(path.join(run.root, spec), '# accepted spec\n');
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: caller change').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# accepted spec\n')}`));
+  await mkdir(path.join(run.root, 'test'));
+  await writeFile(path.join(run.root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
+  const readiness = await testingReadiness(run.result.state, 'begin');
+  await writeFile(path.join(run.root, readiness.report), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing Node runner |\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ready | existing | not-run | Hook-only fixture; baseline not requested |\n');
+  await testingReadiness(run.result.state, 'complete');
+  await authorizePlanningTests(run.result.state, { repo: run.root, file: 'test/policy.test.js', kind: 'test-file', step: 1, reason: 'Progression assertion' });
+  await writeFile(path.join(run.root, 'test/policy.test.js'), '// planned red test\n');
+  const after = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', transcript_path: run.transcript });
+  assert.deepEqual(after, {});
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  assert.equal((await readHookEvents(run.result.state)).some((event) => event.kind === 'premature-implementation'), false);
+  await writeFile(path.join(run.root, 'app.js'), '// unauthorized production change\n');
+  assert.match((await run.check()).reason, /Application files changed/);
+});
+
+test('Plan waits exclude prior phase/Plan-cycle agents and resume the hold when the current delegate finishes', async (t) => {
+  const run = await activeAgentRun(t, 'plan');
+  run.launch('prior-phase', run.epoch - 1);
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  run.launch('first-plan'); await run.saveEvents();
+  assert.equal((await run.check()).decision, undefined);
+  const next = run.epoch + 1000;
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).trimEnd() + `\n| 3 | ${new Date(next).toISOString()} | execute | plan | New Plan entry |\n`);
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  run.launch('current-plan', next + 1); await run.saveEvents();
+  assert.equal((await run.check()).decision, undefined);
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>current-plan</task-id>\n<status>completed</status>\n</task-notification>' });
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+});
+
+test('Plan waits require runtime proof and never hide production edits or release other phases', async (t) => {
+  const plan = await activeAgentRun(t, 'plan');
+  plan.events.push(assistant(text('A planning agent is still running.'))); await plan.saveEvents();
+  assert.match((await plan.check()).reason, /still In Progress at plan/);
+  plan.launch(); await plan.saveEvents();
+  assert.equal((await plan.check()).decision, undefined);
+  await writeFile(path.join(plan.root, 'app.js'), '// unauthorized production change\n');
+  assert.match((await plan.check()).reason, /Application files changed/);
+  for (const phase of ['context-check', 'close-the-gaps', 'spec-approval', 'plan-approval', 'final-sync']) {
+    const run = await activeAgentRun(t, phase); run.launch(); await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('readiness cannot be completed with a live Plan delegate, while waiting remains allowed', async (t) => {
+  const run = await activeAgentRun(t, 'plan'); run.launch(); await run.saveEvents();
+  const input = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'node "/plugin/scripts/testing-readiness.mjs" complete --state STATE' }, transcript_path: run.transcript };
+  assert.equal((await startupHook(input)).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal((await startupHook({ ...input, tool_input: { command: 'node /plugin/scripts/testing-readiness.mjs begin --state STATE' } })).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal((await run.check()).decision, undefined);
+  assert.deepEqual(await startupHook({ ...input, tool_input: { command: 'git status --short' } }), {});
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>worker</task-id>\n<status>completed</status>\n</task-notification>' });
+  await run.saveEvents();
+  assert.equal((await startupHook(input)).hookSpecificOutput?.permissionDecision, undefined);
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  assert.ok((await readHookEvents(run.result.state)).some((row) => row.kind === 'readiness-pending'));
+  const saved = await readFile(run.result.state, 'utf8');
+  await writeFile(run.result.state, 'invalid state');
+  assert.match((await startupHook(input)).hookSpecificOutput.additionalContext, /could not verify/);
+  await writeFile(run.result.state, saved);
 });

@@ -7,6 +7,7 @@ import { parseState, generateDashboard } from './render-status.mjs';
 import { decideNext, validateArtifacts } from './handoff.mjs';
 import { approve as approveFinalPackage, checkFinalPackage } from './final-package.mjs';
 import { contextInventory } from '../../../scripts/context-inventory.mjs';
+import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
@@ -16,6 +17,7 @@ import { inspectLightweightFix } from './lightweight-fix.mjs';
 export { planHash } from '../../../scripts/lib/plan.mjs';
 
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
+import { checkReviewScope } from './review-scope.mjs';
 import { implementationBaseline } from './implementation-guard.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
 function setFields(markdown, fields) {
@@ -44,6 +46,14 @@ function afterSpec(f) {
 function startFix(f) {
   if (Number(f.fix_cycle) >= 3) fail('Fix round limit reached.');
   f.fix_cycle = String(Number(f.fix_cycle) + 1);
+}
+function reviewChangedScope(f) {
+  f.phase = 'review'; f.review = 'not-started';
+  if (Number(f.review_cycle) >= 4) {
+    f.status = 'Stopped'; f.pause_reason = 'Review limit reached while aligning final delivery scope.';
+    return f.pause_reason;
+  }
+  return 'Delivery scope changed after review; independently review the final delivery diff before packaging.';
 }
 function escalate(f, input, reason) {
   if (!adaptive(f) || f.mode !== 'lightweight' || f.escalations !== '0') fail('Escalation needs a Lightweight run with no prior escalation.');
@@ -136,8 +146,17 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
       const previous = !f.context_updated || f.context_updated === 'none' ? [] : f.context_updated.split(', ');
       f.context_updated = [...new Set([...previous, ...updated])].join(', ') || 'none';
     }
-    f.phase = f.final_package_version === '1' ? 'final-approval' : 'complete';
-    if (f.phase === 'complete') f.status = 'Complete';
+    if (f.review_scope_version === '1' && typeof input.delivery_scope_changed !== 'boolean') fail('Final sync requires a delivery-scope coverage check.');
+    if (f.review_scope_version === '1' && input.delivery_scope_changed) {
+      reason = reviewChangedScope(f);
+    } else {
+      f.phase = f.final_package_version === '1' ? 'final-approval' : 'complete';
+      if (f.phase === 'complete') f.status = 'Complete';
+    }
+  } else if (input.event === 'refresh-review') {
+    if (f.review_scope_version !== '1' || !['final-sync', 'final-approval'].includes(f.phase) || f.status !== 'In Progress') fail('Refresh review requires an active finalization phase with delivery-scope checks.');
+    if (input.delivery_scope_changed !== true) fail('Delivery scope is already reviewed; no review refresh is needed.');
+    reason = reviewChangedScope(f);
   } else if (input.event === 'complete') {
     if (f.phase !== 'final-approval' || f.review !== 'clean') fail('Completion requires final approval and clean review.');
     f.phase = 'complete'; f.status = 'Complete';
@@ -265,7 +284,7 @@ async function refresh(statePath) {
 async function loadHandoff(root, state, input) {
   if (input.event !== 'handoff') return null;
   const file = await within(root, input.handoff);
-  const handoff = await validateArtifacts(JSON.parse(await readFile(file, 'utf8')), root);
+  const handoff = await validateArtifacts(JSON.parse(await readFile(file, 'utf8')), root, { requireClauses: state.fields.acceptance_evidence_version === '1' });
   const directory = path.join(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
   const number = path.basename(file).match(new RegExp(`^${handoff.stage}-([1-9]\\d*)\\.json$`));
   if (!number || path.dirname(file) !== directory) fail('Invalid handoff location.');
@@ -338,6 +357,11 @@ function contextAction(fields) {
     instruction: `Continue ${fields.phase} now using its documented stage skill. Context check does not authorize application edits. Do not implement directly or end the turn while work remains active.` } };
 }
 
+function reviewScopeAction(fields, event) {
+  return ['sync-complete', 'refresh-review'].includes(event) && fields.phase === 'review' && fields.status === 'In Progress'
+    ? { next_action: { type: 'stage', phase: 'review', instruction: 'Prepare the current full delivery scope with review-scope.mjs, then dispatch independent review. Do not build a final package until that scope is reviewed.' } } : {};
+}
+
 export async function applyWorkflow({ root, statePath, input, render = refresh }) {
   root = await realpath(root);
   statePath = await within(root, statePath);
@@ -351,7 +375,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const prior = state.audit.find((row) => row.outcome.includes(`[workflow-event: ${input.id};`));
     if (prior) {
       if (!prior.outcome.includes(marker)) fail('Event id already records a different event.');
-      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : {}), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
+      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     }
     if (input.expected_hash !== digest(original)) fail('Workflow state changed; inspect and recompute the event.');
     let workingState = state, effective = input, resolution = null, replaced = null;
@@ -402,11 +426,16 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
         if (!approvedRoots.some((repo) => resolved.startsWith(`${repo}${path.sep}`)) || !(await lstat(resolved)).isFile()) fail('Context path must be a file in an approved repository.');
       }
     }
+    if (state.fields.review_scope_version === '1') {
+      if (handoff?.stage === 'review' && handoff.status === 'done' && handoff.outcome === 'CLEAN') await checkReviewScope(root, statePath);
+      if (['sync-complete', 'refresh-review'].includes(effective.event)) effective = { ...effective, delivery_scope_changed: !(await checkReviewScope(root, statePath, { requireCurrent: false })).covered };
+    }
     if (handoff?.stage === 'implement' && handoff.status === 'done' && state.fields.mode === 'lightweight' && Number(state.fields.fix_cycle) > 0) {
       await inspectLightweightFix(root, statePath, handoff.artifacts.report);
     }
     if (handoff?.stage === 'plan' && handoff.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
       const policy = testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
+      await checkTestingReadiness(root, state, { plan: await readFile(await within(root, handoff.artifacts.plan), 'utf8') });
       if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
           || policy.some((row) => !workspaceContract.repos.some((repo) => repo.id === row.Repo)))) fail('Verification policy must cover approved product repos and cannot add unapproved repos.');
     }
@@ -432,6 +461,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
     if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
+    if (f.testing_readiness_version === '1' && f.phase === 'execute' && state.fields.phase !== 'execute') await checkTestingReadiness(root, { ...state, fields: f }, { plan: await readFile(await within(root, f.plan), 'utf8') });
     if (input.event === 'scope-update') {
       f.workspace_contract = JSON.stringify(workspaceContract);
       f.branch = workspaceContract.repos[0].branch;
@@ -525,7 +555,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     parseState(updated, statePath);
     await atomicWrite(statePath, updated);
     // Keep the event on render failure. Replaying its id refreshes without recounting.
-    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : {}), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
+    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
 export async function initializeWorkflow(root, input) {
@@ -586,7 +616,7 @@ cli(import.meta.url, async (argv) => {
         type: 'assistant_message',
         delivery_status: 'not_sent',
         text: initialized.startup_message,
-        instruction: 'Your very next output must be an assistant chat text block containing text above. This command has NOT sent that chat message. Emit it now, before another tool call. If only tool calls/results have occurred since init, the message is still unsent. A later claim that it was sent does not deliver it.',
+        instruction: 'Your very next output must be an assistant chat text block containing text above. This command has NOT sent that chat message. Emit it now as a standalone assistant response, with no tool calls. Finish that response so the Stop hook can verify its runtime text. For a normal run it automatically continues Context check without a user reply; pending offline refinement keeps its documented answer wait. This is not a pause or approval gate. If only tool calls/results have occurred since init, the message is still unsent. A later claim that it was sent does not deliver it.',
       },
       continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply',
       state: initialized.state, dashboard: initialized.dashboard, implementation_baseline: initialized.implementation_baseline };

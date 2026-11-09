@@ -60,6 +60,8 @@
     "implement-final-sync-partial-map",
     "implement-feedback-nonminimal",
     "implement-autopilot-full",
+    "implement-plan-agent-wait",
+    "implement-readiness-order",
     "implement-dashboard-autonomous-start",
     "implement-no-tooling",
     "implement-empty-strategy",
@@ -122,6 +124,15 @@
     "implement-repo-start-local": "connector-app"
   },
   "graderEvidenceFiles": {
+    "implement-autopilot-full": {
+      "clause-assertions.md": [
+        "make-it-work/DEMO-101/DEMO-101-spec.md",
+        "make-it-work/DEMO-101/DEMO-101-plan.md",
+        "make-it-work/DEMO-101/DEMO-101-verification-v1.json",
+        "test/policy.test.js",
+        "src/policy.js"
+      ]
+    },
     "dts-fresh-tests": {
       "developer-report-and-layers.md": [
         ".claude/testing/test-map.json",

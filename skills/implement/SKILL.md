@@ -38,7 +38,9 @@ hooks:
 2. The initializer returns `next_action.type: assistant_message`. Perform that
    action immediately: send `next_action.text` as a user-visible assistant chat
    message before calling any further tool, including an activity checkpoint,
-   a reference read, or Context check. For example:
+   a reference read, or Context check. Send a standalone assistant response with
+   no tool calls, then finish that response. The Stop hook confirms its runtime
+   text and continues the active workflow automatically. For example:
 
    [Open implementation dashboard](</absolute/project/make-it-work/TICKET/TICKET-status.html>)
 
@@ -49,17 +51,36 @@ hooks:
    has not been shared in chat. Emit it now; a later assertion that it was sent
    does not count.
 
-3. After sending the chat message, follow `continuation`. A normal
-   run continues into Context check in the same turn, without a user reply.
+3. After that internal response boundary, follow `continuation`. A normal
+   run continues into Context check for the same user request, without a reply,
+   acknowledgment or approval. Do not wait for the user to restart it.
 
 The skill's startup-presentation hooks reinforce this order. The immediate
-post-init reminder requires the assistant chat action. PreToolUse waits up to
-four seconds for buffered transcript writes before holding a genuinely missing
-announcement. Partial final JSONL writes and diagnostic request replays do not
-count as missing or new announcements; do not repeat a link already sent. Stop requires the actual chat link
+post-init reminder requires the assistant chat action. Stop confirms the exact
+clickable link from its runtime `last_assistant_message` rather than waiting for
+the asynchronously written transcript. It saves a local confirmation receipt
+bound to the session, initialization, run start and dashboard. Later tool hooks
+can use that receipt while the transcript catches up. This is evidence of
+assistant output, not evidence that a person read or approved it. Older runtimes
+without that payload retain the bounded transcript fallback. Partial final JSONL
+writes and diagnostic request replays do not count as new announcements.
+If a tool was denied after the link streamed, finish the standalone response;
+do not repeat the link or keep retrying tools. Stop requires the actual chat link
 and checks that a fresh run is no longer In Progress at any stage. Continue the
 saved stage in this turn until completion or a genuine saved pause/stop. Pending
 offline-answer waits retain their existing behavior.
+
+When a delegated background agent is still running, yield with a brief waiting
+update and let its completion notification resume the session. Do not launch
+shell sleeps, file watches or repeated status polls merely to keep the turn open.
+The Stop hook permits this wait only with runtime launch evidence for a live
+agent launched in the current Plan, Execute, Lightweight, Review or Fix phase.
+Plan includes delegated testing-readiness and plan-drafting work. The workflow stays In Progress; yielding does not complete or pause it. Completion,
+failure or a runtime inventory showing the agent is no longer running restores
+the continuation requirement. A waiting claim, shell job or agent from an earlier
+phase does not qualify. On hand-back, verify the result and continue the stage. The hooks record local,
+sanitized interruption and wait observations for terminal workflow feedback;
+recording failures do not change enforcement or the saved workflow status.
 
 New initialization also captures a read-only baseline of application files in
 every approved repository. Before the first authorized Execute or Lightweight
@@ -75,9 +96,10 @@ is complete or ask the user to accept it as the default escape. Only a genuine
 external blocker justifies asking for guidance. A new user turn clears the fresh
 startup obligation; these hooks do not replace Resume checks or retrofit old runs.
 
-The link is an announcement, not a stopping point. Do not end the turn after
-showing it, request acknowledgment, ask whether to continue, or require the user
-to type another message. Continue through the chosen autonomy's normal workflow
+The standalone announcement response is an internal verification boundary, not
+a workflow pause. Do not request acknowledgment, ask whether to continue, or
+require another user message. Let the Stop hook resume the active run, then
+continue through the chosen autonomy's normal workflow
 until a genuine documented question, approval, pause, stop, or completion.
 Use an ordinary assistant text block; thinking/progress updates displayed as
 `· summary` can strip links and do not count. Do not claim to open a browser.
@@ -160,10 +182,12 @@ For a new run, create the real directory `make-it-work/<TICKET>/` under the arti
 
 ```
 ticket: <TICKET>
-handoff_version: 1             # new runs use validated JSON handoffs; absent on older runs
+handoff_version: 1
+review_scope_version: 1       # full delivery diff required for clean review and packaging             # new runs use validated JSON handoffs; absent on older runs
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | lightweight | review | fix-plan | final-sync | final-approval | complete
 final_package_version: 1       # new runs build a content-bound final package; absent on older runs
+acceptance_evidence_version: 1 # new TDD runs map requirement clauses to assertions/observations
 verification_version: 1        # new runs persist per-step and AC evidence; absent on older runs
 adaptive_version: 1            # new runs assess risk and choose a run mode; absent on older runs, which carry none of the fields through implementation_report below
 risk: none                     # none | low | medium | high — none until assessed
@@ -184,6 +208,7 @@ spec_hash: none
 plan: none
 plan_version: 1                # 1 = the initial plan; each replan adds 1
 plan_hash: none
+testing_readiness_version: 1    # parent completion checkpoint required before planning
 testing_readiness: none         # readiness artifact path, resolved within Plan before stage planning
 execution: not-started         # not-started | running | passed | verified-manually | guardrail | retry-limit | gate-failed | gate-no-result | stopped
 review: not-started            # not-started | clean | fix-required | replan-required | human-decision
@@ -258,7 +283,7 @@ The renderer owns parsing and validating the state and current plan, calculating
 
 **Workflow decision audit:** read [references/workflow-decisions.md](references/workflow-decisions.md) at Start and Resume. Record every explicit user workflow choice from questions, chat or invocation options, including approvals, refusals, permission scope/revocation and channel selection. Decisions that change phase belong in that transition row; use `dashboard-checkpoint.mjs decision` for other decisions. Carry pre-state choices into the first row. Distinguish user choices from automatic policy/defaults, reference exact approved versions, preserve history and refresh the existing dashboard. Stages report choices to the main session before dependent work. The reference defines the shared input and resume contract; permission journals remain authoritative.
 
-For controller runs, run `workflow.mjs init` alone and perform its `next_action`: send `next_action.text` unchanged in user-visible assistant chat before any further tool. Then follow `continuation`, continuing Context check in the same turn for a normal new run. Do not end the turn or await acknowledgment at this announcement. For the pending-offline path, include it in the existing documented stop message. Do not combine initialization and context checking in one tool call. For legacy creation paths, after successful dashboard creation, display a clickable Markdown link labeled **Open implementation dashboard**, targeting the actual HTML file's resolved absolute path. Wrap the link target in angle brackets when its path contains spaces. Present the link in assistant chat, not only in tool output or as a code-formatted path. Show it once, in whichever of Start's two creation points creates the state file first for this ticket (New run's first chat message, before Context Check; or Pending offline refinement's stop message). Never repeat it at later checkpoints, and never mention it for Resume. Providing the link does not require automatically opening a browser.
+For controller runs, run `workflow.mjs init` alone and perform its `next_action`: send `next_action.text` unchanged as a standalone user-visible assistant response with no tool calls. Finish that response so Stop can confirm the runtime text; it continues a normal new run automatically without a user reply. Then follow `continuation` into Context check. Do not await acknowledgment. For the pending-offline path, include it in the existing documented stop message. Do not combine initialization and context checking in one tool call. For legacy creation paths, after successful dashboard creation, display a clickable Markdown link labeled **Open implementation dashboard**, targeting the actual HTML file's resolved absolute path. Wrap the link target in angle brackets when its path contains spaces. Present the link in assistant chat, not only in tool output or as a code-formatted path. Show it once, in whichever of Start's two creation points creates the state file first for this ticket (New run's first chat message, before Context Check; or Pending offline refinement's stop message). Never repeat it at later checkpoints, and never mention it for Resume. Providing the link does not require automatically opening a browser.
 
 ---
 
@@ -316,7 +341,7 @@ If this message explicitly requests a mode change, apply **Change autonomy durin
    - Capture a real timestamp into `start_time` (same capture rule as the Checkpoint rule's `Time` cell).
    - Before the first state-file write, read `<base>/../../.claude-plugin/plugin.json` and record its exact nonempty `version` value in `plugin_version`. Do not derive it from the cache directory name, package metadata in the target repository, or a chat message. If the manifest cannot be read or has no version, stop and report that error rather than creating an unattributed run. `plugin_version` is immutable for the run: every later checkpoint, resume, and feedback write preserves it unchanged.
    - Create the state file with `phase: context-check`, `status: In Progress`, the selected `autonomy` and resolved `refinement_destination`, and every other field at its template default (including `real_rows_from: 1`). Log the first Audit-log row: `From: start`, `To: context-check`, with an `Outcome / reason` recording the autonomy choice, refinement destination and its source, any `--mode` flag, and branch-guard outcome (e.g. `New Guided run; Refinement questions: here (user choice); branch <name> created per branch-guard choice` or `New Autopilot run; Refinement questions: here (policy default); proceeding on existing feature branch`). Fold these pre-state choices into this one row; no separate decision rows can be written before the state file exists.
-   - Create the progress dashboard (`make-it-work/<TICKET>/<TICKET>-status.html` — see Progress dashboard below) from those fields. Immediately perform the initializer's assistant-message action before calling any further tool, then continue with Context check in the same turn. Do not end the turn or wait for acknowledgment at the link. For legacy initialization, use the clickable **Open implementation dashboard** link described above.
+   - Create the progress dashboard (`make-it-work/<TICKET>/<TICKET>-status.html` — see Progress dashboard below) from those fields. Immediately perform the initializer's standalone assistant-message action before calling any further tool. Finish that response so Stop confirms it and automatically continues Context check. Do not wait for acknowledgment at the link. For legacy initialization, use the clickable **Open implementation dashboard** link described above.
    - For an explicitly supplied tracker ticket, follow the ticket-publication reference's **Start and consent** procedure once. Save scoped consent separately from autonomy; publication unavailable, declined or unanswered leaves the implementation workflow local. Under Autopilot, use existing explicit permission or retain local without prompting. Do not configure a tracker for a local spec/pasted requirement without an explicit destination.
    - *Only then* run **Context check**. **If its outcome is "stop"** (no signal at all, or incomplete, per Context check's own Outcomes), set `status: Stopped` explicitly — not `Paused`: there is no mid-run point to resume into until the user has run `go-deep` externally and re-invokes `implement`, which is effectively a fresh attempt, not a resumable pause. Log this as the phase's own Audit-log row (`From`=`To`=`context-check`, `Outcome / reason`: the exact stop message shown to the user), regenerate the dashboard, then stop exactly as Context check's own Outcomes already specify.
    - If Context check succeeds, check whether `make-it-work/<TICKET>/<TICKET>-spec.md` and/or `make-it-work/<TICKET>/<TICKET>-plan.md` already exist from standalone runs. If so, show what was found and ask: reuse them and start at the next phase, or redo from that phase. Under `autopilot`, stop rather than choosing between stale artifacts.
@@ -393,7 +418,7 @@ An early-replan row (`review → plan` or `fix-plan → plan`) is an ordinary re
 
 Ask this in both interactive autonomy levels. Never assume a changed repository is still safe to resume.
 
-**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default **except `handoff_version`, `final_package_version`, `verification_version`, `adaptive_version` and its fields, `testing_readiness`, `ticket_publication`, and `plugin_version`** — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). Never add these opt-in markers to an existing run: an older run continues with its original handoffs and completion path, and an old run without `plugin_version` remains explicitly unattributed rather than being backfilled with the currently installed version. This is the only migration Resume performs; it never touches a file that already has the key.
+**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default **except `handoff_version`, `final_package_version`, `verification_version`, `acceptance_evidence_version`, `review_scope_version`, `adaptive_version` and its fields, `testing_readiness`, `testing_readiness_version`, `ticket_publication`, and `plugin_version`** — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). Never add these opt-in markers to an existing run: an older run continues with its original handoffs and completion path, and an old run without `plugin_version` remains explicitly unattributed rather than being backfilled with the currently installed version. This is the only migration Resume performs; it never touches a file that already has the key.
 
 ---
 
@@ -452,7 +477,11 @@ Pass the spec, fix source, Decided findings, existing report, and checkpointed d
 
 ### Plan
 
-For a run whose state includes `testing_readiness` (all new runs), before invoking the planning stage read `<base>/references/testing-readiness.md` and follow it for every affected product repo. This also applies when a new run reuses a standalone plan and would enter Execute directly: enter Plan for readiness and resolve the plan's policy before execution. Setup occurs within Plan, with its own saved decision/checkpoints, rather than changing planning's write permissions. Pass the readiness artifact and accepted setup baseline to the stage. On replan check newly affected repos and retain prior choices. Older resumed runs without this field retain their existing behavior; never add it just to retrofit setup.
+Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Before a planner writes or extends tests, it must follow [planning-test authorization](references/planning-tests.md); this scopes the startup guard exception to declared tests in the active Plan run. It never authorizes production implementation or ends an active stage.
+
+For `acceptance_evidence_version: 1`, pass the marker to every initial, replan and amendment dispatch. Require the plan template’s clause-level AC traceability inventory, checked against every material clause in the accepted spec. Reused plans must satisfy this contract before execution; do not infer clause evidence from existing scenario names.
+
+For a run whose state includes `testing_readiness` (all new runs), before invoking the planning stage read `<base>/references/testing-readiness.md` and follow it for every affected product repo. This also applies when a new run reuses a standalone plan and would enter Execute directly: enter Plan for readiness and resolve the plan's policy before execution. Setup occurs within Plan, with its own saved decision/checkpoints, rather than changing planning's write permissions. For `testing_readiness_version: 1`, begin the parent checkpoint before readiness work, wait for every actual delegate handback, reconcile and complete it, then run its `check` before invoking or resuming `plan-the-work`. A ready-looking file is not completion. Pass the readiness artifact, accepted setup baseline and exact state path to the stage. On replan check newly affected repos and retain prior choices. Older resumed runs without this field retain their existing behavior; never add it just to retrofit setup.
 
 If planning discovers a required selected layer still needing setup and returns `Testing readiness required:`, stay in Plan and resolve that named capability through testing readiness before resuming the stage, passing the updated strategy and accepted baseline. Do not route it as a failing regression or accept a complete plan that silently substitutes another layer. Resume only after readiness succeeds or an explicit verification/scope decision resolves the gap; setup failures follow the readiness reference's stop policy rather than an automatic retry loop.
 
@@ -478,7 +507,7 @@ On Approve, publish the accepted plan snapshot as an attachment or authorized fa
 
 Set `execution: running`, then follow `execute` inline with the plan path and the autonomy level. Under `autopilot`, append `--autopilot`, which also makes its completion gate invoke `run-regression --autopilot`. For a participating dashboard, pass the exact state-file path `make-it-work/<TICKET>/<TICKET>-state.md` as execute's dashboard state path; if this is an older resumed run with no dashboard, omit it to preserve the no-backfill rule. `execute` owns the required render immediately after every durable step/batch Progress advance, so the same execution session that verified the step cannot dispatch the next one with a stale dashboard. Whenever the next not-yet-done step's own number is greater than `M − fix_plan_round_steps` (i.e. it belongs to the current fix-plan round's own added steps, not the original plan) — a plain comparison against numbers already in the state file, so this stays correct across an interrupted-and-resumed execute within the same round without depending on which Transition-table row most recently fired — also pass `fix_plan_dispatch`'s current value (`sequential` or `parallel`) as an additional input to `execute`. For the original plan's own steps (resume point at or below that boundary), never pass this input at all. Also, when execution_mode or inline_pause_mode is first chosen for this plan version, record it in the state file's `execution_mode`/`inline_pause_mode` fields and log a decision row for it (using the workflow-decision checkpoint above) before the first per-step dispatch. Read its outcome lines:
 
-- For a version 1 run, read `outcome`, `discoveries`, `failing_tests`, and `gate` (`full-suite`, `scoped+full`, or `none` for `VERIFIED_MANUALLY`) from the validated handoff and record the corresponding execution state; use `failing_tests` as Gate triage input. `VERIFIED_MANUALLY` records `execution: verified-manually` and `gate: none`; its validated evidence permits Review without a late manual-fallback question. When `verification_version: 1`, also pass that marker, the ticket, plan version, and artifact root to `execute`. Read and validate its `artifacts.verification` path; a missing ledger is a stop, not a prose fallback.
+- For a version 1 run, read `outcome`, `discoveries`, `failing_tests`, and `gate` (`full-suite`, `scoped+full`, or `none` for `VERIFIED_MANUALLY`) from the validated handoff and record the corresponding execution state; use `failing_tests` as Gate triage input. `VERIFIED_MANUALLY` records `execution: verified-manually` and `gate: none`; its validated evidence permits Review without a late manual-fallback question. When `verification_version: 1`, also pass that marker, `acceptance_evidence_version` when present, the ticket, plan version, and artifact root to `execute`. Read and validate its `artifacts.verification` path; a missing ledger is a stop, not a prose fallback.
 - For an older run, use `Execute outcome:`, `Discoveries:`, and `Failing tests:` from the prose report, and record `gate` from the `run-regression` report's leading `Mode:` line (`Full suite` → `full-suite`, `Scoped` → `scoped`, `Scoped + full` → `scoped+full`).
 
 For an older run, save execute's terminal report (whichever stop, gate, or final report it printed) together with its outcome lines to `make-it-work/<TICKET>/<TICKET>-execute.md`, overwriting any earlier one. For a `handoff_version: 1` run, `execute` saved that same report before writing its handoff; read it and do not overwrite it. In either case record that path in `execute_report`. This is the feedback replan and fix-plan (gate) read, so it must survive a pause or an interrupted session.
@@ -500,7 +529,7 @@ Append every unrelated test to Known regressions as a bullet `- <repo>: <file> �
 
 ### Review
 
-Increment `review_cycle`, then dispatch the review as described in Review dispatch.
+Controller runs increment `review_cycle` when entering Review; do not increment it again. Older runs retain their existing counter checkpoint. Then follow Review dispatch.
 
 ### Fix
 
@@ -542,7 +571,23 @@ Plan then runs testing readiness and `plan-the-work` in initial mode with `escal
 
 See Final context sync below.
 
-### Final approval (new runs only)
+#For `review_scope_version: 1`, `sync-complete` checks the final tree against the
+reviewed delivery target. If documentation, test-map files or other delivery
+content changed, it saves the context paths and returns to Review with an
+explicit `next_action`; follow that action rather than building a package. This
+uses the existing review-cycle cap and does not consume a fix/replan round. Once
+the current full diff has been independently reviewed, run final sync again
+without rewriting unchanged context. Packaging requires covered scope for every
+delivered file and binds the target and its diff artifacts into its evidence.
+
+If later edits during final approval invalidate coverage, apply the controller's
+`refresh-review` event, then prepare and dispatch the new target. It verifies
+actual scope drift before returning to Review; an already-reviewed tree does not
+consume another review cycle. Completed runs retain their existing terminal and
+new-run rules. Saved runs without `review_scope_version` keep legacy disclosure
+behavior; do not retrofit the marker to a historical run.
+
+## Final approval (new runs only)
 
 After Final context sync, runs with `final_package_version: 1` checkpoint `phase: final-approval` and follow the Final approval package section below. Older runs proceed directly to Completion.
 
@@ -605,6 +650,24 @@ For `autopilot`, use the Autonomous column only where it requires no human decis
 
 ## Review dispatch
 
+For a run with `review_scope_version: 1`, prepare its delivery scope before every
+review dispatch (including re-reviews):
+
+```sh
+node <base>/scripts/review-scope.mjs prepare --root <artifact-root> --state <state-path>
+```
+
+The helper freezes the same full branch-to-base diff used by final packaging,
+including earlier unmerged commits, staged/unstaged changes, untracked files and
+all approved repositories. Read the returned paths and bases; inspect the
+included branch history and disclose earlier branch work. Do not silently narrow
+the review to this ticket's uncommitted files or use HEAD as its comparison base.
+Pass the exact `review_target` and `sha256` to the reviewer. A changed target or
+source tree requires preparing and reviewing the current snapshot again; an old
+report does not certify newly added paths. Do not claim inspection merely
+because a path appears in the target. Earlier branch work remains in the review
+and delivery scope; distinguish its requirement provenance from this ticket.
+
 Before dispatching, narrate and checkpoint that an independent background agent is reviewing the change. Keep that activity visible while awaiting the review, per [references/activity.md](references/activity.md); include in the prompt that the subagent must not write workflow activity or the dashboard. After it returns, checkpoint the next activity or apply the resulting phase/stop transition.
 
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
@@ -613,7 +676,10 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 - pass the ticket key, the current accepted refined spec path and its recorded revisions as the requirements authority; identify the plan as implementation context that cannot override the spec. Use neutral dispatch wording without characterizing deviations or unverified behavior as acceptable or out of scope. Then pass the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list; for a version 1 run also pass `handoff_version: 1`, `plan_version`, and the artifact root containing `make-it-work/`;
 - in Lightweight mode, pass no plan path — the spec is the sole requirements source — and skip the two bullets below. For a re-review, pass the previous review's actionable findings with their regions (from its handoff) so Review can flag repeat offenders;
 - when `gate: none`, pass whether this is an explicit manual policy (`VERIFIED_MANUALLY`) or the late `GATE_NO_RESULT` fallback. Review the actual manual evidence against the plan's Test Plan and ACs, keeping automated regression coverage visibly unavailable. For mixed policies, inspect manual evidence alongside the automated result;
-- for `verification_version: 1`, pass the verified `make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json` path. Ask Review to read it against the plan's AC traceability table, treating `unverified` rows as visible gaps rather than assuming the full-suite result proves them. Review does not rerun tests merely to populate evidence.
+- if `<TICKET>-planning-tests.json` exists, pass its path to the reviewer. Ask it to check that the authorized files/regions contain genuine test changes and preserve production behavior outside the approved implementation work; the receipt proves scope, not test semantics.
+- for `acceptance_evidence_version: 1`, pass the marker to planning, Execute and review. Planning inventories every material spec clause in three-column AC traceability; Execute records concrete assertion/observation evidence per clause. Review compares that inventory with the accepted spec and reads the cited assertions, including boundary, inclusion/exclusion, ordering and parity behavior. Do not manufacture evidence to turn a pending clause into a pass. Lightweight has no ledger: the reviewer must describe clause coverage and any unobserved behavior in its coverage discussion; it must not claim ledger-based acceptance verification.
+- for `verification_version: 1`, pass the verified `make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json` path. Ask Review to read it against the plan's AC traceability table, checking each material spec clause against the plan inventory and each claimed assertion/observation against its cited source and recorded check. Missing clauses or unsupported verified claims are findings; `unverified` rows remain visible gaps. A passing suite does not prove every clause. Review does not rerun tests merely to populate evidence.
+- for `review_scope_version: 1`, pass that flag, the target path and its exact hash. Require the reviewer to inspect the complete target and write through `review-report.mjs` with `review_target`, `review_target_sha256`, `implement.review_scope_version: 1`, all actual branch-scope paths and every approved repo. A HEAD-only or partial report cannot satisfy this target. The controller independently checks the evidence before accepting CLEAN; do not bypass a failed scope check by writing a handoff manually.
 - require Review to record the actual reviewed paths and comparison base through the review renderer's `review_scope`, plus `ui_verification`. For UI changes, perform a browser walkthrough when available: exercise the changed behavior and inspect layout and relevant states. Record the observed result; when browser access/setup is unavailable, record `pending` with the concrete reason and unchecked behavior. Use `not-applicable` only with a reason for changes without UI impact. Unit tests and code inspection do not establish browser verification. A failed walkthrough is a review finding under the normal routing rules, not a passed or unavailable check.
 - ask it to return the chat summary, ending with the `Orchestrator outcome:` line for an older run, or that line followed by `Handoff: <path>` for a version 1 run.
 
@@ -623,7 +689,9 @@ Then read `make-it-work/<TICKET>/<TICKET>-review.md`. For a version 1 run, recor
 
 ## Final context sync
 
-Runs only after review comes back `CLEAN`. Its job is to make the project's knowledge base describe the system as it now is — reusable knowledge for future work, not a record of this ticket.
+Runs only after review comes back `CLEAN`. On a repeated final-sync pass, retain
+already-correct context and test-map artifacts; do not rewrite or regenerate them
+without a real content change. Its job is to make the project's knowledge base describe the system as it now is — reusable knowledge for future work, not a record of this ticket.
 
 **Inputs:**
 
@@ -682,7 +750,7 @@ Read `<base>/references/feedback.md` in full and follow it. The deterministic fe
 
 Follow that reference's **Explain the feedback to the user** guidance for progress messages and the terminal summary. Describe the purpose and findings in plain language; do not narrate internal writer classification or call the user's run "minimal" or "non-minimal" in chat.
 
-Use the writer's `inspect` result to decide whether analysis is needed. When `analysisRequired` is true (extra rounds or recorded in-workflow guardrail interventions), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+Use the writer's `inspect` result to decide whether analysis is needed. When `analysisRequired` is true (extra rounds, recorded in-workflow guardrails, hook interventions or repeated agent waits), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
 
 The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later. Under `autopilot`, do not ask the retrospective's optional clarification questions: preserve material uncertainty in the writer input's `openQuestions` and finish the terminal report.
 
@@ -692,8 +760,17 @@ The feedback file is local working data. Never upload, submit, email, or post it
 
 For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
 
-When the package check returns `verification_summary`, begin the summary with
-**Workflow: Complete** and **Verification: <verification_summary.text>**. List
+Begin the summary with **Workflow: Complete** and
+**Assurance: <assurance_summary.text>** from the successful package check. Keep
+its pending/unknown review coverage, pending browser checks, missing acceptance
+evidence, unavailable gates, open nits and known regressions near the top.
+`Recorded checks complete` covers recorded checks only; it is not a release,
+merge, deployment or delivery-approval claim. For an older checker without this
+summary, explicitly retain its recorded scope/verification limits instead of
+inventing a global assurance label.
+
+When the package check returns `verification_summary`, show
+**Acceptance verification: <verification_summary.text>** separately. List
 each pending criterion and its scenarios' recorded reason/verification needed.
 Use `Partially verified` when some criteria have passing evidence and others
 remain pending; use `Pending verification` when none are verified. A criterion

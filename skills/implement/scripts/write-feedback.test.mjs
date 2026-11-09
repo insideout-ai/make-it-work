@@ -5,8 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { inspectState, renderBlock, upsertBlock, writeFeedback } from './write-feedback.mjs';
+import { inspectFeedback, inspectState, renderBlock, upsertBlock, writeFeedback } from './write-feedback.mjs';
 import { noteCell } from './audit-notes.mjs';
+import { createHash } from 'node:crypto';
 
 const EVAL_ROOT = path.resolve(import.meta.dirname, '../../../evals/implement');
 const SCRIPT_PATH = path.join(import.meta.dirname, 'write-feedback.mjs');
@@ -344,4 +345,58 @@ test('old runs emit no adaptive lines', async () => {
   const summary = inspectState(finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z'));
   assert.equal(summary.adaptive, undefined);
   assert.doesNotMatch(renderBlock(summary), /- Mode:|- Escalations:/);
+});
+
+const hookHash = (text) => createHash('sha256').update(text).digest('hex');
+function hookObservation(id, kind = 'active-stage', at = '2026-01-01T10:03:00Z') {
+  return { version: 1, eventId: hookHash(id), runId: '2026-01-01T10:00:00Z', at, hook: 'Stop', phase: 'execute', kind, subject: hookHash(kind) };
+}
+function hookDiagnosis(summary) {
+  return { ...diagnosis(summary), hooks: summary.hookAnalysis.map((item) => ({ id: item.id,
+    trigger: 'The workflow required another continuation',
+    resolution: item.resolvedAt ? 'The hook subsequently permitted continuation' : 'No release was observed',
+    lesson: 'Inspect repeated interruptions separately from implementation retries', confidence: 'high' })) };
+}
+
+test('hook-only failures require analysis despite zero fix rounds, and resolved repetitions survive the export', async (t) => {
+  const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
+  const w = await workspace(t, state);
+  const events = [hookObservation('blocked'), hookObservation('blocked'), hookObservation('again'),
+    hookObservation('release', 'clear', '2026-01-01T10:04:00Z')];
+  await writeFile(path.join(path.dirname(w.statePath), 'hook-events.jsonl'), events.map(JSON.stringify).join('\n') + '\n');
+  const summary = await inspectFeedback(w.statePath);
+  assert.equal(summary.minimal, true); assert.equal(summary.fixRounds, 0); assert.equal(summary.replans, 0);
+  assert.equal(summary.analysisRequired, true); assert.equal(summary.hookInterventions.length, 1);
+  assert.equal(summary.hookInterventions[0].occurrences, 2); assert.ok(summary.hookInterventions[0].resolvedAt);
+  await assert.rejects(writeFeedback(w.statePath), /Analysis must be a JSON object/);
+  const bad = hookDiagnosis(summary); bad.hooks[0].id = hookHash('invented');
+  assert.throws(() => renderBlock(summary, bad), /Hook analysis must match/);
+  const result = await writeFeedback(w.statePath, { analysis: hookDiagnosis(summary) });
+  const output = await readFile(result.sessionOutputPath, 'utf8');
+  assert.match(output, /Hook interventions: 2 \(1 episodes\)/); assert.match(output, /Resolution observed: Yes/);
+  assert.match(output, /Fix rounds: 0/); assert.doesNotMatch(output, /Extra-round analysis|DEMO|eventId|subject/);
+  await writeFeedback(w.statePath, { analysis: hookDiagnosis(summary) });
+  assert.equal(await readFile(result.sessionOutputPath, 'utf8'), output);
+  assert.equal(await readFile(w.statePath, 'utf8'), state);
+});
+
+test('single legitimate waits are informational; repeated waits require their own diagnosis', async () => {
+  const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
+  const single = inspectState(state, { hookEvents: [hookObservation('one', 'agent-wait')] });
+  assert.equal(single.analysisRequired, false); assert.match(renderBlock(single), /Agent wait observations: 1/);
+  const repeated = inspectState(state, { hookEvents: [hookObservation('one', 'agent-wait'), hookObservation('two', 'agent-wait')] });
+  assert.equal(repeated.analysisRequired, true); assert.equal(repeated.fixRounds, 0);
+  assert.throws(() => renderBlock(repeated, diagnosis(repeated)), /each hook intervention or repeated agent wait/);
+  assert.match(renderBlock(repeated, hookDiagnosis(repeated)), /Resolution observed: No/);
+});
+
+test('CLI inspect includes the journal and a corrupt journal cannot silently produce clean feedback', async (t) => {
+  const w = await workspace(t, finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z'));
+  const journal = path.join(path.dirname(w.statePath), 'hook-events.jsonl');
+  await writeFile(journal, JSON.stringify(hookObservation('blocked')) + '\n');
+  const child = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', w.statePath], { encoding: 'utf8' });
+  assert.equal(child.status, 0); assert.equal(JSON.parse(child.stdout).analysisRequired, true);
+  await writeFile(journal, '{broken');
+  await assert.rejects(writeFeedback(w.statePath));
+  await assert.rejects(readFile(w.feedbackPath), { code: 'ENOENT' });
 });

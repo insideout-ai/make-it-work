@@ -280,7 +280,10 @@ export function parseState(markdown, statePath = '') {
   }
   if (!STATUS_VALUES.has(fields.status)) fail(`Unsupported status: ${fields.status}`);
   if (fields.handoff_version !== undefined && fields.handoff_version !== '1') fail(`Unsupported handoff_version: ${fields.handoff_version}`);
+  if (fields.review_scope_version !== undefined && fields.review_scope_version !== '1') fail('Unsupported review_scope_version.');
   if (fields.final_package_version !== undefined && fields.final_package_version !== '1') fail(`Unsupported final_package_version: ${fields.final_package_version}`);
+  if (fields.acceptance_evidence_version !== undefined && (fields.acceptance_evidence_version !== '1' || fields.verification_version !== '1')) fail('Clause evidence requires acceptance_evidence_version: 1 and verification_version: 1.');
+  if (fields.testing_readiness_version !== undefined && fields.testing_readiness_version !== '1') fail('Unsupported testing_readiness_version.');
   if (fields.verification_version !== undefined && fields.verification_version !== '1') fail(`Unsupported verification_version: ${fields.verification_version}`);
   if (fields.plugin_version !== undefined && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(fields.plugin_version)) {
     fail('Unsupported plugin_version.');
@@ -768,9 +771,9 @@ function renderPublicationBadge(permission) {
 function renderAcceptance(state, verification) {
   if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return '';
   const summary = summarizeAcceptance(verification?.acceptance);
-  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Verification: Not recorded</h2></section>';
-  const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
-  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
+  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: Not recorded</h2></section>';
+  const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(clause ? `${clause} — ${scenario}` : scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
+  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
 }
 
 function renderAutonomyBadge(state) {
@@ -891,7 +894,7 @@ export async function generateDashboard(statePath) {
       const ledger = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
       if (finalVerification) {
         const plan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
-        validateVerification(ledger, { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version), plan, requireComplete: true });
+        validateVerification(ledger, { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version), plan, requireComplete: true, requireClauses: state.fields.acceptance_evidence_version === '1' });
       }
       verification = ledger;
     } catch (error) { if (error.code !== 'ENOENT') throw error; }

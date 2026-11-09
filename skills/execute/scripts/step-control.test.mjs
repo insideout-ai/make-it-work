@@ -375,3 +375,28 @@ test('render failure after audit persistence retains one diagnosis entry across 
   await executionControl(file, event, { ...options, dashboardState: statePath });
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.filter((row) => row.note?.kind === 'result').length, 1);
 });
+
+test('completion and resume only verify clauses with actual matching assertions', async (t) => {
+  const { file, options, run } = await fixture(t);
+  const original = plan().replace('| Acceptance criterion | Test scenario |\n| --- | --- |', '| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |')
+    .replace('| AC1 | A works |', '| AC1 | Include prepaid | A works |\n| AC1 | Preserve order | A works |')
+    .replace('| AC2 | B works |', '| AC2 | Preserve existing result | B works |');
+  await writeFile(file, original);
+  const first = evidence(1);
+  first.checks[0].assertions = [{ clause: 'Include prepaid', expected: '125', observed: '125', source: 'test.js:12 total assertion' }];
+  await run({ action: 'complete', steps: [first] });
+  let saved = JSON.parse(await readFile(options.ledgerPath, 'utf8'));
+  assert.deepEqual(saved.acceptance.map(({ clause, status }) => ({ clause, status })), [
+    { clause: 'Include prepaid', status: 'automated' },
+    { clause: 'Preserve order', status: 'unverified' },
+    { clause: 'Preserve existing result', status: 'unverified' },
+  ]);
+  assert.deepEqual((await run({ action: 'inspect' })).next, [2]);
+  const second = evidence(2);
+  second.checks[0].assertions = [{ clause: 'Preserve existing result', expected: 'old', observed: 'old', source: 'test.js:20 regression assertion' }];
+  await run({ action: 'complete', steps: [second] });
+  saved = JSON.parse(await readFile(options.ledgerPath, 'utf8'));
+  assert.equal(saved.acceptance[1].status, 'unverified');
+  assert.equal(saved.acceptance[2].status, 'automated');
+  assert.equal((await run({ action: 'inspect' })).completed, 2);
+});

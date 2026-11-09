@@ -32,9 +32,9 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
 
-test('final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
+test('legacy final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
+  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace(/^review_scope_version: 1\n/m, '').replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
   const input = { event: 'sync-complete', id: 'sync-paths', repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')), context_updated: ['.claude/rules/product.md', '.claude/rules/architecture.md'] };
   const first = await applyWorkflow({ root, statePath, input });
   assert.equal(first.fields.context_updated, '.claude/rules/product.md, .claude/rules/architecture.md');
@@ -51,6 +51,7 @@ test('final sync persists context paths, preserves earlier updates and replays w
 test('initializes from the maintained template and never overwrites a run', async (t) => {
   const { root, statePath, result } = await fixture(t);
   assert.equal(result.fields.controller_version, '1');
+  assert.equal(result.fields.review_scope_version, '1');
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.plugin_version, result.fields.plugin_version);
   assert.match(await readFile(result.dashboard, 'utf8'), /DEMO/);
   await assert.rejects(initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' }), /EEXIST/);
@@ -78,6 +79,8 @@ test('init CLI prioritizes the startup message in a concise successful handoff',
   assert.equal(result.next_action.type, 'assistant_message');
   assert.equal(result.next_action.text, result.startup_message);
   assert.equal(result.next_action.delivery_status, 'not_sent');
+  assert.match(result.next_action.instruction, /standalone assistant response, with no tool calls/);
+  assert.match(result.next_action.instruction, /automatically continues Context check without a user reply/);
   assert.equal(result.continuation, 'continue_context_check_without_user_reply');
   assert.equal(result.implementation_baseline[0].root, await realpath(root));
   assert.match(await readFile(result.dashboard, 'utf8'), /CLI/);
@@ -243,7 +246,7 @@ test('the controller retains the existing handoff boundary requiring testing pol
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const directory = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(directory);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy');
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | Save record | Save |\n');
   await writeFile(path.join(directory, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(statePath, 'utf8');
   await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Verification Policy/);
@@ -346,4 +349,18 @@ test('spec conflict persists an approval wait that Autopilot cannot skip', async
   assert.equal(accepted.fields.phase, 'plan');
   assert.equal(accepted.fields.spec_revision_pending, 'false');
   assert.match(await readFile(statePath, 'utf8'), /Spec conflict: AC1/);
+});
+
+test('a fresh controller rejects a scenario-only plan without advancing state', async (t) => {
+  const { root, statePath, apply } = await fixture(t);
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior.' });
+  await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
+  const dir = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(dir);
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Total passes |\n');
+  await writeFile(path.join(dir, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  const before = await readFile(statePath, 'utf8');
+  assert.equal(parseState(before).fields.acceptance_evidence_version, '1');
+  await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Requirement clause column/);
+  assert.equal(await readFile(statePath, 'utf8'), before);
 });

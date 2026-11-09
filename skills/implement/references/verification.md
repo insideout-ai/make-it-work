@@ -2,7 +2,7 @@
 
 ## Completion presentation
 
-Workflow completion and acceptance verification are separate. The final package
+Workflow completion, acceptance verification and overall assurance are separate. The final package
 and dashboard summarize the validated ledger by distinct criterion: all mapped
 scenarios for a criterion need passing automated or manual evidence before it
 counts as verified. A mix is **Partially verified**, with the number of pending
@@ -11,14 +11,29 @@ verification**. All recorded criteria verified is **Verified**. Missing/empty
 evidence cannot establish verification. This summarizes plan-traceability
 evidence, not deployment readiness or all possible behavior.
 
-`final-package.mjs check` returns this derived `verification_summary` for the
+`final-package.mjs check` returns this derived `verification_summary` (labelled
+**Acceptance verification**) for the
 terminal chat/publication summary. It does not modify ledger statuses or the
 workflow state, weaken manual-policy checks, or waive acceptance/package
 approval. Ledger `unverified` values remain unchanged; views call them pending
-verification. Lightweight/older runs without an AC ledger retain their existing
-validation reporting. Existing saved packages may require a normal rebuild when
-their rendered Markdown no longer matches the current formatter; do not bypass
-the package check or invent new verification evidence.
+verification. The checker also returns `assurance_summary` for every package, including
+Lightweight and legacy packages. New builds opt into `assurance_version: 1`
+in the package JSON, with **Assurance** as their first evidence headline. It is
+`Limited` if acceptance is missing/pending, delivery review is unknown/partial,
+browser checks are pending, no automated regression gate ran (including
+Lightweight/manual acceptance), or open nits/known unrelated regressions remain.
+Otherwise it says `Recorded checks complete`, which covers only the recorded
+checks and never claims release readiness. Detailed reasons/evidence stay in
+the package; passing acceptance does not imply browser or full-delivery review.
+
+Completion chat and authorized tracker summaries use the returned assurance
+headline before the separate acceptance count. The dashboard explicitly labels
+its ledger-only summary **Acceptance verification**. These summaries introduce
+no new gate or user approval. An existing package without `assurance_version`
+keeps its exact legacy Markdown/JSON and approval hash during check; its returned
+assurance summary still exposes limitations. A normal rebuild opts into the new
+format and uses the existing approval-binding rules. Never rewrite saved
+evidence to improve a headline.
 
 This applies when the run state has `verification_version: 1`, and when a plan explicitly selects manual repos in `## Verification Policy` (including standalone execution). Older runs without that policy keep their current reports. Lightweight runs (`mode: lightweight`) have no plan and no ledger; an escalated run produces one from its TDD plan as usual.
 
@@ -50,6 +65,36 @@ An all-manual policy returns `VERIFIED_MANUALLY`, with gate `none`/`manual-accep
 For a concrete verification policy, also record `gate.full_suites`, one entry per automated product repo: `{ "repo": "api", "command": "<actual full-suite command(s)>", "result": "pass | fail | not-run", "note": "<run root(s) and observed result or reason>" }`. When a product repo has no local tests and uses a confirmed external suite, record that suite's actual command/root under the product repo it verifies. If several suites are required for one product repo, summarize all actual commands and roots, use `fail` when any failed, otherwise `not-run` when any was unavailable, otherwise `pass`. A shared QA suite may execute once and supply evidence for several product repos. A not-run entry has `command: null`. Scope runs remain in the Execute report. `PASSED` requires every required full suite to pass. With no automated repos, omit the array or use `[]`. Older plans without a policy need no array.
 
 At terminal Execute, fill `acceptance` with one row for **every** pair in the plan's existing `**AC traceability:**` table: `{ "criterion": "exact AC text", "scenario": "exact scenario text", "status": "automated | manual | unverified", "step": 1 | null, "note": "evidence or reason" }`. `automated` and `manual` may cite only a passing check of that type on the named step whose `subject` exactly matches the scenario. `unverified` has `step: null` and states what remains open. Do not turn a passing full suite into a claim that every AC was verified. A manually accepted no-result gate should be accompanied by actual manual check entries where possible; otherwise mark the relevant ACs unverified.
+
+## Clause evidence for fresh TDD runs
+
+Fresh Implement runs additionally carry `acceptance_evidence_version: 1`. Keep the ledger schema `version: 1`; this additive contract requires a `Requirement clause` column between `Acceptance criterion` and `Test scenario` in the plan traceability table, and the exact `clause` text on every acceptance row. One scenario can map to several clauses, and one clause can need several scenarios. Every mapped combination must appear, including pending cases. Older runs are not silently opted in.
+
+On each actual passing automated/manual check used to verify a clause, record an `assertions` array:
+
+```json
+{
+  "type": "automated",
+  "subject": "Prepaid total",
+  "command": "node --test income.test.js",
+  "result": "pass",
+  "note": "Named test executed and passed",
+  "assertions": [{
+    "clause": "Include prepaid product value in income",
+    "expected": "100 service plus 25 prepaid gives total 125",
+    "observed": "total equals 125",
+    "source": "app/test/income.test.js:42 — assert.equal(total, 125)"
+  }]
+}
+```
+
+Each assertion has exact `clause` text, the concrete `expected` behavior/value, the actual `observed` result and a `source` identifying the assertion in the executed test (repo/path:line plus test/assertion identity). For manual checks, source identifies the retained walkthrough/observation, with setup/actions and observed behavior. Write only evidence actually executed or observed. Test names, suite exit codes, source inspection, or a shared computation alone cannot establish an unasserted ordering, boundary, error-path or parity clause. An `exempt` check cannot carry assertions. Keep unrelated step checks without this array as appropriate.
+
+An acceptance row such as `{ "criterion": "AC1 income", "clause": "Include prepaid product value in income", "scenario": "Prepaid total", "status": "automated", "step": 1, "note": "Exact total assertion passed" }` needs a passing check of the same type/subject on that step with an assertion for that exact clause. Otherwise record `status: "unverified"`, `step: null`, and a reason. A missing assertion blocks a verified claim; it does not require inventing a test or waiving a missing observation. Existing manual-policy completion rules still apply.
+
+Pass `--require-clauses 1` to every verification helper call in a clause-contract run, including delegated partial checks; the parent also passes `--state` as usual. Controller plan/Execute handoff acceptance, dashboard validation and packaging independently enforce the state's contract. The final package shows each clause, pending reason, and verified assertion's source/expected/observed values. A criterion is verified only when all of its mapped clauses/scenarios are verified.
+
+The deterministic checks establish that all planned clauses have matching concrete evidence records. They cannot establish semantic completeness or truth from strings: the independent reviewer must compare the inventory with the accepted spec and inspect the cited assertions/observations. Missing spec clauses or claims unsupported by the cited check are review findings. Never treat this ledger as a replacement for that inspection.
 
 After every step entry and after the terminal gate/AC update, run:
 

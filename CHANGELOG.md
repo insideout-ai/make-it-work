@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.4.4] — 2026-11-08
+
+### Fixed
+
+- Lead final packages and completion summaries with evidence-derived assurance limits; distinguish acceptance verification from delivery review, browser checks, missing gates and remaining findings while preserving saved package approvals.
+
+- Require parent-completed testing readiness before planning/test authorization, reject completion under live delegates, and preserve the actual baseline instead of mixing it with later progression-red tests.
+- Allow verified current-phase background delegates during Plan to be awaited without Stop-hook loops, including testing readiness and planning; completion and failure restore the continuation requirement.
+- Permit preauthorized Plan-stage test edits while preserving the guard on production edits, early changes and unregistered test paths; embedded test authorizations protect surrounding source bytes.
+- Require clause-level assertion or observation evidence for acceptance verification in fresh TDD runs; preserve unsupported clauses as pending in delivery artifacts.
+- Bind independent review to the full delivery diff, reject narrower or stale review evidence, and return final-sync changes to review before packaging.
+
+- Allow implementation runs to yield while runtime-verified delegated agents are working, restoring stage-continuation checks when those agents finish or fail.
+- Record hook interruptions, repeated agent waits and observed resolutions in local workflow feedback without inflating fix or replan counts.
+- Confirm dashboard announcements from runtime Stop text and preserve a run-bound receipt so delayed transcript writes do not trigger repeated link announcements or tool denials.
+
 ## [5.4.3] — 2026-11-08
 
 ### Fixed

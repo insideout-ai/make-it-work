@@ -1,11 +1,13 @@
 import { writeReview } from '../../../scripts/review-report.mjs';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { generateDashboard, parseState } from './render-status.mjs';
+import { validateArtifacts } from './handoff.mjs';
 import { transition } from './workflow.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 
@@ -47,6 +49,16 @@ async function artifacts(root, ticket = 'DEMO') {
   const state = path.join(dir, `${ticket}-state.md`);
   await writeFile(state, stateMarkdown(ticket));
   return { state, draft, dir };
+}
+
+async function verifiedAcceptance(root, state, dir) {
+  await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1'));
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
+    gate: { mode: 'full-suite', result: 'pass', note: 'Full suite passed' },
+    acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }],
+  }));
 }
 
 test('builds a binary-safe working-tree package and invalidates approval on changes', async (t) => {
@@ -120,12 +132,21 @@ test('delivery scope distinguishes reviewed changes from earlier commits in the 
     review_scope: [{ repo: 'app', base: 'main', scope: 'working-tree', paths: ['src/existing.txt'] }],
     ui_verification: { status: 'pending', note: 'Browser unavailable; invoice header layout unchecked.' } };
   await writeReview(root, reviewInput);
+  await verifiedAcceptance(root, state, dir);
   let built = run('build', root, state, '--draft', draft, '--repo', root);
   let pkg = JSON.parse(await readFile(built.json, 'utf8'));
   assert.equal(pkg.review_scope[0].status, 'partial');
   assert.deepEqual(pkg.review_scope[0].uncovered_paths, ['src/existing.txt']);
   assert.match(await readFile(built.package, 'utf8'), /invoice header layout unchecked/);
-  assert.equal(run('check', root, state).ui_verification.status, 'pending');
+  const checked = run('check', root, state);
+  assert.equal(checked.ui_verification.status, 'pending');
+  assert.match(checked.assurance_summary.text, /delivery review partial.*browser verification pending/);
+  const markdown = await readFile(built.package, 'utf8');
+  assert.match(markdown, /\*\*Assurance: Limited — .*delivery review partial.*browser verification pending/);
+  assert.ok(markdown.indexOf('Assurance: Limited') < markdown.indexOf('## Changes'));
+  assert.equal(checked.current, true);
+  assert.equal(checked.verification_summary.label, 'Verified');
+  assert.match(markdown, /Acceptance verification: Verified/);
   // A review of the entire branch covers earlier work as well.
   reviewInput.review_scope[0].scope = 'branch';
   reviewInput.ui_verification = { status: 'passed', note: 'Opened dashboard; checked header and empty state.' };
@@ -163,7 +184,7 @@ test('binds AC verification evidence into the final package', async (t) => {
   assert.equal(pkg.evidence.verification.path, 'make-it-work/DEMO/DEMO-verification-v1.json');
   assert.equal(pkg.acceptance[0].status, 'automated');
   assert.match(await readFile(built.package, 'utf8'), /AC1 works/);
-  assert.match(await readFile(built.package, 'utf8'), /Verification: Verified — 1 of 1 acceptance criteria verified/);
+  assert.match(await readFile(built.package, 'utf8'), /Acceptance verification: Verified — 1 of 1 acceptance criteria verified/);
   await writeFile(ledgerPath, JSON.stringify({ ...ledger, acceptance: [{ ...ledger.acceptance[0], status: 'unverified', step: null, note: 'Not checked' }] }));
   assert.throws(() => run('check', root, state), /stale/);
 });
@@ -189,7 +210,7 @@ test('a complete workflow reports partial criterion verification consistently in
   await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify(ledger));
   const built = run('build', root, state, '--draft', draft, '--repo', root);
   const markdown = await readFile(built.package, 'utf8');
-  assert.match(markdown, /Verification: Partially verified — 1 of 2 acceptance criteria pending/);
+  assert.match(markdown, /Acceptance verification: Partially verified — 1 of 2 acceptance criteria pending/);
   assert.ok(markdown.indexOf('### Pending verification') < markdown.indexOf('## Changes'));
   const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.equal(pkg.acceptance[1].status, 'unverified');
@@ -202,7 +223,7 @@ test('a complete workflow reports partial criterion verification consistently in
   await writeFile(state, completed);
   const html = await readFile(await generateDashboard(state), 'utf8');
   assert.match(html, /Implementation complete\./);
-  assert.match(html, /Verification: Partially verified/);
+  assert.match(html, /Acceptance verification: Partially verified/);
   assert.match(html, /1 of 2 acceptance criteria pending/);
   assert.match(html, /Reference &lt;unavailable&gt;/);
   assert.doesNotMatch(html, /Reference <unavailable>/);
@@ -324,7 +345,7 @@ test('packages an escalated run on the TDD path with the Lightweight report as e
   assert.throws(() => run('check', root, state), /stale/);
 });
 
-test('old runs keep the exact package shape without adaptive fields', async (t) => {
+test('new builds for old runs add assurance presentation without adaptive fields', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-legacy-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
@@ -332,8 +353,8 @@ test('old runs keep the exact package shape without adaptive fields', async (t) 
   await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
   const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
-  assert.deepEqual(Object.keys(pkg), ['version', 'ticket', 'draft_path', 'draft_sha256', 'draft', 'evidence', 'validation', 'review', 'open_nits', 'known_regressions', 'decided_findings', 'repos']);
-  assert.match(await readFile(built.package, 'utf8'), /^# Final approval — DEMO\n\nReview: clean\. Validation: full-suite — PASS\.\n\n## Changes/);
+  assert.deepEqual(Object.keys(pkg), ['version', 'assurance_version', 'ticket', 'draft_path', 'draft_sha256', 'draft', 'evidence', 'validation', 'review', 'open_nits', 'known_regressions', 'decided_findings', 'repos']);
+  assert.match(await readFile(built.package, 'utf8'), /^# Final approval — DEMO\n\n\*\*Assurance: Limited[^\n]*\n\nReview: clean\. Validation: full-suite — PASS\.\n\n## Changes/);
 });
 
 
@@ -355,4 +376,70 @@ test('a rendered advisory review remains visible as an unfixed nit in the final 
   assert.equal(pkg.open_nits.length, 1);
   assert.match(pkg.open_nits[0], /Simplify the local name/);
   assert.match(await readFile(built.package, 'utf8'), /Open review nits \(unfixed\):.*Simplify the local name/);
+});
+
+test('new clause contract blocks name-only handoff/package claims and renders each pending clause', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-clause-evidence-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1\nacceptance_evidence_version: 1'));
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Total\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 parity | Include prepaid value | Total |\n| AC1 parity | Preserve ascending output order | Total |\n');
+  await writeFile(path.join(dir, 'DEMO-execute.md'), 'Execute outcome: PASSED\n');
+  const evidence = { version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Total', command: 'node test.js', result: 'pass', note: 'Named test passes', assertions: [{ clause: 'Include prepaid value', expected: '100 + 25 = 125', observed: '125', source: 'test.js:12 assert.equal(total, 125)' }] }] }],
+    gate: { mode: 'full-suite', result: 'pass', note: 'Tests passed' },
+    acceptance: [
+      { criterion: 'AC1 parity', clause: 'Include prepaid value', scenario: 'Total', status: 'automated', step: 1, note: 'Amount assertion passes' },
+      { criterion: 'AC1 parity', clause: 'Preserve ascending output order', scenario: 'Total', status: 'automated', step: 1, note: 'Same named test passes' },
+    ] };
+  const relative = 'make-it-work/DEMO/DEMO-verification-v1.json';
+  await writeFile(path.join(root, relative), JSON.stringify(evidence));
+  const handoff = { version: 1, ticket: 'DEMO', stage: 'execute', plan_version: 1, status: 'done', outcome: 'PASSED', artifacts: { report: 'make-it-work/DEMO/DEMO-execute.md', verification: relative }, data: { discoveries: [], failing_tests: [], gate: 'full-suite' } };
+  await assert.rejects(validateArtifacts(handoff, root, { requireClauses: true }), /Acceptance evidence is missing/);
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /Acceptance evidence is missing/);
+  evidence.acceptance[1] = { ...evidence.acceptance[1], status: 'unverified', step: null, note: 'No ordering assertion was executed.' };
+  await writeFile(path.join(root, relative), JSON.stringify(evidence));
+  await validateArtifacts(handoff, root, { requireClauses: true });
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const md = await readFile(built.package, 'utf8');
+  assert.match(md, /Acceptance verification: Pending verification — 1 of 1 acceptance criteria pending/);
+  assert.match(md, /Preserve ascending output order/);
+  assert.match(md, /Source: test.js:12/);
+  assert.match(md, /Expected: 100 \+ 25 = 125; Observed: 125/);
+  await generateDashboard(state);
+  assert.match(await readFile(state.replace('-state.md', '-status.html'), 'utf8'), /Preserve ascending output order/);
+  assert.equal(run('check', root, state).verification_summary.pending, 1);
+  assert.match(run('check', root, state).assurance_summary.text, /acceptance verification pending/);
+});
+
+
+test('approved historical packages retain their exact presentation and approval while exposing a limited check summary', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'assurance-legacy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await verifiedAcceptance(root, state, dir);
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(built.json, 'utf8'));
+  assert.equal(pkg.assurance_version, 1);
+  delete pkg.assurance_version;
+  // Recreate the preceding formatter: no assurance headline and the original acceptance label.
+  const oldMarkdown = (await readFile(built.package, 'utf8')).replace(/^\*\*Assurance:.*\n\n/m, '').replace('**Acceptance verification:', '**Verification:');
+  await writeFile(built.json, JSON.stringify(pkg, null, 2) + '\n');
+  await writeFile(built.package, oldMarkdown);
+  const hash = createHash('sha256').update(JSON.stringify(pkg)).digest('hex');
+  await writeFile(path.join(dir, 'DEMO-final-approval.json'), JSON.stringify({ version: 1, ticket: 'DEMO', package_sha256: hash }));
+  const checked = run('check', root, state, '--require-approval');
+  assert.equal(checked.approved, true);
+  assert.equal(checked.sha256, hash);
+  assert.equal(checked.verification_summary.label, 'Verified');
+  assert.match(checked.assurance_summary.text, /delivery review unknown.*browser verification pending/);
+  assert.match(oldMarkdown, /\*\*Verification: Verified/);
+  assert.equal(await readFile(built.package, 'utf8'), oldMarkdown);
+  assert.equal(await readFile(built.json, 'utf8'), JSON.stringify(pkg, null, 2) + '\n');
+  // Rebuilding opts into the new presentation and normal approval binding.
+  run('build', root, state, '--draft', draft, '--repo', root);
+  assert.equal(run('check', root, state).approved, false);
+  assert.match(await readFile(built.package, 'utf8'), /Assurance: Limited/);
 });
