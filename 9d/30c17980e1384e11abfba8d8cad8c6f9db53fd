@@ -1,0 +1,44 @@
+skills/feedback-on-session/SKILL.md
+  s_95f87c81183944::t_ee0a00d401b63a 10,20-21,28-35,37-42,46,52
+  s_95f87c81183944::t_e804cc0ad06b14 53
+evals/feedback-on-session/README.md
+  s_95f87c81183944::t_34d5dabc9be315 6-10
+evals/feedback-on-session/feedback-on-session-clean/graders/standalone.md
+  s_95f87c81183944::t_5621b15125522f 1-7
+evals/feedback-on-session/feedback-on-session-handoff/case.yaml
+  s_95f87c81183944::t_56a60aed339658 1-5
+evals/feedback-on-session/feedback-on-session-handoff/fixture.sh
+  s_95f87c81183944::t_c3e34e123919df 1-5
+evals/feedback-on-session/feedback-on-session-handoff/fixture/session.txt
+  s_95f87c81183944::t_7e2ae639af4f2f 1-10
+evals/feedback-on-session/feedback-on-session-handoff/graders/boundaries.md
+  s_95f87c81183944::t_a1c5ca6d309cfb 1-8
+evals/feedback-on-session/feedback-on-session-handoff/graders/report.md
+  s_95f87c81183944::t_fabd2d4b7eeaca 1-7
+evals/feedback-on-session/feedback-on-session-handoff/graders/standalone.md
+  s_95f87c81183944::t_9f5f23d505a2a4 1-7
+evals/feedback-on-session/feedback-on-session-handoff/prompt.md
+  s_95f87c81183944::t_86168a66ca19e0 1-10
+evals/feedback-on-session/feedback-on-session-incomplete/graders/standalone.md
+  s_95f87c81183944::t_d105ab5e4e9b9a 1-7
+evals/feedback-on-session/feedback-on-session-problems/graders/standalone.md
+  s_95f87c81183944::t_30939de7e4e615 1-7
+evals/suites.json
+  s_95f87c81183944::t_12851bd0db51ae 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "9d30c17980e1384e11abfba8d8cad8c6f9db53fd",
+  "prompts": {},
+  "sessions": {
+    "s_95f87c81183944": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf28-5356-7a30-b81d-c7add7571c92",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
