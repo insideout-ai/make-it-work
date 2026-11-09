@@ -1,0 +1,44 @@
+skills/implement/scripts/planning-tests.mjs
+  s_e8cdb860e0eee3::t_aa4dd11a7655e2 1-2,4-37,39-55,57,59-68,70-82,84-85,88-96
+  s_e8cdb860e0eee3::t_834ec804c0bdee 38
+  s_e8cdb860e0eee3::t_698e8746a36332 3,86-87
+  s_e8cdb860e0eee3::t_9623e2ed988f3c 56,58,69,83
+skills/implement/scripts/implementation-guard.mjs
+  s_e8cdb860e0eee3::t_834ec804c0bdee 25-35,40-45
+  s_e8cdb860e0eee3::t_698e8746a36332 46-67
+  s_e8cdb860e0eee3::t_b97acf33bef787 5-7,10,22-24,68-79,87-88
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_ba69b7bef6d232 13
+docs/deterministic-artifacts.md
+  s_e8cdb860e0eee3::t_1e1fef841ece82 120-132
+evals/implement/implement-autopilot-full/graders/no-premature-edit-holds.md
+  s_e8cdb860e0eee3::t_b808cf6d57e849 1-7
+evals/implement/implement-autopilot-full/graders/planning-test-authorization.md
+  s_e8cdb860e0eee3::t_38bc09e8d8d3b6 1-5
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_f3d2f80f3f1d15 479-480,678
+skills/implement/references/planning-tests.md
+  s_e8cdb860e0eee3::t_bd62dc712c1f89 1-62
+skills/implement/scripts/planning-tests.test.mjs
+  s_e8cdb860e0eee3::t_843ca3c83fe1fc 1-157
+skills/implement/scripts/startup-presentation.test.mjs
+  s_e8cdb860e0eee3::t_105c52cfbc7783 10,383-399
+skills/plan-the-work/SKILL.md
+  s_e8cdb860e0eee3::t_c1b26284490c61 61,260-267,375,408,417
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "d79b9b1e161163f36fc9049c7776d2e10b6955f9",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
