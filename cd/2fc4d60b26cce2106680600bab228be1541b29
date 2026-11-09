@@ -1,0 +1,51 @@
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_45cdd2e401cbfe 13
+skills/implement/scripts/startup-presentation.mjs
+  s_e8cdb860e0eee3::t_45cdd2e401cbfe 110
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_cfb70b626457e1 77-78
+skills/implement/references/controller.md
+  s_e8cdb860e0eee3::t_cfb70b626457e1 53
+skills/implement/references/activity.md
+  s_e8cdb860e0eee3::t_45cdd2e401cbfe 33
+evals/implement/plan-agent-wait/case.yaml
+  s_e8cdb860e0eee3::t_d991c93af8a2aa 1-5
+evals/implement/plan-agent-wait/fixture.sh
+  s_e8cdb860e0eee3::t_c774bda574f4ed 1-32
+evals/implement/plan-agent-wait/graders/actual-baseline.md
+  s_e8cdb860e0eee3::t_c0e7d950a7cef0 1-7
+evals/implement/plan-agent-wait/graders/no-question.md
+  s_e8cdb860e0eee3::t_25c10574c96747 1-7
+evals/implement/plan-agent-wait/graders/plan-wait.md
+  s_e8cdb860e0eee3::t_d65447c5a46885 1-7
+evals/implement/plan-agent-wait/graders/real-background-dispatch.md
+  s_e8cdb860e0eee3::t_baec8d50182f09 1-7
+evals/implement/plan-agent-wait/graders/saved-pause.md
+  s_e8cdb860e0eee3::t_5b3bbd5f006fe2 1-7
+evals/implement/plan-agent-wait/graders/source-preserved.md
+  s_e8cdb860e0eee3::t_754215b38cd4d6 1-6
+evals/implement/plan-agent-wait/prompt.md
+  s_e8cdb860e0eee3::t_98b038e8e1b682 1-17
+evals/plan-agent-wait.test.mjs
+  s_e8cdb860e0eee3::t_4d1bfad7049342 1-17
+evals/suites.json
+  s_e8cdb860e0eee3::t_cd7cf9bfc4fd2f 63
+skills/implement/scripts/startup-presentation.test.mjs
+  s_e8cdb860e0eee3::t_bdd8c507c2fd32 208,223-224,400-431
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "cd2fc4d60b26cce2106680600bab228be1541b29",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
