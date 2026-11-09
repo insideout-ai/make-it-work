@@ -1,0 +1,44 @@
+evals/implement/lightweight-run/graders/assurance-headline.md
+  s_e8cdb860e0eee3::t_37c00e9f3f3c17 1-6
+skills/implement/scripts/final-package.test.mjs
+  s_e8cdb860e0eee3::t_c7bf8e92e7468d 427
+  s_e8cdb860e0eee3::t_9123e0f815a07f 3,54-63,135,141-149,187,213,226,348,356-357,406,413-426,428-444
+evals/implement/implement-autopilot-full/graders/assurance-headline.md
+  s_e8cdb860e0eee3::t_37c00e9f3f3c17 1-6
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_f1d42a9b00978d 13-14
+docs/deterministic-artifacts.md
+  s_e8cdb860e0eee3::t_66392f9ebf460f 144-155
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_c2928e995b095e 763-773
+skills/implement/references/ticket-publication.md
+  s_e8cdb860e0eee3::t_78f34a5a14d8a4 38-42
+skills/implement/references/verification.md
+  s_e8cdb860e0eee3::t_fde01619252fb6 5,14-15,19-36
+skills/implement/scripts/assurance-summary.mjs
+  s_e8cdb860e0eee3::t_166b2923d5a911 1-23
+skills/implement/scripts/assurance-summary.test.mjs
+  s_e8cdb860e0eee3::t_09fa2ea30d8c95 1-57
+skills/implement/scripts/final-package.mjs
+  s_e8cdb860e0eee3::t_3d5b215f091a67 15,52,57,113,138,173,178,187,190,220,251-252,268
+skills/implement/scripts/render-status.mjs
+  s_e8cdb860e0eee3::t_d2881b748711d0 774,776
+skills/implement/scripts/render-status.test.mjs
+  s_e8cdb860e0eee3::t_23a5049e1e0ac6 117-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1c0eb4eddc6d934fe1c045922064b21f2c6dfbbe",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
