@@ -50,7 +50,7 @@ obligation, preserving Resume behavior; synthetic hook feedback and diagnostic
 request replays do not clear it.
 
 An active background-agent wait is the exception to continuing in the same
-turn: runtime launch evidence for an agent in the current Execute, Lightweight,
+turn: runtime launch evidence for an agent in the current Plan, Execute, Lightweight,
 Review or Fix phase permits yielding until its completion notification. Keep
 the saved workflow In Progress; do not manufacture a pause or completion. Do
 not use shell sleeps, file watches or repeated polls to avoid Stop. The hook

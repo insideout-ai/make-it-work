@@ -107,7 +107,7 @@ async function continuationHold(initialized, toolCheck = false, agents = []) {
   const enteredPhase = state.audit.findLast((row) => row.to === fields.phase && row.from !== row.to)?.epoch;
   // Yielding to a live child is not workflow completion. Preserve In Progress
   // and all completion gates; a child from an earlier phase cannot release Stop.
-  if (['execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
+  if (['plan', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
       agents.some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
   if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };
   return { decision: 'block', reason: 'The dashboard link has been shared, but this fresh run is still in Context check with status In Progress. Continue Context check now in this same turn; do not repeat the link or ask the user to send another message. If a genuine question or blocker prevents continuation, save the documented pause or stop before reporting it.' };

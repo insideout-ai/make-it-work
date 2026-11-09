@@ -205,7 +205,7 @@ async function activeAgentRun(t, phase = 'execute') {
 }
 
 test('live agents permit yielding in their active stage without completing or pausing the workflow', async (t) => {
-  for (const phase of ['execute', 'review', 'lightweight', 'fix-plan']) {
+  for (const phase of ['plan', 'execute', 'review', 'lightweight', 'fix-plan']) {
     const run = await activeAgentRun(t, phase);
     run.launch();
     run.events.push(assistant(text('The delegated agent is still running; waiting for its report.')));
@@ -220,8 +220,8 @@ test('live agents permit yielding in their active stage without completing or pa
 });
 
 test('completion or failure notifications restore the active-stage continuation hold', async (t) => {
-  for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
-    const run = await activeAgentRun(t, 'review');
+  for (const phase of ['plan', 'review']) for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
+    const run = await activeAgentRun(t, phase);
     run.launch();
     run.events.push({ type: 'queue-operation', operation: 'enqueue', content: `<task-notification>\n<task-id>worker</task-id>\n<status>${status}</status>\n</task-notification>` });
     await run.saveEvents();
@@ -396,4 +396,36 @@ test('authorized Plan test edits remove only the premature-edit hold; active-sta
   assert.equal((await readHookEvents(run.result.state)).some((event) => event.kind === 'premature-implementation'), false);
   await writeFile(path.join(run.root, 'app.js'), '// unauthorized production change\n');
   assert.match((await run.check()).reason, /Application files changed/);
+});
+
+test('Plan waits exclude prior phase/Plan-cycle agents and resume the hold when the current delegate finishes', async (t) => {
+  const run = await activeAgentRun(t, 'plan');
+  run.launch('prior-phase', run.epoch - 1);
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  run.launch('first-plan'); await run.saveEvents();
+  assert.equal((await run.check()).decision, undefined);
+  const next = run.epoch + 1000;
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).trimEnd() + `\n| 3 | ${new Date(next).toISOString()} | execute | plan | New Plan entry |\n`);
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  run.launch('current-plan', next + 1); await run.saveEvents();
+  assert.equal((await run.check()).decision, undefined);
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>current-plan</task-id>\n<status>completed</status>\n</task-notification>' });
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+});
+
+test('Plan waits require runtime proof and never hide production edits or release other phases', async (t) => {
+  const plan = await activeAgentRun(t, 'plan');
+  plan.events.push(assistant(text('A planning agent is still running.'))); await plan.saveEvents();
+  assert.match((await plan.check()).reason, /still In Progress at plan/);
+  plan.launch(); await plan.saveEvents();
+  assert.equal((await plan.check()).decision, undefined);
+  await writeFile(path.join(plan.root, 'app.js'), '// unauthorized production change\n');
+  assert.match((await plan.check()).reason, /Application files changed/);
+  for (const phase of ['context-check', 'close-the-gaps', 'spec-approval', 'plan-approval', 'final-sync']) {
+    const run = await activeAgentRun(t, phase); run.launch(); await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
 });

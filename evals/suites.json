@@ -60,6 +60,7 @@
     "implement-final-sync-partial-map",
     "implement-feedback-nonminimal",
     "implement-autopilot-full",
+    "implement-plan-agent-wait",
     "implement-dashboard-autonomous-start",
     "implement-no-tooling",
     "implement-empty-strategy",

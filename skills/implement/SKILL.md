@@ -74,8 +74,8 @@ When a delegated background agent is still running, yield with a brief waiting
 update and let its completion notification resume the session. Do not launch
 shell sleeps, file watches or repeated status polls merely to keep the turn open.
 The Stop hook permits this wait only with runtime launch evidence for a live
-agent launched in the current Execute, Lightweight, Review or Fix phase. The
-workflow stays In Progress; yielding does not complete or pause it. Completion,
+agent launched in the current Plan, Execute, Lightweight, Review or Fix phase.
+Plan includes delegated testing-readiness and plan-drafting work. The workflow stays In Progress; yielding does not complete or pause it. Completion,
 failure or a runtime inventory showing the agent is no longer running restores
 the continuation requirement. A waiting claim, shell job or agent from an earlier
 phase does not qualify. On hand-back, verify the result and continue the stage. The hooks record local,
