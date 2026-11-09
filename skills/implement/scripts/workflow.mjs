@@ -283,7 +283,7 @@ async function refresh(statePath) {
 async function loadHandoff(root, state, input) {
   if (input.event !== 'handoff') return null;
   const file = await within(root, input.handoff);
-  const handoff = await validateArtifacts(JSON.parse(await readFile(file, 'utf8')), root);
+  const handoff = await validateArtifacts(JSON.parse(await readFile(file, 'utf8')), root, { requireClauses: state.fields.acceptance_evidence_version === '1' });
   const directory = path.join(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
   const number = path.basename(file).match(new RegExp(`^${handoff.stage}-([1-9]\\d*)\\.json$`));
   if (!number || path.dirname(file) !== directory) fail('Invalid handoff location.');

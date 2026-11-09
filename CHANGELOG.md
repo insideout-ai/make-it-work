@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Require clause-level assertion or observation evidence for acceptance verification in fresh TDD runs; preserve unsupported clauses as pending in delivery artifacts.
 - Bind independent review to the full delivery diff, reject narrower or stale review evidence, and return final-sync changes to review before packaging.
 
 - Allow implementation runs to yield while runtime-verified delegated agents are working, restoring stage-continuation checks when those agents finish or fail.

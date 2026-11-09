@@ -51,6 +51,36 @@ For a concrete verification policy, also record `gate.full_suites`, one entry pe
 
 At terminal Execute, fill `acceptance` with one row for **every** pair in the plan's existing `**AC traceability:**` table: `{ "criterion": "exact AC text", "scenario": "exact scenario text", "status": "automated | manual | unverified", "step": 1 | null, "note": "evidence or reason" }`. `automated` and `manual` may cite only a passing check of that type on the named step whose `subject` exactly matches the scenario. `unverified` has `step: null` and states what remains open. Do not turn a passing full suite into a claim that every AC was verified. A manually accepted no-result gate should be accompanied by actual manual check entries where possible; otherwise mark the relevant ACs unverified.
 
+## Clause evidence for fresh TDD runs
+
+Fresh Implement runs additionally carry `acceptance_evidence_version: 1`. Keep the ledger schema `version: 1`; this additive contract requires a `Requirement clause` column between `Acceptance criterion` and `Test scenario` in the plan traceability table, and the exact `clause` text on every acceptance row. One scenario can map to several clauses, and one clause can need several scenarios. Every mapped combination must appear, including pending cases. Older runs are not silently opted in.
+
+On each actual passing automated/manual check used to verify a clause, record an `assertions` array:
+
+```json
+{
+  "type": "automated",
+  "subject": "Prepaid total",
+  "command": "node --test income.test.js",
+  "result": "pass",
+  "note": "Named test executed and passed",
+  "assertions": [{
+    "clause": "Include prepaid product value in income",
+    "expected": "100 service plus 25 prepaid gives total 125",
+    "observed": "total equals 125",
+    "source": "app/test/income.test.js:42 — assert.equal(total, 125)"
+  }]
+}
+```
+
+Each assertion has exact `clause` text, the concrete `expected` behavior/value, the actual `observed` result and a `source` identifying the assertion in the executed test (repo/path:line plus test/assertion identity). For manual checks, source identifies the retained walkthrough/observation, with setup/actions and observed behavior. Write only evidence actually executed or observed. Test names, suite exit codes, source inspection, or a shared computation alone cannot establish an unasserted ordering, boundary, error-path or parity clause. An `exempt` check cannot carry assertions. Keep unrelated step checks without this array as appropriate.
+
+An acceptance row such as `{ "criterion": "AC1 income", "clause": "Include prepaid product value in income", "scenario": "Prepaid total", "status": "automated", "step": 1, "note": "Exact total assertion passed" }` needs a passing check of the same type/subject on that step with an assertion for that exact clause. Otherwise record `status: "unverified"`, `step: null`, and a reason. A missing assertion blocks a verified claim; it does not require inventing a test or waiving a missing observation. Existing manual-policy completion rules still apply.
+
+Pass `--require-clauses 1` to every verification helper call in a clause-contract run, including delegated partial checks; the parent also passes `--state` as usual. Controller plan/Execute handoff acceptance, dashboard validation and packaging independently enforce the state's contract. The final package shows each clause, pending reason, and verified assertion's source/expected/observed values. A criterion is verified only when all of its mapped clauses/scenarios are verified.
+
+The deterministic checks establish that all planned clauses have matching concrete evidence records. They cannot establish semantic completeness or truth from strings: the independent reviewer must compare the inventory with the accepted spec and inspect the cited assertions/observations. Missing spec clauses or claims unsupported by the cited check are review findings. Never treat this ledger as a replacement for that inspection.
+
 After every step entry and after the terminal gate/AC update, run:
 
 `node "<implement-base>/scripts/verification.mjs" check --root <artifact-root> --file make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json --ticket <TICKET> --plan-version <plan_version> [--plan <plan-path> --outcome <Execute-outcome>]`

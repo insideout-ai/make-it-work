@@ -113,3 +113,7 @@ existing cap. Final packages require full matching coverage and bind the target
 and its diff artifacts. Later final-approval drift uses `refresh-review`; the
 helper refuses an unchanged tree. Standalone reviews and legacy saved runs keep
 the existing partial/unknown-scope disclosure behavior.
+
+### Clause-level acceptance evidence
+
+New Implement runs carry `acceptance_evidence_version: 1` alongside `verification_version: 1`. The accepted plan has three-column AC traceability (`Acceptance criterion | Requirement clause | Test scenario`); acceptance rows preserve each exact clause. Verified rows require the cited step/scenario/type to contain a concrete assertion or manual observation with `clause`, `expected`, `observed`, and `source`. The controller and final package reject name-only evidence or omitted planned clauses; explicit unverified rows remain pending. Package and dashboard summaries aggregate all clauses/scenarios under each criterion. The independent review compares the inventory to the spec and inspects cited evidence for semantic coverage. Historical runs are not migrated. See [verification contract](../skills/implement/references/verification.md).

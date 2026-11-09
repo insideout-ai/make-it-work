@@ -147,8 +147,8 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
       if (ledger) {
       validateVerification(ledger, { ticket, planVersion, plan });
       const expected = traceability(plan);
-      if (ledger.acceptance.some((row) => !expected.some((item) => item.criterion === row.criterion && item.scenario === row.scenario))) fail('Amendment changed prior AC traceability; reassess evidence before continuing.');
-      for (const row of expected) if (!ledger.acceptance.some((item) => item.criterion === row.criterion && item.scenario === row.scenario)) ledger.acceptance.push({ ...row, status: 'unverified', step: null, note: 'New amendment scenario awaits evidence.' });
+      if (ledger.acceptance.some((row) => !expected.some((item) => item.criterion === row.criterion && item.clause === row.clause && item.scenario === row.scenario))) fail('Amendment changed prior AC traceability; reassess evidence before continuing.');
+      for (const row of expected) if (!ledger.acceptance.some((item) => item.criterion === row.criterion && item.clause === row.clause && item.scenario === row.scenario)) ledger.acceptance.push({ ...row, status: 'unverified', step: null, note: 'New amendment scenario awaits evidence.' });
       ledger.gate = null;
       await atomicWrite(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
       }
@@ -224,8 +224,9 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
       }
       ledger.steps.sort((a, b) => a.number - b.number);
       for (const item of ledger.acceptance) {
-        const step = event.steps.find((s) => s.checks.some((check) => check.subject === item.scenario && check.type !== 'exempt'));
-        if (step) { item.step = step.number; item.status = step.checks.find((check) => check.subject === item.scenario && check.type !== 'exempt').type; item.note = 'Recorded step evidence.'; }
+        const matches = (check) => check.subject === item.scenario && check.type !== 'exempt' && (!item.clause || check.assertions?.some((assertion) => assertion.clause === item.clause));
+        const step = event.steps.find((s) => s.checks.some(matches));
+        if (step) { item.step = step.number; item.status = step.checks.find(matches).type; item.note = 'Recorded step evidence.'; }
       }
       validateVerification(ledger, { ticket, planVersion, plan });
       await atomicWrite(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');

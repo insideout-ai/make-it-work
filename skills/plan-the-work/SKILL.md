@@ -371,7 +371,7 @@ Do not paste the full plan in chat unless the user asks.
 
 This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
 
-**Inputs** — the spec path, the run's autonomy level (Guided, Autonomous, or Autopilot), the plan version `N`, optional testing-readiness artifact with its verification policy and accepted setup baseline files, an optional **escalation baseline** report (initial mode), optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
+**Inputs** — the spec path, the run's autonomy level (Guided, Autonomous, or Autopilot), the plan version `N`, optional `acceptance_evidence_version: 1` requiring the clause-level AC inventory in the plan template, optional testing-readiness artifact with its verification policy and accepted setup baseline files, an optional **escalation baseline** report (initial mode), optional **redo notes** (when the user asked to redo planning at the approval gate), and the mode-specific inputs below. `implement` selects exactly one mode.
 
 **Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current plan version, drafting progress, and previous decisions.
 

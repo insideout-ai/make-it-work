@@ -17,24 +17,37 @@ const exactKeys = (value, names, label) => {
   if (Object.keys(value).some((key) => !names.includes(key))) fail(`${label} has an unknown field.`);
 };
 
-export function traceability(plan) {
+export function traceability(plan, { requireClauses = false } = {}) {
   const tail = plan.split(/^\*\*AC traceability:\*\*\s*$/m)[1];
   if (!tail) fail('Plan has no AC traceability table.');
-  const rows = [];
+  const rows = [], seen = new Set();
+  let columns = null;
   for (const line of tail.split('\n')) {
     if (!line.trim()) { if (rows.length) break; continue; }
     if (!line.startsWith('|')) { if (rows.length) break; continue; }
     const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
-    if (cells.length !== 2) fail('AC traceability table must have exactly two columns.');
-    if (cells[0] === 'Acceptance criterion' || /^-+$/.test(cells[0])) continue;
-    if (!cells[0] || !cells[1]) fail('AC traceability row is incomplete.');
-    rows.push({ criterion: cells[0], scenario: cells[1] });
+    if (!columns) {
+      const header = cells.join('|');
+      if (!['Acceptance criterion|Test scenario', 'Acceptance criterion|Requirement clause|Test scenario'].includes(header)) fail('Invalid AC traceability header.');
+      columns = cells.length;
+      if (requireClauses && columns !== 3) fail('Clause evidence requires a Requirement clause column in AC traceability.');
+      continue;
+    }
+    if (cells.length !== columns) fail('AC traceability row has the wrong number of columns.');
+    if (cells.every((cell) => /^:?-+:?$/.test(cell))) continue;
+    if (cells.some((cell) => !cell)) fail('AC traceability row is incomplete.');
+    const row = columns === 3 ? { criterion: cells[0], clause: cells[1], scenario: cells[2] } : { criterion: cells[0], scenario: cells[1] };
+    const key = JSON.stringify(row);
+    if (seen.has(key)) fail('Duplicate AC traceability row.');
+    seen.add(key);
+    rows.push(row);
   }
   if (!rows.length) fail('Plan has no AC traceability rows.');
   return rows;
 }
+const acceptanceKey = (row) => JSON.stringify([row.criterion, row.clause ?? null, row.scenario]);
 
-export function validateVerification(value, { ticket, planVersion, plan = null, outcome = null, requireComplete = false } = {}) {
+export function validateVerification(value, { ticket, planVersion, plan = null, outcome = null, requireComplete = false, requireClauses = false } = {}) {
   exactKeys(value, ['version', 'ticket', 'plan_version', 'steps', 'gate', 'acceptance'], 'verification');
   if (value.version !== 1 || value.ticket !== ticket || value.plan_version !== planVersion) fail('Verification version, ticket, or plan version mismatch.');
   if (!Array.isArray(value.steps)) fail('Verification steps must be an array.');
@@ -45,13 +58,23 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
     seenSteps.add(step.number);
     if (!Array.isArray(step.checks) || !step.checks.length) fail(`Step ${step.number} has no verification checks.`);
     for (const check of step.checks) {
-      exactKeys(check, ['type', 'subject', 'command', 'result', 'note'], 'verification check');
+      exactKeys(check, ['type', 'subject', 'command', 'result', 'note', 'assertions'], 'verification check');
       if (!['automated', 'manual', 'exempt'].includes(check.type)) fail('Invalid verification check type.');
       nonempty(check.subject, 'verification subject');
       nonempty(check.note, 'verification note');
       if (check.type === 'automated' ? !check.command : check.command !== null) fail('Only automated checks have a command.');
       if (check.type === 'automated') nonempty(check.command, 'verification command');
       if (check.result !== (check.type === 'exempt' ? 'exempt' : 'pass')) fail('Only passing or exempt checks may be checkpointed.');
+      if (check.assertions !== undefined) {
+        if (check.type === 'exempt' || !Array.isArray(check.assertions) || !check.assertions.length) fail('Assertions require an actual automated or manual check.');
+        const clauses = new Set();
+        for (const assertion of check.assertions) {
+          exactKeys(assertion, ['clause', 'expected', 'observed', 'source'], 'check assertion');
+          for (const field of ['clause', 'expected', 'observed', 'source']) nonempty(assertion[field], `assertion ${field}`);
+          if (clauses.has(assertion.clause)) fail('Duplicate assertion clause within a check.');
+          clauses.add(assertion.clause);
+        }
+      }
     }
   }
   if (value.gate !== null) {
@@ -78,11 +101,12 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
   if (!Array.isArray(value.acceptance)) fail('Verification acceptance must be an array.');
   const seenAcceptance = new Set();
   for (const item of value.acceptance) {
-    exactKeys(item, ['criterion', 'scenario', 'status', 'step', 'note'], 'verification acceptance');
+    exactKeys(item, ['criterion', 'clause', 'scenario', 'status', 'step', 'note'], 'verification acceptance');
     nonempty(item.criterion, 'criterion');
     nonempty(item.scenario, 'scenario');
     nonempty(item.note, 'acceptance note');
-    const key = `${item.criterion}\0${item.scenario}`;
+    if (requireClauses || item.clause !== undefined) nonempty(item.clause, 'requirement clause');
+    const key = acceptanceKey(item);
     if (seenAcceptance.has(key)) fail('Duplicate acceptance row.');
     seenAcceptance.add(key);
     if (!['automated', 'manual', 'unverified'].includes(item.status)) fail('Invalid acceptance status.');
@@ -91,7 +115,8 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
     } else {
       if (!Number.isSafeInteger(item.step) || !seenSteps.has(item.step)) fail('Verified acceptance cites an unknown step.');
       const checks = value.steps.find((step) => step.number === item.step).checks;
-      if (!checks.some((check) => check.type === item.status && check.subject === item.scenario && check.result === 'pass')) {
+      if (!checks.some((check) => check.type === item.status && check.subject === item.scenario && check.result === 'pass' &&
+          (!(requireClauses || item.clause !== undefined) || check.assertions?.some((assertion) => assertion.clause === item.clause)))) {
         fail(`Acceptance evidence is missing for ${item.criterion}.`);
       }
     }
@@ -110,7 +135,7 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
       if (!stepNumbers.length || stepNumbers.length !== seenSteps.size || stepNumbers.some((number) => !seenSteps.has(number))) {
         fail('Terminal verification step evidence does not match the plan.');
       }
-      const expected = traceability(plan).map((row) => `${row.criterion}\0${row.scenario}`).sort();
+      const expected = traceability(plan, { requireClauses }).map(acceptanceKey).sort();
       const actual = [...seenAcceptance].sort();
       if (JSON.stringify(expected) !== JSON.stringify(actual)) fail('Verification acceptance rows do not match the plan AC traceability table.');
       const policy = testingPolicy(plan);
@@ -147,14 +172,15 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const options = {};
   while (args.length) {
     const flag = args.shift();
-    if (!['--root', '--file', '--ticket', '--plan-version', '--plan', '--outcome', '--state'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
+    if (!['--root', '--file', '--ticket', '--plan-version', '--plan', '--outcome', '--state', '--require-clauses'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
     options[flag.slice(2).replaceAll('-', '_')] = args.shift();
   }
   if (action !== 'check' || !options.root || !options.file || !options.ticket || !options.plan_version) fail('Usage: verification.mjs check --root ROOT --file RELATIVE --ticket TICKET --plan-version N [--plan PLAN --outcome OUTCOME]');
+  if (options.require_clauses !== undefined && options.require_clauses !== '1') fail('--require-clauses must be 1.');
   const plan = options.plan ? await readFile(options.plan, 'utf8') : null;
-  const ledger = await readVerification(options.root, options.file, { ticket: options.ticket, planVersion: Number(options.plan_version), plan, outcome: options.outcome ?? null });
-  if (options.state) {
-    const state = parseState(await readFile(options.state, 'utf8'), options.state);
+  const state = options.state ? parseState(await readFile(options.state, 'utf8'), options.state) : null;
+  const ledger = await readVerification(options.root, options.file, { ticket: options.ticket, planVersion: Number(options.plan_version), plan, outcome: options.outcome ?? null, requireClauses: state?.fields.acceptance_evidence_version === '1' || options.require_clauses === '1' });
+  if (state) {
     if (state.fields.ticket !== options.ticket || state.fields.plan_version !== options.plan_version) fail('Verification audit must belong to this ticket and plan version.');
     const hash = createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
     await checkpointResult(options.state, {

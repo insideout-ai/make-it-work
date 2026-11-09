@@ -95,3 +95,54 @@ test('mixed policies require manual observations in addition to a passing automa
   assert.throws(() => validateVerification({ ...mixedLedger, gate: { ...mixedLedger.gate, full_suites: [] } }, options), /every automated product repo/);
   assert.throws(() => validateVerification({ ...mixedLedger, gate: { ...mixedLedger.gate, full_suites: [{ repo: 'api', command: null, result: 'not-run', note: 'Missing service' }] } }, options), /did not all pass/);
 });
+
+const clausePlan = plan.replace('| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 saves a record | Happy path |',
+  '| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 saves a record | Amount includes prepaid products | Happy path |\n| AC1 saves a record | Excludes cancelled orders | Happy path |');
+const clauseLedger = () => ({ ...ledger(),
+  steps: [{ number: 1, checks: [{ ...ledger().steps[0].checks[0], assertions: [
+    { clause: 'Amount includes prepaid products', expected: '100 service + 25 prepaid = 125', observed: '125', source: 'test.js:12 assert.equal(total, 125)' },
+  ] }] }],
+  acceptance: [
+    { ...ledger().acceptance[0], clause: 'Amount includes prepaid products' },
+    { ...ledger().acceptance[0], clause: 'Excludes cancelled orders', status: 'unverified', step: null, note: 'No cancelled-order assertion has run.' },
+  ] });
+const clauseOptions = { ticket: 'DEMO', planVersion: 1, plan: clausePlan, outcome: 'PASSED', requireClauses: true };
+
+test('a passing scenario cannot verify a compound requirement without evidence for each clause', () => {
+  const value = clauseLedger();
+  assert.equal(validateVerification(value, clauseOptions).acceptance[1].status, 'unverified');
+  value.acceptance[1] = { ...value.acceptance[1], status: 'automated', step: 1 };
+  assert.throws(() => validateVerification(value, clauseOptions), /Acceptance evidence is missing/);
+  value.steps[0].checks[0].assertions.push({ clause: 'Excludes cancelled orders', expected: 'Cancelled 50 does not change total 125', observed: '125 with cancelled order', source: 'test.js:19 assert.equal(totalWithCancelled, 125)' });
+  assert.equal(validateVerification(value, clauseOptions).acceptance.every((row) => row.status === 'automated'), true);
+});
+
+test('clause contract rejects downgrade, missing/extra/duplicate rows, and incomplete assertion evidence', () => {
+  assert.throws(() => validateVerification(ledger(), clauseOptions), /requirement clause/);
+  assert.throws(() => validateVerification(clauseLedger(), { ...clauseOptions, plan }), /Requirement clause column/);
+  assert.throws(() => validateVerification({ ...clauseLedger(), acceptance: clauseLedger().acceptance.slice(0, 1) }, clauseOptions), /do not match/);
+  assert.throws(() => traceability(clausePlan.replace('| Excludes cancelled orders |', '| Amount includes prepaid products |')), /Duplicate AC/);
+  for (const field of ['expected', 'observed', 'source', 'clause']) {
+    const value = clauseLedger(); delete value.steps[0].checks[0].assertions[0][field];
+    assert.throws(() => validateVerification(value, clauseOptions), /assertion/);
+  }
+  const wrong = clauseLedger(); wrong.steps[0].checks[0].assertions[0].clause = 'Some other requirement';
+  assert.throws(() => validateVerification(wrong, clauseOptions), /Acceptance evidence is missing/);
+  const noAssertions = clauseLedger(); delete noAssertions.steps[0].checks[0].assertions;
+  assert.throws(() => validateVerification(noAssertions, clauseOptions), /Acceptance evidence is missing/);
+  // Even without a state marker, clause rows cannot claim name-only verification.
+  assert.throws(() => validateVerification(noAssertions, { ...clauseOptions, requireClauses: false }), /Acceptance evidence is missing/);
+});
+
+test('manual observations and multiple scenarios keep independent clause evidence', () => {
+  const value = clauseLedger();
+  value.steps[0].checks[0] = { ...value.steps[0].checks[0], type: 'manual', command: null };
+  value.acceptance[0].status = 'manual';
+  assert.equal(validateVerification(value, clauseOptions).acceptance[0].status, 'manual');
+  const otherScenario = clausePlan.replace('| Excludes cancelled orders | Happy path |', '| Excludes cancelled orders | Cancellation |');
+  value.acceptance[1] = { ...value.acceptance[1], scenario: 'Cancellation', status: 'manual', step: 1 };
+  value.steps[0].checks[0].assertions.push({ clause: 'Excludes cancelled orders', expected: '125', observed: '125', source: 'Browser walkthrough: order 2 cancelled; total observed' });
+  assert.throws(() => validateVerification(value, { ...clauseOptions, plan: otherScenario }), /Acceptance evidence is missing/);
+  value.steps[0].checks.push({ ...value.steps[0].checks[0], subject: 'Cancellation' });
+  assert.equal(validateVerification(value, { ...clauseOptions, plan: otherScenario }).acceptance[1].status, 'manual');
+});

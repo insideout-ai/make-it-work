@@ -53,7 +53,7 @@ function markdown(pkg) {
     '',
     ...(acceptance ? [`**Verification: ${acceptance.text}**`, '', ...(acceptance.pending ? [
       '### Pending verification', '', '| Criterion | Scenario | Verification needed / recorded reason |', '| --- | --- | --- |',
-      ...acceptance.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, note }) => `| ${cell(criterion)} | ${cell(scenario)} | ${cell(note)} |`)), '',
+      ...acceptance.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `| ${cell(criterion)} | ${cell(clause ? `${clause} — ${scenario}` : scenario)} | ${cell(note)} |`)), '',
     ] : [])] : []),
     ...(pkg.adaptive ? [`Mode: ${MODE_LABEL[pkg.adaptive.mode]} (${pkg.adaptive.mode_source}) · Risk: ${pkg.adaptive.risk} · Escalations: ${pkg.adaptive.escalations} / 1`, ''] : []),
     '## Changes',
@@ -71,9 +71,10 @@ function markdown(pkg) {
   lines.push(`- Open review nits (unfixed): ${pkg.open_nits.length ? pkg.open_nits.join('; ') : 'none'}`);
   lines.push(`- Decided findings: ${pkg.decided_findings.length ? pkg.decided_findings.join('; ') : 'none'}`, '');
   if (pkg.acceptance) {
-    lines.push('## Acceptance verification', '', '| Criterion | Scenario | Status | Evidence |', '| --- | --- | --- | --- |');
+    const clauses = pkg.acceptance.some((item) => item.clause !== undefined);
+    lines.push('## Acceptance verification', '', clauses ? '| Criterion | Requirement clause | Scenario | Status | Evidence |' : '| Criterion | Scenario | Status | Evidence |', clauses ? '| --- | --- | --- | --- | --- |' : '| --- | --- | --- | --- |');
     for (const item of pkg.acceptance) {
-      lines.push(`| ${cell(item.criterion)} | ${cell(item.scenario)} | ${item.status === 'unverified' ? 'Pending verification' : item.status} | ${cell(item.note)} |`);
+      lines.push(`| ${cell(item.criterion)} | ${clauses ? `${cell(item.clause)} | ` : ''}${cell(item.scenario)} | ${item.status === 'unverified' ? 'Pending verification' : item.status} | ${cell(item.evidence ? `${item.note}; Source: ${item.evidence.source}; Expected: ${item.evidence.expected}; Observed: ${item.evidence.observed}` : item.note)} |`);
     }
     lines.push('');
   }
@@ -153,14 +154,18 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     const relative = runArtifact(f.ticket, `${f.ticket}-verification-v${f.plan_version}.json`);
     verification = await readVerification(root, relative, {
       ticket: f.ticket, planVersion: Number(f.plan_version), plan: await readFile(path.resolve(root, f.plan), 'utf8'),
-      outcome: f.execution === 'passed' ? 'PASSED' : f.execution === 'verified-manually' ? 'VERIFIED_MANUALLY' : 'GATE_NO_RESULT', requireComplete: true,
+      outcome: f.execution === 'passed' ? 'PASSED' : f.execution === 'verified-manually' ? 'VERIFIED_MANUALLY' : 'GATE_NO_RESULT', requireComplete: true, requireClauses: f.acceptance_evidence_version === '1',
     });
     if (f.execution === 'gate-no-result' && verification.gate.result !== 'manual-accepted') fail('The no-result gate requires an explicit manual acceptance.');
     if (verification.gate.mode !== f.gate) fail('Verification gate mode disagrees with state.');
     evidence.verification = await artifact(root, relative);
   } else if (f.execution !== 'passed') fail('Final package requires passed execution.');
   const validation = { mode: f.gate, result: verification ? verification.gate.result : f.gate === 'none' ? 'automated gate skipped; see execution report for manual verification' : 'PASS' };
-  return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, verification ? { acceptance: verification.acceptance } : {});
+  return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, verification ? { acceptance: verification.acceptance.map((row) => {
+    if (!row.clause || row.status === 'unverified') return row;
+    const check = verification.steps.find((step) => step.number === row.step).checks.find((item) => item.type === row.status && item.subject === row.scenario && item.assertions?.some((assertion) => assertion.clause === row.clause));
+    return { ...row, evidence: check.assertions.find((assertion) => assertion.clause === row.clause) };
+  }) } : {});
 }
 
 // Adaptive Lightweight runs have no plan, execution report, readiness, or

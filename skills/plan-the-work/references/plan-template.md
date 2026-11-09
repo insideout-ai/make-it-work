@@ -140,9 +140,11 @@ Use unique Scenario names. With an explicit verification policy, include the Rep
 
 **AC traceability:**
 
-| Acceptance criterion | Test scenario |
-| --- | --- |
-| _(AC from spec)_ | _(row above)_ |
+For Implement runs with `acceptance_evidence_version: 1`, use the three-column table below. Inventory every material clause of each AC from the accepted spec before mapping scenarios: conditions, included/excluded inputs, boundary values, outputs, ordering, error behavior, and parity with an existing path where required. Give each clause concrete text; split compound requirements even when one scenario covers several. Keep clauses with unavailable verification mapped to a concrete scenario so execution can mark them pending. Compare the inventory back to the spec; a broad scenario name is not proof that its assertions cover every clause. Older runs and standalone plans may retain the two-column `Acceptance criterion | Test scenario` table.
+
+| Acceptance criterion | Requirement clause | Test scenario |
+| --- | --- | --- |
+| _(AC from spec)_ | _(one material behavior/condition from that AC)_ | _(row above)_ |
 
 ## Definition of Done
 

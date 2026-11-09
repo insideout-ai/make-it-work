@@ -4,7 +4,7 @@ import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
-import { readVerification } from './verification.mjs';
+import { readVerification, traceability } from './verification.mjs';
 import { runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 
@@ -129,7 +129,7 @@ export function validateHandoff(input) {
   return h;
 }
 
-export async function validateArtifacts(handoff, root) {
+export async function validateArtifacts(handoff, root, { requireClauses = false } = {}) {
   const h = validateHandoff(handoff);
   if (h.status !== 'done') return h;
   const rootPath = await realpath(root);
@@ -149,7 +149,7 @@ export async function validateArtifacts(handoff, root) {
       if (path.basename(artifact) !== expected) fail(`Verification artifact does not match ticket and plan version: ${artifact}`);
       const planName = h.plan_version === 1 ? `${h.ticket}-plan.md` : `${h.ticket}-plan-v${h.plan_version}.md`;
       const plan = await readFile(path.join(directory, planName), 'utf8');
-      const verification = await readVerification(rootPath, artifact, { ticket: h.ticket, planVersion: h.plan_version, plan, outcome: h.outcome });
+      const verification = await readVerification(rootPath, artifact, { ticket: h.ticket, planVersion: h.plan_version, plan, outcome: h.outcome, requireClauses });
       if (verification.gate && verification.gate.mode !== h.data.gate) fail('Handoff gate disagrees with verification evidence.');
       continue;
     }
@@ -165,6 +165,7 @@ export async function validateArtifacts(handoff, root) {
     const actual = await realpath(resolved);
     if (!actual.startsWith(`${directory}${path.sep}`)) fail(`Artifact symlink escapes run artifacts: ${artifact}`);
     if (!(await stat(resolved)).isFile()) fail(`Artifact is not a file: ${artifact}`);
+    if (h.stage === 'plan' && requireClauses) traceability(await readFile(actual, 'utf8'), { requireClauses: true });
     if (h.stage === 'execute' || h.stage === 'review') {
       const report = await readFile(actual, 'utf8');
       const label = h.stage === 'execute' ? 'Execute outcome' : 'Orchestrator outcome';
@@ -378,7 +379,8 @@ async function main(args) {
   if (!['validate', 'next'].includes(command) || !options.handoff || !options.root) {
     fail('Usage: handoff.mjs validate|next --handoff PATH --root PROJECT_ROOT [--state PATH] [--previous-review PATH] [--related-failures N] [--choice CHOICE] [--escalate REASON]');
   }
-  const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root);
+  const state = options.state ? parseState(await readFile(options.state, 'utf8'), options.state) : null;
+  const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root, { requireClauses: state?.fields.acceptance_evidence_version === '1' });
   const expectedDirectory = path.join(runDirectory(path.resolve(options.root), h.ticket), `${h.ticket}-handoffs`);
   if (path.dirname(path.resolve(options.handoff)) !== expectedDirectory || !new RegExp(`^${h.stage}-[1-9]\\d*\\.json$`).test(path.basename(options.handoff))) {
     fail(`Handoff path must be make-it-work/${h.ticket}/${h.ticket}-handoffs/${h.stage}-<N>.json.`);
@@ -390,7 +392,6 @@ async function main(args) {
   if (currentNumber !== Math.max(...numbers)) fail('Handoff is stale; use the newest result for this stage.');
   if (command === 'validate') return { valid: true, ticket: h.ticket, stage: h.stage, outcome: h.outcome ?? h.status };
   if (!options.state) fail('next requires --state.');
-  const state = parseState(await readFile(options.state, 'utf8'), options.state);
   if (h.stage === 'plan' && h.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
     testingPolicy(await readFile(path.resolve(options.root, h.artifacts.plan), 'utf8'), { required: true });
   }

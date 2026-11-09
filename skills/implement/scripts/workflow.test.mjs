@@ -246,7 +246,7 @@ test('the controller retains the existing handoff boundary requiring testing pol
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const directory = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(directory);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy');
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | Save record | Save |\n');
   await writeFile(path.join(directory, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(statePath, 'utf8');
   await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Verification Policy/);
@@ -349,4 +349,18 @@ test('spec conflict persists an approval wait that Autopilot cannot skip', async
   assert.equal(accepted.fields.phase, 'plan');
   assert.equal(accepted.fields.spec_revision_pending, 'false');
   assert.match(await readFile(statePath, 'utf8'), /Spec conflict: AC1/);
+});
+
+test('a fresh controller rejects a scenario-only plan without advancing state', async (t) => {
+  const { root, statePath, apply } = await fixture(t);
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
+  await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior.' });
+  await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
+  const dir = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(dir);
+  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Total passes |\n');
+  await writeFile(path.join(dir, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  const before = await readFile(statePath, 'utf8');
+  assert.equal(parseState(before).fields.acceptance_evidence_version, '1');
+  await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Requirement clause column/);
+  assert.equal(await readFile(statePath, 'utf8'), before);
 });

@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { generateDashboard, parseState } from './render-status.mjs';
+import { validateArtifacts } from './handoff.mjs';
 import { transition } from './workflow.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 
@@ -355,4 +356,38 @@ test('a rendered advisory review remains visible as an unfixed nit in the final 
   assert.equal(pkg.open_nits.length, 1);
   assert.match(pkg.open_nits[0], /Simplify the local name/);
   assert.match(await readFile(built.package, 'utf8'), /Open review nits \(unfixed\):.*Simplify the local name/);
+});
+
+test('new clause contract blocks name-only handoff/package claims and renders each pending clause', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-clause-evidence-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1\nacceptance_evidence_version: 1'));
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Total\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 parity | Include prepaid value | Total |\n| AC1 parity | Preserve ascending output order | Total |\n');
+  await writeFile(path.join(dir, 'DEMO-execute.md'), 'Execute outcome: PASSED\n');
+  const evidence = { version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Total', command: 'node test.js', result: 'pass', note: 'Named test passes', assertions: [{ clause: 'Include prepaid value', expected: '100 + 25 = 125', observed: '125', source: 'test.js:12 assert.equal(total, 125)' }] }] }],
+    gate: { mode: 'full-suite', result: 'pass', note: 'Tests passed' },
+    acceptance: [
+      { criterion: 'AC1 parity', clause: 'Include prepaid value', scenario: 'Total', status: 'automated', step: 1, note: 'Amount assertion passes' },
+      { criterion: 'AC1 parity', clause: 'Preserve ascending output order', scenario: 'Total', status: 'automated', step: 1, note: 'Same named test passes' },
+    ] };
+  const relative = 'make-it-work/DEMO/DEMO-verification-v1.json';
+  await writeFile(path.join(root, relative), JSON.stringify(evidence));
+  const handoff = { version: 1, ticket: 'DEMO', stage: 'execute', plan_version: 1, status: 'done', outcome: 'PASSED', artifacts: { report: 'make-it-work/DEMO/DEMO-execute.md', verification: relative }, data: { discoveries: [], failing_tests: [], gate: 'full-suite' } };
+  await assert.rejects(validateArtifacts(handoff, root, { requireClauses: true }), /Acceptance evidence is missing/);
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /Acceptance evidence is missing/);
+  evidence.acceptance[1] = { ...evidence.acceptance[1], status: 'unverified', step: null, note: 'No ordering assertion was executed.' };
+  await writeFile(path.join(root, relative), JSON.stringify(evidence));
+  await validateArtifacts(handoff, root, { requireClauses: true });
+  const built = run('build', root, state, '--draft', draft, '--repo', root);
+  const md = await readFile(built.package, 'utf8');
+  assert.match(md, /Verification: Pending verification — 1 of 1 acceptance criteria pending/);
+  assert.match(md, /Preserve ascending output order/);
+  assert.match(md, /Source: test.js:12/);
+  assert.match(md, /Expected: 100 \+ 25 = 125; Observed: 125/);
+  await generateDashboard(state);
+  assert.match(await readFile(state.replace('-state.md', '-status.html'), 'utf8'), /Preserve ascending output order/);
+  assert.equal(run('check', root, state).verification_summary.pending, 1);
 });

@@ -59,6 +59,9 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   }
   const planPath = path.join(directory, 'DEMO-2-plan.md');
   let plan = (await readFile(planPath, 'utf8')).replace('## Codebase Gaps', '## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| tiny-greeter-full | automated | configured | Actual test script |\n\n## Codebase Gaps');
+  plan = plan.replace('| Acceptance criterion | Test scenario |\n| --- | --- |', '| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |')
+    .replace('| Happy path row above |', '| Formal output includes the supplied name and ends in a period | Happy path row above |')
+    .replace('| Regression row above |', '| Existing greeting retains its name and punctuation | Regression row above |');
   if (workspace) plan = plan.replaceAll('tiny-greeter-full', 'api').replace('## Verification Policy', '### `web`\n\n| File | Change | Summary |\n| --- | --- | --- |\n| `src/greeting.js` | Modify | Add the formal greeting in the second service. |\n\n## Verification Policy').replace('| api | automated | configured | Actual test script |', '| api | automated | configured | Actual test script |\n| web | automated | configured | Actual test script |');
   await writeFile(planPath, plan); await updatePlan(planPath, 'set-total', { total: 1 }); await updatePlan(planPath, 'set-mode', { mode: 'inline' });
   await writeFile(path.join(directory, 'DEMO-2-testing-readiness.md'), '# Testing readiness\n\nStatus: ready\nConfigured node test.js executes real greeting assertions.\n');
@@ -80,9 +83,10 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   for (const repo of repos) await writeFile(path.join(repo, 'src/greeting.js'), 'function greet(name) { return `Hello, ${name}!`; }\nfunction greetFormally(name) { return `Good day, ${name}.`; }\nmodule.exports = { greet, greetFormally };\n');
   const result = await regression(); assert.equal(result.overall, 'pass');
   const ledgerPath = path.join(directory, 'DEMO-2-verification-v1.json');
-  const checks = ['Happy path row above', 'Regression row above'].map((subject) => ({ type: 'automated', subject, command: 'node test.js', result: 'pass', note: 'Executed actual greeting assertions.' }));
+  const checks = ['Happy path row above', 'Regression row above'].map((subject) => ({ type: 'automated', subject, command: 'node test.js', result: 'pass', note: 'Executed actual greeting assertions.', assertions: [{ clause: subject === 'Happy path row above' ? 'Formal output includes the supplied name and ends in a period' : 'Existing greeting retains its name and punctuation', expected: subject === 'Happy path row above' ? 'Good day, Ann.' : 'Hello, Ann!', observed: subject === 'Happy path row above' ? 'Good day, Ann.' : 'Hello, Ann!', source: `${workspace ? 'api/' : ''}test.js:${subject === 'Happy path row above' ? 6 : 5} strictEqual` }] }));
   await executionControl(planPath, { action: 'complete', steps: [{ number: 1, checks }] }, { ledgerPath, ticket: 'DEMO-2', dashboardState: statePath });
   const ledger = JSON.parse(await readFile(ledgerPath, 'utf8'));
+  ledger.acceptance = ledger.acceptance.map((row) => ({ ...row, status: 'automated', step: 1, note: 'Exact output assertion passed.' }));
   ledger.gate = { mode: 'full-suite', result: result.overall, note: 'Actual regression command result.', full_suites: repos.map((repo, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', command: 'node test.js', result: 'pass', note: 'Exited 0.' })) };
   await writeFile(ledgerPath, JSON.stringify(ledger));
   await writeFile(path.join(directory, 'DEMO-2-execute.md'), 'Execute outcome: PASSED\n');
