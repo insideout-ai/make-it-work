@@ -1,0 +1,77 @@
+evals/README.md
+  s_95f87c81183944::t_89dac173fc2dc3 21,45-46
+evals/feedback-on-session/feedback-on-session-problems/graders/report.md
+  s_95f87c81183944::t_3f637bcd130c94 1-7
+  s_95f87c81183944::t_de9c236dc471c2 8
+evals/feedback-on-session/feedback-on-session-clean/fixture/session.txt
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/feedback-on-session-clean/fixture.sh
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/feedback-on-session-clean/case.yaml
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/feedback-on-session-incomplete/fixture/session.txt
+  s_95f87c81183944::t_3f637bcd130c94 1-3
+evals/feedback-on-session/feedback-on-session-incomplete/case.yaml
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/feedback-on-session-problems/case.yaml
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/feedback-on-session-problems/fixture/session.txt
+  s_95f87c81183944::t_3f637bcd130c94 1-10
+CONTRIBUTING.md
+  s_95f87c81183944::t_89dac173fc2dc3 34,69
+evals/feedback-on-session/feedback-on-session-problems/prompt.md
+  s_95f87c81183944::t_3f637bcd130c94 1-10
+evals/feedback-on-session/feedback-on-session-incomplete/fixture.sh
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/feedback-on-session-incomplete/graders/boundaries.md
+  s_95f87c81183944::t_3f637bcd130c94 1-8
+evals/feedback-on-session/feedback-on-session-incomplete/graders/report.md
+  s_95f87c81183944::t_3f637bcd130c94 1-7
+evals/feedback-on-session/feedback-on-session-incomplete/prompt.md
+  s_95f87c81183944::t_3f637bcd130c94 1-10
+evals/feedback-on-session/feedback-on-session-problems/graders/boundaries.md
+  s_95f87c81183944::t_3f637bcd130c94 1-8
+skills/feedback-on-session/SKILL.md
+  s_95f87c81183944::t_7a131ad9380ea1 18
+  s_95f87c81183944::t_89dac173fc2dc3 1-17,19-43
+evals/feedback-on-session/feedback-on-session-clean/graders/report.md
+  s_95f87c81183944::t_3f637bcd130c94 1-7
+README.md
+  s_95f87c81183944::t_89dac173fc2dc3 30,47
+evals/feedback-on-session/feedback-on-session-clean/graders/boundaries.md
+  s_95f87c81183944::t_3f637bcd130c94 1-8
+evals/feedback-on-session/feedback-on-session-clean/prompt.md
+  s_95f87c81183944::t_3f637bcd130c94 1-10
+evals/feedback-on-session/feedback-on-session-problems/fixture.sh
+  s_95f87c81183944::t_3f637bcd130c94 1-5
+evals/feedback-on-session/README.md
+  s_95f87c81183944::t_059caa853b377c 1-20
+evals/run-suite-args.test.mjs
+  s_95f87c81183944::t_674d3e37b035eb 12
+evals/suites.json
+  s_ed8a89e6f04172::t_93311ed1ce8199 4,20-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "863933f5ba7c48db78d75644ef1b2f67e1f56a20",
+  "prompts": {},
+  "sessions": {
+    "s_95f87c81183944": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf28-5356-7a30-b81d-c7add7571c92",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_ed8a89e6f04172": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf28-5479-7f01-a3e7-1877f4f715c8",
+        "model": "unknown"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
