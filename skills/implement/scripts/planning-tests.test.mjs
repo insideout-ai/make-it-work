@@ -176,3 +176,10 @@ test('executable doctest edits stay within their declared source region', async 
   await writeFile(path.join(f.root, 'app.py'), source.replace('return 1', 'return 2'));
   assert.match(await f.check(), /Application files changed/);
 });
+
+test('legacy states without controller baseline metadata keep their original planning path', async (t) => {
+  const f = await planningFixture(t);
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(/^controller_version:.*\n/m, '').replace(/^workspace_snapshot:.*\n/m, ''));
+  assert.equal((await f.authorize()).required, false);
+  await assert.rejects(readFile(planningReceiptPath(f.statePath)), /ENOENT/);
+});

@@ -49,6 +49,7 @@ export async function authorizePlanningTests(statePath, input) {
   const root = await realpath(path.dirname(path.dirname(path.dirname(statePath))));
   assertRunState(root, statePath, f.ticket);
   if (f.status !== 'In Progress' || !['plan', 'fix-plan'].includes(f.phase)) fail('Authorize test edits only in active TDD Plan.');
+  if (f.controller_version !== '1' || !f.workspace_snapshot) return { required: false, reason: 'Legacy run has no controller startup baseline scope.' };
   if (state.audit.some((row) => ['execute', 'lightweight'].includes(row.to))) return { required: false, reason: 'Implementation was already authorized; the startup edit guard is released.' };
   if (f.phase !== 'plan' || (f.adaptive_version === '1' && f.mode !== 'tdd')) fail('Authorize test edits only in active TDD Plan.');
   if (f.spec === 'none' || f.spec_hash !== digest(await readFile(await within(root, f.spec)))) fail('Planning tests require the unchanged accepted spec.');
