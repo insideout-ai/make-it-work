@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { readVerification, traceability } from './verification.mjs';
 import { runArtifactName, runDirectory } from './artifact-layout.mjs';
+import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 
 const STAGES = {
@@ -394,6 +395,7 @@ async function main(args) {
   if (!options.state) fail('next requires --state.');
   if (h.stage === 'plan' && h.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
     testingPolicy(await readFile(path.resolve(options.root, h.artifacts.plan), 'utf8'), { required: true });
+    await checkTestingReadiness(options.root, state, { plan: await readFile(path.resolve(options.root, h.artifacts.plan), 'utf8') });
   }
   const previous = options['previous-review'] ? JSON.parse(await readFile(options['previous-review'], 'utf8')) : null;
   const related = options['related-failures'] === undefined ? null : Number(options['related-failures']);

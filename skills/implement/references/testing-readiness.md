@@ -6,6 +6,49 @@ Run inside `implement`'s Plan phase, before invoking `plan-the-work`, and before
 
 Every `define-test-strategy` call here runs under its **When run by implement** contract, in every autonomy mode. Pass the prohibition on running `go-deep` inline: skip its standalone onboarding offer, keep missing UC/domain mapping pending, and append the affected repo and concrete gap to Context discoveries for the completion recommendation. Do not turn testing readiness into full project onboarding or documentation repair. The initial Context check's missing/incomplete-context stop remains unchanged.
 
+## Parent-owned completion barrier
+
+For a fresh run with `testing_readiness_version: 1`, the parent runs
+`node "<implement-base>/scripts/testing-readiness.mjs" begin --state "<exact-state-path>"`
+before readiness work or delegation. Keep the returned report path; replans use
+versioned paths. A retry reuses the pending/completed checkpoint. If another
+readiness pass is actually needed in the same plan version, use `begin --restart 1`
+before dispatching it. Retain existing verification choices unless they changed.
+
+Only the parent begins/completes this checkpoint. A readiness delegate may update
+its assigned report and setup/strategy/map files, but must not call these mutation
+commands, edit the workflow state, or launch dependent planning. Pass that rule
+and the report schema below to the delegate. Wait for **all actual handbacks**;
+a file saying ready or a running agent's progress message is not a handback.
+Reconcile actual commands/results, limitations, selected layers and any conflicting
+claims before sealing the report. Do not run `plan-the-work`, draft progression
+tests, or dispatch a planning agent while readiness is pending. Independent
+read-only inspection may continue; dependent planning must wait. Use the verified
+Plan wait, never a fake pause, sleeps or polling to bypass this order.
+
+The startup hook refuses direct `begin`/`complete` helper calls while a current
+Plan/fix-plan delegate is still running. This also prevents restarting readiness
+under a running planner. Keep each helper call in its own Bash invocation. Once
+all handbacks are reconciled, the parent runs:
+
+`node "<implement-base>/scripts/testing-readiness.mjs" complete --state "<exact-state-path>"`
+
+Completion hashes the report, binds it to the run, spec, plan version and approved
+scope, updates only the readiness pointer, and records a Result. It never advances
+the phase, approves a plan or changes loop counters. Then run `check` with the same
+state path before invoking/resuming planning; pass that path to the planner so it
+also checks at entry. Pending/stale readiness returns `Testing readiness required:`
+to the parent, rather than starting work or inventing an external blocker. Test
+authorization, plan handoff, entry into Execute and packaging independently check
+the completion proof. A normal complete retry repairs audit/rendering without
+recounting. No new human approval is introduced.
+
+Keep this completed report as the **before-planning** evidence. New progression
+red tests do not invalidate the observed baseline, and must not be used to rewrite
+it as a setup failure. A report/policy change invalidates the checkpoint; reconcile
+it through readiness rather than restamping a hash. Historical saved runs without
+the marker retain their existing policy; never add it on Resume.
+
 ## Inspect and choose
 
 Follow [activity.md](activity.md) throughout this Plan-phase work: narrate and checkpoint before inspecting setup, refreshing the strategy/map, establishing tooling and verifying it. Pass the resolved `implement` directory and activity contract into nested inline skills. If any work is delegated, the parent saves its description before dispatch and retains it while waiting; subagents must not write workflow activity or dashboards. After a result arrives, save the actual next activity before continuing.
@@ -43,6 +86,30 @@ Pass the readiness artifact, setup baseline file paths, and this table (one row 
 | example-api | automated | configured | Existing runner, strategy refreshed |
 | example-ui | manual | user | User deferred tooling setup for this run |
 ```
+
+For checkpoint-enabled runs, the same report must include this machine-readable
+results table, exactly one row per policy repo:
+
+```markdown
+## Readiness results
+
+| Repo | Status | Setup | Baseline | Evidence |
+| --- | --- | --- | --- | --- |
+| example-api | ready | existing | pass | npm test: actual baseline passed; strategy/map refreshed |
+| example-ui | manual | manual | not-applicable | User explicitly deferred setup; decision recorded above |
+```
+
+Automated Status is `ready` only when the readiness work has finished; `pending`
+and `blocked` cannot be sealed. Setup is `existing` or `established`; Baseline is
+`pass`, `fail` or `not-run`. Record the actual command/result or concrete reason
+in Evidence. An existing configured runner may have a known failing or locally
+unavailable baseline: retain that fact and its normal planning baseline policy,
+never relabel it passing. Newly established setup requires a real nonempty passing
+behavior test, so its Baseline must be `pass`. Manual rows use Status/Setup
+`manual` and Baseline `not-applicable`, with the explicit user/project policy.
+These results establish readiness to plan, not acceptance verification or a green
+regression gate. The helper checks schema, scope and freshness; the parent must
+verify the evidence and reconcile it with the actual delegate report.
 
 `Mode` is `automated` or `manual`. `Decision` is `configured`, `user`, `project-policy`, or `autonomy-default`; manual permits only `user` or `project-policy`. Include the actual decision/policy reference in Reason. Recommendations and pending setup cannot be recorded as automated readiness.
 

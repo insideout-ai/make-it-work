@@ -10,6 +10,8 @@ import { writeReview } from '../../../scripts/review-report.mjs';
 import { executionControl } from '../../execute/scripts/step-control.mjs';
 import { updatePlan } from '../../execute/scripts/plan-status.mjs';
 import { applyWorkflow, initializeWorkflow } from './workflow.mjs';
+import { testingReadiness } from './testing-readiness.mjs';
+import { testingPolicy } from './testing-policy.mjs';
 import { prepareReviewScope } from './review-scope.mjs';
 import { prepareScope, approveScope, runScope } from './workspace-scope.mjs';
 import { realpath } from 'node:fs/promises';
@@ -64,8 +66,12 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
     .replace('| Regression row above |', '| Existing greeting retains its name and punctuation | Regression row above |');
   if (workspace) plan = plan.replaceAll('tiny-greeter-full', 'api').replace('## Verification Policy', '### `web`\n\n| File | Change | Summary |\n| --- | --- | --- |\n| `src/greeting.js` | Modify | Add the formal greeting in the second service. |\n\n## Verification Policy').replace('| api | automated | configured | Actual test script |', '| api | automated | configured | Actual test script |\n| web | automated | configured | Actual test script |');
   await writeFile(planPath, plan); await updatePlan(planPath, 'set-total', { total: 1 }); await updatePlan(planPath, 'set-mode', { mode: 'inline' });
-  await writeFile(path.join(directory, 'DEMO-2-testing-readiness.md'), '# Testing readiness\n\nStatus: ready\nConfigured node test.js executes real greeting assertions.\n');
-  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('testing_readiness: none', 'testing_readiness: make-it-work/DEMO-2/DEMO-2-testing-readiness.md'));
+  const regression = () => runRegression({ version: 1, mode: 'full', workspace: Boolean(workspace), runs: repos.map((cwd, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } })) });
+  assert.equal((await regression()).overall, 'fail');
+  const begun = await testingReadiness(statePath, 'begin');
+  const policy = testingPolicy(plan, { required: true });
+  await writeFile(path.join(root, begun.report), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n' + policy.map((row) => `| ${row.Repo} | ${row.Mode} | ${row.Decision} | ${row.Reason} |`).join('\n') + '\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n' + policy.map((row) => `| ${row.Repo} | ready | existing | fail | Existing configured runner executed; the fixture already contains a red feature progression test |`).join('\n') + '\n');
+  await testingReadiness(statePath, 'complete');
   const planResult = await apply('handoff', { handoff: await saveHandoff('plan', { outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO-2/DEMO-2-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }) });
   if (autonomy === 'guided') {
     assert.equal(planResult.fields.status, 'Paused');
@@ -76,8 +82,6 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
       await assert.rejects(runRegression({ version: 1, mode: 'full', runs: [{ ...run, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } }] }, { statePath, auditId: 'reject-unapproved-scope' }), /outside the approved repository scope/);
     }
   }
-  const regression = () => runRegression({ version: 1, mode: 'full', workspace: Boolean(workspace), runs: repos.map((cwd, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } })) });
-  assert.equal((await regression()).overall, 'fail');
   await executionControl(planPath, { action: 'start', id: 'formal-greeting-step-1', steps: [1] }, { dashboardState: statePath });
   await executionControl(planPath, { action: 'begin-attempt', id: 'formal-greeting-fix-1', step: 1, diagnosis: { failure: 'The formal greeting assertion fails.', evidence: 'node test.js output; src/greeting.js lacks greetFormally.', cause: 'The required formal greeting function is missing.', next_change: 'Implement and export greetFormally.', expected_result: 'Formal greeting and existing greeting assertions pass.' } });
   for (const repo of repos) await writeFile(path.join(repo, 'src/greeting.js'), 'function greet(name) { return `Hello, ${name}!`; }\nfunction greetFormally(name) { return `Good day, ${name}.`; }\nmodule.exports = { greet, greetFormally };\n');

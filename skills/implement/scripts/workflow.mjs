@@ -7,6 +7,7 @@ import { parseState, generateDashboard } from './render-status.mjs';
 import { decideNext, validateArtifacts } from './handoff.mjs';
 import { approve as approveFinalPackage, checkFinalPackage } from './final-package.mjs';
 import { contextInventory } from '../../../scripts/context-inventory.mjs';
+import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
@@ -434,6 +435,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     }
     if (handoff?.stage === 'plan' && handoff.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
       const policy = testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
+      await checkTestingReadiness(root, state, { plan: await readFile(await within(root, handoff.artifacts.plan), 'utf8') });
       if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
           || policy.some((row) => !workspaceContract.repos.some((repo) => repo.id === row.Repo)))) fail('Verification policy must cover approved product repos and cannot add unapproved repos.');
     }
@@ -459,6 +461,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
     if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
+    if (f.testing_readiness_version === '1' && f.phase === 'execute' && state.fields.phase !== 'execute') await checkTestingReadiness(root, { ...state, fields: f }, { plan: await readFile(await within(root, f.plan), 'utf8') });
     if (input.event === 'scope-update') {
       f.workspace_contract = JSON.stringify(workspaceContract);
       f.branch = workspaceContract.repos[0].branch;

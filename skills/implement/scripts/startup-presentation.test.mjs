@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { pendingStartup, startupHook } from './startup-presentation.mjs';
+import { testingReadiness } from './testing-readiness.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
 import { readHookEvents } from './hook-feedback.mjs';
 
@@ -388,6 +389,9 @@ test('authorized Plan test edits remove only the premature-edit hold; active-sta
   await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: caller change').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# accepted spec\n')}`));
   await mkdir(path.join(run.root, 'test'));
   await writeFile(path.join(run.root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
+  const readiness = await testingReadiness(run.result.state, 'begin');
+  await writeFile(path.join(run.root, readiness.report), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing Node runner |\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ready | existing | not-run | Hook-only fixture; baseline not requested |\n');
+  await testingReadiness(run.result.state, 'complete');
   await authorizePlanningTests(run.result.state, { repo: run.root, file: 'test/policy.test.js', kind: 'test-file', step: 1, reason: 'Progression assertion' });
   await writeFile(path.join(run.root, 'test/policy.test.js'), '// planned red test\n');
   const after = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', transcript_path: run.transcript });
@@ -428,4 +432,22 @@ test('Plan waits require runtime proof and never hide production edits or releas
     const run = await activeAgentRun(t, phase); run.launch(); await run.saveEvents();
     assert.equal((await run.check()).decision, 'block');
   }
+});
+
+test('readiness cannot be completed with a live Plan delegate, while waiting remains allowed', async (t) => {
+  const run = await activeAgentRun(t, 'plan'); run.launch(); await run.saveEvents();
+  const input = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'node "/plugin/scripts/testing-readiness.mjs" complete --state STATE' }, transcript_path: run.transcript };
+  assert.equal((await startupHook(input)).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal((await startupHook({ ...input, tool_input: { command: 'node /plugin/scripts/testing-readiness.mjs begin --state STATE' } })).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal((await run.check()).decision, undefined);
+  assert.deepEqual(await startupHook({ ...input, tool_input: { command: 'git status --short' } }), {});
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>worker</task-id>\n<status>completed</status>\n</task-notification>' });
+  await run.saveEvents();
+  assert.equal((await startupHook(input)).hookSpecificOutput?.permissionDecision, undefined);
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  assert.ok((await readHookEvents(run.result.state)).some((row) => row.kind === 'readiness-pending'));
+  const saved = await readFile(run.result.state, 'utf8');
+  await writeFile(run.result.state, 'invalid state');
+  assert.match((await startupHook(input)).hookSpecificOutput.additionalContext, /could not verify/);
+  await writeFile(run.result.state, saved);
 });

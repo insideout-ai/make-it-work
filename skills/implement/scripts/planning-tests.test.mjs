@@ -7,6 +7,7 @@ import test from 'node:test';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { initializeWorkflow } from './workflow.mjs';
 import { parseState } from './render-status.mjs';
+import { testingReadiness } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { authorizePlanningTests, planningReceiptPath } from './planning-tests.mjs';
 
@@ -27,6 +28,9 @@ async function planningFixture(t, { files = {}, dirty = false } = {}) {
   await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# Spec: return 2\n')}`));
   const planPath = path.join(root, 'make-it-work/DEMO/DEMO-plan.md');
   await writeFile(planPath, '# Plan\n\n## Steps\n\n### Step 1 — Change behavior\n\n**Tests:** app: `test/policy.test.js`, `app.py`, `app.js`, `test/new.test.js`, `test/other.test.js`, `test/linked.test.js`, `test/é space.test.js`, node --test, progression pending\n');
+  const readiness = await testingReadiness(statePath, 'begin');
+  await writeFile(path.join(root, readiness.report), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Node runner is available |\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ready | existing | not-run | Guard-only fixture; no baseline run requested here |\n');
+  await testingReadiness(statePath, 'complete');
   const currentState = async () => parseState(await readFile(statePath, 'utf8'), statePath);
   const check = async () => prematureImplementation(initialized, await currentState());
   const authorize = (extra = {}) => authorizePlanningTests(statePath, { repo: root, file: 'test/policy.test.js', kind: 'test-file', step: 1, reason: 'Progression assertion for new behavior', ...extra });
@@ -121,6 +125,8 @@ test('approved sibling test edits stay scoped and older initializer baselines fa
   const selected = [...JSON.parse(f.initialized.fields.workspace_snapshot), ...JSON.parse(sibling.initialized.fields.workspace_snapshot)];
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(/^workspace_snapshot:.*$/m, `workspace_snapshot: ${JSON.stringify(selected)}`));
   f.initialized.implementation_baseline.push(...sibling.initialized.implementation_baseline);
+  await testingReadiness(f.statePath, 'begin', { restart: true });
+  await testingReadiness(f.statePath, 'complete');
   await f.authorize({ repo: sibling.root });
   await writeFile(path.join(sibling.root, 'test/policy.test.js'), '// planned sibling test\n');
   assert.equal(await f.check(), null);
@@ -160,8 +166,7 @@ test('replans, escalations and fix planning after implementation require no star
   const f = await planningFixture(t);
   const saved = await readFile(f.statePath, 'utf8');
   for (const route of ['execute', 'lightweight']) for (const phase of ['plan', 'fix-plan']) {
-    const fields = await f.currentState();
-    await writeFile(f.statePath, saved.replace('phase: plan', `phase: ${phase}`).trimEnd() + `\n| 2 | ${fields.fields.start_time} | plan | ${route} | Implementation authorized |\n`);
+    await writeFile(f.statePath, saved.replace('phase: plan', `phase: ${phase}`).trimEnd() + `\n| ${parseState(saved).audit.length + 1} | ${new Date(parseState(saved).audit.at(-1).epoch + 1).toISOString()} | plan | ${route} | Implementation authorized |\n`);
     assert.equal((await f.authorize()).required, false);
     await assert.rejects(readFile(planningReceiptPath(f.statePath)), /ENOENT/);
   }

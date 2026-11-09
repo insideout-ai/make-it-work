@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
+import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
 import { readStartupConfirmation, saveStartupConfirmation, isConfirmationBoundary, hasDashboardLink as hasLink } from './startup-confirmation.mjs';
@@ -175,6 +176,16 @@ export async function startupHook(input) {
     : input.hook_event_name === 'PreToolUse'
       ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
       : advisory(input.hook_event_name, reminder(progress.initialized)), 'missing-dashboard-link');
+  if (input.hook_event_name === 'PreToolUse' && readinessMutationCommand(input)) {
+    let state;
+    try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing continuation handling keeps repair tools available. */ }
+    const entered = state?.audit.findLast((row) => row.to === state.fields.phase && row.from !== row.to)?.epoch;
+    if (state?.fields.testing_readiness_version === '1' && ['plan', 'fix-plan'].includes(state.fields.phase) &&
+        progress.agents.some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= entered)) {
+      return observeHook(input, progress, events, { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny',
+        permissionDecisionReason: 'Plan delegates are still running. Wait for their actual handback before beginning or completing readiness, reconcile the report, then continue planning. Keep the run In Progress; a verified Plan wait is allowed.' } }, 'readiness-pending');
+    }
+  }
   const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop', progress.agents);
   if (input.hook_event_name === 'Stop') {
     const expectedBoundary = isConfirmationBoundary(input, confirmation) && hold.reason?.startsWith('The dashboard link has been shared');

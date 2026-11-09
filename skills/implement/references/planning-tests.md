@@ -12,7 +12,7 @@ After a run has entered Execute or Lightweight, its startup edit guard is alread
 Markdown and files under `docs/` or `.claude/` are already outside the startup implementation baseline; retain their existing documentation/metadata write path without this checkpoint.
 
 The parent passes its exact state path and the resolved Implement skill directory
-to planning. Before the first edit to each test file:
+to planning. For checkpoint-enabled runs, complete and check testing readiness first. A pending/stale readiness proof blocks authorization, including a reused test-file authorization. Then, before the first edit to each test file:
 
 1. Save the draft plan at its normal ticket/version path. Its numbered step must
    declare the exact repo-relative test path in backticks in `**Tests:**`. The rest

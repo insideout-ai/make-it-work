@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Require parent-completed testing readiness before planning/test authorization, reject completion under live delegates, and preserve the actual baseline instead of mixing it with later progression-red tests.
 - Allow verified current-phase background delegates during Plan to be awaited without Stop-hook loops, including testing readiness and planning; completion and failure restore the continuation requirement.
 - Permit preauthorized Plan-stage test edits while preserving the guard on production edits, early changes and unregistered test paths; embedded test authorizations protect surrounding source bytes.
 - Require clause-level assertion or observation evidence for acceptance verification in fresh TDD runs; preserve unsupported clauses as pending in delivery artifacts.

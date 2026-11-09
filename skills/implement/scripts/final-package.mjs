@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
+import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
@@ -146,6 +147,8 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   if (f.testing_readiness !== undefined) {
     runArtifactName(f.testing_readiness, f.ticket, 'Testing readiness');
     evidence.testing_readiness = await artifact(root, f.testing_readiness);
+    const readiness = await checkTestingReadiness(root, state, { plan: await readFile(path.resolve(root, f.plan), 'utf8') });
+    if (readiness.required) evidence.testing_readiness_checkpoint = await artifact(root, readiness.receipt);
     testingPolicy(await readFile(path.resolve(root, f.plan), 'utf8'), { required: true });
   }
   let verification = null;

@@ -130,3 +130,14 @@ undeclared, deleted, stale or out-of-scope changes and changed HEADs. Ordinary
 stage continuation and review remain required. Receipt prefix/suffix bytes are
 local working data, never automatically exported. See the [planning-test
 contract](../skills/implement/references/planning-tests.md).
+
+### Readiness before planning
+
+New runs opt into `testing_readiness_version: 1`. The parent begins a pending
+checkpoint, waits for readiness handbacks, reconciles the structured report and
+completes it with `testing-readiness.mjs`. Runtime hooks reject beginning/completing
+readiness under a live current-phase delegate. Planners check before starting;
+test authorization, plan handoff, Execute entry and final packages require the
+same current report/policy proof. Completion changes only the existing readiness
+pointer and records an informational Result, without new approvals or counters.
+Existing-run markers are not backfilled. See the [readiness contract](../skills/implement/references/testing-readiness.md).

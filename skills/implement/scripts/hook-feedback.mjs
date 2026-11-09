@@ -6,7 +6,7 @@ import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
-const kinds = new Set(['missing-dashboard-link', 'active-stage', 'premature-implementation', 'state-unavailable', 'agent-wait', 'clear']);
+const kinds = new Set(['missing-dashboard-link', 'active-stage', 'premature-implementation', 'state-unavailable', 'readiness-pending', 'agent-wait', 'clear']);
 const phases = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval', 'execute', 'lightweight', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete']);
 const hooks = new Set(['PreToolUse', 'Stop']);
 const iso = (value) => typeof value === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(value) && Number.isFinite(Date.parse(value));

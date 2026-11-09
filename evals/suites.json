@@ -61,6 +61,7 @@
     "implement-feedback-nonminimal",
     "implement-autopilot-full",
     "implement-plan-agent-wait",
+    "implement-readiness-order",
     "implement-dashboard-autonomous-start",
     "implement-no-tooling",
     "implement-empty-strategy",
