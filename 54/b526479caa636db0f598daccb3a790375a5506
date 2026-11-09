@@ -1,0 +1,87 @@
+skills/implement/references/testing-readiness.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 9-51,90-112
+  s_e8cdb860e0eee3::t_c0401fb2e13c06 113
+skills/implement/scripts/final-package.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 10,150-151
+evals/implement/readiness-order/case.yaml
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-5
+skills/implement/scripts/hook-feedback.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 9
+skills/implement/scripts/planning-tests.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 10,54
+evals/implement/readiness-order/graders/checkpoint.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-6
+evals/implement/readiness-order/graders/authorized-test.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-6
+evals/implement/readiness-order/graders/progression-test.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-5
+evals/implement/readiness-order/graders/saved-pause.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-7
+evals/implement/readiness-order/graders/source-preserved.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-6
+evals/suites.json
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 64
+evals/implement/readiness-order/prompt.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-19
+docs/deterministic-artifacts.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 133-143
+evals/implement/implement-autopilot-full/graders/readiness-checkpoint.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-6
+skills/implement/references/planning-tests.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 15
+evals/implement/readiness-order/graders/real-wait.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-7
+skills/implement/scripts/workflow.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 10,438
+  s_e8cdb860e0eee3::t_497894460e842a 464
+skills/plan-the-work/SKILL.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 377-378
+skills/implement/scripts/render-status.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 286
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_381234f8ac4755 211,421
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 484
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 13
+skills/implement/scripts/handoff.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 9,398
+skills/implement/scripts/testing-readiness.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 1-10,12-55,57-105
+  s_e8cdb860e0eee3::t_0414154237a457 11,56
+evals/implement/readiness-order/fixture.sh
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-14
+skills/implement/scripts/startup-presentation.mjs
+  s_e8cdb860e0eee3::t_381234f8ac4755 184-185,187-188
+  s_e8cdb860e0eee3::t_073b52dd67d485 180-183
+  s_e8cdb860e0eee3::t_3bbca05581ed4f 8,179,186
+evals/implement/readiness-order/graders/no-question.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-7
+evals/implement/readiness-order/graders/early-completion-denied.md
+  s_e8cdb860e0eee3::t_9b95c3edfecdad 1-7
+evals/plan-agent-wait.test.mjs
+  s_e8cdb860e0eee3::t_0eed3bb5dbf12e 18-29
+skills/implement/scripts/planning-tests.test.mjs
+  s_e8cdb860e0eee3::t_47ca7b6497bd0b 10,31-33,128-129,169
+skills/implement/scripts/startup-presentation.test.mjs
+  s_e8cdb860e0eee3::t_b3fb85bb5e6d1b 10,392-394,436-453
+skills/implement/scripts/testing-readiness.test.mjs
+  s_e8cdb860e0eee3::t_ee5f2bff6b2adb 1-129
+skills/implement/scripts/workflow-integration.test.mjs
+  s_e8cdb860e0eee3::t_d08135a97c65c9 13-14,69-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "54b526479caa636db0f598daccb3a790375a5506",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
