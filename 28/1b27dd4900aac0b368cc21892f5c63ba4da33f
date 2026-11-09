@@ -1,0 +1,27 @@
+evals/implement/implement-autopilot-full/graders/no-premature-edit-holds.md
+  s_e8cdb860e0eee3::t_156b4d8d12c425 3,8-9
+skills/implement/references/planning-tests.md
+  s_e8cdb860e0eee3::t_9f4aae71b3685c 8-11
+skills/implement/scripts/planning-tests.mjs
+  s_e8cdb860e0eee3::t_0350c027cd0024 51-53,68
+skills/implement/scripts/planning-tests.test.mjs
+  s_e8cdb860e0eee3::t_b16ebbb912b1b3 158-178
+skills/plan-the-work/SKILL.md
+  s_e8cdb860e0eee3::t_6ac83436065252 260
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "281b27dd4900aac0b368cc21892f5c63ba4da33f",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
