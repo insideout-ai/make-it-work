@@ -1,6 +1,8 @@
-import { execFile } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { strategyPointer, validateStrategy } from '../scripts/test-strategy.mjs';
+import { validateMap } from '../scripts/test-map.mjs';
 
 function scalar(value) {
   const trimmed = value.trim();
@@ -82,11 +84,15 @@ async function readEvidence(focus, context) {
 
 function readableTrace(events) {
   const lines = [];
+  const bashCalls = new Map();
   for (const event of events) {
     if (event.type === 'assistant') {
       for (const part of event.message?.content ?? []) {
         if (part.type === 'text') lines.push(`ASSISTANT: ${part.text}`);
-        if (part.type === 'tool_use') lines.push(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
+        if (part.type === 'tool_use') {
+          lines.push(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
+          if (part.name === 'Bash' && part.id) bashCalls.set(part.id, part.input);
+        }
       }
     } else if (event.type === 'user') {
       const content = event.message?.content;
@@ -95,7 +101,12 @@ function readableTrace(events) {
         // Skill bodies arrive as user text, not tool results. Keep their evidence
         // visible to the judge while preserving its role as transcript data.
         if (part.type === 'text') lines.push(`USER CONTEXT: ${part.text}`);
-        else if (part.type === 'tool_result') lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
+        else if (part.type === 'tool_result') {
+          const call = bashCalls.get(part.tool_use_id);
+          if (call) lines.push(`TOOL RESULT SOURCE ${part.tool_use_id}: Bash ${JSON.stringify(call)}`);
+          lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
+          if (part.is_error !== undefined) lines.push(`TOOL RESULT ERROR ${part.tool_use_id}: ${part.is_error}`);
+        }
       }
     } else if (event.type === 'result') lines.push(`FINAL: ${event.result}`);
   }
@@ -110,8 +121,44 @@ export function transcriptContext(transcript, fixtureDir) {
     lastMessage: result.result ?? '', fixtureDir };
 }
 
+async function gradeStrategyPointer(context) {
+  const read = async (file) => {
+    try { return await readEvidence({ source: 'file', path: file }, context); }
+    catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  };
+  const claude = await read('CLAUDE.md');
+  const strategy = await read('.claude/skills/test-strategy/SKILL.md');
+  const map = await read('.claude/testing/test-map.json');
+  let baseline = null;
+  try { baseline = execFileSync('git', ['-C', context.fixtureDir, 'show', 'HEAD:CLAUDE.md'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { /* Missing orientation is a supported skip. */ }
+  if (strategy === null || map === null) {
+    const blocked = context.events.some((event) => event.type === 'user' && Array.isArray(event.message?.content) && event.message.content.some((part) => part.type === 'tool_result' && part.is_error));
+    if (claude !== baseline || !blocked) throw new Error('Metadata is incomplete without an unchanged pointer and visible blocked-write outcome.');
+    return 'Metadata write blocked/partial; CLAUDE.md remains unchanged. Complete fallback/reporting is checked separately.';
+  }
+  const validation = validateStrategy(strategy);
+  if (!validation.valid) throw new Error(validation.errors.join('; '));
+  const parsed = validateMap(JSON.parse(map));
+  if (parsed.productRepo !== validation.repo) throw new Error('Strategy and map Repo IDs differ.');
+  if (claude === null || !/^## Skills Reference\s*$/m.test(claude)) {
+    if (claude !== baseline) throw new Error('CLAUDE.md changed despite a missing Skills Reference.');
+    return 'Valid saved metadata; pointer skipped because orientation/Skills Reference is absent.';
+  }
+  if ((claude.match(/^\|\s*\/?test-strategy\s*\|/gm) ?? []).length !== 1 || strategyPointer(claude).changed) throw new Error('Missing, duplicate or noncanonical test-strategy pointer.');
+  if (claude !== baseline) {
+    if (baseline === null || strategyPointer(baseline).markdown !== claude) throw new Error('CLAUDE.md changes extend beyond the canonical pointer update.');
+    const calls = new Set(context.events.flatMap((event) => event.type === 'assistant' ? event.message?.content ?? [] : [])
+      .filter((part) => part.type === 'tool_use' && part.name === 'Bash' && /test-strategy\.mjs/.test(part.input?.command ?? '') && /\bpointer\b/.test(part.input.command)).map((part) => part.id));
+    const receipt = context.events.some((event) => event.type === 'user' && Array.isArray(event.message?.content) && event.message.content.some((part) =>
+      part.type === 'tool_result' && !part.is_error && calls.has(part.tool_use_id) && /"changed"\s*:\s*true/.test(typeof part.content === 'string' ? part.content : JSON.stringify(part.content))));
+    if (!receipt) throw new Error('Pointer changed without a successful supported helper receipt.');
+  }
+  return 'Saved strategy/map validate and agree; exactly one canonical pointer is present. The helper validates metadata before pointer writes.';
+}
+
 export async function gradeHeadlessLocal(grader, context) {
   try {
+    if (grader.type === 'strategy_pointer') return { name: grader.name, passed: true, detail: await gradeStrategyPointer(context) };
     if (grader.type === 'file_exists') {
       const relative = grader.path;
       safePath(context.fixtureDir, relative);

@@ -4,7 +4,7 @@ description: "Orchestrates the make-it-work pipeline for one ticket — context 
 disable-model-invocation: true
 hooks:
   PostToolUse:
-    - matcher: Bash
+    - matcher: '*'
       hooks:
         - type: command
           command: 'node "${CLAUDE_PLUGIN_ROOT}/skills/implement/scripts/startup-presentation.mjs"'
@@ -52,15 +52,28 @@ hooks:
 3. After sending the chat message, follow `continuation`. A normal
    run continues into Context check in the same turn, without a user reply.
 
-The skill's startup-presentation hooks reinforce this order. After a successful
-init, the next tool/terminal response is held until the session transcript
-contains the actual assistant chat link. Emit the link and retry the held work;
-no user confirmation or state-field acknowledgment is involved. These hooks
-write no files and do not affect Resume or sessions without a fresh init.
-For a normal controller startup, the Stop hook also checks the saved state after
-that announcement: while Context check is still In Progress, continue in the
-same turn. A genuine question or blocker must use the documented saved pause or
-stop. Pending offline-answer waits retain their existing behavior.
+The skill's startup-presentation hooks reinforce this order. The immediate
+post-init reminder requires the assistant chat action. PreToolUse waits up to
+four seconds for buffered transcript writes before holding a genuinely missing
+announcement. Partial final JSONL writes and diagnostic request replays do not
+count as missing or new announcements; do not repeat a link already sent. Stop requires the actual chat link
+and checks that a fresh run is no longer In Progress at any stage. Continue the
+saved stage in this turn until completion or a genuine saved pause/stop. Pending
+offline-answer waits retain their existing behavior.
+
+New initialization also captures a read-only baseline of application files in
+every approved repository. Before the first authorized Execute or Lightweight
+stage, tool hooks detect changes relative to that baseline and Stop blocks a
+terminal response even if a same-phase stop was saved. Workflow artifacts,
+Markdown, project context under .claude and docs are excluded so refinement and
+planning can write their documented outputs. Existing local edits are preserved.
+This detects completed tool mutations; it does not undo them or sandbox Bash.
+On a violation, preserve the edits and recover through refinement, risk assessment,
+the approved implementation route and independent review. Resume the saved phase
+if an internal failure was checkpointed as Stopped. Never claim a bypassed change
+is complete or ask the user to accept it as the default escape. Only a genuine
+external blocker justifies asking for guidance. A new user turn clears the fresh
+startup obligation; these hooks do not replace Resume checks or retrofit old runs.
 
 The link is an announcement, not a stopping point. Do not end the turn after
 showing it, request acknowledgment, ask whether to continue, or require the user
@@ -601,6 +614,7 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 - in Lightweight mode, pass no plan path — the spec is the sole requirements source — and skip the two bullets below. For a re-review, pass the previous review's actionable findings with their regions (from its handoff) so Review can flag repeat offenders;
 - when `gate: none`, pass whether this is an explicit manual policy (`VERIFIED_MANUALLY`) or the late `GATE_NO_RESULT` fallback. Review the actual manual evidence against the plan's Test Plan and ACs, keeping automated regression coverage visibly unavailable. For mixed policies, inspect manual evidence alongside the automated result;
 - for `verification_version: 1`, pass the verified `make-it-work/<TICKET>/<TICKET>-verification-v<plan_version>.json` path. Ask Review to read it against the plan's AC traceability table, treating `unverified` rows as visible gaps rather than assuming the full-suite result proves them. Review does not rerun tests merely to populate evidence.
+- require Review to record the actual reviewed paths and comparison base through the review renderer's `review_scope`, plus `ui_verification`. For UI changes, perform a browser walkthrough when available: exercise the changed behavior and inspect layout and relevant states. Record the observed result; when browser access/setup is unavailable, record `pending` with the concrete reason and unchecked behavior. Use `not-applicable` only with a reason for changes without UI impact. Unit tests and code inspection do not establish browser verification. A failed walkthrough is a review finding under the normal routing rules, not a passed or unavailable check.
 - ask it to return the chat summary, ending with the `Orchestrator outcome:` line for an older run, or that line followed by `Handoff: <path>` for a version 1 run.
 
 Then read `make-it-work/<TICKET>/<TICKET>-review.md`. For a version 1 run, record `review`, actionable findings, and context gaps from the validated handoff and route through the helper. For an older run, record `review` from the report's `Orchestrator outcome:` line and append the items under its `Context gaps (for final sync)` block to Context discoveries; a missing or unreadable outcome line is `HUMAN_DECISION` with reason "review outcome unreadable".
@@ -630,6 +644,7 @@ Follow `go-deep`'s rules: UC skills describe what the user does and sees, domain
 Keep this sync scoped to the implemented behavior and discoveries needed to document it. Do not run or follow `go-deep`, rebuild the repository's knowledge base, or repair unrelated pre-existing documentation. Record broader gaps in Context discoveries with the repo, evidence and deferred work; include material limitations in the final package. A deferred gap does not waive a required implementation, validation or review stop.
 
 Write the updates directly, without a confirmation step, at both autonomy levels. Add the files changed to `context_updated`.
+For controller runs, include those paths in the `sync-complete` event's `context_updated` array (or `[]` for none); prose in `reason` does not update the field.
 
 **Reconcile test maps after documentation edits.** For each affected product repo with a current test-strategy, follow [references/final-sync-mapping.md](references/final-sync-mapping.md) and `<base>/../../docs/test-map-contract.md` against the finished documentation tree. Inspect baseline readiness first, then reassess the affected behavior and documentation with bounded inputs. Pre-existing incomplete onboarding is not an implicit full-rebuild task. Persist meaningful map updates and regenerate `.claude/testing/TEST-MAP.md`; include changed paths in `context_updated` and disclose remaining uncertainty in the final package. Do not modify source/tests for mapping or migrate old metadata.
 
@@ -694,6 +709,7 @@ existing manual-policy completion requirements still apply. A missing summary
 - **Validation** — in Lightweight mode, "Lightweight — no regression gate; verified by independent review", plus the checks the report lists. Otherwise, from `execute`'s final report: steps completed, automated suites actually run, and manual evidence where selected. For `VERIFIED_MANUALLY`, state "Manual verification completed; automated regression unavailable" with `gate: none`, never an automated PASS. Include readiness/setup changes and retained coverage limitations.
 - **Known regressions** — each one, marked unrelated, stating plainly that they were documented, not fixed. Omit when there are none.
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
+- **Review scope and browser verification** — report the package check's `review_scope` and `ui_verification`. Name delivered paths with unknown or partial review coverage and pending browser checks. A clean review applies only to its recorded scope; approval to deliver additional work does not establish review coverage. Final packaging compares exact per-path diffs, including earlier changes in the same file. Scope gaps remain visible in the delivery preview and generated PR description; they do not create a new approval gate.
 - **Final package** — for a new run, its path and whether Guided approval was recorded; omit for older runs.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Recommended follow-up** — only when Context discoveries or stage reports identify broader documentation gaps left outside this ticket's sync: recommend running `/make-it-work:go-deep` separately in each affected repo, naming the concrete reason and suggesting "Repair existing docs" for an existing knowledge base. This is an informational recommendation; do not launch it, ask to launch it, or delay Completion. Omit when no such gaps remain.

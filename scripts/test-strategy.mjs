@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { readFile, stat, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { args, atomicWrite, cli, fail, jsonInput, section, table, within } from './lib/artifacts.mjs';
 import { validateMap } from './test-map.mjs';
 
@@ -69,6 +70,51 @@ export function strategyPointer(markdown) {
   const output = markdown.slice(0, start) + body + markdown.slice(end);
   return { changed: output !== markdown, markdown: output };
 }
+// Supply the actual post-pointer inputs, not a freshness verdict or automatic baseline update.
+export async function reassessmentEvidence(root, map, { maxFiles = 16, maxBytes = 24576 } = {}) {
+  const refs = new Map();
+  const add = (repo, file, optional = false) => {
+    const key = JSON.stringify([repo, file]);
+    const previous = refs.get(key);
+    refs.set(key, { repo, file, optional: previous ? previous.optional && optional : optional });
+  };
+  for (const file of ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']) add(map.productRepo, file, file !== 'CLAUDE.md');
+  for (const location of map.locations) for (const file of location.config) add(location.repo, file);
+  for (const test of map.tests) add(map.locations.find((location) => location.id === test.location).repo, test.file);
+  for (const mapping of map.mappings) for (const evidence of mapping.evidence ?? []) add(evidence.repo, evidence.file);
+  const files = [];
+  let bytes = 0;
+  let deferred = 0;
+  const remainingPaths = [];
+  for (const ref of refs.values()) {
+    if (files.length >= maxFiles) {
+      deferred++;
+      if (remainingPaths.length < 16) remainingPaths.push({ repo: ref.repo, file: ref.file });
+      continue;
+    }
+    const { optional, ...identity } = ref;
+    try {
+      const repo = map.repos.find((entry) => entry.id === ref.repo);
+      const file = await within(path.resolve(root, repo.root), ref.file);
+      if ((await stat(file)).size > maxBytes - bytes) {
+        files.push({ ...identity, status: 'deferred', reason: 'Evidence byte limit; read this file separately.' });
+        continue;
+      }
+      const content = await readFile(file, 'utf8');
+      if (Buffer.byteLength(content) > maxBytes - bytes) {
+        files.push({ ...identity, status: 'deferred', reason: 'File changed during reading; read separately.' });
+        continue;
+      }
+      bytes += Buffer.byteLength(content);
+      files.push({ ...identity, status: 'read', content });
+    } catch (error) {
+      files.push({ ...identity, status: optional && error.code === 'ENOENT' ? 'absent' : 'unavailable', reason: error.message });
+    }
+  }
+  return { files, remaining_files: deferred, remaining_paths: remainingPaths, complete: deferred === 0 && files.every((file) => ['read', 'absent'].includes(file.status)),
+    note: 'These are actual file contents read after the pointer edit. Review asserted behavior against documentation; no semantic assessment or baseline update has been performed. Read deferred/unavailable inputs separately before claiming complete reassessment.' };
+}
+
 export async function updateStrategyPointer(root) {
   const strategy = await readFile(await within(root, '.claude/skills/test-strategy/SKILL.md'), 'utf8');
   const validation = validateStrategy(strategy);
@@ -80,12 +126,22 @@ export async function updateStrategyPointer(root) {
   catch (error) { if (error.code === 'ENOENT') return { changed: false, skipped: 'No CLAUDE.md' }; throw error; }
   const result = strategyPointer(await readFile(file, 'utf8'));
   if (result.changed) await atomicWrite(file, result.markdown);
-  return { changed: result.changed, skipped: result.skipped ?? null };
+  const actualRoot = await realpath(root);
+  const quote = (text) => "'" + text.replaceAll("'", "'\\''") + "'";
+  return { changed: result.changed, skipped: result.skipped ?? null,
+    ...(result.changed ? { operation: 'pointer-update', root: actualRoot,
+      reassessment_command: [process.execPath, fileURLToPath(import.meta.url), 'evidence', '--root', actualRoot].map(quote).join(' '),
+      next_action: { type: 'reassess-map', instruction: 'Review the complete post-pointer evidence; do not pipe this output through cut/head or otherwise truncate it. If truncated, run reassessment_command without truncation. Reassess asserted behavior against mapped documentation before final snapshots/discovery and regenerate TEST-MAP.md. A hash update or success claim alone is not reassessment.' },
+      reassessment_evidence: await reassessmentEvidence(root, map) } : {}) };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--file', '--root', '--input']);
   if (o.command === 'pointer' && o.root) return updateStrategyPointer(o.root);
-  if (o.command !== 'check' || !o.file) fail('Usage: test-strategy.mjs check --file STRATEGY [--input DECISIONS] | pointer --root ROOT');
+  if (o.command === 'evidence' && o.root) {
+    const map = validateMap(JSON.parse(await readFile(await within(o.root, '.claude/testing/test-map.json'), 'utf8')));
+    return { operation: 'mapping-evidence', root: await realpath(o.root), reassessment_evidence: await reassessmentEvidence(o.root, map) };
+  }
+  if (o.command !== 'check' || !o.file) fail('Usage: test-strategy.mjs check --file STRATEGY [--input DECISIONS] | pointer|evidence --root ROOT');
   const result = validateStrategy(await readFile(o.file, 'utf8'), o.input ? await jsonInput(o.input) : undefined);
   if (!result.valid) process.exitCode = 1;
   return result;

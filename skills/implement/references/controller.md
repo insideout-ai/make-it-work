@@ -29,21 +29,37 @@ Initialization failure produces no success announcement; report the error.
 Use `inspect` later if full fields are needed. Ordinary refresh/resume does not
 emit another startup link. No state field asserts that the user saw the link.
 
-The skill-scoped `startup-presentation.mjs` hooks check the current session's
-transcript: PostToolUse returns an immediate presentation reminder after init,
-and PreToolUse/Stop hold work or a terminal response until the assistant chat
-contains the correct clickable link. Tool output, thinking, code blocks and
-other dashboard targets do not satisfy it. The hooks write no files, grant no
-permissions, and require no user acknowledgment. A new user turn clears an old
-startup obligation so Resume does not reannounce it. Hook support follows
-[Claude Code's skill hook contract](https://code.claude.com/docs/en/hooks#hooks-in-skills-and-agents).
+The skill-scoped startup hooks block immediately after successful init to require
+the assistant chat action. PreToolUse and Stop allow up to four seconds for a
+buffered chat record before enforcing a missing announcement. Stop requires the
+actual assistant chat link and continuation of every In Progress phase. Diagnostic
+request dumps are not conversation events; a partially appended final JSONL line
+is retried/ignored until it is complete. A genuine new user turn clears the fresh-start
+obligation, preserving Resume behavior; synthetic hook feedback and diagnostic
+request replays do not clear it.
+
+Initialization returns an `implementation_baseline` for every approved repo;
+this is immutable transcript evidence, not a new persisted state field. It covers
+tracked, staged and untracked application changes and preserves pre-existing dirty
+work. Workflow artifacts, .claude, docs and Markdown are excluded. Before the
+first Execute/Lightweight audit entry, tool hooks report unexpected changes and
+Stop rejects an early bailout even if a stop checkpoint refreshed workspace
+fingerprints. Recovery tools remain available and no edits are rolled back.
+Authorized implementation releases the guard for later fixes/replans. Older
+initializers and offline waits retain compatibility. This is fresh-run detection,
+not a shell sandbox or an artifact/Resume validation replacement.
+
+`context-ready` returns a `next_action` with the exact next stage and its required
+continuation. Follow that stage's skill; passing Context check does not authorize
+application edits. Other pending-input and handoff continuation fields retain
+their existing meaning.
 
 Before every phase transition, run `inspect --root <root> --state <state>` and use its `state_hash` as `expected_hash` in a saved event JSON. Every event has a stable `id` (reuse that exact event on retry), `event`, and `repos`. Run `apply --root <root> --state <state> --input <event.json>`. Do not hand-edit phase/status, loop counters, audit transition rows or fingerprints on controller-enabled runs.
 
 - `handoff`: supply the actual `handoff` path, optional `previous_review`, and `related_failures` after semantic triage. A human question is saved as a blocking pending input before returning; present its saved question/choices, then use `resolve-input` with the returned pending ID. Internal regression triage remains active work; only an actual unresolved human classification opens an input wait. A manual-walkthrough route also requires the walkthrough to have happened and `manual_evidence_complete: true`.
 - `context-ready`: after the documented context check and artifact-reuse decision. For accepted reuse, supply `reuse_spec: true`; complete the existing reuse/hash checks first.
 - `approve`, `redo`: compatibility events for a spec/plan gate that has no saved pending input. Guided entry to those phases now creates a Paused approval request automatically; answer that request with `resolve-input` instead. `skip-approval` is allowed only outside Guided, except that a spec revision after `spec-conflict` always requires explicit approval. It clears an otherwise optional approval wait without claiming user approval.
-- `sync-complete`: after the finished final context sync; advances to final approval (or legacy completion).
+- `sync-complete`: after the finished final context sync; supply `context_updated` as an array of every changed documentation/map/report path (relative to artifact root, including `../repo/` paths for approved sibling repos), or `[]` when none. Paths must resolve to existing files in approved repos. The controller merges/deduplicates these with earlier stage updates before advancing to final approval (or legacy completion). Omitting the field retains legacy compatibility; new stage calls must supply it. Replaying the same event does not duplicate updates.
 - `complete`: checks the current final package, requiring its exact approval in Guided, before recording Complete.
 - `mode` (adaptive runs): supply `risk`, `mode` (`lightweight`/`tdd`), `source: assessed|user` and a one-line `rationale`; a user source also needs `via: question|chat|flag`. Apply it after risk assessment and before the refinement handoff or a reused spec's `context-ready`, and again for a Guided override or a user's downgrade. Spec acceptance then routes by mode.
 - `handoff` with `escalate: "<reason>"` (plus optional raised `risk` and `rationale`) applies a reassessment escalation; Lightweight review routes apply `fix` (counted against the fix limit) or `escalate` themselves. The controller sets `mode: tdd`, `escalations: 1`, resets review/fix counters and writes the `Escalation:` row without consuming a replan.

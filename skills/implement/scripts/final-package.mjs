@@ -11,6 +11,7 @@ import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
+import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../scripts/lib/review-evidence.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -90,6 +91,7 @@ function markdown(pkg) {
     lines.push(repo.paths.length ? repo.paths.map((p) => `- \`${p}\``).join('\n') : '- No changed paths', '');
   }
   lines.push('## Evidence', '');
+  if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification), '');
   for (const [name, item] of Object.entries(pkg.evidence)) lines.push(`- ${name}: [${item.path}](${path.basename(item.path)})`);
   lines.push(`- Known unrelated regressions: ${pkg.known_regressions.length ? pkg.known_regressions.join('; ') : 'none'}`);
   lines.push(`- Open review nits (unfixed): ${pkg.open_nits.length ? pkg.open_nits.join('; ') : 'none'}`);
@@ -215,12 +217,21 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
     repos.push(snap);
   }
   repos.sort((a, b) => a.name.localeCompare(b.name));
+  let reviewEvidence = null;
+  const reviewEvidencePath = runArtifact(f.ticket, `${f.ticket}-review-evidence.json`);
+  try {
+    reviewEvidence = JSON.parse(await readFile(path.resolve(root, reviewEvidencePath), 'utf8'));
+    if (reviewEvidence.version !== 1 || reviewEvidence.ticket !== f.ticket || reviewEvidence.report_sha256 !== evidence.review.sha256 || !Array.isArray(reviewEvidence.repos)) fail('Review evidence does not match the current report; rerun review.');
+    evidence.review_scope = await artifact(root, reviewEvidencePath);
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const reviewScope = compareReviewScope(reviewEvidence, repos);
   const pkg = {
     version: 1, ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
     draft, evidence, validation,
     ...(f.adaptive_version === '1' ? { adaptive: { mode: f.mode, risk: f.risk, mode_source: f.mode_source, escalations: Number(f.escalations) } } : {}),
     ...extra,
     review: { status: f.review, cycle: state.reviewCycle }, open_nits: openNits,
+    ...(f.adaptive_version === '1' || reviewEvidence ? { review_scope: reviewScope, ui_verification: uiVerification(reviewEvidence?.ui_verification) } : {}),
     known_regressions: state.knownRegressions, decided_findings: state.decidedFindings,
     repos: repos.map(({ diff, ...data }) => data),
   };
@@ -262,7 +273,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
     if (error.code !== 'ENOENT') throw error;
   }
   if (requireApproval && !approved) fail('Final package has no current approval.');
-  return { current: true, approved, sha256: hash, package: target.md, verification_summary: summarizeAcceptance(saved.acceptance) };
+  return { current: true, approved, sha256: hash, package: target.md, verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification) };
 }
 
 export async function approve(root, statePath, expectedHash) {

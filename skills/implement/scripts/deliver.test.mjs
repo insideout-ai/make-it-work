@@ -85,10 +85,14 @@ test('delivery commits, pushes, creates a PR, and resumes without duplication', 
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, GH_LOG: ghLog, DASHBOARD: dashboard, RUNNING_SNAPSHOT: runningSnapshot };
   const prepared = cli(deliveryCli, 'prepare', root, state, [], env);
   assert.match(await readFile(prepared.plan, 'utf8'), /https:\/\/github.com\/example\/service.git/);
+  assert.match(await readFile(prepared.plan, 'utf8'), /Review scope — service: unknown/);
+  assert.match(await readFile(prepared.plan, 'utf8'), /Browser verification: pending/);
   assert.match(await readFile(dashboard, 'utf8'), /phase-mode">Awaiting approval/);
   const result = cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env);
   assert.equal(result.delivered, true);
   assert.equal(result.repos.service.pr.url, 'https://github.com/example/service/pull/1');
+  assert.match(await readFile(ghLog, 'utf8'), /Review scope — service: unknown/);
+  assert.match(await readFile(ghLog, 'utf8'), /Browser verification: pending/);
   assert.match(await readFile(runningSnapshot, 'utf8'), /phase-mode">Running/);
   assert.match(await readFile(runningSnapshot, 'utf8'), /http-equiv="refresh"/);
   const html = await readFile(dashboard, 'utf8');
@@ -101,7 +105,7 @@ test('delivery commits, pushes, creates a PR, and resumes without duplication', 
   assert.equal(git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/DEMO'), git(repo, 'rev-parse', 'HEAD'));
   const repeated = cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env);
   assert.equal(repeated.repos.service.commit, result.repos.service.commit);
-  assert.equal((await readFile(ghLog, 'utf8')).trim().split('\n').length, 2);
+  assert.equal((await readFile(ghLog, 'utf8')).match(/^pr (?:list|create) /gm).length, 2);
   assert.equal(JSON.parse(await readFile(path.join(artifacts, 'DEMO-delivery-progress.json'), 'utf8')).repos.service.pushed, result.repos.service.commit);
   assert.equal(cli(deliveryCli, 'status', root, state).status, 'delivered');
 });

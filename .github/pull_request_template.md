@@ -26,6 +26,8 @@ Change type:
 
 Manual test and result:
 
+- [ ] A complete 13-case smoke run passed for this PR before ready-for-review or merge.
+
 Smoke eval report (`node evals/run-suite.mjs smoke`):
 
 Failed or human-reviewed cases and disposition:
