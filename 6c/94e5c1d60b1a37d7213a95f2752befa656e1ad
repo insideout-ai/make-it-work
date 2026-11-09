@@ -1,0 +1,71 @@
+skills/execute/scripts/step-control.test.mjs
+  s_e8cdb860e0eee3::t_9ea3515c8849e3 379
+  s_e8cdb860e0eee3::t_3020a9795ae53c 378,380-402
+skills/implement/scripts/workflow.mjs
+  s_e8cdb860e0eee3::t_9afd015ce94e7b 286
+skills/execute/scripts/step-control.mjs
+  s_e8cdb860e0eee3::t_9afd015ce94e7b 150-151
+  s_e8cdb860e0eee3::t_e69723f1cd1301 227-229
+skills/implement/scripts/workflow.test.mjs
+  s_e8cdb860e0eee3::t_9ea3515c8849e3 353-366
+  s_e8cdb860e0eee3::t_1f0075dc7ae0ff 249
+skills/implement/scripts/final-package.mjs
+  s_e8cdb860e0eee3::t_9afd015ce94e7b 157
+  s_e8cdb860e0eee3::t_5493ed80dccbf6 56,74-75,77,164-168
+skills/implement/scripts/verification.test.mjs
+  s_e8cdb860e0eee3::t_179a5558dba214 98-148
+skills/implement/scripts/verification.mjs
+  s_e8cdb860e0eee3::t_9afd015ce94e7b 20,23-24,29-43,48,50,61,68-77,104,108-109,118-119,138,175,179,181-183
+skills/implement/scripts/render-status.mjs
+  s_e8cdb860e0eee3::t_9afd015ce94e7b 285
+  s_e8cdb860e0eee3::t_03a7ab716112c3 774,896
+skills/implement/scripts/handoff.mjs
+  s_e8cdb860e0eee3::t_9afd015ce94e7b 7,132,152,168
+  s_e8cdb860e0eee3::t_98f1c35c336b82 382-383
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_2193fc970e8cc8 13
+docs/deterministic-artifacts.md
+  s_e8cdb860e0eee3::t_d034c5d1d5bc13 116-119
+evals/implement/implement-autopilot-full/graders/clause-assertions.md
+  s_e8cdb860e0eee3::t_4af70f0df7eda7 1-7
+evals/implement/implement-autopilot-full/graders/clause-evidence.md
+  s_e8cdb860e0eee3::t_02bdfa7cbd3fe9 1-6
+evals/suites.json
+  s_e8cdb860e0eee3::t_89ade935364395 125-133
+skills/execute/SKILL.md
+  s_e8cdb860e0eee3::t_9f63b1115521cf 431
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_bac2792453eabe 190,420,479-480,507,676-677
+skills/implement/references/handoffs.md
+  s_e8cdb860e0eee3::t_907428fba94df8 35
+skills/implement/references/verification.md
+  s_e8cdb860e0eee3::t_16da193e25daa8 54-83
+skills/implement/scripts/acceptance-summary.mjs
+  s_e8cdb860e0eee3::t_f3637e7ca03f9d 8
+skills/implement/scripts/final-package.test.mjs
+  s_e8cdb860e0eee3::t_406c3f1bc8be59 9,360-393
+skills/implement/scripts/workflow-integration.test.mjs
+  s_e8cdb860e0eee3::t_e4972578b01974 62-64,86,89
+skills/plan-the-work/SKILL.md
+  s_e8cdb860e0eee3::t_d576f1f96d00a2 374
+skills/plan-the-work/references/plan-template.md
+  s_e8cdb860e0eee3::t_54f4864ac07ae5 143-147
+skills/review-the-code/SKILL.md
+  s_e8cdb860e0eee3::t_0bea0036264165 239
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "6c94e5c1d60b1a37d7213a95f2752befa656e1ad",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
