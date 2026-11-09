@@ -5,6 +5,10 @@ remains deferred to Execute. A fresh Implement startup baseline now records
 per-path changes so its guard can exempt exact, preauthorized test edits in Plan
 and Plan approval without rebasing the rest of the worktree.
 
+After a run has entered Execute or Lightweight, its startup edit guard is already released. Replans, escalations and fix planning then skip this checkpoint; a defensive helper call returns `required: false` without writing a receipt.
+
+Markdown and files under `docs/` or `.claude/` are already outside the startup implementation baseline; retain their existing documentation/metadata write path without this checkpoint.
+
 The parent passes its exact state path and the resolved Implement skill directory
 to planning. Before the first edit to each test file:
 

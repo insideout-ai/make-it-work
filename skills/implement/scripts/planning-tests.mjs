@@ -48,7 +48,9 @@ export async function authorizePlanningTests(statePath, input) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath), f = state.fields;
   const root = await realpath(path.dirname(path.dirname(path.dirname(statePath))));
   assertRunState(root, statePath, f.ticket);
-  if (f.phase !== 'plan' || f.status !== 'In Progress' || (f.adaptive_version === '1' && f.mode !== 'tdd')) fail('Authorize test edits only in active TDD Plan.');
+  if (f.status !== 'In Progress' || !['plan', 'fix-plan'].includes(f.phase)) fail('Authorize test edits only in active TDD Plan.');
+  if (state.audit.some((row) => ['execute', 'lightweight'].includes(row.to))) return { required: false, reason: 'Implementation was already authorized; the startup edit guard is released.' };
+  if (f.phase !== 'plan' || (f.adaptive_version === '1' && f.mode !== 'tdd')) fail('Authorize test edits only in active TDD Plan.');
   if (f.spec === 'none' || f.spec_hash !== digest(await readFile(await within(root, f.spec)))) fail('Planning tests require the unchanged accepted spec.');
   const repo = await realpath(input.repo);
   const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos : JSON.parse(f.workspace_snapshot);
@@ -63,7 +65,7 @@ export async function authorizePlanningTests(statePath, input) {
     const lines = bytes.toString('utf8').split(/(?<=\n)/);
     if (!image || !Number.isSafeInteger(input.start_line) || !Number.isSafeInteger(input.end_line) || input.start_line < 1 || input.end_line < input.start_line || input.end_line > lines.length) fail('Embedded authorization requires an existing, bounded test region.');
     const prefix = lines.slice(0, input.start_line - 1).join(''), body = lines.slice(input.start_line - 1, input.end_line).join(''), suffix = lines.slice(input.end_line).join('');
-    if ((!prefix && !suffix) || !/(?:\b(?:test|describe|it|unittest|TestCase)\b|\btest_\w+|#\[test\])/.test(body)) fail('Embedded region must identify test code and retain protected source outside it.');
+    if ((!prefix && !suffix) || !/(?:\b(?:test|describe|it|unittest|TestCase)\b|\btest_\w+|#\[test\]|>>>|@Test|\[(?:Fact|Theory|TestMethod)\])/.test(body)) fail('Embedded region must identify test code and retain protected source outside it.');
     if (!Buffer.from(prefix + body + suffix).equals(bytes)) fail('Embedded test regions require UTF-8 source.');
     region = { prefix: Buffer.from(prefix).toString('base64'), suffix: Buffer.from(suffix).toString('base64') };
   } else if (input.kind !== 'test-file' || !await dedicatedTestFile(repo, input.file, selected.map((entry) => entry.root))) {

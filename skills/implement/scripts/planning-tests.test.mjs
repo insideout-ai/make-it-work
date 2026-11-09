@@ -155,3 +155,24 @@ test('a nonstandard test path needs a separate-test identity in an approved repo
   await writeFile(path.join(f.root, 'verify.js'), '// extended test\n');
   assert.equal(await f.check(), null);
 });
+
+test('replans, escalations and fix planning after implementation require no startup authorization', async (t) => {
+  const f = await planningFixture(t);
+  const saved = await readFile(f.statePath, 'utf8');
+  for (const route of ['execute', 'lightweight']) for (const phase of ['plan', 'fix-plan']) {
+    const fields = await f.currentState();
+    await writeFile(f.statePath, saved.replace('phase: plan', `phase: ${phase}`).trimEnd() + `\n| 2 | ${fields.fields.start_time} | plan | ${route} | Implementation authorized |\n`);
+    assert.equal((await f.authorize()).required, false);
+    await assert.rejects(readFile(planningReceiptPath(f.statePath)), /ENOENT/);
+  }
+});
+
+test('executable doctest edits stay within their declared source region', async (t) => {
+  const source = 'def value():\n    """Return a value.\n\n    >>> value()\n    1\n    """\n    return 1\n';
+  const f = await planningFixture(t, { files: { 'app.py': source } });
+  await f.authorize({ file: 'app.py', kind: 'embedded', start_line: 4, end_line: 5 });
+  await writeFile(path.join(f.root, 'app.py'), source.replace('    1\n    """', '    2\n    """'));
+  assert.equal(await f.check(), null);
+  await writeFile(path.join(f.root, 'app.py'), source.replace('return 1', 'return 2'));
+  assert.match(await f.check(), /Application files changed/);
+});
