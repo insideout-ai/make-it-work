@@ -17,6 +17,7 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "feedback-on-session-evidence-limits",
     "feedback-on-session-handoff",
     "feedback-on-session-problems",
     "feedback-on-session-clean",

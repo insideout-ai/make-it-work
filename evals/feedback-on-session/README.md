@@ -5,6 +5,8 @@ redaction and transcript instruction isolation. Full-suite cases additionally co
 an ordinary successful session and an incomplete Claude Code JSONL export with
 separately attributed user feedback. A handoff case checks admitted omissions,
 captured run provenance, deliberately approved scope, and unsupported causal speculation.
+An evidence-limits case covers truncated query output, unseen hook internals,
+existing narration requirements and harness reminders without timings or user complaints.
 Every case has a report-only standalone-readability grader; the handoff accuracy
 grader separately checks the synthetic source facts. No private user transcript
 is included in fixtures. Run them with the existing suite runner.
