@@ -141,3 +141,15 @@ test authorization, plan handoff, Execute entry and final packages require the
 same current report/policy proof. Completion changes only the existing readiness
 pointer and records an informational Result, without new approvals or counters.
 Existing-run markers are not backfilled. See the [readiness contract](../skills/implement/references/testing-readiness.md).
+
+### Final-package assurance presentation
+
+New package builds add `assurance_version: 1` and lead with a derived assurance
+headline. `final-package.mjs check` returns `assurance_summary` alongside the
+ledger-only `verification_summary`. Pending/missing acceptance evidence, partial
+or unknown delivery review, pending browser checks, absent automated gates,
+open review nits and known unrelated regressions prevent the qualified
+`Recorded checks complete` headline. These facts remain separate from workflow
+completion, Guided approval and release readiness. Existing package hashes and
+legacy Markdown are preserved on check; a rebuild uses the new format and normal
+approval binding. See the [verification contract](../skills/implement/references/verification.md).

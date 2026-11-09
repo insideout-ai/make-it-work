@@ -12,6 +12,7 @@ import { testingPolicy } from './testing-policy.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
+import { summarizeAssurance } from './assurance-summary.mjs';
 import { checkReviewScope } from './review-scope.mjs';
 import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../scripts/lib/review-evidence.mjs';
@@ -48,11 +49,12 @@ function markdown(pkg) {
   const lines = [
     `# Final approval — ${pkg.ticket}`,
     '',
+    ...(pkg.assurance_version === 1 ? [`**Assurance: ${summarizeAssurance(pkg).text}**`, ''] : []),
     pkg.validation.mode === 'lightweight'
       ? `Review: ${pkg.review.status}. Validation: ${pkg.validation.result}.`
       : `Review: ${pkg.review.status}. Validation: ${pkg.validation.mode} — ${pkg.validation.result}.`,
     '',
-    ...(acceptance ? [`**Verification: ${acceptance.text}**`, '', ...(acceptance.pending ? [
+    ...(acceptance ? [`**${pkg.assurance_version === 1 ? 'Acceptance verification' : 'Verification'}: ${acceptance.text}**`, '', ...(acceptance.pending ? [
       '### Pending verification', '', '| Criterion | Scenario | Verification needed / recorded reason |', '| --- | --- | --- |',
       ...acceptance.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `| ${cell(criterion)} | ${cell(clause ? `${clause} — ${scenario}` : scenario)} | ${cell(note)} |`)), '',
     ] : [])] : []),
@@ -108,7 +110,7 @@ function assertDraft(draft) {
   return draft;
 }
 
-async function packageFromState(root, statePath, repoInputs, baseInputs, draftPath) {
+async function packageFromState(root, statePath, repoInputs, baseInputs, draftPath, { assuranceVersion = 1 } = {}) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath);
   const f = state.fields;
   assertRunState(root, statePath, f.ticket);
@@ -133,7 +135,7 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   const draftArtifact = await artifact(root, draftRelative);
   const draft = assertDraft(JSON.parse(await readFile(path.resolve(root, draftArtifact.path), 'utf8')));
   const adaptive = f.adaptive_version === '1';
-  if (adaptive && f.mode === 'lightweight') return lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft);
+  if (adaptive && f.mode === 'lightweight') return lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft, assuranceVersion);
   for (const [name, relative] of [['spec', f.spec], ['plan', f.plan], ['execute', f.execute_report]]) {
     runArtifactName(relative, f.ticket, name);
   }
@@ -168,12 +170,12 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     if (!row.clause || row.status === 'unverified') return row;
     const check = verification.steps.find((step) => step.number === row.step).checks.find((item) => item.type === row.status && item.subject === row.scenario && item.assertions?.some((assertion) => assertion.clause === row.clause));
     return { ...row, evidence: check.assertions.find((assertion) => assertion.clause === row.clause) };
-  }) } : {});
+  }) } : {}, assuranceVersion);
 }
 
 // Adaptive Lightweight runs have no plan, execution report, readiness, or
 // verification ledger: the spec, implementation report and clean review are the evidence.
-async function lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft) {
+async function lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft, assuranceVersion) {
   const f = state.fields;
   if (f.implementation_report === 'none') fail('Lightweight final package requires an implementation report.');
   runArtifactName(f.spec, f.ticket, 'spec');
@@ -182,10 +184,10 @@ async function lightweightPackage(root, state, repoInputs, baseInputs, draftArti
     implementation: await artifact(root, f.implementation_report),
     review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
   };
-  return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, { mode: 'lightweight', result: LIGHTWEIGHT_VALIDATION }, {});
+  return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, { mode: 'lightweight', result: LIGHTWEIGHT_VALIDATION }, {}, assuranceVersion);
 }
 
-async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, extra) {
+async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, extra, assuranceVersion) {
   const f = state.fields;
   const reviewReport = await readFile(path.resolve(root, evidence.review.path), 'utf8');
   const openNits = [...reviewReport.matchAll(/^\d+\.\s+\*\*\[Minor\]\*\*\s+(.+)$/gm)].map((match) => match[1].trim());
@@ -215,7 +217,7 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   const reviewScope = compareReviewScope(reviewEvidence, repos);
   if (f.review_scope_version === '1' && reviewScope.some((repo) => repo.status !== 'covered')) fail('Final package contains changes outside independent review coverage. Rerun review on the full delivery diff.');
   const pkg = {
-    version: 1, ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
+    version: 1, ...(assuranceVersion === 1 ? { assurance_version: 1 } : {}), ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
     draft, evidence, validation,
     ...(f.adaptive_version === '1' ? { adaptive: { mode: f.mode, risk: f.risk, mode_source: f.mode_source, escalations: Number(f.escalations) } } : {}),
     ...extra,
@@ -246,7 +248,8 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
   const target = names(root, state.fields.ticket);
   const saved = JSON.parse(await readFile(target.json, 'utf8'));
   if (saved.version !== 1 || saved.ticket !== state.fields.ticket) fail('Final package version or ticket does not match state.');
-  const result = await packageFromState(root, statePath, saved.repos.map((r) => r.path), saved.repos.map((r) => r.base), path.resolve(root, saved.draft_path));
+  if (saved.assurance_version !== undefined && saved.assurance_version !== 1) fail('Unsupported package assurance version.');
+  const result = await packageFromState(root, statePath, saved.repos.map((r) => r.path), saved.repos.map((r) => r.base), path.resolve(root, saved.draft_path), { assuranceVersion: saved.assurance_version ?? null });
   if (JSON.stringify(result.pkg) !== JSON.stringify(saved)) fail('Final package is stale; rebuild it and seek approval again.');
   if (await readFile(target.md, 'utf8') !== result.md) fail('Final package Markdown changed; rebuild it.');
   for (const repo of result.repos) {
@@ -262,7 +265,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
     if (error.code !== 'ENOENT') throw error;
   }
   if (requireApproval && !approved) fail('Final package has no current approval.');
-  return { current: true, approved, sha256: hash, package: target.md, verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification) };
+  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification) };
 }
 
 export async function approve(root, statePath, expectedHash) {

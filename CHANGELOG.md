@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Lead final packages and completion summaries with evidence-derived assurance limits; distinguish acceptance verification from delivery review, browser checks, missing gates and remaining findings while preserving saved package approvals.
+
 - Require parent-completed testing readiness before planning/test authorization, reject completion under live delegates, and preserve the actual baseline instead of mixing it with later progression-red tests.
 - Allow verified current-phase background delegates during Plan to be awaited without Stop-hook loops, including testing readiness and planning; completion and failure restore the continuation requirement.
 - Permit preauthorized Plan-stage test edits while preserving the guard on production edits, early changes and unregistered test paths; embedded test authorizations protect surrounding source bytes.

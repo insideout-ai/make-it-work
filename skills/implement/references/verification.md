@@ -2,7 +2,7 @@
 
 ## Completion presentation
 
-Workflow completion and acceptance verification are separate. The final package
+Workflow completion, acceptance verification and overall assurance are separate. The final package
 and dashboard summarize the validated ledger by distinct criterion: all mapped
 scenarios for a criterion need passing automated or manual evidence before it
 counts as verified. A mix is **Partially verified**, with the number of pending
@@ -11,14 +11,29 @@ verification**. All recorded criteria verified is **Verified**. Missing/empty
 evidence cannot establish verification. This summarizes plan-traceability
 evidence, not deployment readiness or all possible behavior.
 
-`final-package.mjs check` returns this derived `verification_summary` for the
+`final-package.mjs check` returns this derived `verification_summary` (labelled
+**Acceptance verification**) for the
 terminal chat/publication summary. It does not modify ledger statuses or the
 workflow state, weaken manual-policy checks, or waive acceptance/package
 approval. Ledger `unverified` values remain unchanged; views call them pending
-verification. Lightweight/older runs without an AC ledger retain their existing
-validation reporting. Existing saved packages may require a normal rebuild when
-their rendered Markdown no longer matches the current formatter; do not bypass
-the package check or invent new verification evidence.
+verification. The checker also returns `assurance_summary` for every package, including
+Lightweight and legacy packages. New builds opt into `assurance_version: 1`
+in the package JSON, with **Assurance** as their first evidence headline. It is
+`Limited` if acceptance is missing/pending, delivery review is unknown/partial,
+browser checks are pending, no automated regression gate ran (including
+Lightweight/manual acceptance), or open nits/known unrelated regressions remain.
+Otherwise it says `Recorded checks complete`, which covers only the recorded
+checks and never claims release readiness. Detailed reasons/evidence stay in
+the package; passing acceptance does not imply browser or full-delivery review.
+
+Completion chat and authorized tracker summaries use the returned assurance
+headline before the separate acceptance count. The dashboard explicitly labels
+its ledger-only summary **Acceptance verification**. These summaries introduce
+no new gate or user approval. An existing package without `assurance_version`
+keeps its exact legacy Markdown/JSON and approval hash during check; its returned
+assurance summary still exposes limitations. A normal rebuild opts into the new
+format and uses the existing approval-binding rules. Never rewrite saved
+evidence to improve a headline.
 
 This applies when the run state has `verification_version: 1`, and when a plan explicitly selects manual repos in `## Verification Policy` (including standalone execution). Older runs without that policy keep their current reports. Lightweight runs (`mode: lightweight`) have no plan and no ledger; an escalated run produces one from its TDD plan as usual.
 

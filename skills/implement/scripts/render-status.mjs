@@ -771,9 +771,9 @@ function renderPublicationBadge(permission) {
 function renderAcceptance(state, verification) {
   if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return '';
   const summary = summarizeAcceptance(verification?.acceptance);
-  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Verification: Not recorded</h2></section>';
+  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: Not recorded</h2></section>';
   const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(clause ? `${clause} — ${scenario}` : scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
-  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
+  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
 }
 
 function renderAutonomyBadge(state) {

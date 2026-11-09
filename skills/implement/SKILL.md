@@ -760,8 +760,17 @@ The feedback file is local working data. Never upload, submit, email, or post it
 
 For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
 
-When the package check returns `verification_summary`, begin the summary with
-**Workflow: Complete** and **Verification: <verification_summary.text>**. List
+Begin the summary with **Workflow: Complete** and
+**Assurance: <assurance_summary.text>** from the successful package check. Keep
+its pending/unknown review coverage, pending browser checks, missing acceptance
+evidence, unavailable gates, open nits and known regressions near the top.
+`Recorded checks complete` covers recorded checks only; it is not a release,
+merge, deployment or delivery-approval claim. For an older checker without this
+summary, explicitly retain its recorded scope/verification limits instead of
+inventing a global assurance label.
+
+When the package check returns `verification_summary`, show
+**Acceptance verification: <verification_summary.text>** separately. List
 each pending criterion and its scenarios' recorded reason/verification needed.
 Use `Partially verified` when some criteria have passing evidence and others
 remain pending; use `Pending verification` when none are verified. A criterion
