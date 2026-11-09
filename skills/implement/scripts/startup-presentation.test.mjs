@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { pendingStartup, startupHook } from './startup-presentation.mjs';
+import { authorizePlanningTests } from './planning-tests.mjs';
 import { readHookEvents } from './hook-feedback.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
@@ -378,4 +379,21 @@ test('receipt write failure is visible while runtime confirmation still requires
   const result = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
   assert.equal(result.decision, 'block'); assert.match(result.reason, /Continue Context check now/);
   assert.match(result.systemMessage, /receipt could not be saved/);
+});
+
+test('authorized Plan test edits remove only the premature-edit hold; active-stage and production guards remain', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  const spec = 'make-it-work/DEMO/DEMO-spec.md';
+  await writeFile(path.join(run.root, spec), '# accepted spec\n');
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: caller change').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# accepted spec\n')}`));
+  await mkdir(path.join(run.root, 'test'));
+  await writeFile(path.join(run.root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
+  await authorizePlanningTests(run.result.state, { repo: run.root, file: 'test/policy.test.js', kind: 'test-file', step: 1, reason: 'Progression assertion' });
+  await writeFile(path.join(run.root, 'test/policy.test.js'), '// planned red test\n');
+  const after = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', transcript_path: run.transcript });
+  assert.deepEqual(after, {});
+  assert.match((await run.check()).reason, /still In Progress at plan/);
+  assert.equal((await readHookEvents(run.result.state)).some((event) => event.kind === 'premature-implementation'), false);
+  await writeFile(path.join(run.root, 'app.js'), '// unauthorized production change\n');
+  assert.match((await run.check()).reason, /Application files changed/);
 });

@@ -117,3 +117,16 @@ the existing partial/unknown-scope disclosure behavior.
 ### Clause-level acceptance evidence
 
 New Implement runs carry `acceptance_evidence_version: 1` alongside `verification_version: 1`. The accepted plan has three-column AC traceability (`Acceptance criterion | Requirement clause | Test scenario`); acceptance rows preserve each exact clause. Verified rows require the cited step/scenario/type to contain a concrete assertion or manual observation with `clause`, `expected`, `observed`, and `source`. The controller and final package reject name-only evidence or omitted planned clauses; explicit unverified rows remain pending. Package and dashboard summaries aggregate all clauses/scenarios under each criterion. The independent review compares the inventory to the spec and inspects cited evidence for semantic coverage. Historical runs are not migrated. See [verification contract](../skills/implement/references/verification.md).
+
+### Planning test authorizations
+
+Fresh initializer output includes per-path implementation-baseline evidence.
+Before changing tests in Plan, `planning-tests.mjs authorize` checks the active
+TDD phase, accepted spec, approved repo and exact draft-step test declaration,
+then records the original file image in a run-bound local receipt. The startup
+guard exempts only those exact test paths (or bounded embedded-test regions),
+while comparing all other changes with the original baseline. It rejects early,
+undeclared, deleted, stale or out-of-scope changes and changed HEADs. Ordinary
+stage continuation and review remain required. Receipt prefix/suffix bytes are
+local working data, never automatically exported. See the [planning-test
+contract](../skills/implement/references/planning-tests.md).
