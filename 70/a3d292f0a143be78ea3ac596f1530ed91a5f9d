@@ -1,0 +1,37 @@
+evals/feedback-on-session/README.md
+  s_95f87c81183944::t_c6bf7b9a281624 8-9
+evals/feedback-on-session/feedback-on-session-evidence-limits/case.yaml
+  s_95f87c81183944::t_952ba0b94bfcc0 1-5
+evals/feedback-on-session/feedback-on-session-evidence-limits/fixture.sh
+  s_95f87c81183944::t_5a31ce1c0d823b 1-5
+evals/feedback-on-session/feedback-on-session-evidence-limits/fixture/session.txt
+  s_95f87c81183944::t_ff96bd24d3dcc1 1-14
+evals/feedback-on-session/feedback-on-session-evidence-limits/graders/boundaries.md
+  s_95f87c81183944::t_6972176cfd3317 1-8
+evals/feedback-on-session/feedback-on-session-evidence-limits/graders/report.md
+  s_95f87c81183944::t_b958f981a440cd 1-7
+evals/feedback-on-session/feedback-on-session-evidence-limits/graders/standalone.md
+  s_95f87c81183944::t_41d2410ec12f07 1-7
+evals/feedback-on-session/feedback-on-session-evidence-limits/prompt.md
+  s_95f87c81183944::t_af12602d511e8e 1-10
+evals/suites.json
+  s_95f87c81183944::t_4a3b70c4d58b0f 20
+skills/feedback-on-session/SKILL.md
+  s_95f87c81183944::t_8e4b6aaf913327 20-21,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "70a3d292f0a143be78ea3ac596f1530ed91a5f9d",
+  "prompts": {},
+  "sessions": {
+    "s_95f87c81183944": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf28-5356-7a30-b81d-c7add7571c92",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
