@@ -27,7 +27,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 
 ## Skills
 
-13 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
+14 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
 
 | What you need | Skill | What you get |
 | --- | --- | --- |
@@ -44,6 +44,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 | Check for regressions | [run-regression](skills/run-regression/SKILL.md) | Full or scoped test results, with unavailable checks made explicit |
 | Review changes against project intent | [review-the-code](skills/review-the-code/SKILL.md) | A verdict and findings grounded in requirements, code, and project guidance |
 | Publish a completed implementation | [deliver](skills/deliver/SKILL.md) | An approved commit, push, and new or updated PR |
+| Review a session and provide workflow feedback | [feedback-on-session](skills/feedback-on-session/SKILL.md) | Evidence-backed findings and your perspective in a local, shareable report |
 
 ## Quick start
 

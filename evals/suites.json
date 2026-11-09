@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "smoke": [
+    "feedback-on-session-problems",
     "close-the-gaps-live-autopilot",
     "deliver-no-package",
     "drive-the-epic-autopilot",
@@ -16,6 +17,9 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "feedback-on-session-problems",
+    "feedback-on-session-clean",
+    "feedback-on-session-incomplete",
     "close-the-gaps-mixed-sources",
     "close-the-gaps-pm-followup",
     "close-the-gaps-stale-recommendation",
