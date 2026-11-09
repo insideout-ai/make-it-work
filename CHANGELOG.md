@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.5.0] — 2026-11-09
+
+### Added
+
+- Add `feedback-on-session` to review current conversations or supplied transcripts, invite user corrections, and save standalone, sanitized feedback for maintainers without project or transcript access. Findings include evidence sequences, captured run conditions, bounded conclusions and explicitly untested investigation scenarios; reports stay local and suggestions are not applied.
+
 ## [5.4.4] — 2026-11-08
 
 ### Fixed
