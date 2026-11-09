@@ -163,6 +163,10 @@ Drop anything that fails these checks. **Report every verified finding in the ch
 
 Read [the review renderer contract](../../docs/deterministic-artifacts.md#review-reports). After semantic verification, use required `scripts/review-report.mjs` to validate source locations and derive counts, verdict, report tiers and version-1 handoff from one findings object. Do not manually produce contradictory Markdown/JSON. Existing report shapes below describe the rendered output; legacy implement callers still retain their outcome-line behavior without a new handoff.
 
+For working-tree reviews, supply `review_scope` with each inspected repository, its base, comparison (`branch` or `working-tree`) and exact reviewed paths. Include only inspected paths; the writer snapshots their diffs, not proof of semantic review. `branch` covers merge-base through the current working tree; `working-tree` covers HEAD through current working tree, excluding earlier branch commits. Later delivery compares against the complete branch diff and discloses missing or changed coverage. Committed/legacy reviews without this evidence retain unknown scope.
+
+Supply `ui_verification: {status, note}`. For UI changes, use available browser tooling to exercise the changed behavior and inspect layout and relevant states. `passed` requires actual observations in `note`; unavailable browser access/setup uses `pending` with a concrete reason and unchecked behavior. Use `not-applicable` with a reason when no UI behavior is affected. Code inspection and unit tests do not establish browser verification. Route observed failures through the ordinary findings rules. Missing evidence remains pending and must be visible in the review and completion report; it does not add a blanket browser gate for all changes.
+
 Deliver the review in **two tiers** — a durable, pasteable report in a file, and a scannable summary in chat. Both lead with a verdict so the reader knows the outcome before reading a single finding.
 
 ### Tier 1 — Full report (file)

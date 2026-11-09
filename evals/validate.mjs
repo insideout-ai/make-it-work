@@ -75,9 +75,10 @@ export async function validateEvalTree(root = EVAL_ROOT) {
       for (const graderName of graderNames) {
         const grader = await textFile(path.join(graderDir, graderName));
         const type = field(grader, 'type');
-        if (!grader.startsWith('---\n') || !['file_exists', 'llm', 'regex', 'tool_used'].includes(type)) {
+        if (!grader.startsWith('---\n') || !['file_exists', 'llm', 'regex', 'tool_used', 'strategy_pointer'].includes(type)) {
           errors.push(`${item.name}/${graderName}: invalid grader frontmatter or type`);
         }
+        if (type === 'strategy_pointer' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: strategy_pointer requires the headless runner`);
       }
     }
     const fixturePath = path.join(item.dir, 'fixture.sh');

@@ -4,6 +4,21 @@ focus: trace
 weight: 1
 ---
 
-This is the full transcript of a `slice-the-epic --autopilot` run against a well-specified epic (CSV export of a customer's own order history) with five clear acceptance criteria. The backlog may appear in an earlier assistant turn than the final summary — judge the whole transcript.
+Judge the whole transcript of this coherent CSV-export epic, including an earlier
+assistant turn containing the delivered backlog.
 
-PASS if the backlog is delivered without the assistant asking the user a question and waiting for an answer, and no backlog decision is qualified with `[autopilot best-guess]` (naming the marker only to say it was not used is fine). Noting a non-blocking open question, assumption, or "product decision to confirm" is not a clarifying question and must PASS. FAIL only if the assistant asks the user something and stops before delivering the backlog, or qualifies a decision with the marker.
+PASS when the backlog is delivered without asking the user a question and waiting
+for an answer, and without inventing a missing-fact best guess. The expected
+approach choice is automatic and is marked `_(autopilot)_` by the skill contract.
+That marker, "selected automatically", or the Recommended option's provenance
+is valid and MUST NOT be treated as `[autopilot best-guess]`.
+
+FAIL when the assistant stops to await clarification before delivery, or invents
+an auto-resolved missing-fact assumption qualified `[autopilot best-guess]`.
+Even "[autopilot best-guess] No clarification was needed" is an invalid invented
+assumption here. Mentioning the marker only to say it was not used is allowed.
+
+Non-blocking open questions, assumptions or "product decision to confirm" items
+are allowed when not presented as auto-resolved missing-fact guesses; they are
+not an interactive pause. Do not require human approval of the slicing approach,
+and do not strip its legitimate automatic provenance to obtain a pass.

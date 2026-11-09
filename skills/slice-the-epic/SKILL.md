@@ -42,6 +42,8 @@ When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` 
 
 At the end, summarize the selected approach, any auto-resolved assumption, the overview and slice file paths, and whether the log write succeeded. State that Jira creation was skipped in autopilot. Preserve any best-guess prefix in the saved overview's assumptions, and mark its approach selection `_(autopilot)_`.
 
+When no missing-fact clarification fired, write `None` for auto-resolved assumptions (or omit that optional field). Never label "No clarification was needed" or an ordinary approach selection as `[autopilot best-guess]`. The required `_(autopilot)_` approach marker records an automatic Recommended-option selection; it is not a missing-fact guess.
+
 Non-blocking details the requirement leaves open (for example, a range cap or a file format) go in an **Open questions** list after the backlog. They are not auto-resolved assumptions: do not label them "Assumption" or mention them in this summary.
 
 ## Understand the request

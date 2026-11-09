@@ -72,3 +72,5 @@ using the generator output or report link in the same turn. It writes no files,
 adds no user approval, and leaves honest blocked writes and later unrelated
 questions alone. Unit/CLI tests cover resolved links/commands, templates,
 truncated generator output, transcript timing and aliased script paths.
+
+The fresh-tests pointer grader deterministically validates the saved CLAUDE.md, strategy and map, compares the pointer against the committed fixture baseline, and checks the supported helper receipt. It accepts an already-current pointer without rewriting it and does not infer chronology from later tool readbacks. Grading still rejects dangling or duplicate newly added pointers, writes before validated artifacts, denial bypasses and unsupported reporting.

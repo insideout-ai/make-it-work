@@ -53,7 +53,7 @@ results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
 `--dry-run` does not invoke Claude. Plain `claude plugin eval` cases are graded
 by its harness. Cases marked `headless` use a disposable fixture and produce a
 `transcript.jsonl`; the runner grades their `graders/*.md` automatically.
-File, regex, and tool-use checks run locally. Semantic (`llm`) checks use a
+File, regex, tool-use and the headless-only `strategy_pointer` saved-state checks run locally. The pointer check validates actual metadata and helper receipts instead of asking a model to infer whether a row was added. Semantic (`llm`) checks use a
 separate, tool-free Claude judge that takes the best two of three votes and count toward the same case and suite cost
 limits. That judge receives the relevant generated fixture file, final message,
 or normalized case transcript as evidence; do not run it with data that must
@@ -89,8 +89,10 @@ plugin-eval sandbox denied access to its repository-assessment helper in an
 isolated snapshot. This lets the case exercise inventory and report generation
 without bypassing tool permissions.
 
-For a PR, include the smoke report path and note any failed cases in the PR
-description. For a release, run `full` for the exact release
+Every PR requires a complete passing smoke run before ready-for-review or merge.
+Include its report path and investigate failed cases in the PR description.
+Focused reruns do not replace the passing full suite. Draft PRs may remain open
+while fixes and results are pending. For a release, run `full` for the exact release
 commit and complete `docs/eval-release-checklist.md`. A failing LLM grader is
 an investigation trigger: read the transcript or generated file and record
 whether the skill failed or the grader misread valid output. Do not silently

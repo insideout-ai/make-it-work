@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -31,6 +31,22 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
 }
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
+
+test('final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
+  const { root, statePath, apply } = await fixture(t);
+  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
+  const input = { event: 'sync-complete', id: 'sync-paths', repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')), context_updated: ['.claude/rules/product.md', '.claude/rules/architecture.md'] };
+  const first = await applyWorkflow({ root, statePath, input });
+  assert.equal(first.fields.context_updated, '.claude/rules/product.md, .claude/rules/architecture.md');
+  assert.equal((await applyWorkflow({ root, statePath, input })).replayed, true);
+  assert.equal(parseState(await readFile(statePath, 'utf8')).fields.context_updated, first.fields.context_updated);
+  assert.throws(() => transition(fields('final-sync', { review: 'clean' }), { event: 'sync-complete', context_updated: 'docs.md' }), /array/);
+  const invalid = await fixture(t);
+  const before = await readFile(invalid.statePath, 'utf8');
+  await assert.rejects(invalid.apply('sync-complete', { context_updated: [statePath] }), /approved repository/);
+  assert.equal(await readFile(invalid.statePath, 'utf8'), before);
+  assert.equal(transition(fields('final-sync', { review: 'clean' }), { event: 'sync-complete', context_updated: [] }).fields.context_updated, 'none');
+});
 
 test('initializes from the maintained template and never overwrites a run', async (t) => {
   const { root, statePath, result } = await fixture(t);
@@ -63,6 +79,7 @@ test('init CLI prioritizes the startup message in a concise successful handoff',
   assert.equal(result.next_action.text, result.startup_message);
   assert.equal(result.next_action.delivery_status, 'not_sent');
   assert.equal(result.continuation, 'continue_context_check_without_user_reply');
+  assert.equal(result.implementation_baseline[0].root, await realpath(root));
   assert.match(await readFile(result.dashboard, 'utf8'), /CLI/);
   assert.equal(parseState(await readFile(result.state, 'utf8')).fields.autonomy, 'autonomous');
 });
@@ -80,7 +97,9 @@ test('offline init CLI preserves its genuine answer wait instead of starting Con
 });
 test('checkpoint clears activity, increments review once, and preserves unrelated state', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await apply('context-ready');
+  const ready = await apply('context-ready');
+  assert.equal(ready.next_action.phase, 'close-the-gaps');
+  assert.match(ready.next_action.instruction, /does not authorize application edits/);
   const dir = path.join(root, 'make-it-work/DEMO');
   await mkdir(path.join(dir, 'DEMO-handoffs'));
   await writeFile(path.join(dir, 'DEMO-spec.md'), '# Spec');

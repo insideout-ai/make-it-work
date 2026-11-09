@@ -4,6 +4,7 @@ import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, requireText, withLock, within } from './lib/artifacts.mjs';
 import { validateHandoff } from '../skills/implement/scripts/handoff.mjs';
+import { captureReviewEvidence, uiVerification } from './lib/review-evidence.mjs';
 
 export function reviewResult(input) {
   if (input.version !== 1 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '') || !Array.isArray(input.findings)) fail('Invalid review input.');
@@ -55,7 +56,9 @@ export function renderReview(input) {
   for (const [name, items] of [['Pre-existing (not blocking)', input.preexisting], ['Context gaps (for final sync)', input.context_gaps], ['Known unrelated regressions (documented, out of scope)', input.known_regressions], ['Decided (not re-raised)', input.decided]]) {
     if (items?.length) lines.push(`**${name}:**`, ...items.map((item) => `- ${requireText(item, name)}`), '');
   }
-  lines.push(`**Coverage:** ${input.coverage}`, '');
+  const ui = uiVerification(input.ui_verification);
+  lines.push(`**Coverage:** ${input.coverage}`, '', `**Browser verification:** ${ui.status} — ${ui.note}`, '');
+  summary.push(`Browser verification: ${ui.status} — ${ui.note}`);
   let handoff = null;
   if (input.implement) {
     if (input.implement.handoff_version === 1) handoff = validateHandoff({ version: 1, ticket: input.ticket, plan_version: input.implement.plan_version, review_cycle: input.implement.review_cycle,
@@ -93,7 +96,9 @@ export async function writeReview(root, input) {
   if (!(await lstat(directory)).isDirectory()) fail('Run directory must not be a symlink.');
   const report = path.join(directory, `${input.ticket}-review.md`);
   return withLock(report, async () => {
+    const evidence = await captureReviewEvidence(input, rendered.markdown);
     await atomicWrite(report, rendered.markdown);
+    await atomicWrite(path.join(directory, `${input.ticket}-review-evidence.json`), JSON.stringify(evidence, null, 2) + '\n');
     let handoff = null;
     if (rendered.handoff) {
       const handoffs = path.join(directory, `${input.ticket}-handoffs`);

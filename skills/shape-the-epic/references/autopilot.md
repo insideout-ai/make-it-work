@@ -63,6 +63,8 @@ Part A: [N] self-answered turn(s) used (cap 6); exit: early (no open threads rem
 Part A: [N] self-answered turn(s) used (cap 6); exit: cap-reached (open threads: [list])
 ```
 
+For an already sufficient brief, explicitly use the zero-turn form: `Part A: 0 self-answered turns used (cap 6); exit: early (the brief already covered the discovery interview)`. Do not omit the exit reason merely because the count is zero.
+
 Count only Phase 2A `open_text` answers toward Part A's six-turn cap. Report Part B gap-check resolutions separately; a zero-turn Part A can coexist with later gap-check assumptions and unresolved draft items. Explain that distinction when it applies, so “no open threads remaining” describes the discovery interview rather than claiming the entire epic has no open decisions.
 
 Use the writer's successful `Decision log saved to <path>` output to report `Decision log: saved to <path>`. If denied, state `Decision log: write denied — run details are in this summary instead`; report other failures accurately. Invite consolidated feedback on the generated epic without claiming section approvals.
