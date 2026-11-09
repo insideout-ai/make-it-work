@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
+import { prematureImplementation } from './implementation-guard.mjs';
 
 export function startupResult(output) {
   if (typeof output !== 'string') return null;
@@ -32,9 +33,10 @@ export function startupProgress(events) {
   let announced = false;
   const bashCalls = new Set();
   for (const event of events) {
+    if (!['assistant', 'user'].includes(event.type)) continue;
     const role = event.message?.role ?? event.type;
     const content = event.message?.content;
-    if (role === 'user' && !event.isMeta && (typeof content === 'string' ||
+    if (role === 'user' && !event.isMeta && !event.isSynthetic && (typeof content === 'string' ||
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
       // A new user turn is Resume, not a fresh-run announcement obligation.
       initialized = null;
@@ -61,15 +63,20 @@ export function pendingStartup(events) {
   return announced ? null : initialized;
 }
 
-async function continuationHold(initialized) {
+async function continuationHold(initialized, toolCheck = false) {
   if (initialized?.continuation !== 'continue_context_check_without_user_reply') return {};
-  let fields;
+  let state;
   try {
-    ({ fields } = parseState(await readFile(initialized.state, 'utf8'), initialized.state));
+    state = parseState(await readFile(initialized.state, 'utf8'), initialized.state);
   } catch (error) {
     return { decision: 'block', reason: `Startup continuation could not verify the saved workflow state: ${error.message}. Inspect and repair the state or checkpoint a genuine blocker before ending the turn. Do not ask the user for a message merely to continue startup.` };
   }
-  if (fields.phase !== 'context-check' || fields.status !== 'In Progress') return {};
+  const violation = await prematureImplementation(initialized, state);
+  if (violation) return { decision: 'block', reason: violation };
+  if (toolCheck) return {};
+  const { fields } = state;
+  if (fields.status !== 'In Progress') return {};
+  if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };
   return { decision: 'block', reason: 'The dashboard link has been shared, but this fresh run is still in Context check with status In Progress. Continue Context check now in this same turn; do not repeat the link or ask the user to send another message. If a genuine question or blocker prevents continuation, save the documented pause or stop before reporting it.' };
 }
 
@@ -77,26 +84,42 @@ function reminder(initialized) {
   return `The implementation dashboard has been created, but its link still needs an ASSISTANT CHAT MESSAGE. Tool output does not send it. Before any further tool call, emit this exact clickable link in ordinary assistant text:\n\n${initialized.startup_message}\n\nThen continue Context check in this turn without waiting for user acknowledgment. For a pending offline refinement, keep its documented answer wait instead. Do not claim the link was already shared unless it appears in assistant chat.`;
 }
 
+function advisory(event, reason) {
+  return { hookSpecificOutput: { hookEventName: event, additionalContext: reason } };
+}
+
 export async function startupHook(input) {
-  if (input.hook_event_name === 'PostToolUse') {
-    if (input.tool_name !== 'Bash' || input.tool_response?.interrupted) return {};
+  if (input.hook_event_name === 'PostToolUse' && input.tool_name === 'Bash' && !input.tool_response?.interrupted) {
     const initialized = startupResult(input.tool_response?.stdout);
-    return initialized ? { decision: 'block', reason: reminder(initialized) } : {};
+    if (initialized) return { decision: 'block', reason: reminder(initialized) };
   }
-  if (!['PreToolUse', 'Stop'].includes(input.hook_event_name) || !input.transcript_path) return {};
-  let pending;
-  // Claude Code buffers transcript writes. The chat block immediately before
-  // this tool can be visible before its JSONL record reaches the hook.
-  for (let attempt = 0; attempt <= 15; attempt += 1) {
+  if (!['PreToolUse', 'PostToolUse', 'Stop'].includes(input.hook_event_name) || !input.transcript_path) return {};
+  let progress;
+  // Chat may precede its buffered JSONL record. Allow a longer bounded flush
+  // before enforcing a missing announcement, without accepting tool-only links.
+  const attempts = input.hook_event_name === 'PostToolUse' ? 0 : 40;
+  for (let attempt = 0; attempt <= attempts; attempt += 1) {
     if (attempt) await delay(100);
-    const transcript = await readFile(input.transcript_path, 'utf8');
-    const events = transcript.split('\n').filter((line) => line.trim()).map((line) => JSON.parse(line));
-    const progress = startupProgress(events);
-    pending = progress.announced ? null : progress.initialized;
-    if (!pending) return input.hook_event_name === 'Stop' ? continuationHold(progress.initialized) : {};
+    const lines = (await readFile(input.transcript_path, 'utf8')).split('\n');
+    const events = [];
+    for (let index = 0; index < lines.length; index += 1) {
+      if (!lines[index].trim()) continue;
+      try { events.push(JSON.parse(lines[index])); }
+      catch (error) { if (index !== lines.length - 1) throw error; } // partial append
+    }
+    progress = startupProgress(events);
+    if (!progress.initialized || progress.announced) break;
   }
-  if (input.hook_event_name === 'Stop') return { decision: 'block', reason: reminder(pending) };
-  return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(pending) } };
+  if (!progress.initialized) return {};
+  if (!progress.announced) return input.hook_event_name === 'Stop'
+    ? { decision: 'block', reason: reminder(progress.initialized) }
+    : input.hook_event_name === 'PreToolUse'
+      ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
+      : advisory(input.hook_event_name, reminder(progress.initialized));
+  const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop');
+  if (input.hook_event_name === 'Stop') return hold;
+  // Keep recovery tools available; mutation is detected after execution, not rolled back.
+  return hold.reason ? advisory(input.hook_event_name, hold.reason) : {};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

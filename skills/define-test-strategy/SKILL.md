@@ -3,6 +3,12 @@ name: define-test-strategy
 description: "Onboards or refreshes a repo's test-strategy skill and shared test map: discovers tests across repos without modifying source/tests, discusses layers and adoption, records commands and prerequisites, maintains evidence-backed UC/domain relationships, and reports coverage."
 disable-model-invocation: true
 hooks:
+  PostToolUse:
+    - matcher: Bash
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PLUGIN_ROOT}/scripts/refresh-handoff.mjs"'
+          timeout: 10
   Stop:
     - hooks:
         - type: command
@@ -169,6 +175,8 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
 
 ## Phase 4 — Test Map Confirmation
 
+**Evidence read gate:** explicitly read the target repo's `CLAUDE.md`, `.claude/rules/product.md` and `.claude/rules/architecture.md` when present before citing their content in a mapping. Do this even when project instructions were auto-loaded: the actual file contents must be inspected in this run. Also inspect the specific UC/domain skill sections used as evidence. A filename, directory listing or snapshot hash is not document content. Cite only sections actually read; leave unavailable or unsupported relationships unresolved.
+
 1. **Vocabulary.** Take UC/domain tokens from the target repo's go-deep inventory (`uc-*` and `domain-*` directories), falling back to product/architecture rule tables. Qualify them with the product Repo ID, including tests in other repos. Partial runs inventory tests/selectors but leave tokens and relationships empty, pending go-deep.
 2. **Incremental mapping.** Follow `docs/test-map-contract.md`, including its Behavioral evidence criteria: validate registrations, inspect snapshots, reuse unchanged relationships, and reassess only affected tests/evidence. First onboarding inventories all confirmed locations. Unknown impact/configuration changes rebuild affected locations; missing locations remain unresolved. Catalog separate, embedded and documentation tests uniformly, including formats without comments. Record the asserted behavior and its documented UC/domain relationship, not just module ownership; preserve user decisions. Do not import relationships from tags or path conventions. Clear relationships require no per-entry human approval; ambiguity remains unresolved.
 3. **One checkpoint**, in plain text (autopilot: see Autopilot Mode): show reused/new/reassessed mappings and evidence, plus unresolved candidates. The user may correct relationships; record explicit confirmations/rejections in `decisions`.
@@ -178,9 +186,13 @@ Save the result under `## Strategy Decisions` after `## How to Scan`, before `##
 
 Read [the strategy consistency contract](../../docs/deterministic-artifacts.md#test-strategy-consistency). Its required `test-strategy.mjs check` validates the candidate and actual selected-layer projection before reporting it ready. In Phase 6, use its `pointer` command instead of manually editing/deduplicating the CLAUDE.md table; this narrow script write is an explicit exception to the Write/Edit-only rule. All semantic refresh/conflict/blocked-write rules remain active.
 
-Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Record each discovered/reassessed test's strategy layer, or `unknown` when unclear. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. After final strategy/pointer changes, complete semantic reassessment and record final snapshots per the contract, so metadata edits do not immediately stale the map. Then generate `.claude/testing/TEST-MAP.md` with `node "<base>/../../scripts/test-map-report.mjs" --root "<target-repo>" --write`, per the contract's Developer report section. Link the report's resolved Refresh command from the strategy, or copy the actual command printed by the generator. Do not generate it on the coverage-report-only path; disclose a failed report write separately from successfully saved metadata.
+Write `.claude/testing/test-map.json` and `.claude/skills/test-strategy/SKILL.md` in the target repo using Phases 2-4 and the shared contract/template. Record each discovered/reassessed test's strategy layer, or `unknown` when unclear. Validate the map before updating the strategy pointer. Save meaningful differences only, preserving decisions and unrelated user content. Finish writing and validating the candidate artifacts here; Phase 6 owns the pointer, final semantic reassessment, final baselines and developer report in that order. Do not capture final snapshots or generate the final report before the pointer phase, since the pointer edit would immediately stale them. Coverage-report-only writes no artifacts; disclose blocked writes without bypassing them.
 
-The skill's Stop hook checks the final handoff after a fresh report generation.
+The skill's PostToolUse/Stop hooks hold truncated post-pointer evidence delivery. Run the returned read-only `evidence` command without cut/head or truncation, review the full assertions/documentation, finish reassessment, and record final baselines/report before handing off. The delivery check does not judge semantic correctness or permit skipping deferred reads. It writes nothing and does not retry a denied metadata write.
+
+The skill's Stop hook also checks the final handoff after a fresh report generation. After any hook correction, send a complete replacement handoff, including the coverage report and every required summary outcome/path below. Do not send an incremental correction that says the rest of an earlier summary stands.
+
+
 If it contains an unfinished template refresh command, correct the chat message
 using the generator's exact resolved command or the report link. This is output
 validation, not a user approval or pause; it writes no files and does not apply
@@ -207,7 +219,7 @@ link the report and name its Refresh command or give the actual runnable command
 - **Partial** → write `## Pending` stating UC/domain mapping awaits go-deep; retain Test Map, the discovered inventory and actual discovery/selectors. Do not invent tokens. Remove Pending once the vocabulary is available.
 - **Write blocked** → if either artifact is denied or fails, never relocate it or bypass the denial. Print both complete proposed artifacts in separate fenced blocks, before the final summary, including the full strategy frontmatter and JSON map. Keep CLAUDE.md unchanged, skip Phase 6, and continue Phase 7 with the in-memory candidate. Report any partially saved artifact explicitly.
 
-## Phase 6 — CLAUDE.md Pointer
+## Phase 6 — Pointer, Final Reassessment and Report
 
 Edit only the target repo's `CLAUDE.md`. Run this phase only when Phase 5 wrote both artifacts and validated the map; otherwise leave its pointers unchanged.
 
@@ -215,6 +227,12 @@ Edit only the target repo's `CLAUDE.md`. Run this phase only when Phase 5 wrote 
    `| /test-strategy | Test locations (incl. other repos), commands, prerequisites, new-test targets, maintained test map | Planning, writing, running, or reviewing tests |`
    Add the row if missing, replace it if it differs, and drop duplicates. Leave other rows in the table alone.
    If `CLAUDE.md` or its `## Skills Reference` is missing, add nothing, never invent the section, and report it in the summary (autopilot: see Autopilot Mode).
+
+Use `test-strategy.mjs pointer`'s actual result in the summary: `changed: true` means the helper updated the pointer; `changed: false` with no skip means it was already current. A nonempty `skipped` explains why no pointer was added. Do not infer that this run edited a file from `git status` alone.
+
+2. **Final semantic reassessment.** Follow the pointer helper's `reassess-map` next action when it changed CLAUDE.md, reviewing the returned `reassessment_evidence` packet of actual post-edit context, test assertions and mapping evidence. These helper-read contents count as fresh file inspection; a separate Read call is unnecessary for included complete files. Explicitly read any deferred or unavailable inputs and resolve unknown impact before claiming full reassessment. Do not substitute hashes or an inventory for contents, and do not treat the packet itself as a semantic verdict. Run `test-map.mjs inspect`, inspect the actual diff and apply every affected location's `refresh` per the shared contract. Re-read affected test assertions and the UC/domain evidence before retaining or changing relationships. A pointer-only registration edit is not permission to replace a hash: verify its diff and the relevant behavioral evidence and explain why relationships remain valid. A `rebuild` still requires rediscovery/reassessment of that location; do not silently downgrade it to a single-file hash update.
+3. **Final baseline.** Only after that semantic work, save any changed tests/mappings/completeness and copy the fresh helper-produced `snapshots` and `discovery` for fully reassessed locations. Preserve unavailable baselines and incomplete scope. Validate the map and inspect it again. Never advance a snapshot merely to clear a stale flag.
+4. **Developer report.** Generate `.claude/testing/TEST-MAP.md` from the final map with `node "<base>/../../scripts/test-map-report.mjs" --root "<target-repo>" --write`. Use its actual resolved Refresh command or the saved strategy's report link in the handoff; report a failed report write separately from saved metadata.
 
 Never write or offer a git hook, and never add a checklist item.
 
