@@ -1,0 +1,105 @@
+skills/implement/scripts/workflow.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 19,132-138,335-340,354,396-404,528,575-576,592
+skills/slice-the-epic/SKILL.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 45-46
+evals/implement/implement-autopilot-full/graders/stage-order.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 1-22
+CONTRIBUTING.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 69
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/review-summary.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 11,15
+scripts/review-report.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 7,59-61,99,101
+skills/define-test-strategy/SKILL.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 6-11,178-179,189-194,222,231-235
+  s_e8cdb860e0eee3::t_781a25ba2037d4 236
+evals/implement/README.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 197-202
+evals/slice-the-epic/well-specified-epic-autopilot/graders/no-clarifying-pause.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 7-8,10-24
+skills/implement/scripts/deliver.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 13,165-167
+skills/implement/scripts/deliver.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 88-89,94-95,108
+skills/implement/scripts/implementation-guard.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 1-33
+skills/implement/scripts/startup-presentation.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 38,66,69,90,99,109,138-188
+skills/implement/SKILL.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 7,55-76,617,647,712
+skills/review-the-code/SKILL.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 166-169
+README.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 365
+scripts/refresh-handoff.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 8,59-123
+scripts/review-evidence.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 1-49
+scripts/test-strategy.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 2,7,28,34-82
+CHANGELOG.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 9-17
+.github/pull_request_template.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 29-30
+evals/README.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 56,92-95
+evals/slice-the-epic/README.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 44-45
+evals/validate.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 78,81
+scripts/lib/review-evidence.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 1-60
+scripts/refresh-handoff.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 8-10,16-65,67-69,72,75,77,79,82,97-102,111-118,123-124
+evals/define-test-strategy/README.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 75-76
+evals/grade-headless.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 2-3,302,365-425
+docs/deterministic-artifacts.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 52,92-94
+  s_e8cdb860e0eee3::t_23c89bedec0a8a 95
+skills/implement/references/controller.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 32-55,62
+skills/implement/scripts/final-package.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 14,94,220-227,234,276
+skills/implement/scripts/final-package.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 108-145
+skills/implement/scripts/startup-presentation.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 8,36,39,66,68,70,74-79,87-90,92,94,96-101,103-111,113-122
+evals/define-test-strategy/fresh-tests/graders/nonintrusive-map.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 7-48
+skills/implement/scripts/workflow.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 3,35-50,82,100-102
+skills/shape-the-epic/references/autopilot.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 66-67
+skills/implement/scripts/implementation-guard.test.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 1-69
+evals/shape-the-epic/shape-the-epic-rich-input-autopilot/graders/decision-log-write-attempted.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 12
+evals/grade-headless.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 1,4-5,87,92-95,104-109,124-158,161
+evals/suites.json
+  s_e8cdb860e0eee3::t_a20c3afb61700e 130-134
+scripts/test-strategy.mjs
+  s_e8cdb860e0eee3::t_a20c3afb61700e 2,4,73-117,129-135,140-144
+.claude-plugin/plugin.json
+  s_e8cdb860e0eee3::t_a20c3afb61700e 6
+evals/define-test-strategy/fresh-tests/graders/pointer-consistent.md
+  s_e8cdb860e0eee3::t_a20c3afb61700e 2,6-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "af9df5c294a80829ccc8dd240ff1893368c84378",
+  "prompts": {},
+  "sessions": {
+    "s_e8cdb860e0eee3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bc6c-91ea-7da0-967a-49ef72857354",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
