@@ -226,7 +226,7 @@ test('a complete workflow reports partial criterion verification consistently in
   const completed = (await readFile(state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: final-approval', 'phase: complete');
   await writeFile(state, completed);
   const html = await readFile(await generateDashboard(state), 'utf8');
-  assert.match(html, /Implementation complete\./);
+  assert.match(html, /Finalizing session\./);
   assert.match(html, /Acceptance verification: Partially verified/);
   assert.match(html, /1 of 2 acceptance criteria pending/);
   assert.match(html, /Reference &lt;unavailable&gt;/);
