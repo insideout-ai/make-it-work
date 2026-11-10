@@ -11,6 +11,9 @@ export function summarizeAssurance(pkg) {
   else if (acceptance.pending) limitations.push(`acceptance verification pending (${acceptance.pending} of ${acceptance.total} ${acceptance.total === 1 ? 'criterion' : 'criteria'})`);
   if (!scope.length) limitations.push('delivery review scope unknown');
   for (const repo of scope) if (repo.status !== 'covered') limitations.push(`delivery review ${repo.status} (${repo.repo})`);
+  for (const repo of scope) for (const item of repo.limitations ?? []) limitations.push(`review ${item.depth} (${repo.repo}: ${item.paths.join(', ')}) — ${item.reason}`);
+  for (const note of pkg.validation_notes ?? []) limitations.push(`validation qualification — ${note}`);
+  for (const record of pkg.test_map_maintenance ?? []) if (record.status === 'blocked') limitations.push(`test-map maintenance blocked — ${record.reason}`);
   if (ui.status === 'pending') limitations.push('browser verification pending');
   if (pkg.validation.mode === 'lightweight') limitations.push('no regression gate (Lightweight)');
   else if (pkg.validation.result === 'manual-accepted') limitations.push('automated regression unavailable; manual gate accepted');

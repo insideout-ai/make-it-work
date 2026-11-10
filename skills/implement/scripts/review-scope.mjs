@@ -7,6 +7,8 @@ import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { compareReviewScope } from '../../../scripts/lib/review-evidence.mjs';
 import { parseState } from './render-status.mjs';
 import { assertRunState, runArtifact } from './artifact-layout.mjs';
+import { checkContextMaintenance } from './context-maintenance.mjs';
+import { validateReviewChecks } from './review-checks.mjs';
 
 const targetName = (f) => `${f.ticket}-review-target-${f.review_cycle}.json`;
 async function readState(root, statePath) {
@@ -36,8 +38,21 @@ export async function prepareReviewScope(root, statePath) {
   root = await realpath(root);
   const state = await readState(root, statePath), f = state.fields;
   if (f.phase !== 'review' || f.status !== 'In Progress') fail('Prepare review scope only in an active Review phase.');
+  if (['1', '2'].includes(f.review_context_version)) {
+    const entry = state.audit.findLast(row => row.to === 'review' && row.from !== 'review');
+    if (!state.audit.some(row => row.number > (entry?.number ?? 0) && row.from === 'review' && row.to === 'review' &&
+        row.outcome.startsWith(`Review context prepared for cycle ${f.review_cycle}.`) && row.outcome.includes('[workflow-event:'))) {
+      fail('Prepare bounded documentation/test-map context before freezing review scope; checkpoint review-context with context_updated (or []).');
+    }
+  }
+  await checkContextMaintenance(root, f);
   const repos = await deliverySnapshots(root, state);
   const target = { version: 1, ticket: f.ticket, runId: f.start_time, planVersion: Number(f.plan_version), cycle: Number(f.review_cycle), repos: manifestRepos(repos, f) };
+  if (f.review_checks_version === '1') {
+    const requirements = JSON.parse(f.review_requirements ?? '[]');
+    if (requirements.length !== repos.length) fail('Checkpoint the required review skills and mapping scope before freezing review.');
+    target.review_requirements = requirements;
+  }
   const relative = runArtifact(f.ticket, targetName(f));
   for (const [index, repo] of repos.entries()) await atomicWrite(path.join(root, 'make-it-work', f.ticket, target.repos[index].diff_file), repo.diff);
   await atomicWrite(path.join(root, relative), `${JSON.stringify(target, null, 2)}\n`);
@@ -79,10 +94,21 @@ export async function validateReviewScopeInput(root, input, evidence) {
   }
   catch (error) { if (error.code === 'ENOENT' && input.implement.review_scope_version !== 1) return; throw error; }
   if (state.fields.review_scope_version !== '1') fail('Review scope policy does not match the saved run.');
+  if (state.fields.review_context_version === '2' && !Array.isArray(input.review_limitations)) fail('Explicitly record review_limitations (or []) for this run; snapshot coverage does not establish review depth.');
   if (state.fields.phase !== 'review' || state.fields.status !== 'In Progress' || input.implement.review_cycle !== Number(state.fields.review_cycle) || input.implement.plan_version !== Number(state.fields.plan_version)) fail('Review input does not match the active review cycle.');
   assertRunState(root, statePath, input.ticket);
   const { target, sha256 } = await readTarget(root, state, input.review_target);
   if (input.review_target_sha256 !== sha256) fail('Review target hash differs from the dispatched snapshot. Review the current target before writing the report.');
+  if (state.fields.review_checks_version === '1') {
+    validateReviewChecks(input.review_checks, target.review_requirements ?? []);
+    for (const item of target.review_requirements) for (const skill of item.skills) {
+      if (digest(await readFile(path.join(item.repo, skill.path))) !== skill.sha256) fail('Required review context changed; prepare the current target again.');
+    }
+    for (const check of input.review_checks) for (const skill of check.skills) for (const rule of skill.rules) {
+      if (rule.result === 'finding' && !input.findings[Number(rule.finding_id?.slice(1)) - 1]) fail('An applied-rule finding needs its actual finding_id in this review.');
+    }
+    evidence.review_checks = input.review_checks;
+  }
   const repos = await deliverySnapshots(root, state);
   if (!sameTarget(target, repos, state.fields)) fail('Delivery diff changed during review. Prepare the current delivery scope again and review it.');
   if (!fullCoverage(evidence, repos).covered) {
@@ -97,6 +123,7 @@ export async function checkReviewScope(root, statePath, { requireCurrent = true 
   const report = await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review.md`)));
   if (evidence.version !== 1 || evidence.ticket !== f.ticket || evidence.report_sha256 !== digest(report) || !evidence.delivery_target) fail('Clean review needs delivery-bound scope evidence; rerun the independent review.');
   const { target, sha256 } = await readTarget(root, state, evidence.delivery_target.path);
+  if (f.review_checks_version === '1') validateReviewChecks(evidence.review_checks, target.review_requirements ?? []);
   if (sha256 !== evidence.delivery_target.sha256) fail('Review target changed after review. Prepare and review the current delivery scope again.');
   const repos = await deliverySnapshots(root, state);
   const result = fullCoverage(evidence, repos);

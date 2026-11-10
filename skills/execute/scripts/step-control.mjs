@@ -7,6 +7,7 @@ import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { inspectPlan, updatePlan, executionDashboardState, checkpointExecutionActivity, completedActivity } from './plan-status.mjs';
 import { traceability, validateVerification } from '../../implement/scripts/verification.mjs';
 import { checkpointResult } from '../../implement/scripts/dashboard-checkpoint.mjs';
+import { parseState } from '../../implement/scripts/render-status.mjs';
 
 function diagnosisRecord(input, repeated) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) fail('A fix-attempt diagnosis is required.');
@@ -125,7 +126,7 @@ async function readJournal(file, hash, steps, completed, allowEditedStop = false
   }
   return journal;
 }
-export async function executionControl(planPath, event, { ledgerPath, ticket, planVersion = 1, dashboardState } = {}) {
+export async function executionControl(planPath, event, { ledgerPath, ticket, planVersion = 1, dashboardState, requireClauses = false } = {}) {
   if (!(await lstat(planPath)).isFile()) fail('Execution plan must be a regular file.');
   if (ledgerPath && (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket ?? '') || !Number.isSafeInteger(planVersion) || planVersion < 1 || path.dirname(path.resolve(ledgerPath)) !== path.dirname(path.resolve(planPath)) || path.basename(ledgerPath) !== `${ticket}-verification-v${planVersion}.json`)) fail('Verification ledger must match ticket/version beside its plan.');
   const journalPath = `${planPath}.execution.json`;
@@ -139,14 +140,23 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     if (resolving && (event.source !== 'user' || !['chat', 'question'].includes(event.via) || !event.reason)) fail('Resolving a correctness stop requires explicit user guidance.');
     let journal = await readJournal(journalPath, hash, steps, status.completed, resolving);
     await checkpointGuardrails(planPath, dashboardState, journal);
+    if (event.action === 'complete' || status.completed || journal.amendment_pending) {
+      const directory = path.dirname(path.resolve(planPath));
+      const inferredTicket = path.basename(planPath).match(/^(.+)-plan(?:-v\d+)?\.md$/)?.[1];
+      const statePath = dashboardState ?? (path.basename(directory) === inferredTicket && path.basename(path.dirname(directory)) === 'make-it-work' ? path.join(directory, `${inferredTicket}-state.md`) : null);
+      if (statePath) {
+        try { requireClauses ||= parseState(await readFile(statePath, 'utf8'), statePath).fields.acceptance_evidence_version === '1'; }
+        catch (error) { if (error.code !== 'ENOENT' || dashboardState) throw error; }
+      }
+    }
     if (journal.amendment_pending) {
       if (!ledgerPath || !ticket) fail('Fix amendment requires the existing verification ledger.');
       let ledger;
       try { ledger = JSON.parse(await readFile(ledgerPath, 'utf8')); }
       catch (error) { if (error.code !== 'ENOENT' || status.completed) throw error; }
       if (ledger) {
-      validateVerification(ledger, { ticket, planVersion, plan });
-      const expected = traceability(plan);
+      validateVerification(ledger, { ticket, planVersion, plan, requireClauses });
+      const expected = traceability(plan, { requireClauses });
       if (ledger.acceptance.some((row) => !expected.some((item) => item.criterion === row.criterion && item.clause === row.clause && item.scenario === row.scenario))) fail('Amendment changed prior AC traceability; reassess evidence before continuing.');
       for (const row of expected) if (!ledger.acceptance.some((item) => item.criterion === row.criterion && item.clause === row.clause && item.scenario === row.scenario)) ledger.acceptance.push({ ...row, status: 'unverified', step: null, note: 'New amendment scenario awaits evidence.' });
       ledger.gate = null;
@@ -159,7 +169,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
       if (status.completed) {
         if (!ledgerPath || !ticket) fail('Resume requires the verification ledger.');
         const evidence = JSON.parse(await readFile(ledgerPath, 'utf8'));
-        validateVerification(evidence, { ticket, planVersion, plan });
+        validateVerification(evidence, { ticket, planVersion, plan, requireClauses });
         for (let n = 1; n <= status.completed; n += 1) if (!evidence.steps.some((step) => step.number === n)) fail(`Completed step ${n} has no evidence.`);
       }
       if (event.action === 'inspect') return { ...status, attempts: journal.attempts, diagnoses: journal.diagnoses ?? {}, stopped: journal.stopped,
@@ -211,7 +221,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     catch (error) {
       if (error.code !== 'ENOENT') throw error;
       ledger = { version: 1, ticket, plan_version: planVersion, steps: [], gate: null,
-        acceptance: traceability(plan).map((row) => ({ ...row, status: 'unverified', step: null, note: 'No evidence recorded yet.' })) };
+        acceptance: traceability(plan, { requireClauses }).map((row) => ({ ...row, status: 'unverified', step: null, note: 'No evidence recorded yet.' })) };
     }
     if (!receipt) {
       const eligible = nextBatch(steps, status.completed, ids.length > 1);
@@ -228,13 +238,13 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
         const step = event.steps.find((s) => s.checks.some(matches));
         if (step) { item.step = step.number; item.status = step.checks.find(matches).type; item.note = 'Recorded step evidence.'; }
       }
-      validateVerification(ledger, { ticket, planVersion, plan });
+      validateVerification(ledger, { ticket, planVersion, plan, requireClauses });
       await atomicWrite(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
       journal.receipts.push({ hash: receiptHash, steps: ids, checkpointed: false });
       journal.active_steps = []; journal.active_dispatch = null;
       await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
     } else {
-      validateVerification(ledger, { ticket, planVersion, plan });
+      validateVerification(ledger, { ticket, planVersion, plan, requireClauses });
       for (const step of event.steps) if (JSON.stringify(ledger.steps.find((saved) => saved.number === step.number)) !== JSON.stringify(step)) fail('Saved verification evidence changed.');
     }
     const through = ids.at(-1);
@@ -252,9 +262,10 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
   });
 }
 cli(import.meta.url, async (argv) => {
-  const o = args(argv, ['--plan', '--input', '--ledger', '--ticket', '--plan-version', '--dashboard-state']);
+  const o = args(argv, ['--plan', '--input', '--ledger', '--ticket', '--plan-version', '--dashboard-state', '--require-clauses']);
   if (!o.plan) fail('--plan is required.');
   if (!['inspect', 'apply'].includes(o.command)) fail('Use inspect or apply.');
+  if (o['require-clauses'] !== undefined && o['require-clauses'] !== '1') fail('--require-clauses must be 1.');
   const event = o.command === 'inspect' ? { action: 'inspect' } : await jsonInput(o.input);
-  return executionControl(o.plan, event, { ledgerPath: o.ledger, ticket: o.ticket, planVersion: Number(o['plan-version'] ?? 1), dashboardState: o['dashboard-state'] });
+  return executionControl(o.plan, event, { ledgerPath: o.ledger, ticket: o.ticket, planVersion: Number(o['plan-version'] ?? 1), dashboardState: o['dashboard-state'], requireClauses: o['require-clauses'] === '1' });
 });

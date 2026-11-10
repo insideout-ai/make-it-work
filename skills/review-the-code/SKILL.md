@@ -83,11 +83,15 @@ Before doing anything else — before fetching requirements, before running any 
 
    Derive the best guess from the PR metadata, branch name, and `git branch -r` output. Wait for confirmation before running `git diff <base>...HEAD`.
 
-3. **Read whole files, not hunks.** `git diff --name-only <base>...HEAD`, then read each changed file in full at the reviewed commit. Findings frequently live in *unchanged* sibling code — a neighboring method that guards a case the new code misses, an interface with two similar fields, a writer that already handles what the new code re-handles.
+3. **Enumerate paths before reading source.** Use `git diff --name-only <base>...HEAD` to identify matching skills, then complete Step 2's loading gate before reading source or judging the diff. Once loaded, read each changed file in full at the reviewed commit. Findings frequently live in unchanged sibling code, so retain that context rather than judging isolated hunks.
 
 ## Step 2 — Load the skills that match the diff
 
 The `CLAUDE.md` skill-loading gate applies to reviews. Before judging any changed file, load **every** matching skill via the `Skill` tool.
+
+When implement supplies a target with `review_requirements`, follow [its review-check contract](../implement/references/review-checks.md). Load each minimum required skill and apply its relevant rules to the actual change; record observations in `review_checks`. Use session-domain rules for session/calendar fallback and test-strategy rules to determine expected checks, permitted deferrals and affected mappings. Names alone or another agent's loading claim do not complete the step.
+
+Follow any stricter repository timing/method requirement, including loading before source exploration. Implement's inline-stage instruction applies to this review stage, not repository domain/UC skills. Record the actually loaded skills and method in Coverage; reading their diff only to check documentation is not prior loading. If required loading is unavailable, stop with the concrete blocker. If implementation admits it skipped a required gate, load the missing context and reassess the affected behavior; route any remaining defect normally and document the recovered omission rather than silently treating it as compliant.
 
 **How to find matching skills:**
 
@@ -155,6 +159,10 @@ Adversarially re-check every candidate finding before writing it down:
 
 1. Re-read the exact code at the reviewed commit — does the failure scenario actually occur?
 2. Is it introduced by this diff, or pre-existing? (`git blame` / diff base when unsure.) Pre-existing issues go in a short separate note, never in the numbered findings.
+
+A newly added endpoint or behavior remains introduced even if siblings follow the same pattern. Assess policy and impact independently. Similar authentication, authorization or error handling elsewhere is context, not a waiver or proof of acceptability. If access policy/platform enforcement is unknown, retain the uncertainty and needed verification instead of declaring a vulnerability proven or dismissing it as pre-existing.
+
+For a failed lint/typecheck/build command, compare actual baseline and changed-file diagnostics, not just total counts or a similar error elsewhere. A diagnostic in a new file is introduced even if its underlying shared typing defect is older. Investigate the cause and route a real new failure under the normal severity rules. If an evidenced shared-tooling limitation justifies a nonblocking qualification, record the exact introduced diagnostic, rationale, unchecked impact and follow-up in `validation_notes: ["..."]`; otherwise fix it. Unknown baseline comparison remains unknown. Never place introduced diagnostics under Pre-existing or imply the whole command's failures were unchanged. Validation notes are retained in report/chat, final assurance, package and delivery text; they do not override actionable findings or required stops.
 3. Do the file/line references match the reviewed commit?
 
 Drop anything that fails these checks. **Report every verified finding in the changed region in the same review** — finish the Step 3 state-space enumeration for each changed function or path and don't stop at the first Major; a latent gap that surfaces one finding per review cycle forces repeated fix rounds. A short list of confirmed findings is worth more than a long list of maybes — every false positive costs the reviewer's trust.
@@ -278,6 +286,8 @@ another review round; those changes must receive review before packaging.
 
 **Fix-cycle regression check** — when the review cycle number is above 1 and the plan carries an `**Amended for fix cycle <n> ...**` marker, the diff includes fix steps added in response to earlier findings (the steps after the plan's pre-amendment step count, each naming the finding it fixes). For each such step, explicitly check whether it regressed its own code path or introduced a new defect in the region it changed — re-run the Step 3 state-space enumeration over that region, including the complement of any guard, reject, or filter the fix added. Every finding in a re-review then carries `Introduced by fix of: #N`, naming the earlier finding or fix step it descends from, or `none`. A finding with a value other than `none` is a repeat offender: say so in the finding so `plan-the-work` can recommend a replan instead of stacking another patch.
 
+For each affected defect class, name the bounded sibling/complement cases actually inspected or exercised, the outcome, and remaining gaps in the review evidence. Reconcile any cases promised in a Lightweight fix diagnosis or escalation plan against actual tests/results. A statement that sibling cases were checked is insufficient when the cited tests cover only the reported instance. Distinguish an old defect newly discovered from a regression introduced by a fix; repeated location alone does not prove causation. Preserve the same checks after escalation or replan even when the review-cycle counter resets.
+
 With no plan (Lightweight mode), the review cycle number above 1 alone marks a re-review: the fixes are the changes made since the previous review, and the prompt supplies that review's findings and regions. Apply the same check to each region those findings named, and set `Introduced by fix of:` against those findings. A repeat offender there makes `implement` escalate to its TDD workflow.
 
 **Finding routes** — tag every numbered finding with exactly one route:
@@ -286,6 +296,10 @@ With no plan (Lightweight mode), the review cycle number above 1 alone marks a r
 - `Route: replan` — the approach itself, or an assumption the plan relies on, is wrong. With no plan, it means the change needs the planned, test-first workflow; `implement` escalates to it.
 - `Route: human` — needs a product, business, or architectural decision no document settles (the "question to the author" cases above).
 - `Route: advisory` — Minor only: nonblocking polish or maintenance left unfixed. Use this default for optional nits, including nonblocking test-map maintenance. Keep it in both report tiers and the final package as an unfixed advisory; exclude it from actionable handoffs and fix scope. Do not print `Route: fix` for an item you intend to leave unresolved. Severity and disposition are distinct: not every Minor must block completion.
+
+Advisory severity determines code-fix routing, not whether `implement` performs its required documentation/test-map maintenance. Keep affected mapping gaps in Context gaps for parent reconciliation; do not authorize skipping them to avoid another review.
+
+Record `review_limitations: [{repo, paths, depth: "skimmed | partial | not-reviewed", reason}]` for work only skimmed, partially reviewed or not reviewed against its requirements, including inherited branch changes. Use repo IDs from `repo_roots` and exact paths from `review_scope`. New context-version-2 runs require an explicit array (`[]` only when no qualifications apply). Keep the same qualifications in report/chat coverage; matching snapshot hashes and a CLEAN verdict do not upgrade review depth. The renderer carries the structured qualifications into evidence, packages, delivery previews and PR text.
 
 The optional renderer `actionable` flag must agree with the route. In particular, `fix` with `actionable: false` is invalid. Replanning and fix amendments address only actionable findings; advisory items do not become correction work merely because the report also contains a fix.
 

@@ -413,6 +413,7 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 - Write tests for the behavior the baseline already implements; they must pass, not start red. One that fails, or an existing regression test the baseline broke, is a baseline defect rather than a pre-existing failure: never return `Blocked:` for it — give it a step that brings it to green.
 - Remaining work stays test-first under the Step 5 sub-phase.
 - When a review triggered the escalation, `implement` also passes that review report and the decided findings list; treat both as constraints, as in Replan mode.
+- Before reducing the plan to the last reported defect, inventory the accepted baseline against the spec: cite existing passing tests, identify untested requirements, and carry concrete gaps into the plan or an explicit verification limitation. For a repeat defect class, carry the bounded sibling/complement cases from the fix diagnosis into test scenarios. Do not assume a previously implemented component has render/behavior coverage merely because its helper tests pass. Keep the investigation scoped to the affected behavior; a complete input-space sweep is neither possible nor required.
 
 **Replan mode** (`N > 1`, with the previous plan path, a feedback path — the review report or `execute`'s saved report — and the decided findings list):
 

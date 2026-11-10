@@ -6,7 +6,7 @@ import { parseState } from './render-status.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { noteCell, parseNoteCell } from './audit-notes.mjs';
 
-function findingsRecord(findings) {
+function findingsRecord(findings, requireRelated = false) {
   if (!Array.isArray(findings) || !findings.length) fail('Provide a diagnosis for each actionable finding.');
   const ids = new Set();
   return findings.map((finding) => {
@@ -17,6 +17,10 @@ function findingsRecord(findings) {
       if (/[\x7f]/.test(saved[key])) fail(`Diagnosis ${key} must be a single line.`);
     }
     if (ids.has(saved.id)) fail('Diagnosis finding IDs must be unique.');
+    if (requireRelated || finding.related_cases !== undefined) {
+      if (!Array.isArray(finding.related_cases) || !finding.related_cases.length) fail('Diagnosis related_cases must name bounded sibling/complement checks, or explain why none apply.');
+      saved.related_cases = finding.related_cases.map(value => requireText(value, 'Diagnosis related case').trim());
+    }
     ids.add(saved.id);
     return saved;
   });
@@ -43,12 +47,12 @@ function savedRecord(report, round) {
 
 async function validateRecord(root, ctx, record) {
   const f = ctx.state.fields;
-  if (record.version !== 1 || record.ticket !== f.ticket || record.plan_version !== Number(f.plan_version) || record.round !== Number(f.fix_cycle)) fail('Lightweight diagnosis belongs to another fix round.');
+  if (![1, 2].includes(record.version) || record.ticket !== f.ticket || record.plan_version !== Number(f.plan_version) || record.round !== Number(f.fix_cycle)) fail('Lightweight diagnosis belongs to another fix round.');
   const allowed = [`${ctx.prefix}-review.md`, `${ctx.prefix}-final-feedback.md`];
   if (!allowed.includes(record.source)) fail('Diagnosis source must be this run\'s review or final feedback.');
   const source = await readFile(await within(root, record.source), 'utf8');
   if (record.spec_hash !== digest(await readFile(ctx.spec)) || record.source_hash !== digest(source)) fail('Lightweight diagnosis is stale; inspect the changed spec or fix source before dispatch.');
-  if (JSON.stringify(findingsRecord(record.findings)) !== JSON.stringify(record.findings)) fail('Malformed saved diagnosis findings.');
+  if (JSON.stringify(findingsRecord(record.findings, record.version === 2)) !== JSON.stringify(record.findings)) fail('Malformed saved diagnosis findings.');
   return record;
 }
 
@@ -75,8 +79,10 @@ export async function checkpointLightweightFix(root, statePath, input) {
   return withLock(statePath, async () => {
     const ctx = await context(root, statePath), f = ctx.state.fields;
     const source = input.source ?? `${ctx.prefix}-review.md`;
-    const record = { version: 1, ticket: f.ticket, plan_version: Number(f.plan_version), round: Number(f.fix_cycle), source,
-      spec_hash: digest(await readFile(ctx.spec)), source_hash: digest(await readFile(await within(root, source))), findings: findingsRecord(input.findings) };
+    const prior = await readFile(ctx.report, 'utf8');
+    const version = prior.includes(marker(Number(f.fix_cycle))) ? savedRecord(prior, Number(f.fix_cycle)).version : 2;
+    const record = { version, ticket: f.ticket, plan_version: Number(f.plan_version), round: Number(f.fix_cycle), source,
+      spec_hash: digest(await readFile(ctx.spec)), source_hash: digest(await readFile(await within(root, source))), findings: findingsRecord(input.findings, version === 2) };
     await validateRecord(root, ctx, record);
     const original = await readFile(ctx.report, 'utf8');
     if (original.includes(marker(record.round))) {

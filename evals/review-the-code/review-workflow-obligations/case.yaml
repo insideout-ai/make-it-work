@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: review-workflow-obligations
+tags: [review-the-code, skill-loading, diagnostics]
+context:
+  scaffold_script: fixture.sh

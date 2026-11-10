@@ -111,6 +111,23 @@ async function renderFixture(t, state, plan = null) {
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
+test('completion displays recorded assurance limits and links only the session export for sharing', async t => {
+  const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete', final_package_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
+  const f = await renderFixture(t, state);
+  assert.match(f.html, /Assurance: Not recorded/);
+  const pkg = { version: 1, ticket: 'DEMO', repos: [{ name: 'app' }], review_scope: [{ repo: 'app', status: 'covered', limitations: [{ depth: 'skimmed', paths: ['old.js'], reason: 'Inherited work not fully assessed' }] }], ui_verification: { status: 'pending', note: 'No browser observations' }, validation: { mode: 'lightweight', result: 'No regression gate' }, open_nits: ['A nonblocking note'], known_regressions: [] };
+  const packagePath = path.join(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
+  await writeFile(packagePath, bytes);
+  await generateDashboard(path.join(f.directory, 'DEMO-state.md'));
+  const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
+  assert.match(html, /Assurance: Limited/); assert.match(html, /Browser verification: pending/);
+  assert.match(html, /Inherited work not fully assessed/); assert.match(html, /href="workflow-feedback.md"/);
+  assert.match(html, /share only that session export/);
+  assert.equal(await readFile(packagePath, 'utf8'), bytes);
+  assert.match(await readFile(f.outputPath, 'utf8'), /Assurance: Not recorded/); // An unbound JSON file cannot establish assurance.
+  assert.equal(await readFile(path.join(f.directory, 'DEMO-state.md'), 'utf8'), state);
+});
+
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
   const rows = [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']];
   const current = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows }));
@@ -331,6 +348,30 @@ test('informational results are idempotent, escape text, and never replace resum
   const html = await readFile(outputPath, 'utf8');
   assert.match(html, /Result: Built &lt;package&gt; \| ready/);
   assert.doesNotMatch(html, /audit-note:|package-1/);
+});
+
+test('audit results hide evidence hashes while retaining results, references and the original state', async (t) => {
+  const { outputPath, directory } = await renderFixture(t, stateMarkdown({
+    fields: { phase: 'final-approval', final_package_version: '1' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'final-approval', 'Context synced']],
+  }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const hash = createHash('sha256').update('evidence digest').digest('hex');
+  for (const [id, text, reference] of [
+    ['readiness', 'Testing readiness complete. Baseline: pass.', `readiness.json; sha256:${hash}`],
+    ['gate', 'Completion gate: PASS. 1 run; 2 unmapped.', `gate-1; manifest sha256:${hash}; result sha256:${hash}`],
+    ['ledger', 'Verification ledger validated. Acceptance: 20 of 21 verified.', `verification.json; SHA-256: ${hash}`],
+  ]) await checkpointResult(statePath, { id, text, reference });
+  const before = await readFile(statePath, 'utf8');
+  await generateDashboard(statePath);
+  assert.equal(await readFile(statePath, 'utf8'), before);
+  assert.ok(before.includes(hash));
+  const html = await readFile(outputPath, 'utf8');
+  assert.match(html, /Completion gate: PASS\. 1 run; 2 unmapped/);
+  assert.match(html, /Acceptance: 20 of 21 verified/);
+  assert.match(html, /readiness\.json|verification\.json/);
+  assert.doesNotMatch(html, new RegExp(hash));
+  assert.doesNotMatch(html, /manifest sha256|result sha256|SHA-256:/);
 });
 
 test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {

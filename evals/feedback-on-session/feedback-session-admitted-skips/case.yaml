@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: feedback-session-admitted-skips
+tags: [feedback-on-session, implement, dashboard-html, required-checks]
+context:
+  scaffold_script: fixture.sh

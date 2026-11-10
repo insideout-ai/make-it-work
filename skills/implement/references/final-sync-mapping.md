@@ -2,6 +2,8 @@
 
 Read with `docs/test-map-contract.md` after the final documentation edits. This pass maintains mappings affected by the implementation; full onboarding/repair needs its own explicit scope.
 
+An advisory code-review finding does not waive this maintenance. Register affected new tests and assess their relationships within the bounded scope, preserving unresolved evidence honestly. Incomplete onboarding is a reason to retain baseline uncertainty, not to skip all affected-feature maintenance. For version-2 context preparation, persist an evidenced maintained/blocked/not-applicable assessment under the controller contract; an actual blocker belongs in the final package and assurance limits. Check the existing stop rule if the blocker invalidates test selection or prior validation.
+
 ## Establish scope and readiness
 
 Use the spec, the finished change's paths, the plan/Lightweight report, review discoveries and final documentation edits to identify affected behavior, test identities and repo-qualified UC/domain tokens. Include tests whose recorded evidence depends on changed code/docs, plus new or changed tests and necessary traced dependencies. File names/imports alone do not prove either relevance or irrelevance. Reuse earlier semantic analysis only when its assertion, implementation and documentation evidence still matches the finished tree; inspect changed evidence rather than replaying discovery from scratch.

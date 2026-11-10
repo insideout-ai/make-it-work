@@ -1,0 +1,4 @@
+Synthetic available conversation; numbered turns are local evidence locators.
+Turn 1, user: implement the bounded read-only feature in Autopilot; retain browser verification as pending if it was not performed.
+Turn 2, implementation and review: accepted behavior is implemented, focused existing tests pass and independent review is clean. One ordinary background-task wait had a progress message. No human status request or missed continuation is evidenced. Browser verification is pending, not passed.
+Turn 3, terminal controller: state is Complete with one review, no fix, no replan, and no active task. Docs and test-map maintenance are already accounted for. No workflow friction is supported by this conversation. The final generated dashboard, when present beside the state, is a separate artifact to inspect from source. No browser observation or rendering is supplied. Do not infer the dashboard's actual contents from this conversation.

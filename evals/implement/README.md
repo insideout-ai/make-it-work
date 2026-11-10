@@ -51,7 +51,7 @@ node evals/run-suite.mjs full --case=implement-workspace-approval --case=impleme
 
 These cases resume a seeded `implement` run at `final-sync`, allowing the terminal feedback hook to be exercised without replaying refinement, planning, execution, and review.
 
-- `feedback-clean` verifies the compact entry for a minimal completed run.
+- `feedback-clean` verifies the compact artifact entry plus automatic conversation review for a minimal completed run, with captured plugin provenance and non-blocking pending input.
 - `feedback-nonminimal` verifies Audit-log-based counting, retrospective analysis, skill attribution, share-safe output, and subagent dispatch after counters have reset.
 - `feedback-idempotent` verifies replacement of the matching run block while preserving older runs and user-authored text.
 - `implement-final-sync-map` resumes final sync with a current native map and a domain/product documentation gap. It checks evidence reassessment after the final doc edits, persisted current baselines, preserved user confirmation, and unchanged source/tests. Run with `node evals/run-suite.mjs full --case=implement-final-sync-map` after approving a model budget; authoring/seeding the case alone is not a live pass.

@@ -60,6 +60,42 @@ test('review cannot silently narrow a full delivery target to HEAD or omit earli
   await assert.rejects(checkReviewScope(f.root, f.statePath), /not fully reviewed/);
 });
 
+test('missing required skill applications or mapping assessment cannot produce a CLEAN handoff', async t => {
+  const f = await fixture(t);
+  await mkdir(path.join(f.root, '.claude/skills/domain-demo'), { recursive: true });
+  await writeFile(path.join(f.root, '.claude/skills/domain-demo/SKILL.md'), '# Domain\nPreserve the documented count.\n');
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('review_scope_version: 1', 'review_scope_version: 1\nreview_checks_version: 1'));
+  await f.apply('review-context', { context_updated: [], review_requirements: [{ repo: f.root, reason: 'Count changes belong to the demo domain', skills: [{ name: 'domain-demo', method: 'Read' }] }] });
+  const target = await prepareReviewScope(f.root, f.statePath);
+  const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
+  input.review_scope[0].paths = target.repos[0].paths;
+  await assert.rejects(writeReview(f.root, input), /review_checks/);
+  await assert.rejects(readFile(path.join(f.dir, 'DEMO-review.md')), { code: 'ENOENT' });
+  const skill = JSON.parse(await readFile(path.join(f.root, target.review_target), 'utf8')).review_requirements[0].skills[0];
+  input.review_checks = [{ repo: f.root, skills: [{ name: skill.name, method: skill.method, sha256: skill.sha256, rules: [{ line: 2, rule: 'Preserve count behavior', observation: 'Inspected count and extra exports against the required domain behavior', result: 'satisfied' }] }], test_map: { status: 'not-applicable', note: 'No test-map strategy is registered', tests: [] } }];
+  const reviewed = await writeReview(f.root, input);
+  assert.equal(reviewed.outcome, 'CLEAN'); assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
+});
+
+test('known context is included before review so unchanged final sync needs no additional cycle', async (t) => {
+  const f = await fixture(t);
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('review_scope_version: 1', 'review_scope_version: 1\nreview_context_version: 1'));
+  await assert.rejects(prepareReviewScope(f.root, f.statePath), /checkpoint review-context/);
+  await writeFile(path.join(f.root, 'README.md'), '# Updated behavior\n');
+  const prepared = await f.apply('review-context', { context_updated: ['README.md'] });
+  assert.equal(prepared.fields.phase, 'review'); assert.equal(prepared.fields.review_cycle, '1');
+  assert.equal(prepared.fields.context_updated, 'README.md');
+  const target = await prepareReviewScope(f.root, f.statePath);
+  assert.ok(target.repos[0].paths.includes('README.md'));
+  const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
+  input.review_scope[0].paths = target.repos[0].paths;
+  const reviewed = await writeReview(f.root, input);
+  await f.apply('handoff', { handoff: reviewed.handoff });
+  const synced = await f.apply('sync-complete', { context_updated: [] });
+  assert.equal(synced.fields.phase, 'final-approval'); assert.equal(synced.fields.review_cycle, '1');
+  assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
+});
+
 test('staged, untracked, binary and deleted changes share the review/package snapshot; drift invalidates the target', async (t) => {
   const f = await fixture(t);
   await writeFile(path.join(f.root, 'new.bin'), Buffer.from([0, 1, 255]));
@@ -91,6 +127,7 @@ test('clean handoffs require target evidence; final-sync changes route back to r
   assert.equal((await applyWorkflow({ root: f.root, statePath: f.statePath, input: syncInput })).replayed, true);
   const updated = await prepareReviewScope(f.root, f.statePath);
   const input = { ...f.input(), review_target: updated.review_target, review_target_sha256: updated.sha256 }; input.implement.review_cycle = 2; input.review_scope[0].paths = updated.repos[0].paths;
+  input.review_limitations = [{ repo: 'app', paths: ['src/code.js'], depth: 'skimmed', reason: 'Earlier branch code was inspected only at diff level; its own requirements were not verified' }];
   const second = await writeReview(f.root, input);
   assert.equal((await f.apply('handoff', { handoff: second.handoff })).fields.phase, 'final-sync');
   assert.equal((await f.apply('sync-complete', { context_updated: [] })).fields.phase, 'final-approval');
@@ -102,6 +139,10 @@ test('clean handoffs require target evidence; final-sync changes route back to r
   const built = build();
   const pkg = JSON.parse(await readFile(built.json, 'utf8'));
   assert.equal(pkg.review_scope[0].status, 'covered');
+  assert.equal(pkg.review_scope[0].limitations[0].depth, 'skimmed');
+  assert.match(await readFile(built.package, 'utf8'), /Review qualification.*skimmed/);
+  const { reviewDisclosure } = await import('../../../scripts/lib/review-evidence.mjs');
+  assert.match(reviewDisclosure(pkg.review_scope, pkg.ui_verification), /skimmed.*src\/code.js/);
   assert.ok(pkg.evidence.review_target); assert.ok(pkg.evidence.review_target_diff_0);
   assert.equal(pkg.repos[0].diff_sha256, JSON.parse(await readFile(path.join(f.root, updated.review_target), 'utf8')).repos[0].diff_sha256);
   assert.throws(() => build('--base', 'feature'), /repositories or bases differ/);

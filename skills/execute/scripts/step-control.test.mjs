@@ -28,6 +28,17 @@ test('parses dependencies and conservatively batches only mutually marked disjoi
   assert.deepEqual(nextBatch(parseSteps(plan(true).replace('src/b.js', 'src/a.js')), 0, true), [1]);
   assert.throws(() => parseSteps(plan().replace('**Depends on:** none', '**Depends on:** 2')), /later step/);
 });
+
+test('clause-required step completion rejects a two-column plan before advancing Progress', async (t) => {
+  const f = await fixture(t);
+  await f.run({ action: 'start', id: 'clause-dispatch', steps: [1] });
+  const before = await readFile(f.file, 'utf8');
+  await assert.rejects(executionControl(f.file, { action: 'complete', steps: [evidence(1)] }, { ...f.options, requireClauses: true }), /Requirement clause/);
+  assert.equal(await readFile(f.file, 'utf8'), before);
+  const script = new URL('./step-control.mjs', import.meta.url).pathname;
+  const result = JSON.parse(execFileSync(process.execPath, [script, 'inspect', '--plan', f.file, '--require-clauses', '1'], { encoding: 'utf8' }));
+  assert.deepEqual(result.active_steps, [1]);
+});
 test('persists attempts across invocations and refuses a sixth attempt or later dispatch', async (t) => {
   const { run } = await fixture(t);
   for (let n = 1; n <= 5; n += 1) assert.equal((await run({ action: 'begin-attempt', id: `fix-${n}`, step: 1, diagnosis: diagnosis(n > 1) })).attempts[1], n);
@@ -149,12 +160,22 @@ async function dashboardFixture(t, parallel = false) {
   const directory = path.dirname(initialized.state), file = path.join(directory, 'DEMO-plan.md');
   await writeFile(file, plan(parallel));
   let state = await readFile(initialized.state, 'utf8');
+  // These dashboard fixtures exercise the legacy two-column evidence contract.
+  state = state.replace(/^acceptance_evidence_version: 1\n/m, '');
   state = state.replace(/^phase: .*$/m, 'phase: execute').replace(/^plan: .*$/m, 'plan: make-it-work/DEMO/DEMO-plan.md');
   state += `| 2 | ${new Date().toISOString()} | context-check | execute | Ready to execute |\n`;
   await writeFile(initialized.state, state); await generateDashboard(initialized.state);
   const options = { dashboardState: initialized.state, ledgerPath: path.join(directory, 'DEMO-verification-v1.json'), ticket: 'DEMO' };
   return { file, statePath: initialized.state, html: () => readFile(initialized.dashboard, 'utf8'), run: (event) => executionControl(file, event, options) };
 }
+
+test('saved clause contract cannot be downgraded by omitting the step-control flag', async (t) => {
+  const f = await dashboardFixture(t);
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('verification_version: 1', 'verification_version: 1\nacceptance_evidence_version: 1'));
+  await f.run({ action: 'start', id: 'clause-start', steps: [1] });
+  await assert.rejects(f.run({ action: 'complete', steps: [evidence(1)] }), /Requirement clause/);
+  assert.match(await readFile(f.file, 'utf8'), /Step 0 of 2 complete/);
+});
 test('dashboard updates at dispatch, verified completion and failure without treating a start as completed', async (t) => {
   const { file, statePath, html, run } = await dashboardFixture(t);
   await assert.rejects(run({ action: 'complete', steps: [evidence(1)] }), /Start the exact/);

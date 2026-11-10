@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { parseRemote, pullRequest } from './deliver.mjs';
 import { generateDashboard } from './render-status.mjs';
+import { writeReview } from '../../../scripts/review-report.mjs';
+import { summarizeAssurance } from './assurance-summary.mjs';
+import { checkFinalPackage } from './final-package.mjs';
+import { createHash } from 'node:crypto';
 
 const packageCli = path.resolve('skills/implement/scripts/final-package.mjs');
 const deliveryCli = path.resolve('skills/implement/scripts/deliver.mjs');
@@ -26,7 +30,7 @@ function stateMarkdown(phase = 'final-approval', status = 'In Progress') {
   return `# Workflow state — DEMO\n\n\`\`\`\n${Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | final-sync | final-approval | ready |\n`;
 }
 
-async function fixture(t, { dashboard = false } = {}) {
+async function fixture(t, { dashboard = false, qualified = false } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'delivery-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = path.join(root, 'service');
@@ -51,6 +55,14 @@ async function fixture(t, { dashboard = false } = {}) {
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO: Update code', pr_title: 'DEMO: Update code', pr_description: 'Verified change.' }));
   const state = path.join(artifacts, 'DEMO-state.md');
   await writeFile(state, stateMarkdown());
+  if (qualified) await writeReview(root, {
+    version: 1, ticket: 'DEMO', branch: 'DEMO', commit: git(repo, 'rev-parse', 'HEAD'), working_tree: true,
+    coverage: 'Earlier work was only skimmed from the diff.', findings: [], repo_roots: { service: repo },
+    review_scope: [{ repo: 'service', scope: 'branch', base: 'main', paths: ['code.txt'] }],
+    review_limitations: [{ repo: 'service', depth: 'skimmed', paths: ['code.txt'], reason: 'Requirements of earlier work were not verified' }],
+    ...(qualified === true ? { validation_notes: ['Introduced TS2322 in the new component; shared wrapper typings are the evidenced cause; runtime impact remains unchecked'] } : {}),
+    ui_verification: { status: 'not-applicable', note: 'No UI changes' },
+  });
   const built = cli(packageCli, 'build', root, state, ['--draft', draft, '--repo', repo]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
   await writeFile(state, stateMarkdown('complete', 'Complete'));
@@ -65,6 +77,48 @@ test('delivery refuses changed content before any commit', async (t) => {
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256]), /stale|Working tree changed/);
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '1');
   await assert.rejects(readFile(path.join(artifacts, 'DEMO-status.html')), { code: 'ENOENT' });
+});
+
+test('review-depth qualifications survive package, delivery preview and generated PR text', async (t) => {
+  const f = await fixture(t, { qualified: true });
+  const prepared = cli(deliveryCli, 'prepare', f.root, f.state);
+  const preview = await readFile(prepared.plan, 'utf8');
+  assert.match(preview, /Review qualification.*skimmed.*code\.txt/);
+  assert.match(preview, /Requirements of earlier work were not verified/);
+  const plan = JSON.parse(await readFile(path.join(f.artifacts, 'DEMO-delivery-plan.json'), 'utf8'));
+  assert.match(plan.draft.pr_description, /Review qualification.*skimmed.*code\.txt/);
+  assert.match(preview, /Validation qualification.*Introduced TS2322/);
+  assert.match(plan.draft.pr_description, /Introduced TS2322.*runtime impact remains unchecked/);
+  const pkg = JSON.parse(await readFile(path.join(f.artifacts, 'DEMO-final-package.json'), 'utf8'));
+  assert.match(pkg.validation_notes[0], /Introduced TS2322/);
+  assert.match(summarizeAssurance(pkg).text, /Introduced TS2322/);
+  assert.equal(git(f.repo, 'rev-list', '--count', 'HEAD'), '1');
+});
+
+test('historical review evidence without validation notes preserves the exact saved package approval', async (t) => {
+  const f = await fixture(t, { qualified: 'scope-only' });
+  const hash = value => createHash('sha256').update(value).digest('hex');
+  const evidencePath = path.join(f.artifacts, 'DEMO-review-evidence.json');
+  const evidence = JSON.parse(await readFile(evidencePath, 'utf8'));
+  delete evidence.validation_notes;
+  const evidenceBytes = JSON.stringify(evidence, null, 2) + '\n';
+  await writeFile(evidencePath, evidenceBytes);
+  const packagePath = path.join(f.artifacts, 'DEMO-final-package.json');
+  const pkg = JSON.parse(await readFile(packagePath, 'utf8'));
+  delete pkg.validation_notes;
+  pkg.evidence.review_scope.sha256 = hash(evidenceBytes);
+  const packageBytes = JSON.stringify(pkg, null, 2) + '\n';
+  await writeFile(packagePath, packageBytes);
+  const approvalPath = path.join(f.artifacts, 'DEMO-final-approval.json');
+  const approval = JSON.parse(await readFile(approvalPath, 'utf8'));
+  approval.package_sha256 = hash(JSON.stringify(pkg));
+  const approvalBytes = JSON.stringify(approval, null, 2) + '\n';
+  await writeFile(approvalPath, approvalBytes);
+  const checked = await checkFinalPackage(await realpath(f.root), await realpath(f.state), true);
+  assert.equal(checked.approved, true);
+  assert.deepEqual(checked.validation_notes, []);
+  assert.equal(await readFile(packagePath, 'utf8'), packageBytes);
+  assert.equal(await readFile(approvalPath, 'utf8'), approvalBytes);
 });
 
 test('delivery commits, pushes, creates a PR, and resumes without duplication', async (t) => {

@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.6.0] — 2026-11-10
+
+### Changed
+
+- Collect compact numbered HTML/stage evidence and require snapshot-bound inspection coverage on new runs. Bind required reviewer skills, applied rules and affected test-mapping assessments to the existing review target; incomplete checks cannot produce a completed handoff.
+- Show current package assurance and pending verification beside workflow completion, and link the current session feedback export with cumulative history clearly separated.
+
+- Inspect the final workflow dashboard HTML source against state/audit evidence during automatic feedback, reusing the existing pass and delegate. Distinguish confirmed content/markup problems from unverified visual risks; missing HTML remains a nonblocking evidence limitation and no browser is used.
+
+- Run `feedback-on-session` automatically after implement completion or an eligible retry-limit stop, combining conversation evidence and the existing retrospective in one session report and cumulative entry. Preserve captured run versions, save before one non-blocking input invitation, and update the same report on corrections without changing implementation status or package approval.
+- Return an explicit terminal feedback handoff and enforce a current report or reported unavailability before the terminal summary and delivery question. Session findings now include proposed next steps, ownership, verification and recommendation confidence while preserving safeguards and uncertainty.
+- Prepare known documentation/test-map updates before review targets on new runs, retaining the final-sync coverage check for new discoveries. Require bounded related-case diagnoses for new Lightweight fixes, retain review report/evidence history, enforce the clause contract at step completion, and distinguish defect cycles from scope-refresh reviews in feedback.
+- Hide machine evidence hashes from dashboard audit Result rows while retaining the original audit/evidence and exact-package approval hashes.
+- Require evidenced test-map maintenance assessments on new runs, retain skimmed/partial review qualifications through packaging and delivery, and add read-only consolidated feedback-input validation. Version-2 retrospectives compare requirements, known evidence and actions before assigning primary versus contributing causes; regression scenarios reject unsupported communication findings from ordinary agent waits.
+- Grade Execute mode choices from validated saved decision logs, accepting both supported option representations. Allow tool-free semantic judges enough turns to emit structured output without changing their usage cap.
+
+### Fixed
+
+- Require current-run runtime evidence of a genuine feedback writer or retrospective-dispatch failure before accepting unavailable feedback; reject skipped work and input/schema mistakes. Keep implementation terminal, save a separate failure receipt when possible, and distinguish missing or unverified feedback from that receipt in completion.
+- Require retrospective dispatch evidence for saved reports on runs that need artifact analysis, with regression coverage for one-fix completion through the delivery question and the genuine-failure fallback.
+- Load repository domain/use-case skills before source exploration and edits, distinguish them from inline pipeline stages, recover admitted omissions before handoff, and fix review's contradictory source-reading order.
+- Assess new diagnostics independently from existing failures and preserve evidenced validation qualifications through review, final assurance, package and delivery text. Explicitly label proposed feedback verification as untested.
+- Preserve exact approval of historical final packages whose review evidence predates validation notes; omit the new field when that evidence did not capture it.
+
 ## [5.5.1] — 2026-11-10
 
 ### Changed

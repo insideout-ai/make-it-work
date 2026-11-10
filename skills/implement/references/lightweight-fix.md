@@ -6,6 +6,10 @@ resume with `fix_cycle > 0`. Keep the saved round count. Initial implementation
 
 Before corrective source edits or dispatch, inspect the actual fix source and
 evidence, then prepare one diagnosis per actionable finding under Fix's policy.
+The fix delegate must load the repository's required domain/UC skills before
+editing, using its prescribed method. The inline pipeline-stage rule is not a
+ban on repository Skill calls. A prior delegate's admission that it skipped the
+gate requires loading and reassessment, not a silent pass into re-review.
 If the cause is unknown, investigate read-only before selecting a patch. Keep
 unsupported corrections blocked under the existing stop policy.
 
@@ -21,7 +25,8 @@ invocation; this input is not another permanent workflow log):
     "evidence": "<actual check output and affected path>",
     "cause": "<explanation supported by that evidence>",
     "next_change": "<bounded correction>",
-    "expected_result": "<observation distinguishing a correct explanation>"
+    "expected_result": "<observation distinguishing a correct explanation>",
+    "related_cases": ["<bounded sibling/complement case, expected result, and check to run; or evidence why none apply>"]
   }]
 }
 ```
@@ -29,6 +34,8 @@ invocation; this input is not another permanent workflow log):
 Use `<TICKET>-final-feedback.md` instead for a final-package change request. If
 an earlier correction failed, include `prior_result` explaining what its result
 taught you and why this correction is supported.
+
+New diagnosis records use version 2 and require `related_cases`; saved version 1 records retain their original recovery contract. Select cases from the actual violated invariant and nearby implementations, not an exhaustive input space. The fix report must reconcile each case with an actual check/result or a concrete verification gap. The parent and independent reviewer inspect that evidence; the presence of a list alone does not establish coverage. If a suggested correction checks only the reported instance despite evidence of related cases, broaden the diagnosis and tests before dispatch. Do not prescribe one exact replacement that prevents the executor from addressing the diagnosed scope.
 
 Run these commands in order, using the artifact root and exact workflow state:
 

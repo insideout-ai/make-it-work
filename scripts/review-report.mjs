@@ -5,7 +5,8 @@ import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, requireText, withLock, within } from './lib/artifacts.mjs';
 import { validateHandoff } from '../skills/implement/scripts/handoff.mjs';
 import { validateReviewScopeInput } from '../skills/implement/scripts/review-scope.mjs';
-import { captureReviewEvidence, uiVerification } from './lib/review-evidence.mjs';
+import { captureReviewEvidence, uiVerification, validationNotes } from './lib/review-evidence.mjs';
+import { reviewChecksText } from '../skills/implement/scripts/review-checks.mjs';
 
 export function reviewResult(input) {
   if (input.version !== 1 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '') || !Array.isArray(input.findings)) fail('Invalid review input.');
@@ -58,6 +59,16 @@ export function renderReview(input) {
     if (items?.length) lines.push(`**${name}:**`, ...items.map((item) => `- ${requireText(item, name)}`), '');
   }
   const ui = uiVerification(input.ui_verification);
+  if (input.review_checks) {
+    const checks = reviewChecksText(input.review_checks);
+    lines.push('**Required review checks:**', checks, '');
+    summary.push('Required review checks recorded in the report.');
+  }
+  const notes = validationNotes(input.validation_notes);
+  if (notes.length) {
+    lines.push('**Validation qualifications:**', ...notes.map(note => `- ${note}`), '');
+    summary.push(...notes.map(note => `Validation qualification: ${note}`));
+  }
   lines.push(`**Coverage:** ${input.coverage}`, '', `**Browser verification:** ${ui.status} — ${ui.note}`, '');
   summary.push(`Browser verification: ${ui.status} — ${ui.note}`);
   let handoff = null;
@@ -88,6 +99,11 @@ export async function validateLocations(input) {
 }
 export async function writeReview(root, input) {
   const rendered = renderReview(input);
+  if (input.review_limitations?.length) {
+    const qualifications = input.review_limitations.map(item => `- ${item.repo}: ${item.depth} — ${item.paths.join(', ')}; ${item.reason}`).join('\n');
+    rendered.markdown += `\n**Review qualifications:**\n${qualifications}\n`;
+    rendered.summary += `\nReview qualifications:\n${qualifications}`;
+  }
   await validateLocations(input);
   const artifacts = path.join(root, 'make-it-work');
   await mkdir(artifacts, { recursive: true });
@@ -102,15 +118,20 @@ export async function writeReview(root, input) {
     await atomicWrite(report, rendered.markdown);
     await atomicWrite(path.join(directory, `${input.ticket}-review-evidence.json`), JSON.stringify(evidence, null, 2) + '\n');
     let handoff = null;
+    let archivedReport = null;
     if (rendered.handoff) {
       const handoffs = path.join(directory, `${input.ticket}-handoffs`);
       await mkdir(handoffs, { recursive: true });
       if (!(await lstat(handoffs)).isDirectory()) fail('Handoff directory must not be a symlink.');
-      const numbers = (await readdir(handoffs)).map((name) => Number(name.match(/^review-([1-9]\d*)\.json$/)?.[1] ?? 0));
-      handoff = path.join(handoffs, `review-${Math.max(0, ...numbers) + 1}.json`);
+      const numbers = (await readdir(handoffs)).map((name) => Number(name.match(/^review-([1-9]\d*)(?:\.json|\.md|\.evidence\.json)$/)?.[1] ?? 0));
+      const prefix = path.join(handoffs, `review-${Math.max(0, ...numbers) + 1}`);
+      handoff = `${prefix}.json`;
+      archivedReport = `${prefix}.md`;
+      await writeFile(archivedReport, rendered.markdown, { flag: 'wx' });
+      await writeFile(`${prefix}.evidence.json`, JSON.stringify(evidence, null, 2) + '\n', { flag: 'wx' });
       await writeFile(handoff, JSON.stringify(rendered.handoff, null, 2) + '\n', { flag: 'wx' });
     }
-    return { report, handoff, summary: rendered.summary + `\n→ full report: ${report}` + (handoff ? `\nHandoff: ${handoff}` : ''), outcome: rendered.outcome };
+    return { report, handoff, archivedReport, summary: rendered.summary + `\n→ full report: ${report}` + (handoff ? `\nHandoff: ${handoff}` : ''), outcome: rendered.outcome };
   });
 }
 cli(import.meta.url, async (argv) => {

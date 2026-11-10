@@ -162,7 +162,7 @@ async function prepare(context) {
       head: repo.head, paths: repo.paths, target_tree: await targetTree(repo), remote, push_url: pushUrls[0], ...host });
   }
   if (!repos.length) fail('No changed repositories to deliver.');
-  const disclosure = reviewDisclosure(check.review_scope, check.ui_verification);
+  const disclosure = reviewDisclosure(check.review_scope, check.ui_verification, check.validation_notes);
   const draft = { ...pkg.draft, pr_description: `${pkg.draft.pr_description}\n\n## Review and browser verification\n\n${disclosure}` };
   const plan = { version: 1, ticket: pkg.ticket, package_sha256: check.sha256, draft, repos };
   const hash = sha(JSON.stringify(plan));

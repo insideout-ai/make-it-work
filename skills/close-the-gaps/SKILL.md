@@ -107,6 +107,8 @@ implement too. Injection/resume restores saved context without a fresh search.
 
 ## Phase 2 — Skills Loading
 
+Honor the affected repository's `CLAUDE.md` loading gate before source exploration, including its required invocation method. Under implement, only the pipeline stage itself runs inline; repository domain/UC skills still load normally. A later read to update their documentation does not establish that their constraints were available during refinement. If a mandatory loading method is unavailable, return a concrete blocker rather than silently skipping it.
+
 Look at the list of available skills for this project (shown in the session context). Skills are organized in two layers:
 
 - **Domain skills** — cover specific functional domains. Load the ones whose scope overlaps with the ticket.

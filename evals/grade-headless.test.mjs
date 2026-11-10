@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { updateStrategyPointer } from '../scripts/test-strategy.mjs';
-import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { gradeHeadlessCase, gradeHeadlessLocal, parseGrader, transcriptContext } from './grade-headless.mjs';
+import { gradeHeadlessCase, gradeHeadlessLocal, parseGrader, runHeadlessJudge, transcriptContext } from './grade-headless.mjs';
 import { validateEvalTree } from './validate.mjs';
 import { renderEpic, writeEpic } from '../scripts/epic.mjs';
 
@@ -16,6 +16,48 @@ const transcript = [
   ] } },
   { type: 'result', result: 'Gate result: PASS', total_cost_usd: 0.1 },
 ].map((event) => JSON.stringify(event)).join('\n') + '\n';
+
+test('saved decision grader accepts supported option forms and rejects wrong or missing decisions', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'decision-grader-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = path.join(root, 'make-it-work/DEMO-2/execute-autopilot-log.jsonl');
+  await mkdir(path.dirname(file), { recursive: true });
+  const rubric = await readFile(new URL('./execute/execute-full-pass/graders/decision-log-content.md', import.meta.url), 'utf8');
+  const grader = parseGrader(rubric, 'decision-log-content.md');
+  const labels = ['Subagent-Driven (Recommended)', 'Inline Execution'];
+  const record = { phase: 'Phase 0', site: 'mode-choice', kind: 'askUserQuestion', question: 'Which execution mode?',
+    options: labels, chosen: labels[0], multiSelect: false, rationale: 'Use the documented recommendation.' };
+  const grade = () => gradeHeadlessLocal(grader, { fixtureDir: root });
+  for (const options of [labels, labels.map(label => ({ description: 'Preserve {details} and "quotes".', label }))]) {
+    await writeFile(file, JSON.stringify({ ...record, options }) + '\n');
+    assert.equal((await grade()).passed, true);
+  }
+  for (const invalid of [{ ...record, chosen: labels[1] }, { ...record, options: [labels[0]] }, { ...record, site: 'different-site' }]) {
+    await writeFile(file, JSON.stringify(invalid) + '\n');
+    assert.equal((await grade()).passed, false);
+  }
+  await writeFile(file, [record, record].map(value => JSON.stringify(value)).join('\n'));
+  assert.equal((await grade()).passed, false);
+  await rm(file);
+  assert.equal((await grade()).passed, false);
+});
+
+test('judge permits a structured-output follow-up while keeping tools disabled and the usage cap', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'structured-judge-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const fake = path.join(root, 'claude');
+  await writeFile(fake, `#!${process.execPath}\nconst args=process.argv.slice(2); const option=name=>args[args.indexOf(name)+1]; const turns=Number(option('--max-turns')); if(turns<2){process.stdout.write(JSON.stringify({subtype:'error_max_turns'}));process.exit(1);} process.stdout.write(JSON.stringify({structured_output:{verdict:'PASS',reason:'Structured result emitted'},tools:option('--tools'),budget:option('--max-budget-usd')}));\n`);
+  await chmod(fake, 0o755);
+  const previous = process.env.PATH;
+  process.env.PATH = `${root}${path.delimiter}${previous}`;
+  let result;
+  try { result = await runHeadlessJudge('Grade synthetic evidence', { cwd: root, budgetUsd: 0.5 }); }
+  finally { process.env.PATH = previous; }
+  assert.equal(result.error, null, result.stderr);
+  const data = JSON.parse(result.stdout);
+  assert.equal(data.structured_output.verdict, 'PASS');
+  assert.equal(data.tools, ''); assert.equal(data.budget, '0.50');
+});
 
 test('parses headless grader frontmatter', () => {
   const grader = parseGrader(`---\ntype: regex\ntarget: { source: file, path: "report.md" }\npattern: "PASS\\\\s+now"\nmatch: not_contains\n---\n`, 'example.md');
@@ -299,7 +341,7 @@ test('parses every headless grader definition', async () => {
     const item = cases.find((entry) => entry.name === name);
     for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
       const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
-      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer'].includes(grader.type), `${name}/${filename}`);
+      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log'].includes(grader.type), `${name}/${filename}`);
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
   }

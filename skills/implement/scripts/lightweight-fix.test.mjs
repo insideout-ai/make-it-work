@@ -10,7 +10,7 @@ import { checkpointLightweightFix, inspectLightweightFix } from './lightweight-f
 import { parseState } from './render-status.mjs';
 import { applyWorkflow } from './workflow.mjs';
 
-const input = () => ({ findings: [{ id: '#1', failure: 'Nonempty choices gain the fallback.', evidence: 'DIAG-1-initial-failure.txt; src/selection.js:choose', cause: 'choose appends the fallback unconditionally.', next_change: 'Return selected choices when nonempty; otherwise use the fallback.', expected_result: 'Selected-choice assertions pass and the empty case remains green.' }] });
+const input = () => ({ findings: [{ id: '#1', failure: 'Nonempty choices gain the fallback.', evidence: 'DIAG-1-initial-failure.txt; src/selection.js:choose', cause: 'choose appends the fallback unconditionally.', next_change: 'Return selected choices when nonempty; otherwise use the fallback.', expected_result: 'Selected-choice assertions pass and the empty case remains green.', related_cases: ['Nonempty selection preserves exactly one result; empty selection retains the fallback; run both assertions'] }] });
 async function fixture(t) {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'lightweight-checkpoint-')));
   t.after(() => rm(root, { recursive: true, force: true }));
