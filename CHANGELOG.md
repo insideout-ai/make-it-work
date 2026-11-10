@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Inspect the final workflow dashboard HTML source against state/audit evidence during automatic feedback, reusing the existing pass and delegate. Distinguish confirmed content/markup problems from unverified visual risks; missing HTML remains a nonblocking evidence limitation and no browser is used.
+
 - Run `feedback-on-session` automatically after implement completion or an eligible retry-limit stop, combining conversation evidence and the existing retrospective in one session report and cumulative entry. Preserve captured run versions, save before one non-blocking input invitation, and update the same report on corrections without changing implementation status or package approval.
 - Return an explicit terminal feedback handoff and enforce a current report or reported unavailability before the terminal summary and delivery question. Session findings now include proposed next steps, ownership, verification and recommendation confidence while preserving safeguards and uncertainty.
 - Prepare known documentation/test-map updates before review targets on new runs, retaining the final-sync coverage check for new discoveries. Require bounded related-case diagnoses for new Lightweight fixes, retain review report/evidence history, enforce the clause contract at step completion, and distinguish defect cycles from scope-refresh reviews in feedback.

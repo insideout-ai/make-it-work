@@ -113,7 +113,9 @@ For an exhausted fix, review, or replan limit stop, also pass `--limit-stop`; ne
 
 The writer counts transitions into `fix-plan` (including zero-step rounds) and, for Lightweight runs, `review`/`final-approval` → `lightweight` fix rounds as `Fix`; explicit replans from execute/review/fix-plan back to plan as `Replan`; any row whose outcome starts with `Escalation:` (Lightweight → TDD) as `Escalation`, never as a Replan; and review-cycle rows (falling back to transitions into review). A run with no fix, replan, or escalation event is minimal, even if an approval was redone or execution retried internally. Adaptive runs (`adaptive_version: 1`) also get `Mode: <mode> (<risk> risk, <assessed|user>)`, `Escalations: <n>`, `Stages skipped:` and `Elapsed:` lines (the risk rationale stays in the state file, since it may name project terms); older runs do not.
 
-For `analysisRequired: false`, no artifact root-cause analysis is needed. Review the available conversation using feedback-on-session, pass the read-only input check below, then save its structured review alongside the compact artifact block:
+Supply the final `<TICKET>-status.html` beside the state file for [dashboard HTML source inspection](../../feedback-on-session/references/dashboard-html.md). Compare its relevant markup/CSS with the saved state and complete Audit log in this same feedback pass, including zero-retry runs. When artifact analysis is needed, pass those paths and the source-inspection reference to the already-required retrospective agent; reuse its HTML observations rather than dispatching another reviewer. Otherwise inspect inline. Record source coverage and any missing/unreadable HTML in the session review's context/limitations, confirmed source problems in its findings, and visual hypotheses only as unverified risks. No browser, dashboard regeneration, workflow mutation or package reapproval is authorized by this inspection; unavailable HTML alone does not make feedback unavailable.
+
+For `analysisRequired: false`, no artifact root-cause analysis is needed. Review the available conversation and dashboard source using feedback-on-session, pass the read-only input check below, then save its structured review alongside the compact artifact block:
 
 ```sh
 node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --session-review "<temporary-session-review.json>"
@@ -128,6 +130,7 @@ The `inspect` result's `analysisRequired: true` is a dispatch gate: call the Age
 Give that subagent this reference and the minimum available evidence needed from:
 
 - the state file and its complete Audit log;
+- the final workflow dashboard HTML and the dashboard source-inspection reference, with any availability/coverage limitation;
 - the refined spec;
 - every version of the plan, including amended fix steps and `Design reset` notes;
 - the saved execute report, execution journal/history and any Lightweight implementation report; and

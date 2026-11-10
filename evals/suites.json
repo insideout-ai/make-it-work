@@ -17,6 +17,10 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "feedback-dashboard-html-clean",
+    "feedback-dashboard-html-contradictory",
+    "feedback-dashboard-html-noisy",
+    "feedback-dashboard-html-missing",
     "review-workflow-obligations",
     "feedback-on-session-terminal-fix",
     "feedback-on-session-attribution",

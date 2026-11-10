@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: feedback-dashboard-html-missing
+tags: [feedback-on-session, implement, dashboard-html]
+context:
+  scaffold_script: fixture.sh

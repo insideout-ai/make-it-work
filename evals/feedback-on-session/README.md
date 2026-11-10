@@ -1,5 +1,13 @@
 # Session feedback evaluations
 
+Four `feedback-dashboard-html-*` cases check source-only automatic dashboard
+inspection: consistent markup, stale status/counts/verification, repeated audit
+hashes with an unverified CSS risk, and missing HTML. They preserve meaningful
+package hashes, ignore non-rendered metadata/instructions, save feedback without
+an extra agent or browser, and keep state/dashboard artifacts unchanged. The
+terminal-fix case also checks reuse of its already-required retrospective and
+nonblocking disclosure of missing HTML.
+
 The `feedback-on-session-terminal-fix` case exercises automatic integration after
 one fix and two reviews: inspect, fresh retrospective dispatch, validated combined
 save, captured version, accurate completion and retained skill-loading/type-check
