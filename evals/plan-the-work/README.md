@@ -358,8 +358,8 @@ against the schema in `skills/plan-the-work/SKILL.md`'s Autopilot Mode section. 
 
 ## Known gaps in this suite (by design, not oversight)
 
-- Doesn't cover every Step 4.5 gap type (Scope boundary, Data/migration, Backward compatibility,
-  Sequencing/rollout) individually — only `Approach` and one incidental `Missing prerequisite` are
+- Doesn't cover every Step 4.5 gap type (Change surface, Data/migration, Contract compatibility,
+  Placement/pattern, Sequencing/rollout, Spec gap) individually — only `Approach` and one incidental `Missing prerequisite` are
   exercised, both via `happy-path`. All of them resolve through the same `(Recommended)`-label
   mechanism, so this is a coverage gap in breadth, not a mechanism left unverified.
 - Doesn't cover the ambiguous-workspace-root hard stops (Step 1a cases 2/3) or the no-derivable-
@@ -420,6 +420,18 @@ Use a frozen plugin snapshot for parallel live runs and separate
 `MIW_EVAL_REPORT_ROOT` directories. Keep original reports if a grader or fixture
 needs correction; do not reinterpret a failed run as a pass without evidence.
 
+
+## Step 4.5 question triage
+
+`plan-the-work-spec-gap-triage` reuses the demo-tasks fixture with a "task priority" spec whose
+own Decision Log already settles invalid-priority rejection and case sensitivity, and whose TBD
+defers reminder ordering to another ticket. The code invites all three questions. Graders check
+that the autopilot run constructs no question about any of them (trace) and that the plan follows
+the recorded decisions without product-type Decision Log rows (plan file).
+
+```sh
+node evals/run-suite.mjs full --case=plan-the-work-spec-gap-triage --max-cost-usd=3
+```
 
 ## Deferred repository dependencies
 

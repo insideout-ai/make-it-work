@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.5.1] — 2026-11-10
+
+### Changed
+
+- `plan-the-work` Step 4.5 now triages candidate questions before asking: decisions the spec already records (ACs, Decision Log, Resolved Items, TBD) are never re-asked, minor "what" gaps become `Spec gap:` Assumptions, and "how" questions must clear an explicit cost/risk/reversibility bar. Gap types are now technical only (Change surface, Contract compatibility, Placement / pattern replace Scope boundary, Backward compatibility, Unspecified detail). Material product gaps are asked as labeled `Spec gap` questions with a "Needs PM — route to close-the-gaps" option, and Step 6 lists assumptions made in place of questions so the user can override them. Adds the `plan-the-work-spec-gap-triage` eval.
+
 ## [5.5.0] — 2026-11-09
 
 ### Added
