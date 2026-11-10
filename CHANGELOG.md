@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Preserve terminal feedback enforcement across native task notifications and human status questions; reject fork self-analysis as the required retrospective and keep one parent-owned combined save.
+- Qualify recovery and diagnostic-impact claims to actual verification, retaining unresolved findings and untested behavior.
+
+### Changed
+
+- Show session feedback collection separately from implementation completion in the dashboard, then refresh to saved or unavailable without modifying state or approved artifacts.
+
 ## [5.6.0] — 2026-11-10
 
 ### Changed

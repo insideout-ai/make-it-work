@@ -13,6 +13,8 @@ Do not write an entry for a pause, user-requested stop, branch/context/setup fai
 
 The terminal state-file write and dashboard regeneration happen first. Feedback failure or unanswered feedback questions never re-open, downgrade, or block the implementation run.
 
+Generated terminal dashboards show **Session retrospective: Collecting feedback** separately from implementation status and keep refreshing during collection. After the combined save or a verified unavailable receipt, the writer refreshes that panel to **Feedback saved** or **Unavailable**. This presentation update does not alter state, timeline, package or approval. HTML evidence inspection itself stays read-only; do not manually regenerate during inspection. Missing HTML and older/supplied HTML without the progress panel are left untouched.
+
 The controller returns `next_action.type: feedback` at eligible terminal checkpoints, including replay. Follow it before the terminal summary or delivery question. Run the checkpoint command on its own and keep its structured output intact; do not pipe it through a projection that prints only phase/status. The scoped Stop and PreToolUse hooks detect a missing combined report for the current run and hold the terminal summary or delivery question until feedback is saved or explicitly reported unavailable. They do not change implementation status or wait for feedback answers. A saved report is bound to the terminal workflow boundary so an older run or an earlier retry-limit report cannot satisfy a later terminal checkpoint. Subsequent delivery decisions and informational notes do not invalidate that binding or trigger another retrospective.
 
 A runtime-verified retrospective delegate launched after the terminal checkpoint may be awaited normally. Its completion notification restores the requirement to save the report or disclose unavailability; an older implementation/review delegate does not satisfy that wait.
@@ -102,6 +104,10 @@ Hook recording errors are reported to the session without changing enforcement
 or implementation status. If recording failed, report the evidence limitation.
 
 ## Decide whether the path was minimal
+
+The implement parent runs `inspect`, `evidence`, `check` and `write` directly in its own context, using resolved absolute script and state paths in separate Bash calls. Do not wrap them in shell variables, pipelines, redirects or compound commands: the terminal hook needs the parent's actual results. Do not delegate the whole feedback step to a fork. The parent reviews conversation evidence and owns the single combined save; a required general-purpose retrospective returns its artifact diagnosis only. It must not spawn a nested retrospective or write either feedback report.
+
+Copy each literal command from the controller handoff's `commands` and the inspect result's `commands` into its own Bash call unchanged. Inspect also supplies `input_paths` for the JSON inputs and complete check/write commands. Write those inputs with Write/Edit separately; never combine their preparation with the writer invocation. These commands contain local paths and stay out of the share-safe report.
 
 Resolve `<base>` to this skill's directory. After the terminal checkpoint and dashboard regeneration, inspect the state with:
 

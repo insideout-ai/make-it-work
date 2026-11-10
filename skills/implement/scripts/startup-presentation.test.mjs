@@ -6,7 +6,7 @@ import test from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
-import { pendingStartup, startupHook } from './startup-presentation.mjs';
+import { pendingStartup, startupHook, startupProgress } from './startup-presentation.mjs';
 import { testingReadiness } from './testing-readiness.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
 import { readHookEvents } from './hook-feedback.mjs';
@@ -121,6 +121,10 @@ test('Complete cannot skip feedback by proceeding directly to delivery or the te
   assert.equal((await run.check()).decision, 'block');
   const delivery = await startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript });
   assert.equal(delivery.hookSpecificOutput.permissionDecision, 'deny');
+  run.events.push({ type: 'user', message: { role: 'user', content: 'Please give me the transcript path.' } });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  assert.equal((await startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript })).hookSpecificOutput.permissionDecision, 'deny');
   await writeFeedback(run.result.state, { sessionReview: {
     status: 'pending', context: ['Current visible conversation reviewed'], findings: [], userInput: [], limitations: ['Client version unknown'],
     evidence_review: await sourceReview(run),
@@ -166,6 +170,12 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   assert.equal((await run.check()).decision, 'block'); // Validation is not saving.
   await writeFeedback(run.result.state, { analysis, sessionReview });
   assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny'); // An inline diagnosis is not the required delegate.
+  run.add('Agent', 'fork-feedback', { prompt: run.prompt, subagent_type: 'fork' }, 'The fork wrote its own analysis.');
+  run.events.push({ type: 'user', origin: { kind: 'task-notification', producer: 'session-task' }, promptSource: 'system', turnOrigin: 'task_notification',
+    message: { role: 'user', content: '<task-notification>\n<task-id>fork-feedback</task-id>\n<status>completed</status>\n</task-notification>' } });
+  await run.saveEvents();
+  assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal((await run.check()).decision, 'block');
   run.add('Agent', 'retrospective', { prompt: run.prompt }, 'Structured analysis returned');
   await run.saveEvents();
   assert.deepEqual(await delivery(), {});
@@ -325,6 +335,27 @@ async function activeAgentRun(t, phase = 'execute') {
   };
   return { ...run, launch, epoch };
 }
+
+test('native task-completion envelopes close a terminal wait without clearing feedback tracking', async t => {
+  const run = await activeAgentRun(t, 'review');
+  let state = (await readFile(run.result.state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: review', 'phase: complete');
+  state = state.trimEnd() + `\n| 3 | ${new Date(run.epoch + 2).toISOString()} | review | complete | Terminal checkpoint |\n`;
+  await writeFile(run.result.state, state);
+  run.launch('retrospective', run.epoch + 3);
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  const notification = '<task-notification>\n<task-id>retrospective</task-id>\n<status>completed</status>\n</task-notification>';
+  for (const content of [notification, [text(notification)]]) {
+    const event = { type: 'user', origin: { kind: 'task-notification', producer: 'session-task' }, promptSource: 'system', turnOrigin: 'task_notification', message: { role: 'user', content } };
+    const progress = startupProgress([...run.events, event]);
+    assert.equal(progress.agents.length, 0);
+    assert.equal(progress.feedbackRun.state, run.result.state);
+    assert.ok(progress.initialized);
+  }
+  run.events.push({ type: 'user', origin: { kind: 'task-notification' }, promptSource: 'system', message: { role: 'user', content: notification } });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+});
 
 test('a live terminal retrospective may finish, but its handback still requires the report', async (t) => {
   const run = await activeAgentRun(t, 'review');

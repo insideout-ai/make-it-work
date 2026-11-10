@@ -10,6 +10,7 @@ import { writeReview } from '../../../scripts/review-report.mjs';
 import { summarizeAssurance } from './assurance-summary.mjs';
 import { checkFinalPackage } from './final-package.mjs';
 import { createHash } from 'node:crypto';
+import { writeFeedback } from './write-feedback.mjs';
 
 const packageCli = path.resolve('skills/implement/scripts/final-package.mjs');
 const deliveryCli = path.resolve('skills/implement/scripts/deliver.mjs');
@@ -65,7 +66,9 @@ async function fixture(t, { dashboard = false, qualified = false } = {}) {
   });
   const built = cli(packageCli, 'build', root, state, ['--draft', draft, '--repo', repo]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
-  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
+  // Optional delivery starts after terminal feedback has been collected.
+  await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   if (dashboard) await generateDashboard(state);
   return { root, repo, bare, state, artifacts };
 }

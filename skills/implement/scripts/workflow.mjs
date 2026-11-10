@@ -641,6 +641,7 @@ cli(import.meta.url, async (argv) => {
         instruction: 'Your very next output must be an assistant chat text block containing text above. This command has NOT sent that chat message. Emit it now as a standalone assistant response, with no tool calls. Finish that response so the Stop hook can verify its runtime text. For a normal run it automatically continues Context check without a user reply; pending offline refinement keeps its documented answer wait. This is not a pause or approval gate. If only tool calls/results have occurred since init, the message is still unsent. A later claim that it was sent does not deliver it.',
       },
       continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply',
+      runId: initialized.fields.start_time,
       state: initialized.state, dashboard: initialized.dashboard, implementation_baseline: initialized.implementation_baseline };
   }
   if (!o.state) fail('--state is required.');

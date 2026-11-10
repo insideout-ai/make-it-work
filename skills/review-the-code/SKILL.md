@@ -162,6 +162,8 @@ Adversarially re-check every candidate finding before writing it down:
 
 A newly added endpoint or behavior remains introduced even if siblings follow the same pattern. Assess policy and impact independently. Similar authentication, authorization or error handling elsewhere is context, not a waiver or proof of acceptability. If access policy/platform enforcement is unknown, retain the uncertainty and needed verification instead of declaring a vulnerability proven or dismissing it as pre-existing.
 
+For verification qualifications, distinguish an inspected rationale from an executed check. Do not call an introduced diagnostic "type noise only", a build "unaffected", or runtime impact absent merely because similar diagnostics already exist; record the supporting evidence and leave untested impact unverified.
+
 For a failed lint/typecheck/build command, compare actual baseline and changed-file diagnostics, not just total counts or a similar error elsewhere. A diagnostic in a new file is introduced even if its underlying shared typing defect is older. Investigate the cause and route a real new failure under the normal severity rules. If an evidenced shared-tooling limitation justifies a nonblocking qualification, record the exact introduced diagnostic, rationale, unchecked impact and follow-up in `validation_notes: ["..."]`; otherwise fix it. Unknown baseline comparison remains unknown. Never place introduced diagnostics under Pre-existing or imply the whole command's failures were unchanged. Validation notes are retained in report/chat, final assurance, package and delivery text; they do not override actionable findings or required stops.
 3. Do the file/line references match the reviewed commit?
 

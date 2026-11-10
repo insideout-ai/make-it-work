@@ -70,8 +70,8 @@ export const WORKFLOW_STYLES = `
   .optional-step .phase-label { color: #46535d; }
   .phase-label.current-label { font-weight: 700; color: #1a1a1a; }
   .phase-mode { margin-top: 0.1rem; font-size: 0.62rem; color: #777; text-align: center; }
-  .current-activity { width: 100%; margin: 0.75rem 0 1rem; padding: 0.65rem 0.85rem; background: #f0f7fe; border-left: 3px solid #2196f3; border-radius: 0.2rem; overflow-wrap: anywhere; }
-  .current-activity strong { font-size: 0.8rem; color: #096bae; }
+  .current-activity, .feedback-progress { width: 100%; margin: 0.75rem 0 1rem; padding: 0.65rem 0.85rem; background: #f0f7fe; border-left: 3px solid #2196f3; border-radius: 0.2rem; overflow-wrap: anywhere; }
+  .current-activity strong, .feedback-progress strong { font-size: 0.8rem; color: #096bae; }
   .phase-activity { margin: 0.3rem 0 0; font-size: 0.85rem; line-height: 1.45; }
   .activity-updated { margin: 0.4rem 0 0; font-size: 0.75rem; color: #596773; }
   .phase-duration { margin-top: 0.1rem; font-size: 0.65rem; color: #999; text-align: center; font-style: italic; }

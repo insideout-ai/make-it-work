@@ -27,6 +27,7 @@ export function startupResult(output) {
 export function startupProgress(events) {
   let initialized = null;
   let terminalFeedback = null;
+  let feedbackRun = null;
   let initializationId = null;
   let announced = false;
   const bashCalls = new Set();
@@ -35,7 +36,11 @@ export function startupProgress(events) {
   for (const event of events) {
     // Task notifications are runtime events, not diagnostic request replays or
     // agent-authored claims. A queued completion must close the wait immediately.
-    const notification = event.type === 'queue-operation' && event.operation === 'enqueue' ? event.content : null;
+    const runtimeNotification = event.type === 'user' && event.promptSource === 'system' &&
+      (event.origin?.kind === 'task-notification' || event.turnOrigin === 'task_notification');
+    const notification = event.type === 'queue-operation' && event.operation === 'enqueue' ? event.content : runtimeNotification
+      ? typeof event.message?.content === 'string' ? event.message.content
+        : event.message?.content?.filter(part => part.type === 'text').map(part => part.text).join('\n') : null;
     if (typeof notification === 'string' && notification.startsWith('<task-notification>')) {
       const id = notification.match(/<task-id>([^<]+)<\/task-id>/)?.[1];
       const status = notification.match(/<status>([^<]+)<\/status>/)?.[1];
@@ -44,16 +49,15 @@ export function startupProgress(events) {
     if (!['assistant', 'user'].includes(event.type)) continue;
     const role = event.message?.role ?? event.type;
     const content = event.message?.content;
-    if (role === 'user' && !event.isMeta && !event.isSynthetic && (typeof content === 'string' ||
+    if (role === 'user' && !runtimeNotification && !event.isMeta && !event.isSynthetic && (typeof content === 'string' ||
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
-      // A new user turn is Resume, not a fresh-run announcement obligation.
+      // Resume clears the announcement obligation, not pending terminal feedback
+      // or actual child lifetimes (a status question can arrive during a wait).
       initialized = null;
       terminalFeedback = null;
       initializationId = null;
       announced = false;
       bashCalls.clear();
-      agentCalls.clear();
-      agents.clear();
     }
     if (!Array.isArray(content)) continue;
     for (const part of content) {
@@ -82,20 +86,23 @@ export function startupProgress(events) {
         const output = typeof part.content === 'string' ? part.content :
           Array.isArray(part.content) ? part.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n') : '';
         const result = startupResult(output);
-        if (result) { initialized = result; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); }
+        if (result) {
+          initialized = result; feedbackRun = { state: result.state, runId: result.runId ?? result.fields?.start_time };
+          terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear();
+        }
         for (const line of output.split('\n')) {
           try {
             const value = JSON.parse(line);
             const action = value.next_action;
             if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
-                action.runId === value.fields?.start_time) terminalFeedback = action;
+                action.runId === value.fields?.start_time) { terminalFeedback = action; feedbackRun = action; }
           } catch { /* Only structured controller results establish a terminal handoff. */ }
         }
       }
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;
     }
   }
-  return { initialized, initializationId, terminalFeedback, announced, agents: [...agents.values()] };
+  return { initialized, initializationId, terminalFeedback, feedbackRun, announced, agents: [...agents.values()] };
 }
 
 export function pendingStartup(events) {
@@ -181,11 +188,11 @@ export async function startupHook(input) {
     }
     if (!progress.initialized || progress.announced) break;
   }
-  const feedbackState = progress.terminalFeedback?.state ?? progress.initialized?.state;
+  const feedbackState = progress.feedbackRun?.state;
   if (feedbackState && (input.hook_event_name === 'Stop' || input.hook_event_name === 'PreToolUse' && input.tool_name === 'AskUserQuestion')) {
     let state;
     try { state = parseState(await readFile(feedbackState, 'utf8'), feedbackState); } catch { /* Existing state-repair handling below remains active. */ }
-    if (state && (!progress.terminalFeedback || progress.terminalFeedback.runId === state.fields.start_time)) {
+    if (state && (!progress.feedbackRun.runId || progress.feedbackRun.runId === state.fields.start_time)) {
       const terminal = feedbackTerminalRow(state.fields, state.audit);
       const awaitingRetrospective = input.hook_event_name === 'Stop' && state.fields.status !== 'In Progress' &&
         progress.agents.some(agent => Number.isFinite(agent.launchedAt) && agent.launchedAt >= terminal?.epoch);

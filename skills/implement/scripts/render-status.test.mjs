@@ -11,7 +11,7 @@ import { generateDashboard, parseState, buildTimeline, groupFinalization, render
 import { checkpointDashboard, checkpointDecision, checkpointResult } from './dashboard-checkpoint.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 import { runRegression } from '../../../scripts/regression.mjs';
-import { inspectState } from './write-feedback.mjs';
+import { inspectState, writeFeedback } from './write-feedback.mjs';
 import { initializePublication, updatePublication } from './ticket-publication.mjs';
 
 const DEFAULT_FIELDS = {
@@ -110,6 +110,29 @@ async function renderFixture(t, state, plan = null) {
   const outputPath = await generateDashboard(statePath);
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
+
+test('terminal dashboard collects session feedback then refreshes to saved without changing state or approval artifacts', async t => {
+  const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
+  const f = await renderFixture(t, state);
+  const statePath = path.join(f.directory, 'DEMO-state.md');
+  assert.match(f.html, /data-workflow-feedback-status="collecting"/);
+  assert.match(f.html, /Session retrospective: Collecting feedback/);
+  assert.match(f.html, /http-equiv="refresh"/);
+  const approvalPath = path.join(f.directory, 'DEMO-final-package.approval.json');
+  await writeFile(approvalPath, 'Historical approval bytes');
+  const result = await writeFeedback(statePath, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
+  assert.equal(result.dashboardUpdated, true);
+  const html = await readFile(f.outputPath, 'utf8');
+  assert.match(html, /data-workflow-feedback-status="saved"/);
+  assert.match(html, /Session retrospective: Feedback saved/);
+  assert.doesNotMatch(html, /http-equiv="refresh"/);
+  assert.equal(await readFile(statePath, 'utf8'), state);
+  assert.equal(await readFile(approvalPath, 'utf8'), 'Historical approval bytes');
+  // A new run cannot inherit a saved badge from this run's report.
+  await writeFile(statePath, state.replace('2026-01-01T10:00:00Z', '2026-01-01T09:59:00Z'));
+  await generateDashboard(statePath);
+  assert.match(await readFile(f.outputPath, 'utf8'), /data-workflow-feedback-status="collecting"/);
+});
 
 test('completion displays recorded assurance limits and links only the session export for sharing', async t => {
   const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete', final_package_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
@@ -739,6 +762,8 @@ async function deliveryFixture(t, { status, repos = {}, names = ['api'], legacy 
   await writeFile(path.join(rendered.directory, 'DEMO-delivery-plan.json'), JSON.stringify(plan));
   await writeFile(path.join(rendered.directory, 'DEMO-delivery-progress.json'), JSON.stringify(progress));
   const statePath = path.join(rendered.directory, 'DEMO-state.md');
+  // Delivery follows the already-saved terminal feedback in these fixtures.
+  await writeFeedback(statePath, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   await generateDashboard(statePath);
   return { ...rendered, statePath, html: await readFile(rendered.outputPath, 'utf8') };
 }

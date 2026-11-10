@@ -54,7 +54,8 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
       if (!part.is_error && operation === 'evidence') for (const value of values) {
         if (value.feedbackEvidence === 'source-packet' && value.runId === fields.start_time && value.stateHash === stateHash && /^[a-f0-9]{64}$/.test(value.packetHash ?? '')) sourcePackets.add(value.packetHash);
       }
-      const retrospective = ['Agent', 'Task'].includes(call.name) && call.analysisRequired && typeof call.input?.prompt === 'string' && call.input.prompt.includes(feedbackReference);
+      const retrospective = ['Agent', 'Task'].includes(call.name) && call.input?.subagent_type !== 'fork' && call.analysisRequired &&
+        typeof call.input?.prompt === 'string' && call.input.prompt.includes(feedbackReference);
       if (retrospective && !part.is_error) retrospectiveDispatched = true;
       if (part.tool_use_id !== failureId || !part.is_error) continue;
       if (['inspect', 'write'].includes(operation)) {
@@ -91,9 +92,24 @@ export function feedbackEligible(fields) {
     /\b(?:fix|review|replan)\b.*\b(?:limit|cap|exhausted)\b/i.test(fields.pause_reason ?? '');
 }
 
+export function feedbackCommands(statePath, { analysisRequired, limitStop = false } = {}) {
+  const state = path.resolve(statePath), directory = path.dirname(state);
+  const quote = value => `'${String(value).replaceAll("'", "'\\''")}'`;
+  const command = mode => ['node', quote(writerPath), mode, '--state', quote(state), ...(limitStop ? ['--limit-stop'] : [])];
+  const result = { inspect: command('inspect').join(' '), evidence: command('evidence').join(' ') };
+  if (typeof analysisRequired === 'boolean') {
+    const sessionReview = path.join(directory, 'feedback-session.json'), analysis = path.join(directory, 'feedback-analysis.json');
+    const inputs = [...(analysisRequired ? ['--analysis', quote(analysis)] : []), '--session-review', quote(sessionReview)];
+    Object.assign(result, { input_paths: { sessionReview, ...(analysisRequired ? { analysis } : {}) },
+      check: [...command('check'), ...inputs].join(' '), write: [...command('write'), ...inputs].join(' ') });
+  }
+  return result;
+}
+
 export function feedbackAction(statePath, fields) {
   if (!feedbackEligible(fields)) return {};
   return { next_action: { type: 'feedback', state: path.resolve(statePath), runId: fields.start_time,
+    commands: feedbackCommands(statePath, { limitStop: fields.status === 'Stopped' }),
     instruction: 'Read implement/references/feedback.md and feedback-on-session/SKILL.md now. Inspect this terminal run, dispatch the required retrospective when analysisRequired is true, review the available conversation even with zero retries, and save both feedback files through write-feedback.mjs with --session-review before the terminal summary or delivery question. Preserve terminal state and captured plugin version. No friction or not performed is not unavailability. Only an evidenced technical failure permits the reference\'s unavailable procedure. Do not ask permission to run this already-required step.' } };
 }
 
