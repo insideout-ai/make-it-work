@@ -19,6 +19,8 @@ export { planHash } from '../../../scripts/lib/plan.mjs';
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
 import { checkReviewScope } from './review-scope.mjs';
 import { implementationBaseline } from './implementation-guard.mjs';
+import { feedbackAction } from './feedback-handoff.mjs';
+import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
 function setFields(markdown, fields) {
   return markdown.replace(/(^# Workflow state[^\n]*\n\s*```[^\n]*\n)[\s\S]*?(\n```)/m,
@@ -137,6 +139,15 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     else explicit(input);
     if (f.phase === 'spec-approval' && input.event === 'approve' && f.spec_revision_pending === 'true') f.spec_revision_pending = 'false';
     f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : 'execute');
+  } else if (input.event === 'review-context') {
+    if (f.phase !== 'review' || f.status !== 'In Progress') fail('Review context preparation requires active Review.');
+    if (!Array.isArray(input.context_updated)) fail('context_updated must be an array of paths.');
+    const paths = input.context_updated.map(file => oneLine(file, 'Context path'));
+    if (paths.some(file => /, /.test(file))) fail('Context paths cannot contain the field separator ", ".');
+    const previous = !f.context_updated || f.context_updated === 'none' ? [] : f.context_updated.split(', ');
+    f.context_updated = [...new Set([...previous, ...paths])].join(', ') || 'none';
+    if (f.review_context_version === '2') f.test_map_maintenance = JSON.stringify(input.test_map_maintenance);
+    reason = `Review context prepared for cycle ${f.review_cycle}.`;
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
     if (input.context_updated !== undefined) {
@@ -375,7 +386,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const prior = state.audit.find((row) => row.outcome.includes(`[workflow-event: ${input.id};`));
     if (prior) {
       if (!prior.outcome.includes(marker)) fail('Event id already records a different event.');
-      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
+      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), ...feedbackAction(statePath, state.fields), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     }
     if (input.expected_hash !== digest(original)) fail('Workflow state changed; inspect and recompute the event.');
     let workingState = state, effective = input, resolution = null, replaced = null;
@@ -417,7 +428,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
-    if (effective.event === 'sync-complete' && effective.context_updated !== undefined) {
+    if (['sync-complete', 'review-context'].includes(effective.event) && effective.context_updated !== undefined) {
       if (!Array.isArray(effective.context_updated)) fail('context_updated must be an array of paths.');
       const approvedRoots = await Promise.all((reposInput ?? [root]).map((repo) => realpath(repo)));
       for (const file of effective.context_updated) {
@@ -425,6 +436,12 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
         const resolved = await realpath(path.resolve(root, file));
         if (!approvedRoots.some((repo) => resolved.startsWith(`${repo}${path.sep}`)) || !(await lstat(resolved)).isFile()) fail('Context path must be a file in an approved repository.');
       }
+    }
+    if (state.fields.review_context_version === '2') {
+      if (effective.event === 'review-context' || effective.event === 'sync-complete' && effective.test_map_maintenance !== undefined) {
+        effective = { ...effective, test_map_maintenance: await assessContextMaintenance(root, reposInput ?? [root], effective.test_map_maintenance) };
+        if (effective.event === 'sync-complete') workingState = { ...workingState, fields: { ...workingState.fields, test_map_maintenance: JSON.stringify(effective.test_map_maintenance) } };
+      } else if (effective.event === 'sync-complete') await checkContextMaintenance(root, state.fields);
     }
     if (state.fields.review_scope_version === '1') {
       if (handoff?.stage === 'review' && handoff.status === 'done' && handoff.outcome === 'CLEAN') await checkReviewScope(root, statePath);
@@ -555,7 +572,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     parseState(updated, statePath);
     await atomicWrite(statePath, updated);
     // Keep the event on render failure. Replaying its id refreshes without recounting.
-    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
+    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
 export async function initializeWorkflow(root, input) {

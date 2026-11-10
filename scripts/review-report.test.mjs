@@ -80,6 +80,9 @@ test('source bounds are checked before saving and repeated reviews allocate fres
   const invalid = structuredClone(value); invalid.findings[0].locations[0].line = 99;
   await assert.rejects(writeReview(root, invalid), /outside/); assert.equal(await readFile(first.report, 'utf8'), saved);
   const second = await writeReview(root, value); assert.match(second.handoff, /review-2.json$/);
+  assert.equal(await readFile(first.archivedReport, 'utf8'), saved);
+  assert.equal(await readFile(second.archivedReport, 'utf8'), await readFile(second.report, 'utf8'));
+  assert.ok(JSON.parse(await readFile(first.archivedReport.replace(/\.md$/, '.evidence.json'), 'utf8')).report_sha256);
   assert.equal(JSON.parse(await readFile(second.handoff, 'utf8')).outcome, 'FIX_REQUIRED');
 });
 test('empty and standalone reviews do not invent findings or orchestrator handoffs', () => {

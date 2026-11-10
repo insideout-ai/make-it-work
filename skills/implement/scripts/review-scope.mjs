@@ -7,6 +7,7 @@ import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { compareReviewScope } from '../../../scripts/lib/review-evidence.mjs';
 import { parseState } from './render-status.mjs';
 import { assertRunState, runArtifact } from './artifact-layout.mjs';
+import { checkContextMaintenance } from './context-maintenance.mjs';
 
 const targetName = (f) => `${f.ticket}-review-target-${f.review_cycle}.json`;
 async function readState(root, statePath) {
@@ -36,6 +37,14 @@ export async function prepareReviewScope(root, statePath) {
   root = await realpath(root);
   const state = await readState(root, statePath), f = state.fields;
   if (f.phase !== 'review' || f.status !== 'In Progress') fail('Prepare review scope only in an active Review phase.');
+  if (['1', '2'].includes(f.review_context_version)) {
+    const entry = state.audit.findLast(row => row.to === 'review' && row.from !== 'review');
+    if (!state.audit.some(row => row.number > (entry?.number ?? 0) && row.from === 'review' && row.to === 'review' &&
+        row.outcome.startsWith(`Review context prepared for cycle ${f.review_cycle}.`) && row.outcome.includes('[workflow-event:'))) {
+      fail('Prepare bounded documentation/test-map context before freezing review scope; checkpoint review-context with context_updated (or []).');
+    }
+  }
+  await checkContextMaintenance(root, f);
   const repos = await deliverySnapshots(root, state);
   const target = { version: 1, ticket: f.ticket, runId: f.start_time, planVersion: Number(f.plan_version), cycle: Number(f.review_cycle), repos: manifestRepos(repos, f) };
   const relative = runArtifact(f.ticket, targetName(f));
@@ -79,6 +88,7 @@ export async function validateReviewScopeInput(root, input, evidence) {
   }
   catch (error) { if (error.code === 'ENOENT' && input.implement.review_scope_version !== 1) return; throw error; }
   if (state.fields.review_scope_version !== '1') fail('Review scope policy does not match the saved run.');
+  if (state.fields.review_context_version === '2' && !Array.isArray(input.review_limitations)) fail('Explicitly record review_limitations (or []) for this run; snapshot coverage does not establish review depth.');
   if (state.fields.phase !== 'review' || state.fields.status !== 'In Progress' || input.implement.review_cycle !== Number(state.fields.review_cycle) || input.implement.plan_version !== Number(state.fields.plan_version)) fail('Review input does not match the active review cycle.');
   assertRunState(root, statePath, input.ticket);
   const { target, sha256 } = await readTarget(root, state, input.review_target);

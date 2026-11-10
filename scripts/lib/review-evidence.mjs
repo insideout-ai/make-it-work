@@ -28,6 +28,14 @@ export function uiVerification(input) {
 }
 export async function captureReviewEvidence(input, report) {
   const repos = [];
+  const limitations = input.review_limitations ?? [];
+  if (!Array.isArray(limitations)) fail('review_limitations must be an array.');
+  for (const limitation of limitations) {
+    if (!input.repo_roots || !Object.hasOwn(input.repo_roots, limitation.repo)) fail('Review limitation needs an approved repository.');
+    if (!(input.review_scope ?? []).some(scope => scope.repo === limitation.repo)) fail('Review limitation needs a declared review scope.');
+    if (!['skimmed', 'partial', 'not-reviewed'].includes(limitation.depth) || !Array.isArray(limitation.paths) || !limitation.paths.length) fail('Review limitation needs depth and affected paths.');
+    limitation.paths.forEach(validPath); requireText(limitation.reason, 'Review limitation reason');
+  }
   if (input.review_scope !== undefined && !Array.isArray(input.review_scope)) fail('review_scope must be an array.');
   if (input.review_scope?.length && input.working_tree !== true) fail('Recorded review scope currently requires working_tree: true.');
   for (const selected of input.review_scope ?? []) {
@@ -39,7 +47,10 @@ export async function captureReviewEvidence(input, report) {
     const head = git(root, ['rev-parse', 'HEAD']).toString().trim();
     const base = selected.scope === 'working-tree' ? head : git(root, ['merge-base', selected.base, head]).toString().trim();
     const paths = [...new Set(selected.paths.map(validPath))].sort();
-    repos.push({ root, base, head, scope: selected.scope, paths: paths.map((file) => ({ path: file, diff_sha256: pathDiffHash(root, base, file) })) });
+    const repoLimitations = limitations.filter(item => item.repo === selected.repo);
+    if (repoLimitations.some(item => item.paths.some(file => !paths.includes(file)))) fail('Review limitation paths must belong to the declared scope.');
+    repos.push({ root, base, head, scope: selected.scope, paths: paths.map((file) => ({ path: file, diff_sha256: pathDiffHash(root, base, file) })),
+      ...(repoLimitations.length ? { limitations: repoLimitations.map(({ depth, paths: limited, reason }) => ({ depth, paths: limited, reason })) } : {}) });
   }
   return { version: 1, ticket: input.ticket, report_sha256: digest(report), repos, ui_verification: uiVerification(input.ui_verification) };
 }
@@ -50,11 +61,13 @@ export function compareReviewScope(evidence, repos) {
       const saved = reviewed?.paths?.find((item) => item.path === file);
       return !saved || saved.diff_sha256 !== pathDiffHash(repo.path, repo.merge_base, file);
     });
-    return { repo: repo.name, status: reviewed ? uncovered.length ? 'partial' : 'covered' : 'unknown', uncovered_paths: uncovered };
+    return { repo: repo.name, status: reviewed ? uncovered.length ? 'partial' : 'covered' : 'unknown', uncovered_paths: uncovered,
+      ...(reviewed?.limitations?.length ? { limitations: reviewed.limitations } : {}) };
   });
 }
 export function reviewDisclosure(scope, ui) {
   return ['Review applies to the recorded scope only.',
     ...scope.map((repo) => `Review scope — ${repo.repo}: ${repo.status}${repo.uncovered_paths.length ? `; delivered paths without matching review evidence: ${repo.uncovered_paths.join(', ')}` : ''}.`),
+    ...scope.flatMap(repo => (repo.limitations ?? []).map(item => `Review qualification — ${repo.repo}: ${item.depth}; ${item.paths.join(', ')} — ${item.reason}`)),
     `Browser verification: ${ui.status} — ${ui.note}`].join('\n');
 }

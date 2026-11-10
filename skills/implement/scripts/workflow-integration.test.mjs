@@ -98,9 +98,10 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   assert.equal(execution.fields.review_cycle, '1');
   // This test supplies a clean review artifact; semantic independence is exercised by the separate forward-test rehearsal.
   const roots = workspace ? { api: sourceRoot, web: secondRoot } : { 'tiny-greeter-full': root };
+  await apply('review-context', { context_updated: [], test_map_maintenance: repos.map(repo => ({ repo, status: 'not-applicable', affected_tests: [], reason: 'Fixture has no current test-map strategy.' })) });
   const target = await prepareReviewScope(root, statePath);
   const review = await writeReview(root, { version: 1, ticket: 'DEMO-2', branch: 'DEMO-2', commit: `working tree on ${initialHead}`, working_tree: true,
-    coverage: 'Compared the full delivery target with the formal-greeting spec and actual passing assertions.', findings: [], repo_roots: roots,
+    coverage: 'Compared the full delivery target with the formal-greeting spec and actual passing assertions.', findings: [], repo_roots: roots, review_limitations: [],
     review_target: target.review_target, review_target_sha256: target.sha256,
     review_scope: target.repos.map((repo) => ({ repo: Object.keys(roots).find((key) => roots[key] === repo.root), base: repo.base, scope: 'branch', paths: repo.paths })),
     implement: { handoff_version: 1, plan_version: 1, review_cycle: 1, review_scope_version: 1 } });

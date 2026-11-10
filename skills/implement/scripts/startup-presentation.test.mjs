@@ -10,6 +10,9 @@ import { pendingStartup, startupHook } from './startup-presentation.mjs';
 import { testingReadiness } from './testing-readiness.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
 import { readHookEvents } from './hook-feedback.mjs';
+import { writeFeedback } from './write-feedback.mjs';
+import { feedbackAction } from './feedback-handoff.mjs';
+import { parseState } from './render-status.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
 const initialized = { startup_message: `[Open implementation dashboard](<${encodeURI(dashboard).replace('#', '%23')}>)`,
@@ -98,6 +101,39 @@ async function freshRun(t, autonomy, offline = false) {
   const apply = async (event) => applyWorkflow({ root, statePath: result.state, input: { id: `event-${++id}`, event, repos: [root], reason: 'Recorded checkpoint', expected_hash: digest(await readFile(result.state, 'utf8')) } });
   return { root, result, events, transcript, saveEvents, check, apply };
 }
+
+test('Complete cannot skip feedback by proceeding directly to delivery or the terminal summary', async (t) => {
+  const run = await freshRun(t, 'autopilot');
+  let state = await readFile(run.result.state, 'utf8');
+  state = state.replace('status: In Progress', 'status: Complete').replace('phase: context-check', 'phase: complete');
+  state = state.trimEnd() + `\n| 2 | ${new Date().toISOString()} | context-check | complete | Fixture terminal checkpoint |\n`;
+  await writeFile(run.result.state, state);
+  assert.equal((await run.check()).decision, 'block');
+  const delivery = await startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript });
+  assert.equal(delivery.hookSpecificOutput.permissionDecision, 'deny');
+  await writeFeedback(run.result.state, { sessionReview: {
+    status: 'pending', context: ['Current visible conversation reviewed'], findings: [], userInput: [], limitations: ['Client version unknown'],
+  } });
+  assert.deepEqual(await run.check(), {});
+  assert.equal(await readFile(run.result.state, 'utf8'), state);
+});
+
+test('a resumed terminal handoff is enforced without a fresh startup announcement', async (t) => {
+  const run = await freshRun(t, 'autonomous');
+  let state = await readFile(run.result.state, 'utf8');
+  state = state.replace('status: In Progress', 'status: Complete').replace('phase: context-check', 'phase: complete');
+  state = state.trimEnd() + `\n| 2 | ${new Date().toISOString()} | context-check | complete | Fixture terminal checkpoint |\n`;
+  await writeFile(run.result.state, state);
+  const fields = parseState(state, run.result.state).fields;
+  run.events.push({ type: 'user', message: { role: 'user', content: 'Resume this implementation' } },
+    assistant({ type: 'tool_use', id: 'terminal', name: 'Bash', input: { command: 'workflow.mjs apply' } }),
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'terminal', content: JSON.stringify({ fields, ...feedbackAction(run.result.state, fields) }) }] } });
+  await run.saveEvents();
+  const held = await run.check();
+  assert.equal(held.decision, 'block');
+  assert.match(held.reason, /feedback-on-session/);
+  assert.doesNotMatch(held.reason, /dashboard link/);
+});
 
 test('all modes continue through active stages while tools remain available', async (t) => {
   for (const mode of ['guided', 'autonomous', 'autopilot']) {
@@ -204,6 +240,25 @@ async function activeAgentRun(t, phase = 'execute') {
   };
   return { ...run, launch, epoch };
 }
+
+test('a live terminal retrospective may finish, but its handback still requires the report', async (t) => {
+  const run = await activeAgentRun(t, 'review');
+  let state = await readFile(run.result.state, 'utf8');
+  state = state.replace('status: In Progress', 'status: Complete').replace('phase: review', 'phase: complete');
+  state = state.trimEnd() + `\n| 3 | ${new Date(run.epoch + 2).toISOString()} | review | complete | Fixture terminal checkpoint |\n`;
+  await writeFile(run.result.state, state);
+  run.launch('earlier-review', run.epoch + 1);
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  run.launch('retrospective', run.epoch + 3);
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  run.events.push({ type: 'queue-operation', operation: 'enqueue',
+    content: '<task-notification><task-id>retrospective</task-id><status>completed</status></task-notification>' });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  assert.equal(await readFile(run.result.state, 'utf8'), state);
+});
 
 test('live agents permit yielding in their active stage without completing or pausing the workflow', async (t) => {
   for (const phase of ['plan', 'execute', 'review', 'lightweight', 'fix-plan']) {

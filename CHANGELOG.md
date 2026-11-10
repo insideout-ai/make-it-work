@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Run `feedback-on-session` automatically after implement completion or an eligible retry-limit stop, combining conversation evidence and the existing retrospective in one session report and cumulative entry. Preserve captured run versions, save before one non-blocking input invitation, and update the same report on corrections without changing implementation status or package approval.
+- Return an explicit terminal feedback handoff and enforce a current report or reported unavailability before the terminal summary and delivery question. Session findings now include proposed next steps, ownership, verification and recommendation confidence while preserving safeguards and uncertainty.
+- Prepare known documentation/test-map updates before review targets on new runs, retaining the final-sync coverage check for new discoveries. Require bounded related-case diagnoses for new Lightweight fixes, retain review report/evidence history, enforce the clause contract at step completion, and distinguish defect cycles from scope-refresh reviews in feedback.
+- Hide machine evidence hashes from dashboard audit Result rows while retaining the original audit/evidence and exact-package approval hashes.
+- Require evidenced test-map maintenance assessments on new runs, retain skimmed/partial review qualifications through packaging and delivery, and add read-only consolidated feedback-input validation. Version-2 retrospectives compare requirements, known evidence and actions before assigning primary versus contributing causes; regression scenarios reject unsupported communication findings from ordinary agent waits.
+- Grade Execute mode choices from validated saved decision logs, accepting both supported option representations. Allow tool-free semantic judges enough turns to emit structured output without changing their usage cap.
+
 ## [5.5.0] — 2026-11-09
 
 ### Added

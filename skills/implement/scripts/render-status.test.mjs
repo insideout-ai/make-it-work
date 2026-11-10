@@ -333,6 +333,30 @@ test('informational results are idempotent, escape text, and never replace resum
   assert.doesNotMatch(html, /audit-note:|package-1/);
 });
 
+test('audit results hide evidence hashes while retaining results, references and the original state', async (t) => {
+  const { outputPath, directory } = await renderFixture(t, stateMarkdown({
+    fields: { phase: 'final-approval', final_package_version: '1' },
+    rows: [['2026-01-01T10:00:00Z', 'final-sync', 'final-approval', 'Context synced']],
+  }));
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const hash = createHash('sha256').update('evidence digest').digest('hex');
+  for (const [id, text, reference] of [
+    ['readiness', 'Testing readiness complete. Baseline: pass.', `readiness.json; sha256:${hash}`],
+    ['gate', 'Completion gate: PASS. 1 run; 2 unmapped.', `gate-1; manifest sha256:${hash}; result sha256:${hash}`],
+    ['ledger', 'Verification ledger validated. Acceptance: 20 of 21 verified.', `verification.json; SHA-256: ${hash}`],
+  ]) await checkpointResult(statePath, { id, text, reference });
+  const before = await readFile(statePath, 'utf8');
+  await generateDashboard(statePath);
+  assert.equal(await readFile(statePath, 'utf8'), before);
+  assert.ok(before.includes(hash));
+  const html = await readFile(outputPath, 'utf8');
+  assert.match(html, /Completion gate: PASS\. 1 run; 2 unmapped/);
+  assert.match(html, /Acceptance: 20 of 21 verified/);
+  assert.match(html, /readiness\.json|verification\.json/);
+  assert.doesNotMatch(html, new RegExp(hash));
+  assert.doesNotMatch(html, /manifest sha256|result sha256|SHA-256:/);
+});
+
 test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {
   const { directory } = await renderFixture(t, stateMarkdown({
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },

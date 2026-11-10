@@ -62,6 +62,11 @@ only when every grader passes; an unavailable or invalid judge result is a
 failure, never an unreviewed success. Model responses and semantic verdicts
 can still vary between runs; automatic grading is not deterministic model
 behavior.
+The headless-only `decision_log` grader validates the saved JSONL through the
+decision writer's schema and compares actual option labels and selection. It
+accepts supported string and label/description object forms without depending on
+tool-call formatting or property order. Tool-free semantic judges allow three
+turns so the CLI can emit its structured result; their usage cap is unchanged.
 File evidence targets may use `*` within a path component for timestamped
 artifacts, for example `{ source: file, path: "make-it-work/epic-*.md" }`.
 They must resolve to exactly one regular file inside the fixture; zero or

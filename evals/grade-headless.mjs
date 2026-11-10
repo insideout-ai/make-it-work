@@ -3,6 +3,7 @@ import { readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { strategyPointer, validateStrategy } from '../scripts/test-strategy.mjs';
 import { validateMap } from '../scripts/test-map.mjs';
+import { normalizeEntry } from '../scripts/decision-log.mjs';
 
 function scalar(value) {
   const trimmed = value.trim();
@@ -158,6 +159,17 @@ async function gradeStrategyPointer(context) {
 
 export async function gradeHeadlessLocal(grader, context) {
   try {
+    if (grader.type === 'decision_log') {
+      const text = await readEvidence({ source: 'file', path: grader.path }, context);
+      const entries = text.split(/\r?\n/).filter(line => line.trim()).map(line => normalizeEntry(JSON.parse(line), grader.skill));
+      const matching = entries.filter(entry => entry.site === grader.site);
+      if (matching.length !== 1) throw new Error('Expected exactly one saved decision for the requested site.');
+      const entry = matching[0];
+      const labels = entry.options?.map(option => typeof option === 'string' ? option : option.label);
+      const expected = JSON.parse(grader.options);
+      if (JSON.stringify(labels) !== JSON.stringify(expected) || JSON.stringify(entry.chosen) !== JSON.stringify(grader.chosen)) throw new Error('Saved decision options or selection differ from the required mode choice.');
+      return { name: grader.name, passed: true, detail: 'Saved decision validates; option labels and chosen value match.' };
+    }
     if (grader.type === 'strategy_pointer') return { name: grader.name, passed: true, detail: await gradeStrategyPointer(context) };
     if (grader.type === 'file_exists') {
       const relative = grader.path;
@@ -199,9 +211,10 @@ const VERDICT_SCHEMA = JSON.stringify({ type: 'object', properties: {
 export function runHeadlessJudge(prompt, { cwd, budgetUsd, model = 'haiku' }) {
   return new Promise((resolve) => {
     const child = execFile('claude', ['-p', prompt, '--safe-mode', '--tools', '', '--model', model,
-      '--max-turns', '1', '--output-format', 'json', '--json-schema', VERDICT_SCHEMA,
+      '--max-turns', '3', '--output-format', 'json', '--json-schema', VERDICT_SCHEMA,
       '--max-budget-usd', budgetUsd.toFixed(2)],
-    // Reasoning-first verdicts on long traces can take several minutes.
+    // Structured output may need a follow-up turn to emit its schema result.
+    // Keep tools disabled and the same usage cap; one turn caused error_max_turns.
     { cwd, encoding: 'utf8', timeout: 600000, maxBuffer: 16 * 1024 * 1024 },
     (error, stdout, stderr) => resolve({ error, stdout, stderr }));
     child.stdin.end();

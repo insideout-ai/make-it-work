@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { parseRemote, pullRequest } from './deliver.mjs';
 import { generateDashboard } from './render-status.mjs';
+import { writeReview } from '../../../scripts/review-report.mjs';
 
 const packageCli = path.resolve('skills/implement/scripts/final-package.mjs');
 const deliveryCli = path.resolve('skills/implement/scripts/deliver.mjs');
@@ -26,7 +27,7 @@ function stateMarkdown(phase = 'final-approval', status = 'In Progress') {
   return `# Workflow state — DEMO\n\n\`\`\`\n${Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | final-sync | final-approval | ready |\n`;
 }
 
-async function fixture(t, { dashboard = false } = {}) {
+async function fixture(t, { dashboard = false, qualified = false } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'delivery-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const repo = path.join(root, 'service');
@@ -51,6 +52,13 @@ async function fixture(t, { dashboard = false } = {}) {
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO: Update code', pr_title: 'DEMO: Update code', pr_description: 'Verified change.' }));
   const state = path.join(artifacts, 'DEMO-state.md');
   await writeFile(state, stateMarkdown());
+  if (qualified) await writeReview(root, {
+    version: 1, ticket: 'DEMO', branch: 'DEMO', commit: git(repo, 'rev-parse', 'HEAD'), working_tree: true,
+    coverage: 'Earlier work was only skimmed from the diff.', findings: [], repo_roots: { service: repo },
+    review_scope: [{ repo: 'service', scope: 'branch', base: 'main', paths: ['code.txt'] }],
+    review_limitations: [{ repo: 'service', depth: 'skimmed', paths: ['code.txt'], reason: 'Requirements of earlier work were not verified' }],
+    ui_verification: { status: 'not-applicable', note: 'No UI changes' },
+  });
   const built = cli(packageCli, 'build', root, state, ['--draft', draft, '--repo', repo]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
   await writeFile(state, stateMarkdown('complete', 'Complete'));
@@ -65,6 +73,17 @@ test('delivery refuses changed content before any commit', async (t) => {
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256]), /stale|Working tree changed/);
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '1');
   await assert.rejects(readFile(path.join(artifacts, 'DEMO-status.html')), { code: 'ENOENT' });
+});
+
+test('review-depth qualifications survive package, delivery preview and generated PR text', async (t) => {
+  const f = await fixture(t, { qualified: true });
+  const prepared = cli(deliveryCli, 'prepare', f.root, f.state);
+  const preview = await readFile(prepared.plan, 'utf8');
+  assert.match(preview, /Review qualification.*skimmed.*code\.txt/);
+  assert.match(preview, /Requirements of earlier work were not verified/);
+  const plan = JSON.parse(await readFile(path.join(f.artifacts, 'DEMO-delivery-plan.json'), 'utf8'));
+  assert.match(plan.draft.pr_description, /Review qualification.*skimmed.*code\.txt/);
+  assert.equal(git(f.repo, 'rev-list', '--count', 'HEAD'), '1');
 });
 
 test('delivery commits, pushes, creates a PR, and resumes without duplication', async (t) => {

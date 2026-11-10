@@ -636,7 +636,12 @@ function renderAuditOutcome(state, outcome) {
   if (packageResult && packageResult[1] === expectedPath) {
     return `Final approval package built. <a href="${encodeURIComponent(filename)}" title="${escapeHtml(expectedPath)}">View package</a>`;
   }
-  return escapeHtml(text);
+  // Evidence digests belong in the saved audit/artifacts, not ordinary progress
+  // prose. Approval hashes are rendered separately in the pending-input panel.
+  if (!text.startsWith('Result:')) return escapeHtml(text);
+  const readable = text.replace(/(?:;\s*)?(?:(?:manifest|result)\s+)?\bSHA-?256\s*[:=]?\s*[a-f0-9]{7,64}\b/gi, '')
+    .replace(/;\s*;/g, ';').replace(/;\s*$/, '').replace(/\s{2,}/g, ' ').trim();
+  return escapeHtml(readable);
 }
 
 function renderAuditRows(state, invalidTimestampFrom) {

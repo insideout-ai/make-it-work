@@ -34,7 +34,7 @@ const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_versio
 
 test('legacy final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace(/^review_scope_version: 1\n/m, '').replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
+  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace(/^review_scope_version: 1\n/m, '').replace(/^review_context_version: 2\n/m, '').replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));
   const input = { event: 'sync-complete', id: 'sync-paths', repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')), context_updated: ['.claude/rules/product.md', '.claude/rules/architecture.md'] };
   const first = await applyWorkflow({ root, statePath, input });
   assert.equal(first.fields.context_updated, '.claude/rules/product.md, .claude/rules/architecture.md');
@@ -55,6 +55,22 @@ test('initializes from the maintained template and never overwrites a run', asyn
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.plugin_version, result.fields.plugin_version);
   assert.match(await readFile(result.dashboard, 'utf8'), /DEMO/);
   await assert.rejects(initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' }), /EEXIST/);
+});
+
+test('completion and its replay return the required session-feedback handoff', async (t) => {
+  const f = await fixture(t);
+  const state = (await readFile(f.statePath, 'utf8')).replace(/^review_scope_version: 1\n/m, '').replace(/^review_context_version: 2\n/m, '')
+    .replace(/^final_package_version: 1\n/m, '').replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean');
+  await writeFile(f.statePath, state);
+  const input = { event: 'sync-complete', id: 'legacy-complete-feedback', repos: [f.root], expected_hash: digest(state), context_updated: [] };
+  const result = await applyWorkflow({ root: f.root, statePath: f.statePath, input });
+  assert.equal(result.fields.status, 'Complete');
+  assert.equal(result.next_action.type, 'feedback');
+  assert.equal(result.next_action.state, f.statePath);
+  assert.equal(result.next_action.runId, result.fields.start_time);
+  const replayed = await applyWorkflow({ root: f.root, statePath: f.statePath, input });
+  assert.equal(replayed.replayed, true);
+  assert.deepEqual(replayed.next_action, result.next_action);
 });
 test('startup handoff links the created dashboard for all modes and offline pauses, including special path characters', async (t) => {
   for (const autonomy of ['guided', 'autonomous', 'autopilot']) {

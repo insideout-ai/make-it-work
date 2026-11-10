@@ -184,6 +184,7 @@ For a new run, create the real directory `make-it-work/<TICKET>/` under the arti
 ticket: <TICKET>
 handoff_version: 1
 review_scope_version: 1       # full delivery diff required for clean review and packaging             # new runs use validated JSON handoffs; absent on older runs
+review_context_version: 2     # prepare known context and evidenced test-map assessment; new runs only
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | lightweight | review | fix-plan | final-sync | final-approval | complete
 final_package_version: 1       # new runs build a content-bound final package; absent on older runs
@@ -418,7 +419,7 @@ An early-replan row (`review → plan` or `fix-plan → plan`) is an ordinary re
 
 Ask this in both interactive autonomy levels. Never assume a changed repository is still safe to resume.
 
-**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default **except `handoff_version`, `final_package_version`, `verification_version`, `acceptance_evidence_version`, `review_scope_version`, `adaptive_version` and its fields, `testing_readiness`, `testing_readiness_version`, `ticket_publication`, and `plugin_version`** — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). Never add these opt-in markers to an existing run: an older run continues with its original handoffs and completion path, and an old run without `plugin_version` remains explicitly unattributed rather than being backfilled with the currently installed version. This is the only migration Resume performs; it never touches a file that already has the key.
+**Legacy-schema migration:** before applying any of the three outcomes above, check whether the state file's raw field block is missing the `real_rows_from` key entirely (it predates this feature). If so, add it — along with any other field-block key introduced by this feature or an earlier one that the file is missing, each at its template default **except `handoff_version`, `final_package_version`, `verification_version`, `acceptance_evidence_version`, `review_scope_version`, `review_context_version`, `adaptive_version` and its fields, `testing_readiness`, `testing_readiness_version`, `ticket_publication`, and `plugin_version`** — and set `real_rows_from` to one more than the state file's current Audit-log row count at this moment (every row already logged is legacy; every row logged from here on is real). Never add these opt-in markers to an existing run: an older run continues with its original handoffs and completion path, and an old run without `plugin_version` remains explicitly unattributed rather than being backfilled with the currently installed version. This is the only migration Resume performs; it never touches a file that already has the key.
 
 ---
 
@@ -468,6 +469,8 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 - forbid committing, pushing, opening a PR, asking the user anything, and editing `make-it-work/` other than its report. A missing or contradictory requirement stops it with the reason in its report;
 - have it write `make-it-work/<TICKET>/<TICKET>-lightweight.md` with `## Summary`, `## Changed paths` (grouped per repo root), `## Checks` (each check it ran and its actual result, or `none`), `## Discoveries` (facts about the existing system for final sync), `## Risk signal` (`none`, or why the change is riskier than Low — e.g. it touched a shared contract, security, or data, or the spec implied more than it seemed), and `## Blocked` only when it could not finish;
 - ask it to return the report path.
+
+When the Lightweight change introduces transformation or decision logic, have the agent cover the accepted normal, boundary and rejected/complement behavior with focused tests using the project's existing runner when available. Report missing test capability or browser access as a verification gap. This does not add a regression gate or turn a text-only edit into a test-writing task.
 
 Set `implementation_report`, re-record `head` and `worktree_fingerprint`, and append the report's discoveries to Context discoveries. Then write the `implement-<N>.json` handoff yourself per `<base>/references/handoffs.md` (`IMPLEMENTED` with the report's changed paths, checks, discoveries, and risk signal; or `status: blocked` with its reason), validate it, and reassess per Escalation: a risk signal or block may warrant `--escalate`. Otherwise `handoff.mjs next` routes `IMPLEMENTED` to Review; a block without escalation stops with its reason, as the helper returns.
 
@@ -650,7 +653,13 @@ For `autopilot`, use the Autonomous column only where it requires no human decis
 
 ## Review dispatch
 
-For a run with `review_scope_version: 1`, prepare its delivery scope before every
+Before every review dispatch, maintain the known ticket-scoped documentation and test-map changes using Final context sync's bounded procedure below. Use the current implementation/Execute report and accumulated review gaps; do not postpone already-known gaps until after CLEAN. This is preparation within Review, not a new phase or another code-review pass. Preserve unchanged context and test selection. If new evidence invalidates completed validation, checkpoint the concrete stop rather than claiming the previous gate covers it.
+
+For controller runs, checkpoint `review-context` with explicit repository roots and `context_updated: [<changed paths>]` (or `[]`). This preserves the review/fix/replan counters and records the context paths. Saved version-1 runs cannot freeze a review target before this checkpoint. Saved runs without that marker keep their existing compatibility; do not retrofit it.
+
+New runs use `review_context_version: 2`. Their checkpoint also requires `test_map_maintenance`, one assessment per approved repo: `repo` (absolute root), `status` (`maintained`, `blocked`, or `not-applicable`), `affected_tests` (repo-relative paths), `reason`, and retained `evidence` paths relative to the artifact root. A current strategy with a Test Map cannot be marked not-applicable. Maintained maps must contain the declared affected tests and their generated report; incomplete baselines may remain incomplete with the uncertainty in `reason`. A blocked assessment requires evidence and the actual access/tool/evidence blocker, not advisory severity or a desire to save time. The helper records evidence hashes; reassess if those files or the registered strategy change. A blocker affecting prior validation still follows the existing stop rule. Final Sync reuses unchanged assessments, or supplies updated `test_map_maintenance` after new edits. Versions 1 and older keep their saved contracts.
+
+For a run with `review_scope_version: 1`, prepare its delivery scope after that preparation, before every
 review dispatch (including re-reviews):
 
 ```sh
@@ -689,7 +698,7 @@ Then read `make-it-work/<TICKET>/<TICKET>-review.md`. For a version 1 run, recor
 
 ## Final context sync
 
-Runs only after review comes back `CLEAN`. On a repeated final-sync pass, retain
+The Final Sync phase runs after review comes back `CLEAN`; the same bounded maintenance procedure is also used during Review preparation. In Review preparation, record `review-context` and continue to target preparation; do not emit `sync-complete` or advance the phase. After CLEAN, address only newly discovered gaps and confirm existing context is current. On a repeated final-sync pass, retain
 already-correct context and test-map artifacts; do not rewrite or regenerate them
 without a real content change. Its job is to make the project's knowledge base describe the system as it now is — reusable knowledge for future work, not a record of this ticket.
 
@@ -746,11 +755,13 @@ Run it only after either:
 - Completion has checkpointed `status: Complete` and regenerated the dashboard; or
 - Stop has checkpointed `status: Stopped` for an exhausted fix, review, or replan limit and regenerated the dashboard.
 
-Read `<base>/references/feedback.md` in full and follow it. The deterministic feedback writer owns eligibility validation, Audit-log counting, block formatting, and idempotent updates of `make-it-work/implement-feedback.md`; the model still owns non-minimal root-cause analysis, share-safe paraphrasing, and clarification questions.
+Read [../feedback-on-session/SKILL.md](../feedback-on-session/SKILL.md) and `<base>/references/feedback.md` in full and follow their automatic integration mode inline. This is the single feedback step: review the available conversation on every eligible run and combine it with the existing artifact retrospective. The deterministic feedback writer owns eligibility validation, captured plugin version, Audit-log counting, formatting, and idempotent updates of both feedback files; the model owns evidence-backed findings and share-safe paraphrasing.
+
+Follow the controller's terminal `next_action.type: feedback` before showing the summary or asking about delivery. Keep checkpoint output intact. The scoped hooks enforce a current combined report or an explicit unavailable outcome from the feedback writer; merely saying the step was skipped does not finish it. If analysis or saving fails, follow the reference's unavailable procedure and report the limitation without reopening the workflow. Each session finding includes a suggested next step, owner, verification and confidence; these are proposals only.
 
 Follow that reference's **Explain the feedback to the user** guidance for progress messages and the terminal summary. Describe the purpose and findings in plain language; do not narrate internal writer classification or call the user's run "minimal" or "non-minimal" in chat.
 
-Use the writer's `inspect` result to decide whether analysis is needed. When `analysisRequired` is true (extra rounds, recorded in-workflow guardrails, hook interventions or repeated agent waits), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and apply the reference's share-safe review. Write the provisional run block through the writer before asking any clarification question. Questions happen one at a time after the workflow is already terminal, and each answer updates that same block through the writer. An unanswered question, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal; report the feedback problem without changing state.
+Use the writer's `inspect` result to decide whether artifact root-cause analysis is needed. When `analysisRequired` is true (extra rounds, recorded in-workflow guardrails, hook interventions or repeated agent waits), the fresh retrospective Agent call is required before preparing or writing analysis, even if the cause seems clear from evidence already in this session. Work from that subagent's structured diagnosis and combine it with conversation findings in one report; do not run overlapping analyses. When false, review the conversation without a retrospective Agent call. Write the provisional combined report through the writer before the single session-feedback invitation. An unanswered invitation, an interrupted conversation, or a feedback-file write failure leaves the workflow terminal and does not delay its summary or delivery offer. Later input updates the same run's report.
 
 The feedback file is local working data. Never upload, submit, email, or post it, and never edit the installed make-it-work skills in response to one run's recommendation. The user decides whether to review and share it later. Under `autopilot`, do not ask the retrospective's optional clarification questions: preserve material uncertainty in the writer input's `openQuestions` and finish the terminal report.
 
@@ -758,7 +769,7 @@ The feedback file is local working data. Never upload, submit, email, or post it
 
 ## Completion
 
-For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective. After any needed clarification has been recorded—or left explicitly open—print a concise summary:
+For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective, including automatic `feedback-on-session`. Save and invite input without waiting for a reply, then print a concise summary:
 
 Begin the summary with **Workflow: Complete** and
 **Assurance: <assurance_summary.text>** from the successful package check. Keep
@@ -787,6 +798,7 @@ existing manual-policy completion requirements still apply. A missing summary
 - **Known regressions** — each one, marked unrelated, stating plainly that they were documented, not fixed. Omit when there are none.
 - **Review** — the verdict, how many review and fix cycles it took, and any Minor findings left unfixed.
 - **Review scope and browser verification** — report the package check's `review_scope` and `ui_verification`. Name delivered paths with unknown or partial review coverage and pending browser checks. A clean review applies only to its recorded scope; approval to deliver additional work does not establish review coverage. Final packaging compares exact per-path diffs, including earlier changes in the same file. Scope gaps remain visible in the delivery preview and generated PR description; they do not create a new approval gate.
+- **Review qualifications and maintenance** — preserve every `review_scope[].limitations` entry (skimmed, partially reviewed, or not reviewed), including earlier branch work. Matching diff hashes establish snapshot coverage, not review depth or requirements verification. Retain blocked test-map assessments and their reasons in assurance/completion text. Neither an advisory verdict nor successful tests waive required context maintenance.
 - **Final package** — for a new run, its path and whether Guided approval was recorded; omit for older runs.
 - **Context updated** — every file changed by `close-the-gaps`, `plan-the-work`, and the final sync, or "none".
 - **Recommended follow-up** — only when Context discoveries or stage reports identify broader documentation gaps left outside this ticket's sync: recommend running `/make-it-work:go-deep` separately in each affected repo, naming the concrete reason and suggesting "Repair existing docs" for an existing knowledge base. This is an informational recommendation; do not launch it, ask to launch it, or delay Completion. Omit when no such gaps remain.

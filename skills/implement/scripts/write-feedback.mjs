@@ -5,9 +5,11 @@ import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 import { fileURLToPath } from 'node:url';
-import { parseDecisionCell } from './workflow-decisions.mjs';
+import { lastWorkRow, parseDecisionCell } from './workflow-decisions.mjs';
 import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
+import { parseState } from './render-status.mjs';
+import { feedbackEligible, feedbackStateHash, feedbackTerminalRow } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -27,6 +29,7 @@ const WORKFLOW_TERMS = new Set([
   'close-the-gaps', 'define-test-strategy', 'find-the-repos', 'go-deep',
   'plan-the-work', 'review-the-code', 'review-the-pr', 'run-regression', 'shape-the-epic',
   'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval', 'lightweight',
+  'feedback-on-session',
 ]);
 const ADAPTIVE_MODES = new Set(['none', 'lightweight', 'tdd']);
 const ADAPTIVE_RISKS = new Set(['none', 'low', 'medium', 'high']);
@@ -86,9 +89,9 @@ export function inspectState(markdown, { limitStop = false, hookEvents = [] } = 
     return { number: index + 1, time, from, to, outcome, ...parseDecisionCell(outcome), ...parseNoteCell(outcome) };
   });
   if (rows.length === 0) fail('Audit log is empty.');
-  const finalRow = rows.findLast((row) => !row.note || row.from !== row.to);
+  const finalRow = feedbackTerminalRow(fields, rows);
   if (!finalRow) fail('Audit log has no workflow evidence.');
-  if (finalRow.to !== phase) fail('Final Audit log destination and phase field disagree.');
+  if (lastWorkRow(rows)?.to !== phase || finalRow.to !== phase) fail('Final Audit log destination and phase field disagree.');
   if (status === 'Complete' && finalRow.to !== 'complete') fail('Final Audit log row must enter complete.');
   if (status === 'Stopped' && !/\b(limit|cap|exhausted)\b/i.test(`${fields.pause_reason} ${finalRow.outcome}`)) {
     fail('A limit stop needs limit/cap/exhausted evidence in pause_reason or the final Audit log row.');
@@ -141,7 +144,8 @@ export function inspectState(markdown, { limitStop = false, hookEvents = [] } = 
     hookInterventions: runtime.interventions,
     agentWaits: runtime.waits,
     hookAnalysis: [...runtime.interventions, ...runtime.waits.filter((item) => item.occurrences > 1)],
-    runId, outcome: status === 'Complete' ? 'Complete' : 'Stopped — loop limit',
+    runId, stateHash: feedbackStateHash(fields, rows),
+    outcome: status === 'Complete' ? 'Complete' : 'Stopped — loop limit',
     minimal: events.length === 0,
     guardrails,
     analysisRequired: events.length > 0 || guardrails.length > 0 || runtime.analysisRequired,
@@ -188,6 +192,8 @@ function validateAnalysis(analysis, summary) {
     if (!ROOT_CAUSES.has(event.rootCause)) fail(`Invalid rootCause in event ${index + 1}.`);
     if (!PREVENTABILITY.has(event.preventability)) fail(`Invalid preventability in event ${index + 1}.`);
     if (!CONFIDENCE.has(event.confidence)) fail(`Invalid confidence in event ${index + 1}.`);
+    const basis = analysis.version === 2 ? Object.fromEntries(['requirement', 'knownEvidence', 'observedAction', 'attribution'].map(key =>
+      [key, safeLine(event.basis?.[key], `event basis ${key}`, summary.ticket, summary.sourceCompounds)])) : null;
     return {
       ...event,
       trigger: safeLine(event.trigger, 'trigger', summary.ticket, summary.sourceCompounds),
@@ -195,6 +201,7 @@ function validateAnalysis(analysis, summary) {
       earliestStage: safeLine(event.earliestStage, 'earliestStage', summary.ticket, summary.sourceCompounds),
       owner: safeLine(event.owner, 'owner', summary.ticket, summary.sourceCompounds),
       improvement: safeLine(event.improvement, 'improvement', summary.ticket, summary.sourceCompounds),
+      ...(basis ? { basis } : {}),
     };
   });
   const expectedGuardrails = summary.guardrails ?? [];
@@ -231,7 +238,7 @@ function validateAnalysis(analysis, summary) {
   return { events, guardrails, hooks, recommendations, openQuestions, clarifications };
 }
 
-export function renderBlock(summary, analysis = null) {
+function renderWorkflowBlock(summary, analysis = null) {
   const prefix = `<!-- run:${summary.runId} -->\n## Run started ${summary.runId}\n\n` +
     `- Plugin version: ${summary.pluginVersion}\n` +
     (summary.adaptive ? `- Mode: ${summary.adaptive.mode} (${summary.adaptive.risk} risk, ${summary.adaptive.modeSource})\n` +
@@ -253,7 +260,8 @@ export function renderBlock(summary, analysis = null) {
     `- Trigger: ${event.trigger}\n- Root cause: ${event.rootCause} — ${event.explanation}\n` +
     `- Earliest preventable stage: ${event.earliestStage}\n` +
     `- Preventability: ${event.preventability}\n- Workflow owner: ${event.owner}\n` +
-    `- Suggested improvement: ${event.improvement}\n- Confidence: ${event.confidence}`);
+    `- Suggested improvement: ${event.improvement}\n- Confidence: ${event.confidence}` +
+    (event.basis ? `\n- Requirement evidence: ${event.basis.requirement}\n- Evidence known during implementation: ${event.basis.knownEvidence}\n- Observed action: ${event.basis.observedAction}\n- Primary versus contributing causes: ${event.basis.attribution}` : ''));
   const clarificationBlock = validated.clarifications.length
     ? `\n\n### User clarifications\n\n${validated.clarifications.map((entry) =>
       `- Question: ${entry.question}\n  Answer: ${entry.answer}`).join('\n')}` : '';
@@ -268,6 +276,107 @@ export function renderBlock(summary, analysis = null) {
     `${clarificationBlock}\n\n### Open questions\n\n` +
     `${validated.openQuestions.length ? validated.openQuestions.map((item) => `- ${item}`).join('\n') : '- None'}\n` +
     `<!-- /run:${summary.runId} -->`;
+}
+
+function renderSessionReview(review, summary) {
+  if (!review || typeof review !== 'object' || Array.isArray(review)) fail('Session review must be a JSON object.');
+  if (!['pending', 'complete', 'skipped'].includes(review.status)) fail('Invalid session review status.');
+  const line = (value, label) => safeLine(value, label, summary.ticket, summary.sourceCompounds);
+  const lines = (value, label) => safeLines(value, label, summary.ticket, summary.sourceCompounds);
+  const context = lines(review.context, 'session context');
+  if (!context.length) fail('Session review requires evidence coverage and context.');
+  if (!Array.isArray(review.findings)) fail('Session findings must be an array.');
+  const ids = new Set();
+  const findings = review.findings.map((item) => {
+    if (!/^F[1-9][0-9]*$/.test(item.id) || ids.has(item.id)) fail('Session findings require unique stable IDs such as F1.');
+    ids.add(item.id);
+    const evidence = lines(item.evidence, 'finding evidence');
+    if (!evidence.length) fail('Each session finding requires evidence with source locators.');
+    if (!evidence.some(value => /\b(?:turn|line|record|row|message)\s+[A-Za-z-]*\d+/i.test(value))) fail('Each session finding needs a concrete numbered source locator in its evidence.');
+    if (!CONFIDENCE.has(item.confidence)) fail('Session findings require recommendation confidence.');
+    return `#### ${item.id} — ${line(item.title, 'finding title')}\n\n` +
+      `- Expected vs observed: ${line(item.expectedObserved, 'expectedObserved')}\n` +
+      `- Evidence sequence:\n${evidence.map(value => `  - ${value}`).join('\n')}\n` +
+      `- Impact and uncertainty: ${line(item.impact, 'finding impact')}\n` +
+      `- Investigation: ${line(item.investigation, 'finding investigation')}\n` +
+      `- Suggested next step: ${line(item.nextStep, 'finding next step')}\n` +
+      `- Suggested owner: ${line(item.owner, 'finding owner')}\n` +
+      `- How to verify: ${line(item.verification, 'finding verification')}\n` +
+      `- Recommendation confidence: ${item.confidence}`;
+  });
+  const input = lines(review.userInput, 'session user input');
+  const limitations = lines(review.limitations, 'session limitations');
+  if (review.status === 'complete' && !input.length) fail('Completed session review requires attributed user input.');
+  const bulletList = values => values.map(value => `- ${value}`).join('\n');
+  return `### Session review\n\n- Report status: ${review.status === 'pending' ? 'Provisional — user input pending' : 'Complete'}\n\n` +
+    `#### Context and evidence coverage\n\n${bulletList(context)}\n\n` +
+    `#### Findings\n\n${findings.length ? findings.join('\n\n') : 'No supported workflow problems found'}\n\n` +
+    `#### User input\n\n${bulletList(input) || (review.status === 'skipped' ? 'User declined additional input' : 'Pending')}\n\n` +
+    `#### Limitations and open questions\n\n${bulletList(limitations) || 'None recorded'}`;
+}
+
+export function renderBlock(summary, analysis = null, sessionReview = null) {
+  const block = renderWorkflowBlock(summary, analysis);
+  if (sessionReview === null) return block;
+  const marker = `<!-- /run:${summary.runId} -->`;
+  return block.replace(marker, `\n${renderSessionReview(sessionReview, summary)}\n<!-- feedback-state:${summary.stateHash} -->\n${marker}`);
+}
+
+// Report independent structural errors together; do not repair or fill evidence.
+export function validateFeedbackInputs(summary, analysis, sessionReview, { currentSchema = false } = {}) {
+  const errors = [];
+  const check = (run) => { try { run(); } catch (error) { errors.push(error.message); } };
+  const requiredArray = (object, key, label) => {
+    if (!Array.isArray(object?.[key])) { errors.push(`${label}.${key} must be an array.`); return []; }
+    return object[key];
+  };
+  const line = (value, label) => check(() => safeLine(value, label, summary.ticket, summary.sourceCompounds));
+  if (analysis?.version !== undefined && analysis.version !== 2) errors.push('Unsupported analysis version.');
+  if (sessionReview?.version !== undefined && sessionReview.version !== 2) errors.push('Unsupported session-review version.');
+  if (summary.analysisRequired) {
+    if (!analysis || typeof analysis !== 'object' || Array.isArray(analysis)) errors.push('Analysis must be a JSON object.');
+    else {
+      if (currentSchema && analysis.version !== 2) errors.push('analysis.version must be 2 for current integrated feedback.');
+      for (const [index, event] of requiredArray(analysis, 'events', 'analysis').entries()) {
+        for (const key of ['trigger', 'explanation', 'earliestStage', 'owner', 'improvement']) line(event?.[key], `analysis.events[${index}].${key}`);
+        if (analysis.version === 2) for (const key of ['requirement', 'knownEvidence', 'observedAction', 'attribution']) line(event?.basis?.[key], `analysis.events[${index}].basis.${key}`);
+        if (!ROOT_CAUSES.has(event?.rootCause)) errors.push(`analysis.events[${index}].rootCause is invalid.`);
+        if (!PREVENTABILITY.has(event?.preventability)) errors.push(`analysis.events[${index}].preventability is invalid.`);
+        if (!CONFIDENCE.has(event?.confidence)) errors.push(`analysis.events[${index}].confidence is invalid.`);
+      }
+      for (const key of ['recommendations', 'openQuestions']) for (const [index, value] of requiredArray(analysis, key, 'analysis').entries()) line(value, `analysis.${key}[${index}]`);
+      for (const [index, item] of requiredArray(analysis, 'clarifications', 'analysis').entries()) for (const key of ['question', 'answer']) line(item?.[key], `analysis.clarifications[${index}].${key}`);
+      for (const [array, keys] of [['guardrails', ['trigger', 'resolution', 'lesson']], ['hooks', ['trigger', 'resolution', 'lesson']]]) {
+        if (analysis[array] !== undefined) for (const [index, item] of requiredArray(analysis, array, 'analysis').entries()) {
+          for (const key of keys) line(item?.[key], `analysis.${array}[${index}].${key}`);
+          if (!CONFIDENCE.has(item?.confidence)) errors.push(`analysis.${array}[${index}].confidence is invalid.`);
+        }
+      }
+    }
+  }
+  if (sessionReview !== null || currentSchema) {
+    if (!sessionReview || typeof sessionReview !== 'object' || Array.isArray(sessionReview)) errors.push('Session review must be a JSON object.');
+    else {
+      if (currentSchema && sessionReview.version !== 2) errors.push('sessionReview.version must be 2 for current integrated feedback.');
+      if (!['pending', 'complete', 'skipped'].includes(sessionReview.status)) errors.push('sessionReview.status is invalid.');
+      for (const key of ['context', 'userInput', 'limitations']) for (const [index, value] of requiredArray(sessionReview, key, 'sessionReview').entries()) line(value, `sessionReview.${key}[${index}]`);
+      for (const [index, finding] of requiredArray(sessionReview, 'findings', 'sessionReview').entries()) {
+        if (!/^F[1-9][0-9]*$/.test(finding?.id)) errors.push(`sessionReview.findings[${index}].id is invalid.`);
+        if (!CONFIDENCE.has(finding?.confidence)) errors.push(`sessionReview.findings[${index}].confidence is invalid.`);
+        for (const key of ['title', 'expectedObserved', 'impact', 'investigation', 'nextStep', 'owner', 'verification']) line(finding?.[key], `sessionReview.findings[${index}].${key}`);
+        const evidence = requiredArray(finding, 'evidence', `sessionReview.findings[${index}]`);
+        evidence.forEach((value, position) => line(value, `sessionReview.findings[${index}].evidence[${position}]`));
+        if (!evidence.some(value => typeof value === 'string' && /\b(?:turn|line|record|row|message)\s+[A-Za-z-]*\d+/i.test(value))) errors.push(`sessionReview.findings[${index}].evidence needs a concrete numbered source locator.`);
+      }
+    }
+  }
+  check(() => renderWorkflowBlock(summary, analysis));
+  if (sessionReview !== null) check(() => renderSessionReview(sessionReview, summary));
+  return { valid: errors.length === 0, errors: [...new Set(errors)] };
+}
+
+export async function checkFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false, currentSchema = true } = {}) {
+  return validateFeedbackInputs(await inspectFeedback(statePath, { limitStop }), analysis, sessionReview, { currentSchema });
 }
 
 export function upsertBlock(existing, summary, block) {
@@ -308,9 +417,11 @@ export async function inspectFeedback(statePath, { limitStop = false } = {}) {
   return inspectState(state, { limitStop, hookEvents: await readHookEvents(statePath) });
 }
 
-export async function writeFeedback(statePath, { analysis = null, limitStop = false } = {}) {
+export async function writeFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false } = {}) {
   const summary = await inspectFeedback(statePath, { limitStop });
-  const block = renderBlock(summary, analysis);
+  const checked = validateFeedbackInputs(summary, analysis, sessionReview);
+  if (!checked.valid) fail(checked.errors.join('\n'));
+  const block = renderBlock(summary, analysis, sessionReview);
   const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
   const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
   try {
@@ -351,17 +462,35 @@ export async function writeFeedback(statePath, { analysis = null, limitStop = fa
 
 async function main() {
   const [mode, ...args] = process.argv.slice(2);
-  if (!['inspect', 'write'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|write> --state <path> [--analysis <json-path>] [--limit-stop]');
+  if (!['inspect', 'check', 'write', 'unavailable'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|check|write|unavailable> --state <path> [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
   let statePath;
   let analysisPath;
+  let sessionReviewPath;
+  let reason;
   let limitStop = false;
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--state') statePath = args[++index];
     else if (args[index] === '--analysis') analysisPath = args[++index];
+    else if (args[index] === '--session-review') {
+      sessionReviewPath = args[++index];
+      if (!sessionReviewPath || sessionReviewPath.startsWith('--')) fail('--session-review requires a JSON path.');
+    }
     else if (args[index] === '--limit-stop') limitStop = true;
+    else if (args[index] === '--reason') reason = args[++index];
     else fail(`Unknown argument: ${args[index]}`);
   }
-  if (!statePath || (mode === 'inspect' && analysisPath)) fail('Provide --state; --analysis is write-only.');
+  if (!statePath || (!['write', 'check'].includes(mode) && (analysisPath || sessionReviewPath))) fail('Provide --state; --analysis and --session-review are for check or write only.');
+  if (mode !== 'unavailable' && reason !== undefined) fail('--reason is only for unavailable feedback.');
+  if (mode === 'unavailable') {
+    const markdown = await readFile(statePath, 'utf8');
+    const { fields, audit } = parseState(markdown, statePath);
+    if (!feedbackEligible(fields) || limitStop !== (fields.status === 'Stopped')) fail('Unavailable feedback requires a completed run or an explicit retry-limit stop.');
+    assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, fields.ticket);
+    process.stdout.write(`${JSON.stringify({ feedbackAttempt: 'unavailable', runId: fields.start_time,
+      stateHash: feedbackStateHash(fields, audit),
+      reason: safeLine(reason, 'Feedback limitation', fields.ticket) })}\n`);
+    return;
+  }
   if (mode === 'inspect') {
     const summary = await inspectFeedback(statePath, { limitStop });
     const { ticket: _ticket, ...shareSafe } = summary;
@@ -369,7 +498,14 @@ async function main() {
     return;
   }
   const analysis = analysisPath ? JSON.parse(await readFile(analysisPath, 'utf8')) : null;
-  const result = await writeFeedback(statePath, { analysis, limitStop });
+  const sessionReview = sessionReviewPath ? JSON.parse(await readFile(sessionReviewPath, 'utf8')) : null;
+  if (mode === 'check') {
+    const result = await checkFeedback(statePath, { analysis, sessionReview, limitStop });
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    if (!result.valid) process.exitCode = 1;
+    return;
+  }
+  const result = await writeFeedback(statePath, { analysis, sessionReview, limitStop });
   const { ticket: _ticket, outputPath, ...shareSafe } = result;
   process.stdout.write(`${JSON.stringify({ ...shareSafe, outputPath })}\n`);
 }

@@ -47,6 +47,15 @@ test('open advisories and known regressions stay visible despite passing checks'
   assert.match(summarizeAssurance(pkg).text, /1 open review nit; 2 known unrelated regressions/);
 });
 
+test('matching snapshot hashes do not hide skimming or blocked maintenance', () => {
+  const pkg = complete();
+  pkg.review_scope[0].limitations = [{ depth: 'skimmed', paths: ['src/earlier.js'], reason: 'Only diff inspected; requirements not verified' }];
+  pkg.test_map_maintenance = [{ status: 'blocked', reason: 'External test evidence unavailable' }];
+  const summary = summarizeAssurance(pkg);
+  assert.equal(summary.label, 'Limited');
+  assert.match(summary.text, /skimmed.*src\/earlier.js.*External test evidence unavailable/);
+});
+
 test('only complete recorded checks produce the qualified complete label; browser passed and not-applicable both qualify', () => {
   const pkg = complete();
   assert.deepEqual(summarizeAssurance(pkg), { label: 'Recorded checks complete', text: 'Recorded checks complete', limitations: [] });

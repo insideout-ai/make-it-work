@@ -8,6 +8,7 @@ import { parseState } from './render-status.mjs';
 import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
+import { feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
 import { readStartupConfirmation, saveStartupConfirmation, isConfirmationBoundary, hasDashboardLink as hasLink } from './startup-confirmation.mjs';
 
 export function startupResult(output) {
@@ -25,6 +26,7 @@ export function startupResult(output) {
 
 export function startupProgress(events) {
   let initialized = null;
+  let terminalFeedback = null;
   let initializationId = null;
   let announced = false;
   const bashCalls = new Set();
@@ -46,6 +48,7 @@ export function startupProgress(events) {
         Array.isArray(content) && !content.some((part) => part.type === 'tool_result'))) {
       // A new user turn is Resume, not a fresh-run announcement obligation.
       initialized = null;
+      terminalFeedback = null;
       initializationId = null;
       announced = false;
       bashCalls.clear();
@@ -55,7 +58,7 @@ export function startupProgress(events) {
     if (!Array.isArray(content)) continue;
     for (const part of content) {
       if (role === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') bashCalls.add(part.id);
-      if (initialized && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
+      if ((initialized || terminalFeedback) && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
         agentCalls.set(part.id, part.name);
       }
       if (role === 'user' && part.type === 'tool_result' && !part.is_error && agentCalls.has(part.tool_use_id)) {
@@ -80,11 +83,19 @@ export function startupProgress(events) {
           Array.isArray(part.content) ? part.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n') : '';
         const result = startupResult(output);
         if (result) { initialized = result; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); }
+        for (const line of output.split('\n')) {
+          try {
+            const value = JSON.parse(line);
+            const action = value.next_action;
+            if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
+                action.runId === value.fields?.start_time) terminalFeedback = action;
+          } catch { /* Only structured controller results establish a terminal handoff. */ }
+        }
       }
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;
     }
   }
-  return { initialized, initializationId, announced, agents: [...agents.values()] };
+  return { initialized, initializationId, terminalFeedback, announced, agents: [...agents.values()] };
 }
 
 export function pendingStartup(events) {
@@ -169,6 +180,20 @@ export async function startupHook(input) {
       if (runtimeLink || confirmation) progress.announced = true;
     }
     if (!progress.initialized || progress.announced) break;
+  }
+  const feedbackState = progress.terminalFeedback?.state ?? progress.initialized?.state;
+  if (feedbackState && (input.hook_event_name === 'Stop' || input.hook_event_name === 'PreToolUse' && input.tool_name === 'AskUserQuestion')) {
+    let state;
+    try { state = parseState(await readFile(feedbackState, 'utf8'), feedbackState); } catch { /* Existing state-repair handling below remains active. */ }
+    if (state && (!progress.terminalFeedback || progress.terminalFeedback.runId === state.fields.start_time)) {
+      const terminal = feedbackTerminalRow(state.fields, state.audit);
+      const awaitingRetrospective = input.hook_event_name === 'Stop' && state.fields.status !== 'In Progress' &&
+        progress.agents.some(agent => Number.isFinite(agent.launchedAt) && agent.launchedAt >= terminal?.epoch);
+      if (!awaitingRetrospective) {
+        const feedback = await feedbackHold(input, feedbackState, state.fields, events);
+        if (feedback) return feedback;
+      }
+    }
   }
   if (!progress.initialized) return {};
   if (!progress.announced) return observeHook(input, progress, events, input.hook_event_name === 'Stop'

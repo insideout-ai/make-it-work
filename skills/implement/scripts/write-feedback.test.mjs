@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { inspectFeedback, inspectState, renderBlock, upsertBlock, writeFeedback } from './write-feedback.mjs';
+import { checkFeedback, inspectFeedback, inspectState, renderBlock, upsertBlock, writeFeedback } from './write-feedback.mjs';
 import { noteCell } from './audit-notes.mjs';
 import { createHash } from 'node:crypto';
 
@@ -71,6 +71,112 @@ async function workspace(t, state) {
   return { directory, statePath, feedbackPath: path.join(directory, 'implement-feedback.md') };
 }
 
+function sessionReview() {
+  return {
+    status: 'pending',
+    context: ['Outcome: implementation complete', 'Conversation turns 1 through 4 reviewed; earlier context unavailable'],
+    findings: [{
+      id: 'F1', title: 'A supplied preference was requested again',
+      expectedObserved: 'The user supplied a preference but was asked for it again',
+      evidence: ['Conversation turn 2, user paraphrase: proceed with the supplied preference',
+        'Conversation turn 4, assistant paraphrase: requested the preference again'],
+      impact: 'An extra reply was needed; cause unknown',
+      investigation: 'Proposed reproduction — not independently tested: supply a preference before starting',
+      nextStep: 'Investigate reusing the recorded preference at the next stage',
+      owner: 'implement', verification: 'Check that the same preference is not requested twice', confidence: 'medium',
+    }],
+    userInput: [], limitations: ['Client version unknown'],
+  };
+}
+
+test('conversation friction on a zero-retry run shares captured provenance and updates both reports without state changes', async (t) => {
+  const state = finish(await fixture('feedback-clean'));
+  const f = await workspace(t, state);
+  const review = sessionReview();
+  review.pluginVersion = '99.0.0'; // Model input cannot replace captured provenance.
+  const first = await writeFeedback(f.statePath, { sessionReview: review });
+  const original = await readFile(f.feedbackPath, 'utf8');
+  assert.match(original, /Plugin version: 4\.6\.0/);
+  assert.doesNotMatch(original, /99\.0\.0/);
+  assert.match(original, /Fix rounds: 0/);
+  assert.match(original, /F1 — A supplied preference/);
+  assert.match(original, /Conversation turn 2/);
+  assert.match(original, /Suggested next step: Investigate reusing/);
+  assert.match(original, /Suggested owner: implement/);
+  assert.match(original, /How to verify: Check that/);
+  assert.match(original, /Provisional — user input pending/);
+  assert.doesNotMatch(original, /Extra-round analysis/);
+  await writeFeedback(f.statePath, { sessionReview: review });
+  assert.equal(await readFile(f.feedbackPath, 'utf8'), original);
+  review.status = 'complete';
+  review.findings = [];
+  review.userInput = ['User correction: the second question concerned a different preference; F1 withdrawn'];
+  await writeFeedback(f.statePath, { sessionReview: review });
+  const updated = await readFile(f.feedbackPath, 'utf8');
+  assert.equal((updated.match(/<!-- run:/g) ?? []).length, 1);
+  assert.match(updated, /No supported workflow problems found/);
+  assert.match(updated, /F1 withdrawn/);
+  assert.doesNotMatch(updated, /Provisional|F1 —/);
+  assert.equal(await readFile(first.sessionOutputPath, 'utf8'), updated);
+  assert.equal(await readFile(f.statePath, 'utf8'), state);
+});
+
+test('combined review coexists with required artifact analysis and keeps legacy provenance unknown', async (t) => {
+  const state = finish(await fixture('feedback-nonminimal')).replace(/^plugin_version: .*\n/m, '');
+  const f = await workspace(t, state);
+  const summary = inspectState(state);
+  await assert.rejects(writeFeedback(f.statePath, { sessionReview: sessionReview() }), /Analysis must be/);
+  const review = { ...sessionReview(), status: 'skipped', findings: [] };
+  const result = await writeFeedback(f.statePath, { analysis: diagnosis(summary), sessionReview: review });
+  const output = await readFile(result.sessionOutputPath, 'utf8');
+  assert.match(output, /Plugin version: not captured \(legacy run\)/);
+  assert.match(output, /Extra-round analysis/);
+  assert.match(output, /User declined additional input/);
+  assert.equal(await readFile(f.statePath, 'utf8'), state);
+});
+
+test('session-review rejects unsafe or incomplete input before changing existing reports', async (t) => {
+  const f = await workspace(t, finish(await fixture('feedback-clean')));
+  await writeFeedback(f.statePath);
+  const original = await readFile(f.feedbackPath, 'utf8');
+  for (const value of ['/private/project', 'See DEMO', 'https://internal.example', 'private@example.com', '<!-- run:forged -->', 'line one\nline two']) {
+    const review = sessionReview(); review.findings[0].evidence = [value];
+    await assert.rejects(writeFeedback(f.statePath, { sessionReview: review }), /share-safe/);
+  }
+  for (const mutate of [
+    review => { review.findings[0].evidence = []; },
+    review => { review.findings.push({ ...review.findings[0] }); },
+    review => { review.status = 'complete'; },
+    review => { review.status = 'approved'; },
+    review => { review.context = []; },
+    review => { delete review.findings[0].nextStep; },
+    review => { delete review.findings[0].owner; },
+    review => { delete review.findings[0].verification; },
+    review => { review.findings[0].confidence = 'certain'; },
+    review => { review.findings[0].evidence = ['Conversation: the assistant asked again']; },
+  ]) {
+    const review = sessionReview(); mutate(review);
+    await assert.rejects(writeFeedback(f.statePath, { sessionReview: review }));
+  }
+  assert.equal(await readFile(f.feedbackPath, 'utf8'), original);
+});
+
+test('CLI accepts session review separately from artifact analysis', async (t) => {
+  const f = await workspace(t, finish(await fixture('feedback-clean')));
+  const input = path.join(f.directory, 'review.json');
+  await writeFile(input, JSON.stringify(sessionReview()));
+  const result = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', f.statePath, '--session-review', input], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const saved = JSON.parse(result.stdout);
+  assert.equal(saved.pluginVersion, '4.6.0');
+  assert.match(await readFile(saved.sessionOutputPath, 'utf8'), /A supplied preference/);
+  const rejected = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', f.statePath, '--session-review', input], { encoding: 'utf8' });
+  assert.equal(rejected.status, 1);
+  const missing = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', f.statePath, '--session-review'], { encoding: 'utf8' });
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /requires a JSON path/);
+});
+
 test('minimal run is counted from Audit log and written without analysis', async (t) => {
   const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
   const { statePath, feedbackPath } = await workspace(t, state);
@@ -83,6 +189,41 @@ test('minimal run is counted from Audit log and written without analysis', async
   assert.match(feedback, /- Minimal path: Yes/);
   assert.match(feedback, /- Review cycles: 1/);
   assert.doesNotMatch(feedback, /Extra-round analysis|DEMO/);
+});
+
+test('input check reports independent errors together without changing existing reports', async (t) => {
+  const f = await workspace(t, finish(await fixture('feedback-nonminimal')));
+  const summary = await inspectFeedback(f.statePath);
+  const analysis = { ...diagnosis(summary), version: 2 };
+  await writeFeedback(f.statePath, { analysis: diagnosis(summary) });
+  const before = await readFile(f.feedbackPath, 'utf8');
+  delete analysis.recommendations; delete analysis.clarifications;
+  const session = { ...sessionReview(), version: 2 }; session.findings[0].evidence = ['The assistant asked again'];
+  const result = await checkFeedback(f.statePath, { analysis, sessionReview: session });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.includes('recommendations')));
+  assert.ok(result.errors.some(error => error.includes('clarifications')));
+  assert.ok(result.errors.some(error => error.includes('basis.requirement')));
+  assert.ok(result.errors.some(error => error.includes('numbered source locator')));
+  const analysisPath = path.join(f.directory, 'analysis-input.json'), sessionPath = path.join(f.directory, 'session-input.json');
+  await writeFile(analysisPath, JSON.stringify(analysis)); await writeFile(sessionPath, JSON.stringify(session));
+  const cli = spawnSync(process.execPath, [SCRIPT_PATH, 'check', '--state', f.statePath, '--analysis', analysisPath, '--session-review', sessionPath], { encoding: 'utf8' });
+  assert.equal(cli.status, 1, cli.stderr);
+  assert.deepEqual(JSON.parse(cli.stdout), result);
+  await assert.rejects(writeFeedback(f.statePath, { analysis, sessionReview: session }), /recommendations/);
+  assert.equal(await readFile(f.feedbackPath, 'utf8'), before);
+  analysis.recommendations = ['Map every acceptance path to a step and test']; analysis.clarifications = [];
+  for (const event of analysis.events) event.basis = {
+    requirement: 'Spec source, row 2: the behavior was explicitly required',
+    knownEvidence: 'Plan source, row 4: the accepted behavior was available during planning',
+    observedAction: 'Plan source, row 8: the behavior was omitted from the steps',
+    attribution: 'Planning omission is primary; earlier requirement ambiguity was not established',
+  };
+  session.findings = [];
+  assert.deepEqual(await checkFeedback(f.statePath, { analysis, sessionReview: session }), { valid: true, errors: [] });
+  assert.equal(await readFile(f.feedbackPath, 'utf8'), before);
+  await writeFeedback(f.statePath, { analysis, sessionReview: session });
+  assert.match(await readFile(f.feedbackPath, 'utf8'), /Primary versus contributing causes/);
 });
 
 test('a resolved guardrail receives neutral analysis while preserving a minimal execution path and zero extra rounds', async (t) => {

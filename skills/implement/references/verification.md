@@ -60,6 +60,19 @@ Single-step subagents write their own step entry before their own Progress updat
 
 At the completion gate, set `gate` to `{ "mode": "none | full-suite | scoped | scoped+full", "result": "pass | fail | no-result | manual-accepted", "note": "actual command and concise result/reason" }`. `manual-accepted` is only for `mode: none` after the developer expressly chooses manual verification, either in readiness or the existing late walkthrough route. `mode: none` never has result `pass`. The gate's raw details remain in the Execute report. Do not run it a second time for this ledger.
 
+For an automated product repository with a concrete policy, the complete gate object includes the suite evidence in the same write:
+
+```json
+{
+  "mode": "full-suite",
+  "result": "pass",
+  "note": "npm test completed successfully",
+  "full_suites": [{ "repo": "api", "command": "npm test", "result": "pass", "note": "Run from api; all tests passed" }]
+}
+```
+
+Replace these example values with actual retained command results. A suite's `note` is required; a gate-level note does not replace it.
+
 An all-manual policy returns `VERIFIED_MANUALLY`, with gate `none`/`manual-accepted`. It requires the plan's explicitly authorized policy, actual passing manual checks for every manual Test Plan scenario, complete step evidence, and no unverified ACs. A mixed policy returns `PASSED` only after the automated gate passes and the same manual evidence check succeeds. Manual scenarios use the four-column `Scenario | Repo | Type | File / command` table and Type `Manual`; unique Scenario text is the evidence subject. A legacy late manual acceptance remains distinguishable as `GATE_NO_RESULT` with the developer's decision, and may retain visible unverified ACs.
 
 For a concrete verification policy, also record `gate.full_suites`, one entry per automated product repo: `{ "repo": "api", "command": "<actual full-suite command(s)>", "result": "pass | fail | not-run", "note": "<run root(s) and observed result or reason>" }`. When a product repo has no local tests and uses a confirmed external suite, record that suite's actual command/root under the product repo it verifies. If several suites are required for one product repo, summarize all actual commands and roots, use `fail` when any failed, otherwise `not-run` when any was unavailable, otherwise `pass`. A shared QA suite may execute once and supply evidence for several product repos. A not-run entry has `command: null`. Scope runs remain in the Execute report. `PASSED` requires every required full suite to pass. With no automated repos, omit the array or use `[]`. Older plans without a policy need no array.
@@ -93,6 +106,8 @@ Each assertion has exact `clause` text, the concrete `expected` behavior/value, 
 An acceptance row such as `{ "criterion": "AC1 income", "clause": "Include prepaid product value in income", "scenario": "Prepaid total", "status": "automated", "step": 1, "note": "Exact total assertion passed" }` needs a passing check of the same type/subject on that step with an assertion for that exact clause. Otherwise record `status: "unverified"`, `step: null`, and a reason. A missing assertion blocks a verified claim; it does not require inventing a test or waiving a missing observation. Existing manual-policy completion rules still apply.
 
 Pass `--require-clauses 1` to every verification helper call in a clause-contract run, including delegated partial checks; the parent also passes `--state` as usual. Controller plan/Execute handoff acceptance, dashboard validation and packaging independently enforce the state's contract. The final package shows each clause, pending reason, and verified assertion's source/expected/observed values. A criterion is verified only when all of its mapped clauses/scenarios are verified.
+
+`verification.mjs check` takes `--state`; `execute/scripts/step-control.mjs inspect|apply` takes `--dashboard-state`. Both accept `--require-clauses 1`, including delegated step completion without a workflow state. Step control also derives the clause requirement from its bound workflow state; omitting the explicit flag cannot downgrade a clause-contract run. Do not move flags between unrelated helpers.
 
 The deterministic checks establish that all planned clauses have matching concrete evidence records. They cannot establish semantic completeness or truth from strings: the independent reviewer must compare the inventory with the accepted spec and inspect the cited assertions/observations. Missing spec clauses or claims unsupported by the cited check are review findings. Never treat this ledger as a replacement for that inspection.
 
