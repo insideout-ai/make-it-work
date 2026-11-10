@@ -98,10 +98,12 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   assert.equal(execution.fields.review_cycle, '1');
   // This test supplies a clean review artifact; semantic independence is exercised by the separate forward-test rehearsal.
   const roots = workspace ? { api: sourceRoot, web: secondRoot } : { 'tiny-greeter-full': root };
-  await apply('review-context', { context_updated: [], test_map_maintenance: repos.map(repo => ({ repo, status: 'not-applicable', affected_tests: [], reason: 'Fixture has no current test-map strategy.' })) });
+  await apply('review-context', { context_updated: [], test_map_maintenance: repos.map(repo => ({ repo, status: 'not-applicable', affected_tests: [], reason: 'Fixture has no current test-map strategy.' })), review_requirements: repos.map(repo => ({ repo, skills: [{ name: 'domain-demo', method: 'Read' }], reason: 'Formal greeting belongs to the fixture demo domain.' })) });
   const target = await prepareReviewScope(root, statePath);
+  const required = JSON.parse(await readFile(path.join(root, target.review_target), 'utf8')).review_requirements;
+  const reviewChecks = required.map(r => ({ repo: r.repo, skills: r.skills.map(s => ({ name: s.name, method: s.method, sha256: s.sha256, rules: [{ line: 1, rule: 'Preserve existing demo behavior', observation: 'Formal greeting assertions and existing greeting regression pass', result: 'satisfied' }] })), test_map: { status: 'not-applicable', note: 'Fixture has no current mapping strategy.', tests: [] } }));
   const review = await writeReview(root, { version: 1, ticket: 'DEMO-2', branch: 'DEMO-2', commit: `working tree on ${initialHead}`, working_tree: true,
-    coverage: 'Compared the full delivery target with the formal-greeting spec and actual passing assertions.', findings: [], repo_roots: roots, review_limitations: [],
+    coverage: 'Compared the full delivery target with the formal-greeting spec and actual passing assertions.', findings: [], repo_roots: roots, review_limitations: [], review_checks: reviewChecks,
     review_target: target.review_target, review_target_sha256: target.sha256,
     review_scope: target.repos.map((repo) => ({ repo: Object.keys(roots).find((key) => roots[key] === repo.root), base: repo.base, scope: 'branch', paths: repo.paths })),
     implement: { handoff_version: 1, plan_version: 1, review_cycle: 1, review_scope_version: 1 } });

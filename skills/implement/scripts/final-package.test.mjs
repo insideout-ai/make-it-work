@@ -141,6 +141,10 @@ test('delivery scope distinguishes reviewed changes from earlier commits in the 
   const checked = run('check', root, state);
   assert.equal(checked.ui_verification.status, 'pending');
   assert.match(checked.assurance_summary.text, /delivery review partial.*browser verification pending/);
+  const dashboard = await generateDashboard(state);
+  const dashboardHtml = await readFile(dashboard, 'utf8');
+  assert.match(dashboardHtml, /Assurance: Limited/);
+  assert.match(dashboardHtml, /Browser verification: pending/);
   const markdown = await readFile(built.package, 'utf8');
   assert.match(markdown, /\*\*Assurance: Limited — .*delivery review partial.*browser verification pending/);
   assert.ok(markdown.indexOf('Assurance: Limited') < markdown.indexOf('## Changes'));

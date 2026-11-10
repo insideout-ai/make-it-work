@@ -13,6 +13,7 @@ import { readHookEvents } from './hook-feedback.mjs';
 import { checkFeedback, inspectFeedback, writeFeedback, unavailableFeedback } from './write-feedback.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { parseState } from './render-status.mjs';
+import { evidenceText } from './feedback-evidence.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
 const initialized = { startup_message: `[Open implementation dashboard](<${encodeURI(dashboard).replace('#', '%23')}>)`,
@@ -102,6 +103,15 @@ async function freshRun(t, autonomy, offline = false) {
   return { root, result, events, transcript, saveEvents, check, apply };
 }
 
+async function sourceReview(run) {
+  const summary = await inspectFeedback(run.result.state), packet = summary._packet;
+  const timestamp = new Date(Date.now() + 1000).toISOString();
+  run.events.push({ ...assistant({ type: 'tool_use', id: 'source-evidence', name: 'Bash', input: { command: `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" evidence --state "${run.result.state}"` } }), timestamp },
+    { type: 'user', timestamp, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'source-evidence', content: evidenceText(packet) }] } });
+  await run.saveEvents();
+  return { packet_hash: packet.packetHash, dashboard: { status: 'inspected', sections: ['markup', 'styles'].map(id => ({ id, status: 'checked', observations: [{ line: packet.dashboard.sections[id].find(row => id === 'styles' ? /body\s*\{/.test(row.text) : /<h1/.test(row.text))?.line ?? packet.dashboard.sections[id][0].line, note: id === 'styles' ? 'Declared layout rules inspected; actual rendering remains unverified' : 'Dashboard headline and source content compared with the saved terminal state' }] })) }, process: [] };
+}
+
 test('Complete cannot skip feedback by proceeding directly to delivery or the terminal summary', async (t) => {
   const run = await freshRun(t, 'autopilot');
   let state = await readFile(run.result.state, 'utf8');
@@ -113,6 +123,7 @@ test('Complete cannot skip feedback by proceeding directly to delivery or the te
   assert.equal(delivery.hookSpecificOutput.permissionDecision, 'deny');
   await writeFeedback(run.result.state, { sessionReview: {
     status: 'pending', context: ['Current visible conversation reviewed'], findings: [], userInput: [], limitations: ['Client version unknown'],
+    evidence_review: await sourceReview(run),
   } });
   assert.deepEqual(await run.check(), {});
   assert.equal(await readFile(run.result.state, 'utf8'), state);
@@ -150,6 +161,7 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   const analysis = { version: 2, events: run.summary.events.map(event => ({ ...event, trigger: 'Required behavior was missed', rootCause: 'execution deviation', explanation: 'The implementation omitted required behavior', earliestStage: 'implement', preventability: 'likely', owner: 'implement', improvement: 'Check the required behavior against actual results', confidence: 'high',
     basis: { requirement: 'Source row 1 required the behavior', knownEvidence: 'Source row 2 showed the affected path', observedAction: 'Source row 3 omitted the required behavior', attribution: 'The implementation departed from the stated behavior' } })), recommendations: ['Check the required behavior against actual results'], clarifications: [], openQuestions: [] };
   const sessionReview = { version: 2, status: 'pending', context: ['Visible conversation reviewed'], findings: [], userInput: [], limitations: ['Input not requested under Autopilot'] };
+  sessionReview.evidence_review = await sourceReview(run);
   assert.equal((await checkFeedback(run.result.state, { analysis, sessionReview })).valid, true);
   assert.equal((await run.check()).decision, 'block'); // Validation is not saving.
   await writeFeedback(run.result.state, { analysis, sessionReview });

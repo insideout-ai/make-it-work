@@ -1,5 +1,11 @@
 # Session feedback evaluations
 
+The `feedback-session-admitted-skips` case reproduces a completed run with
+explicitly skipped reviewer context/mapping requirements and an earlier marker-only
+feedback draft. It requires helper rejection, actual source-packet inspection,
+grounded process findings, bounded authorization conclusions and no invented
+friction from normal waits or permitted verification deferrals.
+
 Four `feedback-dashboard-html-*` cases check source-only automatic dashboard
 inspection: consistent markup, stale status/counts/verification, repeated audit
 hashes with an unverified CSS risk, and missing HTML. They preserve meaningful

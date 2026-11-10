@@ -7,6 +7,7 @@ phase: complete
 autonomy: autopilot
 start_time: 2026-01-01T10:00:00Z
 plugin_version: 5.6.0
+feedback_evidence_version: 1
 plan_version: 1
 review_cycle: 1
 fix_cycle: 0

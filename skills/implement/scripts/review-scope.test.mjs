@@ -60,6 +60,23 @@ test('review cannot silently narrow a full delivery target to HEAD or omit earli
   await assert.rejects(checkReviewScope(f.root, f.statePath), /not fully reviewed/);
 });
 
+test('missing required skill applications or mapping assessment cannot produce a CLEAN handoff', async t => {
+  const f = await fixture(t);
+  await mkdir(path.join(f.root, '.claude/skills/domain-demo'), { recursive: true });
+  await writeFile(path.join(f.root, '.claude/skills/domain-demo/SKILL.md'), '# Domain\nPreserve the documented count.\n');
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('review_scope_version: 1', 'review_scope_version: 1\nreview_checks_version: 1'));
+  await f.apply('review-context', { context_updated: [], review_requirements: [{ repo: f.root, reason: 'Count changes belong to the demo domain', skills: [{ name: 'domain-demo', method: 'Read' }] }] });
+  const target = await prepareReviewScope(f.root, f.statePath);
+  const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
+  input.review_scope[0].paths = target.repos[0].paths;
+  await assert.rejects(writeReview(f.root, input), /review_checks/);
+  await assert.rejects(readFile(path.join(f.dir, 'DEMO-review.md')), { code: 'ENOENT' });
+  const skill = JSON.parse(await readFile(path.join(f.root, target.review_target), 'utf8')).review_requirements[0].skills[0];
+  input.review_checks = [{ repo: f.root, skills: [{ name: skill.name, method: skill.method, sha256: skill.sha256, rules: [{ line: 2, rule: 'Preserve count behavior', observation: 'Inspected count and extra exports against the required domain behavior', result: 'satisfied' }] }], test_map: { status: 'not-applicable', note: 'No test-map strategy is registered', tests: [] } }];
+  const reviewed = await writeReview(f.root, input);
+  assert.equal(reviewed.outcome, 'CLEAN'); assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
+});
+
 test('known context is included before review so unchanged final sync needs no additional cycle', async (t) => {
   const f = await fixture(t);
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('review_scope_version: 1', 'review_scope_version: 1\nreview_context_version: 1'));

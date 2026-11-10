@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
-import { readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
@@ -285,6 +285,7 @@ export function parseState(markdown, statePath = '') {
   if (fields.acceptance_evidence_version !== undefined && (fields.acceptance_evidence_version !== '1' || fields.verification_version !== '1')) fail('Clause evidence requires acceptance_evidence_version: 1 and verification_version: 1.');
   if (fields.testing_readiness_version !== undefined && fields.testing_readiness_version !== '1') fail('Unsupported testing_readiness_version.');
   if (fields.verification_version !== undefined && fields.verification_version !== '1') fail(`Unsupported verification_version: ${fields.verification_version}`);
+  for (const name of ['review_checks_version', 'feedback_evidence_version']) if (fields[name] !== undefined && fields[name] !== '1') fail(`Unsupported ${name}: ${fields[name]}`);
   if (fields.plugin_version !== undefined && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(fields.plugin_version)) {
     fail('Unsupported plugin_version.');
   }
@@ -789,7 +790,14 @@ function renderAutonomyBadge(state) {
   return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null }) {
+function renderAssurance(state, assurance) {
+  if (state.fields.final_package_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase)) return '';
+  if (!assurance) return '<section class="assurance-summary" aria-label="Recorded assurance"><h2>Assurance: Not recorded</h2><p>Final package assurance is unavailable; completion alone does not establish verification.</p></section>';
+  const reasons = assurance.limitations.map(reason => `<li>${escapeHtml(reason)}</li>`).join('');
+  return `<section class="assurance-summary" aria-label="Recorded assurance"><h2>Assurance: ${escapeHtml(assurance.label)}</h2><p>Browser verification: ${escapeHtml(assurance.browser)}.</p>${reasons ? `<details><summary>Recorded verification limits</summary><ul>${reasons}</ul></details>` : ''}</section>`;
+}
+
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, assurance = null }) {
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
@@ -817,6 +825,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
+    ASSURANCE_SUMMARY: renderAssurance(state, assurance),
     ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
     DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
@@ -829,7 +838,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete'
-      ? '<p class="feedback-note"><strong>Workflow feedback:</strong> <code>make-it-work/implement-feedback.md</code> is separate from this ticket’s artifacts and accumulates across runs. Keep it if you want to review or share it.</p>'
+      ? '<p class="feedback-note"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a> (available after the terminal retrospective). Review and share only that session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>'
       : '',
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
@@ -904,7 +913,15 @@ export async function generateDashboard(statePath) {
       verification = ledger;
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
-  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification });
+  let assurance = null;
+  if (state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)) {
+    try {
+      const { checkFinalPackage } = await import('./final-package.mjs');
+      const checked = await checkFinalPackage(await realpath(path.dirname(path.dirname(path.dirname(absoluteStatePath)))), await realpath(absoluteStatePath));
+      assurance = { ...checked.assurance_summary, browser: checked.ui_verification.status };
+    } catch { /* Missing/malformed package evidence is unknown, never assurance of success. */ }
+  }
+  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, assurance });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {

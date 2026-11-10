@@ -6,6 +6,12 @@ refresh, alongside that state and its Audit log. This is the workflow dashboard,
 not an inspection of the application's UI. Standalone transcript review retains
 its existing scope.
 
+On evidence-enabled runs, retrieve the read-only numbered packet through
+`write-feedback.mjs evidence` using the implement reference. Inspect its actual
+markup/CSS and stage reports and record `evidence_review`; status-word counts or
+file size alone cannot satisfy inspection. Use admitted skipped requirements as
+process findings, while preserving legitimate verification limitations.
+
 Use the existing feedback pass. When `analysisRequired` is true, supply the HTML
 path and this reference to the already-required retrospective delegate and reuse
 its observations; otherwise inspect inline. Do not add an agent, browser, phase,
@@ -42,6 +48,12 @@ Check for source-supported issues:
   controls without a discernible name are supported by the inspected markup.
   Do not claim an external/local target is broken without checking within the
   supplied artifact scope; do not crawl other files or follow URLs.
+- Feedback sharing text distinguishes the current session export from cumulative
+  local history. Compare any "share" invitation and its target with the saved
+  feedback/package guidance. If it invites sharing cumulative history despite
+  session-only guidance, record that supported scope mismatch. A plain mention
+  of cumulative history is not itself a problem, and an export that will be
+  created after this terminal refresh need not exist yet.
 - Relevant CSS suggests overflow, clipping, poor responsive behavior or other
   readability risks. Distinguish a declared rule from its rendered effect.
 

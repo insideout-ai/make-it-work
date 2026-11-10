@@ -9,6 +9,7 @@ import { lastWorkRow, parseDecisionCell } from './workflow-decisions.mjs';
 import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
+import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
 import { feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
@@ -60,6 +61,7 @@ export function inspectState(markdown, { limitStop = false, hookEvents = [] } = 
   const fields = Object.fromEntries([...fieldBlock.matchAll(/^([a-z_]+):\s*(.*?)\s*$/gm)]
     .map((match) => [match[1], match[2]]));
   const { ticket, status, phase, start_time: runId, plugin_version: pluginVersion } = fields;
+  if (fields.feedback_evidence_version !== undefined && fields.feedback_evidence_version !== '1') fail('Unsupported feedback_evidence_version.');
   if (!ticket || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Invalid ticket field.');
   if (!ISO_UTC.test(runId ?? '') || Number.isNaN(Date.parse(runId))) {
     fail('A real ISO 8601 UTC start_time is required for feedback.');
@@ -149,6 +151,7 @@ export function inspectState(markdown, { limitStop = false, hookEvents = [] } = 
     minimal: events.length === 0,
     guardrails,
     analysisRequired: events.length > 0 || guardrails.length > 0 || runtime.analysisRequired,
+    evidenceRequired: fields.feedback_evidence_version === '1',
     fixRounds: events.filter((event) => event.kind === 'Fix').length,
     replans: events.filter((event) => event.kind === 'Replan').length,
     reviewCycles: explicitReviews || enteredReviews,
@@ -308,9 +311,17 @@ function renderSessionReview(review, summary) {
   const limitations = lines(review.limitations, 'session limitations');
   if (review.status === 'complete' && !input.length) fail('Completed session review requires attributed user input.');
   const bulletList = values => values.map(value => `- ${value}`).join('\n');
+  let coverage = '';
+  if (summary.evidenceRequired) {
+    const inspected = review.evidence_review;
+    coverage = `\n\n#### Source inspection coverage\n\n- Dashboard source: ${inspected.dashboard.status}; no browser or rendering used\n` +
+      inspected.dashboard.sections.map(s => `- ${s.id}: ${s.status}${s.observations?.length ? '; ' + s.observations.map(o => `Dashboard line ${o.line}: ${line(o.note, 'Dashboard observation')}`).join('; ') : ''}`).join('\n') +
+      (inspected.dashboard.reason ? `\n- Limitation: ${line(inspected.dashboard.reason, 'Dashboard limitation')}` : '') +
+      inspected.process.map(o => `\n- ${o.source} line ${o.line}: ${o.result} — ${line(o.note, 'Stage assessment')}`).join('');
+  }
   return `### Session review\n\n- Report status: ${review.status === 'pending' ? 'Provisional — user input pending' : 'Complete'}\n\n` +
-    `#### Context and evidence coverage\n\n${bulletList(context)}\n\n` +
-    `#### Findings\n\n${findings.length ? findings.join('\n\n') : 'No supported workflow problems found'}\n\n` +
+    `#### Context and evidence coverage\n\n${bulletList(context)}${coverage}\n\n` +
+    `#### Findings\n\n${findings.length ? findings.join('\n\n') : 'No supported workflow problems found in the reviewed evidence'}\n\n` +
     `#### User input\n\n${bulletList(input) || (review.status === 'skipped' ? 'User declined additional input' : 'Pending')}\n\n` +
     `#### Limitations and open questions\n\n${bulletList(limitations) || 'None recorded'}`;
 }
@@ -319,7 +330,7 @@ export function renderBlock(summary, analysis = null, sessionReview = null) {
   const block = renderWorkflowBlock(summary, analysis);
   if (sessionReview === null) return block;
   const marker = `<!-- /run:${summary.runId} -->`;
-  return block.replace(marker, `\n${renderSessionReview(sessionReview, summary)}\n<!-- feedback-state:${summary.stateHash} -->\n${marker}`);
+  return block.replace(marker, `\n${renderSessionReview(sessionReview, summary)}\n<!-- feedback-state:${summary.stateHash} -->\n${summary.evidenceRequired ? `<!-- feedback-evidence:${sessionReview.evidence_review.packet_hash} -->\n` : ''}${marker}`);
 }
 
 // Report independent structural errors together; do not repair or fill evidence.
@@ -331,6 +342,10 @@ export function validateFeedbackInputs(summary, analysis, sessionReview, { curre
     return object[key];
   };
   const line = (value, label) => check(() => safeLine(value, label, summary.ticket, summary.sourceCompounds));
+  if (summary.evidenceRequired) check(() => {
+    validateEvidenceReview(sessionReview?.evidence_review, summary._packet, (value, label) => safeLine(value, label, summary.ticket, summary.sourceCompounds));
+    for (const item of sessionReview.evidence_review.process) if (item.result === 'gap' && !sessionReview.findings?.some(f => f.id === item.finding_id)) fail('Every admitted stage gap must reference a retained session finding.');
+  });
   if (analysis?.version !== undefined && analysis.version !== 2) errors.push('Unsupported analysis version.');
   if (sessionReview?.version !== undefined && sessionReview.version !== 2) errors.push('Unsupported session-review version.');
   if (summary.analysisRequired) {
@@ -417,7 +432,14 @@ export async function inspectFeedback(statePath, { limitStop = false } = {}) {
   let hookEvents;
   try { hookEvents = await readHookEvents(statePath); }
   catch (error) { fail(`Feedback hook evidence could not be read: ${error.message}`, 'FEEDBACK_EVIDENCE'); }
-  return inspectState(state, { limitStop, hookEvents });
+  const result = inspectState(state, { limitStop, hookEvents });
+  if (result.evidenceRequired) {
+    const packet = await feedbackEvidence(statePath, result);
+    result.evidence = { packetHash: packet.packetHash, dashboard: packet.dashboard.status,
+      instruction: 'Run write-feedback.mjs evidence --state <this state> directly, inspect the numbered sources, and record evidence_review in the session input. Status-word counts are not source inspection.' };
+    Object.defineProperty(result, '_packet', { value: packet });
+  }
+  return result;
 }
 
 export async function writeFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false } = {}) {
@@ -504,7 +526,7 @@ export async function unavailableFeedback(statePath, { reason, transcriptPath, f
 let failureContext;
 async function main() {
   const [mode, ...args] = process.argv.slice(2);
-  if (!['inspect', 'check', 'write', 'unavailable'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|check|write|unavailable> --state <path> [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
+  if (!['inspect', 'evidence', 'check', 'write', 'unavailable'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|evidence|check|write|unavailable> --state <path> [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
   let statePath;
   let analysisPath;
   let sessionReviewPath;
@@ -536,6 +558,11 @@ async function main() {
     const summary = await inspectFeedback(statePath, { limitStop });
     const { ticket: _ticket, ...shareSafe } = summary;
     process.stdout.write(`${JSON.stringify(shareSafe)}\n`);
+    return;
+  }
+  if (mode === 'evidence') {
+    const summary = await inspectFeedback(statePath, { limitStop });
+    process.stdout.write(evidenceText(summary._packet ?? await feedbackEvidence(statePath, summary)));
     return;
   }
   const analysis = analysisPath ? JSON.parse(await readFile(analysisPath, 'utf8')) : null;

@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Collect compact numbered HTML/stage evidence and require snapshot-bound inspection coverage on new runs. Bind required reviewer skills, applied rules and affected test-mapping assessments to the existing review target; incomplete checks cannot produce a completed handoff.
+- Show current package assurance and pending verification beside workflow completion, and link the current session feedback export with cumulative history clearly separated.
+
 - Inspect the final workflow dashboard HTML source against state/audit evidence during automatic feedback, reusing the existing pass and delegate. Distinguish confirmed content/markup problems from unverified visual risks; missing HTML remains a nonblocking evidence limitation and no browser is used.
 
 - Run `feedback-on-session` automatically after implement completion or an eligible retry-limit stop, combining conversation evidence and the existing retrospective in one session report and cumulative entry. Preserve captured run versions, save before one non-blocking input invitation, and update the same report on corrections without changing implementation status or package approval.

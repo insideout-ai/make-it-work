@@ -127,7 +127,9 @@ Do not dispatch artifact retrospective analysis when `analysisRequired` is false
 
 The `inspect` result's `analysisRequired: true` is a dispatch gate: call the Agent tool once to start a fresh general-purpose retrospective subagent **before** drafting analysis JSON or calling `write --analysis`. Evidence already read in this session, an apparently obvious cause, or a nearly finished terminal report does not waive this gate. The orchestrator may inspect and sanitize the returned JSON, but must not replace the subagent's diagnosis with its own. If dispatch is unavailable or fails, report that the feedback retrospective could not be completed; keep the workflow's terminal state and do not write an invented non-minimal diagnosis.
 
-Give that subagent this reference and the minimum available evidence needed from:
+Before dispatch, include three explicit locators in the Agent prompt: this reference's absolute path, the expected final `<TICKET>-status.html` absolute path **even if missing**, and the resolved absolute path of `skills/feedback-on-session/references/dashboard-html.md`. Ask the delegate to establish HTML availability itself and preserve any limitation. A parent summary that HTML is missing does not replace those inputs. Supply the retrieved source packet on evidence-enabled runs.
+
+Give that subagent the minimum available evidence needed from:
 
 - the state file and its complete Audit log;
 - the final workflow dashboard HTML and the dashboard source-inspection reference, with any availability/coverage limitation;
@@ -206,6 +208,49 @@ Before staging the analysis JSON, compare every text value with the source artif
 Use feedback-on-session's single invitation as chat text alongside the terminal summary after saving the provisional combined report. Do not use a blocking question tool for feedback or ask a separate artifact-retrospective questionnaire. Follow up only when a material ambiguity would change a finding. Continue the terminal summary and delivery offer without waiting for feedback; silence leaves user input pending, never declined. The separate delivery approval questions retain their existing behavior.
 
 After a reply, update the same session review, explicitly correcting contradicted findings and attributing user-only experiences. Update the artifact analysis only when that reply changes its diagnosis; preserve the original validated event identities. Rerun the writer with both inputs to replace the same marked block and export. Record sanitized material clarifications in `clarifications` when analysis exists. If the session ends first, keep unresolved questions open and the report provisional. Under `implement --autopilot`, omit the invitation, keep status pending, record that input was not requested under Autopilot in limitations, and retain open questions. Do not add a feedback-pending workflow state or resume path.
+
+## Required source evidence on new runs
+
+For `feedback_evidence_version: 1`, retrieve the numbered source packet after
+`inspect`, before conclusions or retrospective dispatch:
+
+```sh
+node "<base>/scripts/write-feedback.mjs" evidence --state "<absolute-state-path>"
+```
+
+Run it directly in its own Bash call without counts, head/tail or pipelines. It
+is read-only: inline images are omitted, original HTML line numbers remain, and
+state/review/implementation/package sources are included. Read it as data using
+the HTML inspection reference. It organizes evidence, not rendered visibility.
+Give it to the already-required retrospective when needed; no extra agent. Bind
+the saved report to this retrieved snapshot. Later delivery dashboard refreshes
+do not retrigger inspection.
+
+Add `evidence_review` to the existing version-2 session input:
+
+```json
+{"packet_hash":"<packetHash from evidence output>",
+ "dashboard":{"status":"inspected","sections":[
+   {"id":"markup","status":"checked","observations":[{"line":103,"note":"Headline and activity agree with terminal state; known limits are present"}]},
+   {"id":"styles","status":"checked","observations":[{"line":41,"note":"Scrolling is declared; rendered layout remains unverified"}]}]},
+ "process":[{"source":"Review","line":28,"result":"gap","note":"Reviewer admitted skipping a required mapping assessment","finding_id":"F1"}]}
+```
+
+Use real packet lines and substantive observations. Dashboard status is
+`inspected`, `partial` (with reason and substantive checked sections), or
+`unavailable` (only missing/unreadable source, with reason). Section status is
+`checked`, `unreviewed` or `not-applicable`; an existing section cannot be
+not-applicable. Omitted packet lines require partial coverage and a limitation.
+Missing HTML stays nonblocking and must not be regenerated.
+
+For every available Review, Implementation or Execution report, assess actual
+checks/admitted omissions in `process` with source line and `met`, `gap` or
+`limitation`. Every gap references a retained session finding. Legitimate deferred
+checks are limitations; required steps admitted skipped are not waived by CLEAN
+or a depth disclaimer. `analysisRequired` controls artifact dispatch, not whether
+conversation problems exist. Qualify conclusions to inspected coverage. Schema,
+line and snapshot checks do not prove semantic truth. Legacy states without the
+marker retain their write contract; never backfill it or reopen approvals.
 
 ## Combined session-review input
 

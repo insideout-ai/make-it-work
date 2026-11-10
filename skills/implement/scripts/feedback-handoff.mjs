@@ -36,6 +36,7 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
   let analysisRequired = false;
   let failure = null;
   let retrospectiveDispatched = false;
+  const sourcePackets = new Set();
   for (const event of events) {
     if (!['assistant', 'user'].includes(event.type) || event.isSynthetic || event.isMeta) continue;
     const role = event.message?.role ?? event.type;
@@ -50,6 +51,9 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
       const operation = writerOperation(call, statePath);
       const values = jsonLines(outputText(part));
       if (!part.is_error && operation === 'inspect' && values.some(value => value.runId === fields.start_time && value.stateHash === stateHash && value.analysisRequired === true)) analysisRequired = true;
+      if (!part.is_error && operation === 'evidence') for (const value of values) {
+        if (value.feedbackEvidence === 'source-packet' && value.runId === fields.start_time && value.stateHash === stateHash && /^[a-f0-9]{64}$/.test(value.packetHash ?? '')) sourcePackets.add(value.packetHash);
+      }
       const retrospective = ['Agent', 'Task'].includes(call.name) && call.analysisRequired && typeof call.input?.prompt === 'string' && call.input.prompt.includes(feedbackReference);
       if (retrospective && !part.is_error) retrospectiveDispatched = true;
       if (part.tool_use_id !== failureId || !part.is_error) continue;
@@ -63,7 +67,7 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
       if (retrospective && !invalidDispatch && unavailableDispatch) failure = { failureId, kind: 'retrospective-dispatch', code: 'TOOL_FAILED' };
     }
   }
-  return { failure, retrospectiveDispatched };
+  return { failure, retrospectiveDispatched, sourcePackets: [...sourcePackets] };
 }
 export const findFeedbackFailure = (...args) => feedbackRuntimeEvidence(...args).failure;
 
@@ -133,14 +137,17 @@ export async function feedbackHold(input, statePath, fields, events) {
           block.includes(`<!-- feedback-state:${stateHash} -->`)) {
         const { inspectFeedback } = await import('./write-feedback.mjs');
         const summary = await inspectFeedback(statePath, { limitStop: fields.status === 'Stopped' });
-        if (!summary.analysisRequired || feedbackRuntimeEvidence(events, statePath, saved.fields, saved.audit).retrospectiveDispatched) return null;
+        const runtime = feedbackRuntimeEvidence(events, statePath, saved.fields, saved.audit);
+        const snapshot = block.match(/<!-- feedback-evidence:([a-f0-9]{64}) -->/)?.[1];
+        const sourceRead = !summary.evidenceRequired || snapshot && runtime.sourcePackets.includes(snapshot);
+        if (sourceRead && (!summary.analysisRequired || runtime.retrospectiveDispatched)) return null;
       }
     }
   } catch { /* Missing or unreadable feedback still needs a reported outcome. */ }
   const unavailable = unavailableAttempt(events, statePath, saved.fields, saved.audit);
   if (unavailable) return {
     systemMessage: `Session feedback is unavailable: ${unavailable.reason}. ${unavailable.reportStatus === 'unverified' ? 'An existing report remains unverified; the required retrospective was not completed.' : 'No combined feedback report was saved for this run.'} ${unavailable.receiptSaved === true ? `Only a failure receipt was saved at ${unavailable.receiptPath}.` : 'The failure receipt could not be saved either; disclose that limitation.'} State this accurately in the terminal summary; keep the workflow terminal.` };
-  const reason = `${fields.status === 'Complete' ? 'Implementation is Complete' : 'The run is stopped at its retry limit'}, but the required feedback-on-session report has not been saved for this run. Read implement/references/feedback.md and feedback-on-session/SKILL.md; inspect the run, dispatch the retrospective when analysisRequired is true, and save through write-feedback.mjs with --session-review before the terminal summary or delivery question. An unperformed retrospective or a claim of no friction does not qualify as unavailable. Only after a technical tool failure, use the reference's unavailable procedure with --transcript ${JSON.stringify(input.transcript_path)} --failure-id <failed tool call ID> and a specific reason. Keep phase and status unchanged; do not ask permission or wait for optional user feedback.`;
+  const reason = `${fields.status === 'Complete' ? 'Implementation is Complete' : 'The run is stopped at its retry limit'}, but required feedback work is not complete for this run. Read implement/references/feedback.md and feedback-on-session/SKILL.md; inspect the run, read the numbered sources through write-feedback.mjs evidence for evidence-enabled runs, dispatch the retrospective when analysisRequired is true, and save through write-feedback.mjs with --session-review before the terminal summary or delivery question. Marker counts alone are not source inspection. An unperformed retrospective or a claim of no friction does not qualify as unavailable. Only after a technical tool failure, use the reference's unavailable procedure with --transcript ${JSON.stringify(input.transcript_path)} --failure-id <failed tool call ID> and a specific reason. Keep phase and status unchanged; do not ask permission or wait for optional user feedback.`;
   if (input.hook_event_name === 'Stop') return { decision: 'block', reason };
   if (input.hook_event_name === 'PreToolUse' && input.tool_name === 'AskUserQuestion') return {
     hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } };

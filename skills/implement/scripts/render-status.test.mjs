@@ -111,6 +111,23 @@ async function renderFixture(t, state, plan = null) {
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
+test('completion displays recorded assurance limits and links only the session export for sharing', async t => {
+  const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete', final_package_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
+  const f = await renderFixture(t, state);
+  assert.match(f.html, /Assurance: Not recorded/);
+  const pkg = { version: 1, ticket: 'DEMO', repos: [{ name: 'app' }], review_scope: [{ repo: 'app', status: 'covered', limitations: [{ depth: 'skimmed', paths: ['old.js'], reason: 'Inherited work not fully assessed' }] }], ui_verification: { status: 'pending', note: 'No browser observations' }, validation: { mode: 'lightweight', result: 'No regression gate' }, open_nits: ['A nonblocking note'], known_regressions: [] };
+  const packagePath = path.join(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
+  await writeFile(packagePath, bytes);
+  await generateDashboard(path.join(f.directory, 'DEMO-state.md'));
+  const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
+  assert.match(html, /Assurance: Limited/); assert.match(html, /Browser verification: pending/);
+  assert.match(html, /Inherited work not fully assessed/); assert.match(html, /href="workflow-feedback.md"/);
+  assert.match(html, /share only that session export/);
+  assert.equal(await readFile(packagePath, 'utf8'), bytes);
+  assert.match(await readFile(f.outputPath, 'utf8'), /Assurance: Not recorded/); // An unbound JSON file cannot establish assurance.
+  assert.equal(await readFile(path.join(f.directory, 'DEMO-state.md'), 'utf8'), state);
+});
+
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
   const rows = [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']];
   const current = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows }));

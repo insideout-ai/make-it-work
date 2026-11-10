@@ -89,6 +89,8 @@ Before doing anything else — before fetching requirements, before running any 
 
 The `CLAUDE.md` skill-loading gate applies to reviews. Before judging any changed file, load **every** matching skill via the `Skill` tool.
 
+When implement supplies a target with `review_requirements`, follow [its review-check contract](../implement/references/review-checks.md). Load each minimum required skill and apply its relevant rules to the actual change; record observations in `review_checks`. Use session-domain rules for session/calendar fallback and test-strategy rules to determine expected checks, permitted deferrals and affected mappings. Names alone or another agent's loading claim do not complete the step.
+
 Follow any stricter repository timing/method requirement, including loading before source exploration. Implement's inline-stage instruction applies to this review stage, not repository domain/UC skills. Record the actually loaded skills and method in Coverage; reading their diff only to check documentation is not prior loading. If required loading is unavailable, stop with the concrete blocker. If implementation admits it skipped a required gate, load the missing context and reassess the affected behavior; route any remaining defect normally and document the recovered omission rather than silently treating it as compliant.
 
 **How to find matching skills:**
@@ -157,6 +159,8 @@ Adversarially re-check every candidate finding before writing it down:
 
 1. Re-read the exact code at the reviewed commit — does the failure scenario actually occur?
 2. Is it introduced by this diff, or pre-existing? (`git blame` / diff base when unsure.) Pre-existing issues go in a short separate note, never in the numbered findings.
+
+A newly added endpoint or behavior remains introduced even if siblings follow the same pattern. Assess policy and impact independently. Similar authentication, authorization or error handling elsewhere is context, not a waiver or proof of acceptability. If access policy/platform enforcement is unknown, retain the uncertainty and needed verification instead of declaring a vulnerability proven or dismissing it as pre-existing.
 
 For a failed lint/typecheck/build command, compare actual baseline and changed-file diagnostics, not just total counts or a similar error elsewhere. A diagnostic in a new file is introduced even if its underlying shared typing defect is older. Investigate the cause and route a real new failure under the normal severity rules. If an evidenced shared-tooling limitation justifies a nonblocking qualification, record the exact introduced diagnostic, rationale, unchecked impact and follow-up in `validation_notes: ["..."]`; otherwise fix it. Unknown baseline comparison remains unknown. Never place introduced diagnostics under Pre-existing or imply the whole command's failures were unchanged. Validation notes are retained in report/chat, final assurance, package and delivery text; they do not override actionable findings or required stops.
 3. Do the file/line references match the reviewed commit?

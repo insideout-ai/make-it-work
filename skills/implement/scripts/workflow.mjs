@@ -21,6 +21,7 @@ import { checkReviewScope } from './review-scope.mjs';
 import { implementationBaseline } from './implementation-guard.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
+import { reviewRequirements } from './review-checks.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
 function setFields(markdown, fields) {
   return markdown.replace(/(^# Workflow state[^\n]*\n\s*```[^\n]*\n)[\s\S]*?(\n```)/m,
@@ -147,6 +148,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     const previous = !f.context_updated || f.context_updated === 'none' ? [] : f.context_updated.split(', ');
     f.context_updated = [...new Set([...previous, ...paths])].join(', ') || 'none';
     if (f.review_context_version === '2') f.test_map_maintenance = JSON.stringify(input.test_map_maintenance);
+    if (f.review_checks_version === '1') f.review_requirements = JSON.stringify(input.review_requirements);
     reason = `Review context prepared for cycle ${f.review_cycle}.`;
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
@@ -442,6 +444,9 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
         effective = { ...effective, test_map_maintenance: await assessContextMaintenance(root, reposInput ?? [root], effective.test_map_maintenance) };
         if (effective.event === 'sync-complete') workingState = { ...workingState, fields: { ...workingState.fields, test_map_maintenance: JSON.stringify(effective.test_map_maintenance) } };
       } else if (effective.event === 'sync-complete') await checkContextMaintenance(root, state.fields);
+    }
+    if (state.fields.review_checks_version === '1' && effective.event === 'review-context') {
+      effective = { ...effective, review_requirements: await reviewRequirements(reposInput ?? [root], effective.review_requirements, effective.test_map_maintenance) };
     }
     if (state.fields.review_scope_version === '1') {
       if (handoff?.stage === 'review' && handoff.status === 'done' && handoff.outcome === 'CLEAN') await checkReviewScope(root, statePath);
