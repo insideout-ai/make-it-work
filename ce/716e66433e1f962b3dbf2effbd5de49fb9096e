@@ -1,0 +1,108 @@
+skills/implement/scripts/workflow.mjs
+  s_f93c02af7eed98::t_956118099ff53e 24,151
+  s_f93c02af7eed98::t_e47bca8b1c46c8 448-450
+evals/feedback-on-session/README.md
+  s_f93c02af7eed98::t_fa76ce77a117fa 3-8
+skills/implement/scripts/review-checks.mjs
+  s_f93c02af7eed98::t_f944ddc05341ab 67,69-71
+  s_f93c02af7eed98::t_956118099ff53e 1-66,68,72-73
+evals/feedback-on-session/feedback-session-admitted-skips/prompt.md
+  s_f93c02af7eed98::t_de1c50573758b9 1-10
+  s_f93c02af7eed98::t_360f74e63b6e96 11
+skills/implement/references/review-checks.md
+  s_f93c02af7eed98::t_1fc40494812014 1-53
+skills/feedback-on-session/references/dashboard-html.md
+  s_f93c02af7eed98::t_97dc8e8d26447b 51-56
+  s_f93c02af7eed98::t_48d0f4db63e1f9 9-14
+skills/implement/scripts/render-status.mjs
+  s_f93c02af7eed98::t_f944ddc05341ab 288
+  s_f93c02af7eed98::t_12b39d11f3e583 793-800,828,841,916-918,922-924
+  s_f93c02af7eed98::t_354cf83e491ca2 919-921
+  s_f93c02af7eed98::t_f2cfd12bf3375e 4
+evals/feedback-on-session/feedback-session-admitted-skips/fixture.sh
+  s_f93c02af7eed98::t_de1c50573758b9 1-18
+skills/implement/scripts/feedback-evidence.mjs
+  s_f93c02af7eed98::t_3082669a7cc1d0 1-73,75-87,89,91-93,100-105
+  s_f93c02af7eed98::t_1b96fca4260a11 74,88,90,94-99
+evals/feedback-on-session/feedback-session-admitted-skips/fixture/session.txt
+  s_f93c02af7eed98::t_de1c50573758b9 1-12
+skills/implement/scripts/workflow-integration.test.mjs
+  s_f93c02af7eed98::t_31ed9bd9835c08 101,103-104,106
+skills/implement/scripts/write-feedback.mjs
+  s_f93c02af7eed98::t_fbdec64bcc02cd 12,154,314-321,323-324,333,345-348,435-442,529,563-565,567
+  s_f93c02af7eed98::t_f944ddc05341ab 64
+  s_f93c02af7eed98::t_188e4e32ba19f3 566
+evals/suites.json
+  s_f93c02af7eed98::t_de1c50573758b9 20
+skills/implement/scripts/startup-presentation.test.mjs
+  s_f93c02af7eed98::t_31ed9bd9835c08 16,106-114,126,164
+skills/implement/scripts/feedback-evidence.test.mjs
+  s_f93c02af7eed98::t_dd62180c110a10 1-14,16-37,39-50
+  s_f93c02af7eed98::t_772b92b0c8eec8 15,38
+skills/review-the-code/SKILL.md
+  s_f93c02af7eed98::t_1fc40494812014 92-93,163
+  s_f93c02af7eed98::t_fd39065d8dd629 164
+scripts/review-report.mjs
+  s_f93c02af7eed98::t_e47bca8b1c46c8 9,62-66
+evals/feedback-on-session/feedback-session-admitted-skips/fixture/implementation.md
+  s_f93c02af7eed98::t_de1c50573758b9 1-7
+evals/feedback-on-session/feedback-session-admitted-skips/graders/coverage-and-omissions.md
+  s_f93c02af7eed98::t_de1c50573758b9 1-7
+skills/implement/SKILL.md
+  s_f93c02af7eed98::t_1fc40494812014 668-669
+  s_f93c02af7eed98::t_fbdec64bcc02cd 190-191
+  s_f93c02af7eed98::t_151184a1f2e25b 426
+skills/implement/scripts/review-checks.test.mjs
+  s_f93c02af7eed98::t_dd62180c110a10 1-26
+skills/implement/scripts/feedback-handoff.mjs
+  s_f93c02af7eed98::t_be57d7f8c82a14 39,54-56,70,140-143,150
+skills/implement/scripts/review-scope.mjs
+  s_f93c02af7eed98::t_e47bca8b1c46c8 11,51-55,102-111,126
+skills/feedback-on-session/SKILL.md
+  s_f93c02af7eed98::t_48d0f4db63e1f9 32-33
+evals/feedback-on-session/feedback-session-admitted-skips/fixture/review.md
+  s_f93c02af7eed98::t_de1c50573758b9 1-12
+skills/implement/references/feedback.md
+  s_f93c02af7eed98::t_48d0f4db63e1f9 212-254
+  s_f93c02af7eed98::t_360f74e63b6e96 130-132
+evals/feedback-on-session/feedback-session-admitted-skips/fixture/package.md
+  s_f93c02af7eed98::t_de1c50573758b9 1-6
+skills/implement/assets/status-template.html
+  s_f93c02af7eed98::t_12b39d11f3e583 22
+evals/feedback-on-session/dashboard-html-fixture/DEMO-state.md
+  s_f93c02af7eed98::t_de1c50573758b9 10
+evals/feedback-on-session/feedback-session-admitted-skips/fixture/weak-review.json
+  s_f93c02af7eed98::t_de1c50573758b9 1
+skills/implement/scripts/final-package.test.mjs
+  s_f93c02af7eed98::t_fa76ce77a117fa 144-147
+evals/feedback-on-session/feedback-session-admitted-skips/case.yaml
+  s_f93c02af7eed98::t_de1c50573758b9 1-5
+evals/feedback-on-session/feedback-on-session-terminal-fix/fixture/DEMO-state.md
+  s_f93c02af7eed98::t_de1c50573758b9 10
+skills/implement/scripts/review-scope.test.mjs
+  s_f93c02af7eed98::t_0f5c44beab2e41 63-79
+CHANGELOG.md
+  s_f93c02af7eed98::t_fa76ce77a117fa 13-14
+  s_f93c02af7eed98::t_b0f00451585f82 12
+skills/implement/scripts/render-status.test.mjs
+  s_f93c02af7eed98::t_f2cfd12bf3375e 122,127
+  s_f93c02af7eed98::t_0f5c44beab2e41 114-121,123-126,128-130
+README.md
+  s_f93c02af7eed98::t_b25fa170648642 314
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ce716e66433e1f962b3dbf2effbd5de49fb9096e",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
