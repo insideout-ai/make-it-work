@@ -1,0 +1,52 @@
+evals/plan-the-work/spec-gap-triage/fixture/README.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-5
+evals/plan-the-work/spec-gap-triage/graders/plan-honors-spec-decisions.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-26
+evals/plan-the-work/spec-gap-triage/case.yaml
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-5
+skills/plan-the-work/SKILL.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 59-60,128,191-207,210,212-214,217-225,231,234,236,365
+  s_f93c02af7eed98::t_0fde61b2c3209b 366
+evals/plan-the-work/spec-gap-triage/fixture/src/events/taskEvents.js
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-14
+evals/plan-the-work/spec-gap-triage/fixture/src/tasks/createTask.js
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-17
+evals/plan-the-work/spec-gap-triage/fixture/src/tasks/completeTask.js
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-13
+evals/plan-the-work/spec-gap-triage/graders/settled-decisions-not-reasked.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-30
+CHANGELOG.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 33-37
+  s_f93c02af7eed98::t_a71623b215b5bf 38
+evals/plan-the-work/spec-gap-triage/fixture.sh
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-12
+evals/plan-the-work/spec-gap-triage/prompt.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-9
+evals/plan-the-work/spec-gap-triage/fixture/make-it-work/DEMO-600/DEMO-600-spec.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-40
+evals/plan-the-work/spec-gap-triage/graders/plan-exists.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-5
+evals/plan-the-work/spec-gap-triage/fixture/package.json
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-9
+evals/plan-the-work/README.md
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 361-362,424-434
+  s_f93c02af7eed98::t_bb89a176f16bc9 435
+evals/plan-the-work/spec-gap-triage/fixture/src/notifications/sendReminder.js
+  s_f93c02af7eed98::t_6fe7c3c7dbfaa1 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4c3fb28ba159cc894511f23b80875f7582718a9c",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
