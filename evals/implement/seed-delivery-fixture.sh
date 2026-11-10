@@ -32,6 +32,12 @@ state = state.replace(/^phase: .*$/m, 'phase: complete').replace(/^status: .*$/m
 state += '| 7 | 2026-01-01T10:06:00Z | final-sync | final-approval | Context synced; package built |\n';
 state += '| 8 | 2026-01-01T10:07:00Z | final-approval | complete | Implementation complete |\n';
 await writeFile(statePath, state);
+const feedbackInput = path.join(root, 'make-it-work/DEMO/fixture-session-review.json');
+await writeFile(feedbackInput, JSON.stringify({ version: 2, status: 'pending',
+  context: ['Delivery fixture implementation checks completed'], findings: [], userInput: [],
+  limitations: ['Browser behavior unverified'] }));
+execFileSync(process.execPath, [path.join(scripts, 'write-feedback.mjs'), 'write',
+  '--state', statePath, '--session-review', feedbackInput], { encoding: 'utf8' });
 command('deliver.mjs', 'offer');
 await writeFile('make-it-work/DEMO/fixture-baseline.json', JSON.stringify({ head: git('rev-parse', 'HEAD') }));
 if (scenario === 'stale') await writeFile('src/policy.js', '// Edited after final packaging.\n' + await readFile('src/policy.js', 'utf8'));
