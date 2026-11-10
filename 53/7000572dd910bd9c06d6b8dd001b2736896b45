@@ -1,0 +1,62 @@
+README.md
+  s_f93c02af7eed98::t_0d7af87883ffdc 316
+skills/implement/scripts/write-feedback.mjs
+  s_f93c02af7eed98::t_aea33cb61d3efb 14,487-489
+skills/implement/scripts/feedback-finalization.mjs
+  s_f93c02af7eed98::t_aea33cb61d3efb 1-36
+skills/feedback-on-session/references/dashboard-html.md
+  s_f93c02af7eed98::t_0d7af87883ffdc 36-37
+skills/implement/references/feedback.md
+  s_f93c02af7eed98::t_0d7af87883ffdc 7-10,20
+  s_f93c02af7eed98::t_c4dc3de009de9a 38
+skills/implement/scripts/deliver.mjs
+  s_f93c02af7eed98::t_3e47640abb5925 14,65-68
+skills/feedback-on-session/SKILL.md
+  s_f93c02af7eed98::t_c4dc3de009de9a 14
+skills/implement/scripts/feedback-handoff.mjs
+  s_f93c02af7eed98::t_9d3fd96109e6be 220-221
+  s_f93c02af7eed98::t_3e47640abb5925 148-175,177,181-185,195-200,205-208,213-215,217
+  s_f93c02af7eed98::t_aea33cb61d3efb 7,41,62-67,79
+skills/implement/scripts/render-status.test.mjs
+  s_f93c02af7eed98::t_33a92a08464284 16-17,116-127,134-135
+  s_f93c02af7eed98::t_0d7af87883ffdc 170-182,661,1232,1264
+CHANGELOG.md
+  s_f93c02af7eed98::t_0d7af87883ffdc 11-12
+skills/implement/scripts/render-status.mjs
+  s_f93c02af7eed98::t_4cd7420c738bed 504,510-511,569,812,837,839,841,845
+  s_f93c02af7eed98::t_0059c269e1e46c 509
+  s_f93c02af7eed98::t_22c00e41870024 840
+skills/implement/scripts/feedback-progress.mjs
+  s_f93c02af7eed98::t_3e47640abb5925 4,33,40
+  s_f93c02af7eed98::t_0d7af87883ffdc 34
+skills/implement/scripts/startup-presentation.test.mjs
+  s_f93c02af7eed98::t_33a92a08464284 17,167-168,184-186,188-192,198-200,202-211,215-237
+  s_f93c02af7eed98::t_0d7af87883ffdc 149
+  s_f93c02af7eed98::t_77b87892fe70c7 201
+  s_f93c02af7eed98::t_28e9627363a7d9 238-239
+skills/implement/scripts/startup-presentation.mjs
+  s_f93c02af7eed98::t_3e47640abb5925 193-195
+  s_f93c02af7eed98::t_77b87892fe70c7 147
+  s_f93c02af7eed98::t_6d7ea822707bd2 11,202,206
+skills/implement/SKILL.md
+  s_f93c02af7eed98::t_0d7af87883ffdc 761,772
+skills/implement/scripts/deliver.test.mjs
+  s_f93c02af7eed98::t_33a92a08464284 229-233
+  s_f93c02af7eed98::t_73918f6ef93dff 286-287,311-312
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "537000572dd910bd9c06d6b8dd001b2736896b45",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
