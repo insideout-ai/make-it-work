@@ -17,6 +17,8 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "review-workflow-obligations",
+    "feedback-on-session-terminal-fix",
     "feedback-on-session-attribution",
     "feedback-on-session-policy-loops",
     "feedback-on-session-evidence-limits",

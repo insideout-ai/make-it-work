@@ -1,5 +1,13 @@
 # Session feedback evaluations
 
+The `feedback-on-session-terminal-fix` case exercises automatic integration after
+one fix and two reviews: inspect, fresh retrospective dispatch, validated combined
+save, captured version, accurate completion and retained skill-loading/type-check
+limitations. Helper integration tests cover the delivery gate and genuine failure
+receipts, including a receipt-write failure. The `review-workflow-obligations`
+review case separately checks loading before source reads and classification of
+a diagnostic in a newly added file.
+
 The smoke case checks redundant approval questions, unsupported verification claims,
 redaction and transcript instruction isolation. Full-suite cases additionally cover
 an ordinary successful session and an incomplete Claude Code JSONL export with

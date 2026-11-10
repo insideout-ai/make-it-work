@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: feedback-on-session-terminal-fix
+tags: [feedback-on-session, implement, terminal-feedback]
+context:
+  scaffold_script: fixture.sh

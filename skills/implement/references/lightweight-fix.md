@@ -6,6 +6,10 @@ resume with `fix_cycle > 0`. Keep the saved round count. Initial implementation
 
 Before corrective source edits or dispatch, inspect the actual fix source and
 evidence, then prepare one diagnosis per actionable finding under Fix's policy.
+The fix delegate must load the repository's required domain/UC skills before
+editing, using its prescribed method. The inline pipeline-stage rule is not a
+ban on repository Skill calls. A prior delegate's admission that it skipped the
+gate requires loading and reassessment, not a silent pass into re-review.
 If the cause is unknown, investigate read-only before selecting a patch. Keep
 unsupported corrections blocked under the existing stop policy.
 

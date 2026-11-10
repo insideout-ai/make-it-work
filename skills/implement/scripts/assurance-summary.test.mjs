@@ -64,3 +64,10 @@ test('only complete recorded checks produce the qualified complete label; browse
   pkg.validation.result = 'fail';
   assert.equal(summarizeAssurance(pkg).label, 'Limited');
 });
+
+test('an introduced diagnostic remains a limitation even with passing acceptance and a clean review', () => {
+  const pkg = complete();
+  pkg.validation_notes = ['Introduced TS2322 in the new component; runtime impact unverified'];
+  assert.equal(summarizeAssurance(pkg).label, 'Limited');
+  assert.match(summarizeAssurance(pkg).text, /Introduced TS2322.*runtime impact unverified/);
+});

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, requireText, withLock, within } from './lib/artifacts.mjs';
 import { validateHandoff } from '../skills/implement/scripts/handoff.mjs';
 import { validateReviewScopeInput } from '../skills/implement/scripts/review-scope.mjs';
-import { captureReviewEvidence, uiVerification } from './lib/review-evidence.mjs';
+import { captureReviewEvidence, uiVerification, validationNotes } from './lib/review-evidence.mjs';
 
 export function reviewResult(input) {
   if (input.version !== 1 || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '') || !Array.isArray(input.findings)) fail('Invalid review input.');
@@ -58,6 +58,11 @@ export function renderReview(input) {
     if (items?.length) lines.push(`**${name}:**`, ...items.map((item) => `- ${requireText(item, name)}`), '');
   }
   const ui = uiVerification(input.ui_verification);
+  const notes = validationNotes(input.validation_notes);
+  if (notes.length) {
+    lines.push('**Validation qualifications:**', ...notes.map(note => `- ${note}`), '');
+    summary.push(...notes.map(note => `Validation qualification: ${note}`));
+  }
   lines.push(`**Coverage:** ${input.coverage}`, '', `**Browser verification:** ${ui.status} — ${ui.note}`, '');
   summary.push(`Browser verification: ${ui.status} — ${ui.note}`);
   let handoff = null;

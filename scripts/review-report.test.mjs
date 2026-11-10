@@ -7,6 +7,14 @@ import { renderReview, writeReview } from './review-report.mjs';
 import { decideNext } from '../skills/implement/scripts/handoff.mjs';
 const finding = (severity = 'Major', route = 'fix') => ({ severity, route, region: 'src.js:save', claim: 'Save drops data', evidence: 'The empty-input path returns before persisting.', locations: [{ file: 'src.js', line: 1 }] });
 const input = (findings = []) => ({ version: 1, ticket: 'DEMO', branch: 'feature', commit: 'working tree on abc123', working_tree: true, coverage: 'Compared working tree to main; requirements from the spec.', findings, implement: { handoff_version: 1, plan_version: 1, review_cycle: 1 } });
+test('validation qualifications are explicit in both report and chat without pretending they are pre-existing', () => {
+  const review = { ...input(), validation_notes: ['Introduced TS2322 in the new component; shared typings need investigation'] };
+  const rendered = renderReview(review);
+  assert.match(rendered.markdown, /Validation qualifications:[\s\S]*Introduced TS2322/);
+  assert.match(rendered.summary, /Validation qualification: Introduced TS2322/);
+  assert.doesNotMatch(rendered.markdown, /Pre-existing/);
+  assert.throws(() => renderReview({ ...review, validation_notes: 'all pre-existing' }), /must be an array/);
+});
 test('counts, verdict, Markdown and handoff derive from the same findings', () => {
   const result = renderReview(input([finding(), finding('Critical', 'replan')]));
   assert.equal(result.verdict, 'Request changes'); assert.equal(result.outcome, 'REPLAN_REQUIRED'); assert.equal(result.handoff.data.findings.length, 2);

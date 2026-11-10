@@ -10,7 +10,7 @@ import { pendingStartup, startupHook } from './startup-presentation.mjs';
 import { testingReadiness } from './testing-readiness.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
 import { readHookEvents } from './hook-feedback.mjs';
-import { writeFeedback } from './write-feedback.mjs';
+import { checkFeedback, inspectFeedback, writeFeedback, unavailableFeedback } from './write-feedback.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { parseState } from './render-status.mjs';
 
@@ -116,6 +116,79 @@ test('Complete cannot skip feedback by proceeding directly to delivery or the te
   } });
   assert.deepEqual(await run.check(), {});
   assert.equal(await readFile(run.result.state, 'utf8'), state);
+});
+
+async function oneFixTerminal(t) {
+  const run = await freshRun(t, 'autopilot');
+  const time = new Date().toISOString();
+  let state = (await readFile(run.result.state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: context-check', 'phase: complete').replace('fix_cycle: 0', 'fix_cycle: 1').replace('review_cycle: 0', 'review_cycle: 2');
+  state = state.trimEnd() + [
+    `\n| 2 | ${time} | context-check | review | Initial review |`,
+    `\n| 3 | ${time} | review | lightweight | Required behavior was missed |`,
+    `\n| 4 | ${time} | lightweight | review | Fix completed |`,
+    `\n| 5 | ${time} | review | final-sync | Review clean |`,
+    `\n| 6 | ${time} | final-sync | complete | Completion checkpoint |\n`,
+  ].join('');
+  await writeFile(run.result.state, state);
+  const add = (name, id, input, content, isError = false) => {
+    const timestamp = new Date(Date.now() + 1000).toISOString();
+    run.events.push({ ...assistant({ type: 'tool_use', id, name, input }), timestamp },
+      { type: 'user', timestamp, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content, is_error: isError }] } });
+  };
+  const summary = await inspectFeedback(run.result.state);
+  assert.equal(summary.fixRounds, 1); assert.equal(summary.reviewCycles, 2); assert.equal(summary.analysisRequired, true);
+  add('Bash', 'feedback-inspect', { command: `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" inspect --state "${run.result.state}"` }, JSON.stringify(summary));
+  const prompt = `Review the terminal workflow using ${path.resolve('skills/implement/references/feedback.md')} and return the structured retrospective.`;
+  return { ...run, state, summary, add, prompt };
+}
+
+test('one fix then Complete requires retrospective dispatch and saved combined feedback before delivery', async (t) => {
+  const run = await oneFixTerminal(t);
+  const delivery = () => startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript });
+  await run.saveEvents();
+  assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny');
+  const analysis = { version: 2, events: run.summary.events.map(event => ({ ...event, trigger: 'Required behavior was missed', rootCause: 'execution deviation', explanation: 'The implementation omitted required behavior', earliestStage: 'implement', preventability: 'likely', owner: 'implement', improvement: 'Check the required behavior against actual results', confidence: 'high',
+    basis: { requirement: 'Source row 1 required the behavior', knownEvidence: 'Source row 2 showed the affected path', observedAction: 'Source row 3 omitted the required behavior', attribution: 'The implementation departed from the stated behavior' } })), recommendations: ['Check the required behavior against actual results'], clarifications: [], openQuestions: [] };
+  const sessionReview = { version: 2, status: 'pending', context: ['Visible conversation reviewed'], findings: [], userInput: [], limitations: ['Input not requested under Autopilot'] };
+  assert.equal((await checkFeedback(run.result.state, { analysis, sessionReview })).valid, true);
+  assert.equal((await run.check()).decision, 'block'); // Validation is not saving.
+  await writeFeedback(run.result.state, { analysis, sessionReview });
+  assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny'); // An inline diagnosis is not the required delegate.
+  run.add('Agent', 'retrospective', { prompt: run.prompt }, 'Structured analysis returned');
+  await run.saveEvents();
+  assert.deepEqual(await delivery(), {});
+  assert.deepEqual(await run.check(), {});
+  const report = await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
+  assert.match(report, /Fix rounds: 1/); assert.match(report, /### Session review/);
+  assert.ok(report.includes(`Plugin version: ${run.summary.pluginVersion}`));
+  assert.equal(await readFile(run.result.state, 'utf8'), run.state);
+});
+
+test('a failed terminal retrospective dispatch permits an accurate receipt-only fallback, even if receipt saving fails', async (t) => {
+  const run = await oneFixTerminal(t);
+  run.add('Agent', 'invalid-retrospective', { prompt: run.prompt }, 'Invalid subagent argument', true);
+  await run.saveEvents();
+  await assert.rejects(unavailableFeedback(run.result.state, { transcriptPath: run.transcript, failureId: 'invalid-retrospective', reason: 'The dispatch input was rejected' }), /No qualifying technical failure/);
+  run.add('Agent', 'failed-retrospective', { prompt: run.prompt }, 'Agent service unavailable', true);
+  await run.saveEvents();
+  const options = { transcriptPath: run.transcript, failureId: 'failed-retrospective', reason: 'The retrospective service failed to start' };
+  const outcome = await unavailableFeedback(run.result.state, options);
+  assert.equal(outcome.receiptSaved, true); assert.equal(outcome.reportSaved, false);
+  run.add('Bash', 'unavailable-1', { command: `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" unavailable --state "${run.result.state}"` }, JSON.stringify(outcome));
+  await run.saveEvents();
+  const released = await startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript });
+  assert.equal(released.hookSpecificOutput, undefined);
+  assert.match(released.systemMessage, /Only a failure receipt was saved/);
+  await rm(outcome.receiptPath);
+  await mkdir(outcome.receiptPath); // Genuine local receipt-write failure.
+  const unsaved = await unavailableFeedback(run.result.state, options);
+  assert.equal(unsaved.receiptSaved, false); assert.equal(unsaved.receiptPath, null);
+  run.events.splice(-2);
+  run.add('Bash', 'unavailable-2', { command: `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" unavailable --state "${run.result.state}"` }, JSON.stringify(unsaved));
+  await run.saveEvents();
+  assert.match((await run.check()).systemMessage, /receipt could not be saved either/);
+  assert.equal(await readFile(run.result.state, 'utf8'), run.state);
+  await assert.rejects(readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md')), { code: 'ENOENT' });
 });
 
 test('a resumed terminal handoff is enforced without a fresh startup announcement', async (t) => {

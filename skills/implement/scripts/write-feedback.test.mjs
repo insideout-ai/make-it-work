@@ -103,7 +103,7 @@ test('conversation friction on a zero-retry run shares captured provenance and u
   assert.match(original, /Conversation turn 2/);
   assert.match(original, /Suggested next step: Investigate reusing/);
   assert.match(original, /Suggested owner: implement/);
-  assert.match(original, /How to verify: Check that/);
+  assert.match(original, /Proposed verification — not independently tested: Check that/);
   assert.match(original, /Provisional — user input pending/);
   assert.doesNotMatch(original, /Extra-round analysis/);
   await writeFeedback(f.statePath, { sessionReview: review });

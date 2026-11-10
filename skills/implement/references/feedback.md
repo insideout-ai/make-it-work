@@ -17,7 +17,15 @@ The controller returns `next_action.type: feedback` at eligible terminal checkpo
 
 A runtime-verified retrospective delegate launched after the terminal checkpoint may be awaited normally. Its completion notification restores the requirement to save the report or disclose unavailability; an older implementation/review delegate does not satisfy that wait.
 
-If analysis or writing cannot be completed, run `node "<base>/scripts/write-feedback.mjs" unavailable --state "make-it-work/<TICKET>/<TICKET>-state.md" --reason "<specific share-safe limitation>"` (add `--limit-stop` only for an eligible limit stop). This validates terminal eligibility and returns an explicit unavailable outcome without writing a report or changing state. Include the limitation in the terminal summary; an acknowledgement is not a successful feedback write. Do not use it merely to skip required work.
+Unavailability requires an actual technical failure, not a decision to omit the retrospective. First inspect the run and perform the required work. Run writer commands directly in separate Bash calls using the resolved absolute writer path and `--state` path; do not hide exit status with pipelines or shell variables. A failed `inspect` or `write` emits a structured `feedbackFailure: technical` record only for concrete I/O or retained-evidence failures. Missing/invalid model-authored input and schema errors must be repaired; they do not qualify. A failed retrospective Agent tool call qualifies only after this run's successful `inspect` returned `analysisRequired: true`; include this reference's resolved absolute path in that Agent prompt so the runtime can identify the dispatch. Agent-authored failure prose is not a tool failure.
+
+After a qualifying failure, use the failed tool call's actual ID and this session's JSONL transcript path (the terminal hook supplies it when holding completion):
+
+```sh
+node "<base>/scripts/write-feedback.mjs" unavailable --state "<absolute-state-path>" --transcript "<session-jsonl-path>" --failure-id "<failed-tool-call-id>" --reason "<specific share-safe technical limitation>"
+```
+
+Add `--limit-stop` only for an eligible limit stop. The helper and terminal hook verify runtime call/result evidence after the current terminal checkpoint; a reason alone, a replay, or an earlier run cannot release the gate. It saves only `feedback-unavailable.json` when possible and returns `reportSaved: false`, `receiptSaved` and `receiptPath`. Neither state nor approved package changes. If receipt saving also fails, the verified tool outcome still permits completion with an explicit disclosure. Do not retry indefinitely or seek permission for the required retrospective. Tell the user what failed and whether only a failure receipt was saved; never claim that receipt is the combined report or that feedback files were written. The implementation stays terminal.
 
 ## Explain the feedback to the user
 
@@ -30,6 +38,7 @@ Include the feedback result in the terminal chat summary for both completed runs
 - For recorded guardrail interventions, summarize the stop and resolution neutrally, even if no extra rounds occurred. A safeguard catching an ambiguity is not automatically a failure.
 - After detailed analysis, give a brief account of why extra rounds were needed and the main suggested workflow improvement, if supported. Distinguish a suggestion from an applied change. If no workflow change is recommended, say so; preserve material uncertainty rather than presenting a tentative cause as fact.
 - Link the writer's `sessionOutputPath` (`make-it-work/<TICKET>/workflow-feedback.md`) as **Save this session's feedback** for the full saved details. The cumulative `make-it-work/implement-feedback.md` remains available locally. If analysis or saving failed, state what could not be completed rather than claiming feedback was saved. Keep the implementation's completed or stopped status explicit.
+- On unavailability, link only `receiptPath` when `receiptSaved` is true and label it **Feedback failure receipt**. Otherwise state that no durable receipt could be saved. Neither case is a saved retrospective; preserve any partial-write limitation from the failed operation.
 
 Summarize only this run's feedback, following the share-safe rules below. Do not paste the full retrospective or imply its recommendations have been applied. Keep the existing terminal summary concise.
 

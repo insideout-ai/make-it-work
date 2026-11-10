@@ -69,7 +69,7 @@ function markdown(pkg) {
     lines.push(repo.paths.length ? repo.paths.map((p) => `- \`${p}\``).join('\n') : '- No changed paths', '');
   }
   lines.push('## Evidence', '');
-  if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification), '');
+  if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification, pkg.validation_notes), '');
   for (const record of pkg.test_map_maintenance ?? []) lines.push(`Test-map maintenance — ${path.basename(record.repo)}: ${record.status}; ${record.reason}`, '');
   for (const [name, item] of Object.entries(pkg.evidence)) lines.push(`- ${name}: [${item.path}](${path.basename(item.path)})`);
   lines.push(`- Known unrelated regressions: ${pkg.known_regressions.length ? pkg.known_regressions.join('; ') : 'none'}`);
@@ -225,7 +225,8 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
     ...(f.adaptive_version === '1' ? { adaptive: { mode: f.mode, risk: f.risk, mode_source: f.mode_source, escalations: Number(f.escalations) } } : {}),
     ...extra,
     review: { status: f.review, cycle: state.reviewCycle }, open_nits: openNits,
-    ...(f.adaptive_version === '1' || reviewEvidence ? { review_scope: reviewScope, ui_verification: uiVerification(reviewEvidence?.ui_verification) } : {}),
+    ...(f.adaptive_version === '1' || reviewEvidence ? { review_scope: reviewScope, ui_verification: uiVerification(reviewEvidence?.ui_verification),
+      ...(Array.isArray(reviewEvidence?.validation_notes) ? { validation_notes: reviewEvidence.validation_notes } : {}) } : {}),
     known_regressions: state.knownRegressions, decided_findings: state.decidedFindings,
     repos: repos.map(({ diff, ...data }) => data),
   };
@@ -268,7 +269,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
     if (error.code !== 'ENOENT') throw error;
   }
   if (requireApproval && !approved) fail('Final package has no current approval.');
-  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification) };
+  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification), validation_notes: saved.validation_notes ?? [] };
 }
 
 export async function approve(root, statePath, expectedHash) {

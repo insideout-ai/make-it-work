@@ -9,7 +9,7 @@ import { lastWorkRow, parseDecisionCell } from './workflow-decisions.mjs';
 import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
-import { feedbackEligible, feedbackStateHash, feedbackTerminalRow } from './feedback-handoff.mjs';
+import { feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -36,7 +36,7 @@ const ADAPTIVE_RISKS = new Set(['none', 'low', 'medium', 'high']);
 const ADAPTIVE_SOURCES = new Set(['none', 'assessed', 'user']);
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
-function fail(message) { throw new Error(message); }
+function fail(message, code) { throw Object.assign(new Error(message), code ? { code } : {}); }
 
 function section(markdown, heading) {
   const lines = markdown.split(/\r?\n/);
@@ -301,7 +301,7 @@ function renderSessionReview(review, summary) {
       `- Investigation: ${line(item.investigation, 'finding investigation')}\n` +
       `- Suggested next step: ${line(item.nextStep, 'finding next step')}\n` +
       `- Suggested owner: ${line(item.owner, 'finding owner')}\n` +
-      `- How to verify: ${line(item.verification, 'finding verification')}\n` +
+      `- Proposed verification — not independently tested: ${line(item.verification, 'finding verification')}\n` +
       `- Recommendation confidence: ${item.confidence}`;
   });
   const input = lines(review.userInput, 'session user input');
@@ -414,7 +414,10 @@ export async function inspectFeedback(statePath, { limitStop = false } = {}) {
   const summary = inspectState(state, { limitStop });
   if (path.basename(statePath) !== `${summary.ticket}-state.md`) fail('State filename and ticket field disagree.');
   assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, summary.ticket);
-  return inspectState(state, { limitStop, hookEvents: await readHookEvents(statePath) });
+  let hookEvents;
+  try { hookEvents = await readHookEvents(statePath); }
+  catch (error) { fail(`Feedback hook evidence could not be read: ${error.message}`, 'FEEDBACK_EVIDENCE'); }
+  return inspectState(state, { limitStop, hookEvents });
 }
 
 export async function writeFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false } = {}) {
@@ -426,7 +429,7 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
   const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
   try {
     const info = await lstat(sessionOutputPath);
-    if (!info.isFile()) fail('Session feedback path must be a regular file, not a symlink or directory.');
+    if (!info.isFile()) fail('Session feedback path must be a regular file, not a symlink or directory.', 'FEEDBACK_OUTPUT');
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
@@ -434,7 +437,7 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
   let mode;
   try {
     const info = await lstat(outputPath);
-    if (!info.isFile()) fail('Feedback path must be a regular file, not a symlink or directory.');
+    if (!info.isFile()) fail('Feedback path must be a regular file, not a symlink or directory.', 'FEEDBACK_OUTPUT');
     mode = info.mode & 0o777;
     existing = await readFile(outputPath, 'utf8');
   } catch (error) {
@@ -453,13 +456,52 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
     await writeFile(sessionTemporary, `${HEADER}\n${block}\n`, { flag: 'wx', mode: 0o600 });
     await rename(sessionTemporary, sessionOutputPath);
   } catch (error) {
-    fail(`Cumulative feedback saved, but session feedback could not be saved: ${error.message}`);
+    fail(`Cumulative feedback saved, but session feedback could not be saved: ${error.message}`, error.code);
   } finally {
     await unlink(sessionTemporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
   return { ...summary, outputPath, sessionOutputPath, warning: result.warning };
 }
 
+export async function unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop = false } = {}) {
+  const markdown = await readFile(statePath, 'utf8');
+  inspectState(markdown, { limitStop }); // Validate identity/audit without rereading the failed hook journal.
+  const { fields, audit } = parseState(markdown, statePath);
+  if (!feedbackEligible(fields) || limitStop !== (fields.status === 'Stopped')) fail('Unavailable feedback requires a completed run or an explicit retry-limit stop.');
+  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, fields.ticket);
+  const safeReason = safeLine(reason, 'Feedback limitation', fields.ticket);
+  if (!transcriptPath || !failureId) fail('Unavailable feedback requires --transcript and --failure-id identifying an actual failed feedback operation; not performed or no friction is not a technical failure.');
+  const events = [];
+  const lines = (await readFile(transcriptPath, 'utf8')).split('\n');
+  for (let index = 0; index < lines.length; index++) {
+    if (!lines[index].trim()) continue;
+    try { events.push(JSON.parse(lines[index])); }
+    catch (error) { if (index !== lines.length - 1) throw error; }
+  }
+  const failure = findFeedbackFailure(events, path.resolve(statePath), fields, audit, failureId);
+  if (!failure) fail('No qualifying technical failure found for this terminal run. Inspect feedback and perform the required retrospective; repair input/schema errors instead of skipping it.');
+  const stateHash = feedbackStateHash(fields, audit);
+  let reportStatus = 'missing';
+  try {
+    const existing = await readFile(path.join(path.dirname(statePath), 'workflow-feedback.md'), 'utf8');
+    if (existing.includes(`<!-- feedback-state:${stateHash} -->`)) reportStatus = 'unverified';
+  } catch { /* A missing/unreadable current report cannot establish a saved retrospective. */ }
+  const receipt = { version: 1, feedbackAttempt: 'unavailable', runId: fields.start_time,
+    stateHash, ...failure, reason: safeReason, reportSaved: false, reportStatus };
+  const receiptPath = path.join(path.dirname(path.resolve(statePath)), 'feedback-unavailable.json');
+  const temporary = path.join(path.dirname(receiptPath), `.feedback-unavailable.${randomUUID()}.tmp`);
+  try {
+    try { if (!(await lstat(receiptPath)).isFile()) throw new Error('Receipt path is not a regular file.'); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    await writeFile(temporary, `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+    await rename(temporary, receiptPath);
+    return { ...receipt, receiptSaved: true, receiptPath };
+  } catch {
+    return { ...receipt, receiptSaved: false, receiptPath: null, warning: 'Feedback failure receipt could not be saved; no combined report was saved by this operation.' };
+  } finally { await unlink(temporary).catch(() => {}); }
+}
+
+let failureContext;
 async function main() {
   const [mode, ...args] = process.argv.slice(2);
   if (!['inspect', 'check', 'write', 'unavailable'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|check|write|unavailable> --state <path> [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
@@ -467,6 +509,8 @@ async function main() {
   let analysisPath;
   let sessionReviewPath;
   let reason;
+  let transcriptPath;
+  let failureId;
   let limitStop = false;
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--state') statePath = args[++index];
@@ -477,18 +521,15 @@ async function main() {
     }
     else if (args[index] === '--limit-stop') limitStop = true;
     else if (args[index] === '--reason') reason = args[++index];
+    else if (args[index] === '--transcript') transcriptPath = args[++index];
+    else if (args[index] === '--failure-id') failureId = args[++index];
     else fail(`Unknown argument: ${args[index]}`);
   }
   if (!statePath || (!['write', 'check'].includes(mode) && (analysisPath || sessionReviewPath))) fail('Provide --state; --analysis and --session-review are for check or write only.');
-  if (mode !== 'unavailable' && reason !== undefined) fail('--reason is only for unavailable feedback.');
+  failureContext = { mode, statePath };
+  if (mode !== 'unavailable' && [reason, transcriptPath, failureId].some(value => value !== undefined)) fail('--reason, --transcript and --failure-id are only for unavailable feedback.');
   if (mode === 'unavailable') {
-    const markdown = await readFile(statePath, 'utf8');
-    const { fields, audit } = parseState(markdown, statePath);
-    if (!feedbackEligible(fields) || limitStop !== (fields.status === 'Stopped')) fail('Unavailable feedback requires a completed run or an explicit retry-limit stop.');
-    assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, fields.ticket);
-    process.stdout.write(`${JSON.stringify({ feedbackAttempt: 'unavailable', runId: fields.start_time,
-      stateHash: feedbackStateHash(fields, audit),
-      reason: safeLine(reason, 'Feedback limitation', fields.ticket) })}\n`);
+    process.stdout.write(`${JSON.stringify(await unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop }))}\n`);
     return;
   }
   if (mode === 'inspect') {
@@ -511,5 +552,17 @@ async function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch((error) => { process.stderr.write(`Feedback writer: ${error.message}\n`); process.exitCode = 1; });
+  main().catch(async (error) => {
+    process.stderr.write(`Feedback writer: ${error.message}\n`);
+    // Only concrete I/O/evidence failures can authorize unavailability. Schema
+    // mistakes and missing model-authored inputs remain recoverable work.
+    if (feedbackFailureCodes.has(error.code) && ['inspect', 'write'].includes(failureContext?.mode)) {
+      try {
+        const { fields, audit } = parseState(await readFile(failureContext.statePath, 'utf8'), failureContext.statePath);
+        if (feedbackEligible(fields)) process.stdout.write(`${JSON.stringify({ feedbackFailure: 'technical', operation: failureContext.mode,
+          code: error.code, runId: fields.start_time, stateHash: feedbackStateHash(fields, audit) })}\n`);
+      } catch { /* Unreadable state cannot establish a terminal failure binding. */ }
+    }
+    process.exitCode = 1;
+  });
 }

@@ -309,7 +309,7 @@ The HTML reflects delivery actions recorded by make-it-work. Commits, pushes and
 
 After final approval and completion, `implement` automatically follows `feedback-on-session`, combining a review of the available conversation with the existing artifact retrospective. It saves one anonymous, share-safe report in `make-it-work/<TICKET>/workflow-feedback.md` and the same run's entry in cumulative `make-it-work/implement-feedback.md`. The report includes the plugin version captured when the run began; legacy runs without a captured version remain explicitly unknown. Conversation review also runs when no retries were needed. Extra fix rounds, replanning, escalation, guardrail interventions, hook interruptions and repeated waits retain their evidence-backed artifact analysis, with safeguards and waits reported separately from implementation retries.
 
-The combined report is saved before a single invitation to add or correct context. Each finding includes a suggested next step, owner, verification and recommendation confidence. The controller hands off to feedback explicitly; scoped hooks require the current report or a specific unavailable outcome before a terminal summary or delivery question. An unanswered invitation leaves feedback provisional without delaying the completion summary or delivery offer; later replies update the same report. Autopilot saves the review with input not requested and questions left open. The same integration runs at exhausted fix, review or replan limits. Feedback never changes the terminal workflow result or approved package, and recommendations are not applied automatically. Standalone `/make-it-work:feedback-on-session` remains available for interrupted or abandoned sessions and supplied transcripts. Nothing is uploaded automatically.
+The combined report is saved before a single invitation to add or correct context. Each finding includes a suggested next step, owner, verification and recommendation confidence. The controller hands off to feedback explicitly; scoped hooks require the current report and any required retrospective dispatch before a terminal summary or delivery question. A genuine technical failure can instead produce a verified unavailable outcome and a local `feedback-unavailable.json` receipt when writable. That receipt is not a saved retrospective; an unperformed review or a claim of no friction does not qualify as unavailability. An unanswered invitation leaves feedback provisional without delaying the completion summary or delivery offer; later replies update the same report. Autopilot saves the review with input not requested and questions left open. The same integration runs at exhausted fix, review or replan limits. Feedback never changes the terminal workflow result or approved package, and recommendations are not applied automatically. Standalone `/make-it-work:feedback-on-session` remains available for interrupted or abandoned sessions and supplied transcripts. Nothing is uploaded automatically.
 
 Use it when you want one command to take a ticket from request to a reviewed, documented implementation, in a repo that has been onboarded with `go-deep`.
 
@@ -365,7 +365,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.5.0 through the publisher's marketplace:
+Install commercial version 5.6.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work

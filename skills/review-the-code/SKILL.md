@@ -83,11 +83,13 @@ Before doing anything else — before fetching requirements, before running any 
 
    Derive the best guess from the PR metadata, branch name, and `git branch -r` output. Wait for confirmation before running `git diff <base>...HEAD`.
 
-3. **Read whole files, not hunks.** `git diff --name-only <base>...HEAD`, then read each changed file in full at the reviewed commit. Findings frequently live in *unchanged* sibling code — a neighboring method that guards a case the new code misses, an interface with two similar fields, a writer that already handles what the new code re-handles.
+3. **Enumerate paths before reading source.** Use `git diff --name-only <base>...HEAD` to identify matching skills, then complete Step 2's loading gate before reading source or judging the diff. Once loaded, read each changed file in full at the reviewed commit. Findings frequently live in unchanged sibling code, so retain that context rather than judging isolated hunks.
 
 ## Step 2 — Load the skills that match the diff
 
 The `CLAUDE.md` skill-loading gate applies to reviews. Before judging any changed file, load **every** matching skill via the `Skill` tool.
+
+Follow any stricter repository timing/method requirement, including loading before source exploration. Implement's inline-stage instruction applies to this review stage, not repository domain/UC skills. Record the actually loaded skills and method in Coverage; reading their diff only to check documentation is not prior loading. If required loading is unavailable, stop with the concrete blocker. If implementation admits it skipped a required gate, load the missing context and reassess the affected behavior; route any remaining defect normally and document the recovered omission rather than silently treating it as compliant.
 
 **How to find matching skills:**
 
@@ -155,6 +157,8 @@ Adversarially re-check every candidate finding before writing it down:
 
 1. Re-read the exact code at the reviewed commit — does the failure scenario actually occur?
 2. Is it introduced by this diff, or pre-existing? (`git blame` / diff base when unsure.) Pre-existing issues go in a short separate note, never in the numbered findings.
+
+For a failed lint/typecheck/build command, compare actual baseline and changed-file diagnostics, not just total counts or a similar error elsewhere. A diagnostic in a new file is introduced even if its underlying shared typing defect is older. Investigate the cause and route a real new failure under the normal severity rules. If an evidenced shared-tooling limitation justifies a nonblocking qualification, record the exact introduced diagnostic, rationale, unchecked impact and follow-up in `validation_notes: ["..."]`; otherwise fix it. Unknown baseline comparison remains unknown. Never place introduced diagnostics under Pre-existing or imply the whole command's failures were unchanged. Validation notes are retained in report/chat, final assurance, package and delivery text; they do not override actionable findings or required stops.
 3. Do the file/line references match the reviewed commit?
 
 Drop anything that fails these checks. **Report every verified finding in the changed region in the same review** — finish the Step 3 state-space enumeration for each changed function or path and don't stop at the first Major; a latent gap that surfaces one finding per review cycle forces repeated fix rounds. A short list of confirmed findings is worth more than a long list of maybes — every false positive costs the reviewer's trust.
