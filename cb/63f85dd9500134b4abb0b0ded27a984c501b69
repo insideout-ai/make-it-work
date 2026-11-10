@@ -1,0 +1,20 @@
+evals/implement/seed-delivery-fixture.sh
+  s_f93c02af7eed98::t_3a926d75ee34c2 35-36,38-40
+  s_f93c02af7eed98::t_993b001f0d1e3d 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cb63f85dd9500134b4abb0b0ded27a984c501b69",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
