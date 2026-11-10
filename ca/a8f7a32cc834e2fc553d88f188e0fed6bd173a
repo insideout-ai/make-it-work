@@ -1,0 +1,107 @@
+skills/implement/SKILL.md
+  s_f93c02af7eed98::t_efa7494620ed8e 156-157,475-478,766,804
+evals/review-the-code/review-workflow-obligations/case.yaml
+  s_f93c02af7eed98::t_57f7d6134d5310 1-5
+CHANGELOG.md
+  s_f93c02af7eed98::t_6a23580f263f11 20-25,27
+  s_f93c02af7eed98::t_d7f38e8d22771e 9-10
+  s_f93c02af7eed98::t_93c6de67270f44 26
+scripts/review-report.mjs
+  s_f93c02af7eed98::t_aba392e5db73d7 8,61-65
+evals/feedback-on-session/feedback-on-session-terminal-fix/prompt.md
+  s_f93c02af7eed98::t_7b561c057a068f 1-11
+evals/review-the-code/review-workflow-obligations/fixture/implementation.md
+  s_f93c02af7eed98::t_57f7d6134d5310 1-10
+.claude-plugin/plugin.json
+  s_f93c02af7eed98::t_d7f38e8d22771e 6
+evals/review-the-code/review-workflow-obligations/fixture.sh
+  s_f93c02af7eed98::t_57f7d6134d5310 1-15
+skills/implement/references/feedback.md
+  s_f93c02af7eed98::t_efa7494620ed8e 20-28,41
+evals/feedback-on-session/feedback-on-session-terminal-fix/fixture.sh
+  s_f93c02af7eed98::t_7b561c057a068f 1-7
+evals/feedback-on-session/README.md
+  s_f93c02af7eed98::t_6a23580f263f11 3-10
+scripts/review-report.test.mjs
+  s_f93c02af7eed98::t_57f7d6134d5310 10-17
+evals/feedback-on-session/feedback-on-session-terminal-fix/fixture/DEMO-state.md
+  s_f93c02af7eed98::t_7b561c057a068f 1-29
+skills/implement/references/lightweight-fix.md
+  s_f93c02af7eed98::t_efa7494620ed8e 9-12
+skills/implement/scripts/startup-presentation.test.mjs
+  s_f93c02af7eed98::t_f1456ddbcaa7de 13,121-168,172-192
+  s_f93c02af7eed98::t_6a23580f263f11 169-171
+  s_f93c02af7eed98::t_a6bc4768e3bf8d 193
+skills/review-the-code/SKILL.md
+  s_f93c02af7eed98::t_efa7494620ed8e 86,92-93,160-161
+evals/feedback-on-session/feedback-on-session-terminal-fix/fixture/session.txt
+  s_f93c02af7eed98::t_7b561c057a068f 1-8
+skills/implement/scripts/final-package.mjs
+  s_f93c02af7eed98::t_4e42109fb5871c 228-229
+  s_f93c02af7eed98::t_aba392e5db73d7 72,272
+evals/review-the-code/review-workflow-obligations/prompt.md
+  s_f93c02af7eed98::t_57f7d6134d5310 1-11
+evals/review-the-code/review-workflow-obligations/graders/context-and-new-diagnostic.md
+  s_f93c02af7eed98::t_57f7d6134d5310 1-7
+skills/implement/scripts/feedback-handoff.mjs
+  s_f93c02af7eed98::t_903caf087af2cc 6-31,33-36,39-52,55-56,59,64-65,67,93,96-97,106,108,117,140-141,143
+  s_f93c02af7eed98::t_ac1852b690767d 32,37-38,53-54,57-58,66,68,112,133-137
+  s_f93c02af7eed98::t_bcea2f4f4c393a 142
+  s_f93c02af7eed98::t_972797382cc8e2 60-63
+skills/feedback-on-session/SKILL.md
+  s_f93c02af7eed98::t_efa7494620ed8e 26-27,67
+  s_f93c02af7eed98::t_d009544f464d5b 68
+skills/implement/scripts/write-feedback.test.mjs
+  s_f93c02af7eed98::t_57f7d6134d5310 106
+skills/implement/scripts/assurance-summary.mjs
+  s_f93c02af7eed98::t_efa7494620ed8e 15
+skills/implement/scripts/assurance-summary.test.mjs
+  s_f93c02af7eed98::t_57f7d6134d5310 67-73
+scripts/lib/review-evidence.mjs
+  s_f93c02af7eed98::t_aba392e5db73d7 29-32,59,72,76
+skills/deliver/SKILL.md
+  s_f93c02af7eed98::t_6a23580f263f11 27-28
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_f93c02af7eed98::t_1e69505f6068af 7,66-87,89-97,99-104,107-118,122-137
+skills/close-the-gaps/SKILL.md
+  s_f93c02af7eed98::t_efa7494620ed8e 110-111
+evals/suites.json
+  s_f93c02af7eed98::t_7b561c057a068f 21
+  s_f93c02af7eed98::t_57f7d6134d5310 20
+skills/implement/scripts/deliver.test.mjs
+  s_f93c02af7eed98::t_6b3ff83f3d858c 10
+  s_f93c02af7eed98::t_150b9c795d9bc9 11-12,63,98-116,118-121
+  s_f93c02af7eed98::t_f1456ddbcaa7de 90-94
+  s_f93c02af7eed98::t_1fea5e7bc397da 3,117
+  s_f93c02af7eed98::t_6b99fb63193c6e 122-123
+evals/feedback-on-session/feedback-on-session-terminal-fix/graders/combined-findings.md
+  s_f93c02af7eed98::t_7b561c057a068f 1-7
+evals/feedback-on-session/feedback-on-session-terminal-fix/case.yaml
+  s_f93c02af7eed98::t_7b561c057a068f 1-5
+skills/implement/scripts/write-feedback.mjs
+  s_f93c02af7eed98::t_bcea2f4f4c393a 304,467-469,483-488,490
+  s_f93c02af7eed98::t_44c823cc6dbb38 12,39,417-420,432,440,459,466,470-482,489,491-504,512-513,524-525,529-530,532,555-567
+skills/implement/scripts/deliver.mjs
+  s_f93c02af7eed98::t_aba392e5db73d7 165
+README.md
+  s_f93c02af7eed98::t_bcea2f4f4c393a 312
+  s_f93c02af7eed98::t_d7f38e8d22771e 368
+evals/feedback-on-session/feedback-on-session-terminal-fix/graders/terminal-sequence.md
+  s_f93c02af7eed98::t_7b561c057a068f 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "caa8f7a32cc834e2fc553d88f188e0fed6bd173a",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
