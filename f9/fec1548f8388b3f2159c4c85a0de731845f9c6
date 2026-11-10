@@ -1,0 +1,223 @@
+skills/implement/scripts/workflow.mjs
+  s_f93c02af7eed98::t_c7a1790b75aaf0 142-148,150,431
+  s_f93c02af7eed98::t_446b8835d7f89f 23,149
+  s_f93c02af7eed98::t_18c1293290a24f 22,389,575
+  s_f93c02af7eed98::t_aade5be0760abf 440-444
+  s_f93c02af7eed98::t_c396ffb11b2915 445
+skills/feedback-on-session/SKILL.md
+  s_f93c02af7eed98::t_095f6df0830328 62
+  s_f93c02af7eed98::t_b89faae40b903c 24
+  s_f93c02af7eed98::t_a527aff27462f9 34-35
+  s_f93c02af7eed98::t_9c86486ce11ab1 63
+  s_f93c02af7eed98::t_f30da6111597d7 40-43
+  s_f93c02af7eed98::t_fefd002576d9a6 10-21,23,46,71
+  s_f93c02af7eed98::t_dfeb568ea30e5c 22
+skills/execute/scripts/step-control.mjs
+  s_f93c02af7eed98::t_04f9c29be7499c 129,158-159,172,224,241,247,265,268,270
+  s_f93c02af7eed98::t_24f819dbba2beb 10
+  s_f93c02af7eed98::t_900dfbbcaf812f 143-151
+README.md
+  s_f93c02af7eed98::t_0432697d670adb 310-311
+  s_f93c02af7eed98::t_c829cafe256149 312
+evals/feedback-on-session/feedback-on-session-policy-loops/graders/causal-analysis.md
+  s_f93c02af7eed98::t_0ea5b64091bde1 1-7
+evals/implement/feedback-clean/graders/feedback-integration.md
+  s_f93c02af7eed98::t_c98e03808cb423 3
+  s_f93c02af7eed98::t_fc35a321bb9292 1-2,4-7
+evals/implement/feedback-clean/graders/session-review.md
+  s_f93c02af7eed98::t_0432697d670adb 1-7
+  s_f93c02af7eed98::t_c829cafe256149 8-9
+evals/feedback-on-session/feedback-on-session-policy-loops/fixture.sh
+  s_f93c02af7eed98::t_0ea5b64091bde1 1-5
+evals/feedback-on-session/feedback-on-session-policy-loops/case.yaml
+  s_f93c02af7eed98::t_0ea5b64091bde1 1-5
+skills/implement/scripts/render-status.mjs
+  s_f93c02af7eed98::t_fa53b87a41ea27 639-640,642-644
+  s_f93c02af7eed98::t_0573b8d1dab4ac 641
+skills/implement/scripts/startup-presentation.mjs
+  s_f93c02af7eed98::t_173adb308a9d25 29,51,86-93,98,184-188,196
+  s_f93c02af7eed98::t_2782cc3ca3e3a2 11,61,189-195
+  s_f93c02af7eed98::t_5b87e010bf6e92 197
+skills/implement/references/final-sync-mapping.md
+  s_f93c02af7eed98::t_506c6a63cb8f93 5-6
+evals/grade-headless.test.mjs
+  s_f93c02af7eed98::t_d8cbe9e586dde1 4,8,43-59
+  s_f93c02af7eed98::t_b5c70da7abbf0b 344
+  s_f93c02af7eed98::t_525607ca0d6efa 20-42,60-61
+evals/feedback-on-session/feedback-on-session-attribution/fixture/session.txt
+  s_f93c02af7eed98::t_d87ad148a5f356 1-9
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_f93c02af7eed98::t_095f6df0830328 79,84-86
+  s_f93c02af7eed98::t_71464350ad31eb 1-9,11-61,63-78,80,82-83,97
+  s_f93c02af7eed98::t_4774989ae0c687 10,62,81,87-96
+scripts/review-report.mjs
+  s_f93c02af7eed98::t_55b0f7f8d6067f 91-95
+  s_f93c02af7eed98::t_2a67fe6a7ae145 110,115-120,123
+skills/implement/scripts/render-status.test.mjs
+  s_f93c02af7eed98::t_072416b9d70982 336-358
+  s_f93c02af7eed98::t_e3fde63791dc13 335
+skills/implement/SKILL.md
+  s_f93c02af7eed98::t_446b8835d7f89f 187
+  s_f93c02af7eed98::t_506c6a63cb8f93 660-661,801
+  s_f93c02af7eed98::t_c7a1790b75aaf0 656-659,662,701
+  s_f93c02af7eed98::t_fefd002576d9a6 758,764,772
+  s_f93c02af7eed98::t_c33576f5169d2a 473-474
+  s_f93c02af7eed98::t_9c86486ce11ab1 760
+  s_f93c02af7eed98::t_4a1938e9921ab8 422
+  s_f93c02af7eed98::t_0c32f5351d3a7f 759
+skills/plan-the-work/SKILL.md
+  s_f93c02af7eed98::t_a527aff27462f9 389
+skills/review-the-code/SKILL.md
+  s_f93c02af7eed98::t_506c6a63cb8f93 292-295
+  s_f93c02af7eed98::t_a527aff27462f9 281-282
+skills/implement/references/controller.md
+  s_f93c02af7eed98::t_506c6a63cb8f93 86-87
+  s_f93c02af7eed98::t_9c86486ce11ab1 88
+  s_f93c02af7eed98::t_a527aff27462f9 85
+skills/implement/scripts/review-scope.mjs
+  s_f93c02af7eed98::t_c7a1790b75aaf0 41-46
+  s_f93c02af7eed98::t_446b8835d7f89f 10,40,47
+  s_f93c02af7eed98::t_8041c14a25112f 91
+skills/implement/scripts/lightweight-fix.mjs
+  s_f93c02af7eed98::t_70c23395c245d5 9,20-23,50,55,82-85
+evals/feedback-on-session/feedback-on-session-attribution/case.yaml
+  s_f93c02af7eed98::t_d87ad148a5f356 1-5
+evals/implement/README.md
+  s_f93c02af7eed98::t_0432697d670adb 54
+skills/implement/scripts/review-scope.test.mjs
+  s_f93c02af7eed98::t_f11f03a87ef9c7 63-81
+  s_f93c02af7eed98::t_ac33c51a36b67e 113,125-128
+skills/implement/references/lightweight-fix.md
+  s_f93c02af7eed98::t_70c23395c245d5 24-25,34
+  s_f93c02af7eed98::t_1624553c2fc478 35
+skills/implement/scripts/context-maintenance.test.mjs
+  s_f93c02af7eed98::t_fec9cc591d3aff 1-37
+skills/implement/scripts/write-feedback.mjs
+  s_f93c02af7eed98::t_64599d9afe6f73 263-264,325-333,336-342,346,349,354-360,363,366-367,369-381,422-423,465,482,502-507
+  s_f93c02af7eed98::t_fc35a321bb9292 32,474-477
+  s_f93c02af7eed98::t_d74b4a65d2ce54 334-335,350-353
+  s_f93c02af7eed98::t_c8a4e708759197 195-196,204
+  s_f93c02af7eed98::t_12ad591120da44 11,485,487-489,491
+  s_f93c02af7eed98::t_fda8d9af46c88a 148,322
+  s_f93c02af7eed98::t_04f9c29be7499c 295
+  s_f93c02af7eed98::t_ee34ae73e815e7 343-345,347-348,361-362,364-365,368
+  s_f93c02af7eed98::t_6ca4a917a4018d 241,281-294,297-300,306-321,323-324,420,424,468,501,508
+  s_f93c02af7eed98::t_4774989ae0c687 12,92,147,486,490
+  s_f93c02af7eed98::t_2782cc3ca3e3a2 8,94
+  s_f93c02af7eed98::t_173adb308a9d25 296,301-305,469,479,483-484,492-493
+evals/feedback-on-session/feedback-on-session-policy-loops/prompt.md
+  s_f93c02af7eed98::t_0ea5b64091bde1 1-10
+scripts/lib/review-evidence.mjs
+  s_f93c02af7eed98::t_8041c14a25112f 31-34,36-38,50-53,64-65,71
+  s_f93c02af7eed98::t_2482827bb9af4d 35
+evals/feedback-on-session/feedback-on-session-policy-loops/fixture/session.txt
+  s_f93c02af7eed98::t_0ea5b64091bde1 1-10
+skills/implement/scripts/context-maintenance.mjs
+  s_f93c02af7eed98::t_446b8835d7f89f 1-41,43-50,59-61
+  s_f93c02af7eed98::t_2482827bb9af4d 42,51-56,58
+  s_f93c02af7eed98::t_74ef3bf21cb395 57
+evals/feedback-on-session/feedback-on-session-attribution/graders/accuracy.md
+  s_f93c02af7eed98::t_d87ad148a5f356 1-7
+skills/implement/references/feedback.md
+  s_f93c02af7eed98::t_9c86486ce11ab1 17,20-21,223-227,235-236
+  s_f93c02af7eed98::t_4774989ae0c687 16
+  s_f93c02af7eed98::t_a527aff27462f9 126,131
+  s_f93c02af7eed98::t_6abd65ccbd3ffd 107,254
+  s_f93c02af7eed98::t_e6165876f5cc69 3,28,38,110,113,151-152,196,198-205,207-222,228-234,237-241,256,298
+  s_f93c02af7eed98::t_501b83c4b609ca 18-19
+  s_f93c02af7eed98::t_f30da6111597d7 142-145,206,260,271-277
+  s_f93c02af7eed98::t_dfeb568ea30e5c 194
+  s_f93c02af7eed98::t_b89faae40b903c 242-250
+  s_f93c02af7eed98::t_6e85865dd5d6f2 132
+  s_f93c02af7eed98::t_39ba611c55b27d 195
+  s_f93c02af7eed98::t_4dfb0db63afd67 255
+scripts/review-report.test.mjs
+  s_f93c02af7eed98::t_2a67fe6a7ae145 83-85
+evals/validate.mjs
+  s_f93c02af7eed98::t_b5c70da7abbf0b 78,82
+evals/feedback-on-session/feedback-on-session-attribution/fixture.sh
+  s_f93c02af7eed98::t_d87ad148a5f356 1-5
+skills/implement/references/verification.md
+  s_f93c02af7eed98::t_a527aff27462f9 63-75,110
+  s_f93c02af7eed98::t_78201d6e232741 111
+CHANGELOG.md
+  s_f93c02af7eed98::t_0432697d670adb 9-11,17
+  s_f93c02af7eed98::t_c829cafe256149 12
+  s_f93c02af7eed98::t_59fa0128ab2c2d 13
+  s_f93c02af7eed98::t_d74b4a65d2ce54 15
+  s_f93c02af7eed98::t_d8cbe9e586dde1 16
+  s_f93c02af7eed98::t_0573b8d1dab4ac 14
+evals/feedback-on-session/README.md
+  s_f93c02af7eed98::t_d74b4a65d2ce54 20-26
+  s_f93c02af7eed98::t_c829cafe256149 51-58
+  s_f93c02af7eed98::t_59fa0128ab2c2d 14-19
+  s_f93c02af7eed98::t_0432697d670adb 27-32,44-50
+skills/implement/scripts/startup-presentation.test.mjs
+  s_f93c02af7eed98::t_501b83c4b609ca 244-262
+  s_f93c02af7eed98::t_9c86486ce11ab1 15
+  s_f93c02af7eed98::t_68ee4245bbb2a9 13-14,105-136
+  s_f93c02af7eed98::t_bc7f32798c4e7f 137
+skills/implement/scripts/assurance-summary.mjs
+  s_f93c02af7eed98::t_8041c14a25112f 14-15
+skills/implement/scripts/write-feedback.test.mjs
+  s_f93c02af7eed98::t_c829cafe256149 152-155
+  s_f93c02af7eed98::t_2d19717de5a00c 74-84,87-95,97-99,101-103,107-151,157-174,178-179
+  s_f93c02af7eed98::t_fc35a321bb9292 175-177
+  s_f93c02af7eed98::t_dfeb568ea30e5c 96,100
+  s_f93c02af7eed98::t_55b0f7f8d6067f 8
+  s_f93c02af7eed98::t_f11f03a87ef9c7 156
+  s_f93c02af7eed98::t_fec9cc591d3aff 194-207,213-228
+  s_f93c02af7eed98::t_173adb308a9d25 85-86,104-106
+  s_f93c02af7eed98::t_d87ad148a5f356 208-212
+skills/implement/scripts/deliver.test.mjs
+  s_f93c02af7eed98::t_d6e88892c572b4 9,30,55-61,78-86
+  s_f93c02af7eed98::t_4dc7c20295ff30 87-88
+skills/deliver/SKILL.md
+  s_f93c02af7eed98::t_506c6a63cb8f93 25-26
+evals/execute/execute-full-pass/graders/decision-log-content.md
+  s_f93c02af7eed98::t_0622768c22efa8 2-7,11-16
+skills/implement/scripts/lightweight-fix.test.mjs
+  s_f93c02af7eed98::t_4a1938e9921ab8 13
+skills/implement/scripts/final-package.mjs
+  s_f93c02af7eed98::t_8041c14a25112f 18,73,208,223
+skills/implement/scripts/workflow-integration.test.mjs
+  s_f93c02af7eed98::t_2482827bb9af4d 101,104
+skills/implement/scripts/assurance-summary.test.mjs
+  s_f93c02af7eed98::t_fec9cc591d3aff 50-58
+evals/feedback-on-session/feedback-on-session-attribution/prompt.md
+  s_f93c02af7eed98::t_d87ad148a5f356 1-10
+evals/grade-headless.mjs
+  s_f93c02af7eed98::t_b5c70da7abbf0b 6,162-172
+  s_f93c02af7eed98::t_d8cbe9e586dde1 214,216-217
+evals/README.md
+  s_f93c02af7eed98::t_08df34f549eb21 65-69
+skills/execute/scripts/step-control.test.mjs
+  s_f93c02af7eed98::t_f11f03a87ef9c7 31-41
+  s_f93c02af7eed98::t_2a67fe6a7ae145 163-164
+  s_f93c02af7eed98::t_59fa0128ab2c2d 171-178
+skills/implement/scripts/feedback-handoff.mjs
+  s_f93c02af7eed98::t_fda8d9af46c88a 3,33,48,67-69,72
+  s_f93c02af7eed98::t_18c1293290a24f 1-2,6,21-32,34-47,49-58,61-66,70-71,73-79
+  s_f93c02af7eed98::t_4774989ae0c687 4-5,7-20,59-60
+evals/suites.json
+  s_f93c02af7eed98::t_4cd64bd0c10572 20
+  s_f93c02af7eed98::t_68ebbe6ed7afeb 21
+skills/implement/scripts/workflow.test.mjs
+  s_f93c02af7eed98::t_b2358b85628ca5 37,59-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f9fec1548f8388b3f2159c4c85a0de731845f9c6",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
