@@ -6,6 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { feedbackAction, feedbackEligible, feedbackHold, feedbackStateHash } from './feedback-handoff.mjs';
 import { writeFeedback } from './write-feedback.mjs';
+import { generateDashboard } from './render-status.mjs';
 import { parseState } from './render-status.mjs';
 import { decisionCell } from './workflow-decisions.mjs';
 
@@ -52,6 +53,21 @@ test('missing feedback holds terminal summary and delivery questions while leavi
   assert.match(await readFile(f.report, 'utf8'), /Provisional — user input pending/);
 });
 
+test('controller and inspection supply runnable parent commands and separate JSON input paths', async t => {
+  const f = await fixture(t);
+  const initial = feedbackAction(f.statePath, f.fields).next_action.commands;
+  const inspected = spawnSync(initial.inspect, { shell: true, encoding: 'utf8' });
+  assert.equal(inspected.status, 0, inspected.stderr);
+  const summary = JSON.parse(inspected.stdout), commands = summary.commands;
+  await writeFile(commands.input_paths.sessionReview, JSON.stringify({ version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] }));
+  for (const command of [commands.check, commands.write]) {
+    const result = spawnSync(command, { shell: true, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  }
+  assert.match(await readFile(f.report, 'utf8'), /### Session review/);
+  assert.equal(await readFile(f.statePath, 'utf8'), f.markdown);
+});
+
 test('another run or an older state cannot satisfy the feedback check', async (t) => {
   const f = await fixture(t);
   await writeFeedback(f.statePath, { sessionReview: review });
@@ -86,6 +102,8 @@ test('a reason alone cannot skip feedback, even when a fabricated acknowledgemen
 
 test('an evidenced technical failure saves only a receipt and releases the terminal gate accurately', async (t) => {
   const f = await fixture(t);
+  const dashboard = await generateDashboard(f.statePath);
+  assert.match(await readFile(dashboard, 'utf8'), /data-workflow-feedback-status="collecting"/);
   await writeFile(path.join(path.dirname(f.statePath), 'hook-events.jsonl'), 'corrupt evidence\n');
   const failed = spawnSync(process.execPath, [script, 'inspect', '--state', f.statePath], { encoding: 'utf8' });
   assert.equal(failed.status, 1);
@@ -99,6 +117,8 @@ test('an evidenced technical failure saves only a receipt and releases the termi
   const acknowledgement = JSON.parse(result.stdout);
   assert.equal(acknowledgement.reportSaved, false);
   assert.equal(acknowledgement.receiptSaved, true);
+  assert.equal(acknowledgement.dashboardUpdated, true);
+  assert.match(await readFile(dashboard, 'utf8'), /data-workflow-feedback-status="unavailable"/);
   assert.equal(JSON.parse(await readFile(acknowledgement.receiptPath, 'utf8')).failureId, 'failed-inspect');
   const outcomeEvents = toolEvents('unavailable', `node "${script}" unavailable --state "${f.statePath}"`, result.stdout);
   events.push(...outcomeEvents);

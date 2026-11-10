@@ -250,7 +250,7 @@ test('an outstanding optional permission can resolve after completion while impl
   await seed({ status: 'Complete', phase: 'complete' });
   const resolved = await apply('resolve-input', { pending_id: 'question-1', answer: 'stop', source: 'user', via: 'chat' });
   assert.equal(resolved.fields.status, 'Complete'); assert.equal(resolved.fields.phase, 'complete'); assert.equal((await state()).pendingInputs.length, 0);
-  assert.match(await html(), /Implementation complete/);
+  assert.match(await html(), /Finalizing session/);
 });
 test('a legacy run may record a wait without changing hash definitions or enabling the controller', async (t) => {
   const { root, statePath, apply, seed, state } = await fixture(t);

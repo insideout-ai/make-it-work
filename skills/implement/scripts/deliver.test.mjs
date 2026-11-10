@@ -10,6 +10,7 @@ import { writeReview } from '../../../scripts/review-report.mjs';
 import { summarizeAssurance } from './assurance-summary.mjs';
 import { checkFinalPackage } from './final-package.mjs';
 import { createHash } from 'node:crypto';
+import { writeFeedback } from './write-feedback.mjs';
 
 const packageCli = path.resolve('skills/implement/scripts/final-package.mjs');
 const deliveryCli = path.resolve('skills/implement/scripts/deliver.mjs');
@@ -65,7 +66,9 @@ async function fixture(t, { dashboard = false, qualified = false } = {}) {
   });
   const built = cli(packageCli, 'build', root, state, ['--draft', draft, '--repo', repo]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
-  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
+  // Optional delivery starts after terminal feedback has been collected.
+  await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   if (dashboard) await generateDashboard(state);
   return { root, repo, bare, state, artifacts };
 }
@@ -223,6 +226,11 @@ test('a PR failure resumes after the recorded commit and push', async (t) => {
 test('offering and declining update delivery alone and never authorize a commit', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   const original = await readFile(state, 'utf8');
+  const sessionPath = path.join(artifacts, 'workflow-feedback.md'), session = await readFile(sessionPath);
+  await rm(sessionPath);
+  assert.throws(() => cli(deliveryCli, 'offer', root, state), /Finish session feedback/);
+  await assert.rejects(readFile(path.join(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
+  await writeFile(sessionPath, session);
   const dashboard = path.join(artifacts, 'DEMO-status.html');
   const offered = cli(deliveryCli, 'offer', root, state);
   assert.equal(offered.status, 'offered');
@@ -275,7 +283,8 @@ test('delivery skips unchanged supporting repositories while retaining them in t
   await writeFile(state, stateMarkdown());
   const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', support]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
-  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
+  await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   const prepared = cli(deliveryCli, 'prepare', root, state);
   assert.deepEqual(prepared.repos.map((entry) => entry.name), ['service']);
   const pkg = JSON.parse(await readFile(path.join(artifacts, 'DEMO-final-package.json'), 'utf8'));
@@ -299,7 +308,8 @@ test('multi-repo partial delivery shows each actual result and resumes without d
   await writeFile(state, stateMarkdown());
   const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', second]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
-  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
+  await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   await generateDashboard(state);
   const bin = path.join(root, 'bin');
   await mkdir(bin);

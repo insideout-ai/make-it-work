@@ -4,6 +4,10 @@ Use this reference with [../../feedback-on-session/SKILL.md](../../feedback-on-s
 
 ## Eligibility and timing
 
+Collection is a short, bounded part of finalizing the session, before recording any optional delivery offer. Reuse the retained review, fix diagnosis and known outcomes in one pass; aim for roughly a minute, without promising a hard service-time bound. When the available evidence cannot establish a cause, record the uncertainty and a proposed follow-up instead of extending the investigation. Never rerun application tests or repeat an independent retrospective just to restate existing evidence.
+
+After the combined save, the scoped hook validates the parent runtime evidence and records `feedback-finalized.json`. Delivery opens only after this boundary; its answer reuses the recorded outcome. Do not manually create or edit the lifecycle receipt. A later delivery decision, HTML refresh or user status question cannot reopen collection. For an older session whose delivery question was already answered with current feedback saved, honor the answer and leave further feedback investigation as a separate follow-up.
+
 Update `make-it-work/implement-feedback.md` only for:
 
 - every run that has checkpointed `status: Complete`; and
@@ -12,6 +16,8 @@ Update `make-it-work/implement-feedback.md` only for:
 Do not write an entry for a pause, user-requested stop, branch/context/setup failure, missing tool, or other non-limit stop. Never backfill runs that reached a terminal state before this feedback behavior existed.
 
 The terminal state-file write and dashboard regeneration happen first. Feedback failure or unanswered feedback questions never re-open, downgrade, or block the implementation run.
+
+Generated dashboards show **Finalizing session** while collecting feedback, and hide optional delivery. A verified saved or unavailable outcome settles that display before delivery opens. This presentation update does not alter the implementation state, package or approval. HTML evidence inspection itself stays read-only; do not manually regenerate during inspection. Missing HTML and older/supplied HTML without the progress panel are left untouched.
 
 The controller returns `next_action.type: feedback` at eligible terminal checkpoints, including replay. Follow it before the terminal summary or delivery question. Run the checkpoint command on its own and keep its structured output intact; do not pipe it through a projection that prints only phase/status. The scoped Stop and PreToolUse hooks detect a missing combined report for the current run and hold the terminal summary or delivery question until feedback is saved or explicitly reported unavailable. They do not change implementation status or wait for feedback answers. A saved report is bound to the terminal workflow boundary so an older run or an earlier retry-limit report cannot satisfy a later terminal checkpoint. Subsequent delivery decisions and informational notes do not invalidate that binding or trigger another retrospective.
 
@@ -29,7 +35,7 @@ Add `--limit-stop` only for an eligible limit stop. The helper and terminal hook
 
 ## Explain the feedback to the user
 
-Use plain language in chat; keep terms such as `minimal`, `inspect`, writer classification and dispatch gates in internal reasoning and artifacts. Before inspecting a completed run, say: "Implementation is complete. I’m recording workflow feedback and checking whether any extra rounds need analysis." For an eligible limit stop, say: "The run has stopped at its retry limit. I’m reviewing what led to the extra rounds and recording possible workflow improvements." If extra-round analysis is needed, explain: "I’m reviewing why extra rounds were needed and whether the workflow could prevent them next time." For a hook-only review, say: "Hook interruptions or repeated waits were recorded. I’m reviewing whether the workflow could handle them better." For a guardrail-only review, say: "A guardrail intervention was recorded. I’m reviewing its resolution and whether it suggests a workflow improvement."
+Use plain language in chat; keep terms such as `minimal`, `inspect`, writer classification and dispatch gates in internal reasoning and artifacts. Before inspecting a completed run, say: "Implementation checks are finished. I’m finalizing the session by recording workflow feedback." For an eligible limit stop, say: "The run has stopped at its retry limit. I’m reviewing what led to the extra rounds and recording possible workflow improvements." If extra-round analysis is needed, explain: "I’m reviewing why extra rounds were needed and whether the workflow could prevent them next time." For a hook-only review, say: "Hook interruptions or repeated waits were recorded. I’m reviewing whether the workflow could handle them better." For a guardrail-only review, say: "A guardrail intervention was recorded. I’m reviewing its resolution and whether it suggests a workflow improvement."
 
 Include the feedback result in the terminal chat summary for both completed runs and eligible limit stops, not just the file location:
 
@@ -102,6 +108,10 @@ Hook recording errors are reported to the session without changing enforcement
 or implementation status. If recording failed, report the evidence limitation.
 
 ## Decide whether the path was minimal
+
+The implement parent runs `inspect`, `evidence`, `check` and `write` directly in its own context, using resolved absolute script and state paths in separate Bash calls. Do not wrap them in shell variables, pipelines, redirects or compound commands: the terminal hook needs the parent's actual results. Do not delegate the whole feedback step to a fork. The parent reviews conversation evidence and owns the single combined save; a required general-purpose retrospective returns its artifact diagnosis only. It must not spawn a nested retrospective or write either feedback report.
+
+Copy each literal command from the controller handoff's `commands` and the inspect result's `commands` into its own Bash call unchanged. Inspect also supplies `input_paths` for the JSON inputs and complete check/write commands. Write those inputs with Write/Edit separately; never combine their preparation with the writer invocation. These commands contain local paths and stay out of the share-safe report.
 
 Resolve `<base>` to this skill's directory. After the terminal checkpoint and dashboard regeneration, inspect the state with:
 

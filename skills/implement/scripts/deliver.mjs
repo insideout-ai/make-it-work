@@ -11,6 +11,7 @@ import { generateDashboard, parseState } from './render-status.mjs';
 import { assertRunState, runDirectory } from './artifact-layout.mjs';
 import { deliveryPaths } from './delivery-progress.mjs';
 import { reviewDisclosure } from '../../../scripts/lib/review-evidence.mjs';
+import { readFeedbackProgress } from './feedback-progress.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -61,6 +62,10 @@ async function saveProgress(context, progress) {
 async function lifecycle(context, action) {
   const prior = await loadProgress(context);
   if (action === 'offer' && prior) { await refreshDashboard(context); return prior; }
+  if (action === 'offer') {
+    const feedback = await readFeedbackProgress(context.statePath, context.state);
+    if (feedback?.status === 'collecting' && !feedback.reportSaved) fail('Finish session feedback during finalization before offering optional delivery.');
+  }
   if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {
     fail('Delivery already started; inspect its progress instead of changing its offer.');
   }
