@@ -1,0 +1,95 @@
+evals/feedback-on-session/seed-dashboard-html.sh
+  s_f93c02af7eed98::t_20497bd5f75ffc 1-11
+evals/feedback-on-session/feedback-dashboard-html-missing/case.yaml
+  s_f93c02af7eed98::t_a8710392070634 1-5
+evals/feedback-on-session/feedback-dashboard-html-clean/graders/source-review.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+evals/feedback-on-session/feedback-dashboard-html-missing/graders/source-review.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+evals/feedback-on-session/dashboard-html-fixture/session.txt
+  s_f93c02af7eed98::t_20497bd5f75ffc 1-4
+evals/feedback-on-session/feedback-dashboard-html-noisy/graders/source-review.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+CHANGELOG.md
+  s_f93c02af7eed98::t_cf95726c53111f 13-14
+skills/implement/references/feedback.md
+  s_f93c02af7eed98::t_cf95726c53111f 116-118,133
+evals/feedback-on-session/feedback-dashboard-html-clean/case.yaml
+  s_f93c02af7eed98::t_a8710392070634 1-5
+evals/feedback-on-session/README.md
+  s_f93c02af7eed98::t_5ee120ec53f101 3-10
+evals/feedback-on-session/dashboard-html-fixture/clean.html
+  s_f93c02af7eed98::t_20497bd5f75ffc 1-24
+evals/feedback-on-session/dashboard-html-fixture/contradictory.html
+  s_f93c02af7eed98::t_20497bd5f75ffc 1-12
+evals/feedback-on-session/feedback-dashboard-html-missing/fixture.sh
+  s_f93c02af7eed98::t_3b2bef936a6171 4
+  s_f93c02af7eed98::t_a8710392070634 1-3,5
+evals/feedback-on-session/feedback-dashboard-html-clean/prompt.md
+  s_f93c02af7eed98::t_a8710392070634 1-11
+evals/feedback-on-session/feedback-on-session-terminal-fix/graders/dashboard-reuse.md
+  s_f93c02af7eed98::t_5ee120ec53f101 1-7
+skills/implement/SKILL.md
+  s_f93c02af7eed98::t_cf95726c53111f 766-767
+skills/feedback-on-session/references/dashboard-html.md
+  s_f93c02af7eed98::t_f95cbb31fc6ae1 32-35
+  s_f93c02af7eed98::t_cf95726c53111f 1-31,36-62
+evals/suites.json
+  s_f93c02af7eed98::t_5ee120ec53f101 20-23
+evals/feedback-on-session/dashboard-html-fixture/DEMO-state.md
+  s_f93c02af7eed98::t_5ee120ec53f101 27
+  s_f93c02af7eed98::t_20497bd5f75ffc 1-26,28-30
+evals/feedback-on-session/feedback-dashboard-html-contradictory/case.yaml
+  s_f93c02af7eed98::t_a8710392070634 1-5
+evals/feedback-on-session/feedback-dashboard-html-contradictory/prompt.md
+  s_f93c02af7eed98::t_a8710392070634 1-11
+README.md
+  s_f93c02af7eed98::t_cf95726c53111f 314-315
+evals/feedback-on-session/feedback-dashboard-html-contradictory/graders/single-pass.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+evals/feedback-on-session/feedback-dashboard-html-missing/graders/single-pass.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+evals/feedback-on-session/dashboard-html-fixture/noisy.html
+  s_f93c02af7eed98::t_20497bd5f75ffc 1-14,16-17
+  s_f93c02af7eed98::t_5ee120ec53f101 15
+evals/feedback-on-session/feedback-dashboard-html-missing/prompt.md
+  s_f93c02af7eed98::t_a8710392070634 1-11
+evals/feedback-on-session/feedback-dashboard-html-noisy/prompt.md
+  s_f93c02af7eed98::t_a8710392070634 1-11
+evals/feedback-on-session/feedback-dashboard-html-clean/fixture.sh
+  s_f93c02af7eed98::t_3b2bef936a6171 4
+  s_f93c02af7eed98::t_a8710392070634 1-3,5
+evals/feedback-on-session/feedback-dashboard-html-contradictory/graders/source-review.md
+  s_f93c02af7eed98::t_a8710392070634 1-6,9
+  s_f93c02af7eed98::t_f95cbb31fc6ae1 7-8
+evals/feedback-on-session/feedback-dashboard-html-clean/graders/single-pass.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+evals/feedback-on-session/feedback-dashboard-html-noisy/case.yaml
+  s_f93c02af7eed98::t_a8710392070634 1-5
+evals/feedback-on-session/feedback-dashboard-html-contradictory/fixture.sh
+  s_f93c02af7eed98::t_a8710392070634 1-3,5
+  s_f93c02af7eed98::t_3b2bef936a6171 4
+evals/feedback-on-session/feedback-dashboard-html-noisy/fixture.sh
+  s_f93c02af7eed98::t_a8710392070634 1-3,5
+  s_f93c02af7eed98::t_3b2bef936a6171 4
+evals/feedback-on-session/feedback-dashboard-html-noisy/graders/single-pass.md
+  s_f93c02af7eed98::t_a8710392070634 1-7
+skills/feedback-on-session/SKILL.md
+  s_f93c02af7eed98::t_cf95726c53111f 18-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d84c5d6c15f964e65e0d7017d68f539cc81e43f6",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
