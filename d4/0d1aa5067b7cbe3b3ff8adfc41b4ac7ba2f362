@@ -1,0 +1,72 @@
+skills/implement/SKILL.md
+  s_f93c02af7eed98::t_495a51985b546a 772-773
+scripts/lib/workflow-dashboard.mjs
+  s_f93c02af7eed98::t_17114d2d6da465 73-74
+skills/implement/scripts/startup-presentation.mjs
+  s_f93c02af7eed98::t_934e90dce5707a 30,39-43,52,54-55,89-92,98,105,191,195
+skills/implement/scripts/render-status.test.mjs
+  s_f93c02af7eed98::t_e0e1e5c3fc0c76 14,114-135
+  s_f93c02af7eed98::t_059ba455c9a9eb 765-766
+  s_f93c02af7eed98::t_4a0cb9ffdc3210 136
+skills/implement/scripts/feedback-progress.mjs
+  s_f93c02af7eed98::t_5d6325cbfa54e4 1-54
+skills/implement/scripts/startup-presentation.test.mjs
+  s_f93c02af7eed98::t_e0e1e5c3fc0c76 124-127,173-178
+  s_f93c02af7eed98::t_495a51985b546a 9,339-358
+  s_f93c02af7eed98::t_32647a24db4dab 359
+skills/feedback-on-session/SKILL.md
+  s_f93c02af7eed98::t_495a51985b546a 46-47
+README.md
+  s_f93c02af7eed98::t_19329fe42a3290 316-317
+skills/implement/assets/status-template.html
+  s_f93c02af7eed98::t_5d6325cbfa54e4 22
+skills/implement/scripts/workflow.mjs
+  s_f93c02af7eed98::t_934e90dce5707a 644
+skills/feedback-on-session/references/dashboard-html.md
+  s_f93c02af7eed98::t_17114d2d6da465 22-25
+skills/implement/scripts/deliver.test.mjs
+  s_f93c02af7eed98::t_cc6954b4b2c9fc 13,69-71
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_f93c02af7eed98::t_cc6954b4b2c9fc 56-70
+  s_f93c02af7eed98::t_e0e1e5c3fc0c76 9,105-106,120-121
+skills/implement/scripts/write-feedback.mjs
+  s_f93c02af7eed98::t_5d6325cbfa54e4 13,486,521
+  s_f93c02af7eed98::t_cea2b855928a55 14,561
+evals/feedback-on-session/feedback-on-session-terminal-fix/prompt.md
+  s_f93c02af7eed98::t_cea2b855928a55 11
+skills/implement/scripts/render-status.mjs
+  s_f93c02af7eed98::t_5d6325cbfa54e4 800-806,808-810,828,838,852,935-937
+  s_f93c02af7eed98::t_17114d2d6da465 807
+skills/implement/references/feedback.md
+  s_f93c02af7eed98::t_17114d2d6da465 16-17
+  s_f93c02af7eed98::t_495a51985b546a 108-109
+  s_f93c02af7eed98::t_cea2b855928a55 110-111
+skills/implement/scripts/feedback-handoff.mjs
+  s_f93c02af7eed98::t_934e90dce5707a 57-58
+  s_f93c02af7eed98::t_cea2b855928a55 95-108,112
+skills/review-the-code/SKILL.md
+  s_f93c02af7eed98::t_495a51985b546a 165-166
+CHANGELOG.md
+  s_f93c02af7eed98::t_17114d2d6da465 9-17
+evals/feedback-on-session/feedback-on-session-terminal-fix/fixture.sh
+  s_f93c02af7eed98::t_140b38939beefa 8,10
+  s_f93c02af7eed98::t_cea2b855928a55 9,11-12
+evals/feedback-on-session/feedback-on-session-terminal-fix/graders/terminal-sequence.md
+  s_f93c02af7eed98::t_17114d2d6da465 8-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d40d1aa5067b7cbe3b3ff8adfc41b4ac7ba2f362",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
