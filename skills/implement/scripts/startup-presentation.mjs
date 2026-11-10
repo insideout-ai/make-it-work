@@ -8,7 +8,7 @@ import { parseState } from './render-status.mjs';
 import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
-import { feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
+import { feedbackEligible, feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
 import { readStartupConfirmation, saveStartupConfirmation, isConfirmationBoundary, hasDashboardLink as hasLink } from './startup-confirmation.mjs';
 
 export function startupResult(output) {
@@ -144,6 +144,7 @@ async function observeHook(input, progress, events, output, kind = 'clear') {
   if (!progress.initialized?.continuation) return output;
   try {
     const state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state);
+    if (feedbackEligible(state.fields)) return output;
     if (input.hook_event_name === 'Stop' && kind === 'clear' && state.fields.status === 'In Progress' && progress.agents.length) kind = 'agent-wait';
     await recordHookEvent({ statePath: progress.initialized.state, state, input, events, kind, agents: progress.agents });
     return output;
@@ -189,16 +190,20 @@ export async function startupHook(input) {
     if (!progress.initialized || progress.announced) break;
   }
   const feedbackState = progress.feedbackRun?.state;
-  if (feedbackState && (input.hook_event_name === 'Stop' || input.hook_event_name === 'PreToolUse' && input.tool_name === 'AskUserQuestion')) {
+  const deliveryOffer = input.tool_name === 'Bash' && /\bdeliver\.mjs["']?\s+offer\b/.test(input.tool_input?.command ?? '');
+  const collectOutcome = input.hook_event_name === 'PostToolUse' && input.tool_name === 'Bash';
+  if (feedbackState && (collectOutcome || input.hook_event_name === 'Stop' || input.hook_event_name === 'PreToolUse' && (input.tool_name === 'AskUserQuestion' || deliveryOffer))) {
     let state;
     try { state = parseState(await readFile(feedbackState, 'utf8'), feedbackState); } catch { /* Existing state-repair handling below remains active. */ }
     if (state && (!progress.feedbackRun.runId || progress.feedbackRun.runId === state.fields.start_time)) {
       const terminal = feedbackTerminalRow(state.fields, state.audit);
       const awaitingRetrospective = input.hook_event_name === 'Stop' && state.fields.status !== 'In Progress' &&
         progress.agents.some(agent => Number.isFinite(agent.launchedAt) && agent.launchedAt >= terminal?.epoch);
+      if (awaitingRetrospective && feedbackEligible(state.fields)) return {};
       if (!awaitingRetrospective) {
         const feedback = await feedbackHold(input, feedbackState, state.fields, events);
         if (feedback) return feedback;
+        if (feedbackEligible(state.fields)) return {};
       }
     }
   }

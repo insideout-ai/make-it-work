@@ -13,6 +13,8 @@ import { lastWorkRow } from './workflow-decisions.mjs';
 import { runRegression } from '../../../scripts/regression.mjs';
 import { inspectState, writeFeedback } from './write-feedback.mjs';
 import { initializePublication, updatePublication } from './ticket-publication.mjs';
+import { feedbackStateHash } from './feedback-handoff.mjs';
+import { finalizeFeedback } from './feedback-finalization.mjs';
 
 const DEFAULT_FIELDS = {
   ticket: 'DEMO',
@@ -111,12 +113,26 @@ async function renderFixture(t, state, plan = null) {
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
+// Timing/history tests render a session whose feedback was already finalized.
+async function renderSettledFixture(t, state, plan = null) {
+  const f = await renderFixture(t, state, plan), statePath = path.join(f.directory, 'DEMO-state.md');
+  const parsed = parseState(state), runId = parsed.fields.start_time, stateHash = feedbackStateHash(parsed.fields, parsed.audit);
+  const block = `<!-- run:${runId} -->\n### Session review\n<!-- feedback-state:${stateHash} -->\n<!-- /run:${runId} -->\n`;
+  await writeFile(path.join(f.directory, 'workflow-feedback.md'), block);
+  await writeFile(path.join(path.dirname(f.directory), 'implement-feedback.md'), block);
+  await finalizeFeedback(statePath, { runId, stateHash, status: 'saved', kind: 'fixture' });
+  await generateDashboard(statePath);
+  return { ...f, html: await readFile(f.outputPath, 'utf8') };
+}
+
 test('terminal dashboard collects session feedback then refreshes to saved without changing state or approval artifacts', async t => {
   const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
   const f = await renderFixture(t, state);
   const statePath = path.join(f.directory, 'DEMO-state.md');
   assert.match(f.html, /data-workflow-feedback-status="collecting"/);
   assert.match(f.html, /Session retrospective: Collecting feedback/);
+  assert.match(f.html, /Finalizing session\./);
+  assert.doesNotMatch(f.html, /<strong>Implementation complete\./);
   assert.match(f.html, /http-equiv="refresh"/);
   const approvalPath = path.join(f.directory, 'DEMO-final-package.approval.json');
   await writeFile(approvalPath, 'Historical approval bytes');
@@ -149,6 +165,19 @@ test('completion displays recorded assurance limits and links only the session e
   assert.equal(await readFile(packagePath, 'utf8'), bytes);
   assert.match(await readFile(f.outputPath, 'utf8'), /Assurance: Not recorded/); // An unbound JSON file cannot establish assurance.
   assert.equal(await readFile(path.join(f.directory, 'DEMO-state.md'), 'utf8'), state);
+});
+
+test('feedback belongs to finalization and optional delivery appears only after collection settles', () => {
+  const state = parseState(stateMarkdown({ fields: { status: 'Complete', phase: 'complete', final_package_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
+  const options = { state, template: '{{STATUS_BANNER}} {{PHASE_TIMELINE}} {{FEEDBACK_PROGRESS}}', logoBase64: '' };
+  const pending = renderStatus({ ...options, feedback: { status: 'collecting' } });
+  assert.match(pending, /Finalizing session\./);
+  assert.match(pending, /phase-dot current spinning/);
+  assert.doesNotMatch(pending, /Optional delivery:/);
+  const saved = renderStatus({ ...options, feedback: { status: 'saved' } });
+  assert.match(saved, /Implementation complete\./);
+  assert.match(saved, /Optional delivery:/);
+  assert.match(saved, /Feedback saved/);
 });
 
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
@@ -629,7 +658,7 @@ test('keeps completed stages minimal and retains approval details and fix histor
     },
     rows,
   });
-  const { html } = await renderFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
+  const { html } = await renderSettledFixture(t, state, planMarkdown('Subagent-Driven', 4, 4));
 
   assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 9);
   assert.equal((html.match(/Review<span class="phase-skill">\(review-the-code\)<\/span>/g) ?? []).length, 2);
@@ -1200,7 +1229,7 @@ test('completed finalization times the whole attempt and ignores later delivery 
       ['2026-01-01T10:01:39Z', version ? 'final-approval' : 'final-sync', 'complete', 'Complete'],
       ['2026-01-01T10:05:00Z', 'complete', 'complete', 'Delivery prepared'],
     ];
-    const { html } = await renderFixture(t, stateMarkdown({ fields, rows }));
+    const { html } = await renderSettledFixture(t, stateMarkdown({ fields, rows }));
     const timeline = timelineHtml(html);
     assert.equal(timelineLabels(html).filter((label) => label === 'Complete').length, 1);
     assert.match(timeline, /phase-duration">1m 39s/);
@@ -1232,7 +1261,7 @@ test('final approval feedback retains separate finalization attempts', async (t)
   const grouped = groupFinalization(raw);
   assert.equal(JSON.stringify(raw), before);
   assert.equal(grouped.slots.filter((slot) => slot.finalizing).length, 2);
-  const { html } = await renderFixture(t, stateText);
+  const { html } = await renderSettledFixture(t, stateText);
   assert.equal(timelineLabels(html).filter((label) => label === 'Finalizing').length, 1);
   assert.equal(timelineLabels(html).filter((label) => label === 'Complete').length, 1);
   const finalSteps = timelineHtml(html).split('<div class="phase-step">').filter((step) => /phase-label">(?:Finalizing|Complete)</.test(step));

@@ -1,6 +1,7 @@
 import { lstat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { feedbackEligible, feedbackStateHash } from './feedback-handoff.mjs';
+import { readFeedbackFinalization } from './feedback-finalization.mjs';
 
 async function artifact(file) {
   try {
@@ -29,12 +30,14 @@ export async function readFeedbackProgress(statePath, state) {
     return start >= 0 && end > start && block.includes(`<!-- feedback-state:${stateHash} -->`) && block.includes('\n### Session review\n');
   };
   const saved = current(session) && current(cumulative);
+  const finalized = await readFeedbackFinalization(statePath, { runId, stateHash });
+  if (finalized?.status === 'unavailable') return { status: 'unavailable' };
   try {
     const receipt = JSON.parse(failure?.text ?? 'null');
     if (receipt?.feedbackAttempt === 'unavailable' && receipt.runId === runId && receipt.stateHash === stateHash && receipt.reportSaved === false &&
         (!saved || failure.modified >= session.modified)) return { status: 'unavailable' };
   } catch { /* An invalid receipt cannot certify an unavailable outcome. */ }
-  return { status: saved ? 'saved' : 'collecting' };
+  return { status: saved && finalized?.status === 'saved' ? 'saved' : 'collecting', reportSaved: saved };
 }
 
 // Only refresh dashboards generated with the progress panel. Supplied source

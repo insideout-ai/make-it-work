@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Settle feedback before optional delivery, retain a verified finalization outcome, and honor already-answered delivery questions without late retrospective repair. Show collection under Finalizing until the outcome is recorded.
+
 - Preserve terminal feedback enforcement across native task notifications and human status questions; reject fork self-analysis as the required retrospective and keep one parent-owned combined save.
 - Qualify recovery and diagnostic-impact claims to actual verification, retaining unresolved findings and untested behavior.
 

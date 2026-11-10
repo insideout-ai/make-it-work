@@ -33,6 +33,8 @@ displayed.
 Check for source-supported issues:
 
 - Status, phase, activity or counts contradict the saved terminal state/Audit log.
+  **Finalizing session** with implementation already Complete is expected while
+  feedback is being collected; optional delivery should still be hidden.
   Account for cumulative counts versus counters reset after escalation/replan,
   and for permitted delivery decisions after Complete. Do not treat Completion
   with explicitly pending browser/acceptance checks as a contradiction by itself.

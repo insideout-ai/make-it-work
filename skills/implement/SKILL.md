@@ -758,7 +758,7 @@ On **Request changes**, save the developer's notes in `make-it-work/<TICKET>/<TI
 
 ## Feedback retrospective
 
-This is a terminal hook, not a phase. It never changes `phase`, `status`, the dashboard timeline, or resume behavior.
+This is part of session finalization, after final approval and before the completion summary or optional delivery. The implementation checkpoint stays terminal for artifact integrity; the HTML shows **Finalizing session** until feedback settles. It does not reopen package approval or add a review cycle.
 
 Run it only after either:
 
@@ -769,7 +769,7 @@ Read [../feedback-on-session/SKILL.md](../feedback-on-session/SKILL.md) and `<ba
 
 Include the final run-local dashboard HTML alongside the state/Audit evidence for the skill's source-only inspection, reusing this same pass and any already-required retrospective delegate. Keep source findings and unrendered visual risks distinct. Missing HTML is a feedback evidence limitation, not a new workflow blocker.
 
-The parent owns inspection, source retrieval and the combined save through direct writer calls. Delegate only the required artifact diagnosis to one fresh general-purpose agent; it returns analysis, not another feedback run or report write. Do not offload this step to a fork or permit self-analysis when independent dispatch is required. The terminal dashboard shows feedback collection separately from implementation completion; the writer refreshes that panel after saving the outcome.
+The parent owns inspection, source retrieval and the combined save through direct writer calls. Delegate only the required artifact diagnosis to one fresh general-purpose agent; it returns analysis, not another feedback run or report write. Do not offload this step to a fork or permit self-analysis when independent dispatch is required. Settle and record feedback before `deliver.mjs offer` or its question. A delivery answer performs only the requested delivery action; it never starts another retrospective or report rewrite.
 
 Follow the controller's terminal `next_action.type: feedback` before showing the summary or asking about delivery. Keep checkpoint output intact. The scoped hooks require a current combined report and any required retrospective dispatch, or an unavailable outcome backed by an actual technical failure in this run. Saying the step was not performed or no friction occurred cannot finish it. Repair input/schema errors; use the reference's evidenced-failure procedure only for a technical blocker, and accurately distinguish its failure receipt from a saved feedback report. Each session finding includes a suggested next step, owner, verification and confidence; these are proposals only.
 

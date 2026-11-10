@@ -226,6 +226,11 @@ test('a PR failure resumes after the recorded commit and push', async (t) => {
 test('offering and declining update delivery alone and never authorize a commit', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   const original = await readFile(state, 'utf8');
+  const sessionPath = path.join(artifacts, 'workflow-feedback.md'), session = await readFile(sessionPath);
+  await rm(sessionPath);
+  assert.throws(() => cli(deliveryCli, 'offer', root, state), /Finish session feedback/);
+  await assert.rejects(readFile(path.join(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
+  await writeFile(sessionPath, session);
   const dashboard = path.join(artifacts, 'DEMO-status.html');
   const offered = cli(deliveryCli, 'offer', root, state);
   assert.equal(offered.status, 'offered');
@@ -278,7 +283,8 @@ test('delivery skips unchanged supporting repositories while retaining them in t
   await writeFile(state, stateMarkdown());
   const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', support]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
-  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
+  await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   const prepared = cli(deliveryCli, 'prepare', root, state);
   assert.deepEqual(prepared.repos.map((entry) => entry.name), ['service']);
   const pkg = JSON.parse(await readFile(path.join(artifacts, 'DEMO-final-package.json'), 'utf8'));
@@ -302,7 +308,8 @@ test('multi-repo partial delivery shows each actual result and resumes without d
   await writeFile(state, stateMarkdown());
   const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', second]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
-  await writeFile(state, stateMarkdown('complete', 'Complete'));
+  await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
+  await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   await generateDashboard(state);
   const bin = path.join(root, 'bin');
   await mkdir(bin);

@@ -11,6 +11,7 @@ import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
 import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
 import { refreshFeedbackDashboard } from './feedback-progress.mjs';
+import { finalizeFeedback } from './feedback-finalization.mjs';
 import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
@@ -483,7 +484,9 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
   } finally {
     await unlink(sessionTemporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
-  return { ...summary, outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
+  if (sessionReview && !summary.analysisRequired && !summary.evidenceRequired) await finalizeFeedback(statePath,
+    { runId: summary.runId, stateHash: summary.stateHash, status: 'saved', kind: 'legacy-minimal' }, { refresh: false });
+  return { ...summary, ...(sessionReview ? { feedbackReport: 'combined' } : {}), outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
 }
 
 export async function unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop = false } = {}) {

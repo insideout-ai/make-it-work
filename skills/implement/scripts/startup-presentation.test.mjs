@@ -14,6 +14,7 @@ import { checkFeedback, inspectFeedback, writeFeedback, unavailableFeedback } fr
 import { feedbackAction } from './feedback-handoff.mjs';
 import { parseState } from './render-status.mjs';
 import { evidenceText } from './feedback-evidence.mjs';
+import { generateDashboard } from './render-status.mjs';
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
 const initialized = { startup_message: `[Open implementation dashboard](<${encodeURI(dashboard).replace('#', '%23')}>)`,
@@ -145,6 +146,7 @@ async function oneFixTerminal(t) {
     `\n| 6 | ${time} | final-sync | complete | Completion checkpoint |\n`,
   ].join('');
   await writeFile(run.result.state, state);
+  await generateDashboard(run.result.state);
   const add = (name, id, input, content, isError = false) => {
     const timestamp = new Date(Date.now() + 1000).toISOString();
     run.events.push({ ...assistant({ type: 'tool_use', id, name, input }), timestamp },
@@ -162,6 +164,8 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   const delivery = () => startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript });
   await run.saveEvents();
   assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny');
+  const offerInput = { hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: `node "${path.resolve('skills/implement/scripts/deliver.mjs')}" offer --root "${run.root}" --state "${run.result.state}"` }, transcript_path: run.transcript };
+  assert.equal((await startupHook(offerInput)).hookSpecificOutput.permissionDecision, 'deny');
   const analysis = { version: 2, events: run.summary.events.map(event => ({ ...event, trigger: 'Required behavior was missed', rootCause: 'execution deviation', explanation: 'The implementation omitted required behavior', earliestStage: 'implement', preventability: 'likely', owner: 'implement', improvement: 'Check the required behavior against actual results', confidence: 'high',
     basis: { requirement: 'Source row 1 required the behavior', knownEvidence: 'Source row 2 showed the affected path', observedAction: 'Source row 3 omitted the required behavior', attribution: 'The implementation departed from the stated behavior' } })), recommendations: ['Check the required behavior against actual results'], clarifications: [], openQuestions: [] };
   const sessionReview = { version: 2, status: 'pending', context: ['Visible conversation reviewed'], findings: [], userInput: [], limitations: ['Input not requested under Autopilot'] };
@@ -177,13 +181,60 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny');
   assert.equal((await run.check()).decision, 'block');
   run.add('Agent', 'retrospective', { prompt: run.prompt }, 'Structured analysis returned');
+  const written = await writeFeedback(run.result.state, { analysis, sessionReview });
+  const writeCommand = `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" write --state "${run.result.state}"`;
+  run.add('Bash', 'feedback-written', { command: writeCommand }, JSON.stringify(written));
   await run.saveEvents();
+  await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', transcript_path: run.transcript });
+  const directory = path.dirname(run.result.state), receiptPath = path.join(directory, 'feedback-finalized.json');
+  const receipt = await readFile(receiptPath, 'utf8');
+  assert.equal(JSON.parse(receipt).writerId, 'feedback-written');
+  assert.deepEqual(await startupHook(offerInput), {});
   assert.deepEqual(await delivery(), {});
   assert.deepEqual(await run.check(), {});
   const report = await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
   assert.match(report, /Fix rounds: 1/); assert.match(report, /### Session review/);
   assert.ok(report.includes(`Plugin version: ${run.summary.pluginVersion}`));
+  // Later delivery choices and presentation changes must reuse the sealed
+  // result, even if the old source/journal can no longer be re-inspected.
+  await writeFile(path.join(directory, 'hook-events.jsonl'), 'No longer readable as an event journal\n');
+  assert.deepEqual(await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', transcript_path: run.transcript }), {});
+  const question = 'Prepare delivery for this completed run?';
+  for (const answer of ['Not now', 'Prepare delivery']) {
+    const timestamp = new Date(Date.now() + 3000).toISOString(), id = `delivery-${answer}`;
+    run.events.push({ ...assistant({ type: 'tool_use', id, name: 'AskUserQuestion', input: { questions: [{ header: 'Delivery', question }] } }), timestamp },
+      { type: 'user', timestamp, toolUseResult: { answers: { [question]: answer } }, message: { content: [{ type: 'tool_result', tool_use_id: id, content: answer }] } });
+    await run.saveEvents();
+    assert.deepEqual(await run.check(), {});
+    assert.equal(await readFile(receiptPath, 'utf8'), receipt);
+    assert.equal(await readFile(path.join(directory, 'workflow-feedback.md'), 'utf8'), report);
+  }
   assert.equal(await readFile(run.result.state, 'utf8'), run.state);
+});
+
+test('an already-answered delivery question reuses earlier saved feedback instead of late retrospective repair', async t => {
+  const run = await freshRun(t, 'autopilot');
+  const state = (await readFile(run.result.state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: context-check', 'phase: complete').trimEnd() + `\n| 2 | ${new Date().toISOString()} | context-check | complete | Terminal checkpoint |\n`;
+  await writeFile(run.result.state, state);
+  const sessionReview = { version: 2, status: 'pending', context: ['Earlier collection reviewed the session'], findings: [], userInput: [], limitations: ['Browser unverified'], evidence_review: await sourceReview(run) };
+  await writeFeedback(run.result.state, { sessionReview });
+  // The earlier collection has no verifiable parent source call, as in the
+  // mixed-version live session. A question alone must not bypass the guard.
+  run.events.splice(3);
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  const question = 'Prepare delivery for this completed run?', timestamp = new Date(Date.now() + 3000).toISOString();
+  await writeFile(path.join(path.dirname(run.result.state), 'DEMO-delivery-progress.json'), JSON.stringify({ version: 1, ticket: 'DEMO', status: 'offered', repos: {}, offered_at: timestamp }));
+  run.events.push({ ...assistant({ type: 'tool_use', id: 'delivery-existing', name: 'AskUserQuestion', input: { questions: [{ header: 'Delivery', question }] } }), timestamp });
+  await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  const base = [...run.events], report = await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
+  for (const answer of ['Not now', 'Prepare delivery']) {
+    run.events.splice(0, run.events.length, ...base, { type: 'user', timestamp, toolUseResult: { answers: { [question]: answer } }, message: { content: [{ type: 'tool_result', tool_use_id: 'delivery-existing', content: answer }] } });
+    await run.saveEvents();
+    assert.deepEqual(await run.check(), {});
+    assert.equal(await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8'), report);
+  }
 });
 
 test('a failed terminal retrospective dispatch permits an accurate receipt-only fallback, even if receipt saving fails', async (t) => {

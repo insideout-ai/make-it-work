@@ -313,7 +313,7 @@ The combined report is saved before a single invitation to add or correct contex
 
 Automatic feedback also inspects the generated workflow dashboard HTML against the saved state and audit log. New runs collect a compact numbered source packet and record inspected sections and stage-report observations. The dashboard shows recorded package assurance separately from completion and links the current session export. It records supported content/markup issues and separates CSS/layout risks from observed rendering; no browser is used. The same feedback pass handles it without another agent or review cycle, and missing HTML is an evidence limitation rather than a completion blocker.
 
-After implementation completes, the dashboard shows **Session retrospective: Collecting feedback** while the existing feedback step runs. It refreshes to **Feedback saved** or **Unavailable** when the writer records the outcome, without changing implementation status or package approval. The parent collects the evidence and saves the combined report; a required independent agent returns only the artifact diagnosis.
+After final approval, the dashboard shows **Finalizing session** while feedback is collected in one bounded pass. A verified **Feedback saved** or **Unavailable** outcome settles finalization before optional delivery is offered. Answering delivery never restarts feedback. The implementation state and package approval remain unchanged. The parent collects the evidence and saves the combined report; a required independent agent returns only the artifact diagnosis.
 
 Use it when you want one command to take a ticket from request to a reviewed, documented implementation, in a repo that has been onboarded with `go-deep`.
 

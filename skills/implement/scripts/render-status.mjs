@@ -501,13 +501,14 @@ const DELIVERY_LABELS = {
 };
 const DELIVERY_PENDING = new Set(['not-started', 'offered', 'awaiting-approval', 'running']);
 
-function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery) {
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, collectingFeedback = false) {
   const { slots, activeSlot } = timeline;
   const activated = slots.filter((slot) => slot.activationRow);
 
   const steps = slots.map((slot, index) => {
-    const info = slotInfo(slot);
-    const dotState = slotState(slot, activeSlot, state.fields.status);
+    const finalizingFeedback = collectingFeedback && slot.finalizing && slot.completed;
+    const info = { ...slotInfo(slot), ...(finalizingFeedback ? { label: 'Finalizing' } : {}) };
+    const dotState = finalizingFeedback ? 'current spinning' : slotState(slot, activeSlot, state.fields.status);
     const isActive = slot === activeSlot;
     const passed = dotState === 'passed';
     const symbol = passed ? '✓' : dotState === 'failed' ? '✗' : '';
@@ -565,7 +566,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     pieces.push('</div>');
     return pieces.join('\n');
   });
-  if (state.fields.status === 'Complete' && state.fields.final_package_version === '1') {
+  if (!collectingFeedback && state.fields.status === 'Complete' && state.fields.final_package_version === '1') {
     const status = delivery?.status ?? 'not-started';
     const dot = status === 'delivered' ? 'passed' : ['failed', 'partial', 'unknown'].includes(status) ? 'failed'
       : status === 'running' ? 'current spinning' : status === 'awaiting-approval' ? 'current' : 'optional';
@@ -808,6 +809,7 @@ function renderFeedbackProgress(feedback) {
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, assurance = null, feedback = null }) {
+  const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
@@ -832,13 +834,15 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
     MODE_PILL: renderModePill(state),
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, collectingFeedback),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
-    STATUS_BANNER: renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
+    STATUS_BANNER: collectingFeedback
+      ? renderStatusBanner(state, timing, invalidTimestampFrom, null).replace('<strong>Implementation complete.</strong>', '<strong>Finalizing session.</strong> Implementation checks and final approval are complete. Collecting workflow feedback before optional delivery.')
+      : renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
     ASSURANCE_SUMMARY: renderAssurance(state, assurance),
     ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
-    DELIVERY_STATUS: renderDeliveryDetails(delivery, state.fields.ticket),
+    DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
