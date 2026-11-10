@@ -56,7 +56,8 @@ This file is a run artifact: never reference it from the plan itself, and never 
 | Step 1 | scope check — spec covers 2+ independent subsystems | `checkpoint` | Auto-confirm; proceed with the single plan as scoped rather than splitting it. Non-destructive — a human can always ask for a split on a later run. |
 | 2 | "critical blocker" that makes planning impossible | `checkpoint` / `open_text` | A requirements conflict always remains a hard stop and returns to refinement. Otherwise, if a reasonable inference consistent with the spec resolves it, do so, record it as an Assumption prefixed `[autopilot best-guess]` (`open_text`), and continue. If it genuinely cannot be inferred — e.g. the spec is self-contradictory or unreadable — **remains a hard stop**. |
 | 4 | existing `<TICKET>-plan.md` collision | `checkpoint` | See the Hard-stop exception above: write to the next free `-v2`/`-v3`/… suffix. Never overwrite, never abort. |
-| 4.5 | per-gap `AskUserQuestion` (Approach, Scope boundary, Data/migration, Backward compatibility, Unstated assumption, Missing prerequisite, Sequencing/rollout) | `askUserQuestion` | Choose the option labeled `(Recommended)`. Never choose the filler `"Proceed with the recommended assumption"` — a substantive recommended option is always present per this skill's own question-construction rule, so autopilot always has a concrete one to pick. For an `Approach` gap specifically, still print the full tradeoff block, then pick the option named in its `Recommendation:` line. |
+| 4.5 | per-gap `AskUserQuestion` (Approach, Change surface, Data/migration, Contract compatibility, Placement/pattern, Missing prerequisite, Sequencing/rollout) | `askUserQuestion` | Choose the option labeled `(Recommended)`. Never choose the filler `"Proceed with the recommended assumption"` — a substantive recommended option is always present per this skill's own question-construction rule, so autopilot always has a concrete one to pick. For an `Approach` gap specifically, still print the full tradeoff block, then pick the option named in its `Recommendation:` line. |
+| 4.5 | material spec gap (`Spec gap` question) | `askUserQuestion` | Choose the option labeled `(Recommended)`; never choose `"Needs PM — route to close-the-gaps"`. Mark the plan's Decision Log answer `_(autopilot spec-gap)_`, and list it separately in the end-of-run summary. |
 | 4.5 | genuinely open-ended gap (no fixed option set) | `open_text` | Answer with your own best inference from Step 4's investigation, prefixed `[autopilot best-guess]`. |
 | 5 | a step's regression baseline already failing before this step's changes | `checkpoint` | Do not attempt to fix an unrelated pre-existing failure. Record it in that step's Codebase Gaps/Risks and in the decision log, then continue with the progression test only. A suite that is not runnable locally (Step 5 point 6) is not a failure: record `regression not runnable locally — <reason>` and continue, with no checkpoint. |
 | 6 | "Optional — independent review" offer | `checkpoint` | Decline. There is no human to ask; the run completes without the extra review pass, and the final summary notes that it was skipped. |
@@ -124,7 +125,7 @@ Extract from the spec and hold onto these — they become sections of the plan. 
 - **Technical requirements** — what the system must do.
 - **In scope / out of scope** — what is explicitly included or excluded.
 - **Assumptions** — anything you are inferring that the spec does not state. List each one.
-- **Open questions / blockers** — ambiguities in the spec. Stop and ask now only for *critical blockers* that make planning impossible (autopilot: see Autopilot Mode); hold every other open question for the Step 4.5 Q&A, where code investigation will have sharpened it into a concrete "how" decision.
+- **Open questions / blockers** — ambiguities in the spec. Stop and ask now only for *critical blockers* that make planning impossible (autopilot: see Autopilot Mode). Do not carry the rest into Step 4.5 unchanged: send each through Step 4.5's triage, where most become Assumptions or are dropped because the spec already settles them.
 
 ---
 
@@ -187,28 +188,52 @@ Read the actual code paths the spec implies will change across **all affected re
 
 `close-the-gaps` already closed the product / **"what"** gaps upstream. Planning surfaces a second layer — the **"how"**: technical and scoping decisions the spec leaves open that would change the plan materially. Resolve those with the user now, once investigation has sharpened them, rather than guessing silently.
 
-**Build the question list.** From Step 2's open questions and Step 4's findings, scan for "how" gaps:
+**Triage every candidate first.** Classify each possible gap from Step 2's open questions and Step 4's findings before it can become a question:
+
+1. **Already settled.** The spec's ACs, Decision Log, Resolved Items or TBD list already cover it. Drop it. A TBD is an accepted open item, not an invitation to ask again. Never re-ask something close-the-gaps already recorded.
+2. **"What" gap.** The answer would change behavior someone can observe, or an acceptance criterion, and the spec says nothing about it. (If the spec contradicts itself or the code, that's a requirements conflict and follows **Rules before you begin**, not this triage.)
+   - *Minor:* the spec's intent, an equivalent existing flow, or a loaded skill points to one behavior. Record it as an Assumption that starts with `Spec gap:`.
+   - *Material:* reasonable readings of the spec lead to different user-visible behavior, and none is clearly implied. Ask it as a **Spec gap question** (below).
+3. **"How" gap.** The answer changes only the implementation. Apply the asking bar below.
+
+**Asking bar for "how" gaps.** Ask only when all three are true:
+
+- (a) Two or more workable options differ clearly in cost, risk or how easily they can be undone.
+- (b) The codebase, the loaded skills and the project's conventions don't already point to one.
+- (c) A wrong choice would be expensive to undo after execution (data shape, a public contract, the order of changes across repos).
+
+Everything else becomes an Assumption, with the reason. Most plans need one wave of questions or none. If more than 4 questions survive triage, check each against the bar again before asking.
+
+**Build the question list.** The "how" gaps that pass the bar fall into these types:
 
 1. **Approach** — two or more viable implementations (use the tradeoff format below).
-2. **Scope boundary** — does the change extend to a sibling module/service the investigation surfaced, or stop at the one the spec names?
+2. **Change surface** — which modules or services have to change to meet the spec, when the investigation shows the one the spec names can't do it alone. *Whether* to widen scope is a "what" gap.
 3. **Data / migration** — backfill existing rows? default for a new non-null column? migrate in place, dual-write, or lazily?
-4. **Backward compatibility** — must the current API/event contract keep working, or is a breaking change acceptable — and who consumes it?
-5. **Unspecified detail the spec assumes** — where a new field/flag/config lives; which existing pattern to follow when several compete.
-6. **Missing prerequisite** — a validation, endpoint, or invariant the spec assumes exists but the code (per Codebase Gaps) does not have.
+4. **Contract compatibility** — whether an existing API, event or schema can change shape or has to stay compatible, given the consumers the investigation found. Whether a consumer *should* see different behavior is a "what" gap.
+5. **Placement / pattern** — where a new field, flag or config lives, and which existing pattern to follow when several compete.
+6. **Missing prerequisite** — a technical prerequisite (validation, endpoint, invariant) the spec assumes exists but the code (per Codebase Gaps) does not have. If the missing piece changes what users get, it's a "what" gap.
 7. **Sequencing / rollout** — feature flag? cross-repo deploy order? staged rollout?
 
-Ask only about gaps where guessing wrong would send the executor down the wrong path. Anything you can resolve safely from the codebase or a low-risk convention is **not** a question — record it as an Assumption in the plan instead.
+**Spec gap questions.** Ask material "what" gaps in the same waves as the other questions:
+
+- `header`: `Spec gap`
+- `question`: `"Spec gap: <question>\n\n<what the spec leaves out, and the code evidence>"`
+- `options`: the recommended behavior, labeled `(Recommended)`; one alternative; and `{ label: "Needs PM — route to close-the-gaps", description: "Pause planning for this behavior and refine the spec with close-the-gaps (offline/Slack available)." }`. Spec gap questions have no "Proceed with the recommended assumption" option.
+
+If the user chooses to route the question, stop planning anything that depends on it, as for a requirements conflict. Standalone, tell the user to run `close-the-gaps <TICKET>` and bring the question with them. Under `implement`, return it through the existing `Spec conflict: <criterion, evidence, decision needed>` handoff.
+
+If the user picks a behavior, record the answer in the plan's Decision Log with Gap Type `Spec gap`. Standalone runs also add a row to the spec's `## Decision Log`, marked `_(answered during planning)_`. Under `implement`, leave the spec unchanged, because `implement` owns spec revisions.
 
 **Ask in dependency-ordered waves** (same mechanics as `close-the-gaps`): `AskUserQuestion` can batch up to 4 questions into one call, rendered as navigable tabs the user can jump between and revise before submitting — but only when those questions don't depend on each other's answers.
 
 After identifying those semantic dependencies, use `scripts/questions.mjs waves` under [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) to validate IDs/cycles and compute batches; do not manually schedule the graph.
 
-- Before asking anything, check each gap against every other pending gap: does answering one change another's wording, options, or whether it's still needed? If so, the dependent one goes in a **later** wave, never the same batch. Common dependency: a `Scope boundary` or `Data / migration` answer often gates the options for a later `Sequencing / rollout` question. Independent gap types (most `Unstated assumption`, `Missing prerequisite`, unrelated `Approach` choices) default to Wave 1.
+- Before asking anything, check each gap against every other pending gap: does answering one change another's wording, options, or whether it's still needed? If so, the dependent one goes in a **later** wave, never the same batch. Common dependency: a `Change surface`, `Data / migration` or `Spec gap` answer often gates the options for a later `Sequencing / rollout` question. Independent gap types (most `Placement / pattern`, `Missing prerequisite`, unrelated `Approach` choices) default to Wave 1.
 - Use **`AskUserQuestion`** for gaps with pre-enumerable answers; ask a genuinely open-ended gap as one concise plain-text question instead — outside the batch (autopilot: see Autopilot Mode).
 - Batch each wave's independent questions into a single `AskUserQuestion` call (≤4 per call); if a wave has more than 4, split into consecutive calls of ≤4 in that wave — order between them doesn't matter.
-- Per question — `header`: a ≤12-char topic — e.g. `Approach`, `Migration`, `Scope`, `Compat`, `Rollout`.
+- Per question — `header`: a ≤12-char topic — e.g. `Approach`, `Migration`, `Surface`, `Compat`, `Rollout`, `Spec gap`.
 - `question`: `"[Gap type]: [the question]\n\n[one sentence on why it changes the plan]"`.
-- `options`: up to 3 substantive choices with the **recommended one first**, its label suffixed `(Recommended)` — base the recommendation on what the codebase already supports, the smallest safe scope, and the invariants in the loaded skills. Always end with a final option:
+- `options`: up to 3 substantive choices with the **recommended one first**, its label suffixed `(Recommended)` — base the recommendation on what the codebase already supports, the smallest safe scope, and the invariants in the loaded skills. For "how" gaps, always end with a final option:
   `{ label: "Proceed with the recommended assumption", description: "Don't decide now — I'll document the default choice in the plan's Assumptions." }` (autopilot: see Autopilot Mode — never auto-selected, since a substantive recommended option is always available to pick instead)
 - Wait for the whole wave's answers before building the next wave. If a wave's answers open a new gap or unblock a dependent question, fold it into the next wave rather than re-opening one already asked.
 
@@ -336,6 +361,8 @@ Overall risk: <before mitigations> → <after mitigations>
 Recommended executor tier: <low | standard | high> — <one-line reason>
 Context updated: <each file changed in Step 5.6, with a one-line reason | none>
 ```
+
+Under the output block, list every `Spec gap:` Assumption, and every Assumption that Step 4.5's triage turned into an assumption instead of a question, one line each, so the user can override any of them before running `execute`. Omit the list when there are none.
 
 If Overall risk (after mitigations) is High, also print the plan's `### Phasing alternative` summary in chat here — that's where the user actually decides, not buried in the file.
 
