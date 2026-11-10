@@ -1,0 +1,21 @@
+skills/implement/scripts/final-package.test.mjs
+  s_f93c02af7eed98::t_c8d889f0f08628 229
+skills/implement/scripts/pending-input.test.mjs
+  s_f93c02af7eed98::t_c8d889f0f08628 253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c658488f9ccd74ce3830511aaeda4ebd68745258",
+  "prompts": {},
+  "sessions": {
+    "s_f93c02af7eed98": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c435-1a18-7ad3-958f-f01e70f659d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
