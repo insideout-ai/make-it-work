@@ -91,10 +91,10 @@ export function validateEvidenceReview(review, packet, safe) {
   if (html.status === 'partial' && !sections.some(s => s.status === 'checked')) throw new Error('Partial dashboard inspection still needs substantive source observations; marker counts alone are insufficient.');
   if (packet.dashboard.omitted.length && html.status === 'inspected') throw new Error('The dashboard packet has omitted lines; retain partial coverage and its limitation.');
   if (!Array.isArray(review.process)) throw new Error('evidence_review.process must assess available stage reports.');
-  for (const item of review.process) {
+  for (const [index, item] of review.process.entries()) {
     const entry = packet.sources.find(s => s.label === item.source && ['Review', 'Implementation', 'Execution'].includes(s.label) && s.status === 'available');
     if (!entry || !entry.lines.some(row => row.line === item.line) || !['met', 'gap', 'limitation'].includes(item.result)) throw new Error('Stage assessment needs an available source, source line and explicit result.');
-    safe(item.note, 'Stage assessment');
+    safe(item.note, `evidence_review.process[${index}].note (${item.source} line ${item.line})`);
     if (item.result === 'gap' && !/^F[1-9]\d*$/.test(item.finding_id ?? '')) throw new Error('A stage compliance gap needs a session finding_id.');
   }
   for (const entry of packet.sources.filter(s => ['Review', 'Implementation', 'Execution'].includes(s.label) && s.status === 'available')) {

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.6.2] — 2026-11-12
+
+### Fixed
+
+- Preserve terminal feedback inspection, source-packet and delegate evidence across output piping and resumed sessions; verify collection prerequisites before saving and identify precise input errors.
+- Record explicit waivers of unavailable supplemental manual checks without rewriting plans or marking acceptance verified; retain the automated completion gate and correctness stops.
+- Save execution mode through one controller operation; initialize ticket-publication pointers and audit records with recoverable retries; allow Stop/Pause to inherit saved repository roots.
+- Check project context before optional startup questions and publication consent, and record the actual description representation returned by the tracker connector.
+
+### Changed
+
+- Resolve known requirement contradictions and date boundaries during planning; classify unavailable supplemental checks as post-delivery verification.
+- Keep feedback review bounded to existing evidence, distinguish observed events from uncertain causes, label metric scope and acceptance-count units, and retain public workflow terminology during sanitization.
+
 ## [5.6.1] — 2026-11-10
 
 ### Fixed

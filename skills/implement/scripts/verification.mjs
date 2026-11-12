@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { runArtifact, runDirectory } from './artifact-layout.mjs';
 import { testingPolicy, validateManualEvidence } from './testing-policy.mjs';
+import { parseSteps } from '../../../scripts/lib/plan.mjs';
+import { manualScenarioNames } from './manual-waiver.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { parseState } from './render-status.mjs';
 
@@ -58,15 +60,23 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
     seenSteps.add(step.number);
     if (!Array.isArray(step.checks) || !step.checks.length) fail(`Step ${step.number} has no verification checks.`);
     for (const check of step.checks) {
-      exactKeys(check, ['type', 'subject', 'command', 'result', 'note', 'assertions'], 'verification check');
-      if (!['automated', 'manual', 'exempt'].includes(check.type)) fail('Invalid verification check type.');
+      exactKeys(check, ['type', 'subject', 'command', 'result', 'note', 'assertions', 'authorization'], 'verification check');
+      if (!['automated', 'manual', 'exempt', 'skipped'].includes(check.type)) fail('Invalid verification check type.');
       nonempty(check.subject, 'verification subject');
       nonempty(check.note, 'verification note');
       if (check.type === 'automated' ? !check.command : check.command !== null) fail('Only automated checks have a command.');
       if (check.type === 'automated') nonempty(check.command, 'verification command');
-      if (check.result !== (check.type === 'exempt' ? 'exempt' : 'pass')) fail('Only passing or exempt checks may be checkpointed.');
+      if (check.result !== (check.type === 'exempt' ? 'exempt' : check.type === 'skipped' ? 'skipped' : 'pass')) fail('Only passing, exempt, or explicitly skipped checks may be checkpointed.');
+      if (check.type === 'skipped') {
+        const a = check.authorization;
+        exactKeys(a, ['id', 'source', 'via', 'reason'], 'skip authorization');
+        if (!a || a.source !== 'user' || !['chat', 'question'].includes(a.via) || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(a.id ?? '') || typeof a.reason !== 'string' || !a.reason.trim()) fail('Skipped checks require explicit user authorization.');
+        if (plan === null || parseSteps(plan)[step.number - 1]?.title !== 'Verify manual scenarios') fail('Only a manual-verification step may contain skipped checks.');
+        if (!manualScenarioNames(plan).includes(check.subject)) fail('Only named manual scenarios may be skipped.');
+        if (outcome === 'VERIFIED_MANUALLY' || value.gate?.result === 'manual-accepted') fail('Skipped checks cannot establish manual verification.');
+      } else if (check.authorization !== undefined) fail('Only skipped checks carry waiver authorization.');
       if (check.assertions !== undefined) {
-        if (check.type === 'exempt' || !Array.isArray(check.assertions) || !check.assertions.length) fail('Assertions require an actual automated or manual check.');
+        if (!['automated', 'manual'].includes(check.type) || !Array.isArray(check.assertions) || !check.assertions.length) fail('Assertions require an actual automated or manual check.');
         const clauses = new Set();
         for (const assertion of check.assertions) {
           exactKeys(assertion, ['clause', 'expected', 'observed', 'source'], 'check assertion');

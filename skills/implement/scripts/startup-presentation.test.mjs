@@ -673,3 +673,17 @@ test('readiness cannot be completed with a live Plan delegate, while waiting rem
   assert.match((await startupHook(input)).hookSpecificOutput.additionalContext, /could not verify/);
   await writeFile(run.result.state, saved);
 });
+
+test('a resumed run tracks the terminal delegate even when completion output is projected', () => {
+  const events = [...startup(), assistant(text(initialized.startup_message)),
+    { type: 'user', message: { role: 'user', content: 'Continue to review without manual checks' } },
+    assistant({ type: 'tool_use', id: 'done', name: 'Bash', input: { command: 'workflow.mjs apply | head' } }),
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'done', content: 'complete Complete {truncated' }] } },
+    assistant({ type: 'tool_use', id: 'retro', name: 'Agent', input: { prompt: 'Retrospective' } }),
+    { type: 'user', timestamp: '2026-11-12T11:21:13Z', toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'retro-agent' },
+      message: { content: [{ type: 'tool_result', tool_use_id: 'retro', content: 'Launched' }] } }];
+  const progress = startupProgress(events);
+  assert.equal(progress.initialized, null);
+  assert.equal(progress.terminalFeedback, null);
+  assert.equal(progress.agents[0].id, 'retro-agent');
+});

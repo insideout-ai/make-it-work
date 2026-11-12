@@ -62,7 +62,7 @@ export function startupProgress(events) {
     if (!Array.isArray(content)) continue;
     for (const part of content) {
       if (role === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') bashCalls.add(part.id);
-      if ((initialized || terminalFeedback) && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
+      if ((initialized || terminalFeedback || feedbackRun) && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
         agentCalls.set(part.id, part.name);
       }
       if (role === 'user' && part.type === 'tool_result' && !part.is_error && agentCalls.has(part.tool_use_id)) {
@@ -96,6 +96,8 @@ export function startupProgress(events) {
             const action = value.next_action;
             if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
                 action.runId === value.fields?.start_time) { terminalFeedback = action; feedbackRun = action; }
+            const context = value.feedbackContext;
+            if (context && typeof context.state === 'string' && path.isAbsolute(context.state) && Number.isFinite(Date.parse(context.runId))) feedbackRun = context;
           } catch { /* Only structured controller results establish a terminal handoff. */ }
         }
       }

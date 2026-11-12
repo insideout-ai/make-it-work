@@ -403,12 +403,12 @@ test('source-specific Audit terms must be paraphrased before feedback is written
 
 test('workflow skill names in Audit prose remain valid feedback terms', async (t) => {
   const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z')
-    .replace('Initial execution and gate passed', 'Initial run-regression gate passed');
+    .replace('Initial execution and gate passed', 'Initial run-regression gate passed; execution-mode subagent-driven; waive-manual-verification via waive-manual; accept-workspace and manual-walkthrough');
   const { statePath, feedbackPath } = await workspace(t, state);
   const summary = inspectState(state);
-  assert.ok(!summary.sourceCompounds.includes('run-regression'));
+  for (const term of ['run-regression', 'execution-mode', 'subagent-driven', 'waive-manual-verification', 'waive-manual', 'accept-workspace', 'manual-walkthrough']) assert.ok(!summary.sourceCompounds.includes(term));
   const analysis = diagnosis(summary);
-  analysis.recommendations = ['Have run-regression verify coverage after the plan is approved'];
+  analysis.recommendations = ['Have run-regression verify coverage after the plan is approved; use execution-mode and waive-manual-verification through their supported routes'];
   await writeFeedback(statePath, { analysis });
   assert.match(await readFile(feedbackPath, 'utf8'), /run-regression verify coverage/);
 });
@@ -452,7 +452,7 @@ test('adaptive Lightweight run adds Mode and Escalations lines and stays minimal
   ]));
   assert.deepEqual([summary.minimal, summary.fixRounds, summary.replans, summary.reviewCycles], [true, 0, 0, 1]);
   const block = renderBlock(summary);
-  assert.match(block, /- Plugin version: 4\.19\.0\n- Mode: lightweight \(low risk, assessed\)\n- Escalations: 0\n- Stages skipped: plan, execute, regression gate\n- Elapsed: \d+h \d+m\n- Outcome: Complete\n/);
+  assert.match(block, /- Plugin version: 4\.19\.0\n- Mode: lightweight \(low risk, assessed\)\n- Escalations: 0\n- Stages skipped: plan, execute, regression gate\n- Elapsed: \d+h \d+m\n- Metric scope: [^\n]+\n- Outcome: Complete\n/);
 });
 
 test('review to lightweight counts as Fix and an Escalation row is its own event, not a Replan', () => {

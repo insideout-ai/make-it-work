@@ -26,6 +26,8 @@ state first and pass its saved artifact root; do not create a duplicate run ther
 
 ## Assess, preview, confirm, apply
 
+Before applying branch changes for a new run, perform implement's read-only early context precheck on the selected repositories. A missing-context stop precedes optional startup questions and publication consent; it does not authorize changing repository selection or bypassing onboarding.
+
 For `layout: workspace`, read and follow `../../find-the-repos/SKILL.md` inline
 before refinement. Do not invoke it through Skill. Pass the resolved boundary,
 ticket content/identity, artifact root and existing report if any. Its assessment

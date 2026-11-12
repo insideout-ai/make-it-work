@@ -4,7 +4,7 @@ Use this reference with [../../feedback-on-session/SKILL.md](../../feedback-on-s
 
 ## Eligibility and timing
 
-Collection is a short, bounded part of finalizing the session, before recording any optional delivery offer. Reuse the retained review, fix diagnosis and known outcomes in one pass; aim for roughly a minute, without promising a hard service-time bound. When the available evidence cannot establish a cause, record the uncertainty and a proposed follow-up instead of extending the investigation. Never rerun application tests or repeat an independent retrospective just to restate existing evidence.
+Collection is a short, bounded part of finalizing the session, before recording any optional delivery offer. Reuse the retained review, fix diagnosis and known outcomes in one pass; aim for roughly a minute, without promising a hard service-time bound. When the available evidence cannot establish a cause, record the uncertainty and a proposed follow-up instead of extending the investigation. Never rerun application tests or repeat an independent retrospective just to restate existing evidence. Use feedback-on-session’s single bounded closing check while preparing the normal save or an already-required repair; no extra agent, full transcript reread, mandatory second write or new approval is added. Finalization findings use the existing session findings and limitations, not another analysis event or report.
 
 After the combined save, the scoped hook validates the parent runtime evidence and records `feedback-finalized.json`. Delivery opens only after this boundary; its answer reuses the recorded outcome. Do not manually create or edit the lifecycle receipt. A later delivery decision, HTML refresh or user status question cannot reopen collection. For an older session whose delivery question was already answered with current feedback saved, honor the answer and leave further feedback investigation as a separate follow-up.
 
@@ -104,7 +104,7 @@ start and terminal checkpoint, and keeps hook interruptions and waits separate
 from Fix/Replan/Escalation counts. A missing journal is compatible with older
 runs; do not backfill it from remembered chat. A malformed or unreadable journal
 makes feedback unavailable rather than silently producing a clean report.
-Hook recording errors are reported to the session without changing enforcement
+Transcript-supported holds after the terminal checkpoint remain reportable as session findings, separately from these journal-bounded totals. Hook recording errors are reported to the session without changing enforcement
 or implementation status. If recording failed, report the evidence limitation.
 
 ## Decide whether the path was minimal
@@ -128,7 +128,7 @@ Supply the final `<TICKET>-status.html` beside the state file for [dashboard HTM
 For `analysisRequired: false`, no artifact root-cause analysis is needed. Review the available conversation and dashboard source using feedback-on-session, pass the read-only input check below, then save its structured review alongside the compact artifact block:
 
 ```sh
-node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --session-review "<temporary-session-review.json>"
+node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --session-review "<temporary-session-review.json>" --transcript "<session-jsonl-path>"
 ```
 
 Do not dispatch artifact retrospective analysis when `analysisRequired` is false; conversation review and its single invitation still apply. `minimal` measures only the path through Fix/Replan/Escalation rounds; it does not classify conversation quality. A guardrail does not change those counts or imply a failed run. A recorded guardrail, hook intervention or repeated wait sets `analysisRequired: true` even on a minimal path. One ordinary agent wait does not. Counts and resolution metadata are derived by the writer, not supplied by the model.
@@ -359,10 +359,20 @@ The retrospective subagent returns one share-safe JSON object. Create a uniquely
 
 `guardrails` must match the inspection list one-for-one using its exact `row` and `resolutionRow` (null when not recorded). Keep trigger/resolution/lesson share-safe and distinguish reported evidence from inference. Source/channel are derived from saved checkpoints, not invented by the subagent. Omit `guardrails` or use an empty array when none were recorded. A guardrail-only analysis uses `events: []`.
 
-`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` (`Fix`, `Replan`, or `Escalation`) and `row`. Valid `rootCause` values are the categories in Investigate extra rounds or guardrail interventions; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and compound terms copied from Audit-log prose, but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
+`events` must correspond one-for-one, in order, to the inspection summary's `events`, including exact `kind` (`Fix`, `Replan`, or `Escalation`) and `row`. Valid `rootCause` values are the categories in Investigate extra rounds or guardrail interventions; `preventability` is `likely`, `partial`, `unavoidable`, or `unclear`; `confidence` is `high`, `medium`, or `low`. Use `"No workflow change recommended"` when appropriate. Keep every text value one line and share-safe. The writer rejects paths, markup, contact details, the ticket ID, and project-specific compound terms copied from Audit-log prose (known public workflow identifiers remain allowed), but it cannot detect every sensitive identifier: perform the share-safe review above yourself before the write. If it rejects a term, paraphrase that text value and retry rather than dropping the diagnosis.
 
 ```sh
-node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --analysis "<temporary-analysis.json>" --session-review "<temporary-session-review.json>"
+node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<TICKET>-state.md" --analysis "<temporary-analysis.json>" --session-review "<temporary-session-review.json>" --transcript "<session-jsonl-path>"
 ```
 
 Add `--limit-stop` for an eligible limit stop. The writer omits `### User clarifications` when none were asked and renders `None` under `### Open questions` when the list is empty. On any writer error, preserve the terminal workflow state and report the feedback failure.
+
+## Durable observations and writer preflight
+
+Run `write-feedback.mjs inspect --state STATE --transcript SESSION_JSONL` first. Its `commands.write` includes that transcript path, and `session_review_template` supplies the exact input shape and current packet hash. Fill the scaffold from actual conversation/source inspection; unreviewed sections are not evidence. Diagnostics name the exact input field and any rejected project term locally. Do not paste diagnostic text into the shareable report.
+
+Inspect and evidence collection write run/state-bound `feedback-observations.json` receipts. The hook records only retrospective dispatches established by actual matching tool calls/results after inspection. Do not create or edit this receipt manually. Piping display output does not erase these durable observations; a technical-failure claim still requires the original direct failed invocation and its actual error, not a pipeline masking its exit status.
+
+For a large packet use `write-feedback.mjs evidence --state STATE --output RUN_DIRECTORY/feedback-evidence.txt`, then read that file in chunks. The supported output option emits a short packet acknowledgement and keeps source contents local. The output must be `feedback-evidence[-NAME].txt` beside the state. Evidence generation is not proof of semantic inspection: the source observations remain required.
+
+For combined feedback on evidence-enabled or non-minimal runs, `write` requires `--transcript SESSION_JSONL` and verifies dispatch/source prerequisites before changing either report. A preflight failure identifies what is missing; repair it and retry the same retrospective result rather than launching a duplicate analyst. `check` validates the model-authored inputs; it does not certify these runtime prerequisites. Existing library/legacy callers retain their existing contract and terminal hooks still validate their runtime work.
