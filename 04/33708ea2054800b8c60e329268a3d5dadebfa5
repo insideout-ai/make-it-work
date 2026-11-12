@@ -1,0 +1,32 @@
+evals/end-to-end/clean-install.sh
+  s_e17e4b74f2e919::t_3d4b18f293462d 8-13,26-31,40-71
+.github/workflows/validate-plugin.yml
+  s_e17e4b74f2e919::t_3d4b18f293462d 5,44-66,69-89
+tools/anthropic-release/package.mjs
+  s_e17e4b74f2e919::t_f6cf2bf9286c0a 1-66,68-133
+  s_e17e4b74f2e919::t_7de04b9590b190 67
+tools/anthropic-release/publish.mjs
+  s_e17e4b74f2e919::t_7de04b9590b190 6,18,25-31,46,56
+  s_e17e4b74f2e919::t_9c501b1fb51bf8 1-5,7-17,19-24,32-45,47-55,57-58
+tools/anthropic-release/package.test.mjs
+  s_e17e4b74f2e919::t_9c501b1fb51bf8 1-54,56,68-87
+  s_e17e4b74f2e919::t_7de04b9590b190 55,57-67
+docs/anthropic-release.md
+  s_e17e4b74f2e919::t_3d4b18f293462d 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0433708ea2054800b8c60e329268a3d5dadebfa5",
+  "prompts": {},
+  "sessions": {
+    "s_e17e4b74f2e919": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ceee-7adf-7e82-ab11-51ed07fe8c3f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
