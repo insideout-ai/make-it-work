@@ -2,6 +2,7 @@ name: Validate plugin
 
 on:
   pull_request:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -40,5 +41,49 @@ jobs:
       - name: Test automatic headless grading and eval batching
         run: node --test evals/*.test.mjs
 
+      - name: Test Anthropic packaging and publication
+        run: node --test tools/anthropic-release/*.test.mjs
+
+      - name: Build committed Anthropic runtime package
+        run: node tools/anthropic-release/package.mjs build --source "$GITHUB_SHA" --output "$RUNNER_TEMP/anthropic-plugin" --report "$RUNNER_TEMP/anthropic-package.json" > "$RUNNER_TEMP/anthropic-build.json"
+
+      - name: Validate exported plugin and skills
+        run: |
+          claude plugin validate "$RUNNER_TEMP/anthropic-plugin/.claude-plugin/plugin.json" --strict
+          claude plugin validate "$RUNNER_TEMP/anthropic-plugin/skills" --strict
+          node tools/anthropic-release/package.mjs verify --output "$RUNNER_TEMP/anthropic-plugin" --report "$RUNNER_TEMP/anthropic-package.json"
+
+      - name: Verify isolated installation of exported package
+        run: bash evals/end-to-end/clean-install.sh "$RUNNER_TEMP/anthropic-plugin"
+
+      - name: Upload package inventory and policy qualifications
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anthropic-package-report
+          path: ${{ runner.temp }}/anthropic-package.json
+          if-no-files-found: ignore
+
       - name: Validate marketplace manifest
         run: claude plugin validate .claude-plugin/marketplace.json --strict
+
+  publish-anthropic:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.ANTHROPIC_RELEASE_PAUSED != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: anthropic-release-publication
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rebuild verified snapshot preserving file modes
+        run: node tools/anthropic-release/package.mjs build --source "$GITHUB_SHA" --output "$RUNNER_TEMP/anthropic-plugin" --report "$RUNNER_TEMP/anthropic-package.json" > "$RUNNER_TEMP/anthropic-build.json"
+      - name: Publish only the dedicated runtime branch
+        run: node tools/anthropic-release/publish.mjs "$RUNNER_TEMP/anthropic-plugin" "$RUNNER_TEMP/anthropic-package.json"
