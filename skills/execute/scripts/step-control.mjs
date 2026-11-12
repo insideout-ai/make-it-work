@@ -139,6 +139,26 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     const resolving = event.action === 'resolve-stop';
     if (resolving && (event.source !== 'user' || !['chat', 'question'].includes(event.via) || !event.reason)) fail('Resolving a correctness stop requires explicit user guidance.');
     let journal = await readJournal(journalPath, hash, steps, status.completed, resolving);
+    const waiving = event.action === 'waive-manual';
+    if (!waiving && event.steps?.some(step => step.checks?.some(check => check.type === 'skipped'))) fail('Skipped checks must use the authorized waive-manual action.');
+    if (waiving) {
+      if (!dashboardState || !ledgerPath) fail('Manual waiver requires the controller state and verification ledger.');
+      const state = parseState(await readFile(dashboardState, 'utf8'), dashboardState).fields;
+      const waiver = JSON.parse(state.manual_verification_waiver ?? 'null');
+      if (state.phase !== 'execute' || state.status !== 'In Progress' || state.ticket !== ticket || Number(state.plan_version) !== planVersion ||
+          !waiver || waiver.source !== 'user' || !['chat', 'question'].includes(waiver.via) || waiver.plan_version !== planVersion || waiver.plan_hash !== hash || waiver.step !== steps.length ||
+          steps.at(-1).title !== 'Verify manual scenarios' || steps.at(-1).files.length || ![steps.length - 1, steps.length].includes(status.completed)) fail('No current controller authorization for this manual-verification step.');
+      const evidence = JSON.parse(await readFile(ledgerPath, 'utf8'));
+      validateVerification(evidence, { ticket, planVersion, plan, requireClauses });
+      for (let n = 1; n < waiver.step; n++) if (!evidence.steps.some(step => step.number === n)) fail(`Implementation step ${n} has no evidence.`);
+      if (evidence.gate?.result === 'fail' || journal.stopped && journal.stopped !== 'execution-failed') fail('Manual waiver cannot waive a failed gate or correctness stop.');
+      if (journal.stopped) {
+        journal = mutateExecution(journal, { action: 'resolve-stop', source: waiver.source, via: waiver.via, reason: waiver.reason }, steps, status.completed);
+        await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
+      }
+      const authorization = { id: waiver.id, source: waiver.source, via: waiver.via, reason: waiver.reason };
+      event = { action: 'complete', steps: [{ number: waiver.step, checks: waiver.scenarios.map(subject => ({ type: 'skipped', subject, command: null, result: 'skipped', note: `Not performed: ${waiver.reason}`, authorization })) }] };
+    }
     await checkpointGuardrails(planPath, dashboardState, journal);
     if (event.action === 'complete' || status.completed || journal.amendment_pending) {
       const directory = path.dirname(path.resolve(planPath));
@@ -214,7 +234,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     const receiptHash = digest(JSON.stringify(event.steps));
     const receipt = journal.receipts.find((item) => item.hash === receiptHash);
     const dashboard = await executionDashboardState(planPath, dashboardState);
-    if (!receipt && (dashboard?.state.fields.controller_version === '1' || journal.active_steps?.length) && JSON.stringify(journal.active_steps) !== JSON.stringify(ids)) fail('Start the exact step/batch before recording completion.');
+    if (!waiving && !receipt && (dashboard?.state.fields.controller_version === '1' || journal.active_steps?.length) && JSON.stringify(journal.active_steps) !== JSON.stringify(ids)) fail('Start the exact step/batch before recording completion.');
     if (receipt && journal.active_steps?.length) fail('Completion receipt is older than the active dispatch.');
     let ledger;
     try { ledger = JSON.parse(await readFile(ledgerPath, 'utf8')); }
@@ -226,7 +246,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     if (!receipt) {
       const eligible = nextBatch(steps, status.completed, ids.length > 1);
       if (ids.length > eligible.length || ids.some((id, i) => id !== eligible[i])) fail('Completion is not the next eligible step/batch.');
-      if (event.steps.some((step) => !step.checks?.length || step.checks.some((check) => check.result !== (check.type === 'exempt' ? 'exempt' : 'pass')))) fail('Every batch member requires passing evidence; failed batches do not advance.');
+      if (event.steps.some((step) => !step.checks?.length || step.checks.some((check) => check.result !== (check.type === 'exempt' ? 'exempt' : waiving && check.type === 'skipped' ? 'skipped' : 'pass')))) fail('Every batch member requires passing evidence; failed batches do not advance.');
       for (const step of event.steps) {
         const existing = ledger.steps.find((item) => item.number === step.number);
         if (existing && JSON.stringify(existing) !== JSON.stringify(step)) fail('Step already has different evidence.');
@@ -234,9 +254,10 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
       }
       ledger.steps.sort((a, b) => a.number - b.number);
       for (const item of ledger.acceptance) {
-        const matches = (check) => check.subject === item.scenario && check.type !== 'exempt' && (!item.clause || check.assertions?.some((assertion) => assertion.clause === item.clause));
+        const matches = (check) => check.subject === item.scenario && ['automated', 'manual'].includes(check.type) && (!item.clause || check.assertions?.some((assertion) => assertion.clause === item.clause));
         const step = event.steps.find((s) => s.checks.some(matches));
         if (step) { item.step = step.number; item.status = step.checks.find(matches).type; item.note = 'Recorded step evidence.'; }
+        else if (waiving && event.steps[0].checks.some(check => check.subject === item.scenario) && item.status === 'unverified') item.note = event.steps[0].checks.find(check => check.subject === item.scenario).note;
       }
       validateVerification(ledger, { ticket, planVersion, plan, requireClauses });
       await atomicWrite(ledgerPath, JSON.stringify(ledger, null, 2) + '\n');
@@ -258,7 +279,8 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
       savedReceipt.checkpointed = true;
       await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
     }
-    return { completed: through, ledger: ledgerPath, replayed: Boolean(receipt) };
+    if (waiving) await checkpointExecutionActivity(planPath, dashboardState, `Manual verification skipped by explicit user decision; acceptance remains unverified. Run the automated completion gate before review.`, true);
+    return { completed: through, ...(waiving ? { manual_verification: 'skipped', acceptance: 'unverified' } : {}), ledger: ledgerPath, replayed: Boolean(receipt) };
   });
 }
 cli(import.meta.url, async (argv) => {

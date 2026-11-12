@@ -31,3 +31,9 @@ HTML is refreshed but a missing legacy dashboard is never created.
 Repeat an identical completion event after a dashboard failure; its receipt validates saved evidence and recovers without duplicate Progress. Any command failure prevents the next dispatch. Changed plan content requires resolving/replanning through implement; the helper never guesses which prior evidence remains valid. Manual observations and semantic test adequacy are not proved by a JSON validator.
 
 An append-only fix amendment retains prior step evidence but clears the old completion gate. The amended plan must run its gate again before a terminal passing handoff. New AC traceability rows begin unverified; a change to prior traceability is a reassessment blocker.
+
+## Explicit waiver of unavailable supplemental manual verification
+
+Only after implement's `waive-manual-verification` controller event succeeds, apply `{ "action": "waive-manual" }` with the same plan, ledger, ticket/version and `--dashboard-state`. The helper reads the saved authorization; an event's assertion of user consent is insufficient. It permits only the final `Verify manual scenarios` step after the implementation evidence is recorded. It archives an unavailable-verification execution stop, records each named check as `type: skipped`, `result: skipped` with the actual user authorization, and advances Progress without editing the plan's requirements. Replaying the action recovers the checkpoint idempotently.
+
+Skipped checks never satisfy an acceptance assertion and cannot establish `VERIFIED_MANUALLY`. The helper refuses stale authorization, correctness stops and failed gates. Do not dispatch a subagent for this record-only operation. After it succeeds, run the configured automated completion gate and normal handoff; report the manual scenarios as not performed and their acceptance clauses as unverified. All-manual policies retain their required verification gate.

@@ -11,5 +11,5 @@ export function summarizeAcceptance(rows) {
   const total = criteria.size, pending = pendingCriteria.length, verified = total - pending;
   const label = pending === 0 ? 'Verified' : verified === 0 ? 'Pending verification' : 'Partially verified';
   const detail = pending ? `${pending} of ${total} acceptance criteria pending` : `${verified} of ${total} acceptance criteria verified`;
-  return { label, detail, text: `${label} — ${detail}`, total, verified, pending, pendingCriteria };
+  return { label, detail, text: `${label} — ${detail}`, total, verified, pending, pendingRows: pendingCriteria.reduce((count, item) => count + item.scenarios.length, 0), pendingCriteria };
 }

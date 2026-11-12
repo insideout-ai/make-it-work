@@ -5,6 +5,7 @@ import { parseState } from './render-status.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 import { fileURLToPath } from 'node:url';
 import { finalizeFeedback, readFeedbackFinalization } from './feedback-finalization.mjs';
+import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
 
 const writerPath = fileURLToPath(new URL('./write-feedback.mjs', import.meta.url));
 const feedbackReference = fileURLToPath(new URL('../references/feedback.md', import.meta.url));
@@ -30,14 +31,17 @@ function writerOperation(call, statePath) {
 
 // Only actual tool calls/results after this terminal checkpoint count. A reason
 // supplied by the model, diagnostic replay or an agent's prose is not a failure.
-export function feedbackRuntimeEvidence(events, statePath, fields, audit, failureId) {
+export function feedbackRuntimeEvidence(events, statePath, fields, audit, failureId, receipts = null) {
   const stateHash = feedbackStateHash(fields, audit);
   const terminalTime = Date.parse(feedbackTerminalRow(fields, audit)?.time);
   const calls = new Map();
   let analysisRequired = false;
   let failure = null;
   let retrospectiveDispatched = false;
-  const sourcePackets = new Set();
+  const bound = receipts?.runId === fields.start_time && receipts.stateHash === stateHash ? receipts : null;
+  const sourcePackets = new Set(bound?.packets ?? []);
+  const dispatches = [...(bound?.dispatches ?? [])];
+  retrospectiveDispatched = dispatches.some(item => Date.parse(item.at) >= terminalTime);
   const completedReports = [];
   for (const event of events) {
     if (!['assistant', 'user'].includes(event.type) || event.isSynthetic || event.isMeta) continue;
@@ -45,7 +49,8 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
     if (!Array.isArray(event.message?.content)) continue;
     for (const part of event.message.content) {
       if (role === 'assistant' && part.type === 'tool_use' && Date.parse(event.timestamp) >= terminalTime) {
-        calls.set(part.id, { ...part, cwd: event.cwd, analysisRequired });
+        calls.set(part.id, { ...part, cwd: event.cwd, at: event.timestamp,
+          analysisRequired: analysisRequired || bound?.analysisRequired === true && Date.parse(bound.inspectedAt) <= Date.parse(event.timestamp) });
       }
       if (role !== 'user' || part.type !== 'tool_result') continue;
       const call = calls.get(part.tool_use_id);
@@ -58,7 +63,10 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
       }
       const retrospective = ['Agent', 'Task'].includes(call.name) && call.input?.subagent_type !== 'fork' && call.analysisRequired &&
         typeof call.input?.prompt === 'string' && call.input.prompt.includes(feedbackReference);
-      if (retrospective && !part.is_error) retrospectiveDispatched = true;
+      if (retrospective && !part.is_error) {
+        retrospectiveDispatched = true;
+        if (!dispatches.some(item => item.id === part.tool_use_id)) dispatches.push({ id: part.tool_use_id, at: call.at });
+      }
       if (!part.is_error && operation === 'write') for (const value of values) {
         if (value.feedbackReport === 'combined' && value.runId === fields.start_time && value.stateHash === stateHash &&
             typeof value.analysisRequired === 'boolean' && value.evidenceRequired === (fields.feedback_evidence_version === '1') &&
@@ -76,7 +84,7 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
       if (retrospective && !invalidDispatch && unavailableDispatch) failure = { failureId, kind: 'retrospective-dispatch', code: 'TOOL_FAILED' };
     }
   }
-  return { failure, retrospectiveDispatched, sourcePackets: [...sourcePackets], completedReports };
+  return { failure, retrospectiveDispatched, dispatches, sourcePackets: [...sourcePackets], completedReports };
 }
 export const findFeedbackFailure = (...args) => feedbackRuntimeEvidence(...args).failure;
 
@@ -179,7 +187,9 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
   const saved = parseState(await readFile(statePath, 'utf8'), statePath);
   const stateHash = feedbackStateHash(saved.fields, saved.audit);
   const binding = { runId: saved.fields.start_time, stateHash };
-  const runtime = feedbackRuntimeEvidence(events, statePath, saved.fields, saved.audit);
+  const receipts = await readFeedbackReceipts(statePath, binding);
+  const runtime = feedbackRuntimeEvidence(events, statePath, saved.fields, saved.audit, undefined, receipts);
+  if (persist && runtime.dispatches.length) await recordFeedbackReceipt(statePath, binding, { dispatches: runtime.dispatches });
   const finalized = await readFeedbackFinalization(statePath, binding);
   if (finalized?.status === 'saved' && runtime.completedReports.some(report => report.writerId === finalized.writerId)) return null;
   const settle = async outcome => { if (persist) await finalizeFeedback(statePath, { ...binding, ...outcome }); };

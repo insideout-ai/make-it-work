@@ -123,7 +123,7 @@ Stop and flag if any fail before writing code.
 
 ### Step N — Verify manual scenarios
 
-_Include for explicitly manual repos or legacy no-framework repos. Omit when every repo uses automated tests. This is the final numbered step before Definition of Done._ Walk through the relevant Test Plan scenarios against the running behavior, including nearby regression paths, and record observed results. **Verify:** each named manual scenario was actually performed and matched its expected observation; required build/lint/type checks also pass. Missing access or an unperformed scenario stops verification. This step neither installs a runner nor claims an automated suite passed.
+_Include for required manual-policy verification or runnable manual scenarios. For automated-policy repos, known unavailable supplemental checks go in Post-delivery Verification instead. Do not silently defer a manual-policy gate. This is the final numbered execution step._ Walk through the relevant Test Plan scenarios against the running behavior, including nearby regression paths, and record observed results. **Verify:** each named manual scenario was actually performed and matched its expected observation; required build/lint/type checks also pass. Missing access or an unperformed scenario stops verification. This step neither installs a runner nor claims an automated suite passed.
 
 ## Test Plan
 
@@ -145,6 +145,10 @@ For Implement runs with `acceptance_evidence_version: 1`, use the three-column t
 | Acceptance criterion | Requirement clause | Test scenario |
 | --- | --- | --- |
 | _(AC from spec)_ | _(one material behavior/condition from that AC)_ | _(row above)_ |
+
+## Post-delivery Verification
+
+None, or list each known unavailable supplemental scenario with its originating step, acceptance clauses, prerequisite, responsible actor and expected observation. Keep the scenario in Test Plan and AC traceability. Its evidence remains unverified until actually performed; listing it here does not establish a pass. Required manual-policy gates need an explicit policy decision before deferral.
 
 ## Definition of Done
 

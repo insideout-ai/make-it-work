@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { lstat, readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifactName, runDirectory } from './artifact-layout.mjs';
+import { atomicWrite, withLock } from '../../../scripts/lib/artifacts.mjs';
+import { appendAuditCell } from './audit-notes.mjs';
+import { decisionCell } from './workflow-decisions.mjs';
 
 const MODES = ['updates', 'comments', 'local'];
 const KINDS = ['description', 'attachment', 'comment'];
@@ -19,6 +22,7 @@ function canonical(value) {
   return value;
 }
 export const descriptionHash = (value) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+const descriptionFormat = value => value === null ? 'empty' : typeof value === 'string' ? 'text' : value && typeof value === 'object' ? 'structured' : fail('Description must be text, a structured document, or null.');
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 function targetUrl(value, name) {
   const input = text(value, name).trim();
@@ -90,8 +94,10 @@ export function validatePublication(journal) {
   text(journal.ticket, 'journal.ticket');
   text(journal.run_id, 'journal.run_id');
   text(journal.workflow_start, 'journal.workflow_start');
+  if (journal.initialization_hash !== undefined && !/^[a-f0-9]{64}$/.test(journal.initialization_hash)) fail('Invalid publication initialization hash.');
   target(journal.target);
   if (!Object.hasOwn(journal, 'original_description') || !/^[a-f0-9]{64}$/.test(journal.description_baseline ?? '')) fail('Publication journal lacks a description snapshot/baseline.');
+  if (journal.original_description_format !== undefined && journal.original_description_format !== descriptionFormat(journal.original_description)) fail('Description format disagrees with the captured representation.');
   if (!Number.isSafeInteger(journal.consent_revision) || journal.consent_revision < 1 || !Array.isArray(journal.decisions) || journal.decisions.length !== journal.consent_revision) fail('Invalid publication consent history.');
   for (const item of journal.decisions) {
     if (!Array.isArray(item.allowed)) fail('Publication decision lacks its allowed operations.');
@@ -142,6 +148,7 @@ export function initializePublication({ ticket, workflow_start }, input) {
   return {
     version: 1, ticket, workflow_start, run_id: randomUUID(), target: target(input.target),
     original_description: input.original_description,
+    original_description_format: descriptionFormat(input.original_description),
     description_baseline: descriptionHash(input.original_description),
     mode, allowed, artifact_comments, consent_revision: 1, decisions: [{ mode, ...decision, allowed, artifact_comments, at: now }], operations: [],
   };
@@ -332,11 +339,44 @@ export async function publicationCommand(options) {
   if (await realpath(directory) !== directory) fail('Publication directory must not be a symlink.');
   const input = options['--input'] ? JSON.parse(await readFile(path.resolve(root, options['--input']), 'utf8')) : {};
   if (action === 'init') {
-    if (fields.ticket_publication && fields.ticket_publication !== 'none') fail('This run already has a publication journal; use consent to change its policy.');
-    const journal = initializePublication({ ticket: fields.ticket, workflow_start: fields.start_time ?? 'none' }, input);
-    const name = `${fields.ticket}-ticket-publication-${journal.run_id}.json`;
-    await writeFile(path.join(directory, name), `${JSON.stringify(journal, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-    return { journal: `make-it-work/${fields.ticket}/${name}`, mode: journal.mode };
+    return withLock(statePath, async () => {
+      const original = await readFile(statePath, 'utf8');
+      const state = parseState(original, statePath);
+      const candidate = initializePublication({ ticket: state.fields.ticket, workflow_start: state.fields.start_time ?? 'none' }, input);
+      const { run_id: _id, decisions, ...identity } = candidate;
+      const initializationHash = descriptionHash({ ...identity, decisions: decisions.map(({ at: _at, ...decision }) => decision) });
+      // Stable per-run filename also recovers a crash between journal and state writes.
+      candidate.run_id = hash(`${candidate.ticket}\0${candidate.workflow_start}`).slice(0, 32);
+      candidate.initialization_hash = initializationHash;
+      const configured = state.fields.ticket_publication && state.fields.ticket_publication !== 'none';
+      const name = `${candidate.ticket}-ticket-publication-${candidate.run_id}.json`;
+      const journalPath = configured ? await journalPathFor(root, state.fields) : path.join(directory, name);
+      let journal, replayed = false;
+      try {
+        if (!(await lstat(journalPath)).isFile()) fail('Publication journal must be a regular file.');
+        journal = await readBoundJournal(journalPath, state.fields);
+        if (journal.initialization_hash !== initializationHash) fail('This run already has a publication journal; use consent to change its policy.');
+        replayed = true;
+      } catch (error) {
+        if (error.code !== 'ENOENT' || configured) throw error;
+        journal = candidate;
+        await writeFile(journalPath, `${JSON.stringify(journal, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+      }
+      const relative = `make-it-work/${candidate.ticket}/${path.basename(journalPath)}`;
+      let updated = original;
+      if (!configured) updated = original.replace(/(^```[^\n]*\n)([\s\S]*?)(^```)/m, (_match, begin, body, end) =>
+        begin + (/^ticket_publication:/m.test(body) ? body.replace(/^ticket_publication:[^\r\n]*/m, `ticket_publication: ${relative}`) : `${body}ticket_publication: ${relative}\n`) + end);
+      const id = `publication-init:${journal.run_id}`;
+      if (!state.audit.some(row => row.decision?.id === id)) updated = appendAuditCell(updated, state, decisionCell({ id,
+        topic: 'Ticket publication', source: 'policy', via: 'policy', choice: 'Registered the run publication journal',
+        scope: 'This implementation run', reference: relative, resume: 'transparent' }), new Date().toISOString());
+      parseState(updated, statePath);
+      if (updated !== original) await atomicWrite(statePath, updated);
+      try { await lstat(path.join(directory, `${state.fields.ticket}-status.html`)); }
+      catch (error) { if (error.code === 'ENOENT') return { journal: relative, mode: journal.mode, replayed }; throw error; }
+      await generateDashboard(statePath); // Retry init repairs rendering without resetting consent.
+      return { journal: relative, mode: journal.mode, replayed };
+    });
   }
   const journalPath = await journalPathFor(root, fields);
   const lock = `${journalPath}.lock`;
