@@ -35,6 +35,11 @@ export async function publishPackage({ repo, output, report }) {
     const env = { ...process.env, ...bot, GIT_INDEX_FILE: path.join(temp, 'index') };
     const run = (...args) => execFileSync('git', ['--git-dir', git(repo, 'rev-parse', '--absolute-git-dir').toString().trim(), '--work-tree', output, ...args], { env, maxBuffer: 64 * 1024 * 1024 }).toString().trim();
     run('read-tree', '--empty'); run('add', '--all', '--force'); const tree = run('write-tree');
+    const committed = git(repo, 'ls-tree', '-rz', tree).toString().split('\0').filter(Boolean).map((line) => {
+      const [header, file] = line.split('\t'), [mode, , object] = header.split(' ');
+      return { path: file, mode, sha256: hash(git(repo, 'cat-file', 'blob', object)) };
+    }).sort((a, b) => a.path.localeCompare(b.path, 'en'));
+    if (JSON.stringify(committed) !== JSON.stringify(report.files.map(({ path, mode, sha256 }) => ({ path, mode, sha256 })))) throw new Error('Git staging changed the verified package. Refusing to publish.');
     if (previous && tree === git(repo, 'rev-parse', `${previous}^{tree}`).toString().trim()) return { status: 'unchanged', sourceSha: report.sourceSha, releaseSha: previous, tree };
     const commit = run('commit-tree', tree, ...(previous ? ['-p', previous] : []), '-m', `Anthropic runtime ${report.version}\n\nAnthropic-Source: ${report.sourceSha}\nAnthropic-Tree: ${tree}\nAnthropic-Package: ${report.packageDigest}\n`);
     const latest = remoteRefs();

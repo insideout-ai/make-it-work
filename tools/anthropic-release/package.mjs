@@ -13,7 +13,7 @@ const fail = (message) => { throw new Error(message); };
 export function included(file) {
   if (file.endsWith('.test.mjs')) return false;
   return file === '.claude-plugin/plugin.json' || publicFiles.has(file) ||
-    /^(skills|commands|docs)\//.test(file) || /^scripts\/.*\.mjs$/.test(file);
+    /^(skills|commands|docs)\//.test(file) || (file.startsWith('scripts/') && file !== 'scripts/install-pre-push-hook.sh');
 }
 
 function localTarget(file, target) {

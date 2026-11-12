@@ -45,6 +45,7 @@ test('rejects missing imports, excluded runtime references and new file types', 
   await f.put('scripts/demo.mjs', "import './missing.mjs';"); f.commit(); await assert.rejects(f.build('missing'), /Missing packaged dependency/);
   await f.put('scripts/demo.mjs', ''); await f.put('skills/demo/SKILL.md', '[Must read](../../evals/README.md)'); f.commit(); await assert.rejects(f.build('reference'), /excluded file/);
   await f.put('skills/demo/SKILL.md', 'Demo'); await f.put('skills/demo/program.wasm', 'unexpected'); f.commit(); await assert.rejects(f.build('new-type'), /New file type/);
+  await rm(path.join(f.repo, 'skills/demo/program.wasm')); await f.put('scripts/new-helper.sh', '#!/bin/sh\necho new\n'); f.commit(); await assert.rejects(f.build('new-script-type'), /New file type/);
 });
 
 test('rejects missing assets and nonempty outputs; limits count folders as well as files', async (t) => {
@@ -77,8 +78,10 @@ test('publishes only current main, retains independent history, skips identical 
   assert.equal((await publish()).status, 'unchanged');
   await f.put('evals/another.md', 'new main'); f.commit(); git(f.repo, 'push', '-q', 'origin', 'main');
   assert.equal((await publish()).status, 'superseded');
+  await f.put('scripts/lib/value.mjs', 'export const value = 43;\n'); f.commit(); git(f.repo, 'push', '-q', 'origin', 'main');
   const next = await f.build('next');
-  assert.equal((await publishPackage({ repo: f.repo, output: path.join(f.root, 'next'), report: next })).status, 'published');
+  const advanced = await publishPackage({ repo: f.repo, output: path.join(f.root, 'next'), report: next });
+  assert.equal(advanced.status, 'published'); assert.match(advanced.warnings[0], /without a version bump/);
   assert.equal(git(remote, 'rev-list', '--count', 'anthropic-release').toString().trim(), '2');
   git(f.repo, 'fetch', 'origin', 'anthropic-release');
   const changed = git(f.repo, 'commit-tree', result.tree, '-p', git(remote, 'rev-parse', 'anthropic-release').toString().trim(), '-m', 'Unexpected edit').toString().trim();
