@@ -1,0 +1,83 @@
+skills/implement/scripts/render-status.mjs
+  s_c20c2f8c0424d7::t_9632c072999ca7 783
+skills/plan-the-work/references/plan-template.md
+  s_c20c2f8c0424d7::t_0bbe900ba2a29a 126,149-151
+  s_c20c2f8c0424d7::t_0ba81b9e29a99e 152
+skills/implement/scripts/verification.mjs
+  s_c20c2f8c0424d7::t_c9a2998557ef25 7
+  s_c20c2f8c0424d7::t_b657c7006da055 63-64,69-71,73-74,76-77,79
+  s_c20c2f8c0424d7::t_e72d37ea3a849d 8,72,75
+skills/implement/scripts/startup-presentation.test.mjs
+  s_c20c2f8c0424d7::t_91fc4728d373bc 676-689
+skills/implement/scripts/acceptance-summary.mjs
+  s_c20c2f8c0424d7::t_9632c072999ca7 14
+skills/implement/scripts/testing-policy.mjs
+  s_c20c2f8c0424d7::t_c9a2998557ef25 69-70,75
+skills/execute/SKILL.md
+  s_c20c2f8c0424d7::t_0bbe900ba2a29a 62-64,183
+skills/implement/scripts/workflow.test.mjs
+  s_c20c2f8c0424d7::t_91fc4728d373bc 383-391,393-397
+  s_c20c2f8c0424d7::t_0bbe900ba2a29a 392
+skills/implement/scripts/feedback-handoff.mjs
+  s_c20c2f8c0424d7::t_5603733c29d9d6 8,34,41-44,52-53,66-69,87,190-192
+skills/implement/SKILL.md
+  s_c20c2f8c0424d7::t_0bbe900ba2a29a 519,528
+  s_c20c2f8c0424d7::t_352bf46b2d8c3e 529
+skills/implement/scripts/feedback-receipts.mjs
+  s_c20c2f8c0424d7::t_c9a2998557ef25 14
+  s_c20c2f8c0424d7::t_c4dc687fd85c94 24
+  s_c20c2f8c0424d7::t_5603733c29d9d6 1-13,15-23,25-34
+skills/implement/scripts/manual-waiver.mjs
+  s_c20c2f8c0424d7::t_e72d37ea3a849d 5-11,19
+  s_c20c2f8c0424d7::t_8f35cb31d0d690 1-4,12-18,20-23
+skills/execute/scripts/step-control.mjs
+  s_c20c2f8c0424d7::t_b657c7006da055 142-161,237,249,257,260,282-283
+skills/plan-the-work/SKILL.md
+  s_c20c2f8c0424d7::t_0bbe900ba2a29a 282,316-318
+  s_c20c2f8c0424d7::t_7ad55fa1cfa609 319
+skills/implement/scripts/feedback-evidence.mjs
+  s_c20c2f8c0424d7::t_6cc9f94f85cde7 94,97
+skills/implement/scripts/write-feedback.mjs
+  s_c20c2f8c0424d7::t_c4dc687fd85c94 561,574,580,599-600,602,608
+  s_c20c2f8c0424d7::t_4f274592e75747 579,589-591
+  s_c20c2f8c0424d7::t_6cc9f94f85cde7 179
+  s_c20c2f8c0424d7::t_5603733c29d9d6 15-16,456,460-471,587,597-598,601,606-607,619-621
+  s_c20c2f8c0424d7::t_9632c072999ca7 448-455,592
+  s_c20c2f8c0424d7::t_c9a2998557ef25 603-605
+skills/implement/scripts/startup-presentation.mjs
+  s_c20c2f8c0424d7::t_6cc9f94f85cde7 65
+  s_c20c2f8c0424d7::t_4f274592e75747 99-100
+skills/implement/scripts/manual-waiver.test.mjs
+  s_c20c2f8c0424d7::t_91fc4728d373bc 1-109
+skills/implement/scripts/workflow.mjs
+  s_c20c2f8c0424d7::t_c9a2998557ef25 598-602
+  s_c20c2f8c0424d7::t_8f35cb31d0d690 25-26,84,178-196,454-461,528,539
+skills/implement/scripts/feedback-receipts.test.mjs
+  s_c20c2f8c0424d7::t_b0806b5fdcacfc 1-75
+skills/execute/references/step-control.md
+  s_c20c2f8c0424d7::t_822036afbb79a0 34-39
+skills/implement/references/controller.md
+  s_c20c2f8c0424d7::t_6d8df99566cd37 175-182
+skills/implement/references/feedback.md
+  s_c20c2f8c0424d7::t_4fa6ed03b6a4aa 369-378
+skills/implement/scripts/acceptance-summary.test.mjs
+  s_c20c2f8c0424d7::t_248b6e75bdc63b 25-35
+skills/implement/scripts/feedback-evidence.test.mjs
+  s_c20c2f8c0424d7::t_f9607d99496826 51-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6c708ef87b011d905a5c445c5c5275725f19b248",
+  "prompts": {},
+  "sessions": {
+    "s_c20c2f8c0424d7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cf87-2be2-76f0-9ad8-e5a473650d1e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
