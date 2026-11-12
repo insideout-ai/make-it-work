@@ -401,7 +401,6 @@ async function fixture(t, { initialize = true } = {}) {
   }
   if (!initialize) return { root, state, input, command };
   const init = await command('init', { target, original_description: 'Original requirements', mode: 'updates', decision });
-  await writeFile(state, (await readFile(state, 'utf8')).replace(/^ticket: DEMO$/m, `ticket: DEMO\nticket_publication: ${init.journal}`));
   return { root, state, input, init, command };
 }
 test('CLI hostname initialization persists the canonical target through resume and failed init leaves no journal', async (t) => {
@@ -417,7 +416,6 @@ test('CLI hostname initialization persists the canonical target through resume a
   await writeFile(f.input, JSON.stringify({ target: { ...target, site: 'example.atlassian.net' },
     original_description: 'Original requirements', mode: 'updates', decision }));
   const init = JSON.parse(execFileSync(process.execPath, args('init'), { encoding: 'utf8' }));
-  await writeFile(f.state, before.replace(/^ticket: DEMO$/m, 'ticket: DEMO\nticket_publication: ' + init.journal));
   const resumed = JSON.parse(execFileSync(process.execPath, args('status'), { encoding: 'utf8' }));
   assert.deepEqual(resumed.target, target);
   const ready = await f.command('prepare', request());
@@ -499,4 +497,56 @@ test('unconfigured legacy runs fail closed and journal locks and paths protect s
   await rm(journalPath);
   await symlink(path.join(f.root, 'outside.json'), journalPath);
   await assert.rejects(f.command('status'), /symlink/);
+});
+
+test('init registers its pointer and one audit decision; identical retries preserve later consent', async t => {
+  const f = await fixture(t, { initialize: false });
+  const input = { target, original_description: 'Original requirements', mode: 'local' };
+  const initialized = await f.command('init', input);
+  const { parseState } = await import('./render-status.mjs');
+  const state = parseState(await readFile(f.state, 'utf8'));
+  assert.equal(state.fields.ticket_publication, initialized.journal);
+  assert.equal(state.audit.filter(row => row.decision?.id?.startsWith('publication-init:')).length, 1);
+  await f.command('consent', { mode: 'updates', decision });
+  const replay = await f.command('init', input);
+  assert.equal(replay.replayed, true);
+  assert.equal(replay.mode, 'updates');
+  assert.equal(replay.journal, initialized.journal);
+  const journal = await f.command('status');
+  assert.equal(journal.consent_revision, 2);
+  assert.equal(journal.original_description_format, 'text');
+  assert.equal((await readdir(path.dirname(f.state))).filter(name => name.includes('-ticket-publication-')).length, 1);
+  assert.equal(parseState(await readFile(f.state, 'utf8')).audit.filter(row => row.decision?.id?.startsWith('publication-init:')).length, 1);
+  await assert.rejects(f.command('init', { ...input, original_description: 'A different snapshot' }), /already has/);
+});
+
+test('init recovers a journal saved before its state pointer and an interrupted dashboard refresh', async t => {
+  const f = await fixture(t, { initialize: false });
+  const input = { target, original_description: null, mode: 'local' };
+  const original = await readFile(f.state, 'utf8');
+  const first = await f.command('init', input);
+  await writeFile(f.state, original); // Simulate interruption between journal and state persistence.
+  const recovered = await f.command('init', input);
+  assert.equal(recovered.replayed, true);
+  assert.equal(recovered.journal, first.journal);
+  assert.equal((await f.command('status')).original_description, null);
+  const dashboard = f.state.replace('-state.md', '-status.html');
+  await mkdir(dashboard);
+  await assert.rejects(f.command('init', input));
+  await rm(dashboard, { recursive: true });
+  await writeFile(dashboard, 'Existing dashboard');
+  assert.equal((await f.command('init', input)).replayed, true);
+  assert.match(await readFile(dashboard, 'utf8'), /Ticket updates: Off/);
+  assert.equal((await readdir(path.dirname(f.state))).filter(name => name.includes('-ticket-publication-')).length, 1);
+});
+
+test('description provenance records returned shape without claiming native rich-text fidelity', () => {
+  for (const [value, format] of [[null, 'empty'], ['Converted text', 'text'], [{ type: 'doc', content: [] }, 'structured']]) {
+    const journal = initializePublication(source, { target, original_description: value });
+    assert.equal(journal.original_description_format, format);
+    assert.deepEqual(journal.original_description, value);
+    assert.doesNotThrow(() => validatePublication(journal));
+    const tampered = { ...journal, original_description_format: 'unknown' };
+    assert.throws(() => validatePublication(tampered), /format disagrees/);
+  }
 });

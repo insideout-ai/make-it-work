@@ -435,7 +435,8 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       }
     }
     const lifecycle = ['await-input', 'resolve-input', 'refresh-input'].includes(input.event);
-    const reposInput = input.repos ?? (lifecycle && state.fields.workspace_snapshot ? JSON.parse(state.fields.workspace_snapshot).map((repo) => repo.root) : null);
+    const inheritedRoots = lifecycle || ['stop', 'pause'].includes(input.event);
+    const reposInput = input.repos ?? (inheritedRoots && state.fields.workspace_snapshot ? JSON.parse(state.fields.workspace_snapshot).map((repo) => repo.root) : null);
     if (input.event === 'resume' && !input.repos) fail('Resume requires repository fingerprint checks.');
     if (state.fields.workspace_snapshot && !reposInput && input.event !== 'autonomy') fail('Supply the checkpoint repository roots.');
     let workspaceContract = state.fields.workspace_version === '1' ? JSON.parse(state.fields.workspace_contract) : null;

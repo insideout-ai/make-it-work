@@ -395,3 +395,18 @@ test('execution-mode records the plan and controller decision together and rejec
   assert.throws(() => transition(fields('execute', { autonomy: 'guided' }), { event: 'execution-mode', mode: 'subagent-driven', source: 'policy', via: 'policy' }), /recommended autonomous/);
   assert.throws(() => transition(fields('execute'), { event: 'execution-mode', mode: 'inline', pause_mode: 'run-straight-through', source: 'policy', via: 'policy' }), /recommended autonomous/);
 });
+
+test('stop and pause inherit exactly the saved repository roots without relaxing ordinary transitions', async t => {
+  const f = await fixture(t);
+  const event = async (name, id) => applyWorkflow({ root: f.root, statePath: f.statePath, input: {
+    event: name, id, reason: 'Context unavailable', expected_hash: digest(await readFile(f.statePath, 'utf8')),
+  } });
+  const paused = await event('pause', 'pause-saved-roots');
+  assert.equal(paused.fields.status, 'Paused');
+  assert.equal(JSON.parse(paused.fields.workspace_snapshot).length, 1);
+  assert.equal(JSON.parse(paused.fields.workspace_snapshot)[0].root, await realpath(f.root));
+  const stopped = await event('stop', 'stop-saved-roots');
+  assert.equal(stopped.fields.status, 'Stopped');
+  assert.equal(stopped.fields.phase, 'context-check');
+  await assert.rejects(event('resume', 'resume-no-roots'), /Resume requires repository/);
+});

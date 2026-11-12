@@ -315,7 +315,7 @@ Each such sentence must use the dashboard checkpoint helper's `activity` operati
 
 ## Start
 
-**Workspace routing comes first:** read [references/workspace.md](references/workspace.md) before resolving a current branch or running the checks below. Resolve layout and artifact root with the shared helper. A workspace needs no root `CLAUDE.md` or `.git`. For workspace runs, run `find-the-repos` inline, preview the exact repositories and branch actions, and obtain explicit user approval in **every** autonomy mode before creating or switching branches. Then use the per-repository branch helper instead of the single-repo branch guard below. An existing workspace run resumes its saved contract before any new discovery or branch changes.
+**Workspace routing comes first:** read [references/workspace.md](references/workspace.md) before resolving a current branch or running the checks below. Resolve layout and artifact root with the shared helper. A workspace needs no root `CLAUDE.md` or `.git`. For workspace runs, run `find-the-repos` inline, preview the exact repositories and branch actions, and obtain explicit user approval in **every** autonomy mode before creating or switching branches. Run the early context precheck on the selected repositories before applying those branch actions. Then use the per-repository branch helper instead of the single-repo branch guard below. An existing workspace run resumes its saved contract before any new discovery or branch changes.
 
 Resolve the ticket, current branch, base branch, and any existing state file before these checks. Work through them in order. A new run chooses autonomy before creating a branch; an existing run keeps its saved autonomy and goes through Resume before any branch change.
 
@@ -327,7 +327,7 @@ If this message explicitly requests a mode change, apply **Change autonomy durin
    - `status: Complete` with an explicit response to its saved delivery offer, or a request to continue its already opted-in preparation → follow Completion's delivery-response handling and inline `deliver` continuation below. Preserve Complete and its package; do not offer a new implementation or repeat the delivery opt-in question. A previously recorded opt-in is not exact-plan approval.
    - `status: Complete`, or `status: Stopped` with `phase: context-check` → ask whether to start a new run (the state file is overwritten) or stop. Under `--autopilot`, stop rather than overwriting the state or artifacts. A run that never got past Context Check produced no artifacts worth resuming. Only if the user chooses a new run, continue to Choose autonomy below.
    - Any other status → go to **Resume**. Do not ask for a fresh autonomy choice or create a branch before comparing the saved branch and workspace fingerprints.
-3. **Choose autonomy, then resolve refinement destination for a new run** — complete **Choose autonomy** before constructing any destination question; never batch these into the same `AskUserQuestion` call. Then follow **Choose refinement destination**, before the branch guard: Guided/Autonomous ask unless a destination is already resolved; either Autopilot choice uses the documented default without prompting. Hold the resolved values and any scoped ticket-update selection until the state file is created; there is no state file or dashboard to update yet. Either Autopilot choice applies the same unattended policy as `--autopilot` from this point onward, including the branch guard and decision log. Autonomy does not supply a user destination choice; Autopilot's default is a policy resolution.
+3. **Early context precheck, then startup choices for a new run** — run the read-only **Early context precheck** below before autonomy, refinement-destination or publication questions. A known context blocker stops before initialization, consent or branch changes. Then complete **Choose autonomy** before constructing any destination question; never batch these into the same `AskUserQuestion` call. Then follow **Choose refinement destination**, before the branch guard: Guided/Autonomous ask unless a destination is already resolved; either Autopilot choice uses the documented default without prompting. Hold the resolved values and any scoped ticket-update selection until the state file is created; there is no state file or dashboard to update yet. Either Autopilot choice applies the same unattended policy as `--autopilot` from this point onward, including the branch guard and decision log. Autonomy does not supply a user destination choice; Autopilot's default is a policy resolution.
 4. **Branch guard**:
    - **Current branch equals `base`** → compute a suggested branch name: `<TICKET>`; if `git rev-parse --verify --quiet refs/heads/<TICKET>` resolves (the name is already taken), try `<TICKET>-2`, `<TICKET>-3`, … incrementing until one does not resolve, and use that instead. Under the selected `autopilot` mode, choose `Create and switch to <suggested-name> (recommended)`, log that checkpoint, run `git switch -c <suggested-name>`, and stop with the command error if it fails — never proceed on the base branch. Otherwise ask with `AskUserQuestion` (`multiSelect: false`): *"You're on `<base>`. Where should this ticket's work go?"*, with these options:
      - Create and switch to `<suggested-name>` (recommended).
@@ -367,7 +367,7 @@ Run `node "<base>/../../scripts/context-inventory.mjs" inspect --root <project-r
 
 Outcomes:
 
-- **No signal at all** → stop: "No project context found. Run `/make-it-work:go-deep` first."
+- **No signal at all** → stop: "No project context found. Run `/make-it-work:go-deep` first, then rerun this pipeline. Alternatively, explicitly request direct implementation outside the pipeline."
 - **Some signals, but incomplete** → stop, list exactly which pieces are missing, and point the user to `go-deep`'s "Repair existing docs" mode.
 - **Complete** → continue.
 
@@ -381,6 +381,14 @@ Show any warning with Context check's outcome and record it in the closing conte
 Never run `go-deep` yourself.
 
 ---
+
+## Early context precheck
+
+After resolving the repository set and checking whether this is a new or resumed run, run `node "<base>/../../scripts/context-inventory.mjs" inspect --root <repo-root>` for each selected repository before optional startup questions, branch changes, journal initialization or publication consent. Use the same inventory and completeness requirements as Context check. Do not inspect unselected siblings or require workspace-root context. An existing run keeps its saved Resume path rather than being treated as a fresh start.
+
+If any selected repo is incomplete, stop before creating a run. Name the repo and exact missing pieces: no signals means run `/make-it-work:go-deep` first; partial context means its repair mode. Explain the alternatives up front: provide the required context and rerun the pipeline, or explicitly request a separate direct implementation outside this pipeline. Do not automatically start either alternative, run go-deep, or bypass the context gate. State that no new run or ticket-update consent was created. Any essential repository-selection question still precedes this precheck; defer branch application until it passes.
+
+Keep the inventory result for the ordinary post-initialization Context check; rerun only if the selected roots or context files changed. The controller still enforces completeness at `context-ready`. This is a cheap read-only precondition check, not another user question, agent or onboarding stage.
 
 ## Choose autonomy
 
