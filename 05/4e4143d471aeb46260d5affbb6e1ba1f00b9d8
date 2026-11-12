@@ -1,0 +1,24 @@
+tools/anthropic-release/package.mjs
+  s_e17e4b74f2e919::t_ffd06b9f88ebde 16
+tools/anthropic-release/publish.mjs
+  s_e17e4b74f2e919::t_b1ba1e6f47a89e 38-42
+tools/anthropic-release/package.test.mjs
+  s_e17e4b74f2e919::t_b1ba1e6f47a89e 81,83-84
+  s_e17e4b74f2e919::t_ffd06b9f88ebde 48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "054e4143d471aeb46260d5affbb6e1ba1f00b9d8",
+  "prompts": {},
+  "sessions": {
+    "s_e17e4b74f2e919": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ceee-7adf-7e82-ab11-51ed07fe8c3f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
