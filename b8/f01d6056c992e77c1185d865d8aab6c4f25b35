@@ -1,0 +1,39 @@
+skills/implement/scripts/ticket-publication.mjs
+  s_c20c2f8c0424d7::t_14d39b6bb10ede 25,100,151
+  s_c20c2f8c0424d7::t_936f562fe56694 4,8-10,97,342-379
+skills/implement/SKILL.md
+  s_c20c2f8c0424d7::t_89cc729820f2af 318,330,370,385-391
+  s_c20c2f8c0424d7::t_aff20eae1255be 392
+skills/implement/scripts/workflow.mjs
+  s_c20c2f8c0424d7::t_936f562fe56694 438-439
+.claude-plugin/plugin.json
+  s_c20c2f8c0424d7::t_e605acf45a5fb4 6
+CHANGELOG.md
+  s_c20c2f8c0424d7::t_f226046c124ba8 9-22
+skills/implement/references/controller.md
+  s_c20c2f8c0424d7::t_6885e9cb18f6fe 95
+skills/implement/references/ticket-publication.md
+  s_c20c2f8c0424d7::t_99edeb4d544ec7 7-9,13,15,151
+skills/implement/references/workspace.md
+  s_c20c2f8c0424d7::t_612ecae19bced3 29-30
+skills/implement/scripts/ticket-publication.test.mjs
+  s_c20c2f8c0424d7::t_7e91ac018b7e35 501-552
+skills/implement/scripts/workflow.test.mjs
+  s_c20c2f8c0424d7::t_ca1e8a4d0de74d 398-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8f01d6056c992e77c1185d865d8aab6c4f25b35",
+  "prompts": {},
+  "sessions": {
+    "s_c20c2f8c0424d7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cf87-2be2-76f0-9ad8-e5a473650d1e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
