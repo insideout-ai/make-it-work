@@ -33,7 +33,8 @@ const WORKFLOW_TERMS = new Set([
   'close-the-gaps', 'define-test-strategy', 'find-the-repos', 'go-deep',
   'plan-the-work', 'review-the-code', 'review-the-pr', 'run-regression', 'shape-the-epic',
   'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval', 'lightweight',
-  'feedback-on-session',
+  'feedback-on-session', 'execution-mode', 'waive-manual-verification', 'waive-manual',
+  'manual-walkthrough', 'accept-workspace', 'subagent-driven',
 ]);
 const ADAPTIVE_MODES = new Set(['none', 'lightweight', 'tdd']);
 const ADAPTIVE_RISKS = new Set(['none', 'low', 'medium', 'high']);
@@ -250,6 +251,7 @@ function renderWorkflowBlock(summary, analysis = null) {
     (summary.adaptive ? `- Mode: ${summary.adaptive.mode} (${summary.adaptive.risk} risk, ${summary.adaptive.modeSource})\n` +
       `- Escalations: ${summary.adaptive.escalations}\n- Stages skipped: ${summary.adaptive.stagesSkipped}\n` +
       `- Elapsed: ${summary.adaptive.elapsed}\n` : '') +
+    `- Metric scope: elapsed time and journal hook counts cover implementation through its terminal checkpoint; later feedback finalization is reported separately when observed\n` +
     `- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
     `- Fix rounds: ${summary.fixRounds}\n- Replans: ${summary.replans}\n` +
     `- Review cycles: ${summary.reviewCycles}\n` +
