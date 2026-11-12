@@ -1,0 +1,27 @@
+skills/implement/scripts/write-feedback.test.mjs
+  s_c20c2f8c0424d7::t_9bb9eed04e08a3 455
+  s_c20c2f8c0424d7::t_959bd014ec1ec8 406,409,411
+skills/implement/references/feedback.md
+  s_c20c2f8c0424d7::t_9bb9eed04e08a3 7,107,131,365
+  s_c20c2f8c0424d7::t_a2dbdd01e3d6da 362
+skills/implement/scripts/write-feedback.mjs
+  s_c20c2f8c0424d7::t_9bb9eed04e08a3 36-37,254
+skills/feedback-on-session/SKILL.md
+  s_c20c2f8c0424d7::t_9bb9eed04e08a3 34,36,52-62,86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "23560692b4814b124b8a7a2f3f2bb2b27a136704",
+  "prompts": {},
+  "sessions": {
+    "s_c20c2f8c0424d7": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cf87-2be2-76f0-9ad8-e5a473650d1e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
