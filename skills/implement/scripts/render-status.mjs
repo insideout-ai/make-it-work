@@ -780,7 +780,7 @@ function renderAcceptance(state, verification) {
   const summary = summarizeAcceptance(verification?.acceptance);
   if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: Not recorded</h2></section>';
   const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(clause ? `${clause} — ${scenario}` : scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
-  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
+  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}${summary.pendingRows ? ` · ${summary.pendingRows} unverified requirement/scenario ${summary.pendingRows === 1 ? 'row' : 'rows'} below` : ''}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Requirement clause / scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
 }
 
 function renderAutonomyBadge(state) {

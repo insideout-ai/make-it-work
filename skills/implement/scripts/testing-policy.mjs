@@ -66,12 +66,13 @@ export function validateManualEvidence(plan, ledger, policy = testingPolicy(plan
     if (!relevant.length) fail(`No manual scenarios for ${repo.Repo}.`);
     for (const scenario of relevant) {
       if (scenario.Type !== 'Manual') fail(`Manual repo ${repo.Repo} requires Manual scenarios.`);
-      if (!ledger.steps.some((step) => step.checks.some((check) => check.type === 'manual' && check.result === 'pass' && check.subject === scenario.Scenario))) {
+      const waived = ledger.gate?.result === 'pass' && policy.some(row => row.Mode === 'automated') && ledger.steps.some(step => step.checks.some(check => check.type === 'skipped' && check.result === 'skipped' && check.subject === scenario.Scenario && check.authorization?.source === 'user'));
+      if (!waived && !ledger.steps.some((step) => step.checks.some((check) => check.type === 'manual' && check.result === 'pass' && check.subject === scenario.Scenario))) {
         fail(`Manual scenario has no passing evidence: ${scenario.Scenario}.`);
       }
     }
   }
-  if (ledger.acceptance.some((row) => row.status === 'unverified')) fail('Manual-policy completion requires evidence for every acceptance criterion.');
+  if (ledger.acceptance.some(row => row.status === 'unverified' && !ledger.steps.some(step => step.checks.some(check => check.type === 'skipped' && check.subject === row.scenario)))) fail('Manual-policy completion requires evidence for every acceptance criterion.');
 }
 
 export function testingScope(plan, options) {

@@ -22,6 +22,8 @@ import { implementationBaseline } from './implementation-guard.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { reviewRequirements } from './review-checks.mjs';
+import { manualWaiver } from './manual-waiver.mjs';
+import { updatePlan } from '../../execute/scripts/plan-status.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
 function setFields(markdown, fields) {
   return markdown.replace(/(^# Workflow state[^\n]*\n\s*```[^\n]*\n)[\s\S]*?(\n```)/m,
@@ -79,7 +81,7 @@ function oneLine(value, label) {
 export function transition(state, input, handoff = null, routeOptions = {}) {
   const before = state.fields;
   const f = { ...before };
-  if (['Paused', 'Stopped'].includes(f.status) && !['scope-update', 'await-input', 'input-answered', 'autonomy', 'mode', 'resume', 'accept-workspace', 'stop', 'pause'].includes(input.event)) fail('Resume the saved run before transitioning it.');
+  if (['Paused', 'Stopped'].includes(f.status) && !['scope-update', 'await-input', 'input-answered', 'autonomy', 'mode', 'resume', 'accept-workspace', 'stop', 'pause', 'waive-manual-verification'].includes(input.event)) fail('Resume the saved run before transitioning it.');
   let reason = input.reason || input.event;
   let action;
   if (input.event === 'handoff') {
@@ -173,6 +175,25 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
   } else if (input.event === 'complete') {
     if (f.phase !== 'final-approval' || f.review !== 'clean') fail('Completion requires final approval and clean review.');
     f.phase = 'complete'; f.status = 'Complete';
+  } else if (input.event === 'execution-mode') {
+    if (f.phase !== 'execute' || f.status !== 'In Progress') fail('Execution mode requires active Execute.');
+    if (!['inline', 'subagent-driven'].includes(input.mode)) fail('Invalid execution mode.');
+    if (input.source === 'policy') {
+      if (f.autonomy === 'guided' || input.via !== 'policy' || input.mode !== 'subagent-driven') fail('Only the recommended autonomous execution mode may be selected by policy.');
+    } else explicit(input);
+    const pauseMode = input.mode === 'inline' ? input.pause_mode : 'none';
+    if (input.mode === 'inline' && !['stop-after-each-step', 'run-straight-through'].includes(pauseMode)) fail('Inline execution requires a pause mode.');
+    if (f.execution_mode && f.execution_mode !== 'none' && (f.execution_mode !== input.mode || f.inline_pause_mode !== pauseMode)) fail('Execution mode is already chosen for this plan version.');
+    f.execution_mode = input.mode; f.inline_pause_mode = pauseMode;
+    reason = `Decision: Execution mode ${input.mode}; pause mode: ${pauseMode}; source: ${input.source}; via: ${input.via}`;
+  } else if (input.event === 'waive-manual-verification') {
+    explicit(input);
+    if (f.phase !== 'execute' || f.status === 'Complete' || pendingInputs(f).some(record => record.blocking)) fail('Manual waiver requires Execute without a pending blocking input.');
+    if (!input.validated_waiver) fail('Validate the plan and manual scenarios through the controller before recording a waiver.');
+    if (['gate-failed', 'guardrail', 'retry-limit'].includes(f.execution)) fail('Manual waiver cannot waive a failed gate or correctness stop.');
+    f.manual_verification_waiver = JSON.stringify(input.validated_waiver);
+    f.status = 'In Progress'; f.pause_reason = 'none';
+    reason = `Decision: Manual verification waived for ${input.validated_waiver.scenarios.join(', ')}; acceptance remains unverified; source: user; via: ${input.via}; reason: ${input.reason}`;
   } else if (input.event === 'mode') {
     if (!adaptive(f)) fail('Run modes need adaptive_version: 1.');
     if (!['low', 'medium', 'high'].includes(input.risk)) fail('Invalid risk.');
@@ -430,6 +451,14 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
+    if (input.validated_waiver !== undefined) fail('validated_waiver is controller-owned.');
+    if (effective.event === 'waive-manual-verification') {
+      const plan = await readFile(await within(root, state.fields.plan), 'utf8');
+      if (planHash(plan) !== state.fields.plan_hash) fail('Plan changed since checkpoint.');
+      const journal = JSON.parse(await readFile(`${await within(root, state.fields.plan)}.execution.json`, 'utf8'));
+      if (journal.stopped && journal.stopped !== 'execution-failed') fail('Manual waiver cannot resolve a correctness stop.');
+      effective = { ...effective, validated_waiver: manualWaiver(plan, effective, Number(state.fields.plan_version)) };
+    }
     if (['sync-complete', 'review-context'].includes(effective.event) && effective.context_updated !== undefined) {
       if (!Array.isArray(effective.context_updated)) fail('context_updated must be an array of paths.');
       const approvedRoots = await Promise.all((reposInput ?? [root]).map((repo) => realpath(repo)));
@@ -496,7 +525,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       || ['stop', 'pause'].includes(input.event) && pendingInputs(state.fields).some((record) => record.blocking);
     if (reposInput && !preserveBaseline) {
       const repos = await snapshot(reposInput);
-      if (input.event === 'resume' || resolution?.record.blocking || workingState !== state && !resolution) {
+      if (['resume', 'waive-manual-verification'].includes(input.event) || resolution?.record.blocking || workingState !== state && !resolution) {
         if (state.fields.workspace_snapshot && state.fields.workspace_snapshot !== JSON.stringify(repos)) fail('Workspace changed since checkpoint.');
         if (!state.fields.workspace_snapshot) fail('Legacy resume requires the existing fingerprint comparison; no snapshot backfill.');
       }
@@ -507,7 +536,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     for (const name of ['spec', 'plan']) if (!preserveBaseline && f[name] !== 'none') {
       const content = await readFile(await within(root, f[name]), 'utf8');
       const hash = name === 'plan' ? planHash(content) : digest(content);
-      if (input.event === 'resume' && f[`${name}_hash`] !== hash) fail(`${name} changed since checkpoint.`);
+      if (['resume', 'waive-manual-verification'].includes(input.event) && f[`${name}_hash`] !== hash) fail(`${name} changed since checkpoint.`);
       f[`${name}_hash`] = hash;
     }
     let request = effective.event === 'await-input' ? { ...effective.pending } : null;
@@ -565,6 +594,11 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (handoff?.status === 'done') {
       const discoveries = [...(handoff.data.discoveries ?? []), ...(handoff.data.context_gaps ?? [])];
       updated = appendItems(updated, 'Context discoveries', discoveries);
+    }
+    if (effective.event === 'execution-mode') {
+      const planPath = await within(root, f.plan);
+      await updatePlan(planPath, 'set-mode', { mode: f.execution_mode });
+      if (f.execution_mode === 'inline') await updatePlan(planPath, 'set-pause', { pause: f.inline_pause_mode === 'stop-after-each-step' ? 'after-each-step' : 'straight-through' });
     }
     const time = new Date().toISOString();
     const reason = resolution ? `Input ${resolution.record.id} resolved: ${resolution.response.label}; source: ${input.source}; via: ${input.via}`

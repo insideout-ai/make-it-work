@@ -366,3 +366,13 @@ node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<T
 ```
 
 Add `--limit-stop` for an eligible limit stop. The writer omits `### User clarifications` when none were asked and renders `None` under `### Open questions` when the list is empty. On any writer error, preserve the terminal workflow state and report the feedback failure.
+
+## Durable observations and writer preflight
+
+Run `write-feedback.mjs inspect --state STATE --transcript SESSION_JSONL` first. Its `commands.write` includes that transcript path, and `session_review_template` supplies the exact input shape and current packet hash. Fill the scaffold from actual conversation/source inspection; unreviewed sections are not evidence. Diagnostics name the exact input field and any rejected project term locally. Do not paste diagnostic text into the shareable report.
+
+Inspect and evidence collection write run/state-bound `feedback-observations.json` receipts. The hook records only retrospective dispatches established by actual matching tool calls/results after inspection. Do not create or edit this receipt manually. Piping display output does not erase these durable observations; a technical-failure claim still requires the original direct failed invocation and its actual error, not a pipeline masking its exit status.
+
+For a large packet use `write-feedback.mjs evidence --state STATE --output RUN_DIRECTORY/feedback-evidence.txt`, then read that file in chunks. The supported output option emits a short packet acknowledgement and keeps source contents local. The output must be `feedback-evidence[-NAME].txt` beside the state. Evidence generation is not proof of semantic inspection: the source observations remain required.
+
+For combined feedback on evidence-enabled or non-minimal runs, `write` requires `--transcript SESSION_JSONL` and verifies dispatch/source prerequisites before changing either report. A preflight failure identifies what is missing; repair it and retry the same retrospective result rather than launching a duplicate analyst. `check` validates the model-authored inputs; it does not certify these runtime prerequisites. Existing library/legacy callers retain their existing contract and terminal hooks still validate their runtime work.

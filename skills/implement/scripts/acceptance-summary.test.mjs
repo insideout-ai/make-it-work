@@ -22,3 +22,14 @@ test('all verified, none verified and absent evidence remain distinguishable', (
   assert.equal(summarizeAcceptance(undefined), null);
   assert.throws(() => summarizeAcceptance([{ criterion: 'AC1', status: 'pass' }]), /Invalid acceptance/);
 });
+
+test('pending criterion counts and requirement/scenario row counts use explicit different units', () => {
+  const rows = [
+    { criterion: 'AC1', clause: 'Date', scenario: 'M1', status: 'unverified', note: 'Not performed' },
+    { criterion: 'AC1', clause: 'Email', scenario: 'M2', status: 'unverified', note: 'Not performed' },
+    { criterion: 'AC2', clause: 'Input', scenario: 'U1', status: 'automated', note: 'Passed' },
+  ];
+  const summary = summarizeAcceptance(rows);
+  assert.equal(summary.pending, 1);
+  assert.equal(summary.pendingRows, 2);
+});

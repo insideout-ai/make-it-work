@@ -12,7 +12,8 @@ import { parseState } from './render-status.mjs';
 import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
 import { refreshFeedbackDashboard } from './feedback-progress.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
-import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure } from './feedback-handoff.mjs';
+import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
+import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure, feedbackRuntimeEvidence } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -175,7 +176,7 @@ function safeLine(value, label, ticket, sourceCompounds = []) {
   }
   const copiedTerm = sourceCompounds.find((term) =>
     new RegExp(`(?<![A-Za-z0-9])${term}(?![A-Za-z0-9])`, 'i').test(value));
-  if (copiedTerm) fail(`${label} copies project terminology from the Audit log; paraphrase it for share-safe feedback.`);
+  if (copiedTerm) fail(`${label} copies project terminology from the Audit log (${JSON.stringify(copiedTerm)}); paraphrase it for share-safe feedback. This diagnostic is local; do not copy it into the report.`);
   return value.trim();
 }
 
@@ -444,10 +445,30 @@ export async function inspectFeedback(statePath, { limitStop = false } = {}) {
   return result;
 }
 
-export async function writeFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false } = {}) {
+export function sessionReviewTemplate(packet) {
+  return { version: 2, status: 'pending', context: [], findings: [], userInput: [], limitations: [],
+    ...(packet ? { evidence_review: { packet_hash: packet.packetHash,
+      dashboard: { status: packet.dashboard.status === 'available' ? 'partial' : 'unavailable', reason: 'Source inspection pending',
+        sections: ['markup', 'styles'].map(id => ({ id, status: packet.dashboard.sections[id].length ? 'unreviewed' : 'not-applicable' })) },
+      process: [] } } : {}) };
+}
+
+export async function writeFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false, transcriptPath } = {}) {
   const summary = await inspectFeedback(statePath, { limitStop });
   const checked = validateFeedbackInputs(summary, analysis, sessionReview);
   if (!checked.valid) fail(checked.errors.join('\n'));
+  if (transcriptPath) {
+    const { fields, audit } = parseState(await readFile(statePath, 'utf8'), statePath);
+    const events = (await readFile(transcriptPath, 'utf8')).split('\n').filter(Boolean).flatMap((line, index, lines) => {
+      try { return [JSON.parse(line)]; } catch (error) { if (index < lines.length - 1) throw error; return []; }
+    });
+    const receipts = await readFeedbackReceipts(statePath, summary);
+    const runtime = feedbackRuntimeEvidence(events, path.resolve(statePath), fields, audit, undefined, receipts);
+    const missing = [summary.analysisRequired && !runtime.retrospectiveDispatched && 'a retrospective dispatch after inspection',
+      summary.evidenceRequired && !runtime.sourcePackets.includes(sessionReview?.evidence_review?.packet_hash) && 'the inspected source packet'].filter(Boolean);
+    if (missing.length) fail(`Feedback prerequisites missing: ${missing.join('; ')}. Run inspect/evidence and the required delegate before write; no report was changed.`);
+    await recordFeedbackReceipt(statePath, summary, { dispatches: runtime.dispatches });
+  }
   const block = renderBlock(summary, analysis, sessionReview);
   const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
   const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
@@ -537,6 +558,7 @@ async function main() {
   let reason;
   let transcriptPath;
   let failureId;
+  let evidenceOutputPath;
   let limitStop = false;
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--state') statePath = args[++index];
@@ -549,24 +571,41 @@ async function main() {
     else if (args[index] === '--reason') reason = args[++index];
     else if (args[index] === '--transcript') transcriptPath = args[++index];
     else if (args[index] === '--failure-id') failureId = args[++index];
+    else if (args[index] === '--output') evidenceOutputPath = args[++index];
     else fail(`Unknown argument: ${args[index]}`);
   }
   if (!statePath || (!['write', 'check'].includes(mode) && (analysisPath || sessionReviewPath))) fail('Provide --state; --analysis and --session-review are for check or write only.');
   failureContext = { mode, statePath };
-  if (mode !== 'unavailable' && [reason, transcriptPath, failureId].some(value => value !== undefined)) fail('--reason, --transcript and --failure-id are only for unavailable feedback.');
+  if (mode !== 'unavailable' && [reason, failureId].some(value => value !== undefined) || transcriptPath && !['unavailable', 'write', 'inspect'].includes(mode)) fail('--transcript is for inspect, write or unavailable; --reason and --failure-id are only for unavailable.');
+  if (evidenceOutputPath && mode !== 'evidence') fail('--output is only for evidence.');
   if (mode === 'unavailable') {
     process.stdout.write(`${JSON.stringify(await unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop }))}\n`);
     return;
   }
   if (mode === 'inspect') {
     const summary = await inspectFeedback(statePath, { limitStop });
+    await recordFeedbackReceipt(statePath, summary, { inspect: true, analysisRequired: summary.analysisRequired });
     const { ticket: _ticket, ...shareSafe } = summary;
-    process.stdout.write(`${JSON.stringify({ ...shareSafe, commands: feedbackCommands(statePath, { analysisRequired: summary.analysisRequired, limitStop }) })}\n`);
+    const commands = feedbackCommands(statePath, { analysisRequired: summary.analysisRequired, limitStop });
+    if (transcriptPath) commands.write += ` --transcript '${path.resolve(transcriptPath).replaceAll("'", "'\\''")}'`;
+    process.stdout.write(`${JSON.stringify({ feedbackContext: { state: path.resolve(statePath), runId: summary.runId }, ...shareSafe, commands,
+      session_review_template: sessionReviewTemplate(summary._packet), template_instruction: 'Fill context and source observations from actual inspection. The scaffold records no completed inspection; check validates the completed input. For combined write, append --transcript with this session JSONL path.' })}\n`);
     return;
   }
   if (mode === 'evidence') {
     const summary = await inspectFeedback(statePath, { limitStop });
-    process.stdout.write(evidenceText(summary._packet ?? await feedbackEvidence(statePath, summary)));
+    const packet = summary._packet ?? await feedbackEvidence(statePath, summary);
+    const text = evidenceText(packet);
+    if (evidenceOutputPath) {
+      try { if (!(await lstat(evidenceOutputPath)).isFile()) fail('Evidence output must be a regular file.'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+      if (path.dirname(path.resolve(evidenceOutputPath)) !== path.dirname(path.resolve(statePath)) || !/^feedback-evidence(?:-[A-Za-z0-9_-]+)?\.txt$/.test(path.basename(evidenceOutputPath))) fail('Evidence output must be feedback-evidence[-NAME].txt beside the state file.');
+      const temporary = `${evidenceOutputPath}.${randomUUID()}.tmp`;
+      try { await writeFile(temporary, text, { mode: 0o600, flag: 'wx' }); await rename(temporary, evidenceOutputPath); }
+      finally { await unlink(temporary).catch(() => {}); }
+    }
+    await recordFeedbackReceipt(statePath, summary, { packetHash: packet.packetHash });
+    process.stdout.write(evidenceOutputPath ? `${JSON.stringify({ feedbackEvidence: 'source-packet', runId: packet.runId, stateHash: packet.stateHash, packetHash: packet.packetHash, outputPath: path.resolve(evidenceOutputPath) })}\n` : text);
     return;
   }
   const analysis = analysisPath ? JSON.parse(await readFile(analysisPath, 'utf8')) : null;
@@ -577,7 +616,9 @@ async function main() {
     if (!result.valid) process.exitCode = 1;
     return;
   }
-  const result = await writeFeedback(statePath, { analysis, sessionReview, limitStop });
+  const summary = await inspectFeedback(statePath, { limitStop });
+  if (sessionReview && (summary.evidenceRequired || summary.analysisRequired) && !transcriptPath) fail('Combined feedback write requires --transcript to verify source/dispatch prerequisites before saving.');
+  const result = await writeFeedback(statePath, { analysis, sessionReview, limitStop, transcriptPath });
   const { ticket: _ticket, outputPath, ...shareSafe } = result;
   process.stdout.write(`${JSON.stringify({ ...shareSafe, outputPath })}\n`);
 }

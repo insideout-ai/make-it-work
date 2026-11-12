@@ -48,3 +48,11 @@ test('numbered evidence removes embedded images; marker-only feedback is rejecte
   assert.equal(await readFile(statePath, 'utf8'), state);
   await assert.rejects(readFile(htmlPath), { code: 'ENOENT' });
 });
+
+test('stage diagnostics identify the exact process note and source location', () => {
+  const packet = { packetHash: 'a'.repeat(64), dashboard: { status: 'missing', sections: { markup: [], styles: [] }, omitted: [] },
+    sources: [{ label: 'Review', status: 'available', lines: [{ line: 3, text: 'Observed limit' }] }] };
+  const input = { packet_hash: packet.packetHash, dashboard: { status: 'unavailable', reason: 'Source missing', sections: ['markup', 'styles'].map(id => ({ id, status: 'not-applicable' })) },
+    process: [{ source: 'Review', line: 3, result: 'limitation', note: 'Local terminology needs paraphrasing' }] };
+  assert.throws(() => validateEvidenceReview(input, packet, (_value, label) => { if (label.includes('process[')) throw new Error(label); }), /evidence_review\.process\[0\]\.note \(Review line 3\)/);
+});

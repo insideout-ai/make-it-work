@@ -172,3 +172,11 @@ evidence cannot advance the controller. The package rechecks coverage and exact
 repo/base selection, and hashes the target/diff artifacts as evidence. Hashes
 establish scope/freshness, not proof of semantic inspection. No new human approval
 is introduced. Older saved runs without the marker retain legacy behavior.
+
+## Execution settings and unavailable supplemental checks
+
+Before the first per-step dispatch, apply `execution-mode` with `mode: subagent-driven|inline`, `source: user`, `via: chat|question`. Inline also needs `pause_mode: run-straight-through|stop-after-each-step`. Autonomous/Autopilot may select only the recommended `subagent-driven` default with `source: policy`, `via: policy`. The controller updates the plan's Mode/pause settings and persists the state fields and audit decision. Replaying repairs the checkpoint; conflicting mode changes are rejected. Do not use a generic decision checkpoint to set state fields. Existing plans with a chosen matching mode are supported.
+
+If the user explicitly authorizes proceeding without unavailable supplemental manual checks, apply `waive-manual-verification` with normal event ID/hash/repos plus `source: user`, `via: chat|question`, a one-line `reason`, and `scenarios: ["M1", "M2"]` naming every manual Test Plan scenario. This is limited to the final `Verify manual scenarios` step, with no implementation files and all previous steps complete. A stopped execution may resume this way without editing or accepting a new plan baseline. Changed plans/workspaces, correctness stops, failed gates, blocking inputs and all-manual policies cannot use this route.
+
+The controller records a plan-version/hash-bound authorization and resumes Execute; it does not advance to Review or claim verification. Next run step-control's `waive-manual` action with that controller state and ledger, then run Execute's normal completion gate. Skipped checks remain `skipped` with user provenance; dependent ACs remain `unverified`. The unchanged plan and original stop history are retained. Completion Progress means the step was processed, not that skipped checks passed; disclose the skipped checks in the execute report and final package. A passing automated gate is still required by the ordinary passing route.
