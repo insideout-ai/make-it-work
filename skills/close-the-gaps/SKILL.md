@@ -1,0 +1,575 @@
+---
+name: close-the-gaps
+description: "Refines a requirement into an AI-ready ticket: a Product Analyst session that fetches the ticket, loads project skills, explores affected code, optionally searches connected Slack channels for related ticket context with consent, asks gap-analysis questions in dependency-ordered batches, and outputs a Gherkin-format refined ticket. Supports an offline mode (export every question to a file to answer outside the session) and Slack modes (draft or explicitly send the questions as a direct message to the Product Manager); re-invoke with the questions file to inject the answers and resume. Use when refining a ticket before dev starts."
+disable-model-invocation: true
+---
+
+# Ticket Refinement Session
+
+**Role:** Act as a Product Analyst facilitating a live ticket refinement session.
+
+**Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development. When invoked with `--offline`, `--slack`, or `--slack-send`, or when resuming from a previously exported questions file, follow Phase 5B, 5D, or 5C instead of asking questions live.
+
+---
+
+## Usage
+
+```
+/make-it-work:close-the-gaps [TICKET-ID] [--offline | --slack | --slack-send] [--autopilot]
+/make-it-work:close-the-gaps path/to/<TICKET>-questions.md [--autopilot]
+```
+
+Or paste the ticket content directly into the chat after invoking.
+
+Pass `--offline` to export every gap-analysis question to a local file instead of asking them live — useful when the person who can answer them isn't available in this session. Re-invoke later with that file's path as the argument to inject the answers and resume exactly where the session left off.
+
+You can also answer some questions here, skip the rest, then choose **Pause and send to Product** or **Proceed with TBDs**. The handoff preserves your decisions and asks Product only for unresolved questions; proceeding writes the spec with those items explicitly unresolved.
+
+Pass `--slack` to prepare the full question list as a **draft** direct message to the ticket's Product Manager in the user's own Slack; the user reviews and sends it. Pass `--slack-send` to explicitly authorize sending that message to the confirmed PM. Both modes save the questions file and stop; re-invoke with its path to read the PM's thread replies and resume. `--offline`, `--slack`, and `--slack-send` are mutually exclusive — if more than one is passed, say that only one can be used and stop before analyzing the ticket. Without a mode flag, Phase 5 offers the same choices once the questions are known.
+
+Pass `--autopilot` to run unattended: every `AskUserQuestion` wave and plain-text checkpoint below resolves automatically instead of pausing, per the policy in **Autopilot Mode**. Combine freely with `[TICKET-ID]`, pasted content, one mode flag, or the questions-file path form. `--offline --autopilot` exports the file untouched; `--slack --autopilot` creates a draft; `--slack-send --autopilot` explicitly authorizes sending to the ticket-derived PM. Autopilot never chooses to send on its own. Its resolutions apply the next time an exported file comes back through the injection path. Without `--autopilot`, every interactive point pauses for a human exactly as documented below.
+
+## Autopilot Mode
+
+When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — wave batching, the 2–4 option cap, `(Recommended)` placed first, `Skip — decide later (TBD)` placed last — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+
+**Hard-stop exceptions — never auto-resolved, even in autopilot mode:**
+
+1. **Phase 1 ticket-fetch failure with nothing pasted.** If a tracker fetch fails and no ticket content was ever supplied, autopilot cannot fabricate a ticket. Stop and require a human to paste the content.
+2. **Phase 1 pending offline export** (`make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` exists with `**Status:** Awaiting Answers`). None of its three choices — resume it, overwrite it and continue this fresh session, or abort — carries a designated default anywhere in this skill's text, and one of them is destructive: overwriting discards a file that may hold previously recorded answers. Autopilot does not guess among the three. It prints the file's path and the three choices, then stops and requires a human. "Overwrite it and continue this fresh session" is named here as never auto-selectable on its own, independent of which of the other two choices a human later makes.
+3. **Phase 5C conflicting checkboxes** (more than one box checked for the same question, including a filled-in "Other:"). There is no safe way to infer which of two explicit, conflicting human selections was intended. Stop and show the user what was checked, exactly as the interactive path already does.
+
+**Decision log:** write `make-it-work/<TICKET-or-slug>/close-the-gaps-autopilot-log.jsonl` when Phase 1 resolves the ticket or slug, overwritten fresh for this autopilot run (it describes that run only). If a ticket fetch fails before a ticket or slug can be resolved, stop without creating a ticket-scoped log and include the hard-stop in the chat summary. Field shape follows the shared schema in `docs/autopilot-log-schema.md` — this skill uses all three `kind` values (`askUserQuestion`, `checkpoint`, `open_text`); `multiSelect` is present but always `false` (this skill never presents a `multiSelect` question; it batches independent single-choice questions into one call instead); `chosen` is therefore a string, the `open_text` free-text answer, or `null` — never an array. Every line also still includes `rationale` (one sentence), per the shared schema's core fields. `phase` examples: `"Phase 1"`, `"Phase 5A"`, `"Phase 5C"`. `site` examples: `"wave-1-q2"`, `"blank-q3"`, `"followup-1"`.
+
+When Bash is permitted, use the shared writer in `docs/autopilot-log-schema.md` with `--ticket "<TICKET-or-slug>"` for this log, invoking each writer command in its own Bash tool call; preserve this skill's timing and never use it to bypass a denied log write.
+
+This file is a run artifact: never treat it as a Phase 3 "code finding," never embed it in a `*-questions.md` export, and never reference it from Phase 6's own `## Decision Log` table — the two logs serve different audiences (this one is for auditing the autopilot run itself; Phase 6's is part of the deliverable ticket).
+
+**Resolution table** (one row per interactive site, in the order they can appear):
+
+| Phase | Site | `kind` | Autopilot resolution |
+|---|---|---|---|
+| Phase 1 | ticket-fetch failure, nothing pasted | `checkpoint` | Hard-stop exception above — stop and require a human. |
+| Phase 1 | pending offline export (resume / overwrite / abort) | `checkpoint` | Hard-stop exception above — stop and require a human. Never auto-select "overwrite it and continue this fresh session." |
+| Phase 1A | optional Slack context search | `checkpoint` | Skip without asking unless the user explicitly requested channel research for this ticket; then search within that scope. Slack delivery flags never grant research consent. |
+| Phase 5 | mode choice (answer here / draft in Slack / send via Slack / export to a file), no mode flag passed | `askUserQuestion` | Choose `Answer here (Recommended)`; never automatically authorize sending. |
+| Phase 5A | per-question wave batch | `askUserQuestion` | Choose the option labeled `(Recommended)`. |
+| Phase 5A | genuinely open-ended question (no pre-enumerable answer) | `open_text` | Answer with your own best inference from Phase 2–3 findings, prefixed `[autopilot best-guess]`. |
+| Phase 5E | unresolved questions (proceed with TBDs / pause and send to Product) | `askUserQuestion` | Choose `Proceed with TBDs (Recommended)`; preserve skips and blocked dependencies without inventing answers or authorizing delivery. |
+| Phase 5D | Product Manager confirmation | `checkpoint` | Accept the PM derived from the ticket without confirmation. If none can be derived, fall back to Phase 5B (log `chosen: null` with the reason). |
+| Phase 5C | Slack draft never sent, delivery unconfirmed, or no PM reply yet (wait / answer live) | `checkpoint` | Answer live — resolve every question through the rows below; never send or resend. |
+| Phase 5C | more than one checkbox checked for the same question | `checkpoint` | Hard-stop exception above — stop and require a human. |
+| Phase 5C | recorded answer's code finding changed in a way that contradicts it | `askUserQuestion` | Re-resolve using the same options the file recorded; choose `(Recommended)`. Log the rationale as the drift that triggered re-resolution, e.g. `"<path> no longer matches the recorded finding; re-resolved via Recommended."` |
+| Phase 5C | blank checkbox-style question | `askUserQuestion` | Reuse the header, gap type, and options exactly as recorded in the file; choose `(Recommended)`. |
+| Phase 5C | blank open-ended question | `open_text` | Answer with your own best inference, prefixed `[autopilot best-guess]`. |
+| Phase 5C | `## Follow-up Needed After This Round` item | `open_text` | Answer with your own best inference from the embedded ticket/code findings, prefixed `[autopilot best-guess]`. |
+
+Only the Phase 5 mode-choice and Phase 5A/5C/5E `askUserQuestion` rows carry a `(Recommended)` label in this skill — do not invent one for the two Phase 1 checkpoints, which are hard-stops with nothing to auto-resolve, or for the Phase 5C conflicting-checkbox checkpoint.
+
+**Marking autopilot answers in the deliverable itself:** apply the marker convention from `docs/autopilot-log-schema.md` to Phase 6's `## Decision Log` table — append `_(autopilot)_` after a `(Recommended)`-resolved answer, keep the `[autopilot best-guess]` prefix on an `open_text` answer — so a reviewer reading the refined ticket alone, without `make-it-work/<TICKET-or-slug>/close-the-gaps-autopilot-log.jsonl`, can see which decisions weren't confirmed by a person. A question that was already answered unambiguously in an offline file before this run needs no marker — a human already decided it.
+
+At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision (including any hard-stop that was hit) and the log file's path if one was created, so someone can audit the run afterward.
+
+---
+
+## Phase 1 — Ticket Ingestion
+
+**0. Detect an injection run first.** If the argument is a path to an existing `*-questions.md` file, this is an **injection** run: read the file in full, skip the rest of Phase 1, restore the original ticket content, the loaded-skills list, the code findings, and any `### Related Channel Context` from its `## Session Context` section — then re-read each skill named in that list, so its content is available for Phase 6's re-check — and go directly to **Phase 5C — Offline Injection**.
+
+Otherwise, ingest the ticket as usual:
+
+- If a ticket ID is provided, fetch it via the available MCP integration (e.g., Atlassian, Linear, GitHub Issues). If the fetch fails (not found, no access, tool unavailable), say so plainly and ask the user to paste the ticket content directly instead of retrying silently or fabricating ticket content. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
+- If content is pasted, parse it as-is — work with whatever is there, even if vague or incomplete.
+- Extract: ticket ID, canonical ticket URL when available, summary, description, acceptance criteria, linked tickets, and any attachments or comments. Keep a URL returned by the tracker or supplied with the ticket; for Jira, a confirmed site URL and issue key can also resolve the `/browse/<KEY>` link.
+- Retain the built-in Jira `reporter` and any returned custom-field names/metadata for Slack recipient resolution in Phase 5D. **Product Manager is a Jira custom field**, not a built-in field; its omission from the initial issue response does not establish that it is absent or empty.
+- Record the **source**: either "Fetched from `<tracker>` issue `<ID>`" or "Pasted directly, no tracker ticket" — Phase 5B will embed this so Phase 5C can later check for ticket drift.
+- Derive `<TICKET-or-slug>`: the ticket ID if there is one; otherwise a kebab-case slug of the title; otherwise `spec-YYYY-MM-DD` — the same rule Phase 6 uses for its own output filename. Reuse this one value for the rest of this phase, for Phase 5B's export filename, and for Phase 6's final spec filename, so all three always agree.
+- **Check for a pending offline export:** if `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` exists with a `**Status:** Awaiting Answers` marker, warn the user: "A pending offline export exists at `<path>` with unanswered questions." and ask them to choose: **resume it** (re-invoke with that file's path instead — stop here), **overwrite it and continue this fresh session** (delete the stale file, then continue below), or **abort** (stop here, no changes). Do not continue past this check silently. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.)
+- Record the selected mode flag (`--offline`, `--slack`, or `--slack-send`) for Phase 5. Reject conflicting mode flags before any analysis. `--slack` always means draft-only; generic or legacy Slack selection does not authorize sending.
+- Acknowledge to the user: "Loaded ticket [ID]: [summary]. Starting analysis..."
+
+---
+
+## Phase 1A — Optional Slack Context Search
+
+Follow [the Slack context-search contract](references/slack-context-search.md)
+after ticket ingestion and before drafting refinement questions. When Slack
+channel search is connected, offer **Search Slack** or **Skip** once. After
+consent, search **all accessible channels by default**, using ticket identifiers
+and relevant terms; channel selection is optional. Use read-only tools, summarize
+useful findings with message links, and surface conflicts rather than treating
+Slack discussions as unquestionable requirements. An unavailable or unsuccessful
+search does not block refinement. Autopilot skips unless explicitly requested.
+This is independent of later PM message delivery and applies when run by
+implement too. Injection/resume restores saved context without a fresh search.
+
+---
+
+## Phase 2 — Skills Loading
+
+Honor the affected repository's `CLAUDE.md` loading gate before source exploration, including its required invocation method. Under implement, only the pipeline stage itself runs inline; repository domain/UC skills still load normally. A later read to update their documentation does not establish that their constraints were available during refinement. If a mandatory loading method is unavailable, return a concrete blocker rather than silently skipping it.
+
+Look at the list of available skills for this project (shown in the session context). Skills are organized in two layers:
+
+- **Domain skills** — cover specific functional domains. Load the ones whose scope overlaps with the ticket.
+- **Use-case skills** — cover specific end-to-end flows. Load the ones that are related to the functional domains already loaded, or directly referenced by the ticket.
+
+**How to detect which skills to load:**
+1. Read the ticket content and extract key nouns, verbs, and domain terms.
+2. Match them against skill names and descriptions visible in the session.
+3. Load relevant domain skills first, then any use-case skills whose scope overlaps with the ticket.
+4. When a use-case skill references a domain skill (or vice versa), load both — cross-referenced skills often contain the constraints that matter most.
+5. When in doubt, load the skill — a false positive is cheaper than a missed constraint.
+6. Regardless of keyword match: if the ticket introduces new persisted state or a new user-visible side effect, also check whether any available skill describes account/session-lifecycle concerns (e.g., data deletion, disconnect, logout) or audit/compliance logging for this project, and load it even if the ticket's own keywords don't reference it. Look for skills describing these *concepts*, not a specific skill name — every project names them differently, and some projects won't have one at all.
+
+Do not mention which skills were loaded unless the user asks. Just use them.
+
+---
+
+## Phase 3 — Targeted Code Exploration
+
+Using the loaded skills as a map, explore only the code areas relevant to this ticket.
+Do not do broad exploration — be surgical.
+
+When this exploration spans multiple files, multiple loaded skills, or multiple repos in a workspace — an independently reviewable unit of work, not a single targeted lookup — dispatch it to a fresh subagent (the `Explore` or `general-purpose` agent type, via the Agent tool) and work from its returned report, rather than reading every file directly in this session. This does not relax the surgical-not-broad rule above; it changes who does the surgical reading. A single, narrow confirmation (does this function exist, what are this enum's values) stays inline — forking has overhead that isn't worth it for a one-grep fact-check.
+
+Look for:
+- Enums, status definitions, and state machines that this ticket touches
+- Existing logic that would be affected or extended
+- Any current behavior that conflicts with what the ticket describes
+- Edge cases already handled that the ticket does not mention
+
+Do not summarize findings to the user yet. Use them internally to build the question list.
+
+---
+
+## Phase 4 — Gap Analysis (Internal Draft)
+
+Focus strictly on the **"what"** — product behavior, user-facing outcomes, business rules.
+Do NOT flag implementation choices, architecture patterns, or technical how-to gaps.
+
+Scan for all of the following gap types:
+
+1. **Unclear language** — phrasing that could mean two different things
+2. **Missing definitions** — terms used without being explained (e.g., "the relevant record", "the user", "the system")
+3. **Unstated assumptions** — behavior implied but never written down
+4. **Conflicting requirements** — two statements in the ticket that contradict each other
+5. **Skill conflicts** — requirements that contradict flows, status names, transitions, or rules documented in the loaded skills
+6. **Code conflicts** — behavior described in the ticket that conflicts with what already exists in the codebase
+7. **Missing edge cases** — scenarios not covered: what happens on error, empty state, concurrent actions, retry
+8. **Missing acceptance criteria** — things that must be true for the feature to be "done" but are not stated
+9. **Scope ambiguity** — unclear whether something is in or out of scope
+10. **Missing actor or trigger** — who initiates this? What event triggers it? Under what conditions?
+11. **Cross-surface consistency** — when a loaded domain/UC skill documents other components or flows related to this one, does the ticket's change need to extend to them, or should it explicitly exclude them? (e.g., a new control on one surface governed by a domain skill that also governs a sibling dialog/page/flow)
+12. **Cross-cutting concern interaction** — does this feature introduce new persisted state, a new notification, or any other side effect that needs to be considered by concerns that apply system-wide, regardless of domain — e.g., account or data deletion, session/logout handling, audit or compliance logging, data export/portability? These often live in a different area of the codebase than the one the ticket's own keywords would naturally point to.
+
+Before finalizing the question list, re-scan each loaded skill for other components or flows it documents besides the one the ticket directly targets — don't rely only on what surfaced during the first pass of Phase 3. Also re-scan for other documented business rules, named states/modes, or exclusions that apply to the same underlying data or calculation the ticket touches (e.g., an existing "outlier" or "recovery" classification, an exclusion list, a special-cased threshold) — a new feature that reacts to a calculated value often needs to say whether it respects an exception the loaded skill already documents for that same calculation. A structured process should catch these gaps more reliably than general thoroughness would; skipping this re-scan is the most common way it doesn't.
+
+This draft is internal only. Do not output it. Use it to generate the question list for Phase 5.
+
+---
+
+## Phase 5 — Interactive Q&A
+
+If `--offline` was passed in Phase 1, follow **Phase 5B** below instead of asking anything live. If `--slack` or `--slack-send` was passed, follow **Phase 5D** in draft or send mode respectively. Otherwise, ask the mode choice below, then follow the phase it selects.
+
+**Mode choice (no mode flag passed).** Ask one `AskUserQuestion` (`multiSelect: false`) whose question states the actual question count: *"I've analyzed the ticket and found [N] questions to resolve. Where should they go?"*, with options `Answer here (Recommended)` → Phase 5A; `Draft in Slack` — prepare a DM to the ticket's PM for the user to review and send → Phase 5D draft mode; `Send via Slack` — send the questions directly to the confirmed PM → Phase 5D send mode; and `Export to a file` → Phase 5B. Offer each Slack option only if the integration supports that action. Selecting `Send via Slack` is explicit authorization for this ticket's refinement message; do not add a separate send-confirmation question later. Keep Phase 5D's recipient confirmation. (autopilot: see Autopilot Mode — always `Answer here` unless a mode was explicitly selected.) When run by implement, skip this choice — see **When run by implement**.
+
+### Phase 5A — Live Q&A
+
+Once semantic dependencies are identified, use `scripts/questions.mjs waves` under [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) to validate and schedule batches. Recompute after an answer materially changes the graph.
+
+Tell the user:
+> "I've analyzed the ticket and found [N] questions to resolve. I'll ask them in batches, grouped so you can navigate and revise answers within each batch before submitting."
+
+Emit this announcement with the actual question count before the first live
+question, even if the run must stop for answers and never writes a spec. Do
+not replace it with an unnumbered paraphrase.
+
+**Group the question list into waves before asking anything.** `AskUserQuestion` accepts up to 4 questions in a single call and renders them as navigable tabs the user can jump between and revise — but every question in that call is fixed and visible at once, so it only works for questions that don't depend on each other's answers.
+
+1. For every question, check whether any *other* pending question's wording, options, or relevance could change depending on how it's answered. If so, that question **depends on** the other and must go in a **later** wave — never the same batch, since the user could revise the earlier answer after already seeing the dependent one.
+2. **Wave 1** = every question with no unresolved dependency on another pending question. Most gap types (Unclear language, Missing definition, Missing edge case, Missing acceptance criteria, Scope ambiguity, Cross-surface consistency, Cross-cutting concern, etc.) are independent of each other by default and belong here unless one specifically hinges on another's answer (e.g., "which entity does this apply to" gates "which field on that entity").
+3. Each subsequent wave = questions whose dependencies were fully resolved by the previous wave's answers, plus any new follow-up questions those answers surfaced.
+
+**Ask each wave in one `AskUserQuestion` call:**
+- If a wave has more than 4 questions, split it into consecutive batch calls of ≤4 — order between those calls doesn't matter, since everything in the wave is mutually independent.
+- If a wave contains a genuinely open-ended question with no pre-enumerable answer, ask that one separately as plain text; do not force it into the `AskUserQuestion` array. (autopilot: see Autopilot Mode — resolved as `open_text`.)
+
+For each multiple-choice question in a batch, include it in the `questions` array with:
+  - `header`: a short label (≤12 characters) for this question — use the gap type abbreviated, or a one-word topic (e.g. "Duration", "Scope", "Conflict"). Never put the full question text here.
+  - `question`: `"[Gap type]: [The question]\n\n[One sentence explaining why this matters.]"`
+    - `[Gap type]` must be one of: `Unclear language`, `Missing definition`, `Unstated assumption`, `Conflicting requirements`, `Skill conflict`, `Code conflict`, `Missing edge case`, `Missing acceptance criteria`, `Scope ambiguity`, `Missing actor/trigger`, `Cross-surface consistency`, `Cross-cutting concern`
+  - `options`: up to 3 substantive choices **plus always one final option**:
+    `{ label: "Skip — decide later (TBD)", description: "Leave this open; it will be listed as an unresolved item in the refined ticket." }`
+  - The `AskUserQuestion` tool caps options at 4 per question, so use at most 3 substantive choices + the Skip option. If a gap genuinely has more than 3 meaningful answers, either narrow to the 3 most likely/valuable and let Skip implicitly cover the rest, or split it into two sequential questions (e.g., resolve the category first, then the specific value) rather than forcing a cramped single question.
+- Wait for the whole batch's answers before building the next wave. (autopilot: see Autopilot Mode)
+- Record each answer (or skip) and its actual source before proceeding: user via chat/question, PM via Slack with the available reply reference, recorded file answer (author unknown unless identified), or Autopilot. Preserve this attribution when answers are resumed or carried into the spec; a user choosing "go with recommended" is a user decision, not an Autopilot answer or evidence of PM approval.
+
+Rules:
+- Batch every mutually-independent question of a wave into a single `AskUserQuestion` call (≤4 per call) — do not artificially split independent questions across separate calls one at a time; that throws away the navigation/revision UI for no reason.
+- Frame questions as **closed (multiple choice)** whenever possible.
+- When the answer cannot be pre-enumerated, ask in plain text instead of calling `AskUserQuestion` with fewer than two options.
+- **Always recommend one option per question.** Place the recommended option first in the list and append `(Recommended)` to its label. Base the recommendation on product best practices, what the codebase already supports, and what is least likely to introduce scope creep. Exception: for a `Cross-cutting concern` question, "do nothing to the existing flow" is often the smallest-scope option but not the safest one — recommend whichever option keeps the system's existing compliance/lifecycle guarantee intact (e.g., new state actually gets cleared where an existing erasure/cleanup flow promises completeness), even if it takes slightly more scope than doing nothing.
+- **Keep recommendations current.** Before applying a blanket answer such as "go with recommended," check it against the latest findings, including returned research. Apply it to the recommendations actually shown; do not extend it to unseen questions. If new evidence invalidates an option, changes its product outcome or materially changes its risk, show the affected recommendation and changed evidence/risk, then resolve only that affected question under the existing autonomy/conflict rules. Never treat the blanket answer as acceptance of a newly substituted option. Unchanged choices need no repeated confirmation or recap.
+- Never place the Skip option first — it should always be last.
+- If a wave's answers create a new gap, unblock a dependent question, or surface a follow-up, fold it into the next wave rather than re-opening or re-batching a wave already asked.
+- Never ask about implementation details, technical choices, or architecture.
+- Skipped questions are recorded and included as TBD in the final output.
+- A skipped gating answer does not resolve its dependencies. Defer dependent questions whose wording or relevance cannot yet be determined; keep their conditions and any unformulatable follow-ups unresolved rather than guessing or treating them as out of scope. Continue with independent questions.
+- After the last answerable wave, follow **Phase 5E**. Say "All questions answered. Generating refined ticket..." only when nothing remains unresolved.
+
+### Phase 5E — Unresolved Questions
+
+Apply after live Q&A or offline/Slack injection, before Phase 6. If nothing remains unresolved, proceed directly to Phase 6 without another question. Otherwise summarize the resolved and unresolved counts, including skipped questions and follow-ups blocked by a skipped answer, and offer exactly two choices in one `AskUserQuestion`:
+
+- **Proceed with TBDs (Recommended)** — generate the refined ticket with the existing answers and an explicit unresolved checklist. This completes refinement with TBDs; it does not resolve them or authorize development past existing readiness gates.
+- **Pause and send to Product** — preserve existing answers, hand off only unresolved questions, and pause without generating a spec. Explain in the option description whether delivery can send via Slack or will require a manual file handoff. This selection explicitly authorizes the displayed unresolved-question message to the confirmed PM; do not ask another send-confirmation question.
+
+For **Proceed with TBDs**, go to Phase 6. Keep unresolved conditional questions in the TBD list with their gating condition; do not add Decision Log rows for questions that were never asked or invent acceptance criteria for unresolved behavior.
+
+For **Pause and send to Product**, use Phase 5D send mode when supported, otherwise its documented draft/file fallback. Discover available delivery capabilities before describing the choice. Preserve the session snapshot, code findings, all recorded answers and notes, original question IDs, and dependency conditions in the questions file. Keep answered questions checked as read-only context for this handoff; turn only skipped questions back into unanswered fields, retaining a note that the user deferred them to Product. Include unresolved conditional branches per Phase 5B and preserve unformulatable follow-ups under `## Follow-up Needed After This Round`. Omit branches ruled out by resolved decisions from the message; never re-ask resolved questions. In the message, summarize answered decisions as context separately from the unresolved questions and retain the original Q-numbers. Leave the file `Awaiting Answers` and stop through the normal Phase 5D handoff.
+
+On resume, preserve resolved answers and apply Phase 5C only to unresolved or newly applicable questions. An explicit human answer or recorded code drift can reopen a decision under the existing conflict/drift rules. Follow this choice again only if the resumed round leaves unresolved items; do not send another message without a new explicit handoff selection. Preserve any existing pending/unknown delivery metadata and reconcile it under Phase 5C before considering a new delivery.
+
+### Phase 5B — Offline Export
+
+Build the **complete** question list up front — every wave, not just Wave 1 — since there is no live back-and-forth to reveal later waves incrementally:
+
+1. Compute Wave 1 exactly as in Phase 5A.
+2. For each question, enumerate every later-wave question that depends on it, for each of its own options, **recursively** — a question two or three waves deep (e.g. a chain like Trigger → Detect → Reinvoke) is still written out, chained through its own immediate gating question rather than only checked against Wave 1. Write each dependent question directly after the question it depends on, so the file's order always presents a gating question before anything conditioned on it. Label each with the exact condition under which it applies (see template below). If a later question's wording or options cannot be enumerated without an answer that doesn't exist yet (e.g. it depends on free text with no fixed set of branches), do not force it into the file — record it instead under a `## Follow-up Needed After This Round` section at the end of the file, in plain language; Phase 5C resolves it live rather than exporting a second file.
+3. Do not call `AskUserQuestion`. Do not ask anything in chat.
+
+Write the file to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` (the same base name Phase 1 derived and Phase 6 will use), using this template:
+
+```markdown
+# Offline Questions — <TICKET-or-slug>
+
+> **Status:** Awaiting Answers
+> Fill in the checkboxes and notes below, save this file, then re-invoke:
+> `/make-it-work:close-the-gaps <this file's path>`
+
+## Session Context
+
+### Source
+
+<"Fetched from <tracker> issue <ID>" or "Pasted directly, no tracker ticket">, exported <YYYY-MM-DD>
+
+### Original Ticket
+
+<the full ticket content exactly as ingested in Phase 1>
+
+### Skills Loaded
+
+- <skill name> — <one-line reason it was loaded>
+
+### Code Findings
+
+- Q1 — `<path/to/file>`: <one-sentence summary of the Phase 3 finding this question is based on>
+
+### Related Channel Context
+
+<Optional: research choice, scope, queries, retrieval date, outcome, concise
+findings and actual Slack message links. Preserve conflicts as unresolved.
+Omit for older sessions with no recorded context; this is not the PM delivery block.>
+
+## Questions
+
+### Q1 — [Gap type]
+
+**Question:** <question text>
+**Why it matters:** <one sentence>
+
+- [ ] <Option 1 label> (Recommended)
+- [ ] <Option 2 label>
+- [ ] <Option 3 label>
+- [ ] Other: ______________________
+- [ ] Skip — decide later (TBD)
+
+Notes (optional):
+
+### Q2 — [Gap type] *(Answer only if Q1 = <option label>)*
+
+**Question:** <question text>
+**Why it matters:** <one sentence>
+
+- [ ] <Option 1 label> (Recommended)
+- [ ] <Option 2 label>
+- [ ] Other: ______________________
+- [ ] Skip — decide later (TBD)
+
+Notes (optional):
+
+### Q3 — [Gap type] *(open-ended — no fixed options)*
+
+**Question:** <question text>
+**Why it matters:** <one sentence>
+
+**Your answer:**
+
+## Follow-up Needed After This Round
+
+<!-- Omit this section entirely if every question could be enumerated above. -->
+- <plain-language description of the gap that could not be phrased as a conditional question, and why>
+```
+
+Tell the user: "Questions exported to `<path>`. Answer them there, then re-invoke `/make-it-work:close-the-gaps <path>` to continue." Stop here — do not proceed to Phase 6 in this session.
+
+### Phase 5D — Slack Export
+
+Prepare a draft or send the questions to the ticket's Product Manager according to the user's choice, then stop. Both modes write the questions file and pause without polling Slack; Phase 5C reads the PM's answers from the Slack thread on resume. Sending requires an explicit `Send via Slack` choice, `--slack-send`, or Phase 5E's `Pause and send to Product` selection with supported sending disclosed; draft mode and a legacy generic Slack choice never permit sending.
+
+1. **Build the question list** exactly as Phase 5B steps 1–2 do — every wave, conditional follow-ups labeled with the answer they depend on, and any `## Follow-up Needed After This Round` items. For a partial-answer handoff from Phase 5E, preserve resolved answers in the file and include only unresolved questions and applicable conditional follow-ups in the message, with answered decisions as context. Do not call `AskUserQuestion` for the questions themselves.
+2. **Identify the Product Manager.** Honor an explicit recipient supplied by the user; otherwise resolve the ticket's PM before looking them up in Slack:
+   - **Jira custom-field discovery:** Product Manager is a custom field; Reporter is the built-in `reporter` field. Use field metadata/name mappings returned by Jira, or the connector's field-discovery/search capability, to resolve the field named **Product Manager** to its actual `customfield_<id>` key for the ticket's Jira site/project. Read that key's value from the issue; request it explicitly if the initial issue response omitted custom fields. Do not assume a built-in `productManager` property, guess an ID, or reuse an ID from another Jira site.
+   - **Precedence and fallback:** use the populated Product Manager custom field first. Use Reporter only when the PM field is confirmed absent or empty, and identify this as a Reporter fallback when showing the recipient. A field omitted from a response, failed discovery, inaccessible metadata, or multiple unresolved matching fields is not proof that the PM field is empty. In those cases ask the user to identify the PM rather than silently substituting Reporter. For other trackers or pasted tickets, use their explicitly supplied PM, otherwise their reporter when available.
+   - Look the resolved person up via the Slack MCP integration. Show the matched Slack user (name and handle), state whether they came from the PM field or Reporter fallback, and ask the user to confirm or name a different person. If no person or Slack match can be resolved, ask who the PM is. (autopilot: accept an unambiguously derived recipient without confirmation; unresolved custom-field discovery or recipient matching falls back to Phase 5B with the reason, without guessing.)
+3. **Compose and show the message** with the confirmed recipient, using this welcoming template. Replace the placeholders and render the ticket title as a clickable link using the Slack tool's supported formatting. The initial send choice already authorizes delivery; this preview does not introduce another confirmation gate.
+
+   ```text
+   close-the-gaps — <TICKET-or-slug>: <ticket summary>
+
+   Hey <PM first name> 👋
+
+   We're getting <ticket-url|TICKET-or-slug — ticket summary> ready for development, and your input would help clear up a few details.
+
+   <Numbered questions and answer options>
+
+   Please reply in this thread, one reply per question—for example, Q2: B. Feel free to add context or suggest a different answer! For open-ended questions, start with the question number and write your answer in your own words.
+
+   Thanks for helping us get the details right 🙌
+
+   _Generated by make-it-work, an AI workflow by InsideOut AI. Your answers guide the final requirements._
+   ```
+
+   - Keep the ticket-identifying first line exactly as shown; Phase 5C uses the recorded first line to find the sent message.
+   - Use the real ticket URL from Phase 1. If none can be resolved, use the ticket ID/title as plain text and tell the user the link was unavailable when showing the message; never invent a ticket URL.
+   - Number each question as in the questions file, with its options lettered `A`, `B`, `C`…, `(Recommended)` kept on the recommended option, and every conditional question marked `(answer only if Q<n> = <letter>)`. Omit the Skip option and the `Other:` line — the PM can always reply in free text.
+   - Keep the AI disclosure visible as a short italic footer. Describe the questions as details to clarify rather than "gaps," and avoid promising how little time answering will take.
+4. **Save before delivery.** Write the questions file to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-questions.md` using the Phase 5B template (preserving answers and deferred-question notes for a Phase 5E handoff), plus a `### Slack` block at the end of `## Session Context`:
+
+   ```markdown
+   ### Slack
+
+   - Product Manager: <display name> (<Slack user ID>)
+   - Direct message: <DM channel ID>
+   - Delivery mode: <draft | send>
+   - Delivery status: prepared
+   - Prepared at: <ISO 8601 UTC timestamp>
+   - First line: close-the-gaps — <TICKET-or-slug>: <ticket summary>
+
+   #### Message
+
+   <the exact composed message>
+   ```
+
+   Keep the file `Awaiting Answers` and its checkboxes available for manual answers. Until delivery resolves, replace the template's "Fill in the checkboxes…" status note with "Questions prepared for `<PM name>` in Slack; delivery pending." If saving fails, stop before any delivery call.
+5. **Deliver once in the selected mode.**
+   - **Draft:** create a draft direct message in the user's own Slack. Never call a send tool. On success, set `Delivery status: draft`, record `Draft created: <UTC timestamp>`, and update the status note to "Questions drafted to `<PM name>` in Slack. Send the draft, then re-invoke `/make-it-work:close-the-gaps <this file's path>` once they reply in the Slack thread. Resuming reads their answers directly from Slack and continues refinement."
+   - **Send:** persist `Delivery status: pending` immediately before the send call, then send the displayed message to the confirmed PM. On confirmed success, set `Delivery status: sent` and record `Sent at`, the returned `Message timestamp`/ID, and `Message link` when available. Update the status note to "Questions sent to `<PM name>` in Slack. Re-invoke `/make-it-work:close-the-gaps <this file's path>` once they reply in the Slack thread. Resuming reads their answers directly from Slack and continues refinement." A mode or recipient change from the user before delivery takes precedence over the initial choice.
+   - **Interruption or uncertain result:** a timeout or missing acknowledgement does not prove failure. Keep `Delivery status: unknown` (or the already-saved `pending` if interrupted). Reconcile read-only in the recorded DM using the sender, timestamp, and exact stored message before any retry. If found, record its ID and mark it `sent`. Otherwise report delivery as unconfirmed and stop without sending again or creating a fallback draft. Resume through Phase 5C; a retry requires a new explicit user instruction after reconciliation.
+6. **Report the actual result and stop.** For a standalone draft: "A draft direct message to `<PM name>` is waiting in your Slack. Review and send it. Once they reply in the Slack thread, run `/make-it-work:close-the-gaps <path>`. That reads their answers directly from Slack and continues refinement toward the final Gherkin spec. The workflow is paused; no Slack polling is running. No spec has been written yet." For a standalone confirmed send: "Sent to `<PM name>` ✅" with the returned message link when available, then "The workflow is paused pending their Slack replies; no polling is running. Once `<PM name>` replies in the Slack thread, run `/make-it-work:close-the-gaps <path>`. That reads their answers directly from Slack and continues refinement toward the final Gherkin spec. No spec has been written yet." When run by `implement`, use the return report in **When run by implement** instead; the orchestrator supplies its own resume instructions. For unconfirmed delivery, say so plainly and give the saved file path. Do not proceed to Phase 6 in this session. Do not claim a message was sent based only on its selected mode.
+
+**If Slack can't be used** — no integration, no matching PM, or a definite delivery failure — explain exactly what failed. For send mode, if sending is unavailable or definitively failed and draft creation is supported, create a draft instead and record/report that fallback as draft-only. If no draft can be created, follow Phase 5B with the questions already built (no `### Slack` block). Report the offline handoff explicitly: "Slack delivery wasn't completed: <reason>. Forward or attach `<questions-file-path>` to the Product Manager manually. Once they've filled in the answers, re-invoke `/make-it-work:close-the-gaps <questions-file-path>`." These fallbacks apply only when no message could have been sent; never discard pending/unknown delivery metadata.
+
+### Phase 5C — Offline Injection
+
+First read [the question-helper contract](../../docs/deterministic-artifacts.md#refinement-questions) and run its required parser. Its active/conflict/N/A results replace manual checkbox counting and conditional propagation below; preserve the documented Slack provenance and semantic code-drift checks.
+
+**0. Check for ticket drift (tracker-sourced tickets only).** If `## Session Context → Source` names a tracker and issue ID, and that tracker's MCP integration is available in this session, fetch the current ticket read-only and compare it to the embedded `### Original Ticket` content.
+- If they differ, tell the user the live ticket has changed since export, and add a one-line callout directly under the refined ticket's title in Phase 6's output: "> **Note:** the live ticket in `<tracker>` has changed since this refinement was exported on `<date>`; this spec reflects the snapshot taken at export time." The embedded snapshot stays authoritative — do not substitute the live version.
+- If the tracker integration isn't available, or the ticket was pasted (no tracker source), say the comparison was skipped (or wasn't applicable) and proceed using the snapshot.
+
+**0b. Read the Product Manager's Slack replies** (only when `## Session Context` has a `### Slack` block). This is read-only; resuming never sends or resends the questions. Read the recorded `Message timestamp`/ID directly when present. Otherwise find the sent message in the recorded DM whose first line matches the recorded first line, posted by the user at or after `Prepared at` (legacy files: `Draft created`). For a pending/unknown send, also compare the exact stored message body before adopting a match. A draft may have been edited by the user before sending, so keep first-line matching for draft mode. Record the discovered message ID and mark delivery `sent`, then read its thread replies from the recorded Product Manager. Older Slack blocks without delivery fields retain their original draft-only meaning.
+- **Draft never sent** (draft-only metadata, no matching message), **delivery unconfirmed** (send metadata but no confirmed message), or **no reply yet** (message found, no thread replies from the PM): tell the user which it is, then ask whether to **stop and keep waiting** (stop here; the file stays `Awaiting Answers`) or **answer unresolved questions live now** (ask only unresolved questions below, preserving recorded decisions). Do not label an uncertain send as an unsent draft. (autopilot: see Autopilot Mode — answer live without sending.)
+- **Slack unavailable now** (no integration, or the DM can't be read): say so and continue with whatever the file itself holds, so blanks are asked live below.
+- Otherwise, map each reply to its question by its leading `Q<n>`. A reply that clearly selects exactly one recorded option (by letter or by unambiguous wording) or that answers an open-ended question becomes that question's answer — record it as if that box had been checked, or as its `**Your answer:**` text, citing `PM via Slack`. A reply that does not clearly match one option counts as blank: when step 3 below asks it live, show the PM's reply verbatim next to the recorded options. A later reply to the same question supersedes an earlier one. An answer recorded by hand in the file takes precedence over a Slack reply only when the two agree; when they disagree, treat it like conflicting checkboxes (step 1 below).
+
+When questions directed to Product are instead resolved live or by Autopilot,
+retain each answer's actual source alongside the saved answer. Preserve delivery
+metadata separately from local resolution: marking the questions file Answered
+does not mean the PM replied or the Slack thread was closed. Carry that
+distinction into Phase 6's Product follow-up note. Resume is read-only with
+respect to Slack; do not send a resolution FYI or close the thread automatically.
+
+Resolve questions in two passes, since a conditional question can only be evaluated once its gating answer is known:
+
+**Pass 1 — unconditional questions** (no "Answer only if…" label):
+
+1. **Read its answer.** A checkbox-style question is answered if exactly one checkbox is checked (including "Other:", if it has text after the colon) or "Skip" is checked; if more than one box is checked, ask the user live to resolve the conflict, showing them what was checked. (autopilot: see Autopilot Mode — this is a hard-stop, never auto-resolved.) An open-ended question (no checkboxes, just a `**Your answer:**` line) is answered if that line has any text after it.
+2. **Re-verify its code finding**, using the file path(s) noted under `## Session Context → Code Findings` for that question:
+   - If the code still matches the recorded finding, keep the recorded finding and the file's answer as-is.
+   - If it has changed in a way that contradicts the file's answer or the question's premise, flag this to the user now (e.g. "Q3 assumed X, but `path/to/file` now does Y — does your answer still hold?") and ask live using the same options the file recorded. (autopilot: see Autopilot Mode)
+3. **Ask live anything left blank** — a checkbox-style question with no box checked and no notes, or an open-ended question with an empty `**Your answer:**` line — via `AskUserQuestion` if it has enumerable options (reuse the header, gap type, and options exactly as recorded in the file) or as plain text if it was recorded as open-ended. For a Slack export, show the Product Manager's unclear reply, if any, verbatim with the question. Batch up to 4 independent blank checkbox-style questions per `AskUserQuestion` call, per Phase 5A's batching rules, rather than asking them one at a time. (autopilot: see Autopilot Mode)
+
+**Pass 2 — conditional questions** ("Answer only if Q_n = X" label): process them in the order they appear in the file — Phase 5B always places a gating question before anything conditioned on it, so by the time you reach a conditional question here, the question it names already has a final status from earlier in this pass or from Pass 1.
+
+- If the question it names is itself `N/A — condition not met`, mark this question `N/A — condition not met` too, without evaluating its own condition — a question gated by a question that was never asked can't apply either. This propagates down a chain of any length. Exclude every such question from Phase 6's Decision Log as well.
+- If its gating question was skipped or is itself blocked by a TBD, defer this question with its condition intact. It remains unresolved for Phase 5E; do not ask it prematurely or mark it N/A.
+- Otherwise, check the now-resolved answer to the question it names: if it does **not** match the stated condition, mark this question `N/A — condition not met`. Do not ask it, do not re-verify its code finding, and do not include it in Phase 6's Decision Log — it was never actually asked.
+- If the gating answer **does** match, treat it exactly like an unconditional question: apply steps 1–3 above to it.
+
+**Resolve any `## Follow-up Needed After This Round` items live**, the same way as step 3 above, once their gating answers are known. Items blocked by skipped answers stay unresolved for Phase 5E. Do not automatically export a second file; only an explicit Phase 5E handoff authorizes another Product handoff. (autopilot: see Autopilot Mode — answerable follow-ups resolve as `open_text`.)
+
+After the answerable questions are processed, follow **Phase 5E**, using the answers gathered here (whether from the file or live) as if Phase 5A had produced them. Only **after** Phase 6 has saved `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md`, update this file's status line to `**Status:** Answered — superseded by make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md`. This marks the export superseded even when the user chose a spec with TBDs; the spec retains those unresolved items. If the session ends before Phase 6 finishes, leave the status as `Awaiting Answers` — a later run must not mistake an incomplete session for a finished one.
+
+---
+
+## Phase 6 — Refined Ticket Output
+
+Generate the final ticket and save it to `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md` (create the `make-it-work/<TICKET-or-slug>/` directory at the repo root if it doesn't exist) — the same value derived in Phase 1, so this filename always agrees with Phase 5B's export filename.
+
+### Output structure
+
+Start from the **original ticket's exact format and content** — preserve its sections, headings, and structure. Apply these targeted changes:
+
+1. **Update the description / overview** — incorporate any clarifications from the Q&A session. Keep the original wording where it was already correct; edit only what changed.
+
+   **Include a User Story in every final spec.** Preserve and refine an existing user story in place; otherwise add `## User Story` immediately after the description / overview (or after the title if neither exists):
+
+   ```markdown
+   ## User Story
+
+   As a [actor], I want [capability], so that [benefit].
+   ```
+
+   Ground the actor, capability, and benefit in the original ticket and resolved refinement answers; do not invent a persona, business benefit, or extra scope to fill the format. Use `TBD` for any part that remains unresolved, and list it under `## TBD — Unresolved Items`. Autopilot inferences follow the existing decision-log marker policy.
+
+2. **Update existing acceptance criteria** — fix any that were ambiguous or incorrect based on Q&A answers.
+3. **Add missing acceptance criteria** — for any gaps identified during analysis that the original ticket did not cover, append new acceptance criteria in **Gherkin format** under a new section:
+
+````markdown
+## Acceptance Criteria — Added During Refinement
+
+```gherkin
+Scenario: [descriptive name]
+  Given [initial state]
+  When [action or event]
+  Then [expected outcome]
+  And [additional outcome if needed]
+
+Scenario: [edge case or error case]
+  Given ...
+  When ...
+  Then ...
+```
+````
+
+4. **Append Decision Log** — always include this section when at least one question was asked in Phase 5, listing every applicable question actually asked (in the order asked) and how it was resolved. For an offline injection run, first filter the questions file against the final gating answers from Phase 5C: any question marked `N/A — condition not met` was never asked, even if it has a Q-number or an answer in the file, and must have no Decision Log row:
+
+```
+## Decision Log
+
+| Question | Gap Type | Answer |
+| --- | --- | --- |
+| [full question text as asked] | [gap type] | [option the user picked, verbatim — or "Skipped — see TBD"] |
+```
+
+Include every applicable question actually asked here, including skipped ones — the Decision Log is the complete record of questions actually asked; TBD (below) is the actionable follow-up list for skipped items, blocked dependencies, and unresolved User Story parts. A condition-not-met question is neither asked nor skipped, so omit it from both sections. A question blocked by a TBD belongs only in the TBD section until actually asked. Before saving an offline-injection spec, check each Decision Log row against the final Phase 5C statuses and remove every `N/A — condition not met` or unasked `blocked-by-tbd` row. (autopilot: see Autopilot Mode — autopilot-resolved answers get an `_(autopilot)_` marker in the Answer column.)
+
+5. **Append TBD section** — only if any questions were skipped, conditional questions/follow-ups remain blocked by those skips, or any User Story parts remain unresolved:
+
+```
+## TBD — Unresolved Items
+
+[These must be resolved before development begins.]
+
+- [ ] [Skipped question 1 — original question text]
+- [ ] [Skipped question 2 — original question text]
+- [ ] [Blocked conditional question or follow-up — include the unresolved dependency/condition]
+- [ ] [Unresolved User Story part, if any — actor, capability, or benefit]
+```
+
+6. **Append Out of Scope section** — only if anything was explicitly clarified as out of scope during Q&A:
+
+```
+## Out of Scope
+
+- [item clarified as out of scope]
+```
+
+### Output rules
+
+- **Decision sources:** keep the existing three-column Decision Log. After the verbatim answer, add a short source annotation in its Answer cell, such as `_(user via chat)_`, `_(PM via Slack: <available reply reference>)_`, or `_(recorded file answer; author unknown)_`. Retain `_(autopilot)_` for automatic answers. Use only known identity/role evidence; never infer that the user is a developer, a PM or an authorized proxy from the input channel alone. If a prior artifact lacks attribution, label its source unknown rather than inventing one. This records provenance without adding a new approval gate.
+- **Product follow-up visibility:** if questions were previously directed to Product and resolved elsewhere, add a concise note directly below the spec title and in the final response: identify which questions were resolved by the user/Autopilot, the last verified PM reply/delivery status (or say it could not be checked), and whether a follow-up was sent. Say `pending PM confirmation` only when a known project rule or explicit instruction actually requires it; otherwise report the outstanding communication without implying the user's decision is invalid. Do not label a local answer or artifact approval as PM approval. Preserve the existing acceptance/readiness rules and any expressly required unresolved approval; do not assume every product decision needs a separate PM gate. No FYI or other message is authorized by this note.
+
+- When Slack research informed refinement, preserve its short `## Related Channel Context` evidence summary and source links per the context-search contract. It is reference evidence, not a substitute for the ticket's Decision Log or unresolved questions.
+
+- Preserve the original ticket's section names, order, and formatting wherever possible.
+- Do not rewrite the whole ticket from scratch — make surgical edits and additions only.
+- Use `Scenario Outline` with `Examples` tables for parameterized Gherkin cases.
+- Wrap all Gherkin blocks in ` ```gherkin ` fenced code blocks — never write Gherkin as indented plain text.
+- Each Gherkin keyword (Given, When, Then, And, But) must be followed by exactly one space — never pad with extra spaces for alignment.
+- Keep Given/When/Then in plain business language — no code, no field names, no API details.
+- If the original ticket already has Gherkin scenarios, add new ones in the same style.
+- Before finalizing any new Gherkin scenario that asserts specific system behavior (not just user-visible intent), re-check that behavior against the exact code/logic found during Phase 3 exploration — don't rely on a general impression of how it "probably" works. A wrong assertion here becomes a wrong acceptance criterion.
+- New sections (User Story, Acceptance Criteria — Added During Refinement, Decision Log, TBD, Out of Scope) always use `##` headers, even if the original ticket used no headers at all — this is expected, not a violation of "preserve the original format." Only the original ticket's own content should be left in its original style.
+- Decision Log, TBD, and Out of Scope sections are omitted if empty (i.e., no questions were asked, no skipped questions/blocked dependencies/unresolved User Story parts remain, or nothing was scoped out, respectively).
+- Do not include implementation notes, technical choices, or a "how" section.
+
+---
+
+## Phase 7 — Context Update
+
+Run this once Phase 6 has saved the spec, in every run that reaches Phase 6 — live or offline injection. Skip it silently when the project has no `go-deep` context to update (no `uc-*` / `domain-*` skills under `.claude/skills/` and no `.claude/rules/` files).
+
+**Scope — current facts only.** Record facts about the *existing* system or product that this session surfaced: a business rule, term definition, or current behavior the user explained during Q&A, or a statement in a loaded skill that Phase 3 exploration showed to be wrong or missing. **Never** record the ticket's new or decided behavior — that enters the knowledge base only once it has actually been built.
+
+- Record: "the user explained that refunds over 30 days need manager approval today."
+- Do not record: "the ticket will add a 60-day refund limit."
+
+**Where it goes** — follow `go-deep`'s layout and its UC-vs-domain separation and size targets:
+
+- User-facing flow facts → the matching `uc-*` skill.
+- Implementation facts (files, functions, data contracts) → the matching `domain-*` skill.
+- Cross-cutting business rules or constraints → `.claude/rules/product.md` or `.claude/rules/architecture.md`.
+
+Write the updates directly, without a confirmation step. Most runs will have nothing to record; that is expected, not a gap.
+
+Finish by printing one line: `Context updated: <each file changed, with a one-line reason | none>`.
+
+---
+
+## When run by implement
+
+
+**Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.
+
+**Activity checkpoints** — follow [implement's activity contract](../implement/references/activity.md). In this inline session, save the exact narrated activity before each substantial investigation or spec-writing chunk. Before delegating work, save its description and retain it while waiting; only the main session writes activity or dashboards. Standalone runs and older runs without a dashboard do not create one.
+
+**Workflow decisions** — follow [implement's workflow-decision audit contract](../implement/references/workflow-decisions.md). Report explicit workflow choices to the main session as they resolve, before dependent work; keep product answers in their existing deliverables. Use the supplied state path, and preserve the distinction between user answers and automatic resolutions.
+
+This section applies only when `/make-it-work:implement` runs this skill; a standalone run ignores it entirely.
+
+**Ticket publication** — return the local spec and handoff; do not replace the tracker description, attach files or post comments here. `implement` owns publication under its saved ticket-write consent after the spec's acceptance checkpoint. Tracker read access and autonomy do not grant write permission.
+
+**Inputs** — the ticket ID or pasted ticket content, the run's autonomy level (Guided, Autonomous, or Autopilot), and optional **redo notes** (when the user asked to redo refinement at the approval gate). With redo notes, read the existing spec first, treat the notes as clarifications already given, and ask only the questions they don't settle.
+
+**Live autonomy** — the caller also supplies the workflow state path. Follow [implement's chat autonomy contract](../implement/references/autonomy-changes.md) in this inline session. Before each question/default and return route, use its current saved mode, overriding the entry `--autopilot` flag after a chat change. Keep the current interview progress and answers; never restart refinement just to change mode.
+
+**Slack context research** — Phase 1A is separate from the saved answer destination. Offer it in Guided/Autonomous when channel search is available, even when questions will be answered here or sent to the PM. Reuse explicit saved research consent/context, honor effective autonomy, and report the choice through implement's existing workflow-decision/pending-input contract. Autopilot skips unless the user explicitly requested research; `slack-draft`/`slack-send` alone do not grant this consent.
+
+**Answer mode** — ignore `--offline`; use [implement's refinement-destination contract](../implement/references/refinement-destination.md) before the first product-question wave. Verify the choice in the supplied workflow state, honoring a later explicit destination instruction. Do not show standalone Phase 5's export-mode choice when a destination is already resolved. If it is missing, recover an unambiguous Audit-log choice or ask the destination question now in Guided/Autonomous, including Slack capability discovery and an explanation when unavailable. Save the resolved destination and audit it before asking product questions; preserve answers already given. Autopilot defaults a missing choice to `here` as policy without asking. Use Phase 5D draft mode for `slack-draft` (`--slack`), send mode for `slack-send` (`--slack-send`), and Phase 5A for `here`. An absent Slack flag alone never proves that the user chose live questions. A saved explicit Slack choice remains effective under Autopilot; Autopilot itself never selects sending. When `implement` passes a pending questions file's path instead of the ticket, this is an injection run: follow Phase 5C without choosing a destination or making any send call. (`implement` stops before calling this skill when an offline questions file is pending that its own run did not create.)
+
+**Questions** — in answer-here mode, Guided and Autonomous ask every question live exactly as in a standalone run. Autopilot invokes this skill with `--autopilot`, so use its Autopilot Mode resolution table and never ask live; return normally after a safe resolution or surface its documented hard-stop result to `implement`. Slack modes export the questions and pause instead of answering them.
+
+**Partial-answer handoff** — Phase 5E applies here too. A user choosing to pause for Product after answering here is a later explicit destination change: persist/audit `slack-send` (or the actual `slack-draft` fallback) under the refinement-destination contract before delivery, preserve answers, and return `QUESTIONS_SENT` with the actual delivery status so implement pauses. If no Slack action is supported, retain the destination and audit the manual file handoff; report delivery as `offline`. Proceeding with TBDs returns `SPEC_SAVED` and the complete unresolved count, including blocked dependencies, through the existing readiness gates.
+
+**Return report** — end the output with these lines, then stop without suggesting next steps:
+
+```
+Spec: <path written in Phase 6>
+TBD items: <count>
+Context updated: <list from Phase 7 | none>
+```
+
+After a Phase 5D export (no spec yet), end instead with:
+
+```
+Questions sent: <path of the questions file>
+Slack delivery: <draft | sent | unknown | offline>
+```
+
+`Questions sent:` is the existing compatibility label for the questions artifact, not proof of a send. Report the actual delivery result in `Slack delivery:` (`unknown` includes an interrupted pending send). If Phase 5D fell back to Phase 5B because Slack couldn't be used, use `offline` — the file is pending either way, and `implement` pauses on it.
+
+**Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `gaps-<N>.json` in `make-it-work/<TICKET>/<TICKET>-handoffs/` using its schema. Use `SPEC_SAVED`, the actual spec path, the counted TBD items, and the paths updated in Phase 7 — or, after a Phase 5D export (including its Phase 5B fallback), `QUESTIONS_SENT` with the questions file's path. Do not write this file for an older run. End the chat report with `Handoff: <path>` so `implement` can validate it before advancing.

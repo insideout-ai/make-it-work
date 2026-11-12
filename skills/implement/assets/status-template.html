@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{AUTO_REFRESH}}
+<title>{{TICKET}} — implement status</title>
+<style>
+{{WORKFLOW_STYLES}}
+</style>
+</head>
+<body>
+{{WORKFLOW_HEADER}}
+
+<div class="phase-timeline">
+{{PHASE_TIMELINE}}
+</div>
+<p class="timeline-scroll-hint">Scroll the timeline to see later steps.</p>
+
+{{CURRENT_ACTIVITY}}
+{{STATUS_BANNER}}
+{{FEEDBACK_PROGRESS}}
+{{ASSURANCE_SUMMARY}}
+{{ACCEPTANCE_SUMMARY}}
+{{DELIVERY_STATUS}}
+{{WORKSPACE_PANEL}}
+
+<h2>Artifacts</h2>
+<div class="artifact-grid">
+  <div class="artifact-tile"><div class="label">Spec</div>{{SPEC_LINK}}</div>
+{{PLAN_TILE}}
+{{EXECUTE_TILE}}{{IMPLEMENTATION_TILE}}
+  <div class="artifact-tile"><div class="label">Review</div>{{REVIEW_LINK}}</div>
+  <div class="artifact-tile"><div class="label">Final package</div>{{FINAL_LINK}}</div>
+</div>
+{{FEEDBACK_NOTE}}
+
+<h2>Audit log</h2>
+<table>
+<tr><th>#</th><th>Time</th><th>From</th><th>To</th><th>Outcome / reason</th></tr>
+{{AUDIT_ROWS}}
+</table>
+{{SESSION_TIMING}}
+
+{{KNOWN_REGRESSIONS}}
+{{DECIDED_FINDINGS}}
+{{WORKFLOW_TIMESTAMPS}}
+</body>
+</html>

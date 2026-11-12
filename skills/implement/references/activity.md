@@ -1,0 +1,37 @@
+# Activity checkpoints during implementation
+
+This contract applies to the main `implement` session, its inline stages (including testing readiness and nested regression), and work it delegates. Standalone skills do not create workflow state or dashboards for activity reporting.
+
+## Before work
+
+The caller supplies the exact workflow state path and the resolved `implement` skill directory. Check whether the run already has its sibling `<TICKET>-status.html`; an older run without a dashboard does not participate, and must never receive one just for activity reporting.
+
+For a participating run, before each substantial chunk of investigation, drafting, setup, implementation or verification, say one high-level sentence in chat, then save that exact sentence before starting the chunk:
+
+```sh
+node "<implement-base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<exact narrated sentence>"
+```
+
+Use one update per meaningful work chunk, not per tool call. This applies after entering an inline stage and when entering a nested skill; reading another skill does not suspend activity reporting. If the checkpoint fails, correct the reported problem before starting dependent work. Do not hand-edit the generated HTML.
+
+The helper saves `current_activity`, its host-clock `current_activity_updated_at`, and a same-phase **Activity** audit entry together, then regenerates the dashboard. Each meaningful work chunk remains in the audit after the current activity changes or clears. An identical retry while that activity is current does not append another row or advance its timestamp. A render failure retains the saved history; repair the cause and retry the same checkpoint to refresh the dashboard. Ordinary renders, decisions and time spent waiting must not advance this timestamp. A legacy description without a timestamp displays `Last updated: unavailable`; a phase without a description shows an explicit fallback. Neither fallback asserts work that has not been reported.
+
+Describe the upcoming work as activity. Record completed outcomes through their evidence-producing scripts or the existing phase transition, rather than treating an activity sentence as proof of completion. For example, checkpoint "Running the completion gate" before execution; the regression runner records its actual PASS, FAIL or NO RESULT afterward. Keep meaningful narration in these checkpoints, including contract reads before a substantial operation, verification-ledger work, and final context sync/package preparation. Do not log every tool call or add a second manual audit write for the sentence.
+
+## Results and audit ownership
+
+The same audit timeline holds **Activity**, **Result**, and existing **Decision** entries. Typed activity/result notes are informational: they never change workflow status, approvals, counters, fingerprints, or resume classification. Clearing activity does not erase its history or add a completion claim. Only the main session writes activity; existing execution checkpoints retain their ownership below.
+
+Evidence-producing scripts call `checkpointResult` after success, with a stable occurrence/artifact ID, concise outcome, and evidence reference. Regression records its observed aggregate (including FAIL and NO RESULT); the verification CLI records only a successfully validated ledger and its actual gate/AC coverage; the final-package builder records only after writing the package. These results do not replace the ledger, package, or controller's readiness checks. Repeating the same result ID/content repairs rendering without another row; changed content needs a new occurrence ID. A failed audit/render blocks dependent work and must be repaired; do not rerun tests just to repair the dashboard.
+
+Use the existing transition row for review outcomes and final-sync completion; include the changed context paths there as usual. Do not append a duplicate Result for an outcome already recorded by that transition. Result checkpoints refresh an existing dashboard but do not create one for a legacy run. Follow the regression and verification contracts for their workflow-state arguments; standalone checks remain read-only unless explicitly supplied that workflow context.
+
+## Delegated work
+
+Only the main session initiates activity changes. Before dispatching a subagent or independent batch, checkpoint a sentence describing the work and that it is delegated. For example: "Refreshing the test strategy and test map in a background agent; planning will continue when it finishes." Execution has a deterministic exception to the exact-sentence rule: its required step-control start/completion/stop checkpoints generate activity from the plan's actual step titles and verified count. Use those checkpoints before each dispatch rather than keeping a generic phase-start sentence; do not add a duplicate manual activity write for the same event.
+
+Tell the subagent not to write workflow activity or edit the dashboard HTML. A legacy single-step Execute subagent may invoke its required Progress helper, which also generates the standardized verified-completion activity; controller-run subagents return evidence and the parent owns these checkpoints. Keep the running description visible while awaiting its result; waiting for an agent is work within the current phase, not a user-input pause. This includes testing-readiness and planning delegates in Plan. With runtime proof that a current-phase child is still running, yield and let its completion notification resume the session; do not use shell sleeps or repeated polling to keep the turn open. On completion/failure, continue the stage under its existing gates. Do not clear activity or fabricate heartbeat updates while waiting. Idempotent dispatch retries and ordinary HTML refreshes do not reset the Last updated timestamp. If the parent does other work meanwhile, report that work and mention outstanding agents when relevant. After a result arrives, checkpoint the actual next activity before continuing; failures follow the stage's existing stop policy.
+
+## Boundaries
+
+Phase changes and Paused, Stopped or Complete checkpoints clear the activity and its timestamp to `none`. Controller runs do this through `workflow.mjs`; legacy runs clear both fields when present in their existing checkpoint procedure. The next work chunk reports fresh activity for the new phase. Do not carry a completed phase's description forward or treat an old timestamp as proof of a failure. The dashboard labels it `Last updated`, not a heartbeat or a promise that work is still running.

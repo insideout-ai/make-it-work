@@ -1,0 +1,235 @@
+#!/usr/bin/env node
+
+import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
+import { chmod, lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SKILLS = new Set([
+  'close-the-gaps', 'define-test-strategy', 'execute', 'find-the-repos',
+  'go-deep', 'implement', 'plan-the-work', 'review-the-code', 'review-the-pr', 'run-regression',
+  'shape-the-epic', 'slice-the-epic',
+]);
+const KINDS = new Set(['askUserQuestion', 'checkpoint', 'open_text']);
+const CORE = ['phase', 'site', 'kind', 'chosen', 'rationale'];
+const OPTIONAL = ['question', 'options', 'multiSelect', 'repo'];
+const MAX_INPUT_BYTES = 256 * 1024;
+
+function fail(message) { throw new Error(message); }
+function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
+function nonempty(value) { return typeof value === 'string' && value.trim().length > 0; }
+
+export function normalizeEntry(value, skill) {
+  if (!SKILLS.has(skill)) fail(`Unknown skill: ${skill}`);
+  if (!object(value)) fail('Decision entry must be a JSON object.');
+  const unknown = Object.keys(value).filter((key) => !CORE.includes(key) && !OPTIONAL.includes(key));
+  if (unknown.length) fail(`Unknown decision field(s): ${unknown.join(', ')}`);
+  for (const key of ['phase', 'site', 'rationale']) {
+    if (!nonempty(value[key])) fail(`${key} must be a nonempty string.`);
+  }
+  if (!/^[a-z][a-z0-9-]*$/.test(value.site)) fail('site must be a lowercase slug.');
+  if (!KINDS.has(value.kind)) fail('kind must be askUserQuestion, checkpoint, or open_text.');
+  if (!Object.hasOwn(value, 'chosen')) fail('chosen is required (use null for a stopped site).');
+  if (value.repo !== undefined && (!nonempty(value.repo) || skill !== 'define-test-strategy')) {
+    fail('repo is allowed only for define-test-strategy and must be nonempty.');
+  }
+
+  if (value.kind === 'askUserQuestion') {
+    if (!nonempty(value.question)) fail('askUserQuestion requires a nonempty question.');
+    if (!Array.isArray(value.options) || value.options.length === 0) {
+      fail('askUserQuestion requires a nonempty options array.');
+    }
+    for (const option of value.options) {
+      if (typeof option === 'string') {
+        if (!nonempty(option)) fail('Option labels must be nonempty.');
+      } else if (!object(option) || !nonempty(option.label) ||
+                 (option.description !== undefined && typeof option.description !== 'string')) {
+        fail('Each option must be a label string or an object with label and optional description.');
+      }
+    }
+    if (value.multiSelect !== undefined && typeof value.multiSelect !== 'boolean') {
+      fail('multiSelect must be a boolean when supplied.');
+    }
+    if (Array.isArray(value.chosen)) {
+      if (value.multiSelect !== true || value.chosen.some((item) => !nonempty(item))) {
+        fail('An array chosen value requires multiSelect: true and nonempty labels.');
+      }
+    } else if (value.chosen !== null && !nonempty(value.chosen)) {
+      fail('chosen must be a label, label array, or null.');
+    }
+    const labels = value.options.map((option) => typeof option === 'string' ? option : option.label);
+    if (new Set(labels).size !== labels.length) fail('Option labels must be unique.');
+    const selected = value.chosen === null ? [] : Array.isArray(value.chosen) ? value.chosen : [value.chosen];
+    if (new Set(selected).size !== selected.length || selected.some((label) => !labels.includes(label))) {
+      fail('chosen must contain unique labels from the offered options.');
+    }
+  } else {
+    if (['question', 'options', 'multiSelect'].some((key) => Object.hasOwn(value, key))) {
+      fail(`${value.kind} cannot include question, options, or multiSelect.`);
+    }
+    if (value.chosen !== null && !nonempty(value.chosen)) {
+      fail('chosen must be a nonempty string or null for this kind.');
+    }
+  }
+
+  // Stable field order keeps traces and diffs easy to inspect while retaining
+  // the exact question/options payload supplied by the skill.
+  return Object.fromEntries([...CORE, ...OPTIONAL]
+    .filter((key) => Object.hasOwn(value, key)).map((key) => [key, value[key]]));
+}
+
+export function assertShapingResolutions(decisions) {
+  for (const decision of decisions) {
+    if (decision.auto_resolution !== undefined || typeof decision.decision !== 'string') continue;
+    if (/^\s*\[autopilot best-guess\](?:\s|$)/i.test(decision.decision) || /_\(autopilot\)_\s*$/i.test(decision.decision)) {
+      fail(`Automatic shaping decision "${decision.topic ?? 'unnamed'}" requires auto_resolution metadata; keep the question/answer/rationale in the shared input before saving the epic or audit log.`);
+    }
+  }
+}
+
+export function normalizeEntries(input, skill, command) {
+  // Shaping keeps the automatic resolution beside the epic decision it supplies.
+  // Both artifact writers consume this same input instead of separate payloads.
+  if (skill === 'shape-the-epic' && command === 'write' && input?.version === 1 && Array.isArray(input.categories)) {
+    if (!Array.isArray(input.decisions)) fail('Epic input requires a decisions array.');
+    assertShapingResolutions(input.decisions);
+    input = input.decisions.filter((decision) => decision.auto_resolution !== undefined)
+      .map((decision) => decision.auto_resolution);
+  }
+  if (command === 'append' && Array.isArray(input)) fail('append accepts exactly one decision object.');
+  const entries = Array.isArray(input) ? input : [input];
+  return entries.map((entry) => normalizeEntry(entry, skill));
+}
+
+export function serializeEntries(entries) {
+  return entries.map((entry) => JSON.stringify(entry)).join('\n') + (entries.length ? '\n' : '');
+}
+
+function parseExisting(contents, skill) {
+  if (!contents) return [];
+  if (!contents.endsWith('\n')) fail('Existing log is not newline-terminated.');
+  return contents.slice(0, -1).split('\n').map((line, index) => {
+    try { return normalizeEntry(JSON.parse(line), skill); }
+    catch (error) { fail(`Existing log line ${index + 1}: ${error.message}`); }
+  });
+}
+
+async function checkedPath(root, skill, { createDirectory = true, ticket = null } = {}) {
+  if (!SKILLS.has(skill)) fail(`Unknown skill: ${skill}`);
+  const directory = path.resolve(root, 'make-it-work');
+  let stat;
+  try { stat = await lstat(directory); }
+  catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    if (!createDirectory) fail('Log does not exist; initialize this run first.');
+    await mkdir(directory, { mode: 0o700 });
+    stat = await lstat(directory);
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink()) fail('make-it-work must be a real directory, not a symlink.');
+  let logDirectory = directory;
+  if (ticket !== null) {
+    if (typeof ticket !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Unsafe ticket for decision log.');
+    logDirectory = path.join(directory, ticket);
+    let runStat;
+    try { runStat = await lstat(logDirectory); }
+    catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      if (!createDirectory) fail('Log does not exist; initialize this run first.');
+      await mkdir(logDirectory, { mode: 0o700 });
+      runStat = await lstat(logDirectory);
+    }
+    if (!runStat.isDirectory() || runStat.isSymbolicLink()) fail('Ticket run directory must be a real directory, not a symlink.');
+  }
+  const target = path.join(logDirectory, `${skill}-autopilot-log.jsonl`);
+  let targetStat;
+  try { targetStat = await lstat(target); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (targetStat && (!targetStat.isFile() || targetStat.isSymbolicLink())) {
+    fail('Decision log target must be a regular file, not a symlink.');
+  }
+  return { directory: logDirectory, target, targetStat };
+}
+
+async function atomicWrite(directory, target, content, mode) {
+  const temporary = path.join(directory, `.decision-log-${randomUUID()}.tmp`);
+  try {
+    await writeFile(temporary, content, { flag: 'wx', mode });
+    await chmod(temporary, mode);
+    await rename(temporary, target);
+  } finally {
+    try { await unlink(temporary); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
+
+export async function updateLog({ root = process.cwd(), skill, command, input, ticket = null }) {
+  if (!['init', 'append', 'write'].includes(command)) fail(`Unknown command: ${command}`);
+  const incoming = command === 'init' ? [] : normalizeEntries(input, skill, command);
+  const { directory, target, targetStat } = await checkedPath(root, skill,
+    { createDirectory: command !== 'append', ticket });
+  const mode = targetStat ? targetStat.mode & 0o777 : 0o600;
+  if (command === 'init') {
+    await atomicWrite(directory, target, '', mode);
+    return target;
+  }
+  if (command === 'append' && !targetStat) fail('Log does not exist; initialize this run first.');
+  const existing = command === 'append' ? parseExisting(await readFile(target, 'utf8'), skill) : [];
+  await atomicWrite(directory, target, serializeEntries([...existing, ...incoming]), mode);
+  return target;
+}
+
+function parseInput(text) {
+  if (Buffer.byteLength(text) > MAX_INPUT_BYTES) fail('Decision input exceeds 256 KiB.');
+  if (!text.trim()) fail('Expected a JSON decision object or array on stdin.');
+  try { return JSON.parse(text); }
+  catch (error) { fail(`Invalid decision JSON: ${error.message}`); }
+}
+
+async function readStdin() {
+  let text = '';
+  for await (const chunk of process.stdin) {
+    text += chunk;
+    if (Buffer.byteLength(text) > MAX_INPUT_BYTES) fail('Decision input exceeds 256 KiB.');
+  }
+  return parseInput(text);
+}
+
+// For shells that refuse an inline JSON heredoc: the payload is written to a file first,
+// read here, and removed once parsed so it never lingers beside the log.
+async function readInputFile(file) {
+  const text = await readFile(file, 'utf8');
+  const input = parseInput(text);
+  await unlink(file);
+  return input;
+}
+
+async function main(args) {
+  const [command, skill, ...rest] = args;
+  if (!command || !skill) {
+    fail('Usage: decision-log.mjs <init|append|write> <skill> [--root <repo-root>] [--ticket <TICKET>] [--input <file>] (append/write read JSON from --input or stdin).');
+  }
+  const options = { root: process.cwd(), ticket: null };
+  let inputFile = null;
+  const seen = new Set();
+  while (rest.length) {
+    const flag = rest.shift();
+    if (!['--root', '--ticket', '--input'].includes(flag) || !rest.length || seen.has(flag)) {
+      fail(`Invalid decision-log option: ${flag}`);
+    }
+    seen.add(flag);
+    if (flag === '--input') inputFile = rest.shift();
+    else options[flag.slice(2)] = rest.shift();
+  }
+  const input = command === 'init' ? undefined :
+    inputFile ? await readInputFile(inputFile) : await readStdin();
+  const savedPath = await updateLog({ ...options, skill, command, input });
+  process.stdout.write(`Decision log saved to ${savedPath}\n`);
+}
+
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+  main(process.argv.slice(2)).catch((error) => {
+    process.stderr.write(`decision-log: ${error.message}\n`);
+    process.exitCode = 1;
+  });
+}

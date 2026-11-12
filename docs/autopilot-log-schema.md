@@ -1,0 +1,94 @@
+# Autopilot decision-log schema
+
+Shared reference for the `**Decision log:**` section every `--autopilot`-enabled skill documents in its own `SKILL.md`. Each skill's own section states its own log filename and write-timing behavior (these differ per skill and stay there), then points here for the field shape, naming only its own deltas from the general shape below. `implement` uses this contract for orchestration-level decisions; its dispatched stage skills keep their own per-skill logs.
+
+## Shared writer
+
+Before resolving a fixed-policy decision, run `node "<base>/../../scripts/autonomy-policy.mjs" resolve --input <decision.json>` (use `list` to inspect registered sites). Supply `skill`, stable `site`, `phase`, current `mode`, question/kind, and options with stable `id`/`label` values. For semantic recommendation sites mark exactly one substantive option `recommended: true`; candidate-list sites mark actual candidates `candidate: true`. The helper selects by policy/ID, not by interpreting display labels, and returns the validated log `entry`. Preserve each skill's existing writer timing and root; pass that returned entry to the writer in its separate tool call. Unknown/open-text sites retain their semantic contract, never an invented automatic default. The helper has no external side effects and never grants ticket, Slack, manual-verification or delivery permission. The writer now rejects unoffered or duplicate chosen labels.
+
+When Bash is already permitted for the run, use the shared writer instead of
+hand-building JSONL or editing existing lines. Invoke each writer command in
+its **own Bash tool call**, never joined with discovery, tests, or another
+file write: a denied decision-log operation must not prevent unrelated work in
+the same shell call. Read-only verification of the saved log may follow in that call. Resolve `<base>` to the active
+skill's directory and `<repo-root>` to the repo that owns the log:
+
+```sh
+node "<base>/../../scripts/decision-log.mjs" init <skill-name> --root "<repo-root>"
+node "<base>/../../scripts/decision-log.mjs" append <skill-name> --root "<repo-root>" <<'JSON'
+{"phase":"Phase 0","site":"mode-choice","kind":"askUserQuestion","question":"Which mode?","options":["Subagent-Driven (Recommended)","Inline"],"multiSelect":false,"chosen":"Subagent-Driven (Recommended)","rationale":"Autopilot picks the recommended option."}
+JSON
+```
+
+The writer accepts JSON on stdin or via `--input "<repo-root>/make-it-work/.decision-log-input.json"`. Either is valid; the file form is useful when the shell refuses inline JSON. The writer reads and then deletes that input file. Never write the log file itself directly or switch transport to retry a denied log write.
+
+For `write shape-the-epic`, `--input` also accepts the same version-1 epic input used to save the epic. It extracts the `auto_resolution` entry from every decision row, so the epic and run log share one decision source. Save the epic first; the log writer consumes and deletes the input file afterward. Ordinary object/array payloads remain supported.
+
+Epic decision rows explicitly marked `[autopilot best-guess]` or `_(autopilot)_`
+require their actual `auto_resolution` payload. The epic renderer/writer and
+shared log extraction reject a marked row without that metadata before saving
+an epic or replacing the audit log. Ordinary manual proposals remain supported;
+this does not reconstruct missing historical decisions or replay old artifacts.
+Correct the shared input from the actual resolved question/answer rather than
+inventing a past payload or stripping its automatic provenance marker.
+
+For a ticket-scoped workflow, pass `--ticket "<TICKET>"` to every writer call. Its log lives in `make-it-work/<TICKET>/`; project-wide skills omit the option and keep their log directly in `make-it-work/`.
+
+`init` creates an empty log for a new run. `append` accepts one decision object
+via stdin or `--input` and requires that this run has already initialized the log. `write`
+accepts one object or an array through either input and atomically replaces the whole log;
+use it for a skill that flushes decisions only after saving its deliverable, or
+for `execute`'s first resolved site before later `append` calls. `write` with
+`[]` creates the required empty log for a run with no resolved sites. The
+writer validates the schema, serializes one JSON object per line, preserves
+an existing log on malformed input, and rejects symlinked artifact directories.
+It does not infer a choice: the skill still constructs and selects each
+decision according to its own resolution table.
+
+After a successful `init`, `append`, or `write`, the CLI prints `Decision log saved to <absolute-path>`. It prints this only after the atomic write completes; failures exit nonzero without a success message. Use the returned path to report the saved log.
+
+This command does **not** bypass tool permissions. If Bash is unavailable,
+the skill may use its existing Write/Edit path for the same JSONL contract;
+do not request broader permissions solely to produce this log. If a write to
+the decision-log write is denied, do not retry through another tool or
+path. A denied log write says nothing about whether a later, unrelated Bash
+call (such as a test command) is allowed. Follow that skill's existing
+denied-log handling and continue or stop exactly as its own instructions
+require. Each skill's existing write timing
+(start-of-run, first resolved site, or post-deliverable) remains authoritative.
+
+## Core fields (every skill, every line)
+
+- `phase` — the skill's own phase/step label for where this site lives, e.g. `"Phase 1"`, `"Step 4"`.
+- `site` — a short slug identifying the specific site, e.g. `"wave-1-q2"`, `"mode-choice"`.
+- `kind` — which of this skill's own interactive-site kinds fired: `"askUserQuestion"` (a real question/options payload was constructed), `"checkpoint"` (a workflow approval point was auto-confirmed or auto-stopped, whether interactive runs display it through a question tool or plain text), or `"open_text"` (a non-enumerable question was self-answered). Not every skill exercises all three — each skill's own Decision log section states which subset of this enum applies to it.
+- `chosen` — the resolved value, in whichever of these shapes the site's `kind` (and, for `askUserQuestion`, `multiSelect`) produces:
+  - a string (the chosen option's label), for a single-select `askUserQuestion` or a `checkpoint`,
+  - an array of strings, for an `askUserQuestion` with `multiSelect: true`,
+  - the free-text answer, for `open_text`,
+  - or `null`, for a site that stopped rather than resolving (the standard convention for a fired hard-stop, across every skill that can hard-stop).
+
+  A skill that never reaches one of these kinds (e.g. never has `open_text`, or never hard-stops) simply never produces that branch — its own Decision log section says which branches actually apply.
+- `rationale` — one sentence.
+
+## Conditional fields (only when `kind` is `"askUserQuestion"`)
+
+- `multiSelect` — boolean. Present only on a skill that actually presents `askUserQuestion` sites. A skill whose every `askUserQuestion` site is single-select may still carry this field (always `false`) or omit it entirely as a fixed, always-`false` fact — its own Decision log section says which.
+- `question`, `options` — the exact constructed payload.
+
+A skill that never reaches `"askUserQuestion"` at all omits all three of `multiSelect`, `question`, and `options` — there is no site that could ever populate them.
+
+## The `repo` field (multi-repo skills only)
+
+Present only on a skill whose autopilot-resolvable decisions can repeat once per repo within a single run (a multi-repo workspace run) — omitted entirely for a single-repo run, and omitted entirely by a skill with no per-repo-resolved site. Holds the repo the logged decision applies to.
+
+## The `[autopilot best-guess]` / `_(autopilot)_` marker convention
+
+Two related, but distinct, conventions:
+
+1. **In the jsonl log itself**, an `open_text` site's `chosen` value is the free-text self-answer, typically produced by prefixing it `[autopilot best-guess]` inline wherever that skill's resolution table calls for a best-guess inference — this is just ordinary text content of `chosen`, not a separate field.
+2. **In a skill's own user-facing deliverable** (a refined ticket, an epic, a plan — whatever that skill produces), a skill that also marks which of its own answers came from autopilot rather than a human uses this pattern: an `open_text` best-guess answer keeps its `[autopilot best-guess]` prefix in the deliverable's own decision-log cell; a straightforward `(Recommended)`-pick resolution with no open-ended guessing instead gets `_(autopilot)_` appended after the answer text. This lets a reviewer reading the deliverable alone, without the jsonl log, see which decisions weren't confirmed by a human. Not every skill's deliverable has its own decision-log table to mark this way — a skill that does names this explicitly in its own Decision log section.
+
+## The `chosen: null` stopped-site convention
+
+A hard-stop site that actually fires during an autopilot run is still logged, with `chosen: null` — never omitted. A site that's merely moot this run (never reached, or already resolved from a prior run) is not logged at all. This is distinct from a skill that simply never has a hard-stop to fire (e.g. `shape-the-epic`, `slice-the-epic`) — such a skill's `chosen` never needs the `null` branch at all, and its own Decision log section says so.

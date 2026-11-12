@@ -1,0 +1,599 @@
+#!/usr/bin/env node
+
+import { randomUUID } from 'node:crypto';
+import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { assertRunState } from './artifact-layout.mjs';
+import { fileURLToPath } from 'node:url';
+import { lastWorkRow, parseDecisionCell } from './workflow-decisions.mjs';
+import { parseNoteCell } from './audit-notes.mjs';
+import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
+import { parseState } from './render-status.mjs';
+import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
+import { refreshFeedbackDashboard } from './feedback-progress.mjs';
+import { finalizeFeedback } from './feedback-finalization.mjs';
+import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure } from './feedback-handoff.mjs';
+
+const HEADER = `# Implement workflow feedback
+
+Schema: 1
+Reporter: Anonymous
+
+> Review this file before sharing. It may contain AI-generated inferences, and it is never uploaded automatically.
+`;
+const ROOT_CAUSES = new Set([
+  'refinement gap', 'planning gap', 'execution deviation', 'review gap',
+  'orchestration issue', 'project-context gap', 'unavoidable', 'unclear',
+]);
+const PREVENTABILITY = new Set(['likely', 'partial', 'unavoidable', 'unclear']);
+const CONFIDENCE = new Set(['high', 'medium', 'low']);
+const REPLAN_FROM = new Set(['execute', 'review', 'fix-plan']);
+const WORKFLOW_TERMS = new Set([
+  'close-the-gaps', 'define-test-strategy', 'find-the-repos', 'go-deep',
+  'plan-the-work', 'review-the-code', 'review-the-pr', 'run-regression', 'shape-the-epic',
+  'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval', 'lightweight',
+  'feedback-on-session',
+]);
+const ADAPTIVE_MODES = new Set(['none', 'lightweight', 'tdd']);
+const ADAPTIVE_RISKS = new Set(['none', 'low', 'medium', 'high']);
+const ADAPTIVE_SOURCES = new Set(['none', 'assessed', 'user']);
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+function fail(message, code) { throw Object.assign(new Error(message), code ? { code } : {}); }
+
+function section(markdown, heading) {
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trimEnd() === `## ${heading}`);
+  if (start < 0) fail(`Missing ## ${heading} in state file.`);
+  const end = lines.findIndex((line, index) => index > start && line.startsWith('## '));
+  return lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim();
+}
+
+function tableCells(line) {
+  if (!line.startsWith('|') || !line.endsWith('|')) fail(`Malformed Audit log row: ${line}`);
+  // Audit prose may contain escaped pipes; they are not column boundaries.
+  const cells = line.slice(1, -1).split(/(?<!\\)\|/).map((cell) => cell.trim().replaceAll('\\|', '|'));
+  if (cells.length !== 5) fail(`Audit log row must have five columns: ${line}`);
+  return cells;
+}
+
+export function inspectState(markdown, { limitStop = false, hookEvents = [] } = {}) {
+  const fieldBlock = markdown.match(/^```\s*\r?\n([\s\S]*?)^```/m)?.[1];
+  if (!fieldBlock) fail('Missing state field block.');
+  const fields = Object.fromEntries([...fieldBlock.matchAll(/^([a-z_]+):\s*(.*?)\s*$/gm)]
+    .map((match) => [match[1], match[2]]));
+  const { ticket, status, phase, start_time: runId, plugin_version: pluginVersion } = fields;
+  if (fields.feedback_evidence_version !== undefined && fields.feedback_evidence_version !== '1') fail('Unsupported feedback_evidence_version.');
+  if (!ticket || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Invalid ticket field.');
+  if (!ISO_UTC.test(runId ?? '') || Number.isNaN(Date.parse(runId))) {
+    fail('A real ISO 8601 UTC start_time is required for feedback.');
+  }
+  if (pluginVersion !== undefined && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(pluginVersion)) {
+    fail('plugin_version must be a semantic version when present.');
+  }
+  if (status === 'Complete') {
+    if (phase !== 'complete' || limitStop) fail('Complete feedback requires phase: complete and no --limit-stop.');
+  } else if (status === 'Stopped' && limitStop) {
+    if (!['execute', 'review', 'fix-plan', 'lightweight'].includes(phase)) {
+      fail('A limit stop must be in execute, review, fix-plan, or lightweight.');
+    }
+  } else {
+    fail('Feedback requires a completed run or an explicitly confirmed fix/review/replan limit stop.');
+  }
+
+  const lines = section(markdown, 'Audit log').split('\n').map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 3 || !/^\|\s*#\s*\|/.test(lines[0]) || !/^\|\s*---/.test(lines[1])) {
+    fail('Audit log table header is missing.');
+  }
+  const rows = lines.slice(2).map((line, index) => {
+    const [number, time, from, to, outcome] = tableCells(line);
+    if (Number(number) !== index + 1 || !ISO_UTC.test(time) || Number.isNaN(Date.parse(time))) {
+      fail(`Invalid Audit log number or timestamp at row ${index + 1}.`);
+    }
+    return { number: index + 1, time, from, to, outcome, ...parseDecisionCell(outcome), ...parseNoteCell(outcome) };
+  });
+  if (rows.length === 0) fail('Audit log is empty.');
+  const finalRow = feedbackTerminalRow(fields, rows);
+  if (!finalRow) fail('Audit log has no workflow evidence.');
+  if (lastWorkRow(rows)?.to !== phase || finalRow.to !== phase) fail('Final Audit log destination and phase field disagree.');
+  if (status === 'Complete' && finalRow.to !== 'complete') fail('Final Audit log row must enter complete.');
+  if (status === 'Stopped' && !/\b(limit|cap|exhausted)\b/i.test(`${fields.pause_reason} ${finalRow.outcome}`)) {
+    fail('A limit stop needs limit/cap/exhausted evidence in pause_reason or the final Audit log row.');
+  }
+
+  let adaptive = null;
+  if (fields.adaptive_version !== undefined) {
+    const { mode, risk, mode_source: source, escalations } = fields;
+    if (fields.adaptive_version !== '1' || !ADAPTIVE_MODES.has(mode) || !ADAPTIVE_RISKS.has(risk) ||
+        !ADAPTIVE_SOURCES.has(source) || !/^[01]$/.test(escalations ?? '')) {
+      fail('Adaptive runs need valid mode, risk, mode_source, and escalations fields.');
+    }
+    const elapsedMinutes = Math.max(0, Math.round((Date.parse(finalRow.time) - Date.parse(runId)) / 60000));
+    adaptive = {
+      mode, risk, modeSource: source, escalations: Number(escalations),
+      stagesSkipped: mode === 'lightweight' ? 'plan, execute, regression gate' : 'none',
+      elapsed: `${Math.floor(elapsedMinutes / 60)}h ${elapsedMinutes % 60}m`,
+    };
+  }
+
+  const events = rows.flatMap((row) => {
+    // Escalation rows (Lightweight -> TDD) enter plan but are not replans.
+    if (row.outcome.startsWith('Escalation:')) return [{ kind: 'Escalation', row: row.number }];
+    if (row.to === 'fix-plan' && row.from !== 'fix-plan') return [{ kind: 'Fix', row: row.number }];
+    if (row.to === 'lightweight' && ['review', 'final-approval'].includes(row.from)) return [{ kind: 'Fix', row: row.number }];
+    if (row.to === 'plan' && REPLAN_FROM.has(row.from)) return [{ kind: 'Replan', row: row.number }];
+    return [];
+  });
+  // Only structured execution checkpoints within the workflow count. Historical
+  // prose and notes added after completion do not become new interventions.
+  const guardrailRows = rows.filter((row) => row.number <= finalRow.number && row.from === 'execute' && row.to === 'execute' && row.note?.kind === 'result');
+  const guardrails = guardrailRows.filter((row) => row.note.id.startsWith('guardrail-stop:')).map((row) => {
+    const id = row.note.id.slice('guardrail-stop:'.length);
+    const resolution = guardrailRows.find((entry) => entry.number > row.number && entry.note.id === `guardrail-resolve:${id}`);
+    const channel = resolution?.outcome.match(/^Result: Guardrail resolved with user guidance via (chat|question)\./)?.[1] ?? null;
+    return { row: row.number, resolutionRow: resolution?.number ?? null, source: channel ? 'user' : 'unavailable', via: channel };
+  });
+  const explicitReviews = rows.filter((row) =>
+    !(row.from === row.to && (row.note || row.outcome.startsWith('Decision: '))) && /\bReview cycle \d+\b/i.test(row.outcome)
+  ).length;
+  const enteredReviews = rows.filter((row) => row.to === 'review' && row.from !== 'review').length;
+  // Distinctive compounds in Audit prose are often project terminology. They
+  // must be paraphrased in feedback rather than copied into a shareable file.
+  const sourceCompounds = [...new Set(rows.flatMap((row) =>
+    [...row.outcome.matchAll(/\b[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+\b/g)]
+      .map(([term]) => term.toLowerCase())
+      .filter((term) => !WORKFLOW_TERMS.has(term))))];
+  const runtime = summarizeHookEvents(hookEvents, runId, finalRow.time);
+  return {
+    hookInterventions: runtime.interventions,
+    agentWaits: runtime.waits,
+    hookAnalysis: [...runtime.interventions, ...runtime.waits.filter((item) => item.occurrences > 1)],
+    runId, stateHash: feedbackStateHash(fields, rows),
+    outcome: status === 'Complete' ? 'Complete' : 'Stopped — loop limit',
+    minimal: events.length === 0,
+    guardrails,
+    analysisRequired: events.length > 0 || guardrails.length > 0 || runtime.analysisRequired,
+    evidenceRequired: fields.feedback_evidence_version === '1',
+    fixRounds: events.filter((event) => event.kind === 'Fix').length,
+    replans: events.filter((event) => event.kind === 'Replan').length,
+    reviewCycles: explicitReviews || enteredReviews,
+    events,
+    sourceCompounds,
+    ticket,
+    pluginVersion: pluginVersion ?? 'not captured (legacy run)',
+    ...(adaptive ? { adaptive } : {}),
+  };
+}
+
+function safeLine(value, label, ticket, sourceCompounds = []) {
+  const escapedTicket = ticket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const ticketMention = new RegExp(`(?<![A-Za-z0-9])${escapedTicket}(?![A-Za-z0-9])`, 'i');
+  if (typeof value !== 'string' || !value.trim() || /[\r\n<>`\\/]/.test(value) ||
+      /(?:https?:|\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,})/i.test(value) ||
+      ticketMention.test(value)) {
+    fail(`${label} must be one share-safe line without paths, markup, contact details, or the ticket ID.`);
+  }
+  const copiedTerm = sourceCompounds.find((term) =>
+    new RegExp(`(?<![A-Za-z0-9])${term}(?![A-Za-z0-9])`, 'i').test(value));
+  if (copiedTerm) fail(`${label} copies project terminology from the Audit log; paraphrase it for share-safe feedback.`);
+  return value.trim();
+}
+
+function safeLines(value, label, ticket, sourceCompounds) {
+  if (!Array.isArray(value)) fail(`${label} must be an array.`);
+  return value.map((item, index) => safeLine(item, `${label}[${index}]`, ticket, sourceCompounds));
+}
+
+function validateAnalysis(analysis, summary) {
+  if (!analysis || typeof analysis !== 'object' || Array.isArray(analysis)) fail('Analysis must be a JSON object.');
+  if (!Array.isArray(analysis.events) || analysis.events.length !== summary.events.length) {
+    fail('Analysis must have one event per Audit log fix/replan/escalation event, in order.');
+  }
+  const events = analysis.events.map((event, index) => {
+    const expected = summary.events[index];
+    if (event.kind !== expected.kind || event.row !== expected.row) {
+      fail(`Analysis event ${index + 1} must match ${expected.kind} at Audit log row ${expected.row}.`);
+    }
+    if (!ROOT_CAUSES.has(event.rootCause)) fail(`Invalid rootCause in event ${index + 1}.`);
+    if (!PREVENTABILITY.has(event.preventability)) fail(`Invalid preventability in event ${index + 1}.`);
+    if (!CONFIDENCE.has(event.confidence)) fail(`Invalid confidence in event ${index + 1}.`);
+    const basis = analysis.version === 2 ? Object.fromEntries(['requirement', 'knownEvidence', 'observedAction', 'attribution'].map(key =>
+      [key, safeLine(event.basis?.[key], `event basis ${key}`, summary.ticket, summary.sourceCompounds)])) : null;
+    return {
+      ...event,
+      trigger: safeLine(event.trigger, 'trigger', summary.ticket, summary.sourceCompounds),
+      explanation: safeLine(event.explanation, 'explanation', summary.ticket, summary.sourceCompounds),
+      earliestStage: safeLine(event.earliestStage, 'earliestStage', summary.ticket, summary.sourceCompounds),
+      owner: safeLine(event.owner, 'owner', summary.ticket, summary.sourceCompounds),
+      improvement: safeLine(event.improvement, 'improvement', summary.ticket, summary.sourceCompounds),
+      ...(basis ? { basis } : {}),
+    };
+  });
+  const expectedGuardrails = summary.guardrails ?? [];
+  const suppliedGuardrails = analysis.guardrails ?? [];
+  if (!Array.isArray(suppliedGuardrails) || suppliedGuardrails.length !== expectedGuardrails.length) fail('Analysis must match each recorded guardrail intervention.');
+  const guardrails = suppliedGuardrails.map((item, index) => {
+    const expected = expectedGuardrails[index];
+    if (item.row !== expected.row || item.resolutionRow !== expected.resolutionRow) fail('Guardrail analysis must match the stop and resolution audit rows.');
+    if (!CONFIDENCE.has(item.confidence)) fail('Invalid guardrail confidence.');
+    return { ...expected, confidence: item.confidence,
+      trigger: safeLine(item.trigger, 'guardrail trigger', summary.ticket, summary.sourceCompounds),
+      resolution: safeLine(item.resolution, 'guardrail resolution', summary.ticket, summary.sourceCompounds),
+      lesson: safeLine(item.lesson, 'guardrail lesson', summary.ticket, summary.sourceCompounds) };
+  });
+  const expectedHooks = summary.hookAnalysis ?? [];
+  const suppliedHooks = analysis.hooks ?? [];
+  if (!Array.isArray(suppliedHooks) || suppliedHooks.length !== expectedHooks.length) fail('Analysis must match each hook intervention or repeated agent wait.');
+  const hooks = suppliedHooks.map((item, index) => {
+    const expected = expectedHooks[index];
+    if (item.id !== expected.id || !CONFIDENCE.has(item.confidence)) fail('Hook analysis must match the recorded observation and confidence.');
+    return { ...expected, confidence: item.confidence,
+      trigger: safeLine(item.trigger, 'hook trigger', summary.ticket, summary.sourceCompounds),
+      resolution: safeLine(item.resolution, 'hook resolution', summary.ticket, summary.sourceCompounds),
+      lesson: safeLine(item.lesson, 'hook lesson', summary.ticket, summary.sourceCompounds) };
+  });
+  const recommendations = safeLines(analysis.recommendations, 'recommendations', summary.ticket, summary.sourceCompounds);
+  const openQuestions = safeLines(analysis.openQuestions, 'openQuestions', summary.ticket, summary.sourceCompounds);
+  if (recommendations.length === 0) fail('At least one consolidated recommendation is required.');
+  if (!Array.isArray(analysis.clarifications)) fail('clarifications must be an array.');
+  const clarifications = analysis.clarifications.map((entry, index) => ({
+    question: safeLine(entry.question, `clarifications[${index}].question`, summary.ticket, summary.sourceCompounds),
+    answer: safeLine(entry.answer, `clarifications[${index}].answer`, summary.ticket, summary.sourceCompounds),
+  }));
+  return { events, guardrails, hooks, recommendations, openQuestions, clarifications };
+}
+
+function renderWorkflowBlock(summary, analysis = null) {
+  const prefix = `<!-- run:${summary.runId} -->\n## Run started ${summary.runId}\n\n` +
+    `- Plugin version: ${summary.pluginVersion}\n` +
+    (summary.adaptive ? `- Mode: ${summary.adaptive.mode} (${summary.adaptive.risk} risk, ${summary.adaptive.modeSource})\n` +
+      `- Escalations: ${summary.adaptive.escalations}\n- Stages skipped: ${summary.adaptive.stagesSkipped}\n` +
+      `- Elapsed: ${summary.adaptive.elapsed}\n` : '') +
+    `- Outcome: ${summary.outcome}\n- Minimal path: ${summary.minimal ? 'Yes' : 'No'}\n` +
+    `- Fix rounds: ${summary.fixRounds}\n- Replans: ${summary.replans}\n` +
+    `- Review cycles: ${summary.reviewCycles}\n` +
+    (summary.guardrails?.length ? `- Guardrail interventions: ${summary.guardrails.length}\n` : '') +
+    (summary.hookInterventions?.length ? `- Hook interventions: ${summary.hookInterventions.reduce((sum, item) => sum + item.occurrences, 0)} (${summary.hookInterventions.length} episodes)\n` : '') +
+    (summary.agentWaits?.length ? `- Agent wait observations: ${summary.agentWaits.reduce((sum, item) => sum + item.occurrences, 0)} (${summary.agentWaits.length} episodes)\n` : '');
+  if (!summary.analysisRequired) {
+    if (analysis !== null) fail('Minimal runs must not include retrospective analysis.');
+    return `${prefix}- Workflow feedback: No fix or replan round was needed.\n<!-- /run:${summary.runId} -->`;
+  }
+  const validated = validateAnalysis(analysis, summary);
+  const eventBlocks = validated.events.map((event, index) =>
+    `#### Event ${index + 1} — ${event.kind}\n\n` +
+    `- Trigger: ${event.trigger}\n- Root cause: ${event.rootCause} — ${event.explanation}\n` +
+    `- Earliest preventable stage: ${event.earliestStage}\n` +
+    `- Preventability: ${event.preventability}\n- Workflow owner: ${event.owner}\n` +
+    `- Suggested improvement: ${event.improvement}\n- Confidence: ${event.confidence}` +
+    (event.basis ? `\n- Requirement evidence: ${event.basis.requirement}\n- Evidence known during implementation: ${event.basis.knownEvidence}\n- Observed action: ${event.basis.observedAction}\n- Primary versus contributing causes: ${event.basis.attribution}` : ''));
+  const clarificationBlock = validated.clarifications.length
+    ? `\n\n### User clarifications\n\n${validated.clarifications.map((entry) =>
+      `- Question: ${entry.question}\n  Answer: ${entry.answer}`).join('\n')}` : '';
+  const guardrailBlock = validated.guardrails.length ? `### Guardrail interventions\n\n${validated.guardrails.map((item, index) =>
+    `#### Intervention ${index + 1}\n\n- Stop: ${item.trigger}\n- Resolution: ${item.resolution}\n- Decision source: ${item.source}${item.via ? ` via ${item.via}` : ''}\n- Suggested lesson: ${item.lesson}\n- Confidence: ${item.confidence}`
+  ).join('\n\n')}\n\n` : '';
+  const hookBlock = validated.hooks.length ? `### Hook interventions and repeated waits\n\n${validated.hooks.map((item, index) =>
+    `#### Observation ${index + 1}\n\n- Kind: ${item.kind}\n- Phase: ${item.phase}\n- Occurrences: ${item.occurrences}\n- Resolution observed: ${item.resolvedAt ? 'Yes' : 'No'}\n- Trigger: ${item.trigger}\n- Resolution: ${item.resolution}\n- Suggested lesson: ${item.lesson}\n- Confidence: ${item.confidence}`
+  ).join('\n\n')}\n\n` : '';
+  return `${prefix}\n` + (eventBlocks.length ? `### Extra-round analysis\n\n${eventBlocks.join('\n\n')}\n\n` : '') + guardrailBlock + hookBlock +
+    `### Consolidated recommendations\n\n${validated.recommendations.map((item) => `- ${item}`).join('\n')}` +
+    `${clarificationBlock}\n\n### Open questions\n\n` +
+    `${validated.openQuestions.length ? validated.openQuestions.map((item) => `- ${item}`).join('\n') : '- None'}\n` +
+    `<!-- /run:${summary.runId} -->`;
+}
+
+function renderSessionReview(review, summary) {
+  if (!review || typeof review !== 'object' || Array.isArray(review)) fail('Session review must be a JSON object.');
+  if (!['pending', 'complete', 'skipped'].includes(review.status)) fail('Invalid session review status.');
+  const line = (value, label) => safeLine(value, label, summary.ticket, summary.sourceCompounds);
+  const lines = (value, label) => safeLines(value, label, summary.ticket, summary.sourceCompounds);
+  const context = lines(review.context, 'session context');
+  if (!context.length) fail('Session review requires evidence coverage and context.');
+  if (!Array.isArray(review.findings)) fail('Session findings must be an array.');
+  const ids = new Set();
+  const findings = review.findings.map((item) => {
+    if (!/^F[1-9][0-9]*$/.test(item.id) || ids.has(item.id)) fail('Session findings require unique stable IDs such as F1.');
+    ids.add(item.id);
+    const evidence = lines(item.evidence, 'finding evidence');
+    if (!evidence.length) fail('Each session finding requires evidence with source locators.');
+    if (!evidence.some(value => /\b(?:turn|line|record|row|message)\s+[A-Za-z-]*\d+/i.test(value))) fail('Each session finding needs a concrete numbered source locator in its evidence.');
+    if (!CONFIDENCE.has(item.confidence)) fail('Session findings require recommendation confidence.');
+    return `#### ${item.id} — ${line(item.title, 'finding title')}\n\n` +
+      `- Expected vs observed: ${line(item.expectedObserved, 'expectedObserved')}\n` +
+      `- Evidence sequence:\n${evidence.map(value => `  - ${value}`).join('\n')}\n` +
+      `- Impact and uncertainty: ${line(item.impact, 'finding impact')}\n` +
+      `- Investigation: ${line(item.investigation, 'finding investigation')}\n` +
+      `- Suggested next step: ${line(item.nextStep, 'finding next step')}\n` +
+      `- Suggested owner: ${line(item.owner, 'finding owner')}\n` +
+      `- Proposed verification — not independently tested: ${line(item.verification, 'finding verification')}\n` +
+      `- Recommendation confidence: ${item.confidence}`;
+  });
+  const input = lines(review.userInput, 'session user input');
+  const limitations = lines(review.limitations, 'session limitations');
+  if (review.status === 'complete' && !input.length) fail('Completed session review requires attributed user input.');
+  const bulletList = values => values.map(value => `- ${value}`).join('\n');
+  let coverage = '';
+  if (summary.evidenceRequired) {
+    const inspected = review.evidence_review;
+    coverage = `\n\n#### Source inspection coverage\n\n- Dashboard source: ${inspected.dashboard.status}; no browser or rendering used\n` +
+      inspected.dashboard.sections.map(s => `- ${s.id}: ${s.status}${s.observations?.length ? '; ' + s.observations.map(o => `Dashboard line ${o.line}: ${line(o.note, 'Dashboard observation')}`).join('; ') : ''}`).join('\n') +
+      (inspected.dashboard.reason ? `\n- Limitation: ${line(inspected.dashboard.reason, 'Dashboard limitation')}` : '') +
+      inspected.process.map(o => `\n- ${o.source} line ${o.line}: ${o.result} — ${line(o.note, 'Stage assessment')}`).join('');
+  }
+  return `### Session review\n\n- Report status: ${review.status === 'pending' ? 'Provisional — user input pending' : 'Complete'}\n\n` +
+    `#### Context and evidence coverage\n\n${bulletList(context)}${coverage}\n\n` +
+    `#### Findings\n\n${findings.length ? findings.join('\n\n') : 'No supported workflow problems found in the reviewed evidence'}\n\n` +
+    `#### User input\n\n${bulletList(input) || (review.status === 'skipped' ? 'User declined additional input' : 'Pending')}\n\n` +
+    `#### Limitations and open questions\n\n${bulletList(limitations) || 'None recorded'}`;
+}
+
+export function renderBlock(summary, analysis = null, sessionReview = null) {
+  const block = renderWorkflowBlock(summary, analysis);
+  if (sessionReview === null) return block;
+  const marker = `<!-- /run:${summary.runId} -->`;
+  return block.replace(marker, `\n${renderSessionReview(sessionReview, summary)}\n<!-- feedback-state:${summary.stateHash} -->\n${summary.evidenceRequired ? `<!-- feedback-evidence:${sessionReview.evidence_review.packet_hash} -->\n` : ''}${marker}`);
+}
+
+// Report independent structural errors together; do not repair or fill evidence.
+export function validateFeedbackInputs(summary, analysis, sessionReview, { currentSchema = false } = {}) {
+  const errors = [];
+  const check = (run) => { try { run(); } catch (error) { errors.push(error.message); } };
+  const requiredArray = (object, key, label) => {
+    if (!Array.isArray(object?.[key])) { errors.push(`${label}.${key} must be an array.`); return []; }
+    return object[key];
+  };
+  const line = (value, label) => check(() => safeLine(value, label, summary.ticket, summary.sourceCompounds));
+  if (summary.evidenceRequired) check(() => {
+    validateEvidenceReview(sessionReview?.evidence_review, summary._packet, (value, label) => safeLine(value, label, summary.ticket, summary.sourceCompounds));
+    for (const item of sessionReview.evidence_review.process) if (item.result === 'gap' && !sessionReview.findings?.some(f => f.id === item.finding_id)) fail('Every admitted stage gap must reference a retained session finding.');
+  });
+  if (analysis?.version !== undefined && analysis.version !== 2) errors.push('Unsupported analysis version.');
+  if (sessionReview?.version !== undefined && sessionReview.version !== 2) errors.push('Unsupported session-review version.');
+  if (summary.analysisRequired) {
+    if (!analysis || typeof analysis !== 'object' || Array.isArray(analysis)) errors.push('Analysis must be a JSON object.');
+    else {
+      if (currentSchema && analysis.version !== 2) errors.push('analysis.version must be 2 for current integrated feedback.');
+      for (const [index, event] of requiredArray(analysis, 'events', 'analysis').entries()) {
+        for (const key of ['trigger', 'explanation', 'earliestStage', 'owner', 'improvement']) line(event?.[key], `analysis.events[${index}].${key}`);
+        if (analysis.version === 2) for (const key of ['requirement', 'knownEvidence', 'observedAction', 'attribution']) line(event?.basis?.[key], `analysis.events[${index}].basis.${key}`);
+        if (!ROOT_CAUSES.has(event?.rootCause)) errors.push(`analysis.events[${index}].rootCause is invalid.`);
+        if (!PREVENTABILITY.has(event?.preventability)) errors.push(`analysis.events[${index}].preventability is invalid.`);
+        if (!CONFIDENCE.has(event?.confidence)) errors.push(`analysis.events[${index}].confidence is invalid.`);
+      }
+      for (const key of ['recommendations', 'openQuestions']) for (const [index, value] of requiredArray(analysis, key, 'analysis').entries()) line(value, `analysis.${key}[${index}]`);
+      for (const [index, item] of requiredArray(analysis, 'clarifications', 'analysis').entries()) for (const key of ['question', 'answer']) line(item?.[key], `analysis.clarifications[${index}].${key}`);
+      for (const [array, keys] of [['guardrails', ['trigger', 'resolution', 'lesson']], ['hooks', ['trigger', 'resolution', 'lesson']]]) {
+        if (analysis[array] !== undefined) for (const [index, item] of requiredArray(analysis, array, 'analysis').entries()) {
+          for (const key of keys) line(item?.[key], `analysis.${array}[${index}].${key}`);
+          if (!CONFIDENCE.has(item?.confidence)) errors.push(`analysis.${array}[${index}].confidence is invalid.`);
+        }
+      }
+    }
+  }
+  if (sessionReview !== null || currentSchema) {
+    if (!sessionReview || typeof sessionReview !== 'object' || Array.isArray(sessionReview)) errors.push('Session review must be a JSON object.');
+    else {
+      if (currentSchema && sessionReview.version !== 2) errors.push('sessionReview.version must be 2 for current integrated feedback.');
+      if (!['pending', 'complete', 'skipped'].includes(sessionReview.status)) errors.push('sessionReview.status is invalid.');
+      for (const key of ['context', 'userInput', 'limitations']) for (const [index, value] of requiredArray(sessionReview, key, 'sessionReview').entries()) line(value, `sessionReview.${key}[${index}]`);
+      for (const [index, finding] of requiredArray(sessionReview, 'findings', 'sessionReview').entries()) {
+        if (!/^F[1-9][0-9]*$/.test(finding?.id)) errors.push(`sessionReview.findings[${index}].id is invalid.`);
+        if (!CONFIDENCE.has(finding?.confidence)) errors.push(`sessionReview.findings[${index}].confidence is invalid.`);
+        for (const key of ['title', 'expectedObserved', 'impact', 'investigation', 'nextStep', 'owner', 'verification']) line(finding?.[key], `sessionReview.findings[${index}].${key}`);
+        const evidence = requiredArray(finding, 'evidence', `sessionReview.findings[${index}]`);
+        evidence.forEach((value, position) => line(value, `sessionReview.findings[${index}].evidence[${position}]`));
+        if (!evidence.some(value => typeof value === 'string' && /\b(?:turn|line|record|row|message)\s+[A-Za-z-]*\d+/i.test(value))) errors.push(`sessionReview.findings[${index}].evidence needs a concrete numbered source locator.`);
+      }
+    }
+  }
+  check(() => renderWorkflowBlock(summary, analysis));
+  if (sessionReview !== null) check(() => renderSessionReview(sessionReview, summary));
+  return { valid: errors.length === 0, errors: [...new Set(errors)] };
+}
+
+export async function checkFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false, currentSchema = true } = {}) {
+  return validateFeedbackInputs(await inspectFeedback(statePath, { limitStop }), analysis, sessionReview, { currentSchema });
+}
+
+export function upsertBlock(existing, summary, block) {
+  if (existing === null) return { text: `${HEADER}\n${block}\n`, warning: null };
+  const start = `<!-- run:${summary.runId} -->`;
+  const end = `<!-- /run:${summary.runId} -->`;
+  const tokens = [];
+  for (const [marker, type] of [[start, 'start'], [end, 'end']]) {
+    let index = existing.indexOf(marker);
+    while (index >= 0) {
+      tokens.push({ index, type });
+      index = existing.indexOf(marker, index + marker.length);
+    }
+  }
+  tokens.sort((a, b) => a.index - b.index);
+  const pairs = [];
+  for (let index = 0; index < tokens.length - 1; index += 1) {
+    if (tokens[index].type === 'start' && tokens[index + 1].type === 'end') {
+      pairs.push([tokens[index].index, tokens[index + 1].index]);
+    }
+  }
+  if (pairs.length === 1) {
+    const [opening, closing] = pairs[0];
+    const warning = tokens.length === 2 ? null
+      : 'Preserved malformed matching markers outside the replaced run block.';
+    return { text: existing.slice(0, opening) + block + existing.slice(closing + end.length), warning };
+  }
+  const warning = tokens.length > 0
+    ? 'Malformed or duplicate matching run markers; appended a fresh complete block without altering existing text.' : null;
+  return { text: `${existing}${existing.endsWith('\n') ? '\n' : '\n\n'}${block}\n`, warning };
+}
+
+export async function inspectFeedback(statePath, { limitStop = false } = {}) {
+  const state = await readFile(statePath, 'utf8');
+  const summary = inspectState(state, { limitStop });
+  if (path.basename(statePath) !== `${summary.ticket}-state.md`) fail('State filename and ticket field disagree.');
+  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, summary.ticket);
+  let hookEvents;
+  try { hookEvents = await readHookEvents(statePath); }
+  catch (error) { fail(`Feedback hook evidence could not be read: ${error.message}`, 'FEEDBACK_EVIDENCE'); }
+  const result = inspectState(state, { limitStop, hookEvents });
+  if (result.evidenceRequired) {
+    const packet = await feedbackEvidence(statePath, result);
+    result.evidence = { packetHash: packet.packetHash, dashboard: packet.dashboard.status,
+      instruction: 'Run write-feedback.mjs evidence --state <this state> directly, inspect the numbered sources, and record evidence_review in the session input. Status-word counts are not source inspection.' };
+    Object.defineProperty(result, '_packet', { value: packet });
+  }
+  return result;
+}
+
+export async function writeFeedback(statePath, { analysis = null, sessionReview = null, limitStop = false } = {}) {
+  const summary = await inspectFeedback(statePath, { limitStop });
+  const checked = validateFeedbackInputs(summary, analysis, sessionReview);
+  if (!checked.valid) fail(checked.errors.join('\n'));
+  const block = renderBlock(summary, analysis, sessionReview);
+  const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
+  const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
+  try {
+    const info = await lstat(sessionOutputPath);
+    if (!info.isFile()) fail('Session feedback path must be a regular file, not a symlink or directory.', 'FEEDBACK_OUTPUT');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  let existing = null;
+  let mode;
+  try {
+    const info = await lstat(outputPath);
+    if (!info.isFile()) fail('Feedback path must be a regular file, not a symlink or directory.', 'FEEDBACK_OUTPUT');
+    mode = info.mode & 0o777;
+    existing = await readFile(outputPath, 'utf8');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const result = upsertBlock(existing, summary, block);
+  const temporary = path.join(path.dirname(outputPath), `.implement-feedback.${randomUUID()}.tmp`);
+  try {
+    await writeFile(temporary, result.text, { flag: 'wx', mode: mode ?? 0o600 });
+    await rename(temporary, outputPath);
+  } finally {
+    await unlink(temporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
+  }
+  const sessionTemporary = path.join(path.dirname(sessionOutputPath), `.workflow-feedback.${randomUUID()}.tmp`);
+  try {
+    await writeFile(sessionTemporary, `${HEADER}\n${block}\n`, { flag: 'wx', mode: 0o600 });
+    await rename(sessionTemporary, sessionOutputPath);
+  } catch (error) {
+    fail(`Cumulative feedback saved, but session feedback could not be saved: ${error.message}`, error.code);
+  } finally {
+    await unlink(sessionTemporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
+  }
+  if (sessionReview && !summary.analysisRequired && !summary.evidenceRequired) await finalizeFeedback(statePath,
+    { runId: summary.runId, stateHash: summary.stateHash, status: 'saved', kind: 'legacy-minimal' }, { refresh: false });
+  return { ...summary, ...(sessionReview ? { feedbackReport: 'combined' } : {}), outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
+}
+
+export async function unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop = false } = {}) {
+  const markdown = await readFile(statePath, 'utf8');
+  inspectState(markdown, { limitStop }); // Validate identity/audit without rereading the failed hook journal.
+  const { fields, audit } = parseState(markdown, statePath);
+  if (!feedbackEligible(fields) || limitStop !== (fields.status === 'Stopped')) fail('Unavailable feedback requires a completed run or an explicit retry-limit stop.');
+  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, fields.ticket);
+  const safeReason = safeLine(reason, 'Feedback limitation', fields.ticket);
+  if (!transcriptPath || !failureId) fail('Unavailable feedback requires --transcript and --failure-id identifying an actual failed feedback operation; not performed or no friction is not a technical failure.');
+  const events = [];
+  const lines = (await readFile(transcriptPath, 'utf8')).split('\n');
+  for (let index = 0; index < lines.length; index++) {
+    if (!lines[index].trim()) continue;
+    try { events.push(JSON.parse(lines[index])); }
+    catch (error) { if (index !== lines.length - 1) throw error; }
+  }
+  const failure = findFeedbackFailure(events, path.resolve(statePath), fields, audit, failureId);
+  if (!failure) fail('No qualifying technical failure found for this terminal run. Inspect feedback and perform the required retrospective; repair input/schema errors instead of skipping it.');
+  const stateHash = feedbackStateHash(fields, audit);
+  let reportStatus = 'missing';
+  try {
+    const existing = await readFile(path.join(path.dirname(statePath), 'workflow-feedback.md'), 'utf8');
+    if (existing.includes(`<!-- feedback-state:${stateHash} -->`)) reportStatus = 'unverified';
+  } catch { /* A missing/unreadable current report cannot establish a saved retrospective. */ }
+  const receipt = { version: 1, feedbackAttempt: 'unavailable', runId: fields.start_time,
+    stateHash, ...failure, reason: safeReason, reportSaved: false, reportStatus };
+  const receiptPath = path.join(path.dirname(path.resolve(statePath)), 'feedback-unavailable.json');
+  const temporary = path.join(path.dirname(receiptPath), `.feedback-unavailable.${randomUUID()}.tmp`);
+  try {
+    try { if (!(await lstat(receiptPath)).isFile()) throw new Error('Receipt path is not a regular file.'); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    await writeFile(temporary, `${JSON.stringify(receipt, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+    await rename(temporary, receiptPath);
+    return { ...receipt, receiptSaved: true, receiptPath, ...await refreshFeedbackDashboard(statePath) };
+  } catch {
+    return { ...receipt, receiptSaved: false, receiptPath: null, warning: 'Feedback failure receipt could not be saved; no combined report was saved by this operation.' };
+  } finally { await unlink(temporary).catch(() => {}); }
+}
+
+let failureContext;
+async function main() {
+  const [mode, ...args] = process.argv.slice(2);
+  if (!['inspect', 'evidence', 'check', 'write', 'unavailable'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|evidence|check|write|unavailable> --state <path> [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
+  let statePath;
+  let analysisPath;
+  let sessionReviewPath;
+  let reason;
+  let transcriptPath;
+  let failureId;
+  let limitStop = false;
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] === '--state') statePath = args[++index];
+    else if (args[index] === '--analysis') analysisPath = args[++index];
+    else if (args[index] === '--session-review') {
+      sessionReviewPath = args[++index];
+      if (!sessionReviewPath || sessionReviewPath.startsWith('--')) fail('--session-review requires a JSON path.');
+    }
+    else if (args[index] === '--limit-stop') limitStop = true;
+    else if (args[index] === '--reason') reason = args[++index];
+    else if (args[index] === '--transcript') transcriptPath = args[++index];
+    else if (args[index] === '--failure-id') failureId = args[++index];
+    else fail(`Unknown argument: ${args[index]}`);
+  }
+  if (!statePath || (!['write', 'check'].includes(mode) && (analysisPath || sessionReviewPath))) fail('Provide --state; --analysis and --session-review are for check or write only.');
+  failureContext = { mode, statePath };
+  if (mode !== 'unavailable' && [reason, transcriptPath, failureId].some(value => value !== undefined)) fail('--reason, --transcript and --failure-id are only for unavailable feedback.');
+  if (mode === 'unavailable') {
+    process.stdout.write(`${JSON.stringify(await unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop }))}\n`);
+    return;
+  }
+  if (mode === 'inspect') {
+    const summary = await inspectFeedback(statePath, { limitStop });
+    const { ticket: _ticket, ...shareSafe } = summary;
+    process.stdout.write(`${JSON.stringify({ ...shareSafe, commands: feedbackCommands(statePath, { analysisRequired: summary.analysisRequired, limitStop }) })}\n`);
+    return;
+  }
+  if (mode === 'evidence') {
+    const summary = await inspectFeedback(statePath, { limitStop });
+    process.stdout.write(evidenceText(summary._packet ?? await feedbackEvidence(statePath, summary)));
+    return;
+  }
+  const analysis = analysisPath ? JSON.parse(await readFile(analysisPath, 'utf8')) : null;
+  const sessionReview = sessionReviewPath ? JSON.parse(await readFile(sessionReviewPath, 'utf8')) : null;
+  if (mode === 'check') {
+    const result = await checkFeedback(statePath, { analysis, sessionReview, limitStop });
+    process.stdout.write(`${JSON.stringify(result)}\n`);
+    if (!result.valid) process.exitCode = 1;
+    return;
+  }
+  const result = await writeFeedback(statePath, { analysis, sessionReview, limitStop });
+  const { ticket: _ticket, outputPath, ...shareSafe } = result;
+  process.stdout.write(`${JSON.stringify({ ...shareSafe, outputPath })}\n`);
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch(async (error) => {
+    process.stderr.write(`Feedback writer: ${error.message}\n`);
+    // Only concrete I/O/evidence failures can authorize unavailability. Schema
+    // mistakes and missing model-authored inputs remain recoverable work.
+    if (feedbackFailureCodes.has(error.code) && ['inspect', 'write'].includes(failureContext?.mode)) {
+      try {
+        const { fields, audit } = parseState(await readFile(failureContext.statePath, 'utf8'), failureContext.statePath);
+        if (feedbackEligible(fields)) process.stdout.write(`${JSON.stringify({ feedbackFailure: 'technical', operation: failureContext.mode,
+          code: error.code, runId: fields.start_time, stateHash: feedbackStateHash(fields, audit) })}\n`);
+      } catch { /* Unreadable state cannot establish a terminal failure binding. */ }
+    }
+    process.exitCode = 1;
+  });
+}
