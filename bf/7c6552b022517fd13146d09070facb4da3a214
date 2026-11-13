@@ -1,0 +1,76 @@
+evals/implement/context-partial/graders/behavior.md
+  s_81584d88f46488::t_7ba0ed44123c5f 3
+  s_81584d88f46488::t_9026a9b52cbc59 1-2,4-6
+evals/implement/context-mandatory-missing/fixture.sh
+  s_81584d88f46488::t_1a3a3b69b0c6a0 4
+  s_81584d88f46488::t_61443fb4a8adbc 1-3,5-9
+evals/implement/context-partial/fixture.sh
+  s_81584d88f46488::t_1a3a3b69b0c6a0 4
+  s_81584d88f46488::t_2c38e0b8494f27 1-3,5-8
+evals/implement/context-absent/graders/behavior.md
+  s_81584d88f46488::t_7ba0ed44123c5f 3
+  s_81584d88f46488::t_4afa26ecbad25b 1-2,4-6
+skills/plan-the-work/SKILL.md
+  s_81584d88f46488::t_dfbd1bac42b96f 15-16
+skills/close-the-gaps/SKILL.md
+  s_81584d88f46488::t_dfbd1bac42b96f 13-14
+skills/implement/references/context-discovery.md
+  s_81584d88f46488::t_dfbd1bac42b96f 1-21
+skills/implement/scripts/workflow.mjs
+  s_81584d88f46488::t_dfbd1bac42b96f 506,510,596
+skills/implement/SKILL.md
+  s_81584d88f46488::t_dfbd1bac42b96f 160,331,360,364,371-374,391,393,628-629,735
+  s_81584d88f46488::t_1d0c9d2e2680ce 352,736
+evals/implement/context-mandatory-missing/graders/behavior.md
+  s_81584d88f46488::t_7ba0ed44123c5f 3
+  s_81584d88f46488::t_89d6038e72199f 1-2,4-6
+evals/implement/context-absent/fixture.sh
+  s_81584d88f46488::t_1a3a3b69b0c6a0 4
+  s_81584d88f46488::t_e56afd94982c6b 1-3,5-9
+.claude-plugin/plugin.json
+  s_81584d88f46488::t_5d3fd0050e8a18 6
+CHANGELOG.md
+  s_81584d88f46488::t_59c5d9d67513d8 9-20
+README.md
+  s_81584d88f46488::t_5cec4bb3a0528e 247,249,498
+evals/implement/README.md
+  s_81584d88f46488::t_85b2478e59a3d2 203-206
+evals/implement/context-absent/case.yaml
+  s_81584d88f46488::t_9c071ceae86d22 1-5
+evals/implement/context-absent/prompt.md
+  s_81584d88f46488::t_e63c8efd842820 1-18
+evals/implement/context-mandatory-missing/case.yaml
+  s_81584d88f46488::t_d8d54fb1554e5d 1-5
+evals/implement/context-mandatory-missing/prompt.md
+  s_81584d88f46488::t_de733747203b94 1-16
+evals/implement/context-partial/case.yaml
+  s_81584d88f46488::t_994e7665ca6261 1-5
+evals/implement/context-partial/prompt.md
+  s_81584d88f46488::t_3ff0425a64b4f2 1-18
+evals/suites.json
+  s_81584d88f46488::t_fe6b7fe24a4861 84-86
+skills/execute/SKILL.md
+  s_81584d88f46488::t_7922de44e5e1c9 9-10
+skills/implement/scripts/workflow.test.mjs
+  s_81584d88f46488::t_85eefb1bf01d79 413-441
+skills/implement/scripts/workspace-scope.test.mjs
+  s_81584d88f46488::t_13cda5dec8386d 136-146
+skills/review-the-code/SKILL.md
+  s_81584d88f46488::t_a22427b794978a 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bf7c6552b022517fd13146d09070facb4da3a214",
+  "prompts": {},
+  "sessions": {
+    "s_81584d88f46488": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfef-b582-7e13-aeb7-03892af0a410",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
