@@ -4,6 +4,7 @@ import path from 'node:path';
 import { strategyPointer, validateStrategy } from '../scripts/test-strategy.mjs';
 import { validateMap } from '../scripts/test-map.mjs';
 import { normalizeEntry } from '../scripts/decision-log.mjs';
+import { parseState } from '../skills/implement/scripts/render-status.mjs';
 
 function scalar(value) {
   const trimmed = value.trim();
@@ -159,6 +160,33 @@ async function gradeStrategyPointer(context) {
 
 export async function gradeHeadlessLocal(grader, context) {
   try {
+    if (grader.type === 'planning_receipt') {
+      const receipt = JSON.parse(await readEvidence({ source: 'file', path: grader.path }, context));
+      const { fields: f } = parseState(await readEvidence({ source: 'file', path: grader.state }, context));
+      if (f.controller_version !== '1' || !f.workspace_snapshot) throw new Error('This case requires an initial guarded planning run.');
+      const binding = { version: 1, ticket: f.ticket, start_time: f.start_time };
+      if (Object.entries(binding).some(([key, value]) => value === undefined || value === 'none' || receipt[key] !== value) || !/^[1-9]\d*$/.test(String(receipt.plan_version)) || Number(receipt.plan_version) > Number(f.plan_version) || typeof receipt.spec_hash !== 'string' || !receipt.spec_hash || receipt.spec_hash === 'none') throw new Error('Planning receipt is not bound to this run and an authorized plan.');
+      // Replans after Execute legitimately retain the initial receipt. The
+      // successful authorizer already checked the then-current spec/plan.
+      const approved = JSON.parse(f.workspace_version === '1' ? f.workspace_contract : f.workspace_snapshot);
+      const roots = (Array.isArray(approved) ? approved : approved.repos).map(repo => repo.root);
+      if (!Array.isArray(receipt.entries) || !receipt.entries.some(entry => typeof entry.file === 'string' && entry.file && !path.isAbsolute(entry.file) && !entry.file.split(/[\\/]/).includes('..') && entry.kind === 'test-file' && roots.includes(entry.repo) && Number.isSafeInteger(entry.step) && entry.step > 0 && entry.reason?.trim())) throw new Error('No dedicated test file has scoped planning authorization.');
+      const expectedReceipt = await realpath(safePath(context.fixtureDir, grader.path));
+      const calls = new Set((context.events ?? []).flatMap(event => event.type === 'assistant' ? event.message?.content ?? [] : []).filter(part => part.type === 'tool_use' && part.name === 'Bash' && /planning-tests\.mjs/.test(part.input?.command ?? '') && /\bauthorize\b/.test(part.input?.command ?? '')).map(part => part.id));
+      let success = false;
+      for (const event of context.events ?? []) for (const part of event.type === 'user' && Array.isArray(event.message?.content) ? event.message.content : []) {
+        if (part.type !== 'tool_result' || part.is_error || !calls.has(part.tool_use_id)) continue;
+        const text = typeof part.content === 'string' ? part.content : Array.isArray(part.content) ? part.content.map(block => block.text ?? '').join('\n') : '';
+        for (const line of text.trim().split('\n')) {
+          let result; try { result = JSON.parse(line); } catch { continue; }
+          if (result.authorized === true && typeof result.receipt === 'string' && path.isAbsolute(result.receipt)) {
+            try { if (await realpath(result.receipt) === expectedReceipt) success = true; } catch { /* Missing/wrong receipts do not prove authorization. */ }
+          }
+        }
+      }
+      if (!success) throw new Error('No successful pre-edit planning-authorizer receipt in the transcript.');
+      return { name: grader.name, passed: true, detail: 'Required planning authorization is run-bound, scoped and backed by a successful helper result.' };
+    }
     if (grader.type === 'file_unchanged') {
       if ([grader.path, grader.baseline].some(file => typeof file !== 'string' || file.includes('*'))) throw new Error('file_unchanged requires literal file paths.');
       const actual = await readEvidence({ source: 'file', path: grader.path }, context);

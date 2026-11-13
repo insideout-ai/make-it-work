@@ -75,10 +75,11 @@ export async function validateEvalTree(root = EVAL_ROOT) {
       for (const graderName of graderNames) {
         const grader = await textFile(path.join(graderDir, graderName));
         const type = field(grader, 'type');
-        if (!grader.startsWith('---\n') || !['file_exists', 'llm', 'regex', 'tool_used', 'strategy_pointer', 'decision_log', 'file_unchanged'].includes(type)) {
+        if (!grader.startsWith('---\n') || !['file_exists', 'llm', 'regex', 'tool_used', 'strategy_pointer', 'decision_log', 'file_unchanged', 'planning_receipt'].includes(type)) {
           errors.push(`${item.name}/${graderName}: invalid grader frontmatter or type`);
         }
         if (type === 'strategy_pointer' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: strategy_pointer requires the headless runner`);
+        if (type === 'planning_receipt' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: planning_receipt requires the headless runner`);
         if (type === 'file_unchanged' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: file_unchanged requires the headless runner`);
         if (type === 'decision_log' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: decision_log requires the headless runner`);
       }
