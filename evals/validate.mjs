@@ -75,10 +75,11 @@ export async function validateEvalTree(root = EVAL_ROOT) {
       for (const graderName of graderNames) {
         const grader = await textFile(path.join(graderDir, graderName));
         const type = field(grader, 'type');
-        if (!grader.startsWith('---\n') || !['file_exists', 'llm', 'regex', 'tool_used', 'strategy_pointer', 'decision_log'].includes(type)) {
+        if (!grader.startsWith('---\n') || !['file_exists', 'llm', 'regex', 'tool_used', 'strategy_pointer', 'decision_log', 'file_unchanged'].includes(type)) {
           errors.push(`${item.name}/${graderName}: invalid grader frontmatter or type`);
         }
         if (type === 'strategy_pointer' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: strategy_pointer requires the headless runner`);
+        if (type === 'file_unchanged' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: file_unchanged requires the headless runner`);
         if (type === 'decision_log' && !(suites.headless ?? []).includes(item.name)) errors.push(`${item.name}/${graderName}: decision_log requires the headless runner`);
       }
     }
@@ -107,6 +108,20 @@ export async function validateEvalTree(root = EVAL_ROOT) {
     else smokeSkills.add(item.skill);
   }
   for (const skill of publicSkills) if (!smokeSkills.has(skill)) errors.push(`no smoke case for ${skill}`);
+
+  if (suites.critical !== undefined) {
+    if (!Array.isArray(suites.critical) || !suites.critical.length || new Set(suites.critical).size !== suites.critical.length) errors.push('critical must contain unique case names');
+    else for (const name of suites.critical) {
+      if (!byName.has(name)) errors.push(`unknown critical case: ${name}`);
+      if ((typeof suites.criticalReasons?.[name] !== 'string' || !suites.criticalReasons[name].trim())) errors.push(`critical case needs a reason: ${name}`);
+      if (suites.maintenance?.[name] && suites.maintenance[name].blocking !== true) errors.push(`critical case has unresolved maintenance: ${name}`);
+    }
+  }
+  for (const [name, record] of Object.entries(suites.maintenance ?? {})) {
+    if (!byName.has(name)) errors.push(`unknown maintenance case: ${name}`);
+    if (!['repair', 'investigate', 'consolidate', 'retire'].includes(record?.disposition) || ['reason', 'owner', 'followUp'].some(field => typeof record?.[field] !== 'string' || !record[field].trim())) errors.push(`maintenance record needs disposition, reason, owner and followUp: ${name}`);
+    if ((suites.smoke ?? []).includes(name) && record?.blocking !== true) errors.push(`smoke case has unresolved maintenance: ${name}`);
+  }
 
   for (const name of suites.headless ?? []) if (!byName.has(name)) errors.push(`unknown headless case: ${name}`);
   if (suites.workingDirectories !== undefined && (!suites.workingDirectories || typeof suites.workingDirectories !== 'object' || Array.isArray(suites.workingDirectories))) {
