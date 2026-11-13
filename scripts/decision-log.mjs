@@ -5,6 +5,7 @@ import { realpathSync } from 'node:fs';
 import { chmod, lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withLock } from './lib/artifacts.mjs';
 
 const SKILLS = new Set([
   'close-the-gaps', 'define-test-strategy', 'execute', 'find-the-repos',
@@ -165,6 +166,12 @@ async function atomicWrite(directory, target, content, mode) {
 
 export async function updateLog({ root = process.cwd(), skill, command, input, ticket = null }) {
   if (!['init', 'append', 'write'].includes(command)) fail(`Unknown command: ${command}`);
+  if (command !== 'init') normalizeEntries(input, skill, command);
+  const { target } = await checkedPath(root, skill, { createDirectory: command !== 'append', ticket });
+  return withLock(target, () => updateLogUnlocked({ root, skill, command, input, ticket }));
+}
+async function updateLogUnlocked({ root, skill, command, input, ticket }) {
+  if (!['init', 'append', 'write'].includes(command)) fail(`Unknown command: ${command}`);
   const incoming = command === 'init' ? [] : normalizeEntries(input, skill, command);
   const { directory, target, targetStat } = await checkedPath(root, skill,
     { createDirectory: command !== 'append', ticket });
@@ -177,6 +184,25 @@ export async function updateLog({ root = process.cwd(), skill, command, input, t
   const existing = command === 'append' ? parseExisting(await readFile(target, 'utf8'), skill) : [];
   await atomicWrite(directory, target, serializeEntries([...existing, ...incoming]), mode);
   return target;
+}
+
+// Startup owns one checkpoint per site. Preserve all other run decisions and
+// reject conflicting retries rather than replacing their history.
+export async function ensureCheckpoint({ root, skill, input, ticket = null }) {
+  const entry = normalizeEntry(input, skill);
+  if (entry.kind !== 'checkpoint') fail('ensureCheckpoint requires a checkpoint.');
+  const initial = await checkedPath(root, skill, { ticket });
+  return withLock(initial.target, async () => {
+    const { directory, target, targetStat } = await checkedPath(root, skill, { ticket });
+    const existing = targetStat ? parseExisting(await readFile(target, 'utf8'), skill) : [];
+    const matches = existing.filter(item => item.phase === entry.phase && item.site === entry.site);
+    if (matches.length) {
+      if (matches.length !== 1 || JSON.stringify(matches[0]) !== JSON.stringify(entry)) fail('Conflicting startup checkpoint; preserve the existing log and investigate.');
+      return { path: target, reused: true };
+    }
+    await atomicWrite(directory, target, serializeEntries([...existing, entry]), targetStat ? targetStat.mode & 0o777 : 0o600);
+    return { path: target, reused: false };
+  });
 }
 
 function parseInput(text) {

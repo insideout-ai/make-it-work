@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { normalizeEntry, updateLog } from './decision-log.mjs';
+import { normalizeEntry, updateLog, ensureCheckpoint } from './decision-log.mjs';
 import { renderEpic } from './epic.mjs';
 
 const SCRIPT = path.join(import.meta.dirname, 'decision-log.mjs');
@@ -195,4 +195,27 @@ test('shaping log rejects an unlogged best guess before overwriting a prior audi
   invalid.decisions[1] = { topic: 'Logged-out handling', auto_resolution: { ...resolution, site: 'logged-out', chosen: '[autopilot best-guess] Ask the visitor to log in.' } };
   await updateLog({ root, skill: 'shape-the-epic', command: 'write', input: invalid });
   assert.equal((await readFile(log, 'utf8')).trim().split('\n').length, 2);
+});
+
+
+test('startup checkpoint preserves prior decisions, rejects conflicts and serializes retries', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-log-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const input = { phase: 'Start', site: 'startup-branch', kind: 'checkpoint', chosen: 'DEMO: branch DEMO; base main', rationale: 'Recorded startup snapshot.' };
+  const args = { root, skill: 'implement', ticket: 'DEMO', input };
+  const file = await updateLog({ root, skill: 'implement', ticket: 'DEMO', command: 'write', input: { ...checkpoint, site: 'autonomy-selection' } });
+  const result = await ensureCheckpoint(args);
+  const bytes = await readFile(file, 'utf8');
+  assert.equal(result.reused, false); assert.equal(bytes.trim().split('\n').length, 2);
+  assert.equal((await ensureCheckpoint(args)).reused, true);
+  assert.equal(await readFile(file, 'utf8'), bytes);
+  await assert.rejects(ensureCheckpoint({ ...args, input: { ...input, chosen: 'Different branch' } }), /Conflicting startup/);
+  assert.equal(await readFile(file, 'utf8'), bytes);
+  await writeFile(file + '.lock', 'other writer');
+  await assert.rejects(ensureCheckpoint(args), /locked/);
+  await assert.rejects(updateLog({ root, skill: 'implement', ticket: 'DEMO', command: 'append', input: checkpoint }), /locked/);
+  assert.equal(await readFile(file, 'utf8'), bytes);
+  await rm(file + '.lock'); await rm(file);
+  await symlink(path.join(root, 'outside'), file);
+  await assert.rejects(ensureCheckpoint(args), /regular file/);
 });

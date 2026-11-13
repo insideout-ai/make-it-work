@@ -7,6 +7,7 @@ import { parseState, generateDashboard } from './render-status.mjs';
 import { decideNext, validateArtifacts } from './handoff.mjs';
 import { approve as approveFinalPackage, checkFinalPackage } from './final-package.mjs';
 import { contextInventory } from '../../../scripts/context-inventory.mjs';
+import { ensureCheckpoint } from '../../../scripts/decision-log.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
@@ -615,6 +616,21 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
+export async function recordStartupBranch(root, statePath) {
+  const state = parseState(await readFile(await within(root, statePath), 'utf8'), statePath);
+  const f = state.fields;
+  if (f.startup_branch_log_version !== '1') return { status: 'not-applicable' };
+  const repos = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos : [{ id: f.ticket, branch: f.branch, base: f.base }];
+  const chosen = repos.map(repo => `${requireText(repo.id, 'Repo ID')}: branch ${requireText(repo.branch, 'Startup branch')}; base ${requireText(repo.base, 'Base branch')}`).join(' | ');
+  const first = state.audit[0];
+  if (!first || first.from !== 'start') fail('Startup audit evidence is missing.');
+  const saved = await ensureCheckpoint({ root, ticket: f.ticket, skill: 'implement', input: {
+    phase: 'Start', site: 'startup-branch', kind: 'checkpoint', chosen,
+    rationale: `Recorded startup branch outcome: ${requireText(first.outcome, 'Startup outcome')}`,
+  } });
+  return { status: 'saved', ...saved };
+}
+
 export async function initializeWorkflow(root, input) {
   root = await realpath(root);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '')) fail('Unsafe ticket.');
@@ -641,6 +657,7 @@ export async function initializeWorkflow(root, input) {
     branch: repos[0].branch, base: workspace ? workspace.repos.find((repo) => repo.root === repos[0].root).base : requireText(input.base, 'Base branch'), head: repos[0].head,
     worktree_fingerprint: digest(JSON.stringify(repos)), workspace_snapshot: JSON.stringify(repos) });
   if (workspace) Object.assign(fields, { workspace_version: '1', workspace_contract: JSON.stringify(workspace) });
+  if (input.autonomy === 'autopilot') fields.startup_branch_log_version = '1';
   if (!['here', 'slack-draft', 'slack-send'].includes(fields.refinement_destination)) fail('Invalid refinement destination.');
   if (input.offline_pending) {
     Object.assign(fields, { phase: 'close-the-gaps', status: 'Paused', pause_reason: 'offline refinement pending' });
@@ -657,14 +674,20 @@ export async function initializeWorkflow(root, input) {
   parseState(markdown, statePath);
   await writeFile(statePath, markdown, { flag: 'wx' });
   const dashboard = await generateDashboard(statePath);
+  let branchDecision;
+  try { branchDecision = await recordStartupBranch(root, statePath); }
+  catch (error) {
+    if (!['EACCES', 'EPERM'].includes(error.code)) throw error;
+    branchDecision = { status: 'unavailable', reason: error.message };
+  }
   const target = encodeURI(dashboard).replace(/[?#]/g, (character) => encodeURIComponent(character));
-  return { state: statePath, dashboard,
+  return { state: statePath, dashboard, branch_decision_log: branchDecision,
     startup_message: `[Open implementation dashboard](<${target}>)`,
     implementation_baseline: await implementationBaseline(repos.map((repo) => repo.root)), fields };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--root', '--state', '--input']);
-  if (!o.root) fail('Usage: workflow.mjs init|inspect|apply --root ROOT [--state STATE] [--input EVENT.json]');
+  if (!o.root) fail('Usage: workflow.mjs init|inspect|apply|record-startup-branch --root ROOT [--state STATE] [--input EVENT.json]');
   if (o.command === 'init') {
     const initialized = await initializeWorkflow(o.root, await jsonInput(o.input));
     const offline = initialized.fields.pause_reason === 'offline refinement pending';
@@ -677,9 +700,10 @@ cli(import.meta.url, async (argv) => {
       },
       continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply',
       runId: initialized.fields.start_time,
-      state: initialized.state, dashboard: initialized.dashboard, implementation_baseline: initialized.implementation_baseline };
+      state: initialized.state, dashboard: initialized.dashboard, branch_decision_log: initialized.branch_decision_log, implementation_baseline: initialized.implementation_baseline };
   }
   if (!o.state) fail('--state is required.');
+  if (o.command === 'record-startup-branch') return recordStartupBranch(o.root, o.state);
   if (o.command === 'inspect') { const markdown = await readFile(await within(o.root, o.state), 'utf8'); return { ...parseState(markdown, o.state), state_hash: digest(markdown) }; }
   if (o.command === 'apply') return applyWorkflow({ root: o.root, statePath: o.state, input: await jsonInput(o.input) });
   fail('Unknown workflow command.');

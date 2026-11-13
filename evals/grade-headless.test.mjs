@@ -511,3 +511,19 @@ test('review log grader receives both the saved decisions and successful Git dis
     } });
   assert.equal(result.passed, true);
 });
+
+test('startup branch check rejects unrelated mentions and wrong recorded branch snapshots', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'branch-checkpoint-grader-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const grader = parseGrader(await readFile('evals/implement/implement-autopilot-full/graders/autopilot-log.md', 'utf8'), 'startup');
+  const file = path.join(root, grader.target.path); await mkdir(path.dirname(file), { recursive: true });
+  const entry = { phase: 'Start', site: 'startup-branch', kind: 'checkpoint', chosen: 'DEMO-101: branch DEMO-101; base main', rationale: 'Recorded actual startup snapshot.' };
+  const grade = async entries => {
+    await writeFile(file, entries.map(JSON.stringify).join('\n') + '\n');
+    return gradeHeadlessLocal(grader, { fixtureDir: root });
+  };
+  const autonomy = { ...entry, site: 'autonomy-selection', chosen: 'Autopilot', rationale: 'A branch may be created later.' };
+  assert.equal((await grade([autonomy])).passed, false);
+  assert.equal((await grade([autonomy, entry])).passed, true);
+  assert.equal((await grade([{ ...entry, chosen: 'DEMO-101: branch main; base main' }])).passed, false);
+});
