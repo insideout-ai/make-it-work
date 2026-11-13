@@ -410,3 +410,32 @@ test('stop and pause inherit exactly the saved repository roots without relaxing
   assert.equal(stopped.fields.phase, 'context-check');
   await assert.rejects(event('resume', 'resume-no-roots'), /Resume requires repository/);
 });
+
+for (const context of ['absent', 'partial', 'complete', 'unreadable']) {
+  test(`context-ready handles ${context} go-deep context without changing inventory semantics`, async (t) => {
+    const { root, statePath, apply } = await fixture(t);
+    if (context === 'absent') {
+      await rm(path.join(root, '.claude'), { recursive: true });
+      await rm(path.join(root, 'CLAUDE.md'));
+    } else if (context === 'partial') {
+      await rm(path.join(root, '.claude/rules/product.md'));
+    } else if (context === 'unreadable') {
+      await rm(path.join(root, 'CLAUDE.md'));
+      await mkdir(path.join(root, 'CLAUDE.md'));
+    }
+    const before = await readFile(statePath, 'utf8');
+    if (context === 'unreadable') {
+      await assert.rejects(apply('context-ready'), /Not a regular context file/);
+      assert.equal(await readFile(statePath, 'utf8'), before);
+      return;
+    }
+    assert.equal((await apply('context-ready')).fields.phase, 'close-the-gaps');
+    const saved = await readFile(statePath, 'utf8');
+    if (context === 'complete') assert.doesNotMatch(saved, /Context discovery required/);
+    else {
+      assert.match(saved, /Context discovery required/);
+      assert.match(saved, /product.md/);
+      assert.match(saved, /unresolved essential facts remain blockers/);
+    }
+  });
+}
