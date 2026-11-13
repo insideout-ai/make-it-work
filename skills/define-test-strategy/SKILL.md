@@ -34,6 +34,12 @@ Reuse explicit answers already supplied in the invocation or conversation instea
 
 The outputs are the target repo's `.claude/skills/test-strategy/SKILL.md` and shared `.claude/testing/test-map.json`. Build the skill from `<base>/references/test-strategy-template.md` (`<base>` is the `Base directory for this skill:` path printed when this skill loaded). Read the template before Phase 5 and reproduce its structure exactly. Read `<base>/../../docs/test-map-contract.md` before mapping. Never edit, move, rename or remove source/test files for discovery or mapping. Older tag-based setups must be regenerated from current code, tests and documentation; do not import tag relationships, convert old rules or clean up old metadata. Explain that any obsolete rules/pointers require manual cleanup.
 
+## Interactive confirmation guard
+
+A standalone invocation without `--autopilot` remains interactive even when `AskUserQuestion` is unavailable. Tool availability never selects Autonomous or Autopilot mode. At a required unanswered question, ask the same question and options in plain text, then stop and wait for the user's reply. Do not infer acceptance, turn recommendations into autonomous defaults, or write strategy/map/report/pointer files while confirmation is pending. Read-only discovery may supply the question; it does not authorize writes.
+
+Reuse explicit answers already supplied for the same scope; do not ask again merely because the question tool is missing. Implement-owned runs keep only their explicitly documented caller-mode exceptions: Autonomous defaults apply to Phase 3a, not to unrelated required confirmations. Never infer caller ownership or mode from the surrounding runtime. Before Phase 4 or Phase 5 writes, verify that all required confirmations reached so far have an actual answer or a documented resolution under the run's real mode. Otherwise return to the unanswered question and wait, retaining the read-only findings.
+
 ## Autopilot Mode
 
 When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — the exact option labels, `multiSelect` settings, and list-vs-picker thresholds all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
@@ -135,7 +141,7 @@ Also inspect configured source roots for embedded tests and executable documenta
 
 The target repo is always in the list, and always row 1 of `## Test Locations`. Use the template's literal `none` row only when it has neither test files nor configured test tooling. Configured tooling requires repo evidence: an actual test script, runner configuration, CI test command, or real tests using the runner. A runtime shipping a built-in runner is not configuration; neither is a stale README/`CLAUDE.md` reference to a nonexistent script, an empty directory or a placeholder script. For example, Node plus `scripts: {}` and no tests means `none`, even though `node --test` is available; an existing `test: node --test` script is configured tooling even with no tests. When tooling exists but tests do not, record the configured layers, file pattern and command; do not invent an existing test file for an example command. The target repo cannot be removed.
 
-Confirm the list with the user before anything is written; they may remove or add locations (autopilot: see Autopilot Mode):
+Confirm the list with the user before anything is written; they may remove or add locations (autopilot: see Autopilot Mode). Apply the Interactive confirmation guard: if the question tool is missing, ask in plain text and wait before entering Phase 3 or writing metadata:
 - **1 candidate** → one `AskUserQuestion` call (`multiSelect: true`) with that location plus `{ label: "Add another location", description: "Name a test location this search missed." }`, since a question needs two options.
 - **2-4 candidates** → one `AskUserQuestion` call (`multiSelect: true`), one option per location. The user adds a missing location through "Other".
 - **More than 4** → a plain-text list; the user confirms it as-is or edits it in reply.

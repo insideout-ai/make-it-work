@@ -86,6 +86,14 @@ For those runs, choose Mode through implement's `execution-mode` controller even
      1. `{ label: "Subagent-Driven (Recommended)", description: "Dispatch a fresh subagent per step (via the Agent tool), reviewed between steps. Best for complex multi-repo plans; keeps each step's context clean." }`
      2. `{ label: "Inline Execution", description: "Execute steps in this session with a checkpoint after each step's Verify." }`
 
+     **Standalone/legacy Autopilot logging at this site:** construct the complete entry below before changing Mode or dispatching a step. Read the shared decision-log schema and persist this entry through `decision-log.mjs write execute --root "<repo-root>" --ticket "<TICKET>"` in its own Bash call (or `append` if this run already initialized/resolved a site). Do not redirect directly into the JSONL file or replace this entry with only `chosen` and `rationale`. The writer validates the required question/options; an invalid-payload error must be repaired before continuing. A permission denial retains the existing denied-log handling and must not be bypassed. Controller-enabled runs keep the `execution-mode` event described above instead of adding a generic decision.
+
+     ```json
+     {"phase":"Phase 0","site":"mode-choice","kind":"askUserQuestion","question":"Which execution mode?","options":[{"label":"Subagent-Driven (Recommended)","description":"Dispatch a fresh subagent per step (via the Agent tool), reviewed between steps. Best for complex multi-repo plans; keeps each step's context clean."},{"label":"Inline Execution","description":"Execute steps in this session with a checkpoint after each step's Verify."}],"multiSelect":false,"chosen":"Subagent-Driven (Recommended)","rationale":"The Autopilot policy selects Subagent-Driven execution."}
+     ```
+
+     Preserve both offered options in the saved log, even though Autopilot does not display a question. On successful persistence, inspect the saved entry before dispatch; it must retain the question, exactly these two option labels, `multiSelect: false`, and the selected label. A raw file-write success does not establish schema validation.
+
      The question text itself may also invite reviewing the plan first ("Which approach? (or: review the plan first, then decide)") — this is a free-text alternative reply the user can give instead of picking an option, not a third enumerated option in the `AskUserQuestion` call.
 
      - If the user picks **Subagent-Driven**, run the `set-mode --mode subagent-driven` command below; it replaces the "Not yet chosen" line and its two bullet options with `**Mode:** Subagent-Driven — dispatch a fresh subagent per step (via the Agent tool), reviewed between steps.` Then proceed to point 4.
