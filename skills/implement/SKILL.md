@@ -151,7 +151,7 @@ The stage skills are siblings of this skill in the plugin. Take the `Base direct
 - `<base>/../review-the-code/SKILL.md`
 - `<base>/../define-test-strategy/SKILL.md` — only for testing readiness, including refresh after setup
 
-Read each one with the Read tool when its phase starts — **never** start them through the Skill tool; they are deliberately user-invoked only outside this orchestrator. Follow each skill's instructions including its `## When run by implement` section, passing the inputs that section names.
+Read each complete SKILL.md with the Read tool when its phase starts; if output is truncated, read the remaining ranges before applying it. A grep, heading list, template or only the When run by implement section does not load the stage. Inline execution means following that full procedure, including its analysis, not manufacturing only the expected output artifact. Do not invent questions when the stage finds no material gaps. **Never** start these stages through the Skill tool; they are deliberately user-invoked only outside this orchestrator. Follow each skill's instructions including its `## When run by implement` section, passing the inputs that section names.
 
 That inline-stage rule applies only to the pipeline skills listed above. It does not waive any repository's `CLAUDE.md` skill-loading gate: load matching domain/UC skills by the method that repository requires before source exploration, edits or review. Pass that distinction explicitly to implementation, fix and review delegates. If required loading is unavailable, checkpoint the stage's blocker instead of silently substituting a later documentation read.
 

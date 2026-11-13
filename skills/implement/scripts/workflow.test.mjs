@@ -432,3 +432,14 @@ test('Autopilot startup persists actual branch evidence and retries without rewr
   assert.equal((await recordStartupBranch(root, statePath)).status, 'not-applicable');
   await assert.rejects(readFile(file), /ENOENT/);
 });
+
+
+test('phase-entry action supplies complete inline stage loading before refinement', async (t) => {
+  const { apply } = await fixture(t);
+  const result = await apply('context-ready');
+  assert.equal(result.next_action.type, 'stage');
+  assert.equal(Object.keys(result)[0], 'next_action');
+  assert.match(result.next_action.skill_path, /close-the-gaps\/SKILL\.md$/);
+  assert.match(result.next_action.instruction, /complete SKILL.md with Read/);
+  assert.match(result.next_action.instruction, /inline/);
+});

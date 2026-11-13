@@ -388,8 +388,10 @@ async function resolveInput(root, statePath, state, input) {
 }
 
 function contextAction(fields) {
+  const skill = fields.phase === 'plan' ? 'plan-the-work' : fields.phase === 'close-the-gaps' ? 'close-the-gaps' : null;
   return { next_action: { type: 'stage', phase: fields.phase,
-    instruction: `Continue ${fields.phase} now using its documented stage skill. Context check does not authorize application edits. Do not implement directly or end the turn while work remains active.` } };
+    ...(skill ? { skill_path: fileURLToPath(new URL(`../../${skill}/SKILL.md`, import.meta.url)) } : {}),
+    instruction: `Continue ${fields.phase} now using its documented stage skill. Read the complete SKILL.md with Read before applying its procedure; grep/head output, the template or only When run by implement is not a loaded stage. Run the procedure inline, including required analysis and test authoring, rather than substituting a hand-written artifact. In Plan, complete testing readiness before planning work. Context check does not authorize application edits. Do not implement directly or end the turn while work remains active.` } };
 }
 
 function reviewScopeAction(fields, event) {
@@ -410,7 +412,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const prior = state.audit.find((row) => row.outcome.includes(`[workflow-event: ${input.id};`));
     if (prior) {
       if (!prior.outcome.includes(marker)) fail('Event id already records a different event.');
-      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), ...feedbackAction(statePath, state.fields), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
+      return { replayed: true, ...(input.event === 'context-ready' || input.event === 'handoff' && state.fields.status === 'In Progress' && ['plan', 'close-the-gaps'].includes(state.fields.phase) ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), ...feedbackAction(statePath, state.fields), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     }
     if (input.expected_hash !== digest(original)) fail('Workflow state changed; inspect and recompute the event.');
     let workingState = state, effective = input, resolution = null, replaced = null;
@@ -613,7 +615,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     parseState(updated, statePath);
     await atomicWrite(statePath, updated);
     // Keep the event on render failure. Replaying its id refreshes without recounting.
-    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
+    return { ...(effective.event === 'context-ready' || f.status === 'In Progress' && f.phase !== state.fields.phase && ['plan', 'close-the-gaps'].includes(f.phase) ? contextAction(f) : reviewScopeAction(f, effective.event)), fields: f, pending: pendingInputs(f), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
 export async function recordStartupBranch(root, statePath) {
