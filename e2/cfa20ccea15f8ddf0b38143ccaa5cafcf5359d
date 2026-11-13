@@ -1,0 +1,25 @@
+evals/define-test-strategy/define-test-strategy-negative-control/graders/no-map-written.md
+  s_81584d88f46488::t_b0e041558a5323 1-8
+evals/define-test-strategy/define-test-strategy-negative-control/graders/no-report-written.md
+  s_81584d88f46488::t_13dadcca95e4f3 1-8
+evals/define-test-strategy/define-test-strategy-negative-control/graders/no-strategy-written.md
+  s_81584d88f46488::t_bd55c23d43ee3e 1-8
+skills/define-test-strategy/SKILL.md
+  s_81584d88f46488::t_c053ae45657946 37-42,144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e2cfa20ccea15f8ddf0b38143ccaa5cafcf5359d",
+  "prompts": {},
+  "sessions": {
+    "s_81584d88f46488": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfef-b582-7e13-aeb7-03892af0a410",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
