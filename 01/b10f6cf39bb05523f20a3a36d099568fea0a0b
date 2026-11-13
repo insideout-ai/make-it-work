@@ -1,0 +1,62 @@
+evals/run-suite.mjs
+  s_81584d88f46488::t_5ca1596102c990 9,23-26,28-29,32-33,42-45,72,109-111,120,126,140-141,149,155,157,169-170,183,188,205-206
+evals/define-test-strategy/define-test-strategy-negative-control/fixture.sh
+  s_81584d88f46488::t_7590c55ee3202c 8-9
+evals/suite-policy.test.mjs
+  s_81584d88f46488::t_34f478d2adb022 1-33
+evals/catalog.mjs
+  s_81584d88f46488::t_34f478d2adb022 1-19,21-34
+  s_81584d88f46488::t_9eb1aa422f29ab 20
+evals/catalog.test.mjs
+  s_81584d88f46488::t_9eb1aa422f29ab 1-15
+evals/review-the-code/autopilot-full-info/graders/autopilot-log-content.md
+  s_81584d88f46488::t_7590c55ee3202c 3,7,21
+evals/suites.json
+  s_81584d88f46488::t_7590c55ee3202c 135-136,172-176
+  s_81584d88f46488::t_5ca1596102c990 165-167,170-171,177,181-228,231-263,266,268-294
+  s_81584d88f46488::t_5d213f2af2855f 264-265,267
+evals/define-test-strategy/define-test-strategy-negative-control/graders/claude-md-untouched.md
+  s_81584d88f46488::t_7590c55ee3202c 2-4,8-9
+evals/grade-headless.mjs
+  s_81584d88f46488::t_7590c55ee3202c 162-168
+  s_81584d88f46488::t_32143350cbc2e0 220,227-230
+evals/suite-policy.mjs
+  s_81584d88f46488::t_6ee761c88309c2 1-34
+evals/validate.mjs
+  s_81584d88f46488::t_7590c55ee3202c 78,82
+  s_81584d88f46488::t_5ca1596102c990 112-115,118-121,124-125
+  s_81584d88f46488::t_9eb1aa422f29ab 123
+  s_81584d88f46488::t_fbd3fa72bd0552 116-117,122
+evals/grade-headless.test.mjs
+  s_81584d88f46488::t_7590c55ee3202c 346
+  s_81584d88f46488::t_8488a4f756896f 470-513
+  s_81584d88f46488::t_b7ad48ac06b2ca 49,54,60-61
+CONTRIBUTING.md
+  s_81584d88f46488::t_ee562dd184c55f 69
+docs/eval-release-checklist.md
+  s_81584d88f46488::t_0789766b2c86d2 3-4,6-7,9-17,20-31
+evals/AUDIT.md
+  s_81584d88f46488::t_e4c9aa28b3287b 1-88
+evals/README.md
+  s_81584d88f46488::t_244eb389601e24 5-23,26-34,37-111
+evals/run-suite-args.test.mjs
+  s_81584d88f46488::t_8b976f16c634df 75-87
+evals/validate.test.mjs
+  s_81584d88f46488::t_bf652e19c4d8cc 24-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "01b10f6cf39bb05523f20a3a36d099568fea0a0b",
+  "prompts": {},
+  "sessions": {
+    "s_81584d88f46488": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfef-b582-7e13-aeb7-03892af0a410",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
