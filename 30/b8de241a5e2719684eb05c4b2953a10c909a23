@@ -1,0 +1,33 @@
+scripts/decision-log.mjs
+  s_81584d88f46488::t_4e1a029fafde54 172,189-207
+  s_81584d88f46488::t_dada1ec3ad78ac 8,168-171,173
+skills/implement/scripts/workflow.mjs
+  s_81584d88f46488::t_4e1a029fafde54 10,619-627,629-633,660,677-682,684,690,703,706
+  s_81584d88f46488::t_576e3ab478e603 628
+evals/grade-headless.test.mjs
+  s_81584d88f46488::t_465307f389d9b1 514-529
+evals/implement/implement-autopilot-full/graders/autopilot-log.md
+  s_81584d88f46488::t_a3152985409b2d 4-5,8-9
+scripts/decision-log.test.mjs
+  s_81584d88f46488::t_ae74e08d2e0433 8,199-221
+skills/implement/SKILL.md
+  s_81584d88f46488::t_d09539126f4914 332,349
+skills/implement/scripts/workflow.test.mjs
+  s_81584d88f46488::t_93cbb7d4ac6f39 10,413-434
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "30b8de241a5e2719684eb05c4b2953a10c909a23",
+  "prompts": {},
+  "sessions": {
+    "s_81584d88f46488": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfef-b582-7e13-aeb7-03892af0a410",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
