@@ -1,0 +1,30 @@
+skills/implement/scripts/workflow.mjs
+  s_81584d88f46488::t_5687b690d9ba83 618
+  s_81584d88f46488::t_955724059a296f 391,393-394,415
+evals/implement/implement-autopilot-full/graders/planning-skill-read.md
+  s_81584d88f46488::t_d22e66ef639031 1-9
+evals/implement/implement-autopilot-full/graders/refinement-skill-read.md
+  s_81584d88f46488::t_e341fcf3b6fe2f 1-9
+evals/implement/implement-autopilot-full/graders/stage-order.md
+  s_81584d88f46488::t_f8d13b50ff555e 7-20
+skills/implement/SKILL.md
+  s_81584d88f46488::t_1543c6af3ffe65 154
+skills/implement/scripts/workflow.test.mjs
+  s_81584d88f46488::t_1f224c362a8716 435-445
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bd0d7ef10a3925e2cf7b4f80891a00bb3fe567bf",
+  "prompts": {},
+  "sessions": {
+    "s_81584d88f46488": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfef-b582-7e13-aeb7-03892af0a410",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
