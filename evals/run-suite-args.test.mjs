@@ -72,3 +72,16 @@ test('headless workdir starts inside the selected repo and rejects traversal, fi
     await assert.rejects(caseWorkingDirectory(root, invalid));
   }
 });
+
+test('critical, skill filters and shards dry-run without authentication or model calls', () => {
+  const script = new URL('./run-suite.mjs', import.meta.url).pathname;
+  for (const args of [['critical'], ['extended', '--shard=1/4'], ['full', '--skill=execute', '--concurrency=2']]) {
+    const result = spawnSync(process.execPath, [script, ...args, '--dry-run'], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr); assert.match(result.stdout, /No model invoked/);
+    if (args.includes('--skill=execute')) assert.doesNotMatch(result.stdout, /^implement\t/m);
+  }
+  for (const args of [['full', '--skill=unknown'], ['full', '--shard=0/4'], ['full', '--concurrency=0'], ['full', '--concurrency=5'], ['full', '--skill='], ['full', '--shard=']]) {
+    const result = spawnSync(process.execPath, [script, ...args, '--dry-run'], { encoding: 'utf8' });
+    assert.notEqual(result.status, 0);
+  }
+});

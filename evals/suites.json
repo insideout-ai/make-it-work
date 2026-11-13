@@ -132,7 +132,8 @@
     "plan-assumption-supported",
     "plan-assumption-low-risk",
     "drive-the-epic-uncertainty-unresolved",
-    "drive-the-epic-uncertainty-resolved"
+    "drive-the-epic-uncertainty-resolved",
+    "define-test-strategy-negative-control"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -161,30 +162,135 @@
       ]
     },
     "drive-the-epic-uncertainty-unresolved": {
-      "uncertainty-handoff.md": ["uncertainty-baseline.json"]
+      "uncertainty-handoff.md": [
+        "uncertainty-baseline.json"
+      ]
     },
     "drive-the-epic-uncertainty-resolved": {
-      "uncertainty-handoff.md": ["uncertainty-baseline.json"]
+      "uncertainty-handoff.md": [
+        "uncertainty-baseline.json"
+      ]
+    },
+    "autopilot-full-info": {
+      "autopilot-log-content.md": [
+        "make-it-work/TASK-100/review-the-code-autopilot-log.jsonl"
+      ]
     }
   },
   "requiredToolsBySkill": {
-    "drive-the-epic": ["Read", "Bash"],
-    "implement": ["Read", "Bash"],
-    "execute": ["Read", "Bash"],
-    "run-regression": ["Read", "Bash"],
-    "plan-the-work": ["Read", "Bash"],
-    "close-the-gaps": ["Read", "Bash"],
-    "go-deep": ["Read", "Bash"],
-    "define-test-strategy": ["Read", "Bash"],
-    "slice-the-epic": ["Read", "Bash"],
-    "shape-the-epic": ["Read", "Bash"],
-    "find-the-repos": ["Read", "Bash"],
-    "review-the-code": ["Read", "Bash"]
+    "drive-the-epic": [
+      "Read",
+      "Bash"
+    ],
+    "implement": [
+      "Read",
+      "Bash"
+    ],
+    "execute": [
+      "Read",
+      "Bash"
+    ],
+    "run-regression": [
+      "Read",
+      "Bash"
+    ],
+    "plan-the-work": [
+      "Read",
+      "Bash"
+    ],
+    "close-the-gaps": [
+      "Read",
+      "Bash"
+    ],
+    "go-deep": [
+      "Read",
+      "Bash"
+    ],
+    "define-test-strategy": [
+      "Read",
+      "Bash"
+    ],
+    "slice-the-epic": [
+      "Read",
+      "Bash"
+    ],
+    "shape-the-epic": [
+      "Read",
+      "Bash"
+    ],
+    "find-the-repos": [
+      "Read",
+      "Bash"
+    ],
+    "review-the-code": [
+      "Read",
+      "Bash"
+    ]
   },
   "extraTools": {
-    "execute-resume-inline": ["Bash"],
-    "execute-stop-at-gate": ["Bash"],
-    "plan-the-work-happy-path": ["Bash"],
-    "plan-the-work-plan-collision": ["Bash"]
+    "execute-resume-inline": [
+      "Bash"
+    ],
+    "execute-stop-at-gate": [
+      "Bash"
+    ],
+    "plan-the-work-happy-path": [
+      "Bash"
+    ],
+    "plan-the-work-plan-collision": [
+      "Bash"
+    ]
+  },
+  "critical": [
+    "implement-autopilot-full",
+    "implement-lightweight-run",
+    "implement-workspace-approval",
+    "execute-resume-inline",
+    "execute-stop-at-gate",
+    "review-workflow-obligations",
+    "drive-the-epic-review-gate"
+  ],
+  "criticalReasons": {
+    "implement-autopilot-full": "Complete TDD workflow, independent review, final sync and packaging.",
+    "implement-lightweight-run": "Complete lightweight workflow without silently skipping its mandatory stages.",
+    "implement-workspace-approval": "Explicit repository and branch consent before workspace mutations.",
+    "execute-resume-inline": "Preserve saved execution progress and human pauses on resume.",
+    "execute-stop-at-gate": "A failed validation gate cannot be reported as success.",
+    "review-workflow-obligations": "Independent review retains mandatory checks and maintenance obligations.",
+    "drive-the-epic-review-gate": "Epic preparation cannot bypass required review."
+  },
+  "maintenance": {
+    "define-test-strategy-negative-control": {
+      "disposition": "investigate",
+      "reason": "The stale grader was replaced by exact baseline comparison. The live rerun correctly caught strategy/map writes and a guidance update before standalone confirmation.",
+      "owner": "maintainers",
+      "followUp": "Fix and reproduce the standalone missing-question-tool confirmation guard; do not weaken the unchanged-file assertion."
+    },
+    "drive-the-epic-uncertainty-resolved": {
+      "disposition": "investigate",
+      "reason": "Latest run added a confirmation requirement after a recorded product resolution; not established as a regression from the go-deep change.",
+      "owner": "maintainers",
+      "followUp": "Compare the latest accepted requirement and technical open items; reproduce before changing skill behavior."
+    },
+    "dts-multi-repo": {
+      "disposition": "investigate",
+      "reason": "Latest run skipped the required QA-repository context warning.",
+      "owner": "maintainers",
+      "followUp": "Reproduce the cross-repository inspection omission and add targeted evidence before a skill fix."
+    },
+    "execute-stop-at-gate": {
+      "disposition": "investigate",
+      "reason": "The failed-gate stop itself passed, but the attempted mode-choice log omitted its required options array. The critical baseline remains failed.",
+      "owner": "maintainers",
+      "followUp": "Repair execution decision logging and rerun this case; preserve the failed-gate stop coverage.",
+      "blocking": true
+    },
+    "implement-autopilot-full": {
+      "disposition": "repair",
+      "reason": "Workflow completed with clean review; stage-order grading hit the OS argument-size limit. Stdin transport is now locally tested, but live regrading is unresolved.",
+      "owner": "maintainers",
+      "followUp": "Validate the repaired stage-order judge against saved evidence after approved replay or a fresh authorized focused run. Do not count the original errored verdict as passed.",
+      "blocking": true
+    }
   }
 }
