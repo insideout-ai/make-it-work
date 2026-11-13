@@ -81,7 +81,7 @@ unclassified; investigate rather than guess.
 
 Prefer deterministic saved-artifact checks for exact fields, bytes, state and
 supported helper receipts. `file_unchanged` compares a literal file with the
-fixture's saved baseline and is headless-only. Use semantic judges for business
+fixture's saved baseline and is headless-only. `planning_receipt` is also headless-only: a case that specifically requires initial guarded test authoring checks a run-bound scoped receipt and actual authorizer success, rather than accepting an arbitrary file. It is not a universal receipt requirement for manual, legacy or reused-test scenarios. Use semantic judges for business
 meaning, with short criteria and the actual evidence needed to judge them.
 `graderEvidenceFiles` can provide supplemental saved artifacts; use trace focus
 when a conclusion depends on successful command output. Avoid assertions about

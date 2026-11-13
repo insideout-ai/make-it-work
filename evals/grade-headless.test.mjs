@@ -7,6 +7,8 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { gradeHeadlessCase, gradeHeadlessLocal, parseGrader, runHeadlessJudge, transcriptContext } from './grade-headless.mjs';
 import { validateEvalTree } from './validate.mjs';
+import { initializeWorkflow } from '../skills/implement/scripts/workflow.mjs';
+import { parseState } from '../skills/implement/scripts/render-status.mjs';
 import { renderEpic, writeEpic } from '../scripts/epic.mjs';
 
 const transcript = [
@@ -343,7 +345,7 @@ test('parses every headless grader definition', async () => {
     const item = cases.find((entry) => entry.name === name);
     for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
       const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
-      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log', 'file_unchanged'].includes(grader.type), `${name}/${filename}`);
+      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log', 'file_unchanged', 'planning_receipt'].includes(grader.type), `${name}/${filename}`);
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
   }
@@ -510,4 +512,53 @@ test('review log grader receives both the saved decisions and successful Git dis
       return { stdout: JSON.stringify({ total_cost_usd: 0, structured_output: { verdict: 'PASS', reason: 'Evidence supplied.' } }) };
     } });
   assert.equal(result.passed, true);
+});
+
+test('startup branch check rejects unrelated mentions and wrong recorded branch snapshots', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'branch-checkpoint-grader-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const grader = parseGrader(await readFile('evals/implement/implement-autopilot-full/graders/autopilot-log.md', 'utf8'), 'startup');
+  const file = path.join(root, grader.target.path); await mkdir(path.dirname(file), { recursive: true });
+  const entry = { phase: 'Start', site: 'startup-branch', kind: 'checkpoint', chosen: 'DEMO-101: branch DEMO-101; base main', rationale: 'Recorded actual startup snapshot.' };
+  const grade = async entries => {
+    await writeFile(file, entries.map(JSON.stringify).join('\n') + '\n');
+    return gradeHeadlessLocal(grader, { fixtureDir: root });
+  };
+  const autonomy = { ...entry, site: 'autonomy-selection', chosen: 'Autopilot', rationale: 'A branch may be created later.' };
+  assert.equal((await grade([autonomy])).passed, false);
+  assert.equal((await grade([autonomy, entry])).passed, true);
+  assert.equal((await grade([{ ...entry, chosen: 'DEMO-101: branch main; base main' }])).passed, false);
+});
+
+
+test('initial planning receipt must be scoped, run-bound and backed by authorizer success', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'planning-receipt-grader-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
+  git('init', '-q', '-b', 'feature'); await writeFile(path.join(root, 'app.js'), 'baseline');
+  git('add', '.'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Baseline');
+  const initialized = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autopilot', base: 'main', repos: [root], branch_guard: 'Existing feature branch' });
+  const saved = (await readFile(initialized.state, 'utf8')).replace('spec_hash: none', 'spec_hash: accepted-spec');
+  await writeFile(initialized.state, saved);
+  const { fields: f } = parseState(saved);
+  const grader = { type: 'planning_receipt', name: 'planning', path: 'make-it-work/DEMO/DEMO-planning-tests.json', state: 'make-it-work/DEMO/DEMO-state.md' };
+  const file = path.join(root, grader.path);
+  const receipt = { version: 1, ticket: f.ticket, start_time: f.start_time, plan_version: f.plan_version, spec_hash: f.spec_hash,
+    entries: [{ repo: JSON.parse(f.workspace_snapshot)[0].root, file: 'test/policy.test.js', step: 1, kind: 'test-file', reason: 'New progression tests' }] };
+  const events = [{ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'authorize', name: 'Bash', input: { command: 'node "plugin/planning-tests.mjs" authorize --state state --input input' } }] } },
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'authorize', content: JSON.stringify({ authorized: true, receipt: file }) }] } }];
+  const grade = input => gradeHeadlessLocal(grader, { fixtureDir: root, events: input ?? events });
+  assert.equal((await grade()).passed, false, 'a future Execute test step cannot substitute for a missing receipt');
+  await writeFile(file, '{}'); assert.equal((await grade()).passed, false);
+  await writeFile(file, JSON.stringify(receipt)); assert.equal((await grade()).passed, true);
+  await writeFile(initialized.state, saved.replace('plan_version: 1', 'plan_version: 2').replace('spec_hash: accepted-spec', 'spec_hash: later-spec'));
+  assert.equal((await grade()).passed, true, 'a later authorized replan retains the initial planning receipt');
+  await writeFile(initialized.state, saved);
+  await writeFile(file, JSON.stringify({ ...receipt, plan_version: '2' })); assert.equal((await grade()).passed, false);
+  await writeFile(file, JSON.stringify(receipt));
+  assert.equal((await grade([])).passed, false, 'a receipt file alone cannot prove a helper authorization');
+  const skipped = structuredClone(events); skipped[1].message.content[0].content = JSON.stringify({ required: false });
+  assert.equal((await grade(skipped)).passed, false, 'a post-implementation exemption cannot satisfy this initial-plan case');
+  await writeFile(file, JSON.stringify({ ...receipt, start_time: 'another-run' })); assert.equal((await grade()).passed, false);
+  await writeFile(file, JSON.stringify({ ...receipt, entries: [{ ...receipt.entries[0], file: '../outside.test.js' }] })); assert.equal((await grade()).passed, false);
 });

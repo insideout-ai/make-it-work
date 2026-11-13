@@ -7,7 +7,7 @@ import test from 'node:test';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
-import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
+import { applyWorkflow, initializeWorkflow, recordStartupBranch, planHash, snapshot, transition } from './workflow.mjs';
 
 async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), prefix));
@@ -409,4 +409,37 @@ test('stop and pause inherit exactly the saved repository roots without relaxing
   assert.equal(stopped.fields.status, 'Stopped');
   assert.equal(stopped.fields.phase, 'context-check');
   await assert.rejects(event('resume', 'resume-no-roots'), /Resume requires repository/);
+});
+
+
+test('Autopilot startup persists actual branch evidence and retries without rewriting history', async (t) => {
+  const { root, statePath, result } = await fixture(t, { init: { autonomy: 'autopilot' } });
+  assert.equal(result.branch_decision_log.status, 'saved');
+  const file = result.branch_decision_log.path;
+  const bytes = await readFile(file, 'utf8');
+  const entry = JSON.parse(bytes.trim());
+  assert.equal(entry.site, 'startup-branch'); assert.equal(entry.kind, 'checkpoint');
+  assert.match(entry.chosen, /branch DEMO; base main/);
+  assert.match(entry.rationale, /Existing feature branch/);
+  const before = await readFile(statePath, 'utf8');
+  assert.equal((await recordStartupBranch(root, statePath)).reused, true);
+  assert.equal(await readFile(file, 'utf8'), bytes);
+  assert.equal(await readFile(statePath, 'utf8'), before);
+  await assert.rejects(initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autopilot', base: 'main', repos: [root], branch_guard: 'Changed claim' }), /EEXIST/);
+  assert.equal(await readFile(file, 'utf8'), bytes);
+  await writeFile(statePath, before.replace('startup_branch_log_version: 1\n', ''));
+  await rm(file);
+  assert.equal((await recordStartupBranch(root, statePath)).status, 'not-applicable');
+  await assert.rejects(readFile(file), /ENOENT/);
+});
+
+
+test('phase-entry action supplies complete inline stage loading before refinement', async (t) => {
+  const { apply } = await fixture(t);
+  const result = await apply('context-ready');
+  assert.equal(result.next_action.type, 'stage');
+  assert.equal(Object.keys(result)[0], 'next_action');
+  assert.match(result.next_action.skill_path, /close-the-gaps\/SKILL\.md$/);
+  assert.match(result.next_action.instruction, /complete SKILL.md with Read/);
+  assert.match(result.next_action.instruction, /inline/);
 });

@@ -48,7 +48,7 @@ if (dryRun) {
     const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
     process.stdout.write(`${item.skill}\t${item.name}\t${mode}\n`);
   }
-  process.stdout.write(`${selected.length} cases; ${concurrency} concurrent; budget $${budget.toFixed(2)}. No model invoked.\n`);
+  await new Promise(resolve => process.stdout.write(`${selected.length} cases; ${concurrency} concurrent; budget $${budget.toFixed(2)}. No model invoked.\n`, resolve));
   process.exit(0);
 }
 
