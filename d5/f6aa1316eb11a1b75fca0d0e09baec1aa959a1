@@ -1,0 +1,34 @@
+skills/implement/SKILL.md
+  s_81584d88f46488::t_fcea4f48c1aad9 500-501
+evals/grade-headless.test.mjs
+  s_81584d88f46488::t_fcea4f48c1aad9 348
+  s_81584d88f46488::t_ebe37a641c6565 10-11,532-564
+evals/grade-headless.mjs
+  s_81584d88f46488::t_fcea4f48c1aad9 7,163-166,171-172,176-181,185-189
+  s_81584d88f46488::t_7c6575ece8742f 167-170,173-175,182-184
+skills/plan-the-work/SKILL.md
+  s_81584d88f46488::t_fcea4f48c1aad9 449
+evals/implement/implement-autopilot-full/graders/planning-test-authorization.md
+  s_81584d88f46488::t_fcea4f48c1aad9 2-4,7-8,10-12
+  s_81584d88f46488::t_0c131380e75865 9
+evals/validate.mjs
+  s_81584d88f46488::t_fcea4f48c1aad9 78,82
+evals/README.md
+  s_81584d88f46488::t_91281f629a2da4 84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d5f6aa1316eb11a1b75fca0d0e09baec1aa959a1",
+  "prompts": {},
+  "sessions": {
+    "s_81584d88f46488": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cfef-b582-7e13-aeb7-03892af0a410",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
