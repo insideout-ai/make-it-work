@@ -52,6 +52,24 @@ test('write flushes a late batch and replaces a prior run atomically', async (t)
   assert.deepEqual(await readdir(path.join(root, 'make-it-work')), ['execute-autopilot-log.jsonl']);
 });
 
+test('documented implementation-mode checkpoint appends on the first attempt', async (t) => {
+  const { root } = await workspace(t);
+  const instructions = await readFile(new URL('../skills/implement/SKILL.md', import.meta.url), 'utf8');
+  const example = instructions.match(/```json\n(\{"phase":"Risk assessment","site":"implementation-mode"[^\n]+)\n```/);
+  assert.ok(example, 'Risk assessment must document the implementation-mode log payload');
+  const entry = JSON.parse(example[1]);
+  const ticket = 'mode-assessment';
+  await updateLog({ root, skill: 'implement', command: 'init', ticket });
+  const log = await updateLog({ root, skill: 'implement', command: 'append', ticket, input: entry });
+  const saved = await readFile(log, 'utf8');
+  assert.deepEqual(saved.trimEnd().split('\n').map(JSON.parse), [entry]);
+  for (const [field, value] of [['question', 'Which mode?'], ['options', ['lightweight', 'tdd']], ['multiSelect', false]]) {
+    await assert.rejects(updateLog({ root, skill: 'implement', command: 'append', ticket,
+      input: { ...entry, [field]: value } }), /checkpoint cannot include/);
+    assert.equal(await readFile(log, 'utf8'), saved, 'Invalid payload must preserve the existing log');
+  }
+});
+
 test('ticket-scoped logs stay in the ticket directory', async (t) => {
   const { root } = await workspace(t);
   const nested = path.join(root, 'make-it-work', 'DEMO-1', 'execute-autopilot-log.jsonl');

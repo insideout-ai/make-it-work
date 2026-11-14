@@ -465,6 +465,14 @@ A mode the user forced (`--mode` or an explicit chat request) wins: set it with 
 
 Log the result as a decision row (topic `Implementation mode`, per the workflow-decision audit), refresh the dashboard, then call `handoff.mjs next`. Guided shows it at Spec approval; Autonomous and Autopilot apply it without asking. On controller runs, the controller's `mode` event writes these fields and the row; apply it before the refinement handoff (or a reused spec's `context-ready`). Escalation and Lightweight fix rounds likewise use its events, never hand edits.
 
+In Autopilot, also append this assessed mode to the initialized `implement` decision log using `kind: checkpoint` and `site: implementation-mode`. This records a policy assessment, so omit `question`, `options`, and `multiSelect`; those fields are allowed only for `askUserQuestion` entries. Use the actual selected mode and rationale, including any user override. For example:
+
+```json
+{"phase":"Risk assessment","site":"implementation-mode","kind":"checkpoint","chosen":"lightweight","rationale":"Assessed low risk: a display-only addition to an existing hover card, with no backend or billing changes."}
+```
+
+Pass the entry to the shared writer in its own tool call with the run's existing root and ticket, following `docs/autopilot-log-schema.md`. This log append is separate from the controller's state/Audit update; it does not replace or replay that update.
+
 ### Spec approval (Guided; every mode after a requirements conflict)
 
 Show the spec path and, in an adaptive run, the assessed risk, mode, and rationale. Ask: **Approve** / **Approve with <the other mode>** (adaptive runs only) / **Redo this phase** (with notes) / **Stop**. The user may edit the spec file before approving; record `spec_hash` at the moment of approval. **Approve with <the other mode>** switches `mode` with `mode_source: user` and notes it in `risk_rationale`; the transition row records the choice.

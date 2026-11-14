@@ -76,6 +76,8 @@ require. Each skill's existing write timing
 - `multiSelect` — boolean. Present only on a skill that actually presents `askUserQuestion` sites. A skill whose every `askUserQuestion` site is single-select may still carry this field (always `false`) or omit it entirely as a fixed, always-`false` fact — its own Decision log section says which.
 - `question`, `options` — the exact constructed payload.
 
+For every `checkpoint` or `open_text` entry, omit all three fields, even if another entry in the same skill uses question payloads. The writer rejects these fields for those kinds, including when their values are `null` or `false`. For an assessed implementation mode, see the `implementation-mode` checkpoint example in `skills/implement/SKILL.md` under Risk assessment.
+
 A skill that never reaches `"askUserQuestion"` at all omits all three of `multiSelect`, `question`, and `options` — there is no site that could ever populate them.
 
 ## The `repo` field (multi-repo skills only)
