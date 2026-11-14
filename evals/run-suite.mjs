@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
+import { selectSuite, failureCategory } from './suite-policy.mjs';
 import { gradeHeadlessCase } from './grade-headless.mjs';
 import { caseTools, pluginEvalArgs, caseWorkingDirectory } from './run-suite-args.mjs';
 
@@ -19,14 +20,17 @@ const judgeModelArg = argv.find((arg) => arg.startsWith('--judge-model='));
 const judgeModel = judgeModelArg?.slice('--judge-model='.length);
 const caseArgs = argv.filter((arg) => arg.startsWith('--case='));
 const requestedCases = caseArgs.map((arg) => arg.slice('--case='.length));
-const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'smoke' ? 12 : 45;
+const skills = argv.filter(arg => arg.startsWith('--skill=')).map(arg => arg.slice(8));
+const shard = argv.find(arg => arg.startsWith('--shard='))?.slice(8);
+const concurrencyArg = argv.find(arg => arg.startsWith('--concurrency='))?.slice(14);
+const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'critical' ? 20 : tier === 'full' ? 45 : 12;
 
-if (!['smoke', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
-    requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
+if (!['smoke', 'critical', 'extended', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
+    skills.some(skill => !skill) || (concurrencyArg !== undefined && (!/^[1-9]\d*$/.test(concurrencyArg) || Number(concurrencyArg) > (tier === 'smoke' ? 14 : 4))) || requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
     argv.some((arg, index) => index > 0 && arg !== '--dry-run' &&
       !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case=') && !arg.startsWith('--model=') &&
-      !arg.startsWith('--judge-model='))) {
-  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|full> [--dry-run] [--case=NAME ...] [--max-cost-usd=N] [--model=ID] [--judge-model=ID]\n');
+      !arg.startsWith('--judge-model=') && !arg.startsWith('--skill=') && !arg.startsWith('--shard=') && !arg.startsWith('--concurrency='))) {
+  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|critical|extended|full> [--dry-run] [--case=NAME ...] [--skill=NAME ...] [--shard=I/N] [--concurrency=N] [--max-cost-usd=N] [--model=ID] [--judge-model=ID]\n');
   process.exit(64);
 }
 
@@ -35,16 +39,10 @@ if (errors.length) {
   errors.forEach((error) => process.stderr.write(`ERROR: ${error}\n`));
   process.exit(1);
 }
-const byName = new Map(cases.map((item) => [item.name, item]));
-const tierCases = tier === 'smoke' ? suites.smoke.map((name) => byName.get(name)) : cases;
-const missingCases = requestedCases.filter((name) => !tierCases.some((item) => item.name === name));
-if (missingCases.length) {
-  process.stderr.write(`Case(s) ${missingCases.join(', ')} not in the ${tier} tier.\n`);
-  process.exit(64);
-}
-const requestedSet = new Set(requestedCases);
-const selected = requestedCases.length ? tierCases.filter((item) => requestedSet.has(item.name)) : tierCases;
-const concurrency = tier === 'smoke' ? selected.length : 1;
+let selected;
+try { selected = selectSuite({ cases, suites, tier, requestedCases, skills, shard }); }
+catch (error) { process.stderr.write(error.message + '\n'); process.exit(64); }
+const concurrency = concurrencyArg ? Math.min(Number(concurrencyArg), selected.length) : tier === 'smoke' ? selected.length : tier === 'critical' ? Math.min(3, selected.length) : 1;
 if (dryRun) {
   for (const item of selected) {
     const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
@@ -71,7 +69,7 @@ const before = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('stat
 const version = spawnSync('claude', ['--version'], { encoding: 'utf8' });
 if (version.status !== 0) throw new Error('Claude Code is not installed or available on PATH');
 const summary = {
-  tier, requestedCases, startedAt: new Date().toISOString(),
+  tier, requestedCases, skills, shard, selectedCases: selected.map(item => item.name), partialSelection: Boolean(requestedCases.length || skills.length || shard), startedAt: new Date().toISOString(),
   commit: process.env.MIW_EVAL_SOURCE_COMMIT || before.head,
   snapshotCommit: process.env.MIW_EVAL_SOURCE_COMMIT ? before.head : undefined,
   claudeVersion: version.stdout.trim(), budgetUsd: budget, concurrency, cases: [],
@@ -108,6 +106,9 @@ async function runCase(item, remaining) {
   let caseCost = 0;
   let status = 'failed';
   let detail = '';
+  let subtype = '';
+  let runtimeError = false;
+  let graderError = false;
   let fixtureDir, workingDirectory;
   if (headless) {
     fixtureDir = await mkdtemp(path.join(os.tmpdir(), 'make-it-work-eval-'));
@@ -116,13 +117,13 @@ async function runCase(item, remaining) {
       if (fixture.status !== 0) {
         await writeFile(path.join(caseReportDir, 'fixture-error.txt'), `${fixture.stdout}\n${fixture.stderr}`);
         return { name: item.name, skill: item.skill, mode: 'headless', costUsd: 0,
-          status: 'failed', detail: 'fixture setup failed', fixtureDir };
+          status: 'failed', failureCategory: 'infrastructure', detail: 'fixture setup failed', fixtureDir };
       }
     }
     try { workingDirectory = await caseWorkingDirectory(fixtureDir, suites.workingDirectories?.[item.name]); }
     catch (error) {
       return { name: item.name, skill: item.skill, mode: 'headless', costUsd: 0,
-        status: 'failed', detail: `Invalid workingDirectories entry: ${error.message}`, fixtureDir };
+        status: 'failed', failureCategory: 'infrastructure', detail: `Invalid workingDirectories entry: ${error.message}`, fixtureDir };
     }
     const args = ['-p', prompt.body, '--plugin-dir', REPO_ROOT, '--allowedTools', ...tools,
       '--max-turns', String(prompt.maxTurns), '--max-budget-usd', remaining.toFixed(2),
@@ -136,6 +137,8 @@ async function runCase(item, remaining) {
         .findLast((line) => line.type === 'result');
       if (!data) throw new Error('No final result in transcript');
       caseCost = Number(data.total_cost_usd ?? 0);
+      subtype = data.subtype ?? '';
+      runtimeError = Boolean(result.error || data.is_error);
       if (result.status === 0 && !data.is_error && !result.error) {
         const grading = await gradeHeadlessCase({
           graderDir: path.join(item.dir, 'graders'), transcript: result.stdout,
@@ -143,13 +146,15 @@ async function runCase(item, remaining) {
           evidenceFiles: suites.graderEvidenceFiles?.[item.name],
         });
         caseCost += grading.judgeCostUsd;
+        graderError = grading.verdicts.some(entry => /^Grader error:/.test(entry.detail ?? ''));
         await writeFile(path.join(caseReportDir, 'grader-results.json'),
           JSON.stringify(grading, null, 2) + '\n');
         status = grading.passed ? 'passed' : 'failed';
         detail = grading.passed ? '' : grading.verdicts.filter((entry) => !entry.passed)
           .map((entry) => `${entry.name}: ${entry.detail}`).join('; ');
-      } else detail = data.result || 'Claude returned an error';
+      } else detail = data.result || data.subtype || 'Claude returned an error';
     } catch (error) {
+      runtimeError = true;
       detail = error.message || result.error?.message || `Claude exited ${result.status ?? 'without a status'}`;
     }
   } else {
@@ -161,6 +166,8 @@ async function runCase(item, remaining) {
     try {
       const data = JSON.parse(await readFile(path.join(caseReportDir, 'aggregate-result.json'), 'utf8'));
       caseCost = Number(data.costUsd ?? 0);
+      subtype = data.partialReason ?? '';
+      runtimeError = Boolean(result.error || data.partial);
       const evaluated = data.cases.find((entry) => entry.name === item.name);
       const arm = evaluated?.arms?.with?.[0];
       const votes = arm?.graders ?? [];
@@ -173,11 +180,12 @@ async function runCase(item, remaining) {
       detail = data.partialReason === 'auth_failed' ? 'Claude Code authentication failed' :
         hardFailure ? 'Machine grader failed' : judgeFailure ? 'LLM grader failed' : '';
     } catch {
+      runtimeError = true;
       detail = result.error?.message || `Eval exited ${result.status ?? 'without a report'}`;
     }
   }
   return { name: item.name, skill: item.skill, mode: headless ? 'headless' : 'plugin-eval',
-    costUsd: caseCost, status, detail, fixtureDir, workingDirectory,
+    costUsd: caseCost, status, failureCategory: failureCategory({ status, subtype, detail, runtimeError, graderError }), detail, fixtureDir, workingDirectory,
     report: path.relative(REPO_ROOT, caseReportDir) };
 }
 
@@ -194,6 +202,8 @@ const run = await runBatches(selected, {
 });
 const { cost } = run;
 summary.stopped = run.stopped;
+summary.failureCounts = Object.fromEntries(['unclassified', 'grader', 'infrastructure', 'budget'].map(category => [category, summary.cases.filter(entry => entry.failureCategory === category).length]));
+summary.selectionComplete = !run.stopped && summary.cases.length === selected.length;
 const after = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('status', '--porcelain').stdout };
 summary.repoUnchanged = before.head === after.head && before.status === after.status;
 summary.completedAt = new Date().toISOString();

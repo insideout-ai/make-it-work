@@ -2,115 +2,113 @@
 
 ## Maintainer runs for pull requests and releases
 
-Use an existing, signed-in Claude Code installation. No API key or CI secret is
-needed. A maintainer starts these commands locally, or installs the versioned
-local pre-push hook to run smoke before each push. CI runs only
-`node evals/validate.mjs` and other credential-free checks.
-The runner checks `claude auth status` before starting; if this shell is not
-signed in, use `claude auth login` interactively and retry. It never requests
-or stores an API key.
+Use an installed, signed-in Claude Code. CI runs deterministic checks only; no
+API key, CI credential, recurring job or live-model schedule is created here.
+
+| Run | Purpose | Default execution / reported-usage cap |
+| --- | --- | --- |
+| `smoke` | One representative case per public skill; every PR | All selected cases concurrently / $12 |
+| `critical` | Explicit cross-stage and failure/resume contracts; releases and relevant changes | Up to 3 concurrently / $20 |
+| `extended` | Remaining behavioral scenarios; focused work and periodic batches | Sequential / $12 |
+| `full` | Every discovered case, including maintenance cases; optional exhaustive investigation | Sequential / $45 |
+
+Every PR needs deterministic checks and a complete passing smoke run before
+ready-for-review or merge. Also run focused cases for changed behavior and
+known dependent skills. A shared controller or handoff change needs affected
+producer/consumer cases; path filtering does not establish dependency coverage.
+For releases, require smoke, critical and change-specific focused evidence on
+the exact release source commit, plus [the release checklist](../docs/eval-release-checklist.md).
+The archive-wide `full` run is no longer a blanket prerequisite. A confirmed
+behavior defect relevant to the release remains a blocker regardless of tier;
+a smaller suite cannot waive it. Document maintenance issues and their impact.
 
 ```sh
-node evals/run-suite.mjs smoke --dry-run  # inspect the selected smoke cases
-node evals/run-suite.mjs smoke            # before every PR
-node evals/run-suite.mjs full             # on demand and before a release
-node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot  # retry one case
-bash scripts/install-pre-push-hook.sh  # once per maintainer clone; smoke before every push
+node evals/validate.mjs
+node evals/catalog.mjs                   # every case, tier, disposition and check count
+node evals/catalog.mjs --json            # includes each actual grader requirement
+node evals/run-suite.mjs smoke --dry-run
+node evals/run-suite.mjs smoke
+node evals/run-suite.mjs critical
+node evals/run-suite.mjs full --skill=execute --dry-run
+node evals/run-suite.mjs full --case=execute-resume-inline
+node evals/run-suite.mjs extended --shard=1/4 --max-cost-usd=12
 ```
 
-`smoke` exercises one representative case for each of the 14 public skills.
-The implement smoke case checks Autonomous startup and dashboard-link presentation
-before further workflow tools; completion-feedback cases remain in the full suite.
-Script-backed skills declare the minimal Read/Bash helper capabilities in
-`suites.json`'s `requiredToolsBySkill`, merged with each case's tools for both
-headless and plugin-eval runs. This keeps the eval environment able to exercise
-the required helpers; the runner still never bypasses tool permissions.
-The complete `implement` orchestrator is checked in full-suite cases and the
-manual end-to-end release rehearsal.
-`full` discovers and runs every `case.yaml` in this tree (45 at the time this
-section was written). The shared inventory in `evals/suites.json` names the
-smoke cases and the cases that need a direct headless run. Adding a new case
-automatically adds it to `full`; adding a skill requires naming its smoke case.
-For a headless case that starts below the fixture root, set
-`workingDirectories[caseName]` to a relative directory in `suites.json`.
-The runner resolves it after scaffolding and rejects missing directories, files,
-traversal and symlinks outside the fixture. Other cases start at the fixture root.
-Keep runner-only settings out of `prompt.md` frontmatter: the native CLI validates
-all prompt files even when running a single selected case.
+Repeat `--case` or `--skill` for several selections; filters intersect, not union.
+Select dependent skills explicitly. Empty/unknown selections fail before login
+or model calls. Stable `I/N` shards partition the filtered list in catalog order;
+run all shards against the same commit and selection to cover that inventory.
+Do not equate one shard with a full tier pass. No automatic schedule is installed;
+maintainers can rotate these batches during normal maintenance.
 
-The commands run each case once. Smoke starts every selected case in parallel
-in an isolated fixture; full regression remains sequential. The
-cumulative reported-usage limit is $12 for smoke and $45 for full. Override it with
-`--max-cost-usd=N`. The runner reserves an equal share of the suite budget for
-each concurrent case, including its grading: with all 14 smoke cases and the
-default $12 cap, each receives about $0.86. Unused shares cannot be reassigned during
-that run; increase the suite cap if a case needs more headroom. Pass `--model=ID` to run every case on that model (both
-`claude plugin eval` and headless cases); without it each uses its own default,
-which fails if your account can't use it. Pass `--judge-model=ID` to grade `llm`
-checks with that model instead of the default `haiku`, which has been seen voting
-FAIL on correct multi-part reports. Each run records the commit, Claude Code version, case
-results, and cost under ignored `evals/results/<tier>-<timestamp>/`.
-`--dry-run` does not invoke Claude. Plain `claude plugin eval` cases are graded
-by its harness. Cases marked `headless` use a disposable fixture and produce a
-`transcript.jsonl`; the runner grades their `graders/*.md` automatically.
-File, regex, tool-use and the headless-only `strategy_pointer` saved-state checks run locally. The pointer check validates actual metadata and helper receipts instead of asking a model to infer whether a row was added. Semantic (`llm`) checks use a
-separate, tool-free Claude judge that takes the best two of three votes and count toward the same case and suite cost
-limits. That judge receives the relevant generated fixture file, final message,
-or normalized case transcript as evidence; do not run it with data that must
-stay local. Each headless case writes `grader-results.json` and returns `passed`
-only when every grader passes; an unavailable or invalid judge result is a
-failure, never an unreviewed success. Model responses and semantic verdicts
-can still vary between runs; automatic grading is not deterministic model
-behavior.
-The headless-only `decision_log` grader validates the saved JSONL through the
-decision writer's schema and compares actual option labels and selection. It
-accepts supported string and label/description object forms without depending on
-tool-call formatting or property order. Tool-free semantic judges allow three
-turns so the CLI can emit its structured result; their usage cap is unchanged.
-File evidence targets may use `*` within a path component for timestamped
-artifacts, for example `{ source: file, path: "make-it-work/epic-*.md" }`.
-They must resolve to exactly one regular file inside the fixture; zero or
-multiple matches fail. Evidence is read from the artifact rather than a
-tool-specific success message. Traversal and symlink escapes are rejected.
-Use `{ source: files, path: "make-it-work/slices-*.md" }` when a grader needs
-several related artifacts. It requires at least one match and labels each
-file's contents with its relative path; single-file targets still reject ambiguity.
-The runner never uses `--dangerously-skip-permissions`. A permission refusal is
-an incomplete case, not a pass; the case README documents its manual fallback.
-The optional Git hook invokes `smoke` once for every push command against a
-disposable snapshot of the committed HEAD, so unrelated worktree edits cannot
-affect the result. Reports stay under this checkout's ignored `evals/results/`.
-It reports failures but allows the push and does not enforce a PR rule. It does
-not run for other contributors until they install it. Each push incurs a new
-model run and usage. Automatic semantic grading adds judge calls and cost;
-parallel smoke should reduce wall time but not the number of model cases.
-Concurrent Claude sessions may encounter account rate limits, so inspect
-failed cases.
-The `shape-the-epic` smoke case uses the disposable headless path because its
-file write was denied in a real plain-eval smoke run despite `Write` being
-listed in `allowed_tools`.
-The `find-the-repos` smoke case also uses headless execution because the plain
-plugin-eval sandbox denied access to its repository-assessment helper in an
-isolated snapshot. This lets the case exercise inventory and report generation
-without bypassing tool permissions.
+Non-smoke runs accept `--concurrency=1` through `4`; smoke accepts up to `14`.
+The runner divides each wave's remaining budget among its active cases, including
+grading. Unused per-case shares cannot move during a wave. An incomplete or
+budget-exhausted case is never a passing case. Use `--max-cost-usd=N` to select a
+cap appropriate to the chosen cases, and inspect `--dry-run` before spending.
+Recent full smoke runs reported $4.52 and $5.16; these are observations, not
+promised future usage. The old 45-case archive estimate is obsolete.
 
-Every PR requires a complete passing smoke run before ready-for-review or merge.
-Include its report path and investigate failed cases in the PR description.
-Focused reruns do not replace the passing full suite. Draft PRs may remain open
-while fixes and results are pending. For a release, run `full` for the exact release
-commit and complete `docs/eval-release-checklist.md`. A failing LLM grader is
-an investigation trigger: read the transcript or generated file and record
-whether the skill failed or the grader misread valid output. Do not silently
-turn a failing score into a pass.
+## Maintenance and failure ownership
 
-Two recent complete 11-case sequential smoke runs reported $2.67 in 9m14s
-and $2.79 in 10m37s. Running every smoke case concurrently is intended to shorten wall time
-without changing case count or materially changing usage, but it has not yet
-been measured against a real Claude run. Budget roughly $15–25 and 1–3 hours
-for the current full suite. New cases and reruns add to both. These are
-reported usage estimates, not a guaranteed invoice.
+`suites.json` explicitly names critical cases and their purpose. Smoke membership
+stays one case per public skill. `extended` is the remaining inventory; `full`
+keeps every `case.yaml`, even when its grader needs repair. New cases start
+outside the blocking critical tier until their contract, evidence and baseline
+are reviewed. Adding a case does not silently add a release gate.
 
-Each skill with an eval suite has its own `evals/<skill-name>/` directory and its own `README.md` documenting exactly how to run that skill's cases (plain `claude plugin eval` vs. a manual `--dangerously-skip-permissions` run). This file documents conventions and known `claude plugin eval` quirks that apply across all of them.
+The [audit record](AUDIT.md) distinguishes retention from reliability. Maintenance
+entries carry a disposition, reason, owner and follow-up. A case marked repair,
+investigate, consolidate or retire cannot be silently promoted into smoke or
+critical. A known issue already retained in a required tier must be explicitly
+marked `blocking: true`; it still runs and its failure blocks certification. Repair means fix and rerun, not accept a failing verdict. No case has
+been deleted or declared irrelevant merely because it failed once.
+
+Reports retain the original passed/failed result and add `failureCategory`:
+- `budget`: the execution or grader exhausted its allowance;
+- `infrastructure`: authentication, setup, execution timeout/turn limit or process failure;
+- `grader`: an identified grader process/evidence error;
+- `unclassified`: an assertion failed and requires diagnosis.
+
+A failing LLM vote or regex is initially unclassified. Read the fixture,
+requirement, actual artifact and transcript before assigning behavior or grader
+ownership; record the evidence-backed disposition beside the ignored report.
+The runner does not auto-excuse a failure or infer causality from changed files.
+Passing reports use a null category. Partial selections record their explicit
+case list, filters, source commit and completion state; a passing subset never
+certifies the parent suite. Native CLI limitations may leave a failure
+unclassified; investigate rather than guess.
+
+Prefer deterministic saved-artifact checks for exact fields, bytes, state and
+supported helper receipts. `file_unchanged` compares a literal file with the
+fixture's saved baseline and is headless-only. Use semantic judges for business
+meaning, with short criteria and the actual evidence needed to judge them.
+`graderEvidenceFiles` can provide supplemental saved artifacts; use trace focus
+when a conclusion depends on successful command output. Avoid assertions about
+historical fixture content, prose wording or tool-call formatting.
+
+## Runner and hook behavior
+
+Each case runs once, with automatic grading. Headless cases retain a normalized
+transcript and generated artifacts; other cases use the native plugin-eval
+harness. Semantic judges are tool-free, use best two of three votes and count
+against the case cap. `--model=ID` and `--judge-model=ID` remain available. An
+invalid/unavailable judge is a failure, not an unreviewed pass. See grader tests
+for supported file, regex, decision-log, strategy-pointer and unchanged-file
+contracts. Read-only evidence paths cannot escape the disposable fixture.
+
+Reports are local under ignored `evals/results/`, including commit, CLI version,
+case results and reported usage. Do not publish private transcripts. The
+optional `.githooks/pre-push` runs smoke against an isolated committed snapshot;
+`MIW_SMOKE_CASES` can select diagnostic cases but cannot satisfy the complete
+smoke requirement. Install with `bash scripts/install-pre-push-hook.sh`.
+The hook reports failures and allows the push; it does not certify merge or
+release readiness. Each push incurs model usage. No permission bypass is used.
+
+Script-backed skills receive declared Read/Bash capabilities from `suites.json`.
+`workingDirectories` selects a safe directory inside a headless fixture; native
+prompt frontmatter must not contain runner-only settings. New fixtures must
+carry a plugin-checkout guard. See the conventions below.
 
 ## Case naming must be prefixed per skill
 

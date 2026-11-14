@@ -46,17 +46,19 @@ test('judge permits a structured-output follow-up while keeping tools disabled a
   const root = await mkdtemp(path.join(os.tmpdir(), 'structured-judge-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const fake = path.join(root, 'claude');
-  await writeFile(fake, `#!${process.execPath}\nconst args=process.argv.slice(2); const option=name=>args[args.indexOf(name)+1]; const turns=Number(option('--max-turns')); if(turns<2){process.stdout.write(JSON.stringify({subtype:'error_max_turns'}));process.exit(1);} process.stdout.write(JSON.stringify({structured_output:{verdict:'PASS',reason:'Structured result emitted'},tools:option('--tools'),budget:option('--max-budget-usd')}));\n`);
+  await writeFile(fake, `#!${process.execPath}\nconst args=process.argv.slice(2); const option=name=>args[args.indexOf(name)+1]; const turns=Number(option('--max-turns')); if(turns<2){process.stdout.write(JSON.stringify({subtype:'error_max_turns'}));process.exit(1);} let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>input+=chunk);process.stdin.on('end',()=>process.stdout.write(JSON.stringify({structured_output:{verdict:'PASS',reason:'Structured result emitted'},tools:option('--tools'),budget:option('--max-budget-usd'),inputLength:input.length,promptInArgs:args.some(arg=>arg.includes('Grade synthetic evidence'))})));\n`);
   await chmod(fake, 0o755);
   const previous = process.env.PATH;
   process.env.PATH = `${root}${path.delimiter}${previous}`;
   let result;
-  try { result = await runHeadlessJudge('Grade synthetic evidence', { cwd: root, budgetUsd: 0.5 }); }
+  try { result = await runHeadlessJudge('Grade synthetic evidence'.repeat(30000), { cwd: root, budgetUsd: 0.5 }); }
   finally { process.env.PATH = previous; }
   assert.equal(result.error, null, result.stderr);
   const data = JSON.parse(result.stdout);
   assert.equal(data.structured_output.verdict, 'PASS');
   assert.equal(data.tools, ''); assert.equal(data.budget, '0.50');
+  assert.equal(data.inputLength, 'Grade synthetic evidence'.length * 30000);
+  assert.equal(data.promptInArgs, false);
 });
 
 test('parses headless grader frontmatter', () => {
@@ -341,7 +343,7 @@ test('parses every headless grader definition', async () => {
     const item = cases.find((entry) => entry.name === name);
     for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
       const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
-      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log'].includes(grader.type), `${name}/${filename}`);
+      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log', 'file_unchanged'].includes(grader.type), `${name}/${filename}`);
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
   }
@@ -464,4 +466,48 @@ test('strategy pointer grading checks actual saved state and helper receipts wit
  await writeFile(path.join(root, 'CLAUDE.md'), '# No Skills Reference\n');
  git('add', 'CLAUDE.md'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'No orientation section');
  assert.equal((await grade()).passed, true, 'Missing inventory section is a supported skip');
+});
+
+test('untouched guidance uses exact fixture bytes, not historical prose expectations', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'unchanged-guidance-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const grader = parseGrader(await readFile('evals/define-test-strategy/define-test-strategy-negative-control/graders/claude-md-untouched.md', 'utf8'), 'untouched');
+  const baseline = await readFile('evals/define-test-strategy/fresh-tests/fixture/CLAUDE.md', 'utf8');
+  assert.doesNotMatch(baseline, /testing-strategy\.md/);
+  await writeFile(path.join(root, grader.baseline), baseline);
+  await writeFile(path.join(root, grader.path), baseline);
+  assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, true);
+  await writeFile(path.join(root, grader.path), baseline + '\n');
+  assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false);
+  await rm(path.join(root, grader.path));
+  assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false);
+  await writeFile(path.join(root, grader.path), baseline);
+  await rm(path.join(root, grader.baseline));
+  assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false);
+  for (const invalid of ['../outside', '/tmp/private', '*.md']) {
+    assert.equal((await gradeHeadlessLocal({ ...grader, baseline: invalid }, { fixtureDir: root })).passed, false);
+  }
+});
+
+test('review log grader receives both the saved decisions and successful Git discovery evidence', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'review-count-evidence-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'graders'); await mkdir(dir);
+  const filename = 'autopilot-log-content.md';
+  await writeFile(path.join(dir, filename), await readFile(`evals/review-the-code/autopilot-full-info/graders/${filename}`, 'utf8'));
+  const log = 'make-it-work/TASK-100/review-the-code-autopilot-log.jsonl';
+  await mkdir(path.dirname(path.join(root, log)), { recursive: true });
+  await writeFile(path.join(root, log), '{"site":"branch-pair","rationale":"1 commit, 1 file"}');
+  const trace = [
+    { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'git', name: 'Bash', input: { command: 'git diff --name-only main...HEAD' } }] } },
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'git', content: 'src/tasks/completeTask.js' }] } },
+    { type: 'result', result: 'Review done.' },
+  ].map(JSON.stringify).join('\n');
+  const result = await gradeHeadlessCase({ graderDir: dir, fixtureDir: root, transcript: trace, budgetUsd: 1,
+    evidenceFiles: { [filename]: [log] }, judge: async prompt => {
+      assert.match(prompt, /SAVED ARTIFACT/); assert.match(prompt, /1 commit, 1 file/);
+      assert.match(prompt, /git diff --name-only/); assert.match(prompt, /src\/tasks\/completeTask.js/);
+      return { stdout: JSON.stringify({ total_cost_usd: 0, structured_output: { verdict: 'PASS', reason: 'Evidence supplied.' } }) };
+    } });
+  assert.equal(result.passed, true);
 });

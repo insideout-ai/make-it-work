@@ -159,6 +159,13 @@ async function gradeStrategyPointer(context) {
 
 export async function gradeHeadlessLocal(grader, context) {
   try {
+    if (grader.type === 'file_unchanged') {
+      if ([grader.path, grader.baseline].some(file => typeof file !== 'string' || file.includes('*'))) throw new Error('file_unchanged requires literal file paths.');
+      const actual = await readEvidence({ source: 'file', path: grader.path }, context);
+      const baseline = await readEvidence({ source: 'file', path: grader.baseline }, context);
+      if (actual !== baseline) throw new Error('File differs from the fixture baseline.');
+      return { name: grader.name, passed: true, detail: 'File exactly matches the fixture baseline.' };
+    }
     if (grader.type === 'decision_log') {
       const text = await readEvidence({ source: 'file', path: grader.path }, context);
       const entries = text.split(/\r?\n/).filter(line => line.trim()).map(line => normalizeEntry(JSON.parse(line), grader.skill));
@@ -210,14 +217,17 @@ const VERDICT_SCHEMA = JSON.stringify({ type: 'object', properties: {
 
 export function runHeadlessJudge(prompt, { cwd, budgetUsd, model = 'haiku' }) {
   return new Promise((resolve) => {
-    const child = execFile('claude', ['-p', prompt, '--safe-mode', '--tools', '', '--model', model,
+    const child = execFile('claude', ['-p', '--safe-mode', '--tools', '', '--model', model,
       '--max-turns', '3', '--output-format', 'json', '--json-schema', VERDICT_SCHEMA,
       '--max-budget-usd', budgetUsd.toFixed(2)],
     // Structured output may need a follow-up turn to emit its schema result.
     // Keep tools disabled and the same usage cap; one turn caused error_max_turns.
     { cwd, encoding: 'utf8', timeout: 600000, maxBuffer: 16 * 1024 * 1024 },
     (error, stdout, stderr) => resolve({ error, stdout, stderr }));
-    child.stdin.end();
+    // Large traces exceed OS argument limits; stdin preserves the full evidence.
+    // Spawn/exit failures are reported by execFile; ignore a closed input pipe.
+    child.stdin.on('error', () => {});
+    child.stdin.end(prompt);
   });
 }
 

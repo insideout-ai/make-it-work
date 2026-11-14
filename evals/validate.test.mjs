@@ -21,6 +21,15 @@ test('runner-owned working directories validate without adding native prompt fie
     return (await validateEvalTree(evalRoot)).errors;
   }
   assert.deepEqual(await check(suites), []);
+  assert.deepEqual(await check({ ...suites, critical: ['example-case'], criticalReasons: { 'example-case': 'Protect confirmation.' } }), []);
+  assert.match((await check({ ...suites, critical: ['missing'], criticalReasons: {} })).join('\n'), /unknown critical/);
+  assert.match((await check({ ...suites, critical: ['example-case'], criticalReasons: {} })).join('\n'), /needs a reason/);
+  const maintenance = { 'example-case': { disposition: 'investigate', reason: 'Needs diagnosis.', owner: 'maintainers', followUp: 'Compare evidence.' } };
+  assert.match((await check({ ...suites, maintenance })).join('\n'), /smoke case has unresolved/);
+  assert.match((await check({ ...suites, maintenance, critical: ['example-case'], criticalReasons: { 'example-case': 'Protect confirmation.' } })).join('\n'), /critical case has unresolved/);
+  assert.match((await check({ ...suites, maintenance: { missing: {} } })).join('\n'), /unknown maintenance/);
+  assert.deepEqual(await check({ ...suites, critical: ['example-case'], criticalReasons: { 'example-case': 'Protect confirmation.' }, maintenance: { 'example-case': { ...maintenance['example-case'], blocking: true } } }), []);
+
   assert.deepEqual(await check({ ...suites, workingDirectories: { 'example-case': 'connector-app' } }), []);
   assert.match((await check({ ...suites, workingDirectories: { missing: 'connector-app' } })).join('\n'), /unknown workingDirectories case/);
   assert.match((await check({ ...suites, headless: [], workingDirectories: { 'example-case': 'connector-app' } })).join('\n'), /requires a headless case/);
