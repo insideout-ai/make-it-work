@@ -19,7 +19,7 @@ Inspect the generated workflow dashboard's HTML source against the saved state a
 
 Use the saved state's immutable `plugin_version`, as returned by the writer's `inspect`, for run provenance. A legacy run without it stays `not captured (legacy run)`; never substitute the currently installed version. Include provenance even when there are no findings.
 
-Save the combined report through the existing writer's `--session-review` input in `make-it-work/<TICKET>/workflow-feedback.md` and the same run's cumulative entry. Do not create a second report under session-reviews, edit these outputs directly, or change workflow state or approved packages. Follow the evidence and sanitization requirements below; the integration reference specifies the structured input. Reuse existing finding IDs and update the same run on a later reply.
+Save the combined report through the existing writer's `--session-review` input in `make-it-work/<TICKET>/workflow-feedback.md` and the same run's cumulative entry. Do not create a second report under session-reviews, edit these outputs directly, or change workflow fields or approved packages. The implement helpers may append informational feedback lifecycle notes to the audit log. Follow the evidence and sanitization requirements below; the integration reference specifies the structured input. Reuse existing finding IDs and update the same run on a later reply.
 
 Save before inviting input. Present the single invitation below as chat text alongside the terminal summary, rather than using a blocking question tool for feedback. An unanswered invitation leaves feedback provisional while the workflow stays terminal; continue the completion summary and delivery offer without waiting for feedback. A later reply updates the report. Under Autopilot, omit the invitation and record that user input was not requested under Autopilot, with material questions left open. Standalone use retains its normal invitation and wait behavior.
 
@@ -62,7 +62,7 @@ A successful report save does not trigger another closing check. If collection f
 
 ## Prepare the report and invite input
 
-Save a provisional Markdown report before asking for feedback. For standalone use, use a real current timestamp for `make-it-work/session-reviews/feedback-<YYYYMMDDTHHMMSSZ>.md` under the current working directory; create the directory and use a numeric suffix if the name exists. Never overwrite another review. Record this output path and update that same file throughout this review. Standalone use does not modify implement-feedback.md or workflow-feedback.md. Neither mode modifies state files or approved packages.
+Save a provisional Markdown report before asking for feedback. For standalone use, use a real current timestamp for `make-it-work/session-reviews/feedback-<YYYYMMDDTHHMMSSZ>.md` under the current working directory; create the directory and use a numeric suffix if the name exists. Never overwrite another review. Record this output path and update that same file throughout this review. Standalone use does not modify implement-feedback.md or workflow-feedback.md. Standalone mode does not modify state files or approved packages. Automatic integration preserves workflow fields and approved packages; only its helpers append informational feedback lifecycle audit notes.
 
 Include these sections:
 

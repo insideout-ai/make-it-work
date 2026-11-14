@@ -16,6 +16,10 @@ import { parseState } from './render-status.mjs';
 import { evidenceText } from './feedback-evidence.mjs';
 import { generateDashboard } from './render-status.mjs';
 
+function withoutFeedbackNotes(markdown) {
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+}
+
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
 const initialized = { startup_message: `[Open implementation dashboard](<${encodeURI(dashboard).replace('#', '%23')}>)`,
   dashboard, state: '/tmp/project space/#run/DEMO-state.md' };
@@ -131,7 +135,7 @@ test('Complete cannot skip feedback by proceeding directly to delivery or the te
     evidence_review: await sourceReview(run),
   } });
   assert.deepEqual(await run.check(), {});
-  assert.equal(await readFile(run.result.state, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), state);
 });
 
 async function oneFixTerminal(t) {
@@ -209,7 +213,7 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
     assert.equal(await readFile(receiptPath, 'utf8'), receipt);
     assert.equal(await readFile(path.join(directory, 'workflow-feedback.md'), 'utf8'), report);
   }
-  assert.equal(await readFile(run.result.state, 'utf8'), run.state);
+  assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), run.state);
 });
 
 test('an already-answered delivery question reuses earlier saved feedback instead of late retrospective repair', async t => {
@@ -260,7 +264,7 @@ test('a failed terminal retrospective dispatch permits an accurate receipt-only 
   run.add('Bash', 'unavailable-2', { command: `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" unavailable --state "${run.result.state}"` }, JSON.stringify(unsaved));
   await run.saveEvents();
   assert.match((await run.check()).systemMessage, /receipt could not be saved either/);
-  assert.equal(await readFile(run.result.state, 'utf8'), run.state);
+  assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), run.state);
   await assert.rejects(readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md')), { code: 'ENOENT' });
 });
 
@@ -424,7 +428,7 @@ test('a live terminal retrospective may finish, but its handback still requires 
     content: '<task-notification><task-id>retrospective</task-id><status>completed</status></task-notification>' });
   await run.saveEvents();
   assert.equal((await run.check()).decision, 'block');
-  assert.equal(await readFile(run.result.state, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), state);
 });
 
 test('live agents permit yielding in their active stage without completing or pausing the workflow', async (t) => {
@@ -435,7 +439,7 @@ test('live agents permit yielding in their active stage without completing or pa
     await run.saveEvents();
     const state = await readFile(run.result.state, 'utf8');
     assert.deepEqual(await run.check(), {});
-    assert.equal(await readFile(run.result.state, 'utf8'), state);
+    assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), state);
     run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: continue.' } });
     await run.saveEvents();
     assert.deepEqual(await run.check(), {});
@@ -522,7 +526,7 @@ test('hook decisions persist deduplicated observations and record a later releas
   run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification>\n<task-id>worker</task-id>\n<status>completed</status>\n</task-notification>' });
   run.events.push(assistant(text('The agent finished; processing the hand-back.'))); await run.saveEvents();
   assert.equal((await run.check()).decision, 'block');
-  assert.equal(await readFile(run.result.state, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), state);
   const paused = state.replace('status: In Progress', 'status: Paused');
   await writeFile(run.result.state, paused);
   assert.deepEqual(await run.check(), {});

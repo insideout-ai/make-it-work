@@ -396,6 +396,34 @@ test('execution-mode records the plan and controller decision together and rejec
   assert.throws(() => transition(fields('execute'), { event: 'execution-mode', mode: 'inline', pause_mode: 'run-straight-through', source: 'policy', via: 'policy' }), /recommended autonomous/);
 });
 
+test('mode and handoff reject omitted roots without mutation and accept the same event with explicit roots', async t => {
+  const f = await fixture(t);
+  await f.apply('context-ready');
+  const directory = path.join(f.root, 'make-it-work/DEMO');
+  await mkdir(path.join(directory, 'DEMO-handoffs'));
+  await writeFile(path.join(directory, 'DEMO-spec.md'), '# Spec');
+  await writeFile(path.join(directory, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  for (const payload of [
+    { event: 'mode', risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'Bounded change.' },
+    { event: 'handoff', handoff: 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json' },
+  ]) {
+    const before = await readFile(f.statePath, 'utf8');
+    const dashboard = await readFile(f.result.dashboard, 'utf8');
+    const input = { ...payload, id: `explicit-roots-${payload.event}`, expected_hash: digest(before) };
+    await assert.rejects(applyWorkflow({ root: f.root, statePath: f.statePath, input }), error => {
+      assert.ok(error.message.includes(`Event "${payload.event}"`));
+      assert.match(error.message, /requires explicit repos/);
+      assert.match(error.message, /single-repository/);
+      return true;
+    });
+    assert.equal(await readFile(f.statePath, 'utf8'), before);
+    assert.equal(await readFile(f.result.dashboard, 'utf8'), dashboard);
+    const result = await applyWorkflow({ root: f.root, statePath: f.statePath, input: { ...input, repos: [f.root] } });
+    assert.equal(result.fields.mode, 'lightweight');
+    assert.equal(result.fields.phase, payload.event === 'mode' ? 'close-the-gaps' : 'lightweight');
+  }
+});
+
 test('stop and pause inherit exactly the saved repository roots without relaxing ordinary transitions', async t => {
   const f = await fixture(t);
   const event = async (name, id) => applyWorkflow({ root: f.root, statePath: f.statePath, input: {

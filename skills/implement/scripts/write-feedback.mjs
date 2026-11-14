@@ -10,7 +10,7 @@ import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
 import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
-import { refreshFeedbackDashboard } from './feedback-progress.mjs';
+import { refreshFeedbackDashboard, startFeedbackCollection } from './feedback-progress.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
 import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
 import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure, feedbackRuntimeEvidence } from './feedback-handoff.mjs';
@@ -585,6 +585,11 @@ async function main() {
     return;
   }
   if (mode === 'inspect') {
+    // Validate identity and eligibility before adding the informational start note.
+    const initial = inspectState(await readFile(statePath, 'utf8'), { limitStop });
+    assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, initial.ticket);
+    if (path.basename(statePath) !== `${initial.ticket}-state.md`) fail('State filename and ticket field disagree.');
+    await startFeedbackCollection(statePath);
     const summary = await inspectFeedback(statePath, { limitStop });
     await recordFeedbackReceipt(statePath, summary, { inspect: true, analysisRequired: summary.analysisRequired });
     const { ticket: _ticket, ...shareSafe } = summary;

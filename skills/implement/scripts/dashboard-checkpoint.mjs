@@ -76,22 +76,27 @@ async function refreshExistingDashboard(statePath) {
 }
 
 /** Called by evidence-producing scripts after their operation succeeds. */
-export async function checkpointResult(statePath, { id, text, reference }) {
-  const cell = noteCell({ kind: 'result', id, text, reference });
+export async function checkpointResult(statePath, note) {
+  return checkpointAuditNote(statePath, { ...note, kind: 'result' });
+}
+
+/** Stable informational notes, including post-completion feedback lifecycle events. */
+export async function checkpointAuditNote(statePath, { kind, id, text, reference }, { refresh = true } = {}) {
+  const cell = noteCell({ kind, id, text, reference });
   const absoluteStatePath = path.resolve(statePath);
   const info = await lstat(absoluteStatePath);
   if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
   const original = await readFile(absoluteStatePath, 'utf8');
   const state = parseState(original, absoluteStatePath);
-  const existing = state.audit.find((row) => row.note?.kind === 'result' && row.note.id === id);
+  const existing = state.audit.find((row) => row.note?.kind === kind && row.note.id === id);
   if (existing) {
-    if (existing.outcome !== parseNoteCell(cell).outcome) fail(`Result id ${id} already records a different result.`);
-    return { row: existing.number, dashboard: await refreshExistingDashboard(absoluteStatePath) };
+    if (existing.outcome !== parseNoteCell(cell).outcome) fail(`${kind === 'result' ? 'Result' : 'Activity'} id ${id} already records a different result.`);
+    return { row: existing.number, dashboard: refresh ? await refreshExistingDashboard(absoluteStatePath) : null };
   }
   const updated = appendAuditCell(original, state, cell, new Date().toISOString());
   parseState(updated, absoluteStatePath);
   await replaceAtomically(absoluteStatePath, updated);
-  return { row: state.audit.length + 1, dashboard: await refreshExistingDashboard(absoluteStatePath) };
+  return { row: state.audit.length + 1, dashboard: refresh ? await refreshExistingDashboard(absoluteStatePath) : null };
 }
 
 /** Save a decision once; rendering failure must not erase its audit evidence. */

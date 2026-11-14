@@ -55,3 +55,16 @@ export async function refreshFeedbackDashboard(statePath) {
     return { dashboardUpdated: false, dashboardWarning: 'Feedback outcome recorded, but the dashboard could not be refreshed.' };
   }
 }
+
+// Called only when collection actually begins, never by read-only evidence helpers.
+export async function startFeedbackCollection(statePath) {
+  const { parseState } = await import('./render-status.mjs');
+  const state = parseState(await readFile(statePath, 'utf8'), statePath);
+  if (!feedbackEligible(state.fields)) return;
+  const binding = { runId: state.fields.start_time, stateHash: feedbackStateHash(state.fields, state.audit) };
+  if (await readFeedbackFinalization(statePath, binding)) return;
+  const { checkpointAuditNote } = await import('./dashboard-checkpoint.mjs');
+  await checkpointAuditNote(statePath, { kind: 'activity', id: `feedback-start:${binding.stateHash}`,
+    text: 'Collecting session feedback' }, { refresh: false });
+  await refreshFeedbackDashboard(statePath);
+}

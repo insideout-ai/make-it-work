@@ -438,7 +438,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const inheritedRoots = lifecycle || ['stop', 'pause'].includes(input.event);
     const reposInput = input.repos ?? (inheritedRoots && state.fields.workspace_snapshot ? JSON.parse(state.fields.workspace_snapshot).map((repo) => repo.root) : null);
     if (input.event === 'resume' && !input.repos) fail('Resume requires repository fingerprint checks.');
-    if (state.fields.workspace_snapshot && !reposInput && input.event !== 'autonomy') fail('Supply the checkpoint repository roots.');
+    if (state.fields.workspace_snapshot && !reposInput && input.event !== 'autonomy') fail(`Event "${input.event}" requires explicit repos (absolute checkpoint repository roots), even for a single-repository run. Saved roots may be inherited only by pause, stop and input-lifecycle events (await-input, resolve-input, refresh-input); autonomy may omit repos without inheriting them.`);
     let workspaceContract = state.fields.workspace_version === '1' ? JSON.parse(state.fields.workspace_contract) : null;
     if (input.event === 'scope-update') workspaceContract = await approvedScope(root, state.fields.ticket, reposInput ?? []);
     if (workspaceContract && !['scope-update', 'stop', 'pause', 'autonomy'].includes(input.event)) {

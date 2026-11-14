@@ -16,6 +16,10 @@ import { initializePublication, updatePublication } from './ticket-publication.m
 import { feedbackStateHash } from './feedback-handoff.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
 
+function withoutFeedbackNotes(markdown) {
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+}
+
 const DEFAULT_FIELDS = {
   ticket: 'DEMO',
   status: 'In Progress',
@@ -125,7 +129,7 @@ async function renderSettledFixture(t, state, plan = null) {
   return { ...f, html: await readFile(f.outputPath, 'utf8') };
 }
 
-test('terminal dashboard collects session feedback then refreshes to saved without changing state or approval artifacts', async t => {
+test('terminal dashboard collects session feedback then refreshes to saved with informational audit notes and unchanged approval artifacts', async t => {
   const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
   const f = await renderFixture(t, state);
   const statePath = path.join(f.directory, 'DEMO-state.md');
@@ -142,7 +146,7 @@ test('terminal dashboard collects session feedback then refreshes to saved witho
   assert.match(html, /data-workflow-feedback-status="saved"/);
   assert.match(html, /Session retrospective: Feedback saved/);
   assert.doesNotMatch(html, /http-equiv="refresh"/);
-  assert.equal(await readFile(statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(statePath, 'utf8')), state);
   assert.equal(await readFile(approvalPath, 'utf8'), 'Historical approval bytes');
   // A new run cannot inherit a saved badge from this run's report.
   await writeFile(statePath, state.replace('2026-01-01T10:00:00Z', '2026-01-01T09:59:00Z'));
@@ -150,20 +154,21 @@ test('terminal dashboard collects session feedback then refreshes to saved witho
   assert.match(await readFile(f.outputPath, 'utf8'), /data-workflow-feedback-status="collecting"/);
 });
 
-test('completion displays recorded assurance limits and links only the session export for sharing', async t => {
+test('completion keeps assurance details in artifacts and links only the session export for sharing', async t => {
   const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete', final_package_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
   const f = await renderFixture(t, state);
-  assert.match(f.html, /Assurance: Not recorded/);
+  assert.doesNotMatch(f.html, /assurance-summary|Assurance:|Recorded verification limits/);
+  assert.match(f.html, /href="DEMO-final-package\.md"/);
   const pkg = { version: 1, ticket: 'DEMO', repos: [{ name: 'app' }], review_scope: [{ repo: 'app', status: 'covered', limitations: [{ depth: 'skimmed', paths: ['old.js'], reason: 'Inherited work not fully assessed' }] }], ui_verification: { status: 'pending', note: 'No browser observations' }, validation: { mode: 'lightweight', result: 'No regression gate' }, open_nits: ['A nonblocking note'], known_regressions: [] };
   const packagePath = path.join(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
   await writeFile(packagePath, bytes);
   await generateDashboard(path.join(f.directory, 'DEMO-state.md'));
   const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
-  assert.match(html, /Assurance: Limited/); assert.match(html, /Browser verification: pending/);
-  assert.match(html, /Inherited work not fully assessed/); assert.match(html, /href="workflow-feedback.md"/);
+  assert.doesNotMatch(html, /Assurance:|Browser verification:|Inherited work not fully assessed|ASSURANCE_SUMMARY/);
+  assert.match(html, /href="workflow-feedback.md"/);
   assert.match(html, /share only that session export/);
   assert.equal(await readFile(packagePath, 'utf8'), bytes);
-  assert.match(await readFile(f.outputPath, 'utf8'), /Assurance: Not recorded/); // An unbound JSON file cannot establish assurance.
+  assert.doesNotMatch(await readFile(f.outputPath, 'utf8'), /Assurance:|Inherited work not fully assessed/);
   assert.equal(await readFile(path.join(f.directory, 'DEMO-state.md'), 'utf8'), state);
 });
 
@@ -173,11 +178,16 @@ test('feedback belongs to finalization and optional delivery appears only after 
   const pending = renderStatus({ ...options, feedback: { status: 'collecting' } });
   assert.match(pending, /Finalizing session\./);
   assert.match(pending, /phase-dot current spinning/);
+  assert.match(pending, /phase-mode">Collecting session feedback<\/div>/);
   assert.doesNotMatch(pending, /Optional delivery:/);
   const saved = renderStatus({ ...options, feedback: { status: 'saved' } });
   assert.match(saved, /Implementation complete\./);
   assert.match(saved, /Optional delivery:/);
   assert.match(saved, /Feedback saved/);
+  assert.match(saved, /phase-mode">Session feedback saved<\/div>/);
+  const unavailable = renderStatus({ ...options, feedback: { status: 'unavailable' } });
+  assert.match(unavailable, /phase-mode">Session feedback unavailable<\/div>/);
+  assert.doesNotMatch(unavailable, /phase-dot current spinning/);
 });
 
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
@@ -663,7 +673,8 @@ test('keeps completed stages minimal and retains approval details and fix histor
   assert.equal((html.match(/class="phase-step(?: optional-step)?"/g) ?? []).length, 9);
   assert.equal((html.match(/Review<span class="phase-skill">\(review-the-code\)<\/span>/g) ?? []).length, 2);
   const completedStages = html.slice(html.indexOf('<div class="phase-timeline">'), html.indexOf('<div class="phase-step optional-step">'));
-  assert.doesNotMatch(completedStages, /phase-mode|Spec approved by user|Approved as-is|Step 2 of 2 complete/);
+  assert.match(completedStages, /phase-mode">Session feedback saved/);
+  assert.doesNotMatch(completedStages, /Spec approved by user|Approved as-is|Step 2 of 2 complete/);
   assert.ok(html.includes(approval));
   assert.match(html, /Decision: Fix round 1: added 2 steps covering 1 finding/);
   assert.match(completedStages, /phase-duration">2m<\/div>/);
@@ -810,7 +821,7 @@ test('completion keeps polling through delivery choice and approval without reop
   assert.match(running.html, /phase-dot current spinning[^>]+Optional delivery: Running/);
   assert.match(running.html, /Not pushed/);
   assert.doesNotMatch(running.html, /Changes remain local and uncommitted/);
-  assert.equal(await readFile(running.statePath, 'utf8'), completedState());
+  assert.equal(withoutFeedbackNotes(await readFile(running.statePath, 'utf8')), completedState());
 });
 
 test('delivered dashboard shows commit and PR links, stops polling and preserves implementation timing', async (t) => {
@@ -822,7 +833,7 @@ test('delivered dashboard shows commit and PR links, stops polling and preserves
   assert.match(html, /Elapsed time \(includes waits and pauses\): 1m\./);
   assert.match(html, /phase-mode">Delivered<\/div>[\s\S]*phase-duration">2m/);
   assert.doesNotMatch(html, /http-equiv="refresh"|Changes remain local and uncommitted/);
-  assert.equal(await readFile(statePath, 'utf8'), completedState());
+  assert.equal(withoutFeedbackNotes(await readFile(statePath, 'utf8')), completedState());
 });
 
 test('partial multi-repo delivery retains completed results and the failed repo instead of a false complete', async (t) => {

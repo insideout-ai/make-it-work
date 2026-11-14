@@ -9,6 +9,10 @@ import { checkFeedback, inspectFeedback, inspectState, renderBlock, upsertBlock,
 import { noteCell } from './audit-notes.mjs';
 import { createHash } from 'node:crypto';
 
+function withoutFeedbackNotes(markdown) {
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+}
+
 const EVAL_ROOT = path.resolve(import.meta.dirname, '../../../evals/implement');
 const SCRIPT_PATH = path.join(import.meta.dirname, 'write-feedback.mjs');
 
@@ -89,7 +93,7 @@ function sessionReview() {
   };
 }
 
-test('conversation friction on a zero-retry run shares captured provenance and updates both reports without state changes', async (t) => {
+test('conversation friction on a zero-retry run shares captured provenance and updates both reports with only informational state notes', async (t) => {
   const state = finish(await fixture('feedback-clean'));
   const f = await workspace(t, state);
   const review = sessionReview();
@@ -118,7 +122,7 @@ test('conversation friction on a zero-retry run shares captured provenance and u
   assert.match(updated, /F1 withdrawn/);
   assert.doesNotMatch(updated, /Provisional|F1 —/);
   assert.equal(await readFile(first.sessionOutputPath, 'utf8'), updated);
-  assert.equal(await readFile(f.statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), state);
 });
 
 test('combined review coexists with required artifact analysis and keeps legacy provenance unknown', async (t) => {
@@ -423,7 +427,7 @@ test('explicit limit stop is accepted with matching terminal evidence', async (t
   assert.match(await readFile(feedbackPath, 'utf8'), /Outcome: Stopped — loop limit/);
 });
 
-test('CLI inspect is read-only and CLI write emits the summary', async (t) => {
+test('CLI inspect records collection and CLI write emits the summary', async (t) => {
   const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
   const { directory, statePath, feedbackPath } = await workspace(t, state);
   const inspect = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', statePath], { encoding: 'utf8' });

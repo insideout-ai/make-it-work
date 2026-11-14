@@ -8,9 +8,13 @@ Read applicable AGENTS.md, CLAUDE.md, README, existing docs/ADRs, rules and matc
 
 Investigate the ticket's affected code, callers, shared dependencies, state transitions and tests. Use existing exploration/delegation rules. Distinguish documented requirements, observed current behavior and assumptions; code is evidence of behavior, not proof of business intent. Retain sources and material gaps in Context discoveries and stage artifacts. Resolve essential unknowns through existing question policies; Autopilot stops rather than guessing essential facts. Preserve requirements-conflict and approval rules.
 
+For discoveries about data representation or contracts, cite the relevant code path or contract that establishes the claim. Trace transformations across the affected boundary; an intermediate representation alone does not establish what is persisted, transmitted or consumed. Label unverified inferences as assumptions rather than carrying them forward as facts.
+
 ## Stages and independent review
 
 Refinement and planning use this evidence to define behavior and affected flows. Implementation and fixes load the same applicable rules before edits. No domain/UC vocabulary means record None with a reason; do not invent tokens for test mappings. Testing readiness, validation and risk assessment remain unchanged.
+
+When designing or adding tests, derive representative inputs from the boundary under test and its actual producers or declared contract. Account for relevant serialization, normalization and other transformations; synthetic intermediate values alone do not cover the external representation. Include boundary cases where those transformations can change the expected behavior. This guides tests already in scope; it does not require new test infrastructure or a broader regression gate.
 
 The reviewer independently loads available guidance and traces callers and affected sibling flows, especially shared infrastructure; the implementer's summary is an input, not proof. Preserve business correctness, regression safety and standards passes. Use requirements and concrete code/test evidence where UC/domain docs are absent. Report sources, assumptions, scope and unresolved limitations in Coverage. Do not invent conventions or findings solely for absent go-deep files. An unknown essential business tolerance is a question/blocker under existing routing, not a fabricated rule or severity. Preserve all review scope and browser verification requirements.
 
