@@ -503,10 +503,11 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!candidates.length) fail('Previous review handoff is missing for this plan version.');
       previousReview = candidates[0].candidate;
     }
+    const contextLimitations = [];
     if (input.event === 'context-ready') {
       for (const repo of workspaceContract?.repos ?? [{ root, id: path.basename(root) }]) {
         const context = await contextInventory(repo.root);
-        if (!context.complete) fail(`Project context incomplete in ${repo.id}: ${context.missing_context.join(', ')}`);
+        if (!context.complete) contextLimitations.push(`Context discovery required in ${repo.id}; missing go-deep context: ${context.missing_context.join(', ')}. Use available guidance and ticket-scoped investigation; unresolved essential facts remain blockers.`);
       }
     }
     const next = transition(workingState, effective, handoff, { relatedFailures: effective.related_failures ?? null, previousReview });
@@ -592,6 +593,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (resolution?.finalApproval) await approveFinalPackage(root, statePath, resolution.finalApproval);
     if (effective.event === 'complete') await checkFinalPackage(root, statePath, state.fields.autonomy === 'guided');
     let updated = setFields(original, f);
+    if (contextLimitations.length) updated = appendItems(updated, 'Context discoveries', contextLimitations);
     if (handoff?.status === 'done') {
       const discoveries = [...(handoff.data.discoveries ?? []), ...(handoff.data.context_gaps ?? [])];
       updated = appendItems(updated, 'Context discoveries', discoveries);

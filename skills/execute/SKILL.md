@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Execute
 
+**When owned by implement:** follow [ticket-scoped context discovery](../implement/references/context-discovery.md) for absent or partial go-deep context. Use available guidance and scoped code/test evidence; do not require optional go-deep files, invent missing rules, or create onboarding structure. Explicit mandatory loading gates remain binding. This overrides the go-deep layout assumptions below only for implement-owned runs and must be forwarded to nested delegates.
+
 ## Usage
 
 ```
