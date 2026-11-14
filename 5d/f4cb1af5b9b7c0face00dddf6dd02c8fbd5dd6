@@ -1,0 +1,41 @@
+evals/suites.json
+  s_f9defb154c3fe9::t_75833daf29aceb 29
+evals/feedback-on-session/README.md
+  s_f9defb154c3fe9::t_75833daf29aceb 42-48
+skills/feedback-on-session/SKILL.md
+  s_f9defb154c3fe9::t_b9158a2871a78a 42-43,60,98
+evals/feedback-on-session/feedback-on-session-collection-gaps/prompt.md
+  s_f9defb154c3fe9::t_75833daf29aceb 1-10
+evals/feedback-on-session/feedback-on-session-collection-gaps/case.yaml
+  s_f9defb154c3fe9::t_75833daf29aceb 1-5
+skills/implement/scripts/feedback-evidence.test.mjs
+  s_f9defb154c3fe9::t_c0fa6f7f2f4a68 63-85
+evals/feedback-on-session/feedback-on-session-collection-gaps/fixture/session.txt
+  s_f9defb154c3fe9::t_75833daf29aceb 1-15
+skills/implement/scripts/feedback-evidence.mjs
+  s_f9defb154c3fe9::t_c0fa6f7f2f4a68 94
+  s_f9defb154c3fe9::t_b9158a2871a78a 96-100,102
+evals/feedback-on-session/feedback-on-session-collection-gaps/graders/collection-and-adherence.md
+  s_f9defb154c3fe9::t_75833daf29aceb 1-7
+skills/implement/references/feedback.md
+  s_f9defb154c3fe9::t_c0fa6f7f2f4a68 258-261
+  s_f9defb154c3fe9::t_b9158a2871a78a 270
+evals/feedback-on-session/feedback-on-session-collection-gaps/fixture.sh
+  s_f9defb154c3fe9::t_75833daf29aceb 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5df4cb1af5b9b7c0face00dddf6dd02c8fbd5dd6",
+  "prompts": {},
+  "sessions": {
+    "s_f9defb154c3fe9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1dad7-b12e-73d3-8fc8-f84367894023",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
