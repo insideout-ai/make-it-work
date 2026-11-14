@@ -27,6 +27,7 @@
     "feedback-on-session-attribution",
     "feedback-on-session-policy-loops",
     "feedback-on-session-collection-gaps",
+    "feedback-collection-runtime-notes",
     "feedback-on-session-evidence-limits",
     "feedback-on-session-handoff",
     "feedback-on-session-problems",
@@ -144,6 +145,12 @@
     "implement-repo-start-local": "connector-app"
   },
   "graderEvidenceFiles": {
+    "feedback-collection-runtime-notes": {
+      "collection-and-readback.md": [
+        "make-it-work/DEMO/workflow-feedback.md",
+        "session.txt"
+      ]
+    },
     "implement-autopilot-full": {
       "clause-assertions.md": [
         "make-it-work/DEMO-101/DEMO-101-spec.md",

@@ -372,6 +372,19 @@ Add `--limit-stop` for an eligible limit stop. The writer omits `### User clarif
 
 ## Durable observations and writer preflight
 
+When `write` receives the actual runtime JSONL transcript, the writer derives a
+separate **Collection notes** section from paired feedback-helper calls/results
+for this state after its terminal checkpoint. It records failed attempts and
+later observed success using fixed, sanitized labels; it never copies commands,
+error text or paths into the report. These observations are not findings,
+root-cause judgments, Fix/Replan events, or permission to skip required work.
+Only recognized literal invocations (optionally after a literal `cd`) are
+counted; ambiguous shell programs and unpaired results remain unassessed.
+The snapshot ends before the current save, or at the first earlier successful
+combined save, so its own final result and later delivery work do not cause a
+recursive rewrite. Legacy writes without runtime evidence omit this section.
+The model input schema is unchanged; do not author or reconstruct these notes.
+
 Run `write-feedback.mjs inspect --state STATE --transcript SESSION_JSONL` first. Its `commands.write` includes that transcript path, and `session_review_template` supplies the exact input shape and current packet hash. Fill the scaffold from actual conversation/source inspection; unreviewed sections are not evidence. Diagnostics name the exact input field and any rejected project term locally. Do not paste diagnostic text into the shareable report.
 
 Inspect and evidence collection write run/state-bound `feedback-observations.json` receipts. The hook records only retrospective dispatches established by actual matching tool calls/results after inspection. Do not create or edit this receipt manually. Piping display output does not erase these durable observations; a technical-failure claim still requires the original direct failed invocation and its actual error, not a pipeline masking its exit status.
