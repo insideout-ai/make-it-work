@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 **Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development. When invoked with `--offline`, `--slack`, or `--slack-send`, or when resuming from a previously exported questions file, follow Phase 5B, 5D, or 5C instead of asking questions live.
 
+**When owned by implement:** follow [ticket-scoped context discovery](../implement/references/context-discovery.md) for absent or partial go-deep context. Use available guidance and scoped code/test evidence; do not require optional go-deep files, invent missing rules, or create onboarding structure. Explicit mandatory loading gates remain binding. This overrides the go-deep layout assumptions below only for implement-owned runs and must be forwarded to nested delegates.
+
 ---
 
 ## Usage

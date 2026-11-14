@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.7.0] — 2026-11-12
+
+### Added
+
+- Allow `implement` to run in repositories with absent or partial go-deep documentation using existing guidance and ticket-scoped code/test discovery.
+- Add live behavioral evals for absent context, partial context, and an explicitly mandatory missing skill, plus controller coverage for mixed workspaces and inventory errors.
+
+### Changed
+
+- Adapt implement-owned refinement, planning, implementation, independent review and final documentation sync to available repository context without creating or repairing onboarding structure.
+- Record missing context and material assurance limits while preserving mandatory skill-loading rules, essential-fact blockers, testing obligations and existing resume/approval checks. Standalone stage behavior is unchanged.
+
 ## [5.6.2] — 2026-11-12
 
 ### Fixed

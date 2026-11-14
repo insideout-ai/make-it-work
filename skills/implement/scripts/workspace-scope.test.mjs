@@ -133,7 +133,17 @@ test('scope expansion requires renewed approval, preserves the retained spec and
   assert.equal(updated.fields.review, 'not-started'); assert.equal(updated.fields.execution, 'not-started');
   assert.equal(JSON.parse(updated.fields.workspace_contract).repos.length, 2);
   html = await readFile(result.dashboard, 'utf8'); assert.doesNotMatch(html, /Proposed scope change/);
-  await assert.rejects(apply('context-ready', { repos: input.repos.map((repo) => path.join(root, repo.id)) }), /context incomplete in api/);
+  // Mixed workspace: api needs discovery while web already has go-deep context.
+  await mkdir(path.join(root, 'web/.claude/rules'), { recursive: true });
+  await mkdir(path.join(root, 'web/.claude/skills/domain-web'), { recursive: true });
+  await writeFile(path.join(root, 'web/CLAUDE.md'), '# Skill Loading Gate');
+  await writeFile(path.join(root, 'web/.claude/rules/product.md'), '# Product');
+  await writeFile(path.join(root, 'web/.claude/rules/architecture.md'), '# Architecture');
+  await writeFile(path.join(root, 'web/.claude/skills/domain-web/SKILL.md'), '# Web');
+  const ready = await apply('context-ready', { repos: input.repos.map((repo) => path.join(root, repo.id)) });
+  assert.equal(ready.fields.phase, 'close-the-gaps');
+  assert.match(await readFile(result.state, 'utf8'), /Context discovery required in api/);
+  assert.doesNotMatch(await readFile(result.state, 'utf8'), /Context discovery required in web/);
 });
 test('a revised preview cannot drop a changed approved repo, including after earlier preview revisions', async (t) => {
   const { root, input } = await fixture(t);
