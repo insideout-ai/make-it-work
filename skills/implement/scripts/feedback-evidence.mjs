@@ -91,11 +91,15 @@ export function validateEvidenceReview(review, packet, safe) {
   if (html.status === 'partial' && !sections.some(s => s.status === 'checked')) throw new Error('Partial dashboard inspection still needs substantive source observations; marker counts alone are insufficient.');
   if (packet.dashboard.omitted.length && html.status === 'inspected') throw new Error('The dashboard packet has omitted lines; retain partial coverage and its limitation.');
   if (!Array.isArray(review.process)) throw new Error('evidence_review.process must assess available stage reports.');
+  const stageSources = packet.sources.filter(s => ['Review', 'Implementation', 'Execution'].includes(s.label) && s.status === 'available');
   for (const [index, item] of review.process.entries()) {
-    const entry = packet.sources.find(s => s.label === item.source && ['Review', 'Implementation', 'Execution'].includes(s.label) && s.status === 'available');
-    if (!entry || !entry.lines.some(row => row.line === item.line) || !['met', 'gap', 'limitation'].includes(item.result)) throw new Error('Stage assessment needs an available source, source line and explicit result.');
+    const field = `evidence_review.process[${index}]`;
+    const entry = stageSources.find(s => s.label === item?.source);
+    if (!entry) throw new Error(`${field}.source must name an available stage report: ${stageSources.map(s => s.label).join(', ') || 'none available'}. State and Package are context sources, not process assessments.`);
+    if (!entry.lines.some(row => row.line === item.line)) throw new Error(`${field}.line must name an existing source line in ${entry.label}, not a packet line number.`);
+    if (!['met', 'gap', 'limitation'].includes(item.result)) throw new Error(`${field}.result must be met, gap, or limitation.`);
     safe(item.note, `evidence_review.process[${index}].note (${item.source} line ${item.line})`);
-    if (item.result === 'gap' && !/^F[1-9]\d*$/.test(item.finding_id ?? '')) throw new Error('A stage compliance gap needs a session finding_id.');
+    if (item.result === 'gap' && !/^F[1-9]\d*$/.test(item.finding_id ?? '')) throw new Error(`${field}.finding_id must reference a session finding for this stage compliance gap (for example F1).`);
   }
   for (const entry of packet.sources.filter(s => ['Review', 'Implementation', 'Execution'].includes(s.label) && s.status === 'available')) {
     const checks = review.process.filter(item => item.source === entry.label);

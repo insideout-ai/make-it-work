@@ -60,3 +60,26 @@ test('stage diagnostics identify the exact process note and source location', ()
     process: [{ source: 'Review', line: 3, result: 'limitation', note: 'Local terminology needs paraphrasing' }] };
   assert.throws(() => validateEvidenceReview(input, packet, (_value, label) => { if (label.includes('process[')) throw new Error(label); }), /evidence_review\.process\[0\]\.note \(Review line 3\)/);
 });
+
+test('stage diagnostics identify the rejected field and its allowed values without probing by deletion', () => {
+  const packet = { packetHash: 'a'.repeat(64), dashboard: { status: 'missing', sections: { markup: [], styles: [] }, omitted: [] },
+    sources: [
+      { label: 'Review', status: 'available', lines: [{ line: 3, text: 'Observed limit' }] },
+      { label: 'Package', status: 'available', lines: [{ line: 3, text: 'Context only' }] },
+      { label: 'Execution', status: 'missing' },
+    ] };
+  const valid = { source: 'Review', line: 3, result: 'limitation', note: 'Browser access unavailable' };
+  const input = { packet_hash: packet.packetHash, dashboard: { status: 'unavailable', reason: 'Source missing',
+    sections: ['markup', 'styles'].map(id => ({ id, status: 'not-applicable' })) }, process: [valid] };
+  for (const [entry, message] of [
+    [{ ...valid, source: 'Package' }, /process\[1\]\.source.*available stage report: Review.*Package.*context sources/],
+    [{ ...valid, source: 'Execution' }, /process\[1\]\.source.*available stage report: Review/],
+    [null, /process\[1\]\.source/],
+    [{ ...valid, line: 999 }, /process\[1\]\.line.*existing source line in Review.*not a packet line/],
+    [{ ...valid, result: 'approved' }, /process\[1\]\.result must be met, gap, or limitation/],
+    [{ ...valid, result: 'gap' }, /process\[1\]\.finding_id.*session finding/],
+  ]) {
+    assert.throws(() => validateEvidenceReview({ ...input, process: [valid, entry] }, packet, value => value), message);
+  }
+  assert.equal(validateEvidenceReview(input, packet, value => value), input);
+});

@@ -39,6 +39,13 @@ delegate, and a documented evidence field mistakenly described as missing. It
 checks evidence-bounded attribution, chronology, actionable recommendations and
 successful automatic feedback without inventing a skipped hook.
 
+`feedback-on-session-collection-gaps` covers a biased independent-review prompt,
+a required automatic resolver bypassed despite a correct default, a schema repair
+after the initial feedback draft, and a missing generated-Markdown readback. It
+requires those observations in the saved report while preserving legitimate
+bounded map maintenance, pending browser verification, normal waits and successful
+recovery. Authoring and validating the fixture do not establish a live model pass.
+
 `feedback-on-session-attribution` covers explicit behavior knowingly missed by
 implementation, a misleading model-generated refinement diagnosis, ordinary waits
 with narration, skipped mandatory mapping and overstated inherited review depth.

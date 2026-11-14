@@ -255,7 +255,10 @@ Missing HTML stays nonblocking and must not be regenerated.
 
 For every available Review, Implementation or Execution report, assess actual
 checks/admitted omissions in `process` with source line and `met`, `gap` or
-`limitation`. Every gap references a retained session finding. Legitimate deferred
+`limitation`. Only available `Review`, `Implementation` and `Execution` sources
+belong in `process`; `State` and `Package` remain contextual evidence. Use each
+source's own line numbers, not the enclosing packet's lines. Every gap references
+a retained session finding. Legitimate deferred
 checks are limitations; required steps admitted skipped are not waived by CLEAN
 or a depth disclaimer. `analysisRequired` controls artifact dispatch, not whether
 conversation problems exist. Qualify conclusions to inspected coverage. Schema,
@@ -264,7 +267,7 @@ marker retain their write contract; never backfill it or reopen approvals.
 
 ## Combined session-review input
 
-Review the conversation on every eligible run, including runs with zero retries. Follow feedback-on-session's evidence, attribution and standalone-readability requirements. When artifact diagnosis is required, reuse the required subagent's result rather than independently rediagnosing its events. A finding may cite both sources; do not count the same episode twice. Only the available pre-feedback conversation is in scope; disclose compaction or missing earlier context. User feedback replies may correct this report but are not new workflow incidents.
+Review the conversation on every eligible run, including runs with zero retries. Follow feedback-on-session's evidence, attribution and standalone-readability requirements. When artifact diagnosis is required, reuse the required subagent's result rather than independently rediagnosing its events. A finding may cite both sources; do not count the same episode twice. The main review covers the available pre-feedback conversation; the skill's single bounded closing check also includes collection failures already visible while preparing the save or a required repair, even after the initial draft. Include those observations in the same session findings, not new Fix/Replan events. Do not reopen a successful save to review its own final write. Disclose compaction or missing earlier context. User feedback replies may correct this report but are not new workflow incidents.
 
 Stage a uniquely named JSON file under the gitignored `make-it-work/` directory and pass it as `--session-review` on every integrated write, including clarification updates. Preserve the input until feedback is resolved so updates can resend both it and any analysis; after an interruption, reconstruct from the saved report without discarding existing findings or input. Remove only the temporary files created for this review when no longer needed. The writer accepts:
 

@@ -26,6 +26,7 @@
     "feedback-on-session-terminal-fix",
     "feedback-on-session-attribution",
     "feedback-on-session-policy-loops",
+    "feedback-on-session-collection-gaps",
     "feedback-on-session-evidence-limits",
     "feedback-on-session-handoff",
     "feedback-on-session-problems",
