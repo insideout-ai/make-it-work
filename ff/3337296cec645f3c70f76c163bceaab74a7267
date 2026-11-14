@@ -1,0 +1,80 @@
+skills/implement/scripts/feedback-handoff.mjs
+  s_ee472223ab0e85::t_3d18c028191152 224
+skills/implement/scripts/write-feedback.test.mjs
+  s_ee472223ab0e85::t_33691b4d81b42c 12-15,96,125,430
+skills/implement/SKILL.md
+  s_86bcb80b5a83ed::t_fdab520385961d 491
+  s_86bcb80b5a83ed::t_c4d888cd664e9b 737
+  s_86bcb80b5a83ed::t_0199733051afa8 738
+skills/implement/scripts/dashboard-checkpoint.mjs
+  s_ee472223ab0e85::t_3d18c028191152 79-85,91,94,99
+  s_ee472223ab0e85::t_022832837fdd0e 93
+skills/implement/scripts/workflow.mjs
+  s_86bcb80b5a83ed::t_fdab520385961d 441
+skills/implement/references/activity.md
+  s_ee472223ab0e85::t_afee6b345f9075 38-39
+skills/implement/references/controller.md
+  s_86bcb80b5a83ed::t_9b754b78313661 80-94,111,145
+  s_86bcb80b5a83ed::t_d8384e11c17be5 78
+  s_86bcb80b5a83ed::t_5319335ccdcb3d 79
+skills/feedback-on-session/SKILL.md
+  s_ee472223ab0e85::t_022832837fdd0e 22,65
+skills/implement/scripts/feedback-progress.mjs
+  s_ee472223ab0e85::t_3d18c028191152 58-70
+skills/implement/scripts/render-status.mjs
+  s_ee472223ab0e85::t_3d18c028191152 504,547-550,646-648,812,838
+  s_ee472223ab0e85::t_c269d50214e5f0 506
+  s_ee472223ab0e85::t_770143fcada166 4,844-845,935
+skills/implement/references/context-discovery.md
+  s_86bcb80b5a83ed::t_fdab520385961d 11-12,17
+  s_86bcb80b5a83ed::t_c30635b3358402 18
+skills/implement/references/verification.md
+  s_ee472223ab0e85::t_7d09ac9d7753ea 122
+  s_ee472223ab0e85::t_2dd346b6b6b80d 121
+skills/implement/scripts/render-status.test.mjs
+  s_ee472223ab0e85::t_afee6b345f9075 181,187-190
+  s_ee472223ab0e85::t_33691b4d81b42c 19-22,132,149,676-677,824,836
+  s_ee472223ab0e85::t_ceca682f8e18ba 157,160-161,167-168,171
+skills/implement/scripts/feedback-evidence.test.mjs
+  s_ee472223ab0e85::t_33691b4d81b42c 11-14,52
+skills/implement/scripts/workflow.test.mjs
+  s_86bcb80b5a83ed::t_9b754b78313661 399-426
+skills/implement/references/feedback.md
+  s_ee472223ab0e85::t_afee6b345f9075 20,34
+skills/implement/scripts/feedback-finalization.mjs
+  s_ee472223ab0e85::t_3d18c028191152 21,26-41
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_ee472223ab0e85::t_022832837fdd0e 228-248
+  s_ee472223ab0e85::t_afee6b345f9075 8,11,134-136,177-227
+  s_ee472223ab0e85::t_33691b4d81b42c 29-32,57,73,146
+skills/implement/scripts/write-feedback.mjs
+  s_ee472223ab0e85::t_3d18c028191152 13,588-592
+skills/implement/scripts/final-package.test.mjs
+  s_ee472223ab0e85::t_e6ec8203816b82 146-147
+skills/implement/scripts/startup-presentation.test.mjs
+  s_ee472223ab0e85::t_8fccd1ff2b07e2 19-22,138,216,267,431,442,529
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ff3337296cec645f3c70f76c163bceaab74a7267",
+  "prompts": {},
+  "sessions": {
+    "s_86bcb80b5a83ed": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1daaa-9334-7b90-8ff8-1fed135038b1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_ee472223ab0e85": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1daa2-5bf7-77b0-ab09-f43f06fe183b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
