@@ -1,0 +1,57 @@
+evals/feedback-on-session/feedback-on-session-collection-gaps/graders/collection-and-adherence.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 7
+skills/implement/scripts/write-feedback.test.mjs
+  s_f9defb154c3fe9::t_85d0b5b0f2d126 142-173
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture/make-it-work/DEMO/earlier-draft.json
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1
+skills/implement/scripts/feedback-collection.mjs
+  s_f9defb154c3fe9::t_7fb45f1fc02e8b 1-97
+evals/feedback-on-session/feedback-collection-runtime-notes/case.yaml
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-5
+evals/feedback-on-session/feedback-collection-runtime-notes/graders/preserve-earlier-input.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-8
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture.sh
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-16
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture/session.txt
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-5
+evals/suites.json
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 30,148-149,152-153
+  s_f9defb154c3fe9::t_73e5afb5cdf125 150-151
+evals/feedback-on-session/README.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 49-54
+evals/feedback-on-session/feedback-on-session-collection-gaps/graders/runtime-readback.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-7
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture/make-it-work/DEMO/DEMO-lightweight.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-6
+skills/implement/scripts/feedback-collection.test.mjs
+  s_f9defb154c3fe9::t_85d0b5b0f2d126 1-81
+skills/implement/references/feedback.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 375-387
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture/make-it-work/DEMO/DEMO-final-package.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-4
+evals/feedback-on-session/feedback-collection-runtime-notes/graders/collection-and-readback.md
+  s_f9defb154c3fe9::t_73e5afb5cdf125 8-9
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-7
+evals/feedback-on-session/feedback-collection-runtime-notes/prompt.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-10
+skills/implement/scripts/write-feedback.mjs
+  s_f9defb154c3fe9::t_7fb45f1fc02e8b 16,339,473-474
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture/make-it-work/DEMO/DEMO-review.md
+  s_f9defb154c3fe9::t_7aba39a5f7d3ac 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "24355d1cc5094ae3582eb95ceed9930059be93f2",
+  "prompts": {},
+  "sessions": {
+    "s_f9defb154c3fe9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1dad7-b12e-73d3-8fc8-f84367894023",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
