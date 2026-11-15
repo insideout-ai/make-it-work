@@ -1,0 +1,73 @@
+evals/suites.json
+  s_7d87330d337cff::t_0049747e93b6f1 142-143,204
+  s_7d87330d337cff::t_86403b2714068b 205-207
+  s_7d87330d337cff::t_fe62a73a5c063c 208-210
+evals/README.md
+  s_7d87330d337cff::t_ac08a5a7ce119c 95
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/shortlist-saved.md
+  s_7d87330d337cff::t_25a4738cc6c24f 13-21
+evals/grade-headless.mjs
+  s_7d87330d337cff::t_2e669cab18c8cf 279,283-284,294-305,307,319
+evals/grade-headless.test.mjs
+  s_7d87330d337cff::t_c2b51f7e02d8e4 265-293
+evals/review-the-code/review-verification-context/case.yaml
+  s_7d87330d337cff::t_7b0de8da595cf8 1-5
+evals/review-the-code/review-verification-context/fixture.sh
+  s_7d87330d337cff::t_b5d1d03dc7fab1 1-44
+evals/review-the-code/review-verification-context/graders/context-and-security.md
+  s_7d87330d337cff::t_76294b1013a31f 1-7
+evals/review-the-code/review-verification-context/graders/review-created.md
+  s_7d87330d337cff::t_891ebb45bb187f 1-5
+evals/review-the-code/review-verification-context/graders/skill-read.md
+  s_7d87330d337cff::t_300240f3652f7a 1-7
+evals/review-the-code/review-verification-context/prompt.md
+  s_7d87330d337cff::t_1f2a5c1c2b79af 1-9
+evals/run-suite.mjs
+  s_7d87330d337cff::t_444756ef1bc3e9 51
+skills/find-the-repos/SKILL.md
+  s_7d87330d337cff::t_c6b871a99318d9 172-173
+skills/implement/SKILL.md
+  s_7d87330d337cff::t_7d85f707f1dace 77-78,592,710,724-725
+skills/implement/references/controller.md
+  s_7d87330d337cff::t_8d62ac1479661c 105,114-115,201-206
+skills/implement/references/handoffs.md
+  s_7d87330d337cff::t_2561b2fdac86ac 39
+skills/implement/references/testing-readiness.md
+  s_7d87330d337cff::t_10fadbd1f64d37 56-59
+skills/implement/scripts/implementation-guard.mjs
+  s_7d87330d337cff::t_2b2f80470137b1 7,35,40-62,108-117
+skills/implement/scripts/planning-tests.test.mjs
+  s_7d87330d337cff::t_58550b83502fd2 128-131
+skills/implement/scripts/review-scope.mjs
+  s_7d87330d337cff::t_d4d7729e082a09 12-26,65,84
+skills/implement/scripts/review-scope.test.mjs
+  s_7d87330d337cff::t_09cca7c834cb93 205-221
+skills/implement/scripts/startup-presentation.mjs
+  s_7d87330d337cff::t_7a119fc7e8ee97 131
+skills/implement/scripts/startup-presentation.test.mjs
+  s_7d87330d337cff::t_9aad21479d9519 462,477,684,721-732
+skills/implement/scripts/workflow-integration.test.mjs
+  s_7d87330d337cff::t_e60669024a7bef 16-18,45,50-60,62-78
+skills/implement/scripts/workflow.mjs
+  s_7d87330d337cff::t_fd640a40257100 21,207,439,519-525,650-658,663,684
+skills/implement/scripts/workflow.test.mjs
+  s_7d87330d337cff::t_74f792ba7a153d 11,13,25-28,40-111
+skills/review-the-code/SKILL.md
+  s_7d87330d337cff::t_f8bde9f40cfbed 253-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4a976142455b6909ca8ffc67659627ff370f1bfd",
+  "prompts": {},
+  "sessions": {
+    "s_7d87330d337cff": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1dec7-6fc5-7160-98fd-756d1244257a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
