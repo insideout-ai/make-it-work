@@ -1,0 +1,71 @@
+skills/implement/scripts/startup-presentation.mjs
+  s_2978f25d7b478e::t_b3d4686123f070 36-37,49-54,72-83,110,126,134,151,170-171,243,245,248
+skills/implement/scripts/hook-feedback.mjs
+  s_2978f25d7b478e::t_b3d4686123f070 9,48,83-84
+evals/implement/README.md
+  s_2978f25d7b478e::t_a632547f24acb9 208-209
+evals/implement/background-bash-wait/case.yaml
+  s_2978f25d7b478e::t_f7d1f40e3fbf93 1-5
+evals/implement/background-bash-wait/fixture.sh
+  s_2978f25d7b478e::t_3db4561b423818 1-32
+evals/implement/background-bash-wait/graders/actual-baseline.md
+  s_2978f25d7b478e::t_0b9a5babc65b2d 1-7
+evals/implement/background-bash-wait/graders/no-question.md
+  s_2978f25d7b478e::t_2233e24c9d1f9e 1-7
+evals/implement/background-bash-wait/graders/plan-wait.md
+  s_2978f25d7b478e::t_bd4ba335a7a03d 1-7
+evals/implement/background-bash-wait/graders/quiet-resume.md
+  s_2978f25d7b478e::t_76d488f740483b 1-6
+evals/implement/background-bash-wait/graders/real-background-dispatch.md
+  s_2978f25d7b478e::t_19f83e2fedd2cc 1-7
+evals/implement/background-bash-wait/graders/saved-pause.md
+  s_2978f25d7b478e::t_ba8168fd81bb94 1-7
+evals/implement/background-bash-wait/graders/source-preserved.md
+  s_2978f25d7b478e::t_307a8e6a318907 1-6
+evals/implement/background-bash-wait/prompt.md
+  s_2978f25d7b478e::t_30ce0167fb4627 1-14
+evals/implement/background-monitor-wait/case.yaml
+  s_2978f25d7b478e::t_895f15e43c1ac4 1-5
+evals/implement/background-monitor-wait/fixture.sh
+  s_2978f25d7b478e::t_f38f0f2c622408 1-32
+evals/implement/background-monitor-wait/graders/actual-baseline.md
+  s_2978f25d7b478e::t_f321ffd0621957 1-7
+evals/implement/background-monitor-wait/graders/no-question.md
+  s_2978f25d7b478e::t_1f7677f0b666d5 1-7
+evals/implement/background-monitor-wait/graders/plan-wait.md
+  s_2978f25d7b478e::t_dcd97226fe3eec 1-7
+evals/implement/background-monitor-wait/graders/quiet-resume.md
+  s_2978f25d7b478e::t_c4151e2fbdf36b 1-6
+evals/implement/background-monitor-wait/graders/real-background-dispatch.md
+  s_2978f25d7b478e::t_7de11ffba24e4a 1-7
+evals/implement/background-monitor-wait/graders/saved-pause.md
+  s_2978f25d7b478e::t_ab2ca65b2284f4 1-7
+evals/implement/background-monitor-wait/graders/source-preserved.md
+  s_2978f25d7b478e::t_cf95c6dbb89a2e 1-6
+evals/implement/background-monitor-wait/prompt.md
+  s_2978f25d7b478e::t_aa4c737df651c1 1-14
+evals/suites.json
+  s_2978f25d7b478e::t_b54d39b4832a01 145-147
+skills/implement/SKILL.md
+  s_2978f25d7b478e::t_18f7631f78ecca 58
+skills/implement/references/activity.md
+  s_2978f25d7b478e::t_44cca13bac26fc 40-43
+skills/implement/scripts/startup-presentation.test.mjs
+  s_2978f25d7b478e::t_71df02a9b32193 733-801
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c3b8d0f62e10e2d84ab8e45824728f0b3f03a345",
+  "prompts": {},
+  "sessions": {
+    "s_2978f25d7b478e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df70-2717-79b3-bdba-32f3a995f7ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
