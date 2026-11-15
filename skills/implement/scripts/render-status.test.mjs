@@ -8,7 +8,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { generateDashboard, parseState, buildTimeline, groupFinalization, renderStatus } from './render-status.mjs';
-import { checkpointDashboard, checkpointDecision, checkpointResult } from './dashboard-checkpoint.mjs';
+import { checkpointDashboard, checkpointDecision, checkpointResult, lostReview, recordLostReview } from './dashboard-checkpoint.mjs';
 import { lastWorkRow } from './workflow-decisions.mjs';
 import { runRegression } from '../../../scripts/regression.mjs';
 import { inspectState, writeFeedback } from './write-feedback.mjs';
@@ -1294,4 +1294,39 @@ test('missing-strategy completion note is escaped inside the green banner before
   const unavailable = renderStatus({ state, template: '{{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'unavailable', reason: 'Could not save <report>' } });
   assert.match(unavailable, /Could not save &lt;report&gt;/);
   assert.doesNotMatch(unavailable, /href=|class="feedback-progress"/);
+});
+
+test('a dispatched review with no handoff is reported as lost once and shown as interrupted', async (t) => {
+  const directory = await workspace(t);
+  const statePath = path.join(directory, 'DEMO-state.md');
+  await writeFile(statePath, stateMarkdown({
+    fields: { phase: 'review', review_scope_version: '1', review_cycle: '1', current_activity: 'An independent agent is reviewing the change', current_activity_updated_at: '2026-01-01T10:07:00Z' },
+    rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
+      ['2026-01-01T10:06:00Z', 'execute', 'review', 'Execution passed'],
+      ['2026-01-01T10:07:00Z', 'review', 'review', 'Activity: An independent agent is reviewing the change [audit-note: activity; id: a1]'],
+    ],
+  }));
+  assert.equal(await lostReview(statePath, parseState(await readFile(statePath, 'utf8'))), null, 'nothing was dispatched yet');
+  const stillRunning = await readFile(await generateDashboard(statePath), 'utf8');
+  assert.match(stillRunning, /Review in progress/);
+  assert.match(stillRunning, /data-stale-since="2026-01-01T10:07:00Z" data-stale-after-hours="3" hidden/);
+
+  await writeFile(path.join(directory, 'DEMO-review-target-1.json'), '{}');
+  const lost = await lostReview(statePath, parseState(await readFile(statePath, 'utf8')));
+  assert.equal(lost.stage, 'review');
+  assert.equal(lost.cycle, 1);
+  await recordLostReview(statePath, lost);
+  await recordLostReview(statePath, lost);
+  const state = parseState(await readFile(statePath, 'utf8'));
+  assert.equal(state.audit.filter((row) => row.note?.kind === 'interruption').length, 1);
+  assert.equal(state.audit.at(-1).outcome.startsWith('Interrupted: The review agent for cycle 1'), true);
+  assert.equal(lastWorkRow(state.audit).number, 2, 'an interruption note is not a closing work row');
+  const html = await readFile(await generateDashboard(statePath), 'utf8');
+  assert.match(html, /Review interrupted/);
+  assert.doesNotMatch(html, /Review in progress/);
+
+  await mkdir(path.join(directory, 'DEMO-handoffs'));
+  await writeFile(path.join(directory, 'DEMO-handoffs', 'review-1.json'), JSON.stringify({ stage: 'review', plan_version: 1, review_cycle: 1, status: 'done' }));
+  assert.equal(await lostReview(statePath, parseState(await readFile(statePath, 'utf8'))), null, 'a returned handoff means the review was not lost');
 });

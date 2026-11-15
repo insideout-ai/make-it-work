@@ -550,3 +550,36 @@ test('description provenance records returned shape without claiming native rich
     assert.throws(() => validatePublication(tampered), /format disagrees/);
   }
 });
+
+test('an over-limit comment requires a summary before anything is journaled', () => {
+  const journal = artifactConsent();
+  const full = 'x'.repeat(32768);
+  const tooLong = updatePublication(journal, 'prepare', artifactRequest({ content: full }));
+  assert.equal(tooLong.result.action, 'summary-required');
+  assert.equal(tooLong.result.limit, 32767);
+  assert.equal(tooLong.result.length, 32768);
+  assert.equal(tooLong.journal.operations.length, journal.operations.length);
+  const summary = updatePublication(journal, 'prepare', artifactRequest({ content: 'Plan v1 — summary; the full plan stays local.', source_content: full }));
+  assert.equal(summary.result.action, 'ready');
+  assert.equal(summary.result.operation.kind, 'comment');
+  assert.equal(summary.result.operation.source_content, full);
+  // An upload is not limited by comment size.
+  assert.equal(updatePublication(journal, 'prepare', artifactRequest({ content: full, capabilities })).result.operation.kind, 'attachment');
+});
+
+test('a connector-reported comment limit overrides the tracker default and must be valid', () => {
+  const journal = initial('comments');
+  assert.equal(updatePublication(journal, 'prepare', request('comment', { content: 'x'.repeat(11), capabilities: { ...capabilities, comment_max_chars: 10 } })).result.action, 'summary-required');
+  assert.equal(updatePublication(journal, 'prepare', request('comment', { content: 'x'.repeat(10), capabilities: { ...capabilities, comment_max_chars: 10 } })).result.action, 'ready');
+  assert.throws(() => updatePublication(journal, 'prepare', request('comment', { capabilities: { ...capabilities, comment_max_chars: 0 } })), /positive integer/);
+  const other = initializePublication(source, { target: { ...target, tracker: 'linear' }, original_description: null, mode: 'comments', decision });
+  assert.equal(updatePublication(other, 'prepare', request('comment', { content: 'x'.repeat(40000) })).result.action, 'ready');
+});
+
+test('an original-description backup that exceeds the comment limit defers the replacement', () => {
+  const long = 'y'.repeat(40000);
+  const journal = initializePublication(source, { target, original_description: long, mode: 'updates', decision });
+  const result = updatePublication(journal, 'prepare-backup', { current_description: long, capabilities });
+  assert.equal(result.result.action, 'defer');
+  assert.equal(result.journal.operations.length, 0);
+});

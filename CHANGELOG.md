@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.9.0] — 2026-11-15
+
+### Changed
+
+- A final package now accepts an execute gate that failed only on tests triage classified as unrelated and recorded under Known regressions. Validation reads as an accepted failed gate, assurance stays Limited, and Final approval lists those failures for explicit acceptance. A failed gate without that recorded triage still cannot be packaged.
+- Ticket publication checks comment size before journaling: `prepare` returns `summary-required` when a comment exceeds the connector-reported `comment_max_chars` or the tracker's known limit (Jira: 32,767 characters), and `prepare-backup` returns `defer` for an over-limit description backup.
+
+### Fixed
+
+- A resumed run now detects a review agent that was dispatched for the current cycle but never returned a report or handoff. `dashboard-checkpoint.mjs resume` reports it as `lost_delegate` and records one `Interrupted:` audit row; the dashboard shows the phase as interrupted instead of in progress.
+- An In Progress dashboard with no checkpoint for 3 hours now says the session may have ended, computed in the browser from the last activity time.
+- Test strategies, regression runs and the test-map contract now require literal title selectors: use the runner's fixed-string option or escape regex metacharacters, and treat a selection that runs zero tests as not run.
+
 ## [5.8.1] — 2026-11-15
 
 ### Fixed

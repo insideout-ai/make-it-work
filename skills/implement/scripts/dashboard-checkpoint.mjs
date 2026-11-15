@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
-import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { lstat, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -90,7 +90,7 @@ export async function checkpointAuditNote(statePath, { kind, id, text, reference
   const state = parseState(original, absoluteStatePath);
   const existing = state.audit.find((row) => row.note?.kind === kind && row.note.id === id);
   if (existing) {
-    if (existing.outcome !== parseNoteCell(cell).outcome) fail(`${kind === 'result' ? 'Result' : 'Activity'} id ${id} already records a different result.`);
+    if (existing.outcome !== parseNoteCell(cell).outcome) fail(`Audit note ${kind} id ${id} already records a different result.`);
     return { row: existing.number, dashboard: refresh ? await refreshExistingDashboard(absoluteStatePath) : null };
   }
   const updated = appendAuditCell(original, state, cell, new Date().toISOString());
@@ -130,6 +130,36 @@ export async function checkpointDecision(statePath, input) {
   return { row: number, dashboard: await refreshExistingDashboard(absoluteStatePath) };
 }
 
+/**
+ * On resume, find a review that was dispatched (its frozen target exists for the
+ * current cycle) but never handed back. That agent is gone: a new session cannot
+ * receive its completion. Returns null when nothing was lost.
+ */
+export async function lostReview(statePath, state) {
+  const f = state.fields;
+  if (f.phase !== 'review' || f.status !== 'In Progress' || f.review_scope_version !== '1') return null;
+  const dir = path.dirname(path.resolve(statePath));
+  const target = `${f.ticket}-review-target-${f.review_cycle}.json`;
+  let dispatchedAt;
+  try { dispatchedAt = (await lstat(path.join(dir, target))).mtime.toISOString(); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  let names = [];
+  try { names = (await readdir(path.join(dir, `${f.ticket}-handoffs`))).filter((name) => /^review-[1-9]\d*\.json$/.test(name)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  for (const name of names) {
+    const handoff = JSON.parse(await readFile(path.join(dir, `${f.ticket}-handoffs`, name), 'utf8'));
+    if (String(handoff.review_cycle) === f.review_cycle && String(handoff.plan_version) === f.plan_version) return null;
+  }
+  return { stage: 'review', cycle: Number(f.review_cycle), plan_version: Number(f.plan_version), target, dispatched_at: dispatchedAt };
+}
+
+/** Record a lost review once, so the audit log and dashboard stop implying it is still running. */
+export async function recordLostReview(statePath, lost) {
+  return checkpointAuditNote(statePath, {
+    kind: 'interruption', id: `lost-review:v${lost.plan_version}:c${lost.cycle}:${lost.dispatched_at.replace(/[^0-9]/g, '')}`,
+    text: `The review agent for cycle ${lost.cycle}, dispatched ${lost.dispatched_at}, ended without a report or handoff; review must run again`,
+    reference: lost.target,
+  });
+}
+
 const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> | decision --state <state.md> --input <decision.json>';
 
 function parseArgs(argv) {
@@ -153,7 +183,9 @@ async function main() {
   }
   if (args.resume) {
     const state = parseState(await readFile(args.statePath, 'utf8'), args.statePath);
-    process.stdout.write(`${JSON.stringify({ last_work_row: lastWorkRow(state.audit) })}\n`);
+    const lost = await lostReview(args.statePath, state);
+    if (lost) await recordLostReview(args.statePath, lost);
+    process.stdout.write(`${JSON.stringify({ last_work_row: lastWorkRow(state.audit), ...(lost ? { lost_delegate: lost } : {}) })}\n`);
     return;
   }
   if (args.input) {
