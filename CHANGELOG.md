@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.8.1] — 2026-11-15
+
+### Fixed
+
+- Report major planning activities in chat and the existing dashboard/audit history, including discovery, drafting, regression baselines, test writing, expected-red verification and final validation, without changing workflow gates.
+
 ## [5.8.0] — 2026-11-15
 
 ### Added

@@ -1,6 +1,25 @@
 ### Plan
 
-Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Before a planner writes or extends tests, it must follow [planning-test authorization](../planning-tests.md); this scopes the startup guard exception to declared tests in the active Plan run. It never authorizes production implementation or ends an active stage.
+Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Follow plan-the-work's Planning progress boundaries throughout initial planning, replanning and amendments; keep meaningful activity changes visible through the existing [activity contract](../activity.md), rather than leaving one generic planning description for the whole stage. Before a planner writes or extends tests, it must follow [planning-test authorization](../planning-tests.md); this scopes the startup guard exception to declared tests in the active Plan run. It never authorizes production implementation or ends an active stage.
+
+Before Plan discovery/readiness inspection begins, narrate the upcoming investigation and checkpoint that exact sentence through the activity helper. When readiness returns, checkpoint the actual next planning activity before continuing; a single phase-start description must not cover the whole planning stage.
+
+**Live planning updates are main-session work, including while following the inline skill.** For each applicable boundary below, first send the activity sentence in assistant chat, then call the activity helper with that **same sentence**, then do the work. A helper call alone is not narration; a final summary cannot replace a missed live update. Keep the checkpoint separate from the commands that perform the work so the saved activity is visible before a long operation starts.
+
+- Before loading/tracing planning context: describe discovery of the affected code and tests.
+- Before drafting/amending the steps: describe drafting the plan and coverage.
+- Before running the regression baseline: describe the existing-behavior checks being run.
+- Before writing/extending tests: describe the behavior whose tests are being authored. Switch activity after baseline execution; do not hide both behind "checking the baseline, then writing tests."
+- Before running progression tests: describe checking for the expected missing-behavior failure.
+- Before `validate-plan.mjs normalize-risk` / `check` and semantic self-review: describe final validation. The later handoff/approval transition does not replace this update.
+
+Use the existing helper, never a manual state/HTML edit:
+
+```sh
+node "<base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<sentence just sent in chat>"
+```
+
+These are major activities, not a tool-by-tool checklist. Repeat only on meaningful activity changes; omit work that does not apply. Retain the existing delegated-work ownership/wait rules and all failure/permission boundaries in the activity contract. Do not infer a successful test result from an activity description.
 
 For `acceptance_evidence_version: 1`, pass the marker to every initial, replan and amendment dispatch. Require the plan template’s clause-level AC traceability inventory, checked against every material clause in the accepted spec. Reused plans must satisfy this contract before execution; do not infer clause evidence from existing scenario names.
 

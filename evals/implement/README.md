@@ -207,3 +207,22 @@ The full Autopilot model case additionally requires stage-ordered source edits, 
 `implement-context-absent` and `implement-context-partial` exercise fresh completion using existing guidance and scoped discovery without onboarding repair. `implement-context-mandatory-missing` requires a stop for an explicitly mandatory missing skill, with unchanged implementation source. Run these with the signed-in headless runner using `node evals/run-suite.mjs full --case=implement-context-absent --case=implement-context-partial --case=implement-context-mandatory-missing --max-cost-usd=8`. These behavioral checks complement controller tests for absent/partial/complete inventories, inventory errors and workspace routing; deterministic passes alone do not establish a live model pass.
 
 - `implement-background-bash-wait` and `implement-background-monitor-wait` exercise native background baseline checks in Plan: verified task-wait, quiet yielding, actual result collection and the requested saved pause, without feature edits. These are live lifecycle checks, separate from delegated-agent wait coverage.
+
+## Planning progress
+
+`implement-planning-progress` exercises normal startup/readiness and initial planning,
+then the normal Guided Plan approval gate before Execute. Its prompt does not prescribe
+milestone wording. Trace grading checks narrated activity checkpoints before actual
+discovery, drafting, baseline checks, test authoring, red verification and final
+validation. Saved-artifact grading checks retained audit/dashboard history and
+honest test evidence. Exact graders check the pause, completed plan handoff, and
+unchanged production code and accepted spec; existing regression coverage must be retained even when its file is extended.
+
+The fixture uses the configured Node runner without onboarding or dependency
+installation. Run `node --test evals/planning-progress.test.mjs` for credential-free
+fixture/grader checks. Run the behavioral case with
+`node evals/run-suite.mjs full --case=implement-planning-progress --max-cost-usd=4`.
+It starts in extended coverage; no smoke/critical membership changes. A passing
+initial-plan case does not establish every replan/amendment or unavailable-test
+branch. Existing dashboard helper tests cover persistence, retries, timestamps,
+clearing and legacy compatibility.
