@@ -1,0 +1,25 @@
+evals/implement/fix-plan-boundary/fixture.mjs
+  s_852f9e573071fc::t_799077ac1ab551 14-19,48
+skills/feedback-on-session/SKILL.md
+  s_852f9e573071fc::t_799077ac1ab551 54
+evals/fix-plan-boundary.test.mjs
+  s_852f9e573071fc::t_799077ac1ab551 20-29
+CHANGELOG.md
+  s_852f9e573071fc::t_799077ac1ab551 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a1554afb063b392b1c49bf408bc34fae38353370",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
