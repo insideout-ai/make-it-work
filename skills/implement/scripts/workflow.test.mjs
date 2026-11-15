@@ -8,8 +8,9 @@ import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
+import { prematureImplementation } from './implementation-guard.mjs';
 
-async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
+async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), prefix));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...argv) => execFileSync('git', ['-C', root, ...argv], { stdio: 'pipe' });
@@ -21,6 +22,10 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
   await writeFile(path.join(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
   await writeFile(path.join(root, '.claude/rules/product.md'), '# Product');
   await writeFile(path.join(root, '.claude/rules/architecture.md'), '# Architecture');
+  if (dirty) {
+    await writeFile(path.join(root, 'source.txt'), 'pre-existing local edit');
+    await writeFile(path.join(root, 'local.js'), 'pre-existing untracked file');
+  }
   const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing feature branch', ...init });
   const statePath = result.state;
   let id = 0;
@@ -31,6 +36,56 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {} } = {}) {
 }
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
+
+test('an exact approved branch advance clears the guard without absorbing local edits', async t => {
+  const f = await fixture(t, { dirty: true });
+  const git = (...args) => execFileSync('git', ['-C', f.root, ...args], { stdio: 'pipe' }).toString().trim();
+  const from = git('rev-parse', 'HEAD');
+  git('switch', '-c', 'approved');
+  await writeFile(path.join(f.root, 'upstream.js'), 'export const upstream = true;');
+  git('add', 'upstream.js'); git('commit', '-qm', 'Approved upstream change');
+  const change = { root: f.root, from_head: from, to_head: git('rev-parse', 'HEAD'), branch: 'approved' };
+  const current = async () => parseState(await readFile(f.statePath, 'utf8'));
+  assert.match(await prematureImplementation(f.result, await current()), /Application files changed/);
+  await f.apply('accept-workspace', { source: 'user', via: 'chat', reason: 'Accept workspace only' });
+  assert.match(await prematureImplementation(f.result, await current()), /Application files changed/, 'generic acceptance cannot reset the guard');
+  await f.apply('accept-workspace', { source: 'user', via: 'chat', reason: 'Approved exact branch advance', branch_baseline: [change] });
+  assert.equal((await current()).fields.branch, 'approved');
+  assert.equal(await prematureImplementation(f.result, await current()), null);
+  assert.equal(await readFile(path.join(f.root, 'local.js'), 'utf8'), 'pre-existing untracked file');
+  assert.equal(await readFile(path.join(f.root, 'source.txt'), 'utf8'), 'pre-existing local edit');
+  const acceptedState = await current();
+  const receipt = JSON.parse(acceptedState.fields.implementation_baseline);
+  for (const corrupted of [{ ...receipt, repos: [] }, { ...receipt, runId: 'another-run' }, { ...receipt, origin_hash: '0'.repeat(64) }]) {
+    assert.match(await prematureImplementation(f.result, { ...acceptedState, fields: { ...acceptedState.fields, implementation_baseline: JSON.stringify(corrupted) } }), /binding is invalid/);
+  }
+  await writeFile(path.join(f.root, 'source.txt'), 'unauthorized edit');
+  assert.match(await prematureImplementation(f.result, await current()), /Application files changed/);
+});
+
+test('branch baseline acceptance rejects mixed edits and incorrect targets without saving', async t => {
+  const f = await fixture(t);
+  const git = (...args) => execFileSync('git', ['-C', f.root, ...args], { stdio: 'pipe' }).toString().trim();
+  const from = git('rev-parse', 'HEAD');
+  await writeFile(path.join(f.root, 'upstream.js'), 'upstream');
+  git('add', 'upstream.js'); git('commit', '-qm', 'Advance');
+  const change = { root: f.root, from_head: from, to_head: git('rev-parse', 'HEAD'), branch: 'DEMO' };
+  const before = await readFile(f.statePath, 'utf8');
+  const input = { source: 'user', via: 'chat', reason: 'Approved advance', branch_baseline: [change] };
+  await writeFile(path.join(f.root, 'local.js'), 'unapproved');
+  await assert.rejects(f.apply('accept-workspace', input), /local application edits/);
+  assert.equal(await readFile(f.statePath, 'utf8'), before);
+  await rm(path.join(f.root, 'local.js'));
+  await writeFile(path.join(f.root, 'source.txt'), 'unapproved tracked change');
+  await assert.rejects(f.apply('accept-workspace', input), /local application edits/);
+  git('add', 'source.txt');
+  await assert.rejects(f.apply('accept-workspace', input), /local application edits/);
+  git('restore', '--staged', '--worktree', 'source.txt');
+  for (const invalid of [{ ...change, to_head: from }, { ...change, branch: 'other' }, { ...change, from_head: change.to_head }]) {
+    await assert.rejects(f.apply('accept-workspace', { ...input, branch_baseline: [invalid] }), /branch baseline/);
+    assert.equal(await readFile(f.statePath, 'utf8'), before);
+  }
+});
 
 test('legacy final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
   const { root, statePath, apply } = await fixture(t);

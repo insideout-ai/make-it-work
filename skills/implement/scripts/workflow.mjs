@@ -18,7 +18,7 @@ export { planHash } from '../../../scripts/lib/plan.mjs';
 
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
 import { checkReviewScope } from './review-scope.mjs';
-import { implementationBaseline } from './implementation-guard.mjs';
+import { implementationBaseline, acceptBranchBaseline } from './implementation-guard.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { reviewRequirements } from './review-checks.mjs';
@@ -435,6 +435,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       }
     }
     const lifecycle = ['await-input', 'resolve-input', 'refresh-input'].includes(input.event);
+    if (input.branch_baseline !== undefined && input.event !== 'accept-workspace') fail('branch_baseline is allowed only on explicit accept-workspace.');
     const inheritedRoots = lifecycle || ['stop', 'pause'].includes(input.event);
     const reposInput = input.repos ?? (inheritedRoots && state.fields.workspace_snapshot ? JSON.parse(state.fields.workspace_snapshot).map((repo) => repo.root) : null);
     if (input.event === 'resume' && !input.repos) fail('Resume requires repository fingerprint checks.');
@@ -514,6 +515,13 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
     if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
+    if (input.branch_baseline !== undefined) {
+      if (!['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval'].includes(state.fields.phase) || state.audit.some(row => ['execute', 'lightweight'].includes(row.to))) fail('Branch baseline acceptance is only available before implementation.');
+      const accepted = await acceptBranchBaseline(state.fields, input.branch_baseline, reposInput, input.id);
+      f.implementation_baseline = JSON.stringify(accepted);
+      f.branch = accepted.repos[0].branch;
+      next.reason += `; Branch baseline accepted: ${accepted.repos.map(repo => `${repo.branch}@${repo.head}`).join(', ')}`;
+    }
     if (f.testing_readiness_version === '1' && f.phase === 'execute' && state.fields.phase !== 'execute') await checkTestingReadiness(root, { ...state, fields: f }, { plan: await readFile(await within(root, f.plan), 'utf8') });
     if (input.event === 'scope-update') {
       f.workspace_contract = JSON.stringify(workspaceContract);
@@ -638,10 +646,12 @@ export async function initializeWorkflow(root, input) {
   const manifest = JSON.parse(await readFile(fileURLToPath(new URL('../../../.claude-plugin/plugin.json', import.meta.url)), 'utf8'));
   requireText(manifest.version, 'Plugin version');
   const time = new Date().toISOString();
+  const baseline = await implementationBaseline(repos.map(repo => repo.root));
   Object.assign(fields, { ticket: input.ticket, controller_version: '1', autonomy: input.autonomy, queued_autonomy: 'none',
     refinement_destination: input.refinement_destination ?? 'here', start_time: time, plugin_version: manifest.version,
     branch: repos[0].branch, base: workspace ? workspace.repos.find((repo) => repo.root === repos[0].root).base : requireText(input.base, 'Base branch'), head: repos[0].head,
     worktree_fingerprint: digest(JSON.stringify(repos)), workspace_snapshot: JSON.stringify(repos) });
+  fields.implementation_baseline = JSON.stringify({ version: 1, runId: time, origin_hash: digest(JSON.stringify(baseline)), repos: baseline });
   if (workspace) Object.assign(fields, { workspace_version: '1', workspace_contract: JSON.stringify(workspace) });
   if (!['here', 'slack-draft', 'slack-send'].includes(fields.refinement_destination)) fail('Invalid refinement destination.');
   if (input.offline_pending) {
@@ -662,7 +672,7 @@ export async function initializeWorkflow(root, input) {
   const target = encodeURI(dashboard).replace(/[?#]/g, (character) => encodeURIComponent(character));
   return { state: statePath, dashboard,
     startup_message: `[Open implementation dashboard](<${target}>)`,
-    implementation_baseline: await implementationBaseline(repos.map((repo) => repo.root)), fields };
+    implementation_baseline: baseline, fields };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--root', '--state', '--input']);
