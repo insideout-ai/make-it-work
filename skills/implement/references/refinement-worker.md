@@ -29,7 +29,7 @@ passed to this helper are absolute or relative to the ticket directory.
    [the worker contract](refinement-worker-task.md) and the returned assignment
    path first. Include the resolved plugin/Implement paths and explicitly instruct the worker to read the complete `close-the-gaps/SKILL.md` before ticket investigation or constructing any handoff, including an immediately blocked result. Do not fork/copy the
    parent's whole transcript, load the full stage into the parent, or inline
-   research/logs in its prompt. Once startup/context prechecks are complete, do not open the delegated task’s source or authoritative inputs in the parent before dispatch or while the worker investigates; the parent reads the returned spec and compact evidence for its existing assessment. Attach the *actual* returned runtime ID using
+   research/logs in its prompt. Preserve required startup/context prechecks. A bounded source preview to establish dispatch scope is allowed; do not resolve ticket facts, assess authoritative task inputs, or repeat detailed investigation in the parent. The worker owns that investigation; the parent reads the returned spec and compact evidence for its existing assessment. Attach the *actual* returned runtime ID using
    `attach` with `{"agent_id":"..."}`. Use normal runtime waiting/result tools;
    #101's verified wait rules apply, not metadata claims or parent polling.
 3. A worker may return `Parent request: <path>` before dependent work. Read that

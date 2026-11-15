@@ -62,3 +62,5 @@ and all-agent cost. Compare matched stage boundaries and successful behavior.
 Moving work to a child can increase total cost even when parent context falls.
 Do not extrapolate a refinement-only sample to whole-workflow savings. Reports
 and raw transcripts stay local under ignored `evals/results/`.
+
+The parent may make a bounded source preview to establish dispatch scope, preserving existing startup/context checks. Resolving ticket facts, assessing authoritative task inputs and detailed refinement remain worker-owned. This is an ownership boundary, not a blanket ban on parent source reads.
