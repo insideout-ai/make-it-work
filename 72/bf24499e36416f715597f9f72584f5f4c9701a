@@ -1,0 +1,65 @@
+skills/implement/scripts/startup-presentation.test.mjs
+  s_852f9e573071fc::t_6b527370f73dc6 814-824,827-840
+  s_852f9e573071fc::t_0423eafa0755d6 825-826
+skills/implement/scripts/startup-presentation.mjs
+  s_852f9e573071fc::t_8fcc869ec72a05 38,91-105,113,133
+  s_852f9e573071fc::t_c349d7bcc37f7a 36-37
+.claude-plugin/plugin.json
+  s_852f9e573071fc::t_510f1a7950aee0 6
+CHANGELOG.md
+  s_852f9e573071fc::t_cfcfcacdfb7ac1 9-19
+docs/refinement-worker.md
+  s_852f9e573071fc::t_d022ca0e5e846c 1-64
+evals/implement/refinement-worker-blocked/fixture.sh
+  s_852f9e573071fc::t_826d75c51f8ffa 9-27
+evals/implement/refinement-worker-blocked/graders/blocker.md
+  s_852f9e573071fc::t_5f0e617fbc6419 6
+evals/implement/refinement-worker-blocked/graders/worker.md
+  s_852f9e573071fc::t_b3cbf59884d789 7-9
+evals/implement/refinement-worker-blocked/prompt.md
+  s_852f9e573071fc::t_951168b10ca0ea 10,12-14
+evals/implement/refinement-worker-full/case.yaml
+  s_852f9e573071fc::t_56073e86bb712c 1-5
+evals/implement/refinement-worker-full/fixture.sh
+  s_852f9e573071fc::t_3977b2281a2183 1-8
+evals/implement/refinement-worker-full/graders/complete.md
+  s_852f9e573071fc::t_11b3e065ace1fc 1-7
+evals/implement/refinement-worker-full/graders/flow.md
+  s_852f9e573071fc::t_0dcb2c88c4a3c9 1-6
+evals/implement/refinement-worker-full/graders/worker.md
+  s_852f9e573071fc::t_36993931fef643 1-9
+evals/implement/refinement-worker-full/prompt.md
+  s_852f9e573071fc::t_f333a88b71622a 1-12
+evals/implement/refinement-worker-local/graders/worker.md
+  s_852f9e573071fc::t_36caee9d96718b 7-9
+evals/suites.json
+  s_852f9e573071fc::t_44eff7e4d5f81c 150-151
+skills/implement/references/orchestration/stage-contract.md
+  s_852f9e573071fc::t_5110b9e7c1f2f8 19
+skills/implement/references/refinement-worker-task.md
+  s_852f9e573071fc::t_e8640315cec492 21
+skills/implement/references/refinement-worker.md
+  s_852f9e573071fc::t_710f5b1eef3d07 41,48,51
+skills/implement/scripts/refinement-worker.mjs
+  s_852f9e573071fc::t_15fa08f0b4663c 86-94,133,143-147,161,164-176
+skills/implement/scripts/refinement-worker.test.mjs
+  s_852f9e573071fc::t_804e14c0d090be 125-171
+skills/implement/scripts/workflow.mjs
+  s_852f9e573071fc::t_6569d015c2f907 23,459
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "72bf24499e36416f715597f9f72584f5f4c9701a",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
