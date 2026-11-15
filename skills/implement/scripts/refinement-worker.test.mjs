@@ -169,3 +169,18 @@ test('local context updates stay in approved scope and are bound after return', 
   await writeFile(path.join(f.root, 'docs/domain.md'), '# Changed after return');
   await assert.rejects(f.run('accept', { handoff }), /Returned context changed/);
 });
+
+
+test('reconciled cancellation recovers through the existing inline controller path', async t => {
+  const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'fixture-finished-agent' });
+  const before = await readFile(f.state, 'utf8');
+  await f.run('cancel', { reason: 'Fixture runtime is unavailable; preserve partial work for inline recovery.' });
+  assert.equal(await readFile(f.state, 'utf8'), before);
+  const apply = async (event, extra = {}) => applyWorkflow({ root: f.root, statePath: f.state,
+    input: { id: event, event, expected_hash: digest(await readFile(f.state, 'utf8')), repos: [f.root], ...extra } });
+  await apply('mode', { source: 'assessed', risk: 'low', mode: 'lightweight', rationale: 'Bounded local policy change.' });
+  const handoff = await f.handoff();
+  const result = await apply('handoff', { handoff: `make-it-work/DEMO/${handoff}` });
+  assert.equal(result.fields.phase, 'lightweight');
+  assert.equal((await f.run('inspect')).status, 'cancelled');
+});

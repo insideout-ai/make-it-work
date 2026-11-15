@@ -14,11 +14,11 @@ POLICY
 git add config/required-role-map.json
 git -c user.name=fixture -c user.email=fixture@example.invalid commit -qm 'Supply role map with an unresolved administrator mapping'
 git switch -qc DEMO-REFINE
-node --input-type=module - "$SCRIPT_DIR" <<'SEED'
+MIW_REFINEMENT_FIXTURE_PLUGIN="$SCRIPT_DIR/../../.." node --input-type=module <<'SEED'
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {readFile} from 'node:fs/promises';
-const plugin=path.resolve(process.argv[2],'../../..');
+const plugin=path.resolve(process.env.MIW_REFINEMENT_FIXTURE_PLUGIN);
 const {initializeWorkflow,applyWorkflow}=await import(pathToFileURL(path.join(plugin,'skills/implement/scripts/workflow.mjs')));
 const {digest}=await import(pathToFileURL(path.join(plugin,'scripts/lib/artifacts.mjs')));
 const root=process.cwd();
