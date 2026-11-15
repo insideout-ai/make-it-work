@@ -11,27 +11,28 @@ This work is based on the combined PR #97 (`2584a9d`) and PR #98 (`9147f18`)
 integration snapshot `4a97614`. It belongs to a separate PR. Neither prerequisite
 branch is changed. Reconcile their latest heads before final validation.
 
-## Ordered implementation
+## PR #99 scope and follow-up
 
-1. Establish the baseline; repair relevant logging, feedback and fix-planning
-   validation issues. Require passing relevant deterministic and behavioral checks.
-2. Extract initialization defaults and relocate orchestration instructions into
-   phase-specific references. Preserve the full behavior inventory and verify
-   equivalent state defaults before changing execution placement.
-3. Introduce a versioned dispatch journal for new runs. The parent alone owns
-   dispatch, questions, approvals, workflow state, progress and external writes.
-   Preserve terminal handoffs. Validate refinement, planning/readiness, execution
-   instructions, then regression/final-sync/feedback boundaries separately.
-4. Preserve fresh agents for independent tasks; resume their implementers for
-   questions and fixes when supported. Reconstruct unavailable agents from saved
-   artifacts only after reconciling existing work. Keep independent review fresh.
-5. Pass final deterministic, packaging, smoke, critical and change-specific evals;
-   repeat question/resume, interrupted-dispatch and full-TDD cases. Record measured
-   context, cost, latency and behavioral outcomes. Leave the PR draft until ready.
+PR #99 prepares patch version 5.7.2. It contains the baseline repairs, equivalent
+machine-readable state defaults, phase-specific instruction loading and local
+context measurement. It preserves execution placement, all existing workflow
+gates, terminal handoff formats and saved-run markers. No dispatch journal or
+new delegation behavior is included.
 
-Unmarked saved runs and standalone skill behavior retain their existing contract.
-Explicit Inline execution remains supported. No plugin version bump, release,
-merge, live tracker publication or delivery operation belongs to this change.
+Delegation belongs to a separate follow-up PR based on this checkpoint. Start
+with explicit opt-in for new runs and refinement only. Keep the parent as the
+sole dispatcher and owner of human questions, approvals, workflow state,
+progress and external writes. Validate questions/resumption, interruptions,
+unavailable workers, duplicate/stale results and guidance loading before
+expanding to planning/readiness, execution or finalization. Existing unmarked
+runs and standalone skills retain their original behavior. Functional safety
+takes priority over the eventual instruction-volume target.
+
+For this patch, require complete deterministic, packaging, smoke, critical and
+change-specific evals on the final committed source. Include Guided/Autopilot,
+legacy resume, fix planning and full feedback coverage. Record scoped results
+and unresolved failures in the PR and local release record. A version bump does
+not authorize merging, publishing a release or changing a directory submission.
 
 ## Baseline evidence and current progress
 

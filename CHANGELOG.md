@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.7.2] — 2026-11-15
+
+### Changed
+
+- Load Implement orchestration instructions by phase while preserving workflow gates, hooks, legacy resume behavior and execution placement.
+- Initialize workflow state from machine-readable defaults that match every existing state value.
+- Record observed parent-request context separately from cumulative processing and delegated usage in local evaluation reports.
+
+### Fixed
+
+- Construct complete execution-mode decision payloads for the shared log writer.
+- Require supplied-conversation access, actionable findings and full saved-report readback when finalizing session feedback.
+- Clarify that fix planning preserves production code, including temporary mutation probes, while allowing regression coverage for already-correct behavior.
+
 ## [5.7.1] — 2026-11-15
 
 ### Fixed
