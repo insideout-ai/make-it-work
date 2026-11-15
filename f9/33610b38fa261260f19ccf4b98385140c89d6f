@@ -1,0 +1,21 @@
+evals/implement/background-bash-wait/graders/real-background-dispatch.md
+  s_2978f25d7b478e::t_0515bfba9d0fb9 3
+evals/implement/background-monitor-wait/graders/real-background-dispatch.md
+  s_2978f25d7b478e::t_0515bfba9d0fb9 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f933610b38fa261260f19ccf4b98385140c89d6f",
+  "prompts": {},
+  "sessions": {
+    "s_2978f25d7b478e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df70-2717-79b3-bdba-32f3a995f7ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
