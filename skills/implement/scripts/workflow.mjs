@@ -9,6 +9,7 @@ import { approve as approveFinalPackage, checkFinalPackage } from './final-packa
 import { contextInventory } from '../../../scripts/context-inventory.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
+import { collectTestingSummary } from './testing-summary.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
 import { planHash } from '../../../scripts/lib/plan.mjs';
@@ -516,6 +517,9 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
     if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
+    if (['context-ready', 'sync-complete'].includes(effective.event) && f.testing_summary !== undefined) {
+      f.testing_summary = JSON.stringify(await collectTestingSummary(root, f, { final: effective.event === 'sync-complete' }));
+    }
     if (input.branch_baseline !== undefined) {
       if (!['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval'].includes(state.fields.phase) || state.audit.some(row => ['execute', 'lightweight'].includes(row.to))) fail('Branch baseline acceptance is only available before implementation.');
       const accepted = await acceptBranchBaseline(state.fields, input.branch_baseline, reposInput, input.id);

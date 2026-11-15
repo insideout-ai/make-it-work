@@ -24,12 +24,27 @@ async function readReceipt(root, f) {
   try { return JSON.parse(await readFile(await within(root, readinessPaths(f).receipt), 'utf8')); }
   catch (error) { if (error.code === 'ENOENT') fail('Testing readiness has not begun. Begin and complete readiness before planning.'); throw error; }
 }
-async function reportEvidence(root, state) {
+async function reportEvidence(root, state, { newSelection = false } = {}) {
   const f = state.fields, expected = binding(f), names = readinessPaths(f);
   if (f.spec === 'none' || digest(await readFile(await within(root, f.spec))) !== f.spec_hash) fail('Readiness requires the unchanged accepted spec.');
   const bytes = await readFile(await within(root, names.report));
   const report = bytes.toString('utf8'), policy = testingPolicy(report, { required: true });
   const results = table(section(report, 'Readiness results') ?? '', ['Repo', 'Status', 'Setup', 'Baseline', 'Evidence']);
+  const defaults = policy.filter(row => row.Mode === 'manual' && row.Decision === 'autonomy-default');
+  if (defaults.length) {
+    const discovery = table(section(report, 'Default verification evidence') ?? '', ['Repo', 'Autonomy', 'Strategy', 'Tooling', 'Evidence']);
+    if (discovery.length !== defaults.length || new Set(discovery.map(row => row.Repo)).size !== discovery.length) fail('Manual defaults require discovery evidence for exactly their repos.');
+    for (const row of defaults) {
+      const found = discovery.find(item => item.Repo === row.Repo);
+      if (!found || !['autonomous', 'autopilot'].includes(found.Autonomy) || found.Strategy !== 'missing' || found.Tooling !== 'absent' || !found.Evidence.trim()) fail('Manual autonomy-default requires missing strategy and absent tooling discovery in Autonomous or Autopilot.');
+      const repo = expected.scope.find(repo => repo.id === row.Repo) ?? (expected.scope.length === 1 ? expected.scope[0] : null);
+      if (!repo) fail('Manual default repo is outside the selected scope.');
+      if (newSelection) try {
+        await readFile(path.join(repo.root, '.claude/skills/test-strategy/SKILL.md'));
+        fail('An existing strategy cannot use the missing-strategy manual default.');
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+  }
   if (results.length !== policy.length || new Set(results.map((row) => row.Repo)).size !== results.length || results.some((row) => !policy.some((item) => item.Repo === row.Repo))) fail('Readiness results must cover every verification-policy repo exactly once.');
   if (f.workspace_version === '1') {
     if (expected.scope.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id)) || policy.some((row) => !expected.scope.some((repo) => repo.id === row.Repo))) fail('Readiness must cover approved product repos and cannot add unapproved repos.');
@@ -77,12 +92,16 @@ export async function testingReadiness(statePath, action, { restart = false } = 
         if (prior.status === 'pending') return { required: true, ready: false, report: names.report, receipt: names.receipt, reused: true };
         fail('Invalid readiness checkpoint status.');
       }
-      await atomicWrite(path.join(root, names.receipt), JSON.stringify({ ...expected, status: 'pending' }, null, 2) + '\n');
+      await atomicWrite(path.join(root, names.receipt), JSON.stringify({ ...expected, status: 'pending', ...(prior?.policy ? { previous_policy: prior.policy } : prior?.previous_policy ? { previous_policy: prior.previous_policy } : {}) }, null, 2) + '\n');
       return { required: true, ready: false, report: names.report, receipt: names.receipt };
     }
     const prior = await readReceipt(root, f);
     if (!matches(prior, expected) || !['pending', 'complete'].includes(prior.status)) fail('Begin readiness for this run/spec/plan before completing it.');
-    const evidence = await reportEvidence(root, state);
+    const evidence = await reportEvidence(root, state, { newSelection: prior.status === 'pending' });
+    const previous = prior.policy ?? prior.previous_policy ?? [];
+    for (const row of evidence.policy) {
+      if (row.Mode === 'manual' && row.Decision === 'autonomy-default' && previous.some(item => item.Repo === row.Repo && item.Mode === 'automated')) fail('An automated policy cannot become manual by autonomy-default; an explicit decision is required.');
+    }
     const receipt = { ...expected, status: 'complete', ...evidence };
     await atomicWrite(path.join(root, names.receipt), JSON.stringify(receipt, null, 2) + '\n');
     // Only the existing readiness pointer changes; no phase, approval or counter is advanced.

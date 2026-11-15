@@ -9,6 +9,7 @@ import { parseState } from './render-status.mjs';
 import { readVerification } from './verification.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
+import { collectTestingSummary, parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
@@ -68,6 +69,7 @@ function markdown(pkg) {
     lines.push(`Diff: [${repo.diff_file}](${repo.diff_file})`, '');
     lines.push(repo.paths.length ? repo.paths.map((p) => `- \`${p}\``).join('\n') : '- No changed paths', '');
   }
+  for (const note of testingSummaryNotes(pkg.testing_summary ?? [])) lines.push(`Testing: ${note}`, '');
   lines.push('## Evidence', '');
   if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification, pkg.validation_notes), '');
   for (const record of pkg.test_map_maintenance ?? []) lines.push(`Test-map maintenance — ${path.basename(record.repo)}: ${record.status}; ${record.reason}`, '');
@@ -219,7 +221,10 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   }
   const reviewScope = compareReviewScope(reviewEvidence, repos);
   if (f.review_scope_version === '1' && reviewScope.some((repo) => repo.status !== 'covered')) fail('Final package contains changes outside independent review coverage. Rerun review on the full delivery diff.');
+  const testingSummary = await collectTestingSummary(root, f, { final: true });
+  if (testingSummary !== null && JSON.stringify(parseTestingSummary(f.testing_summary)) !== JSON.stringify(testingSummary)) fail('Testing summary changed; complete final sync again before packaging.');
   const pkg = {
+    ...(testingSummary !== null ? { testing_summary: testingSummary } : {}),
     version: 1, ...(assuranceVersion === 1 ? { assurance_version: 1 } : {}), ...(f.review_context_version === '2' ? { test_map_maintenance: maintenance } : {}), ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
     draft, evidence, validation,
     ...(f.adaptive_version === '1' ? { adaptive: { mode: f.mode, risk: f.risk, mode_source: f.mode_source, escalations: Number(f.escalations) } } : {}),
@@ -269,7 +274,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
     if (error.code !== 'ENOENT') throw error;
   }
   if (requireApproval && !approved) fail('Final package has no current approval.');
-  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification), validation_notes: saved.validation_notes ?? [] };
+  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification), validation_notes: saved.validation_notes ?? [], testing_summary: saved.testing_summary ?? [], testing_notes: testingSummaryNotes(saved.testing_summary ?? []) };
 }
 
 export async function approve(root, statePath, expectedHash) {
