@@ -1,0 +1,30 @@
+CHANGELOG.md
+  s_852f9e573071fc::t_327f9f7beb5535 21
+skills/define-test-strategy/SKILL.md
+  s_852f9e573071fc::t_327f9f7beb5535 231-232
+evals/implement/payment-feedback-e2e/graders/workflow-and-feedback.md
+  s_852f9e573071fc::t_a5636655927a03 46-47
+evals/grade-headless.mjs
+  s_852f9e573071fc::t_a5636655927a03 89-91
+  s_852f9e573071fc::t_327f9f7beb5535 93,95-96,99,101-103,109,113,115,117-119,122
+evals/grade-headless.test.mjs
+  s_852f9e573071fc::t_327f9f7beb5535 543-563
+evals/implement/implement-autopilot-full/graders/stage-order.md
+  s_852f9e573071fc::t_327f9f7beb5535 25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cf8af642177f41e8ca237796b2f6e20ab72e6c52",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
