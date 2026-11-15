@@ -1,0 +1,55 @@
+evals/suites.json
+  s_c10617d4b0a956::t_47f0df8809f99e 20
+evals/implement/planning-progress/graders/regression-unchanged.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-6
+evals/implement/planning-progress/fixture.sh
+  s_c10617d4b0a956::t_47f0df8809f99e 1-22
+evals/implement/planning-progress/graders/source-unchanged.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-6
+evals/implement/planning-progress/case.yaml
+  s_c10617d4b0a956::t_47f0df8809f99e 1-5
+evals/implement/planning-progress/graders/spec-unchanged.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-6
+evals/implement/planning-progress/prompt.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-13
+evals/implement/README.md
+  s_c10617d4b0a956::t_faf20886ccc337 210-228
+skills/implement/references/orchestration/planning.md
+  s_c10617d4b0a956::t_47f0df8809f99e 3
+evals/implement/planning-progress/graders/saved-history.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-7
+evals/implement/planning-progress/graders/activity-order.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-11
+evals/implement/planning-progress/graders/handoff.md
+  s_c10617d4b0a956::t_faf20886ccc337 4
+  s_c10617d4b0a956::t_47f0df8809f99e 1-3,5-6
+skills/plan-the-work/SKILL.md
+  s_c10617d4b0a956::t_faf20886ccc337 311-312
+  s_c10617d4b0a956::t_47f0df8809f99e 37-55,155-156,287-288,313,339
+  s_c10617d4b0a956::t_2c09379bc2288b 340
+evals/implement/planning-progress/graders/paused-plan.md
+  s_c10617d4b0a956::t_47f0df8809f99e 1-7
+CHANGELOG.md
+  s_c10617d4b0a956::t_ce593000ff9ec0 9-14
+evals/planning-progress.test.mjs
+  s_c10617d4b0a956::t_3aefbbbd5e7f8e 16,27
+  s_c10617d4b0a956::t_faf20886ccc337 1-15,17-26,28-48
+.claude-plugin/plugin.json
+  s_c10617d4b0a956::t_ce593000ff9ec0 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a13ec5ca6359634c10990b73a010dc165e0f805f",
+  "prompts": {},
+  "sessions": {
+    "s_c10617d4b0a956": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e033-0ccc-79f0-91ac-ec362a61fb92",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
