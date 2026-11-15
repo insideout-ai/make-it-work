@@ -1,0 +1,21 @@
+evals/implement/background-monitor-wait/graders/quiet-resume.md
+  s_2978f25d7b478e::t_a30b805cfd2081 7-8
+evals/implement/background-bash-wait/graders/quiet-resume.md
+  s_2978f25d7b478e::t_a30b805cfd2081 7-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f54db6c349063fdc510660206d1d59353d67b5e",
+  "prompts": {},
+  "sessions": {
+    "s_2978f25d7b478e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df70-2717-79b3-bdba-32f3a995f7ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
