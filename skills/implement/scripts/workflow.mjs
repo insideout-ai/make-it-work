@@ -626,6 +626,12 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
+export async function workflowDefaults() {
+  const fields = JSON.parse(await readFile(fileURLToPath(new URL('../assets/workflow-defaults.json', import.meta.url)), 'utf8'));
+  if (!fields || Array.isArray(fields) || typeof fields !== 'object' || !Object.keys(fields).length ||
+      Object.entries(fields).some(([key, value]) => !/^[a-z_]+$/.test(key) || typeof value !== 'string' || /[\r\n]/.test(value))) fail('Invalid workflow defaults.');
+  return fields;
+}
 export async function initializeWorkflow(root, input) {
   root = await realpath(root);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '')) fail('Unsafe ticket.');
@@ -636,14 +642,7 @@ export async function initializeWorkflow(root, input) {
     if (input.proceed_on_base !== true) fail('Branch guard requires a feature branch.');
     explicit(input);
   }
-  const template = await readFile(fileURLToPath(new URL('../SKILL.md', import.meta.url)), 'utf8');
-  const block = template.match(/# Workflow state — <TICKET>\s*\n\s*```\s*\n([\s\S]*?)\n```/);
-  if (!block) fail('Workflow template missing.');
-  const fields = Object.fromEntries(block[1].split('\n').filter(Boolean).map((line) => {
-    const match = line.replace(/\s+#.*$/, '').match(/^([a-z_]+):\s*(.*)$/);
-    if (!match) fail('Invalid workflow template field.');
-    return [match[1], match[2].trim()];
-  }));
+  const fields = await workflowDefaults();
   const manifest = JSON.parse(await readFile(fileURLToPath(new URL('../../../.claude-plugin/plugin.json', import.meta.url)), 'utf8'));
   requireText(manifest.version, 'Plugin version');
   const time = new Date().toISOString();

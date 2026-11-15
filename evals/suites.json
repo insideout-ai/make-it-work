@@ -139,8 +139,9 @@
     "drive-the-epic-uncertainty-unresolved",
     "drive-the-epic-uncertainty-resolved",
     "define-test-strategy-negative-control",
+    "implement-payment-feedback-e2e",
     "review-verification-context",
-    "implement-payment-feedback-e2e"
+    "implement-fix-plan-boundary"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -189,13 +190,6 @@
         "make-it-work/TASK-100/review-the-code-autopilot-log.jsonl"
       ]
     },
-    "review-verification-context": {
-      "context-and-security.md": [
-        "make-it-work/REVIEW-2/REVIEW-2-review.md",
-        "make-it-work/REVIEW-2/review-target.json",
-        "src/internalItems.js"
-      ]
-    },
     "implement-payment-feedback-e2e": {
       "workflow-and-feedback.md": [
         "make-it-work/DEMO-PAYMENT/DEMO-PAYMENT-spec.md",
@@ -207,6 +201,13 @@
         "src/sessionDetails.js",
         "src/views.js",
         ".claude/skills/test-strategy/SKILL.md"
+      ]
+    },
+    "review-verification-context": {
+      "context-and-security.md": [
+        "make-it-work/REVIEW-2/REVIEW-2-review.md",
+        "make-it-work/REVIEW-2/review-target.json",
+        "src/internalItems.js"
       ]
     }
   },

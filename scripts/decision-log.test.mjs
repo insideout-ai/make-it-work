@@ -54,7 +54,7 @@ test('write flushes a late batch and replaces a prior run atomically', async (t)
 
 test('documented implementation-mode checkpoint appends on the first attempt', async (t) => {
   const { root } = await workspace(t);
-  const instructions = await readFile(new URL('../skills/implement/SKILL.md', import.meta.url), 'utf8');
+  const instructions = await readFile(new URL('../skills/implement/references/orchestration/refinement.md', import.meta.url), 'utf8');
   const example = instructions.match(/```json\n(\{"phase":"Risk assessment","site":"implementation-mode"[^\n]+)\n```/);
   assert.ok(example, 'Risk assessment must document the implementation-mode log payload');
   const entry = JSON.parse(example[1]);

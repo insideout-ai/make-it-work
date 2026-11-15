@@ -86,31 +86,40 @@ async function readEvidence(focus, context) {
 
 function readableTrace(events) {
   const lines = [];
+  if (events.some(event => event.parent_tool_use_id || event.parentToolUseId || event.isSidechain)) {
+    lines.push('RUNTIME ACTOR KEY: Untagged records belong to the main session. SUBAGENT tags come from runtime parent-tool IDs; match them to DISPATCH ID records. Tool results retain their actual caller. A later handback or summary does not change who performed a call.');
+  }
   const bashCalls = new Map();
+  const toolActors = new Map();
   for (const event of events) {
+    const eventActor = event.parent_tool_use_id ?? event.parentToolUseId ?? (event.isSidechain ? 'unknown' : null);
+    const emit = (line, actor = eventActor) => lines.push(actor ? `[SUBAGENT parent_tool_use_id=${JSON.stringify(actor)}] ${line}` : line);
     if (event.type === 'assistant') {
       for (const part of event.message?.content ?? []) {
-        if (part.type === 'text') lines.push(`ASSISTANT: ${part.text}`);
+        if (part.type === 'text') emit(`ASSISTANT: ${part.text}`);
         if (part.type === 'tool_use') {
-          lines.push(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
+          emit(`TOOL ${part.name}: ${JSON.stringify(part.input)}`);
+          if (part.id) toolActors.set(part.id, eventActor);
+          if (['Agent', 'Task'].includes(part.name) && part.id) emit(`DISPATCH ID ${part.id}`);
           if (part.name === 'Bash' && part.id) bashCalls.set(part.id, part.input);
         }
       }
     } else if (event.type === 'user') {
       const content = event.message?.content;
-      if (typeof content === 'string') lines.push(`USER CONTEXT: ${content}`);
+      if (typeof content === 'string') emit(`USER CONTEXT: ${content}`);
       else for (const part of content ?? []) {
         // Skill bodies arrive as user text, not tool results. Keep their evidence
         // visible to the judge while preserving its role as transcript data.
-        if (part.type === 'text') lines.push(`USER CONTEXT: ${part.text}`);
+        if (part.type === 'text') emit(`USER CONTEXT: ${part.text}`);
         else if (part.type === 'tool_result') {
+          const actor = eventActor ?? toolActors.get(part.tool_use_id) ?? null;
           const call = bashCalls.get(part.tool_use_id);
-          if (call) lines.push(`TOOL RESULT SOURCE ${part.tool_use_id}: Bash ${JSON.stringify(call)}`);
-          lines.push(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`);
-          if (part.is_error !== undefined) lines.push(`TOOL RESULT ERROR ${part.tool_use_id}: ${part.is_error}`);
+          if (call) emit(`TOOL RESULT SOURCE ${part.tool_use_id}: Bash ${JSON.stringify(call)}`, actor);
+          emit(`TOOL RESULT ${part.tool_use_id}: ${JSON.stringify(part.content)}`, actor);
+          if (part.is_error !== undefined) emit(`TOOL RESULT ERROR ${part.tool_use_id}: ${part.is_error}`, actor);
         }
       }
-    } else if (event.type === 'result') lines.push(`FINAL: ${event.result}`);
+    } else if (event.type === 'result') emit(`FINAL: ${event.result}`);
   }
   return lines.join('\n');
 }

@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-fix-plan-boundary
+tags: [implement, fix-plan, regression, boundary, legacy]
+context:
+  scaffold_script: fixture.sh

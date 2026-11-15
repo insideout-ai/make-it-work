@@ -1,0 +1,25 @@
+### Lightweight implementation
+
+Phase `lightweight`, legal only with `mode: lightweight`. There is no plan, testing readiness, test-first step, or regression gate; the plan fields keep their defaults (`plan: none`, `plan_hash: none`, `plan_version: 1`, `execution: not-started`, `gate: none`, `execute_report: none`, `testing_readiness: none`). The independent review is the verification.
+
+**Route before dispatch, including Resume:** when `fix_cycle > 0`, use **Lightweight fix** below before any corrective edit or agent launch. Recover its saved diagnosis checkpoint first; do not restart initial implementation or patch source in the parent session. Both initial implementation and fixes require a fresh implementation subagent.
+
+Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
+
+- give the absolute spec path and tell it, in effect, "implement this spec" — the way a developer handing it to Claude Code would: its own approach, following each affected repo's `CLAUDE.md` and rules, running whatever checks it chooses, or none;
+- forbid committing, pushing, opening a PR, asking the user anything, and editing `make-it-work/` other than its report. A missing or contradictory requirement stops it with the reason in its report;
+- have it write `make-it-work/<TICKET>/<TICKET>-lightweight.md` with `## Summary`, `## Changed paths` (grouped per repo root), `## Checks` (each check it ran and its actual result, or `none`), `## Discoveries` (facts about the existing system for final sync), `## Risk signal` (`none`, or why the change is riskier than Low — e.g. it touched a shared contract, security, or data, or the spec implied more than it seemed), and `## Blocked` only when it could not finish;
+- ask it to return the report path.
+
+Require the report to name the repository skills loaded before editing and how they were loaded, plus any loading failure. If it admits skipping a required gate, return to that delegate to load the missing context and reassess the change before accepting `IMPLEMENTED`; passing tests do not repair a missed context check.
+
+For checks that already fail on the branch, separate unchanged baseline diagnostics from introduced diagnostics and checks not run. A similar error elsewhere does not make an error in a new file pre-existing. Resolve new failures, or retain an evidenced qualification for independent review; never summarize a failing command as wholly pre-existing from its total error count alone.
+
+When the Lightweight change introduces transformation or decision logic, have the agent cover the accepted normal, boundary and rejected/complement behavior with focused tests using the project's existing runner when available. Require evidence-backed data discoveries and representative test inputs under [context discovery](../context-discovery.md). Report missing test capability or browser access as a verification gap. This does not add a regression gate or turn a text-only edit into a test-writing task.
+
+Set `implementation_report`, re-record `head` and `worktree_fingerprint`, and append the report's discoveries to Context discoveries. Then write the `implement-<N>.json` handoff yourself per `<base>/references/handoffs.md` (`IMPLEMENTED` with the report's changed paths, checks, discoveries, and risk signal; or `status: blocked` with its reason), validate it, and reassess per Escalation: a risk signal or block may warrant `--escalate`. Otherwise `handoff.mjs next` routes `IMPLEMENTED` to Review; a block without escalation stops with its reason, as the helper returns.
+
+**Lightweight fix** (operation `fix`, `review → lightweight`) — follow [the Lightweight fix checkpoint](../lightweight-fix.md) before dispatch, including on Resume. Apply the diagnosis requirement under [Fix](#fix), then use `scripts/lightweight-fix.mjs checkpoint` to save it in the existing report and audit log. `inspect` must confirm the current round's checkpoint before launching one fresh fix subagent; a missing or failed checkpoint blocks corrective edits and dispatch. The parent may inspect evidence but never substitutes its own source edits for that agent. The controller increments `fix_cycle` on entry; do not increment it again on resume. The legacy entry row lists the finding regions and diagnosis summary, as Fix does.
+
+Pass the spec, fix source, Decided findings, existing report, and checkpointed diagnosis to the fresh subagent. Have it preserve the diagnosis, fix every actionable finding at its root cause, cover sibling cases and the complement of any guard it adds, then append changes, paths and actual checks/results under the existing `## Fix round <n>` section and update `## Risk signal`. Route its handoff exactly as above; the controller rejects a completed fix without the saved report/audit checkpoint or with stale spec/fix-source bindings. A validator cannot prove agent dispatch or causal correctness, so the required dispatch and review still apply. The final package's **Request changes** uses the same procedure with `<TICKET>-final-feedback.md` as the fix source.
+

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "source_sha256": "2f824c41dc5f33e9753f12f39a65dfa5d187f140049d7964fa1195b8ef87ade4",
+  "sections": [
+    {
+      "path": "skills/implement/references/orchestration/startup.md",
+      "source_characters": 40010,
+      "source_sha256": "b0c1d5e388513c3905e519a0459e86c5f845bb4dae4c2b74369917414a37e033",
+      "relocated_characters": 39952
+    },
+    {
+      "path": "skills/implement/references/orchestration/stage-contract.md",
+      "source_characters": 4390,
+      "source_sha256": "1d46b469b1ef4814fab9d0db911b18a43345034e0766a4693fbaa7eb201aef3a",
+      "relocated_characters": 4366
+    },
+    {
+      "path": "skills/implement/references/orchestration/state-and-progress.md",
+      "source_characters": 15272,
+      "source_sha256": "e66763284a821c6661be4c01caa96fdc1c403413c6bf6a0647c3c3ab087f4df3",
+      "relocated_characters": 15240
+    },
+    {
+      "path": "skills/implement/references/orchestration/transitions.md",
+      "source_characters": 9038,
+      "source_sha256": "d034c4824d1332c8f662e2e4511850c29f5c7f4b40647686e4a9473054096cc3",
+      "relocated_characters": 9038
+    },
+    {
+      "path": "skills/implement/references/orchestration/refinement.md",
+      "source_characters": 7668,
+      "source_sha256": "12351623b235724fac2f38fa97267d41c0097ab2c3064168f923e0cb87579205",
+      "relocated_characters": 7668
+    },
+    {
+      "path": "skills/implement/references/orchestration/lightweight.md",
+      "source_characters": 5084,
+      "source_sha256": "b42f1a1c81374c4dbb884bd89c7a02441bd8d15330ac793e45a7665aa232c1f8",
+      "relocated_characters": 5068
+    },
+    {
+      "path": "skills/implement/references/orchestration/planning.md",
+      "source_characters": 6037,
+      "source_sha256": "b0ce341d94930593f59852da0c11946ace21ca3c6526da1469d320eafe051232",
+      "relocated_characters": 6029
+    },
+    {
+      "path": "skills/implement/references/orchestration/execution.md",
+      "source_characters": 5840,
+      "source_sha256": "c0ac1604ac6cf36ac25f7e529f3a5193913be294120e92d536477c2f3cdcec3b",
+      "relocated_characters": 5840
+    },
+    {
+      "path": "skills/implement/references/orchestration/review.md",
+      "source_characters": 9823,
+      "source_sha256": "1c1815df1b7743efabcf45c7c981994d573432e3e069b5b1f023a05e10e6f59a",
+      "relocated_characters": 9807
+    },
+    {
+      "path": "skills/implement/references/orchestration/fixes.md",
+      "source_characters": 10304,
+      "source_sha256": "fc4670d054b3f183b2ba20bda04f52d873eae87d772b3e334a5f0b32c100f933",
+      "relocated_characters": 10304
+    },
+    {
+      "path": "skills/implement/references/orchestration/final-sync.md",
+      "source_characters": 6897,
+      "source_sha256": "60eaa07624efaa9437af157e4a8eec84dcd96552766047f1edfe55c5c24456e3",
+      "relocated_characters": 6881
+    },
+    {
+      "path": "skills/implement/references/orchestration/final-package.md",
+      "source_characters": 4981,
+      "source_sha256": "43ea258df1647b4834f46f8c0569880feaaec5f4436a7fefb7a51ca255e313f8",
+      "relocated_characters": 4981
+    },
+    {
+      "path": "skills/implement/references/orchestration/feedback.md",
+      "source_characters": 4251,
+      "source_sha256": "55dde52fa7222e4beff715ef3557757bbd5501c3013b763ff4e5b7ca4d51f185",
+      "relocated_characters": 4257
+    },
+    {
+      "path": "skills/implement/references/orchestration/completion.md",
+      "source_characters": 9554,
+      "source_sha256": "5b8989ebac4bf511f28623d8396925908570b7c818442937d4be0cf7acf39990",
+      "relocated_characters": 9560
+    },
+    {
+      "path": "skills/implement/references/orchestration/rules.md",
+      "source_characters": 3149,
+      "source_sha256": "52e51e96207d5664a8a27c13320cdbb44b436c68c351615487a64600a8b45115",
+      "relocated_characters": 3149
+    }
+  ]
+}
