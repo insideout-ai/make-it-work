@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-existing-automation-no-strategy
+tags: [implement, existing-automation, no-strategy]
+context:
+  scaffold_script: fixture.sh

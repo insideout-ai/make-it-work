@@ -81,6 +81,7 @@
     "implement-readiness-order",
     "implement-dashboard-autonomous-start",
     "implement-no-tooling",
+    "implement-existing-automation-no-strategy",
     "implement-empty-strategy",
     "implement-lightweight-run",
     "implement-context-absent",

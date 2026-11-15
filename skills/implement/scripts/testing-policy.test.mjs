@@ -49,8 +49,9 @@ test('legacy plans retain legacy gates; resolved policies partition mixed repos'
   assert.deepEqual(testingScope(policyPlan().replace('### `app`', '### `app` <!-- test repos use (test scope only) -->')), { legacy: false, automated: [], manual: ['app'] });
 });
 
-test('manual selection requires an explicit decision and policy covers every product repo', () => {
-  assert.throws(() => testingPolicy(policyPlan('| app | manual | autonomy-default | No tests |')), /explicit user/);
+test('manual selection requires a recorded decision and policy covers every product repo', () => {
+  assert.equal(testingPolicy(policyPlan('| app | manual | autonomy-default | No strategy or tooling; discovery recorded |'))[0].Decision, 'autonomy-default');
+  assert.throws(() => testingPolicy(policyPlan('| app | manual | configured | No tests |')), /recorded autonomy-default/);
   assert.throws(() => testingPolicy(policyPlan().replace('### `app`', '### `other`')), /exactly the affected/);
   assert.throws(() => testingPolicy(policyPlan().replace('manual | user', 'suggested | user')), /Invalid verification mode/);
   assert.throws(() => testingPolicy(policyPlan() + '\n## Verification Policy\n'), /Duplicate/);

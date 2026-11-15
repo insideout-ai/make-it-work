@@ -1,6 +1,6 @@
 # Testing readiness before planning
 
-Record the user's testing setup, strategy scope and automated/manual verification choices under [workflow-decisions.md](workflow-decisions.md), including the affected repos and selected policy, before setup or dependent planning begins. Automatic Autonomous/Autopilot defaults keep their actual source; unavailable tooling or unanswered prompts never imply manual-verification consent.
+Record the user's testing setup, strategy scope and automated/manual verification choices under [workflow-decisions.md](workflow-decisions.md), including the affected repos and selected policy, before setup or dependent planning begins. Automatic Autonomous/Autopilot defaults keep their actual source; unavailable tooling or unanswered prompts never imply manual-verification consent. The only automatic manual choice is the missing-strategy/absent-tooling branch below, resolved before planning; it is never a fallback after an automated failure.
 
 Run inside `implement`'s Plan phase, before invoking `plan-the-work`, and before entering Execute with a reused standalone plan. A Lightweight run never enters Plan and skips readiness; an escalation into Plan runs it as usual. The branch guard, workflow state, dashboard and spec already exist. Read the spec to identify affected product repos; inspect only relevant test locations. This is setup owned by the orchestrator, outside planning's read-only investigation. Keep the dashboard in Plan while doing it.
 
@@ -61,6 +61,29 @@ For each affected repo, inspect its strategy when present, relevant external tes
 
 Reuse Strategy Decisions, the Status in Layers and Where New Tests Go, Coverage Decision Guidance and Recommended Setup when forming the setup proposal. Identify the selected layers needed for the ticket's changed behavior, not merely whether some runner exists. A selected `planned` component layer required by a UI change is a readiness gap even when unit tests already run. Resolve that layer's prerequisites through the setup flow below, retaining the chosen destination and existing runner where suitable. Deferred or unrelated future layers do not expand this ticket's setup; revisit a deferral explicitly if the requirement now needs it. Legacy rows without Status keep their configured-only interpretation. When invoking DTS, pass the ticket scope, prior strategy/readiness decisions and caller autonomy so its discussion does not repeat resolved questions on refresh. A planned destination alone never makes a layer ready or changes the automated/manual verification policy.
 
+### Missing strategy in Autonomous or Autopilot
+
+This branch overrides the strategy generation and setup instructions below only when the strategy is absent and the caller is Autonomous or Autopilot. Respect explicit user/project verification requirements and saved choices first. An existing strategy (including `none` or planned layers) keeps the existing readiness flow. Guided also keeps that flow and its setup choice.
+
+Do bounded discovery from relevant manifests, runner configuration, real tests, CI and documented external test locations. Do not inventory unrelated repos or invoke `define-test-strategy`, generate strategy/map metadata, or install tooling automatically here.
+
+- **Usable automation exists:** retain its runner and record exact commands, run roots, prerequisites and test destinations in the readiness report for planning. Select `automated | configured`. Run the existing baseline under the normal limits and retain actual failures or unavailable results; these are not absent tooling and cannot select manual by default. Continue planning without a strategy or map.
+- **No usable setup exists:** select `manual | autonomy-default`, with setup/status `manual` and baseline `not-applicable`. Record inspected paths, absence of real tooling, caller autonomy and rationale before planning. Use the ordinary decision checkpoint/log, site `testing-readiness`; when using `autonomy-policy.mjs`, pass `testing_context: {"strategy":"missing","tooling":"absent"}` with stable `manual` and `automated` option IDs. This selects manual only in this branch; do not label the default user consent.
+
+For an automatic manual choice include this evidence table in the readiness report (one row per default-manual repo); preserve it and the original autonomy on resume even if the current chat mode changes:
+
+```markdown
+## Default verification evidence
+
+| Repo | Autonomy | Strategy | Tooling | Evidence |
+| --- | --- | --- | --- | --- |
+| example-api | autopilot | missing | absent | Inspected package.json, CI and relevant test paths; no real runner or documented external suite |
+```
+
+Do not use this branch to replace an existing automated policy after failures or denied installation. Manual execution still requires the observed scenarios described below, but skip its instruction to generate a strategy. Write the existing readiness report/policy and complete the parent checkpoint, then proceed directly to Handoff to planning. Recommend strategy onboarding only in the completion note.
+
+### Existing strategy or Guided readiness
+
 - **Usable tooling exists:** retain it. Inspect the maintained test map per `../../../docs/test-map-contract.md`; reuse unchanged relationships rather than repeating full semantic discovery. Inventory or refresh its strategy by reading and following `../../define-test-strategy/SKILL.md` relative to this reference's directory. Use the repo root and the original invocation root, and the caller's autonomy per that skill's `When run by implement`. Record configured layers/commands even if the first tests have yet to be written. If required selected layers remain planned, use the next branch for those missing capabilities. Do not install a redundant second framework or require unrelated suites to pass here; existing regression failures follow planning's baseline policy.
 - **No usable setup, or a required selected layer needs setup:** read the repo's Recommended Setup if present and `../../define-test-strategy/references/recommend-initial-setup.md`. Produce the repo-specific proposal for the missing capabilities, using the ticket's relevant behaviors and selected layers as the initial scope. Existing automated layers stay in place. In Guided mode ask once with **Set up automated tests (Recommended)** / **Use manual verification**. In Autonomous or Autopilot choose minimal automated setup without asking, unless the user already explicitly selected manual verification for this repo/run. Log that default with its rationale; Autopilot uses site `testing-readiness` and the ordinary decision-log schema. Reuse an explicit project instruction requiring manual verification as a user policy, naming its path.
 
@@ -76,7 +99,7 @@ If setup cannot be established, record the concrete reason. Guided and Autonomou
 
 ## Manual verification
 
-Record manual mode only from a user's choice or explicit project policy, never from absence of tests or a failed setup alone. If the strategy is missing, generate its inventory/proposal with `define-test-strategy` inline; keep it factual (`none` where appropriate) and retain its recommendations. Planning must provide executable manual scenarios with setup, actions and expected observations for each relevant AC and regression path. Execution must perform them and record observed results; source inspection alone is not a manual behavior check. Unavailable access or an unperformed scenario stops execution with the missing evidence; it never counts as verified.
+Record manual mode from a user's choice, explicit project policy, or the missing-strategy/absent-tooling Autonomous or Autopilot default above. A failed or unavailable configured automated suite never selects this default. Outside that default branch, if the strategy is missing, generate its inventory/proposal with `define-test-strategy` inline; keep it factual (`none` where appropriate) and retain its recommendations. Planning must provide executable manual scenarios with setup, actions and expected observations for each relevant AC and regression path. Execution must perform them and record observed results; source inspection alone is not a manual behavior check. Unavailable access or an unperformed scenario stops execution with the missing evidence; it never counts as verified.
 
 ## Handoff to planning
 
@@ -110,12 +133,12 @@ in Evidence. An existing configured runner may have a known failing or locally
 unavailable baseline: retain that fact and its normal planning baseline policy,
 never relabel it passing. Newly established setup requires a real nonempty passing
 behavior test, so its Baseline must be `pass`. Manual rows use Status/Setup
-`manual` and Baseline `not-applicable`, with the explicit user/project policy.
+`manual` and Baseline `not-applicable`, with the explicit user/project policy or the recorded missing-strategy autonomy default.
 These results establish readiness to plan, not acceptance verification or a green
 regression gate. The helper checks schema, scope and freshness; the parent must
 verify the evidence and reconcile it with the actual delegate report.
 
-`Mode` is `automated` or `manual`. `Decision` is `configured`, `user`, `project-policy`, or `autonomy-default`; manual permits only `user` or `project-policy`. Include the actual decision/policy reference in Reason. Recommendations and pending setup cannot be recorded as automated readiness.
+`Mode` is `automated` or `manual`. `Decision` is `configured`, `user`, `project-policy`, or `autonomy-default`; manual permits `user`, `project-policy`, or the bounded `autonomy-default` above. The latter requires `## Default verification evidence`; existing-strategy and failure fallbacks still require an explicit user/project decision. Include the actual decision/policy reference in Reason. Recommendations and pending setup cannot be recorded as automated readiness.
 
 Require the same table in the plan, and check it with `node "<implement-base>/scripts/testing-policy.mjs" check --plan <plan-path> --required`. Replans and fix plans retain the choices unless the user changes them or newly affected repos require setup. For a reused plan, add/resolve this policy before execution, update the plan hash, and apply the normal Guided plan approval. Existing resumed runs without readiness/policy keep their legacy gate behavior; do not retrofit setup during execution.
 

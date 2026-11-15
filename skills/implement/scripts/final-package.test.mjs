@@ -263,7 +263,7 @@ test('packages an explicitly manual completion without claiming automated PASS',
   const { state, draft, dir } = await artifacts(root);
   await writeFile(state, stateMarkdown('DEMO').replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1')
     .replace('execution: passed', 'execution: verified-manually').replace('gate: full-suite', 'gate: none')
-    .replace('context_updated: none', 'testing_readiness: make-it-work/DEMO/DEMO-testing-readiness.md\ncontext_updated: none'));
+    .replace('context_updated: none', `testing_readiness: make-it-work/DEMO/DEMO-testing-readiness.md\ntesting_summary: ${JSON.stringify([{ repo: 'app', strategy: 'missing', verification: 'manual' }])}\nworkspace_snapshot: ${JSON.stringify([{ root, id: 'app' }])}\ncontext_updated: none`));
   await writeFile(path.join(dir, 'DEMO-testing-readiness.md'), '# Readiness\n\nUser selected manual verification before planning.\n');
   await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User deferred setup |\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| Happy path | app | Manual | Start app; perform action; observe result |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
   const evidence = { version: 1, ticket: 'DEMO', plan_version: 1,
@@ -277,6 +277,12 @@ test('packages an explicitly manual completion without claiming automated PASS',
   assert.deepEqual(pkg.validation, { mode: 'none', result: 'manual-accepted' });
   assert.equal(pkg.acceptance[0].status, 'manual');
   assert.equal(pkg.evidence.testing_readiness.path, 'make-it-work/DEMO/DEMO-testing-readiness.md');
+  assert.equal(pkg.testing_summary[0].verification, 'manual');
+  assert.match(run('check', root, state).testing_notes[0], /Strategy missing for app; used manual verification/);
+  const savedState = await readFile(state, 'utf8');
+  await writeFile(state, savedState.replace('\"verification\":\"manual\"', '\"verification\":\"automated\"'));
+  assert.throws(() => run('check', root, state), /Testing summary changed/);
+  await writeFile(state, savedState);
   assert.equal(run('check', root, state).current, true);
   await writeFile(path.join(dir, 'DEMO-testing-readiness.md'), '# Readiness changed\n');
   assert.throws(() => run('check', root, state), /stale/);

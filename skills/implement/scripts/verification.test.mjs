@@ -73,7 +73,8 @@ test('manual completion requires an authorized policy and observed evidence, nev
   assert.equal(validateVerification(manualLedger(), options).gate.result, 'manual-accepted');
   assert.throws(() => validateVerification(manualLedger(), { ...options, plan }), /all-manual policy/);
   assert.throws(() => validateVerification(manualLedger(), { ...options, plan: null }), /requires the plan/);
-  assert.throws(() => validateVerification(manualLedger(), { ...options, plan: manualPlan.replace('manual | user', 'manual | autonomy-default') }), /explicit user/);
+  assert.equal(validateVerification(manualLedger(), { ...options, plan: manualPlan.replace('manual | user', 'manual | autonomy-default') }).gate.result, 'manual-accepted');
+  assert.throws(() => validateVerification({ ...manualLedger(), steps: [] }, { ...options, plan: manualPlan.replace('manual | user', 'manual | autonomy-default') }), /unknown step|passing evidence/);
   assert.throws(() => validateVerification(ledger(), options), /accepted manual gate/);
   assert.throws(() => validateVerification({ ...manualLedger(), gate: { mode: 'none', result: 'pass', note: 'Nothing ran' } }, { ...options, outcome: 'PASSED' }), /absent automated gate cannot pass/);
   const unverified = manualLedger();
