@@ -1,0 +1,23 @@
+evals/implement/planning-progress/graders/saved-history.md
+  s_c10617d4b0a956::t_920fb6b5362b4f 8-9
+skills/implement/references/orchestration/planning.md
+  s_c10617d4b0a956::t_920fb6b5362b4f 7-23
+skills/plan-the-work/SKILL.md
+  s_c10617d4b0a956::t_920fb6b5362b4f 427
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "533625d8468495323071cf1f68219c433433fc87",
+  "prompts": {},
+  "sessions": {
+    "s_c10617d4b0a956": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e033-0ccc-79f0-91ac-ec362a61fb92",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
