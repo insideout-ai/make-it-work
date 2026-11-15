@@ -9,6 +9,21 @@ import { parseState } from './render-status.mjs';
 import { assertRunState, runArtifact } from './artifact-layout.mjs';
 import { checkContextMaintenance } from './context-maintenance.mjs';
 import { validateReviewChecks } from './review-checks.mjs';
+import { testingPolicy } from './testing-policy.mjs';
+
+async function verificationContext(root, f) {
+  const context = { mode: f.mode ?? 'legacy', retained_decisions: f.retained_verification ? JSON.parse(f.retained_verification) : null, policy: null, policy_source: null };
+  // Lightweight can retain an explicitly accepted verification limitation even
+  // without a plan. These decisions are context, never acceptance evidence.
+  const source = f.testing_readiness && f.testing_readiness !== 'none' ? f.testing_readiness : f.mode !== 'lightweight' && f.plan !== 'none' ? f.plan : null;
+  if (source) {
+    const bytes = await readFile(await within(root, source));
+    context.policy = testingPolicy(bytes.toString());
+    context.policy_source = { path: source, sha256: digest(bytes) };
+  }
+  if (f.manual_verification_waiver && f.manual_verification_waiver !== 'none') context.manual_waiver = JSON.parse(f.manual_verification_waiver);
+  return context;
+}
 
 const targetName = (f) => `${f.ticket}-review-target-${f.review_cycle}.json`;
 async function readState(root, statePath) {
@@ -47,7 +62,7 @@ export async function prepareReviewScope(root, statePath) {
   }
   await checkContextMaintenance(root, f);
   const repos = await deliverySnapshots(root, state);
-  const target = { version: 1, ticket: f.ticket, runId: f.start_time, planVersion: Number(f.plan_version), cycle: Number(f.review_cycle), repos: manifestRepos(repos, f) };
+  const target = { version: 1, ticket: f.ticket, runId: f.start_time, planVersion: Number(f.plan_version), cycle: Number(f.review_cycle), repos: manifestRepos(repos, f), verification_context: await verificationContext(root, f) };
   if (f.review_checks_version === '1') {
     const requirements = JSON.parse(f.review_requirements ?? '[]');
     if (requirements.length !== repos.length) fail('Checkpoint the required review skills and mapping scope before freezing review.');
@@ -66,6 +81,7 @@ async function readTarget(root, state, relative) {
   const bytes = await readFile(await within(root, relative));
   const target = JSON.parse(bytes);
   if (target.version !== 1 || target.ticket !== f.ticket || target.runId !== f.start_time || target.planVersion !== Number(f.plan_version) || target.cycle !== Number(f.review_cycle) || !Array.isArray(target.repos)) fail('Review target binding is stale. Prepare the current delivery scope again.');
+  if (target.verification_context && JSON.stringify(target.verification_context) !== JSON.stringify(await verificationContext(root, f))) fail('Verification context changed; prepare the review target and independently review the current context again.');
   for (const repo of target.repos) {
     const diff = await readFile(await within(root, runArtifact(f.ticket, repo.diff_file)));
     if (digest(diff) !== repo.diff_sha256) fail('Review target diff changed. Prepare the current delivery scope again.');
