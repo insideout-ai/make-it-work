@@ -20,3 +20,5 @@ reported honestly, but does not count as successful unattended completion here.
 An early accidental edit can recover: preserve it, complete the missing refinement
 and approved implementation path, validate the resulting scope and obtain an
 independent review before the final package. Do not require rollback of local edits.
+
+Judge the actual phase and current contract, not the programming language or whether the caller is the main session. Inline planning may write tests; planning-test receipts explicitly become unnecessary after the startup guard is released. Evidence-backed gate/acceptance ledger writes prescribed by verification.md are allowed; do not require a nonexistent controller setter. Production-logic edits during planning, including temporary mutation probes later restored, remain violations of the existing Modify-row planning boundary.

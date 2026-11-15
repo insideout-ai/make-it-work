@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolveDecision } from './autonomy-policy.mjs';
+import { resolveDecision, executionModeDecision } from './autonomy-policy.mjs';
 import { normalizeEntry } from './decision-log.mjs';
 const input = (extra = {}) => ({ skill: 'execute', site: 'mode-choice', phase: 'Phase 0', mode: 'autopilot', question: 'Which mode?', options: [{ id: 'subagent-driven', label: 'Subagent-Driven (Recommended)' }, { id: 'inline', label: 'Inline' }], ...extra });
+test('unattended execution constructs a complete writer-valid question payload, not only its chosen label', () => {
+  const result = executionModeDecision();
+  assert.equal(result.action, 'chosen');
+  assert.equal(result.choice_id, 'subagent-driven');
+  assert.equal(result.entry.kind, 'askUserQuestion');
+  assert.equal(result.entry.multiSelect, false);
+  assert.ok(result.entry.question);
+  assert.deepEqual(result.entry.options.map(option => option.label), ['Subagent-Driven (Recommended)', 'Inline Execution']);
+  assert.equal(result.entry.chosen, result.entry.options[0].label);
+  assert.deepEqual(normalizeEntry(result.entry, 'execute'), result.entry);
+  const incomplete = { ...result.entry }; delete incomplete.options;
+  assert.throws(() => normalizeEntry(incomplete, 'execute'), /options/);
+});
 test('stable policy ids choose the documented default regardless of option label recommendation', () => {
   const result = resolveDecision(input({ options: [{ id: 'inline', label: 'Inline (Recommended)' }, { id: 'subagent-driven', label: 'Fresh agent' }] }));
   assert.equal(result.choice_id, 'subagent-driven'); assert.equal(result.entry.chosen, 'Fresh agent');

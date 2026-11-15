@@ -140,7 +140,8 @@
     "drive-the-epic-uncertainty-resolved",
     "define-test-strategy-negative-control",
     "implement-payment-feedback-e2e",
-    "review-verification-context"
+    "review-verification-context",
+    "implement-fix-plan-boundary"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
