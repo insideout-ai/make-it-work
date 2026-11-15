@@ -74,5 +74,5 @@ workflow rule was relaxed to excuse the failed first command.
 One startup sample's observed parent peak input, including cached input, fell
 from 105,641 to 75,911 tokens (28.1%). The samples used the same reported model;
 this does not establish a general reduction, total cost saving or remaining
-context capacity. The complete candidate critical gate is still being recorded.
+context capacity. The complete candidate critical gate passed 7/7 (reported usage $9.22).
 No execution placement or delegation is changed by extraction.
