@@ -1,0 +1,23 @@
+evals/grade-headless.mjs
+  s_b84ad5300dc276::t_0a97c43dcf8afc 273,277-278,288-299,301,313
+evals/README.md
+  s_b84ad5300dc276::t_1a29ec9a1a7663 95
+evals/grade-headless.test.mjs
+  s_b84ad5300dc276::t_237d9dc0b477ba 265-293
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9147f18c8662ba0c603e6e989088bbf5ae2a1067",
+  "prompts": {},
+  "sessions": {
+    "s_b84ad5300dc276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-3f3a-7ca2-8c0c-1b3d7dd3647d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
