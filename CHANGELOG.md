@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Construct complete execution-mode decision payloads for the shared log writer.
 - Keep workspace selection previews clickable and explicitly recommend the existing bounded closing check for feedback-collection findings.
 - Preserve complete post-pointer test-map evidence before final reassessment and baseline updates.
-- Require supplied-conversation access, actionable findings and full saved-report readback when finalizing session feedback.
+- Require supplied-conversation access, actionable findings, evidence-backed limitation claims and full saved-report readback when finalizing session feedback.
 - Clarify that fix planning preserves production code, including temporary mutation probes, while allowing regression coverage for already-correct behavior.
 
 ## [5.7.1] — 2026-11-15

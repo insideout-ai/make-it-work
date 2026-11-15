@@ -17,6 +17,16 @@ test('fix-plan boundary fixture starts with completed implementation, passing ch
   assert.equal(state.fields.phase, 'fix-plan');
   assert.equal(state.fields.autonomy, 'autopilot');
   assert.equal(state.fields.controller_version, undefined);
+  const git = (...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim();
+  const blobHash = input => execFileSync('git', ['-C', root, 'hash-object', '--stdin'], { input, encoding: 'utf8' }).trim();
+  assert.equal(state.fields.head, git('rev-parse', 'HEAD'));
+  assert.equal(state.fields.spec_hash, git('hash-object', state.fields.spec));
+  const planBytes = await readFile(path.join(root, state.fields.plan), 'utf8');
+  assert.equal(state.fields.plan_hash, blobHash(planBytes.replace(/^## Execution Status\s*\n[\s\S]*?(?=^## |$(?![\s\S]))/m, '')));
+  const tracked = execFileSync('git', ['-C', root, 'diff', 'HEAD', '--binary', '--', '.', ':!make-it-work']);
+  const untracked = execFileSync('git', ['-C', root, 'ls-files', '--others', '--exclude-standard', '-z', '--', '.', ':!make-it-work']).toString().split('\0').filter(Boolean);
+  assert.equal(state.fields.worktree_fingerprint, blobHash(Buffer.concat([tracked, Buffer.from(untracked.map(file => git('hash-object', file) + '\n').join(''))])));
+
   assert.equal(state.audit.at(-1).from, 'review');
   assert.equal(state.audit.at(-1).to, 'fix-plan');
   const plan = await readFile(path.join(root, state.fields.plan), 'utf8');
