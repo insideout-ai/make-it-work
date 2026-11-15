@@ -1,0 +1,61 @@
+docs/implement-context-isolation.md
+  s_852f9e573071fc::t_cc41a52710710f 77
+scripts/decision-log.test.mjs
+  s_852f9e573071fc::t_e100712ddc7ce0 57
+skills/implement/SKILL.md
+  s_852f9e573071fc::t_02e45a2809af83 27-112
+skills/implement/assets/orchestration-relocation.json
+  s_852f9e573071fc::t_47b88bf6f7bb33 1-96
+skills/implement/assets/workflow-defaults.json
+  s_852f9e573071fc::t_9aa014d5f8cefb 1-54
+skills/implement/references/orchestration/completion.md
+  s_852f9e573071fc::t_101f108bc0a1f5 1-52
+skills/implement/references/orchestration/execution.md
+  s_852f9e573071fc::t_7c20759dc7596a 1-26
+skills/implement/references/orchestration/feedback.md
+  s_852f9e573071fc::t_e047632c4842ce 1-25
+skills/implement/references/orchestration/final-package.md
+  s_852f9e573071fc::t_46700f02add8bb 1-21
+skills/implement/references/orchestration/final-sync.md
+  s_852f9e573071fc::t_a362a7e6aa26aa 1-61
+skills/implement/references/orchestration/fixes.md
+  s_852f9e573071fc::t_847da9ad4af260 1-38
+skills/implement/references/orchestration/lightweight.md
+  s_852f9e573071fc::t_13df298da23d4b 1-25
+skills/implement/references/orchestration/planning.md
+  s_852f9e573071fc::t_1589ee158797a5 1-28
+skills/implement/references/orchestration/refinement.md
+  s_852f9e573071fc::t_f1b727ddc63931 1-42
+skills/implement/references/orchestration/review.md
+  s_852f9e573071fc::t_4a6758e4c23c85 1-54
+skills/implement/references/orchestration/rules.md
+  s_852f9e573071fc::t_5e099b92c241a3 1-16
+skills/implement/references/orchestration/stage-contract.md
+  s_852f9e573071fc::t_7cfbd27d6053e1 1-31
+skills/implement/references/orchestration/startup.md
+  s_852f9e573071fc::t_b56aeee402c68f 1-243
+skills/implement/references/orchestration/state-and-progress.md
+  s_852f9e573071fc::t_7d573c2be35664 1-135
+skills/implement/references/orchestration/transitions.md
+  s_852f9e573071fc::t_05f57013a90c93 1-56
+skills/implement/scripts/workflow-defaults.test.mjs
+  s_852f9e573071fc::t_1e32e43268701e 1-35
+skills/implement/scripts/workflow.mjs
+  s_852f9e573071fc::t_d1edbc47117ae1 629-634,645
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "cd8d48615351b2e6a071fab49a0b37ec29a36368",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
