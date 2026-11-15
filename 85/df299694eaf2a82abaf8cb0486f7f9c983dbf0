@@ -1,0 +1,25 @@
+evals/review-the-code/review-verification-context/graders/context-and-security.md
+  s_b84ad5300dc276::t_2935eb75dce7fe 7
+evals/review-the-code/review-verification-context/fixture.sh
+  s_b84ad5300dc276::t_6fcf8b4e374dec 6-7
+evals/review-the-code/review-verification-context/graders/skill-read.md
+  s_b84ad5300dc276::t_bc52c247c3fce1 1-7
+evals/review-the-code/review-verification-context/prompt.md
+  s_b84ad5300dc276::t_660eeccbe6296d 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "85df299694eaf2a82abaf8cb0486f7f9c983dbf0",
+  "prompts": {},
+  "sessions": {
+    "s_b84ad5300dc276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-3f3a-7ca2-8c0c-1b3d7dd3647d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
