@@ -1,0 +1,23 @@
+evals/implement/refinement-worker-blocked/fixture.sh
+  s_852f9e573071fc::t_4b82c61a030e09 17,21
+evals/refinement-worker-fixture.test.mjs
+  s_852f9e573071fc::t_850b303bb845ed 1-27
+skills/implement/scripts/refinement-worker.test.mjs
+  s_852f9e573071fc::t_467f8f2322f112 172-186
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c70709ec103dfe801159b6b17526ec7ee4ba8971",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
