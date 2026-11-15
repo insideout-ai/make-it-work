@@ -1,0 +1,19 @@
+evals/find-the-repos/find-the-repos-autopilot-save-injection/graders/shortlist-saved.md
+  s_b84ad5300dc276::t_e38c1c7de96e71 13-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "defea6e8a8723705e9a76b6473c29d84a3a4307a",
+  "prompts": {},
+  "sessions": {
+    "s_b84ad5300dc276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-3f3a-7ca2-8c0c-1b3d7dd3647d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
