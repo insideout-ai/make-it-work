@@ -4,6 +4,23 @@ Pass the exact workflow state path and resolved Implement skill directory to eve
 
 Before Plan discovery/readiness inspection begins, narrate the upcoming investigation and checkpoint that exact sentence through the activity helper. When readiness returns, checkpoint the actual next planning activity before continuing; a single phase-start description must not cover the whole planning stage.
 
+**Live planning updates are main-session work, including while following the inline skill.** For each applicable boundary below, first send the activity sentence in assistant chat, then call the activity helper with that **same sentence**, then do the work. A helper call alone is not narration; a final summary cannot replace a missed live update. Keep the checkpoint separate from the commands that perform the work so the saved activity is visible before a long operation starts.
+
+- Before loading/tracing planning context: describe discovery of the affected code and tests.
+- Before drafting/amending the steps: describe drafting the plan and coverage.
+- Before running the regression baseline: describe the existing-behavior checks being run.
+- Before writing/extending tests: describe the behavior whose tests are being authored. Switch activity after baseline execution; do not hide both behind "checking the baseline, then writing tests."
+- Before running progression tests: describe checking for the expected missing-behavior failure.
+- Before `validate-plan.mjs normalize-risk` / `check` and semantic self-review: describe final validation. The later handoff/approval transition does not replace this update.
+
+Use the existing helper, never a manual state/HTML edit:
+
+```sh
+node "<base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<sentence just sent in chat>"
+```
+
+These are major activities, not a tool-by-tool checklist. Repeat only on meaningful activity changes; omit work that does not apply. Retain the existing delegated-work ownership/wait rules and all failure/permission boundaries in the activity contract. Do not infer a successful test result from an activity description.
+
 For `acceptance_evidence_version: 1`, pass the marker to every initial, replan and amendment dispatch. Require the plan template’s clause-level AC traceability inventory, checked against every material clause in the accepted spec. Reused plans must satisfy this contract before execution; do not infer clause evidence from existing scenario names.
 
 For a run whose state includes `testing_readiness` (all new runs), before invoking the planning stage read `<base>/references/testing-readiness.md` and follow it for every affected product repo. This also applies when a new run reuses a standalone plan and would enter Execute directly: enter Plan for readiness and resolve the plan's policy before execution. Setup occurs within Plan, with its own saved decision/checkpoints, rather than changing planning's write permissions. For `testing_readiness_version: 1`, begin the parent checkpoint before readiness work, wait for every actual delegate handback, reconcile and complete it, then run its `check` before invoking or resuming `plan-the-work`. A ready-looking file is not completion. Pass the readiness artifact, accepted setup baseline and exact state path to the stage. On replan check newly affected repos and retain prior choices. Older resumed runs without this field retain their existing behavior; never add it just to retrofit setup.
