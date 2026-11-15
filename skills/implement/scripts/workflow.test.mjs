@@ -87,6 +87,20 @@ test('branch baseline acceptance rejects mixed edits and incorrect targets witho
   }
 });
 
+test('unsupported late mode downgrade rejects before changing state, dashboard or artifacts', async t => {
+  const f = await fixture(t);
+  const saved = (await readFile(f.statePath, 'utf8')).replace('phase: context-check', 'phase: execute')
+    .replace('status: In Progress', 'status: Stopped').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed');
+  await writeFile(f.statePath, saved);
+  const dashboard = await readFile(f.result.dashboard, 'utf8');
+  await assert.rejects(f.apply('mode', { mode: 'lightweight', risk: 'medium', source: 'user', via: 'chat', rationale: 'Review without a build' }), /Cannot switch.*Lightweight/);
+  assert.equal(await readFile(f.statePath, 'utf8'), saved);
+  assert.equal(await readFile(f.result.dashboard, 'utf8'), dashboard);
+  for (const phase of ['plan', 'plan-approval', 'review', 'final-sync', 'final-approval']) {
+    assert.throws(() => transition(lightweight(phase, { mode: 'tdd' }), { event: 'mode', mode: 'lightweight', risk: 'medium', source: 'user', via: 'chat', rationale: 'Switch' }), /Cannot switch.*Lightweight/);
+  }
+});
+
 test('legacy final sync persists context paths, preserves earlier updates and replays without duplicates', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   await writeFile(statePath, (await readFile(statePath, 'utf8')).replace(/^review_scope_version: 1\n/m, '').replace(/^review_context_version: 2\n/m, '').replace('phase: context-check', 'phase: final-sync').replace('review: not-started', 'review: clean').replace('context_updated: none', 'context_updated: .claude/rules/product.md'));

@@ -204,6 +204,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (input.source === 'assessed' && input.mode !== (input.risk === 'low' ? 'lightweight' : 'tdd')) fail('An assessed mode must follow its risk level.');
     if (f.mode === 'tdd' && input.mode === 'lightweight' && input.source !== 'user') fail('Only the user can downgrade a run to Lightweight.');
     const started = !['context-check', 'close-the-gaps', 'spec-approval'].includes(f.phase);
+    if (f.mode === 'tdd' && input.mode === 'lightweight' && started) fail('Cannot switch this started TDD run to Lightweight. Resume its existing verification route, or explicitly start a new Lightweight run reusing the spec and code. No mode or phase was changed.');
     if (f.mode === 'lightweight' && input.mode === 'tdd' && started) fail('Use escalate to move a started Lightweight run to TDD.');
     if (f.mode_source === 'user' && input.source === 'assessed' && f.mode !== 'none') {
       Object.assign(f, { risk: input.risk, risk_rationale: oneLine(input.rationale, 'Risk rationale') });
