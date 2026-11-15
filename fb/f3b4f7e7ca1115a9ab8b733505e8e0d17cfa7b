@@ -1,0 +1,19 @@
+evals/suites.json
+  s_2978f25d7b478e::t_bcf282868a09f6 215-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbf3b4f7e7ca1115a9ab8b733505e8e0d17cfa7b",
+  "prompts": {},
+  "sessions": {
+    "s_2978f25d7b478e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df70-2717-79b3-bdba-32f3a995f7ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
