@@ -63,9 +63,24 @@ export function resolveDecision(input) {
   return { action: rule === 'stop' ? 'stop' : 'chosen', choice_id: choiceId, chosen, source,
     entry: source === 'autopilot' ? normalizeEntry(entry, input.skill) : null };
 }
+
+// Keep the unattended execution choice and its complete audit payload together.
+// This returns data only; it grants no permission and writes no plan or log.
+export function executionModeDecision() {
+  return resolveDecision({
+    skill: 'execute', mode: 'autopilot', phase: 'Phase 0', site: 'mode-choice',
+    kind: 'askUserQuestion', multiSelect: false,
+    question: 'How should this plan be executed?',
+    options: [
+      { id: 'subagent-driven', label: 'Subagent-Driven (Recommended)', description: 'Dispatch a fresh subagent per step.' },
+      { id: 'inline', label: 'Inline Execution', description: 'Execute steps in this session.' },
+    ],
+  });
+}
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--input']);
   if (o.command === 'list') return POLICIES;
-  if (o.command !== 'resolve') fail('Usage: autonomy-policy.mjs list | resolve --input DECISION.json');
+  if (o.command === 'execution-mode') return executionModeDecision();
+  if (o.command !== 'resolve') fail('Usage: autonomy-policy.mjs list | execution-mode | resolve --input DECISION.json');
   return resolveDecision(await jsonInput(o.input));
 });
