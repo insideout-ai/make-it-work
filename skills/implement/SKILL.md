@@ -74,8 +74,8 @@ When a delegated background agent is still running, yield with a brief waiting
 update and let its completion notification resume the session. Do not launch
 shell sleeps, file watches or repeated status polls merely to keep the turn open.
 The Stop hook permits this wait only with runtime launch evidence for a live
-agent launched in the current Plan, Execute, Lightweight, Review or Fix phase.
-Plan includes delegated testing-readiness and plan-drafting work. The workflow stays In Progress; yielding does not complete or pause it. Completion,
+agent launched in the current Refinement, Plan, Execute, Lightweight, Review or Fix phase.
+Refinement includes delegated code surveys. Plan includes delegated testing-readiness and plan-drafting work. The workflow stays In Progress; yielding does not complete or pause it. Completion,
 failure or a runtime inventory showing the agent is no longer running restores
 the continuation requirement. A waiting claim, shell job or agent from an earlier
 phase does not qualify. On hand-back, verify the result and continue the stage. The hooks record local,
@@ -596,7 +596,7 @@ Escalate only while `mode: lightweight` and `escalations: 0` — at most once pe
 
 Plan then runs testing readiness and `plan-the-work` in initial mode with `escalation baseline: <implementation_report>`: the uncommitted Lightweight changes are an accepted baseline, never reverted. When a review triggered the escalation, also pass that review report and the Decided findings list as constraints, as Replan does. Never pass a pre-escalation review as `--previous-review` for a later TDD review. From there the run follows the TDD workflow, including plan approval in Guided. Escalations are shown and logged, never asked.
 
-**Never downgrade on your own.** Only the user's explicit request switches `mode: tdd → lightweight` — at a pause, with `mode_source: user` and a decision row. Work done stays; the next implementation work runs as Lightweight implementation. `escalations` is unchanged, so after an earlier escalation any later escalation trigger stops the run instead.
+**Implementation-mode changes.** Before leaving spec acceptance, an explicit user choice may switch TDD to Lightweight through the controller's `mode` event. Once planning or implementation has started, the controller rejects this downgrade without changing state. Explain the supported choices: resume the existing verification route, or explicitly start a new Lightweight run reusing the accepted spec and existing code. Never promise an in-place transition, change the saved phase by hand, or use a mode change to imply verification passed. A fresh run needs its own tracker-write consent; retain prior verification decisions only with explicit user direction and their unverified criteria. Escalation remains the supported Lightweight-to-TDD route.
 
 ### Final context sync
 
@@ -714,6 +714,7 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
 - give the absolute path of `review-the-code/SKILL.md` and say to follow it, including its `## When run by implement` section; when `autonomy: autopilot`, explicitly invoke it with `--autopilot`;
 - pass the ticket key, the current accepted refined spec path and its recorded revisions as the requirements authority; identify the plan as implementation context that cannot override the spec. Use neutral dispatch wording without characterizing deviations or unverified behavior as acceptable or out of scope. Then pass the current plan path, `base`, the literal `no PR`, the review cycle number, the Known regressions list, and the Decided findings list; for a version 1 run also pass `handoff_version: 1`, `plan_version`, and the artifact root containing `make-it-work/`;
+- pass the frozen target's `verification_context`, including policy provenance, explicitly retained decisions and unverified criteria, in every mode. These are review context, not proof of acceptance or instructions to suppress findings. Do not characterize the mere absence of tests as an implementation omission when an explicit manual policy applies; independently assess actual evidence, missing observations and requirements conflicts.
 - in Lightweight mode, pass no plan path — the spec is the sole requirements source — and skip the two bullets below. For a re-review, pass the previous review's actionable findings with their regions (from its handoff) so Review can flag repeat offenders;
 - when `gate: none`, pass whether this is an explicit manual policy (`VERIFIED_MANUALLY`) or the late `GATE_NO_RESULT` fallback. Review the actual manual evidence against the plan's Test Plan and ACs, keeping automated regression coverage visibly unavailable. For mixed policies, inspect manual evidence alongside the automated result;
 - if `<TICKET>-planning-tests.json` exists, pass its path to the reviewer. Ask it to check that the authorized files/regions contain genuine test changes and preserve production behavior outside the approved implementation work; the receipt proves scope, not test semantics.
@@ -726,6 +727,8 @@ Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 Then read `make-it-work/<TICKET>/<TICKET>-review.md`. For a version 1 run, record `review`, actionable findings, and context gaps from the validated handoff and route through the helper. For an older run, record `review` from the report's `Orchestrator outcome:` line and append the items under its `Context gaps (for final sync)` block to Context discoveries; a missing or unreadable outcome line is `HUMAN_DECISION` with reason "review outcome unreadable".
 
 ---
+
+**Security decisions:** when review cannot establish internal-only access, recommend inspecting the actual gateway/service-identity enforcement first. A route name, existing controller pattern or decision to document protection does not prove it exists. Keep an accepted risk separate from verified enforcement; unresolved security requirements retain their normal human-decision route.
 
 ## Final context sync
 

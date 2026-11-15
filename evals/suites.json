@@ -138,7 +138,8 @@
     "plan-assumption-low-risk",
     "drive-the-epic-uncertainty-unresolved",
     "drive-the-epic-uncertainty-resolved",
-    "define-test-strategy-negative-control"
+    "define-test-strategy-negative-control",
+    "review-verification-context"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -185,6 +186,13 @@
     "autopilot-full-info": {
       "autopilot-log-content.md": [
         "make-it-work/TASK-100/review-the-code-autopilot-log.jsonl"
+      ]
+    },
+    "review-verification-context": {
+      "context-and-security.md": [
+        "make-it-work/REVIEW-2/REVIEW-2-review.md",
+        "make-it-work/REVIEW-2/review-target.json",
+        "src/internalItems.js"
       ]
     }
   },

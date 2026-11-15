@@ -648,6 +648,14 @@ export async function initializeWorkflow(root, input) {
   requireText(manifest.version, 'Plugin version');
   const time = new Date().toISOString();
   const baseline = await implementationBaseline(repos.map(repo => repo.root));
+  if (input.retained_verification !== undefined) {
+    explicit(input);
+    if (!Array.isArray(input.retained_verification) || !input.retained_verification.length) fail('retained_verification must contain explicit decisions.');
+    fields.retained_verification = JSON.stringify({ source: input.source, via: input.via, decisions: input.retained_verification.map(item => {
+      if (!item || !Array.isArray(item.unverified) || !item.unverified.length) fail('Retained verification decisions must list unverified criteria.');
+      return { decision: oneLine(item.decision, 'Retained decision'), reference: oneLine(item.reference, 'Decision reference'), unverified: item.unverified.map(value => oneLine(value, 'Unverified criterion')) };
+    }) });
+  }
   Object.assign(fields, { ticket: input.ticket, controller_version: '1', autonomy: input.autonomy, queued_autonomy: 'none',
     refinement_destination: input.refinement_destination ?? 'here', start_time: time, plugin_version: manifest.version,
     branch: repos[0].branch, base: workspace ? workspace.repos.find((repo) => repo.root === repos[0].root).base : requireText(input.base, 'Base branch'), head: repos[0].head,

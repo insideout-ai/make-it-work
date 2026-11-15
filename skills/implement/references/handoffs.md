@@ -36,7 +36,7 @@ For a run with `verification_version: 1`, a `done` Execute handoff also has `art
 
 `VERIFIED_MANUALLY` always requires that artifact and `data.gate: none`, including when a standalone plan is reused. Artifact validation requires an explicit all-manual plan policy and actual scenario/AC evidence. It routes directly to Review at every autonomy level, because the manual policy was already authorized before execution. Missing automated results without that policy still use `GATE_NO_RESULT` and its existing question/Autopilot stop. The handoff's gate must match its ledger.
 
-Lightweight has no plan or verification artifact: its handoffs carry the state's current `plan_version` (1 unless the user downgraded after a replan), and the spec is Review's requirements source.
+Lightweight has no plan or verification artifact: its handoffs carry the state's current `plan_version` (usually 1; preserve the saved version on historical runs), and the spec is Review's requirements source.
 
 Review `findings` lists actionable findings only. Each is `{ "id": "#1", "route": "fix | replan | human", "region": "path:symbol or function", "introduced_by_fix_of": "#N or step N" | null }`. Use a stable region label across rounds. `CLEAN` has no actionable findings. A Minor `fix`, `replan` or `human` finding is actionable and must appear here like any other severity. Only nonblocking Minor findings explicitly marked `Route: advisory` stay out of this list; they remain visibly unfixed in the Markdown review, chat summary and final package. The advisory route never enters the handoff schema or fix scope. The validator derives the expected outcome from the finding routes and rejects a disagreement.
 

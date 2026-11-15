@@ -37,6 +37,14 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = 
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
 
+test('fresh runs retain verification decisions only through an explicit user choice', async t => {
+  const decision = { decision: 'Manual verification selected; build unavailable', reference: 'Prior run user decision', unverified: ['Endpoint behavior has not been observed'] };
+  await assert.rejects(fixture(t, { init: { retained_verification: [decision] } }), /explicit user/);
+  const f = await fixture(t, { init: { retained_verification: [decision], source: 'user', via: 'chat' } });
+  assert.deepEqual(JSON.parse(f.result.fields.retained_verification), { source: 'user', via: 'chat', decisions: [decision] });
+  assert.equal(f.result.fields.ticket_publication, 'none', 'retaining verification never transfers tracker consent');
+});
+
 test('an exact approved branch advance clears the guard without absorbing local edits', async t => {
   const f = await fixture(t, { dirty: true });
   const git = (...args) => execFileSync('git', ['-C', f.root, ...args], { stdio: 'pipe' }).toString().trim();
