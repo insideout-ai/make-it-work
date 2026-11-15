@@ -1,0 +1,33 @@
+evals/implement/planning-progress/graders/activity-order.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 11
+evals/implement/planning-progress/graders/saved-history.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 7
+evals/implement/planning-progress/graders/paused-plan.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 4
+evals/implement/planning-progress/prompt.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 9,11,13
+evals/planning-progress.test.mjs
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 44,47
+evals/implement/README.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 214,219
+skills/implement/references/orchestration/planning.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 5-6
+skills/plan-the-work/SKILL.md
+  s_c10617d4b0a956::t_db1c3f8ee2ba41 303-304
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "569c80eec534721cfa499f508cc930565d139b50",
+  "prompts": {},
+  "sessions": {
+    "s_c10617d4b0a956": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e033-0ccc-79f0-91ac-ec362a61fb92",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
