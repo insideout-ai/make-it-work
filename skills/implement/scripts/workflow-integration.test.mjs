@@ -13,6 +13,9 @@ import { applyWorkflow, initializeWorkflow } from './workflow.mjs';
 import { testingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { prepareReviewScope } from './review-scope.mjs';
+import { startupHook } from './startup-presentation.mjs';
+import { prematureImplementation } from './implementation-guard.mjs';
+import { parseState } from './render-status.mjs';
 import { prepareScope, approveScope, runScope } from './workspace-scope.mjs';
 import { realpath } from 'node:fs/promises';
 
@@ -39,12 +42,40 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
     await approveScope(root, 'DEMO-2', preview.hash, { source: 'user', via: 'chat' });
     await runScope(root, 'DEMO-2', preview.hash);
   } else git('switch', '-c', 'DEMO-2');
-  const initialHead = git('rev-parse', 'HEAD').toString().trim();
+  let initialHead = git('rev-parse', 'HEAD').toString().trim();
   const initialized = await initializeWorkflow(root, { ticket: 'DEMO-2', autonomy, base: 'main', repos, branch_guard: 'Existing feature branch' });
   const statePath = initialized.state;
   let eventId = 0;
   const apply = async (event, extra = {}) => applyWorkflow({ root, statePath, input: { event, id: `event-${++eventId}`, expected_hash: digest(await readFile(statePath, 'utf8')), repos, ...extra } });
+  if (!workspace && autonomy === 'autonomous') {
+    // Rehearse the transcript's approved advance before refinement, then a
+    // real runtime-evidenced survey wait before the normal red-to-green flow.
+    await writeFile(path.join(root, 'upstream.json'), '{"approved":true}\n');
+    git('add', 'upstream.json'); git('commit', '-m', 'Approved upstream advance');
+    const advanced = git('rev-parse', 'HEAD').toString().trim();
+    assert.match(await prematureImplementation(initialized, parseState(await readFile(statePath, 'utf8'))), /Application files changed/);
+    await apply('accept-workspace', { source: 'user', via: 'chat', reason: 'User approved exact upstream advance',
+      branch_baseline: [{ root, from_head: initialHead, to_head: advanced, branch: 'DEMO-2' }] });
+    initialHead = advanced;
+  }
   await apply('context-ready');
+  if (!workspace && autonomy === 'autonomous') {
+    const events = [
+      { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'init', name: 'Bash' }] } },
+      { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'init', content: JSON.stringify({ ...initialized, continuation: 'continue_context_check_without_user_reply' }) }] } },
+      { type: 'assistant', message: { content: [{ type: 'text', text: initialized.startup_message }, { type: 'tool_use', id: 'survey', name: 'Agent' }] } },
+      { type: 'user', timestamp: new Date(Date.now() + 10).toISOString(), toolUseResult: { isAsync: true, status: 'async_launched', agentId: 'survey-agent' },
+        message: { content: [{ type: 'tool_result', tool_use_id: 'survey', content: 'Launched' }] } },
+    ];
+    const transcript = path.join(root, 'make-it-work/survey-transcript.jsonl');
+    const check = async () => {
+      await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
+      return startupHook({ hook_event_name: 'Stop', transcript_path: transcript });
+    };
+    assert.deepEqual(await check(), {});
+    events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification><task-id>survey-agent</task-id><status>completed</status></task-notification>' });
+    assert.match((await check()).reason, /still In Progress at close-the-gaps/);
+  }
   const directory = path.join(root, 'make-it-work/DEMO-2');
   const handoffs = path.join(directory, 'DEMO-2-handoffs'); await mkdir(handoffs);
   const saveHandoff = async (stage, body) => {
