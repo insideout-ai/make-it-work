@@ -193,7 +193,7 @@ export async function startupHook(input) {
   }
   const feedbackState = progress.feedbackRun?.state;
   const deliveryOffer = input.tool_name === 'Bash' && /\bdeliver\.mjs["']?\s+offer\b/.test(input.tool_input?.command ?? '');
-  const collectOutcome = input.hook_event_name === 'PostToolUse' && input.tool_name === 'Bash';
+  const collectOutcome = input.hook_event_name === 'PostToolUse' && ['Bash', 'Read'].includes(input.tool_name);
   if (feedbackState && (collectOutcome || input.hook_event_name === 'Stop' || input.hook_event_name === 'PreToolUse' && (input.tool_name === 'AskUserQuestion' || deliveryOffer))) {
     let state;
     try { state = parseState(await readFile(feedbackState, 'utf8'), feedbackState); } catch { /* Existing state-repair handling below remains active. */ }

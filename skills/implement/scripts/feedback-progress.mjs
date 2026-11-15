@@ -2,6 +2,7 @@ import { lstat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { feedbackEligible, feedbackStateHash } from './feedback-handoff.mjs';
 import { readFeedbackFinalization } from './feedback-finalization.mjs';
+import { currentReadback } from './feedback-readback.mjs';
 
 async function artifact(file) {
   try {
@@ -37,7 +38,9 @@ export async function readFeedbackProgress(statePath, state) {
     if (receipt?.feedbackAttempt === 'unavailable' && receipt.runId === runId && receipt.stateHash === stateHash && receipt.reportSaved === false &&
         (!saved || failure.modified >= session.modified)) return { status: 'unavailable' };
   } catch { /* An invalid receipt cannot certify an unavailable outcome. */ }
-  return { status: saved && finalized?.status === 'saved' ? 'saved' : 'collecting', reportSaved: saved };
+  const readback = state.fields.feedback_evidence_version !== '1' || finalized?.kind === 'answered-delivery' ||
+    currentReadback(finalized, session?.text ?? '', session?.modified);
+  return { status: saved && finalized?.status === 'saved' && readback ? 'saved' : 'collecting', reportSaved: saved };
 }
 
 // Only refresh dashboards generated with the progress panel. Supplied source
