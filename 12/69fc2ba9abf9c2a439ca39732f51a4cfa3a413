@@ -1,0 +1,34 @@
+evals/autonomy-queue.test.mjs
+  s_852f9e573071fc::t_c5cad10479939b 3,9,23-32
+  s_852f9e573071fc::t_95e5c3509ace07 33
+evals/implement/resume-changed-autonomy/graders/dashboard-refreshed.md
+  s_852f9e573071fc::t_af46ab262d37d5 1-9
+docs/implement-context-isolation.md
+  s_852f9e573071fc::t_f777bb4f217825 46-47,57-78
+evals/implement/resume-changed-autonomy/graders/resume-policy.md
+  s_852f9e573071fc::t_af46ab262d37d5 8-18
+evals/README.md
+  s_852f9e573071fc::t_419dc74a560f99 100-107
+evals/context-metrics.mjs
+  s_852f9e573071fc::t_99b21ed76e0a6b 1-42
+evals/context-metrics.test.mjs
+  s_852f9e573071fc::t_57a5727ec14872 1-22
+evals/run-suite.mjs
+  s_852f9e573071fc::t_62ba5780f42009 11,114,136-142,198
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1269fc2ba9abf9c2a439ca39732f51a4cfa3a413",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
