@@ -3,6 +3,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../assert-disposable-cwd.sh"
 mkdir -p src make-it-work/REVIEW-2
+review_plugin_root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+printf '%s\n' "$review_plugin_root/skills/review-the-code/SKILL.md" > make-it-work/REVIEW-2/review-skill-path.txt
 cat > package.json <<'JSON'
 {"name":"item-service-fixture","private":true,"type":"module"}
 JSON
