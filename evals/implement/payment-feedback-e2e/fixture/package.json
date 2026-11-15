@@ -1,0 +1,8 @@
+{
+  "name": "sessions-payment-fixture",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js"
+  }
+}
