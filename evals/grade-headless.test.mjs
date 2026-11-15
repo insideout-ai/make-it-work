@@ -262,6 +262,35 @@ test('fails closed on an ungradable semantic check', async (t) => {
   assert.match(graded.verdicts[0].detail, /Grader error/);
 });
 
+test('retries malformed judge responses once, charges usage and never retries a valid FAIL', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'judge-protocol-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const graderDir = path.join(root, 'graders'); await mkdir(graderDir);
+  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  const response = verdict => ({ stdout: JSON.stringify({ total_cost_usd: 0.01, structured_output: { verdict, reason: 'checked' } }) });
+  const malformed = { stdout: JSON.stringify({ total_cost_usd: 0.01, result: 'The StructuredOutput response was not emitted.' }) };
+  async function run(answers, budgetUsd = 1) {
+    let calls = 0; const budgets = [];
+    const grade = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root, budgetUsd,
+      judge: async (_prompt, options) => { budgets.push(options.budgetUsd); return answers[calls++]; } });
+    return { grade, calls, budgets };
+  }
+  let result = await run([malformed, response('PASS'), response('PASS')]);
+  assert.equal(result.grade.passed, true); assert.equal(result.calls, 3);
+  assert.equal(result.grade.judgeCostUsd, 0.03);
+  assert.deepEqual(result.budgets, [1, 0.99, 0.98]);
+  assert.match(result.grade.verdicts[0].detail, /judge retries: 1/);
+  result = await run([{ stdout: 'not JSON' }, response('FAIL'), response('FAIL')]);
+  assert.equal(result.grade.passed, false); assert.equal(result.calls, 3);
+  assert.match(result.grade.verdicts[0].detail, /judge votes: FAIL FAIL/);
+  result = await run([malformed, malformed, response('PASS')]);
+  assert.equal(result.grade.passed, false); assert.equal(result.calls, 2);
+  assert.match(result.grade.verdicts[0].detail, /Grader error/);
+  result = await run([malformed, response('PASS')], 0.01);
+  assert.equal(result.grade.passed, false); assert.equal(result.calls, 1);
+  assert.match(result.grade.verdicts[0].detail, /No budget/);
+});
+
 test('skips paid judges after a failed local check', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });

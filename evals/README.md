@@ -92,7 +92,7 @@ historical fixture content, prose wording or tool-call formatting.
 Each case runs once, with automatic grading. Headless cases retain a normalized
 transcript and generated artifacts; other cases use the native plugin-eval
 harness. Semantic judges are tool-free, use best two of three votes and count
-against the case cap. `--model=ID` and `--judge-model=ID` remain available. An
+against the case cap. Each vote retries a process or malformed structured-response failure once within the remaining budget; valid FAIL votes are retained. Recovered retries are recorded in the grading detail. `--model=ID` and `--judge-model=ID` remain available. An
 invalid/unavailable judge is a failure, not an unreviewed pass. See grader tests
 for supported file, regex, decision-log, strategy-pointer and unchanged-file
 contracts. Read-only evidence paths cannot escape the disposable fixture.
