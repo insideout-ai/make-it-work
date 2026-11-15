@@ -1,0 +1,19 @@
+skills/implement/SKILL.md
+  s_ee472223ab0e85::t_82e8aeb8ffe632 140,282,300
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2584a9d59e451dba5857dde029b1496a441afbc0",
+  "prompts": {},
+  "sessions": {
+    "s_ee472223ab0e85": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1daa2-5bf7-77b0-ab09-f43f06fe183b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
