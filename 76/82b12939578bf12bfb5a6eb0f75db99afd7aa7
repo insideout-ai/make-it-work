@@ -1,0 +1,29 @@
+docs/refinement-worker.md
+  s_852f9e573071fc::t_73612609d356cb 28
+evals/implement/refinement-worker-blocked/prompt.md
+  s_852f9e573071fc::t_bdf0681fcc5772 10,14
+skills/implement/references/refinement-worker-task.md
+  s_852f9e573071fc::t_3cd80715d53d81 12
+skills/implement/references/refinement-worker.md
+  s_852f9e573071fc::t_5b784cac86331b 30,32,56
+skills/implement/scripts/refinement-worker.mjs
+  s_852f9e573071fc::t_d7f17d0094458e 79
+skills/implement/scripts/refinement-worker.test.mjs
+  s_852f9e573071fc::t_d64c943c53506b 186-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7682b12939578bf12bfb5a6eb0f75db99afd7aa7",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
