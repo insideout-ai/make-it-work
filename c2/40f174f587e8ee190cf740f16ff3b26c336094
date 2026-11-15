@@ -1,0 +1,27 @@
+evals/feedback-on-session/feedback-on-session-collection-gaps/graders/collection-and-adherence.md
+  s_852f9e573071fc::t_bf7066a3e2d4b9 8-9
+skills/implement/references/orchestration/startup.md
+  s_852f9e573071fc::t_bf7066a3e2d4b9 123
+skills/feedback-on-session/SKILL.md
+  s_852f9e573071fc::t_bf7066a3e2d4b9 34,100
+CHANGELOG.md
+  s_852f9e573071fc::t_bf7066a3e2d4b9 20
+evals/execute/execute-stop-at-gate/graders/no-phase5-success.md
+  s_852f9e573071fc::t_bf7066a3e2d4b9 2-3,6-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c240f174f587e8ee190cf740f16ff3b26c336094",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
