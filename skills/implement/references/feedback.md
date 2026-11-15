@@ -17,7 +17,7 @@ Do not write an entry for a pause, user-requested stop, branch/context/setup fai
 
 The terminal state-file write and dashboard regeneration happen first. Feedback failure or unanswered feedback questions never re-open, downgrade, or block the implementation run.
 
-Generated dashboards show **Finalizing session** while collecting feedback, and hide optional delivery. A verified saved or unavailable outcome settles that display before delivery opens. This presentation update does not alter the implementation state, package or approval. HTML evidence inspection itself stays read-only; do not manually regenerate during inspection. Missing HTML and older/supplied HTML without the progress panel are left untouched.
+Generated dashboards show **Finalizing session** while collecting feedback, and hide optional delivery. A verified saved or unavailable outcome settles that display before delivery opens. The feedback `inspect` command records one informational **Activity: Collecting session feedback** note per terminal boundary; verified finalization records one **Result** note with the saved report link or the unavailable reason. Retries reuse those notes. The Finalizing circle shows the feedback status beneath it. These notes do not change workflow fields, terminal status, package or approval, and never count as completion proof. HTML evidence inspection itself stays read-only; do not manually regenerate during inspection. Missing HTML and older/supplied HTML without the progress panel are left untouched.
 
 The controller returns `next_action.type: feedback` at eligible terminal checkpoints, including replay. Follow it before the terminal summary or delivery question. Run the checkpoint command on its own and keep its structured output intact; do not pipe it through a projection that prints only phase/status. The scoped Stop and PreToolUse hooks detect a missing combined report for the current run and hold the terminal summary or delivery question until feedback is saved or explicitly reported unavailable. They do not change implementation status or wait for feedback answers. A saved report is bound to the terminal workflow boundary so an older run or an earlier retry-limit report cannot satisfy a later terminal checkpoint. Subsequent delivery decisions and informational notes do not invalidate that binding or trigger another retrospective.
 
@@ -31,7 +31,7 @@ After a qualifying failure, use the failed tool call's actual ID and this sessio
 node "<base>/scripts/write-feedback.mjs" unavailable --state "<absolute-state-path>" --transcript "<session-jsonl-path>" --failure-id "<failed-tool-call-id>" --reason "<specific share-safe technical limitation>"
 ```
 
-Add `--limit-stop` only for an eligible limit stop. The helper and terminal hook verify runtime call/result evidence after the current terminal checkpoint; a reason alone, a replay, or an earlier run cannot release the gate. It saves only `feedback-unavailable.json` when possible and returns `reportSaved: false`, `receiptSaved` and `receiptPath`. Neither state nor approved package changes. If receipt saving also fails, the verified tool outcome still permits completion with an explicit disclosure. Do not retry indefinitely or seek permission for the required retrospective. Tell the user what failed and whether only a failure receipt was saved; never claim that receipt is the combined report or that feedback files were written. The implementation stays terminal.
+Add `--limit-stop` only for an eligible limit stop. The helper and terminal hook verify runtime call/result evidence after the current terminal checkpoint; a reason alone, a replay, or an earlier run cannot release the gate. It saves only `feedback-unavailable.json` when possible and returns `reportSaved: false`, `receiptSaved` and `receiptPath`. Only informational audit notes may be added to the state; workflow fields and the approved package stay unchanged. If receipt saving also fails, the verified tool outcome still permits completion with an explicit disclosure. Do not retry indefinitely or seek permission for the required retrospective. Tell the user what failed and whether only a failure receipt was saved; never claim that receipt is the combined report or that feedback files were written. The implementation stays terminal.
 
 ## Explain the feedback to the user
 
@@ -255,7 +255,10 @@ Missing HTML stays nonblocking and must not be regenerated.
 
 For every available Review, Implementation or Execution report, assess actual
 checks/admitted omissions in `process` with source line and `met`, `gap` or
-`limitation`. Every gap references a retained session finding. Legitimate deferred
+`limitation`. Only available `Review`, `Implementation` and `Execution` sources
+belong in `process`; `State` and `Package` remain contextual evidence. Use each
+source's own line numbers, not the enclosing packet's lines. Every gap references
+a retained session finding. Legitimate deferred
 checks are limitations; required steps admitted skipped are not waived by CLEAN
 or a depth disclaimer. `analysisRequired` controls artifact dispatch, not whether
 conversation problems exist. Qualify conclusions to inspected coverage. Schema,
@@ -264,7 +267,7 @@ marker retain their write contract; never backfill it or reopen approvals.
 
 ## Combined session-review input
 
-Review the conversation on every eligible run, including runs with zero retries. Follow feedback-on-session's evidence, attribution and standalone-readability requirements. When artifact diagnosis is required, reuse the required subagent's result rather than independently rediagnosing its events. A finding may cite both sources; do not count the same episode twice. Only the available pre-feedback conversation is in scope; disclose compaction or missing earlier context. User feedback replies may correct this report but are not new workflow incidents.
+Review the conversation on every eligible run, including runs with zero retries. Follow feedback-on-session's evidence, attribution and standalone-readability requirements. When artifact diagnosis is required, reuse the required subagent's result rather than independently rediagnosing its events. A finding may cite both sources; do not count the same episode twice. The main review covers the available pre-feedback conversation; the skill's single bounded closing check also includes collection failures already visible while preparing the save or a required repair, even after the initial draft. Include those observations in the same session findings, not new Fix/Replan events. Do not reopen a successful save to review its own final write. Disclose compaction or missing earlier context. User feedback replies may correct this report but are not new workflow incidents.
 
 Stage a uniquely named JSON file under the gitignored `make-it-work/` directory and pass it as `--session-review` on every integrated write, including clarification updates. Preserve the input until feedback is resolved so updates can resend both it and any analysis; after an interruption, reconstruct from the saved report without discarding existing findings or input. Remove only the temporary files created for this review when no longer needed. The writer accepts:
 
@@ -368,6 +371,19 @@ node "<base>/scripts/write-feedback.mjs" write --state "make-it-work/<TICKET>/<T
 Add `--limit-stop` for an eligible limit stop. The writer omits `### User clarifications` when none were asked and renders `None` under `### Open questions` when the list is empty. On any writer error, preserve the terminal workflow state and report the feedback failure.
 
 ## Durable observations and writer preflight
+
+When `write` receives the actual runtime JSONL transcript, the writer derives a
+separate **Collection notes** section from paired feedback-helper calls/results
+for this state after its terminal checkpoint. It records failed attempts and
+later observed success using fixed, sanitized labels; it never copies commands,
+error text or paths into the report. These observations are not findings,
+root-cause judgments, Fix/Replan events, or permission to skip required work.
+Only recognized literal invocations (optionally after a literal `cd`) are
+counted; ambiguous shell programs and unpaired results remain unassessed.
+The snapshot ends before the current save, or at the first earlier successful
+combined save, so its own final result and later delivery work do not cause a
+recursive rewrite. Legacy writes without runtime evidence omit this section.
+The model input schema is unchanged; do not author or reconstruct these notes.
 
 Run `write-feedback.mjs inspect --state STATE --transcript SESSION_JSONL` first. Its `commands.write` includes that transcript path, and `session_review_template` supplies the exact input shape and current packet hash. Fill the scaffold from actual conversation/source inspection; unreviewed sections are not evidence. Diagnostics name the exact input field and any rejected project term locally. Do not paste diagnostic text into the shareable report.
 

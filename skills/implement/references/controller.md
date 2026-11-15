@@ -75,7 +75,23 @@ continuation. Follow that stage's skill; passing Context check does not authoriz
 application edits. Other pending-input and handoff continuation fields retain
 their existing meaning.
 
-Before every phase transition, run `inspect --root <root> --state <state>` and use its `state_hash` as `expected_hash` in a saved event JSON. Every event has a stable `id` (reuse that exact event on retry), `event`, and `repos`. Run `apply --root <root> --state <state> --input <event.json>`. Do not hand-edit phase/status, loop counters, audit transition rows or fingerprints on controller-enabled runs.
+Before every phase transition, run `inspect --root <root> --state <state>` and use its `state_hash` as `expected_hash` in a saved event JSON. Every event has a stable `id` (reuse that exact event on retry), `event`, and `repos` under the rules below. Run `apply --root <root> --state <state> --input <event.json>`. Do not hand-edit phase/status, loop counters, audit transition rows or fingerprints on controller-enabled runs.
+
+### Repository roots for events
+
+Supply `repos` as an array of absolute checkpoint Git roots for ordinary events, including `mode`, `handoff` and `resume`, even in a single-repository run. Only `pause`, `stop`, `await-input`, `resolve-input` and `refresh-input` can inherit roots from the saved workspace snapshot. `autonomy` may omit roots without inheriting them because it preserves repository fingerprints. Omission never authorizes new repository scope; Resume still requires explicit roots and fingerprint checks.
+
+For example, save each event separately using the current inspected hash (inspect again after the mode event succeeds):
+
+```json
+{ "id": "assess-mode", "event": "mode", "expected_hash": "<current-state-hash>", "repos": ["/absolute/repo"], "risk": "low", "mode": "lightweight", "source": "assessed", "rationale": "Bounded change with known dependencies." }
+```
+
+```json
+{ "id": "accept-spec", "event": "handoff", "expected_hash": "<new-current-state-hash>", "repos": ["/absolute/repo"], "handoff": "make-it-work/<TICKET>/<TICKET>-handoffs/gaps-1.json" }
+```
+
+### Event payloads
 
 - `handoff`: supply the actual `handoff` path, optional `previous_review`, and `related_failures` after semantic triage. A human question is saved as a blocking pending input before returning; present its saved question/choices, then use `resolve-input` with the returned pending ID. Internal regression triage remains active work; only an actual unresolved human classification opens an input wait. A manual-walkthrough route also requires the walkthrough to have happened and `manual_evidence_complete: true`.
 - `context-ready`: after the documented context check and artifact-reuse decision. For accepted reuse, supply `reuse_spec: true`; complete the existing reuse/hash checks first.
@@ -92,7 +108,7 @@ Before every phase transition, run `inspect --root <root> --state <state>` and u
 - `lightweight-fix`: a Lightweight run's final-approval **Request changes** with code feedback; supply `reason`, `source: user`, `via`. It enters `lightweight` as a counted fix round.
 - `autonomy`: supply `mode`, `source: user`, `via: question|chat`. This saves/replaces `queued_autonomy` and adds a resume-transparent audit row while preserving effective `autonomy` and open inputs. Requesting the effective mode cancels the queue. The next phase transition applies and clears it, records that application and uses the new mode for next-phase approval gates. No step/batch or status-only boundary applies a queue. Completion drops an unused queue without relabeling validation. Preserve existing log history.
 - `spec-conflict`: from planning/implementation/review/sync, supply `reason` naming the spec criterion, evidence and required decision (plus the preserved spec revision path/hash). Pauses at `close-the-gaps`, retains `spec_previous_plan`, invalidates execution/review/readiness and advances plan version if a prior plan existed. Resume requires explicit user guidance (`source: user`, `via: chat|question`, `blocker_resolved: true`). Refinement must record the resolution; the returned spec enters mandatory explicit approval in every mode. Neither Autopilot nor `skip-approval` may accept this revision. Pass the previous plan and refinement resolution when rebuilding.
-- `pause` or `stop`: supply the actionable `reason`. Repository roots may be omitted when a saved workspace snapshot exists; these events inherit exactly that repository set. This does not widen scope or relax the explicit-root requirement for Resume and ordinary phase transitions.
+- `pause` or `stop`: supply the actionable `reason`; roots follow [Repository roots for events](#repository-roots-for-events).
 - `resume`: supply the same repository roots and `blocker_resolved: true` only when the saved blocker was actually resolved. Changed repository snapshots fail; a requested “Resume anyway” still requires the existing explicit decision path and a fresh accepted baseline, not this ordinary resume event.
 - `accept-workspace`: only after the existing explicit “Resume anyway”/artifact-edit decision, supply `source: user`, `via: question|chat`, and its `reason`. It records the accepted repository/artifact baseline without changing phase, counters or status. Then use ordinary Resume. Never infer this event from a mode change or a failed fingerprint check.
 
@@ -126,7 +142,7 @@ Use `inspect` for the current state hash and saved requests. Save an event JSON,
 }
 ```
 
-`kind` is `question`, `approval`, `triage`, `step`, `slack`, or `permission`. Blocking defaults to true: the helper preserves phase/counters, sets Paused, clears activity and refreshes HTML. For a genuinely optional question, set `blocking: false`; its card remains visible while unrelated work continues. Do not declare a dependency-blocking choice optional to bypass it. Controller-run repository roots may be omitted on lifecycle events: the saved snapshot supplies them. Preserve explicit roots when newly affected repos join.
+`kind` is `question`, `approval`, `triage`, `step`, `slack`, or `permission`. Blocking defaults to true: the helper preserves phase/counters, sets Paused, clears activity and refreshes HTML. For a genuinely optional question, set `blocking: false`; its card remains visible while unrelated work continues. Do not declare a dependency-blocking choice optional to bypass it. Controller-run roots follow [Repository roots for events](#repository-roots-for-events).
 
 For an independent multi-question wave, use one request with a summary `question` and `questions: [{id,question,choices,multi_select?}, ...]`; leave its top-level choices empty. The HTML shows each component and its actual options. Resolve with an `answer` object keyed by those question IDs. Every applicable component must be answered before that wave resumes; full product answers still go in the stage artifact. Keep the existing dependency/wave limits rather than combining dependent questions.
 

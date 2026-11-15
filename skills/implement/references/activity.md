@@ -35,3 +35,5 @@ Tell the subagent not to write workflow activity or edit the dashboard HTML. A l
 ## Boundaries
 
 Phase changes and Paused, Stopped or Complete checkpoints clear the activity and its timestamp to `none`. Controller runs do this through `workflow.mjs`; legacy runs clear both fields when present in their existing checkpoint procedure. The next work chunk reports fresh activity for the new phase. Do not carry a completed phase's description forward or treat an old timestamp as proof of a failure. The dashboard labels it `Last updated`, not a heartbeat or a promise that work is still running.
+
+Feedback collection after a terminal checkpoint uses stable informational Activity/Result notes without setting `current_activity` or reopening the workflow. The feedback command owns the collection note; verified finalization owns the outcome note. The dashboard shows this activity under Finalizing and keeps the terminal implementation fields unchanged.

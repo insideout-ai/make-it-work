@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from 'node:crypto';
-import { readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
@@ -501,8 +501,9 @@ const DELIVERY_LABELS = {
 };
 const DELIVERY_PENDING = new Set(['not-started', 'offered', 'awaiting-approval', 'running']);
 
-function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, collectingFeedback = false) {
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null) {
   const { slots, activeSlot } = timeline;
+  const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const activated = slots.filter((slot) => slot.activationRow);
 
   const steps = slots.map((slot, index) => {
@@ -542,6 +543,10 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       const awaiting = state.pendingInputs?.some((input) => input.kind === 'approval' && input.phase === 'final-approval');
       modeText = slot.phase === 'final-sync' ? 'Updating project docs'
         : awaiting ? 'Awaiting final approval' : 'Preparing final review';
+    }
+    if (slot.finalizing && slot.completed && feedback) {
+      modeText = feedback.status === 'collecting' ? 'Collecting session feedback'
+        : feedback.status === 'saved' ? 'Session feedback saved' : 'Session feedback unavailable';
     }
     if (dotState === 'skipped') modeText = 'Skipped';
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
@@ -637,6 +642,9 @@ function renderAuditOutcome(state, outcome) {
   const expectedPath = runArtifact(state.fields.ticket, filename);
   if (packageResult && packageResult[1] === expectedPath) {
     return `Final approval package built. <a href="${encodeURIComponent(filename)}" title="${escapeHtml(expectedPath)}">View package</a>`;
+  }
+  if (text === 'Result: Session feedback saved; evidence: workflow-feedback.md') {
+    return 'Session feedback saved. <a href="workflow-feedback.md">Read feedback</a>';
   }
   // Evidence digests belong in the saved audit/artifacts, not ordinary progress
   // prose. Approval hashes are rendered separately in the pending-input panel.
@@ -791,13 +799,6 @@ function renderAutonomyBadge(state) {
   return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
 }
 
-function renderAssurance(state, assurance) {
-  if (state.fields.final_package_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase)) return '';
-  if (!assurance) return '<section class="assurance-summary" aria-label="Recorded assurance"><h2>Assurance: Not recorded</h2><p>Final package assurance is unavailable; completion alone does not establish verification.</p></section>';
-  const reasons = assurance.limitations.map(reason => `<li>${escapeHtml(reason)}</li>`).join('');
-  return `<section class="assurance-summary" aria-label="Recorded assurance"><h2>Assurance: ${escapeHtml(assurance.label)}</h2><p>Browser verification: ${escapeHtml(assurance.browser)}.</p>${reasons ? `<details><summary>Recorded verification limits</summary><ul>${reasons}</ul></details>` : ''}</section>`;
-}
-
 function renderFeedbackProgress(feedback) {
   if (!feedback) return '';
   const content = feedback.status === 'saved'
@@ -808,7 +809,7 @@ function renderFeedbackProgress(feedback) {
   return `<section class="feedback-progress" data-workflow-feedback-status="${feedback.status}" role="status" aria-label="Session retrospective">${content}</section>`;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, assurance = null, feedback = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null }) {
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -834,13 +835,14 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
     MODE_PILL: renderModePill(state),
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, collectingFeedback),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: collectingFeedback
       ? renderStatusBanner(state, timing, invalidTimestampFrom, null).replace('<strong>Implementation complete.</strong>', '<strong>Finalizing session.</strong> Implementation checks and final approval are complete. Collecting workflow feedback before optional delivery.')
       : renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
-    ASSURANCE_SUMMARY: renderAssurance(state, assurance),
+    // Older templates may still contain this placeholder. Details live in artifacts.
+    ASSURANCE_SUMMARY: '',
     ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
@@ -928,17 +930,9 @@ export async function generateDashboard(statePath) {
       verification = ledger;
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
-  let assurance = null;
-  if (state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)) {
-    try {
-      const { checkFinalPackage } = await import('./final-package.mjs');
-      const checked = await checkFinalPackage(await realpath(path.dirname(path.dirname(path.dirname(absoluteStatePath)))), await realpath(absoluteStatePath));
-      assurance = { ...checked.assurance_summary, browser: checked.ui_verification.status };
-    } catch { /* Missing/malformed package evidence is unknown, never assurance of success. */ }
-  }
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
-  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, assurance, feedback });
+  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {

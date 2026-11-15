@@ -10,9 +10,10 @@ import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
 import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
-import { refreshFeedbackDashboard } from './feedback-progress.mjs';
+import { refreshFeedbackDashboard, startFeedbackCollection } from './feedback-progress.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
 import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
+import { collectFeedbackAttempts, renderCollectionNotes } from './feedback-collection.mjs';
 import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure, feedbackRuntimeEvidence } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
@@ -335,7 +336,7 @@ export function renderBlock(summary, analysis = null, sessionReview = null) {
   const block = renderWorkflowBlock(summary, analysis);
   if (sessionReview === null) return block;
   const marker = `<!-- /run:${summary.runId} -->`;
-  return block.replace(marker, `\n${renderSessionReview(sessionReview, summary)}\n<!-- feedback-state:${summary.stateHash} -->\n${summary.evidenceRequired ? `<!-- feedback-evidence:${sessionReview.evidence_review.packet_hash} -->\n` : ''}${marker}`);
+  return block.replace(marker, `\n${renderSessionReview(sessionReview, summary)}${renderCollectionNotes(summary.collectionNotes)}\n<!-- feedback-state:${summary.stateHash} -->\n${summary.evidenceRequired ? `<!-- feedback-evidence:${sessionReview.evidence_review.packet_hash} -->\n` : ''}${marker}`);
 }
 
 // Report independent structural errors together; do not repair or fill evidence.
@@ -469,6 +470,8 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
     const missing = [summary.analysisRequired && !runtime.retrospectiveDispatched && 'a retrospective dispatch after inspection',
       summary.evidenceRequired && !runtime.sourcePackets.includes(sessionReview?.evidence_review?.packet_hash) && 'the inspected source packet'].filter(Boolean);
     if (missing.length) fail(`Feedback prerequisites missing: ${missing.join('; ')}. Run inspect/evidence and the required delegate before write; no report was changed.`);
+    summary.collectionNotes = collectFeedbackAttempts(events, { statePath: path.resolve(statePath), runId: summary.runId,
+      stateHash: summary.stateHash, terminalTime: Date.parse(feedbackTerminalRow(fields, audit).time) });
     await recordFeedbackReceipt(statePath, summary, { dispatches: runtime.dispatches });
   }
   const block = renderBlock(summary, analysis, sessionReview);
@@ -585,6 +588,11 @@ async function main() {
     return;
   }
   if (mode === 'inspect') {
+    // Validate identity and eligibility before adding the informational start note.
+    const initial = inspectState(await readFile(statePath, 'utf8'), { limitStop });
+    assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, initial.ticket);
+    if (path.basename(statePath) !== `${initial.ticket}-state.md`) fail('State filename and ticket field disagree.');
+    await startFeedbackCollection(statePath);
     const summary = await inspectFeedback(statePath, { limitStop });
     await recordFeedbackReceipt(statePath, summary, { inspect: true, analysisRequired: summary.analysisRequired });
     const { ticket: _ticket, ...shareSafe } = summary;
