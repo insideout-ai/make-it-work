@@ -1,0 +1,92 @@
+skills/implement/scripts/testing-policy.mjs
+  s_90f4a47d932383::t_2e8b68b86b2812 39
+skills/implement/references/orchestration/state-and-progress.md
+  s_90f4a47d932383::t_2e8b68b86b2812 45
+skills/implement/references/orchestration/completion.md
+  s_90f4a47d932383::t_fa140e47b6bfd4 30
+scripts/autonomy-policy.test.mjs
+  s_90f4a47d932383::t_87e7cfcf78930b 56-65
+skills/implement/scripts/testing-summary.mjs
+  s_90f4a47d932383::t_37f42d779cfb14 27,29,39,47,60-62
+  s_90f4a47d932383::t_b5444559b42860 1-26,30-38,40-46,48,50-57,63-64
+  s_90f4a47d932383::t_dfc26008e22ce4 28,49,58-59
+skills/implement/scripts/testing-readiness.test.mjs
+  s_90f4a47d932383::t_87e7cfcf78930b 130-168
+README.md
+  s_90f4a47d932383::t_fa140e47b6bfd4 255
+skills/implement/scripts/final-package.mjs
+  s_90f4a47d932383::t_2e8b68b86b2812 12,72,224-225,227
+  s_90f4a47d932383::t_d61b515cace548 277
+skills/implement/assets/workflow-defaults.json
+  s_90f4a47d932383::t_2e8b68b86b2812 34
+skills/implement/scripts/render-status.mjs
+  s_90f4a47d932383::t_2e8b68b86b2812 17,309,723-724,806-813,861
+skills/implement/references/orchestration/startup.md
+  s_90f4a47d932383::t_fa140e47b6bfd4 99,109,182,240
+skills/implement/scripts/testing-summary.test.mjs
+  s_90f4a47d932383::t_c77850c89cd14f 2-72
+  s_90f4a47d932383::t_6eda502b230bb8 1
+skills/execute/references/verification-policy.md
+  s_90f4a47d932383::t_c77850c89cd14f 14
+  s_90f4a47d932383::t_fa140e47b6bfd4 13
+skills/implement/scripts/feedback-progress.mjs
+  s_90f4a47d932383::t_2e8b68b86b2812 35,39,46
+skills/implement/scripts/testing-readiness.mjs
+  s_90f4a47d932383::t_68208ef0d975fa 33-41,43-47
+  s_90f4a47d932383::t_37f42d779cfb14 95,100-104
+  s_90f4a47d932383::t_cb463c038804a1 27,42
+scripts/autonomy-policy.mjs
+  s_90f4a47d932383::t_37f42d779cfb14 28-29
+skills/implement/references/feedback.md
+  s_90f4a47d932383::t_fa140e47b6bfd4 20
+skills/implement/references/testing-readiness.md
+  s_90f4a47d932383::t_fa140e47b6bfd4 3,64-86,102,136,141
+skills/implement/scripts/workflow.mjs
+  s_90f4a47d932383::t_2e8b68b86b2812 12,520-522
+skills/implement/references/orchestration/final-sync.md
+  s_90f4a47d932383::t_fa140e47b6bfd4 62-63
+skills/plan-the-work/SKILL.md
+  s_90f4a47d932383::t_c77850c89cd14f 87
+  s_90f4a47d932383::t_fa140e47b6bfd4 274
+  s_90f4a47d932383::t_6c4b05ad2f87c7 290
+evals/implement/README.md
+  s_90f4a47d932383::t_b6ef2c818daf71 60-61
+evals/implement/existing-automation-no-strategy/case.yaml
+  s_90f4a47d932383::t_1ac4046899719c 1-5
+evals/implement/existing-automation-no-strategy/fixture.sh
+  s_90f4a47d932383::t_8adc82c1bb82af 1-18
+evals/implement/existing-automation-no-strategy/graders/completion.md
+  s_90f4a47d932383::t_39c49c85d0c364 1-15
+evals/implement/existing-automation-no-strategy/graders/state-complete.md
+  s_90f4a47d932383::t_c89cb8b180fe75 1-6
+evals/implement/existing-automation-no-strategy/prompt.md
+  s_90f4a47d932383::t_bf188eee59de35 1-15
+evals/implement/no-tooling/graders/readiness-and-completion.md
+  s_90f4a47d932383::t_c8f3ad42547b21 8-20
+evals/suites.json
+  s_90f4a47d932383::t_2bb184a0966147 84
+skills/implement/scripts/final-package.test.mjs
+  s_90f4a47d932383::t_1d200fb51bca8b 266,280-285
+skills/implement/scripts/render-status.test.mjs
+  s_90f4a47d932383::t_33c73377acb4f9 147-148,167,178,187-188,192-193,1286-1297
+skills/implement/scripts/testing-policy.test.mjs
+  s_90f4a47d932383::t_7787818ca071cd 52-54
+skills/implement/scripts/verification.test.mjs
+  s_90f4a47d932383::t_a40164700c4976 76-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9eea067f03ee4a643941088df072a9fe134bf78a",
+  "prompts": {},
+  "sessions": {
+    "s_90f4a47d932383": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df10-a79b-7ec3-a665-be72629eb812",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
