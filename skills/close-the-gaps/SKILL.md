@@ -534,6 +534,8 @@ Finish by printing one line: `Context updated: <each file changed, with a one-li
 
 ## When run by implement
 
+When explicitly dispatched as the opt-in local refinement worker, additionally follow [the worker ownership contract](../implement/references/refinement-worker-task.md). It replaces inline activity/state ownership with parent requests; it does not change refinement reasoning or the terminal v1 handoff. Other callers retain this section unchanged.
+
 
 **Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.
 

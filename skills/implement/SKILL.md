@@ -67,7 +67,7 @@ do not load the legacy template on an ordinary new run.
 
 Read the complete guide for the current phase when it begins. Load another guide
 only when taking its documented route. The guides retain the existing phase
-procedures; this relocation does not change inline/delegated execution placement.
+procedures; this relocation does not change inline/delegated execution placement. For an explicitly enabled `refinement_worker_version: 1` initial local Autopilot run, follow [the refinement worker route](references/refinement-worker.md) instead of reading the full close-the-gaps skill in the parent. All other stages and runs keep their existing placement.
 
 | Saved phase or operation | Required guide |
 | --- | --- |

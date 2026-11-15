@@ -2,7 +2,7 @@
 
 New runs use `controller_version: 1`. Older runs keep their existing checkpoint and fingerprint rules; do not retrofit this field.
 
-Resolve the controller to `<implement-base>/scripts/workflow.mjs`. After Start's autonomy, refinement-destination and branch-guard choices, save an initialization JSON object with `ticket`, `autonomy`, `refinement_destination`, `base`, explicit absolute `repos` (all affected Git roots), and a one-line `branch_guard` outcome. Use `offline_pending: true` for the pending-offline Start path. Run:
+Resolve the controller to `<implement-base>/scripts/workflow.mjs`. After Start's autonomy, refinement-destination and branch-guard choices, save an initialization JSON object with `ticket`, `autonomy`, `refinement_destination`, `base`, explicit absolute `repos` (all affected Git roots), and a one-line `branch_guard` outcome. Use `offline_pending: true` for the pending-offline Start path. Only an explicit new-run `--refinement-worker` flag supplies `refinement_worker: true`; it is validated as local single-repository Autopilot and captures `refinement_worker_version: 1`. Ordinary initialization and saved runs do not gain this opt-in marker. Run:
 
 ```
 node <controller> init --root <artifact-root> --input <init.json>
