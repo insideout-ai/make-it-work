@@ -97,6 +97,14 @@ invalid/unavailable judge is a failure, not an unreviewed pass. See grader tests
 for supported file, regex, decision-log, strategy-pointer and unchanged-file
 contracts. Read-only evidence paths cannot escape the disposable fixture.
 
+Headless reports also save `context-metrics.json` when request usage can be
+parsed. Parent peak input includes cached input and excludes identified child
+streams; across-request input is cumulative processing, not occupied context.
+Execution totals can include delegates. Missing or incomplete observations remain
+unknown; a null `contextMetricsReport` never means zero usage. These observations
+have no effect on behavioral grading. Compare fixed source snapshots and models,
+retain failed verdicts, and report single-sample limitations alongside savings.
+
 Reports are local under ignored `evals/results/`, including commit, CLI version,
 case results and reported usage. Do not publish private transcripts. The
 optional `.githooks/pre-push` runs smoke against an isolated committed snapshot;

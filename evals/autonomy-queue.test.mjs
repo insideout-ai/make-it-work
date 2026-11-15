@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { digest } from '../scripts/lib/artifacts.mjs';
-import { parseState } from '../skills/implement/scripts/render-status.mjs';
+import { parseState, generateDashboard } from '../skills/implement/scripts/render-status.mjs';
 import { applyWorkflow } from '../skills/implement/scripts/workflow.mjs';
 import { gradeHeadlessLocal, parseGrader, transcriptContext } from './grade-headless.mjs';
 
@@ -19,6 +19,17 @@ async function fixture(t, scenario) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath);
   return { root, statePath, state };
 }
+
+test('resume dashboard grader rejects seed placeholders and accepts the actual rendered completion row', async t => {
+  const { root, statePath } = await fixture(t, 'resume');
+  const grader = parseGrader(await readFile(path.join(base, 'implement/resume-changed-autonomy/graders/dashboard-refreshed.md'), 'utf8'), 'dashboard-refreshed.md');
+  const context = transcriptContext(JSON.stringify({ type: 'result', result: 'Local grader control; no model was run.' }), root);
+  assert.equal((await gradeHeadlessLocal(grader, context)).passed, false);
+  const state = (await readFile(statePath, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: final-sync', 'phase: complete') + '\n| 8 | 2026-01-01T10:07:00Z | final-sync | complete | Context synchronized |\n';
+  await writeFile(statePath, state);
+  await generateDashboard(statePath);
+  assert.equal((await gradeHeadlessLocal(grader, context)).passed, true);
+});
 
 test('Autopilot-queue eval retains its legacy policy-free refinement wave and grader requires both modes', async (t) => {
   const { root, statePath, state } = await fixture(t, 'autopilot');

@@ -8,6 +8,7 @@ import { EVAL_ROOT, REPO_ROOT, validateEvalTree } from './validate.mjs';
 import { runBatches } from './run-batches.mjs';
 import { selectSuite, failureCategory } from './suite-policy.mjs';
 import { gradeHeadlessCase } from './grade-headless.mjs';
+import { contextMetrics } from './context-metrics.mjs';
 import { caseTools, pluginEvalArgs, caseWorkingDirectory } from './run-suite-args.mjs';
 
 const argv = process.argv.slice(2);
@@ -110,6 +111,7 @@ async function runCase(item, remaining) {
   let runtimeError = false;
   let graderError = false;
   let fixtureDir, workingDirectory;
+  let contextMetricsReport = null;
   if (headless) {
     fixtureDir = await mkdtemp(path.join(os.tmpdir(), 'make-it-work-eval-'));
     if (item.scaffold) {
@@ -131,6 +133,13 @@ async function runCase(item, remaining) {
     result = await command('claude', args, workingDirectory, prompt.timeoutSeconds);
     await writeFile(path.join(caseReportDir, 'transcript.jsonl'), result.stdout || '');
     await writeFile(path.join(caseReportDir, 'stderr.txt'), result.stderr || '');
+    // Optional observations never change a behavioral verdict or fabricate zero usage.
+    try {
+      const metrics = contextMetrics(result.stdout || '');
+      await writeFile(path.join(caseReportDir, 'context-metrics.json'), JSON.stringify(metrics, null, 2) + '\n');
+      contextMetricsReport = path.relative(REPO_ROOT, path.join(caseReportDir, 'context-metrics.json'));
+    } catch { /* The summary's null report explicitly leaves telemetry unavailable. */ }
+
     try {
       const data = result.stdout.trim().split('\n').filter((line) => line.startsWith('{'))
         .map((line) => JSON.parse(line))
@@ -186,7 +195,7 @@ async function runCase(item, remaining) {
   }
   return { name: item.name, skill: item.skill, mode: headless ? 'headless' : 'plugin-eval',
     costUsd: caseCost, status, failureCategory: failureCategory({ status, subtype, detail, runtimeError, graderError }), detail, fixtureDir, workingDirectory,
-    report: path.relative(REPO_ROOT, caseReportDir) };
+    report: path.relative(REPO_ROOT, caseReportDir), contextMetricsReport };
 }
 
 process.stdout.write(`Running ${tier}: ${selected.length} cases, ${concurrency} concurrent, cost limit $${budget.toFixed(2)}.\n`);

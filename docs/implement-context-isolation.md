@@ -43,8 +43,8 @@ merge, live tracker publication or delivery operation belongs to this change.
   writes. Clarification distinguishes those from the actual production mutation;
   it does not authorize mutation testing during planning.
 - Focused repaired snapshot: execution success, failed-gate handling and feedback
-  collection passed 3/3; complete repaired smoke passed 14/14. Critical completion
-  and all later refactor gates must be recorded separately.
+  collection passed 3/3; complete repaired smoke passed 14/14 and critical passed
+  7/7. All later refactor gates remain separately scoped.
 - Logging now constructs the full canonical execution-mode payload. Standalone
   feedback explicitly requires supplied-input access, per-finding follow-up fields
   and complete saved-file readback even after the user skips further questions.
@@ -54,3 +54,25 @@ merge, live tracker publication or delivery operation belongs to this change.
 Detailed reports and raw transcripts remain local under ignored `evals/results/`.
 Passing samples do not guarantee all future model behavior. No delegation or
 context-saving result is claimed before its own gate has passed.
+
+## Extraction candidate evidence
+
+The frozen extraction candidate `dd86187`, based on `166b7d7`, moves all 142,298
+original prose characters into phase-specific references (with relative links
+rebased), preserves hooks, and extracts all 52 initialization defaults unchanged.
+Its entry file is 6,864 characters versus 143,507 before extraction. This is not
+an equivalent percentage reduction in runtime context.
+
+All 676 deterministic checks passed. Startup, queued autonomy and fix-plan
+boundary model cases passed. Legacy resume initially received an incorrect
+semantic failure: the first relative render command failed, but its absolute-path
+fallback succeeded and the actual dashboard contained the completion row. The
+original failure is retained. A direct artifact check and negative placeholder
+control now protect that requirement; regrading the saved trace passed. No
+workflow rule was relaxed to excuse the failed first command.
+
+One startup sample's observed parent peak input, including cached input, fell
+from 105,641 to 75,911 tokens (28.1%). The samples used the same reported model;
+this does not establish a general reduction, total cost saving or remaining
+context capacity. The complete candidate critical gate is still being recorded.
+No execution placement or delegation is changed by extraction.
