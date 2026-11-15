@@ -41,8 +41,8 @@ test('planning progress graders accept the actual handoff schema and reject an e
   assert.ok(!handoffPattern.test(JSON.stringify({ version: 1, status: 'blocked' })));
   const paused = graders.find(g => g.name === 'paused-plan.md');
   const pattern = new RegExp(paused.pattern, paused.flags);
-  const state = 'status: Paused\nphase: plan\nexecution: not-started\ncurrent_activity: none\n';
+  const state = 'status: Paused\nphase: plan-approval\nexecution: not-started\ncurrent_activity: none\n';
   assert.ok(pattern.test(state));
   assert.ok(!pattern.test(state.replace('not-started', 'passed')));
-  assert.ok(!pattern.test(state.replace('phase: plan', 'phase: execute')));
+  assert.ok(!pattern.test(state.replace('phase: plan-approval', 'phase: execute')));
 });

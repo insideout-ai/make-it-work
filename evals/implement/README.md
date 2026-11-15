@@ -211,12 +211,12 @@ The full Autopilot model case additionally requires stage-ordered source edits, 
 ## Planning progress
 
 `implement-planning-progress` exercises normal startup/readiness and initial planning,
-then the user's requested Plan pause before Execute. Its prompt does not prescribe
+then the normal Guided Plan approval gate before Execute. Its prompt does not prescribe
 milestone wording. Trace grading checks narrated activity checkpoints before actual
 discovery, drafting, baseline checks, test authoring, red verification and final
 validation. Saved-artifact grading checks retained audit/dashboard history and
 honest test evidence. Exact graders check the pause, completed plan handoff, and
-unchanged production code, original regression tests and accepted spec.
+unchanged production code and accepted spec; existing regression coverage must be retained even when its file is extended.
 
 The fixture uses the configured Node runner without onboarding or dependency
 installation. Run `node --test evals/planning-progress.test.mjs` for credential-free
