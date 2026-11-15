@@ -1,0 +1,23 @@
+evals/feedback-on-session/feedback-on-session-collection-gaps/fixture/session.txt
+  s_852f9e573071fc::t_0744435968ea1a 14
+skills/feedback-on-session/SKILL.md
+  s_852f9e573071fc::t_0744435968ea1a 100
+evals/feedback-on-session/feedback-on-session-collection-gaps/graders/collection-and-adherence.md
+  s_852f9e573071fc::t_0744435968ea1a 10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "508cd78770bbe0fdc80b1b94b828f7d773937af1",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
