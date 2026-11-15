@@ -127,3 +127,42 @@ test('Guided approval cannot enter Execute with a late readiness write, and does
   await f.save(savedReport);
   assert.equal((await apply(answer)).fields.phase, 'execute');
 });
+
+const manualDefaultReport = (mode = 'autopilot') => report({ status: 'manual', setup: 'manual', baseline: 'not-applicable', evidence: 'Inspected manifests, CI and relevant test paths; no real runner or external suite' })
+  .replace('automated | configured | Existing Node runner', 'manual | autonomy-default | No strategy or usable testing setup; bounded discovery') + `\n## Default verification evidence\n\n| Repo | Autonomy | Strategy | Tooling | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ${mode} | missing | absent | Inspected package manifest, CI and tests; no usable setup |\n`;
+
+test('missing strategy and absent tooling permit an audited manual default in either unattended mode', async t => {
+  for (const mode of ['autonomous', 'autopilot']) {
+    const f = await fixture(t);
+    await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('autonomy: autopilot', `autonomy: ${mode}`));
+    await testingReadiness(f.statePath, 'begin'); await f.save(manualDefaultReport(mode));
+    await testingReadiness(f.statePath, 'complete');
+    assert.equal((await f.check()).policy[0].Decision, 'autonomy-default');
+    // Changing chat autonomy later must not reinterpret an already selected policy.
+    await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(`autonomy: ${mode}`, 'autonomy: guided'));
+    assert.equal((await f.check()).ready, true);
+    await assert.rejects(readFile(path.join(f.root, '.claude/skills/test-strategy/SKILL.md')), /ENOENT/);
+  }
+});
+
+test('manual defaults reject absent discovery, Guided defaults, unavailable runners and existing strategies', async t => {
+  const f = await fixture(t); await testingReadiness(f.statePath, 'begin');
+  const valid = manualDefaultReport();
+  for (const invalid of [valid.split('## Default verification evidence')[0], manualDefaultReport('guided'), valid.replace('| missing | absent |', '| missing | unavailable |'), valid.replace('| missing | absent |', '| present | absent |')]) {
+    await f.save(invalid);
+    await assert.rejects(testingReadiness(f.statePath, 'complete'), /table|default|discovery/);
+  }
+  await mkdir(path.join(f.root, '.claude/skills/test-strategy'), { recursive: true });
+  await writeFile(path.join(f.root, '.claude/skills/test-strategy/SKILL.md'), '# Existing strategy\n');
+  await f.save(valid);
+  await assert.rejects(testingReadiness(f.statePath, 'complete'), /existing strategy/);
+});
+
+test('restarting readiness cannot silently turn a configured failing automated baseline into manual', async t => {
+  const f = await fixture(t); await testingReadiness(f.statePath, 'begin');
+  await f.save(report({ baseline: 'fail', evidence: 'Existing test runner failed' }));
+  await testingReadiness(f.statePath, 'complete');
+  await testingReadiness(f.statePath, 'begin', { restart: true });
+  await f.save(manualDefaultReport());
+  await assert.rejects(testingReadiness(f.statePath, 'complete'), /automated policy cannot become manual/);
+});

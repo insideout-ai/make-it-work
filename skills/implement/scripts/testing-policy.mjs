@@ -36,7 +36,7 @@ export function testingPolicy(plan, { required = false } = {}) {
     names.add(row.Repo);
     if (!['automated', 'manual'].includes(row.Mode)) fail('Invalid verification mode.');
     if (!['configured', 'user', 'project-policy', 'autonomy-default'].includes(row.Decision)) fail('Invalid verification decision source.');
-    if (row.Mode === 'manual' && !['user', 'project-policy'].includes(row.Decision)) fail('Manual verification requires an explicit user or project-policy decision.');
+    if (row.Mode === 'manual' && !['user', 'project-policy', 'autonomy-default'].includes(row.Decision)) fail('Manual verification requires a user, project-policy or recorded autonomy-default decision.');
   }
   const affected = section(plan, 'Affected Code');
   if (affected !== null) {

@@ -59,3 +59,5 @@ For a run with `final_package_version: 1`, checkpoint `final-sync → final-appr
 
 ---
 
+
+**Testing summary:** New runs carry script-owned `testing_summary` metadata. The controller inventories missing strategies at `context-ready` and refreshes actual methods from verification evidence (or Lightweight independent review) at `sync-complete`. Do not hand-edit this field or create onboarding artifacts to remove a note. Final packaging independently checks and includes it; if it changed, repeat final sync and rebuild the package. Older runs without the field remain unchanged.

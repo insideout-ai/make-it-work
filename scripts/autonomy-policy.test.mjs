@@ -53,3 +53,13 @@ test('single repair choices and large plain-text confirmations retain their actu
   const large = resolveDecision(input({ skill: 'define-test-strategy', site: 'location-confirm', kind: 'checkpoint', options: [{ id: 'a', label: 'Location A', candidate: true }, { id: 'b', label: 'Location B', candidate: true }] }));
   assert.equal(large.entry.chosen, 'Location A; Location B'); assert.equal(large.entry.options, undefined);
 });
+
+test('missing-strategy/absent-tooling defaults are manual only in unattended modes', () => {
+  const choice = { skill: 'implement', site: 'testing-readiness', options: [{ id: 'automated', label: 'Set up automated tests' }, { id: 'manual', label: 'Use manual verification' }] };
+  for (const mode of ['autonomous', 'autopilot']) {
+    assert.equal(resolveDecision(input({ ...choice, mode, testing_context: { strategy: 'missing', tooling: 'absent' } })).choice_id, 'manual');
+    assert.equal(resolveDecision(input({ ...choice, mode, testing_context: { strategy: 'present', tooling: 'absent' } })).choice_id, 'automated');
+    assert.equal(resolveDecision(input({ ...choice, mode, testing_context: { strategy: 'missing', tooling: 'unavailable' } })).choice_id, 'automated');
+  }
+  assert.equal(resolveDecision(input({ ...choice, mode: 'guided', testing_context: { strategy: 'missing', tooling: 'absent' } })).action, 'ask');
+});
