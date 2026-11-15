@@ -1,0 +1,22 @@
+skills/implement/scripts/workflow.test.mjs
+  s_b84ad5300dc276::t_1c21adee293a8f 90-100
+  s_b84ad5300dc276::t_5dbb1d8fb4b81b 101-103
+skills/implement/scripts/workflow.mjs
+  s_b84ad5300dc276::t_94fca30e20ad54 207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bf72a1eb3049ba53cac8803a29498bbf912421cb",
+  "prompts": {},
+  "sessions": {
+    "s_b84ad5300dc276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-3f3a-7ca2-8c0c-1b3d7dd3647d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
