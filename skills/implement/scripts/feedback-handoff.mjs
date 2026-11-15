@@ -6,6 +6,7 @@ import { lastWorkRow } from './workflow-decisions.mjs';
 import { fileURLToPath } from 'node:url';
 import { finalizeFeedback, readFeedbackFinalization } from './feedback-finalization.mjs';
 import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
+import { feedbackReadback } from './feedback-readback.mjs';
 
 const writerPath = fileURLToPath(new URL('./write-feedback.mjs', import.meta.url));
 const feedbackReference = fileURLToPath(new URL('../references/feedback.md', import.meta.url));
@@ -126,7 +127,7 @@ export function feedbackAction(statePath, fields) {
   if (!feedbackEligible(fields)) return {};
   return { next_action: { type: 'feedback', state: path.resolve(statePath), runId: fields.start_time,
     commands: feedbackCommands(statePath, { limitStop: fields.status === 'Stopped' }),
-    instruction: 'Read implement/references/feedback.md and feedback-on-session/SKILL.md now. Inspect this terminal run, dispatch the required retrospective when analysisRequired is true, review the available conversation even with zero retries, and save both feedback files through write-feedback.mjs with --session-review before the terminal summary or delivery question. Preserve terminal state and captured plugin version. No friction or not performed is not unavailability. Only an evidenced technical failure permits the reference\'s unavailable procedure. Do not ask permission to run this already-required step.' } };
+    instruction: 'Read implement/references/feedback.md and feedback-on-session/SKILL.md now. Inspect this terminal run, dispatch the required retrospective when analysisRequired is true, review the available conversation even with zero retries, and save both feedback files through write-feedback.mjs with --session-review. Then use Read on sessionOutputPath and inspect the full saved Markdown before the terminal summary or delivery question. Preserve terminal state and captured plugin version. No friction or not performed is not unavailability. Only an evidenced technical failure permits the reference\'s unavailable procedure. Do not ask permission to run this already-required step.' } };
 }
 
 function unavailableAttempt(events, statePath, fields, audit) {
@@ -191,30 +192,45 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
   const runtime = feedbackRuntimeEvidence(events, statePath, saved.fields, saved.audit, undefined, receipts);
   if (persist && runtime.dispatches.length) await recordFeedbackReceipt(statePath, binding, { dispatches: runtime.dispatches });
   const finalized = await readFeedbackFinalization(statePath, binding);
-  if (finalized?.status === 'saved' && runtime.completedReports.some(report => report.writerId === finalized.writerId)) return null;
   const settle = async outcome => { if (persist) await finalizeFeedback(statePath, { ...binding, ...outcome }); };
   const reportPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
+  const hold = reason => input.hook_event_name === 'Stop' ? { decision: 'block', reason } :
+    input.hook_event_name === 'PreToolUse' && (input.tool_name === 'AskUserQuestion' ||
+      input.tool_name === 'Bash' && /\bdeliver\.mjs["']?\s+offer\b/.test(input.tool_input?.command ?? ''))
+      ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } } : null;
   try {
-    if ((await lstat(reportPath)).isFile()) {
+    const info = await lstat(reportPath);
+    if (info.isFile()) {
       const report = await readFile(reportPath, 'utf8');
       const start = report.indexOf(`<!-- run:${fields.start_time} -->`);
       const end = report.indexOf(`<!-- /run:${fields.start_time} -->`);
       const block = report.slice(start, end);
       if (start >= 0 && end > start && block.includes('\n### Session review\n') &&
           block.includes(`<!-- feedback-state:${stateHash} -->`)) {
-        const completed = runtime.completedReports.at(-1);
-        if (completed) { await settle({ status: 'saved', kind: 'runtime', writerId: completed.writerId }); return null; }
-        if (await answeredDelivery(events, statePath, saved.fields, saved.audit)) {
+        if (!finalized?.readback && await answeredDelivery(events, statePath, saved.fields, saved.audit)) {
           await settle({ status: 'saved', kind: 'answered-delivery' });
           return null;
         }
+        const readback = saved.fields.feedback_evidence_version === '1' ? feedbackReadback(events, {
+          reportPath, report, modifiedAt: info.mtimeMs,
+          terminalTime: Date.parse(feedbackTerminalRow(saved.fields, saved.audit)?.time),
+          root: path.dirname(path.dirname(path.dirname(statePath))),
+        }) : undefined;
+        const finish = async outcome => {
+          if (readback === null) return hold(`The combined feedback report is saved, but its current body has not been read back. Use Read on ${JSON.stringify(reportPath)} now (read all numbered ranges if needed), inspect the returned Markdown, then continue the terminal summary or delivery offer. A writer acknowledgement, file listing, line count or delegate summary is not a readback. Keep the workflow terminal; do not rewrite feedback or rerun the retrospective just to complete this read.`);
+          if (finalized?.status === 'saved' && finalized.kind === outcome.kind && finalized.writerId === outcome.writerId &&
+              JSON.stringify(finalized.readback) === JSON.stringify(readback)) return null;
+          await settle({ status: 'saved', ...outcome, ...(readback ? { readback } : {}) });
+          return null;
+        };
+        const completed = runtime.completedReports.at(-1);
+        if (completed) return await finish({ kind: 'runtime', writerId: completed.writerId });
         const { inspectFeedback } = await import('./write-feedback.mjs');
         const summary = await inspectFeedback(statePath, { limitStop: fields.status === 'Stopped' });
         const snapshot = block.match(/<!-- feedback-evidence:([a-f0-9]{64}) -->/)?.[1];
         const sourceRead = !summary.evidenceRequired || snapshot && runtime.sourcePackets.includes(snapshot);
         if (sourceRead && (!summary.analysisRequired || runtime.retrospectiveDispatched)) {
-          await settle({ status: 'saved', kind: 'verified-report' });
-          return null;
+          return await finish({ kind: 'verified-report' });
         }
       }
     }
@@ -226,9 +242,5 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
     systemMessage: `Session feedback is unavailable: ${unavailable.reason}. ${unavailable.reportStatus === 'unverified' ? 'An existing report remains unverified; the required retrospective was not completed.' : 'No combined feedback report was saved for this run.'} ${unavailable.receiptSaved === true ? `Only a failure receipt was saved at ${unavailable.receiptPath}.` : 'The failure receipt could not be saved either; disclose that limitation.'} State this accurately in the terminal summary; keep the workflow terminal.` };
   }
   const reason = `${fields.status === 'Complete' ? 'Implementation is Complete' : 'The run is stopped at its retry limit'}, but required feedback work is not complete for this run. Read implement/references/feedback.md and feedback-on-session/SKILL.md; inspect the run, read the numbered sources through write-feedback.mjs evidence for evidence-enabled runs, dispatch the retrospective when analysisRequired is true, and save through write-feedback.mjs with --session-review before the terminal summary or delivery question. Marker counts alone are not source inspection. An unperformed retrospective or a claim of no friction does not qualify as unavailable. Only after a technical tool failure, use the reference's unavailable procedure with --transcript ${JSON.stringify(input.transcript_path)} --failure-id <failed tool call ID> and a specific reason. Keep phase and status unchanged; do not ask permission or wait for optional user feedback.`;
-  if (input.hook_event_name === 'Stop') return { decision: 'block', reason };
-  if (input.hook_event_name === 'PreToolUse' && (input.tool_name === 'AskUserQuestion' ||
-      input.tool_name === 'Bash' && /\bdeliver\.mjs["']?\s+offer\b/.test(input.tool_input?.command ?? ''))) return {
-    hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } };
-  return null;
+  return hold(reason);
 }

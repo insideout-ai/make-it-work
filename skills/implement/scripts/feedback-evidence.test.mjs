@@ -41,6 +41,10 @@ test('numbered evidence removes embedded images; marker-only feedback is rejecte
   assert.equal(output.status, 0, output.stderr);
   const events = [{ type: 'assistant', timestamp: '2026-01-01T10:07:00Z', message: { content: [{ type: 'tool_use', id: 'packet', name: 'Bash', input: { command: `node "${script}" evidence --state "${statePath}"` } }] } },
     { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'packet', content: output.stdout }] } }];
+  assert.match((await feedbackHold({ hook_event_name: 'Stop' }, statePath, fields, events)).reason, /current body has not been read back/);
+  const timestamp = new Date(Date.now() + 1000).toISOString();
+  events.push({ type: 'assistant', timestamp, message: { content: [{ type: 'tool_use', id: 'readback', name: 'Read', input: { file_path: path.join(dir, 'workflow-feedback.md') } }] } },
+    { type: 'user', timestamp, message: { content: [{ type: 'tool_result', tool_use_id: 'readback', content: await readFile(path.join(dir, 'workflow-feedback.md'), 'utf8') }] } });
   assert.equal(await feedbackHold({ hook_event_name: 'Stop' }, statePath, fields, events), null);
   await writeFile(htmlPath, html.replace('Complete</h1>', 'Complete; delivery declined</h1>'));
   assert.equal(await feedbackHold({ hook_event_name: 'Stop' }, statePath, fields, events), null);

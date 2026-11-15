@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.7.1] — 2026-11-15
+
+### Fixed
+
+- Record feedback collection and verified outcomes in the audit log and beneath the Finalizing circle, with idempotent retries and preserved terminal status and approvals.
+- Clarify controller repository-root requirements, implementation-mode decision payloads, and feedback evidence diagnostics.
+- Capture runtime feedback collection repairs separately from application fix rounds, require saved-report readback, and assess evidenced workflow omissions without inventing outcomes.
+
+### Changed
+
+- Keep detailed assurance information in the existing final package and review artifacts instead of repeating it on the HTML dashboard.
+- Require evidence-backed data discoveries, representative boundary inputs in existing tests, and reconciliation of disproven discoveries before documentation reuse.
+- Add curated evaluation tiers and retain evidence-backed failure classifications for release preparation and maintenance.
+
 ## [5.7.0] — 2026-11-12
 
 ### Added
