@@ -164,6 +164,20 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
   return value;
 }
 
+/** Ledger outcome for each packageable execution state. */
+export const EXECUTION_OUTCOMES = Object.freeze({ passed: 'PASSED', 'verified-manually': 'VERIFIED_MANUALLY', 'gate-no-result': 'GATE_NO_RESULT', 'gate-failed': 'GATE_FAILED' });
+
+const UNRELATED_GATE_REASONS = ['Only unrelated regressions remain.', 'Developer accepted all failures as unrelated.'];
+
+/**
+ * A failed gate is packageable only when triage routed it to review because every
+ * failure was unrelated, and those failures are recorded under Known regressions.
+ */
+export function acceptedUnrelatedGate(state) {
+  const entry = state.audit.findLast((row) => row.from === 'execute' && row.to === 'review');
+  return Boolean(entry && UNRELATED_GATE_REASONS.some((reason) => entry.outcome.includes(reason)) && state.knownRegressions.length);
+}
+
 export async function readVerification(root, relative, options) {
   if (typeof relative !== 'string' || path.isAbsolute(relative) ||
       !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(options.ticket) ||

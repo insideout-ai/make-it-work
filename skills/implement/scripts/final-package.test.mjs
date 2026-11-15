@@ -256,6 +256,35 @@ test('builds with matching scoped+full gate modes and rejects a mismatch', async
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /disagrees with state/);
 });
 
+test('packages a failed gate only when triage recorded every failure as unrelated', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-unrelated-gate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  const failedGate = (await readFile(state, 'utf8'))
+    .replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1')
+    .replace('execution: passed', 'execution: gate-failed');
+  await writeFile(state, failedGate);
+  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
+    steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
+    gate: { mode: 'full-suite', result: 'fail', note: 'Legacy runtime tests fail on a clean base' },
+    acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] }));
+  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /triage classified every failure as unrelated/);
+
+  await writeFile(state, failedGate
+    .replace('## Known regressions\n\nNone', '## Known regressions\n\n- demo: test/legacy.test.js — runs on the old runtime')
+    .replace('| 1 | 2026-01-01T10:00:00Z | final-sync |', '| 1 | 2026-01-01T09:00:00Z | execute | review | Only unrelated regressions remain. |\n| 2 | 2026-01-01T10:00:00Z | final-sync |'));
+  run('build', root, state, '--draft', draft, '--repo', root);
+  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  assert.match(pkg.validation.result, /accepted: only unrelated pre-existing failures/);
+  assert.deepEqual(pkg.known_regressions, ['demo: test/legacy.test.js — runs on the old runtime']);
+  const markdown = await readFile(path.join(dir, 'DEMO-final-package.md'), 'utf8');
+  assert.match(markdown, /Known unrelated regressions: demo: test\/legacy\.test\.js/);
+  assert.equal(run('check', root, state).current, true);
+});
+
 test('packages an explicitly manual completion without claiming automated PASS', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-manual-'));
   t.after(() => rm(root, { recursive: true, force: true }));

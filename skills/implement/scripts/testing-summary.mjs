@@ -28,11 +28,11 @@ export async function collectTestingSummary(root, fields, { final = false } = {}
   if (final && fields.mode !== 'lightweight' && fields.verification_version === '1' && fields.plan && fields.plan !== 'none') {
     plan = await readFile(path.resolve(root, fields.plan), 'utf8');
     policy = testingPolicy(plan) ?? [];
-    const { readVerification } = await import('./verification.mjs');
+    const { readVerification, EXECUTION_OUTCOMES } = await import('./verification.mjs');
     ledger = await readVerification(root, `make-it-work/${fields.ticket}/${fields.ticket}-verification-v${fields.plan_version}.json`, {
       ticket: fields.ticket, planVersion: Number(fields.plan_version), plan, requireComplete: true,
       requireClauses: fields.acceptance_evidence_version === '1',
-      outcome: fields.execution === 'verified-manually' ? 'VERIFIED_MANUALLY' : fields.execution === 'passed' ? 'PASSED' : 'GATE_NO_RESULT',
+      outcome: EXECUTION_OUTCOMES[fields.execution] ?? 'GATE_NO_RESULT',
     });
   }
   const rows = [];
