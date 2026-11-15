@@ -55,7 +55,7 @@ For new controller runs use `workflow.mjs init`; the initializer loads
 prose. Preserve every returned action, especially the immediate standalone
 startup dashboard chat message before any subsequent tool and the continuation
 into Context check. An active run continues until its documented human question,
-approval, live-agent wait, stop or completion; do not end because code/tests pass.
+approval, verified live-agent/background-task wait, stop or completion; do not end because code/tests pass.
 
 The state file is authoritative. Keep existing run markers unchanged. Read
 [legacy state/progress](references/orchestration/state-and-progress.md) and

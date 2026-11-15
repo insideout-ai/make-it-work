@@ -730,3 +730,84 @@ test('refinement waits require a live current-stage child and never hide applica
   await writeFile(path.join(run.root, 'app.js'), '// premature edit');
   assert.match((await run.check()).reason, /Application files changed/);
 });
+
+function launchBackground(run, tool = 'Bash', result = { backgroundTaskId: 'baseline' }, at = run.epoch + 1) {
+  run.events.push(assistant({ type: 'tool_use', id: `bg-${tool}`, name: tool }),
+    { type: 'user', timestamp: new Date(at).toISOString(), toolUseResult: result,
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: `bg-${tool}`, content: 'Started' }] } });
+}
+
+test('native Bash and finite Monitor waits preserve workflow and restore enforcement on terminal events', async t => {
+  for (const tool of ['Bash', 'Monitor']) {
+    const run = await activeAgentRun(t, 'plan');
+    launchBackground(run, tool, tool === 'Bash' ? { backgroundTaskId: 'baseline' } : { taskId: 'baseline', timeoutMs: 60000 });
+    await run.saveEvents();
+    const before = await readFile(run.result.state, 'utf8');
+    assert.deepEqual(await run.check(), {});
+    assert.equal(await readFile(run.result.state, 'utf8'), before);
+    assert.equal((await readHookEvents(run.result.state)).at(-1).kind, 'task-wait');
+    for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
+      const notification = { type: 'system', subtype: 'task_notification', task_id: 'baseline', status };
+      assert.equal(startupProgress([...run.events, notification]).tasks.length, 0);
+    }
+    run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification><task-id>baseline</task-id><status>completed</status></task-notification>' });
+    await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('background wait rejects stale, expired, turn-bound and persistent work', async t => {
+  for (const [tool, output, old] of [
+    ['Bash', { backgroundTaskId: 'old' }, true],
+    ['Bash', { backgroundTaskId: 'interrupted', interrupted: true }],
+    ['Bash', { backgroundTaskId: 'turn-bound', backgroundEndsWithFinalResponse: true }],
+    ['Monitor', { taskId: 'persistent', timeoutMs: 60000, persistent: true }],
+    ['Monitor', { taskId: 'unbounded' }],
+    ['Monitor', { taskId: 'expired', timeoutMs: 1 }],
+  ]) {
+    const run = await activeAgentRun(t, 'plan');
+    launchBackground(run, tool, output, output.taskId === 'expired' ? Date.now() - 60000 : old ? run.epoch - 1 : run.epoch + 1);
+    if (output.taskId === 'expired') assert.equal(startupProgress(run.events).tasks.length, 0);
+    await run.saveEvents();
+    assert.equal((await run.check()).decision, 'block');
+  }
+});
+
+test('background tasks cannot bypass premature edits or readiness completion and cancellation closes only its task', async t => {
+  const run = await activeAgentRun(t, 'plan');
+  launchBackground(run);
+  launchBackground(run, 'Monitor', { taskId: 'watch', timeoutMs: 60000 });
+  await run.saveEvents();
+  const denied = await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, tool_name: 'Bash', tool_input: { command: `node testing-readiness.mjs complete --state "${run.result.state}"` } });
+  assert.equal(denied.hookSpecificOutput.permissionDecision, 'deny');
+  run.events.push(assistant({ type: 'tool_use', id: 'stop-watch', name: 'TaskStop' }),
+    { type: 'user', toolUseResult: { task_id: 'watch' }, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'stop-watch', content: 'Stopped' }] } });
+  assert.deepEqual(startupProgress(run.events).tasks.map(task => task.id), ['baseline']);
+  await writeFile(path.join(run.root, 'app.js'), 'premature production edit');
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /Application files changed/);
+});
+
+
+test('runtime task inventories and status updates invalidate launches without accepting unrelated work', async t => {
+  const run = await activeAgentRun(t, 'plan');
+  launchBackground(run);
+  for (const event of [
+    { type: 'system', subtype: 'background_tasks_changed', tasks: [] },
+    { type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'baseline', ambient: true }] },
+    { type: 'system', subtype: 'task_updated', task_id: 'baseline', patch: { status: 'failed' } },
+  ]) assert.equal(startupProgress([...run.events, event]).tasks.length, 0);
+  assert.deepEqual(startupProgress([...run.events, { type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'baseline' }, { task_id: 'unrelated' }] }]).tasks.map(task => task.id), ['baseline']);
+});
+
+
+test('older headless Bash waits require a Monitor wake-up source', async t => {
+  const run = await activeAgentRun(t, 'plan');
+  launchBackground(run);
+  Object.assign(run.events.at(-1), { entrypoint: 'sdk-cli', version: '2.1.267' });
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /finite Monitor/);
+  launchBackground(run, 'Monitor', { taskId: 'wake', timeoutMs: 60000 });
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+});

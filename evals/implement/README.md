@@ -205,3 +205,5 @@ The full Autopilot model case additionally requires stage-ordered source edits, 
 ## Optional go-deep context
 
 `implement-context-absent` and `implement-context-partial` exercise fresh completion using existing guidance and scoped discovery without onboarding repair. `implement-context-mandatory-missing` requires a stop for an explicitly mandatory missing skill, with unchanged implementation source. Run these with the signed-in headless runner using `node evals/run-suite.mjs full --case=implement-context-absent --case=implement-context-partial --case=implement-context-mandatory-missing --max-cost-usd=8`. These behavioral checks complement controller tests for absent/partial/complete inventories, inventory errors and workspace routing; deterministic passes alone do not establish a live model pass.
+
+- `implement-background-bash-wait` and `implement-background-monitor-wait` exercise native background baseline checks in Plan: verified task-wait, quiet yielding, actual result collection and the requested saved pause, without feature edits. These are live lifecycle checks, separate from delegated-agent wait coverage.

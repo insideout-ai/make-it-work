@@ -119,6 +119,8 @@ function readableTrace(events) {
           if (part.is_error !== undefined) emit(`TOOL RESULT ERROR ${part.tool_use_id}: ${part.is_error}`, actor);
         }
       }
+    } else if (event.type === 'system' && ['task_started', 'task_updated', 'task_notification', 'background_tasks_changed'].includes(event.subtype)) {
+      emit(`RUNTIME TASK EVENT: ${JSON.stringify(event)}`);
     } else if (event.type === 'result') emit(`FINAL: ${event.result}`);
   }
   return lines.join('\n');
