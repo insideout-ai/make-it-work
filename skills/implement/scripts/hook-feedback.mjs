@@ -6,7 +6,7 @@ import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
-const kinds = new Set(['missing-dashboard-link', 'active-stage', 'premature-implementation', 'state-unavailable', 'readiness-pending', 'agent-wait', 'clear']);
+const kinds = new Set(['missing-dashboard-link', 'active-stage', 'premature-implementation', 'state-unavailable', 'readiness-pending', 'agent-wait', 'task-wait', 'clear']);
 const phases = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval', 'execute', 'lightweight', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete']);
 const hooks = new Set(['PreToolUse', 'Stop']);
 const iso = (value) => typeof value === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(value) && Number.isFinite(Date.parse(value));
@@ -45,7 +45,7 @@ export async function recordHookEvent({ statePath, state, input, events, kind, a
   if (kind === 'clear' && (!previous || previous.kind === 'clear')) return;
   const tail = events.findLast((event) => event.type === 'assistant' || event.type === 'user');
   const occurrence = input.tool_use_id ?? tail?.uuid ?? sha(JSON.stringify(tail ?? input.last_assistant_message ?? 'unknown'));
-  const subject = sha(kind === 'agent-wait' ? agents.map((agent) => agent.id).sort().join('\n') : kind);
+  const subject = sha(['agent-wait', 'task-wait'].includes(kind) ? agents.map((agent) => agent.id).sort().join('\n') : kind);
   const identity = [runId, input.hook_event_name, phase, kind, subject, occurrence].join('\0');
   const eventId = sha(identity);
   if (history.some((event) => event.eventId === eventId)) return;
@@ -80,7 +80,7 @@ export function summarizeHookEvents(events, runId, terminalTime) {
       episodes.push(episode); active.set(event.hook, episode);
     }
   }
-  const interventions = episodes.filter((episode) => episode.kind !== 'agent-wait');
-  const waits = episodes.filter((episode) => episode.kind === 'agent-wait');
+  const interventions = episodes.filter((episode) => !['agent-wait', 'task-wait'].includes(episode.kind));
+  const waits = episodes.filter((episode) => ['agent-wait', 'task-wait'].includes(episode.kind));
   return { interventions, waits, analysisRequired: interventions.length > 0 || waits.some((episode) => episode.occurrences > 1) };
 }

@@ -33,6 +33,8 @@ export function startupProgress(events) {
   const bashCalls = new Set();
   const agentCalls = new Map();
   const agents = new Map();
+  const tasks = new Map();
+  const taskCalls = new Map();
   for (const event of events) {
     // Task notifications are runtime events, not diagnostic request replays or
     // agent-authored claims. A queued completion must close the wait immediately.
@@ -44,7 +46,12 @@ export function startupProgress(events) {
     if (typeof notification === 'string' && notification.startsWith('<task-notification>')) {
       const id = notification.match(/<task-id>([^<]+)<\/task-id>/)?.[1];
       const status = notification.match(/<status>([^<]+)<\/status>/)?.[1];
-      if (['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(status)) agents.delete(id);
+      if (['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(status)) { agents.delete(id); tasks.delete(id); }
+    }
+    if (event.type === 'system' && event.subtype === 'task_notification' && ['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(event.status)) { agents.delete(event.task_id); tasks.delete(event.task_id); }
+    if (event.type === 'system' && event.subtype === 'task_updated' && ['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(event.patch?.status)) tasks.delete(event.task_id);
+    if (event.type === 'system' && event.subtype === 'background_tasks_changed' && Array.isArray(event.tasks)) {
+      for (const id of tasks.keys()) if (!event.tasks.some(task => task.task_id === id && !task.ambient)) tasks.delete(id);
     }
     if (!['assistant', 'user'].includes(event.type)) continue;
     const role = event.message?.role ?? event.type;
@@ -62,6 +69,18 @@ export function startupProgress(events) {
     if (!Array.isArray(content)) continue;
     for (const part of content) {
       if (role === 'assistant' && part.type === 'tool_use' && part.name === 'Bash') bashCalls.add(part.id);
+      if (initialized && role === 'assistant' && part.type === 'tool_use' && ['Bash', 'Monitor', 'TaskStop', 'TaskOutput'].includes(part.name)) taskCalls.set(part.id, part.name);
+      if (role === 'user' && part.type === 'tool_result' && !part.is_error && taskCalls.has(part.tool_use_id)) {
+        const result = event.toolUseResult, tool = taskCalls.get(part.tool_use_id);
+        const id = tool === 'Bash' ? result?.backgroundTaskId : tool === 'Monitor' ? result?.taskId : null;
+        const launchedAt = Date.parse(event.timestamp);
+        if (typeof id === 'string' && id && Number.isFinite(launchedAt) && !result.interrupted && !result.backgroundEndsWithFinalResponse &&
+            (tool !== 'Monitor' || Number.isFinite(result.timeoutMs) && result.timeoutMs > 0 && !result.persistent)) {
+          tasks.set(id, { id, launchedAt, ...(tool === 'Monitor' ? { expiresAt: launchedAt + result.timeoutMs } : {}) });
+        }
+        if (tool === 'TaskStop' && typeof result?.task_id === 'string') tasks.delete(result.task_id);
+        if (tool === 'TaskOutput' && ['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(result?.task?.status)) tasks.delete(result.task.task_id);
+      }
       if ((initialized || terminalFeedback || feedbackRun) && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
         agentCalls.set(part.id, part.name);
       }
@@ -88,7 +107,7 @@ export function startupProgress(events) {
         const result = startupResult(output);
         if (result) {
           initialized = result; feedbackRun = { state: result.state, runId: result.runId ?? result.fields?.start_time };
-          terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear();
+          terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); tasks.clear(); taskCalls.clear();
         }
         for (const line of output.split('\n')) {
           try {
@@ -104,7 +123,7 @@ export function startupProgress(events) {
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;
     }
   }
-  return { initialized, initializationId, terminalFeedback, feedbackRun, announced, agents: [...agents.values()] };
+  return { initialized, initializationId, terminalFeedback, feedbackRun, announced, agents: [...agents.values()], tasks: [...tasks.values()].filter(task => !task.expiresAt || task.expiresAt > Date.now()) };
 }
 
 export function pendingStartup(events) {
@@ -112,7 +131,7 @@ export function pendingStartup(events) {
   return announced ? null : initialized;
 }
 
-async function continuationHold(initialized, toolCheck = false, agents = []) {
+async function continuationHold(initialized, toolCheck = false, agents = [], tasks = []) {
   if (initialized?.continuation !== 'continue_context_check_without_user_reply') return {};
   let state;
   try {
@@ -129,7 +148,7 @@ async function continuationHold(initialized, toolCheck = false, agents = []) {
   // Yielding to a live child is not workflow completion. Preserve In Progress
   // and all completion gates; a child from an earlier phase cannot release Stop.
   if (['close-the-gaps', 'plan', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
-      agents.some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
+      [...agents, ...tasks].some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
   if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };
   return { decision: 'block', reason: 'The dashboard link has been shared, but this fresh run is still in Context check with status In Progress. Continue Context check now in this same turn; do not repeat the link or ask the user to send another message. If a genuine question or blocker prevents continuation, save the documented pause or stop before reporting it.' };
 }
@@ -148,7 +167,8 @@ async function observeHook(input, progress, events, output, kind = 'clear') {
     const state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state);
     if (feedbackEligible(state.fields)) return output;
     if (input.hook_event_name === 'Stop' && kind === 'clear' && state.fields.status === 'In Progress' && progress.agents.length) kind = 'agent-wait';
-    await recordHookEvent({ statePath: progress.initialized.state, state, input, events, kind, agents: progress.agents });
+    if (input.hook_event_name === 'Stop' && kind === 'clear' && state.fields.status === 'In Progress' && progress.tasks.length) kind = 'task-wait';
+    await recordHookEvent({ statePath: progress.initialized.state, state, input, events, kind, agents: kind === 'task-wait' ? progress.tasks : progress.agents });
     return output;
   } catch {
     // Observability must not change the hook's enforcement or workflow status.
@@ -220,12 +240,12 @@ export async function startupHook(input) {
     try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing continuation handling keeps repair tools available. */ }
     const entered = state?.audit.findLast((row) => row.to === state.fields.phase && row.from !== row.to)?.epoch;
     if (state?.fields.testing_readiness_version === '1' && ['plan', 'fix-plan'].includes(state.fields.phase) &&
-        progress.agents.some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= entered)) {
+        [...progress.agents, ...progress.tasks].some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= entered)) {
       return observeHook(input, progress, events, { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny',
-        permissionDecisionReason: 'Plan delegates are still running. Wait for their actual handback before beginning or completing readiness, reconcile the report, then continue planning. Keep the run In Progress; a verified Plan wait is allowed.' } }, 'readiness-pending');
+        permissionDecisionReason: 'Plan delegates or background tasks are still running. Wait for their actual handback before beginning or completing readiness, reconcile the report, then continue planning. Keep the run In Progress; a verified Plan wait is allowed.' } }, 'readiness-pending');
     }
   }
-  const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop', progress.agents);
+  const hold = await continuationHold(progress.initialized, input.hook_event_name !== 'Stop', progress.agents, progress.tasks);
   if (input.hook_event_name === 'Stop') {
     const expectedBoundary = isConfirmationBoundary(input, confirmation) && hold.reason?.startsWith('The dashboard link has been shared');
     const kind = !hold.reason || expectedBoundary ? 'clear' : hold.reason.startsWith('Application files changed') ? 'premature-implementation'
