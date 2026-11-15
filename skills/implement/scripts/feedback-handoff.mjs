@@ -221,7 +221,7 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
   } catch { /* Missing or unreadable feedback still needs a reported outcome. */ }
   const unavailable = unavailableAttempt(events, statePath, saved.fields, saved.audit);
   if (unavailable) {
-    await settle({ status: 'unavailable', kind: 'verified-failure', failureId: unavailable.failureId });
+    await settle({ status: 'unavailable', kind: 'verified-failure', failureId: unavailable.failureId, reason: unavailable.reason });
     return {
     systemMessage: `Session feedback is unavailable: ${unavailable.reason}. ${unavailable.reportStatus === 'unverified' ? 'An existing report remains unverified; the required retrospective was not completed.' : 'No combined feedback report was saved for this run.'} ${unavailable.receiptSaved === true ? `Only a failure receipt was saved at ${unavailable.receiptPath}.` : 'The failure receipt could not be saved either; disclose that limitation.'} State this accurately in the terminal summary; keep the workflow terminal.` };
   }

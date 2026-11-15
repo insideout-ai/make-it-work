@@ -465,6 +465,14 @@ A mode the user forced (`--mode` or an explicit chat request) wins: set it with 
 
 Log the result as a decision row (topic `Implementation mode`, per the workflow-decision audit), refresh the dashboard, then call `handoff.mjs next`. Guided shows it at Spec approval; Autonomous and Autopilot apply it without asking. On controller runs, the controller's `mode` event writes these fields and the row; apply it before the refinement handoff (or a reused spec's `context-ready`). Escalation and Lightweight fix rounds likewise use its events, never hand edits.
 
+In Autopilot, also append this assessed mode to the initialized `implement` decision log using `kind: checkpoint` and `site: implementation-mode`. This records a policy assessment, so omit `question`, `options`, and `multiSelect`; those fields are allowed only for `askUserQuestion` entries. Use the actual selected mode and rationale, including any user override. For example:
+
+```json
+{"phase":"Risk assessment","site":"implementation-mode","kind":"checkpoint","chosen":"lightweight","rationale":"Assessed low risk: a display-only addition to an existing hover card, with no backend or billing changes."}
+```
+
+Pass the entry to the shared writer in its own tool call with the run's existing root and ticket, following `docs/autopilot-log-schema.md`. This log append is separate from the controller's state/Audit update; it does not replace or replay that update.
+
 ### Spec approval (Guided; every mode after a requirements conflict)
 
 Show the spec path and, in an adaptive run, the assessed risk, mode, and rationale. Ask: **Approve** / **Approve with <the other mode>** (adaptive runs only) / **Redo this phase** (with notes) / **Stop**. The user may edit the spec file before approving; record `spec_hash` at the moment of approval. **Approve with <the other mode>** switches `mode` with `mode_source: user` and notes it in `risk_rationale`; the transition row records the choice.
@@ -488,7 +496,7 @@ Require the report to name the repository skills loaded before editing and how t
 
 For checks that already fail on the branch, separate unchanged baseline diagnostics from introduced diagnostics and checks not run. A similar error elsewhere does not make an error in a new file pre-existing. Resolve new failures, or retain an evidenced qualification for independent review; never summarize a failing command as wholly pre-existing from its total error count alone.
 
-When the Lightweight change introduces transformation or decision logic, have the agent cover the accepted normal, boundary and rejected/complement behavior with focused tests using the project's existing runner when available. Report missing test capability or browser access as a verification gap. This does not add a regression gate or turn a text-only edit into a test-writing task.
+When the Lightweight change introduces transformation or decision logic, have the agent cover the accepted normal, boundary and rejected/complement behavior with focused tests using the project's existing runner when available. Require evidence-backed data discoveries and representative test inputs under [context discovery](references/context-discovery.md). Report missing test capability or browser access as a verification gap. This does not add a regression gate or turn a text-only edit into a test-writing task.
 
 Set `implementation_report`, re-record `head` and `worktree_fingerprint`, and append the report's discoveries to Context discoveries. Then write the `implement-<N>.json` handoff yourself per `<base>/references/handoffs.md` (`IMPLEMENTED` with the report's changed paths, checks, discoveries, and risk signal; or `status: blocked` with its reason), validate it, and reassess per Escalation: a risk signal or block may warrant `--escalate`. Otherwise `handoff.mjs next` routes `IMPLEMENTED` to Review; a block without escalation stops with its reason, as the helper returns.
 
@@ -733,6 +741,8 @@ without a real content change. Its job is to make the project's knowledge base d
 - The documentation items of the project's `CLAUDE.md` "After Any Feature Change" checklist and its quick-lookup table — not its commit-time items.
 
 Apply [context discovery's documentation maintenance rules](references/context-discovery.md) first. The go-deep destinations below apply where that knowledge base already exists; they do not require creating missing onboarding structure. For other repositories, maintain existing relevant docs or record a reasoned no-change outcome and deferred discoveries in run artifacts. Final sync itself remains mandatory.
+
+**Reconcile discoveries before reuse.** Compare implementation discoveries with the review findings and final code/contracts. Correct or explicitly mark disproven claims as superseded in the state's Context discoveries and any affected current documentation. Cite the correcting evidence; preserve historical reports and audit rows, linking the correction to the original claim where needed. Retain unresolved contradictions as limitations, using the existing stop/question route for essential unknowns. Do not present an assumption or a refuted discovery as an established fact in reusable knowledge or the final package.
 
 **For each piece of changed or newly learned behavior, choose one:**
 

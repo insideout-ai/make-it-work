@@ -5,9 +5,10 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { feedbackAction, feedbackEligible, feedbackHold, feedbackStateHash } from './feedback-handoff.mjs';
-import { writeFeedback } from './write-feedback.mjs';
+import { inspectFeedback, writeFeedback } from './write-feedback.mjs';
 import { generateDashboard } from './render-status.mjs';
 import { parseState } from './render-status.mjs';
+import { finalizeFeedback } from './feedback-finalization.mjs';
 import { decisionCell } from './workflow-decisions.mjs';
 
 async function fixture(t) {
@@ -25,6 +26,10 @@ async function fixture(t) {
   const report = path.join(directory, 'workflow-feedback.md');
   return { statePath, fields, report, markdown };
 }
+function withoutFeedbackNotes(markdown) {
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+}
+
 const review = { status: 'pending', context: ['Conversation visible turns 1 through 4 reviewed; earlier context unavailable'], findings: [], userInput: [], limitations: ['Client version unknown'] };
 const stop = { hook_event_name: 'Stop' };
 
@@ -49,7 +54,7 @@ test('missing feedback holds terminal summary and delivery questions while leavi
   assert.equal((await feedbackHold(stop, f.statePath, f.fields, [])).decision, 'block');
   await writeFeedback(f.statePath, { sessionReview: review });
   assert.equal(await feedbackHold(stop, f.statePath, f.fields, []), null);
-  assert.equal(await readFile(f.statePath, 'utf8'), f.markdown);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), f.markdown);
   assert.match(await readFile(f.report, 'utf8'), /Provisional — user input pending/);
 });
 
@@ -65,7 +70,7 @@ test('controller and inspection supply runnable parent commands and separate JSO
     assert.equal(result.status, 0, result.stderr);
   }
   assert.match(await readFile(f.report, 'utf8'), /### Session review/);
-  assert.equal(await readFile(f.statePath, 'utf8'), f.markdown);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), f.markdown);
 });
 
 test('another run or an older state cannot satisfy the feedback check', async (t) => {
@@ -126,6 +131,9 @@ test('an evidenced technical failure saves only a receipt and releases the termi
   assert.equal(released.decision, undefined);
   assert.match(released.systemMessage, /No combined feedback report was saved/);
   assert.match(released.systemMessage, /Only a failure receipt was saved/);
+  const failedState = await readFile(f.statePath, 'utf8');
+  assert.match(failedState, /Result: Session feedback unavailable: Runtime feedback evidence could not be parsed/);
+  assert.doesNotMatch(failedState, /Result: Session feedback saved/);
   assert.equal((await feedbackHold(stop, f.statePath, f.fields, outcomeEvents)).decision, 'block');
   for (const type of ['api-request-blob', 'attachment']) {
     const replay = [{ ...events[0], type }, events[1], ...outcomeEvents];
@@ -135,7 +143,7 @@ test('an evidenced technical failure saves only a receipt and releases the termi
   assert.equal((await feedbackHold(stop, f.statePath, f.fields, hiddenExit)).decision, 'block');
   const old = events.map(event => ({ ...event, timestamp: '2026-01-01T10:00:00Z' }));
   assert.equal((await feedbackHold(stop, f.statePath, f.fields, old)).decision, 'block');
-  assert.equal(await readFile(f.statePath, 'utf8'), f.markdown);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), f.markdown);
   await writeFile(f.statePath, f.markdown.replace('10:06:00Z', '10:07:00Z'));
   assert.equal((await feedbackHold(stop, f.statePath, f.fields, events)).decision, 'block');
   await assert.rejects(readFile(f.report), { code: 'ENOENT' });
@@ -165,4 +173,76 @@ test('post-completion delivery decisions do not invalidate feedback or create an
     choice: 'Not now', scope: 'This completed run', resume: 'transparent' });
   await writeFile(f.statePath, f.markdown.trimEnd() + `\n| ${number} | 2026-01-01T10:07:00Z | complete | complete | ${decision} |\n`);
   assert.equal(await feedbackHold(stop, f.statePath, f.fields, []), null);
+});
+
+
+test('feedback lifecycle notes survive retries without changing workflow evidence or reopening collection', async t => {
+  const f = await fixture(t);
+  const dashboard = await generateDashboard(f.statePath);
+  const before = parseState(f.markdown), summary = await inspectFeedback(f.statePath);
+  const args = [script, 'inspect', '--state', f.statePath];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const result = spawnSync(process.execPath, args, { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  }
+  const collecting = await readFile(f.statePath, 'utf8');
+  const state = parseState(collecting);
+  assert.deepEqual(state.fields, before.fields);
+  assert.equal(feedbackStateHash(state.fields, state.audit), summary.stateHash);
+  assert.equal(state.audit.filter(row => row.note?.id.startsWith('feedback-start:')).length, 1);
+  assert.equal(state.audit.some(row => row.note?.id.startsWith('feedback-saved:')), false);
+  const html = await readFile(dashboard, 'utf8');
+  assert.match(html, /phase-mode">Collecting session feedback<\/div>/);
+  assert.match(html, /Activity: Collecting session feedback/);
+  await writeFeedback(f.statePath, { sessionReview: review });
+  const saved = await readFile(f.statePath, 'utf8');
+  await writeFeedback(f.statePath, { sessionReview: review });
+  assert.equal(await readFile(f.statePath, 'utf8'), saved);
+  assert.equal(parseState(saved).audit.filter(row => row.note?.id.startsWith('feedback-saved:')).length, 1);
+  assert.equal(withoutFeedbackNotes(saved), f.markdown);
+  assert.equal((await inspectFeedback(f.statePath)).analysisRequired, summary.analysisRequired);
+  assert.match(await readFile(dashboard, 'utf8'), /Session feedback saved\. <a href="workflow-feedback.md">Read feedback<\/a>/);
+  assert.equal(spawnSync(process.execPath, args, { encoding: 'utf8' }).status, 0);
+  assert.equal(await readFile(f.statePath, 'utf8'), saved);
+});
+
+test('retry-limit feedback notes preserve the stopped workflow boundary', async t => {
+  const f = await fixture(t);
+  const stopped = f.markdown.replace('status: Complete', 'status: Stopped')
+    .replace('phase: complete', 'phase: review').replace('pause_reason: none', 'pause_reason: Review limit reached')
+    .replace('| final-sync | complete | Final context sync complete |', '| review | review | Review limit reached |');
+  await writeFile(f.statePath, stopped);
+  const before = parseState(stopped), stateHash = feedbackStateHash(before.fields, before.audit);
+  const result = spawnSync(process.execPath, [script, 'inspect', '--state', f.statePath, '--limit-stop'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const outcome = { runId: before.fields.start_time, stateHash, status: 'unavailable', kind: 'verified-failure', reason: 'Evidence could not be read' };
+  await finalizeFeedback(f.statePath, outcome);
+  const settled = await readFile(f.statePath, 'utf8');
+  await finalizeFeedback(f.statePath, outcome);
+  assert.equal(await readFile(f.statePath, 'utf8'), settled);
+  const after = parseState(settled);
+  assert.deepEqual(after.fields, before.fields);
+  assert.equal(feedbackStateHash(after.fields, after.audit), stateHash);
+  assert.equal(withoutFeedbackNotes(settled), stopped);
+  assert.match(settled, /Session feedback unavailable: Evidence could not be read/);
+});
+
+
+test('collection audit and dashboard refresh precede the numbered evidence snapshot', async t => {
+  const f = await fixture(t);
+  await writeFile(f.statePath, f.markdown.replace('phase: complete', 'phase: complete\nfeedback_evidence_version: 1'));
+  const dashboard = await generateDashboard(f.statePath);
+  const run = () => spawnSync(process.execPath, [script, 'inspect', '--state', f.statePath], { encoding: 'utf8' });
+  const first = run();
+  assert.equal(first.status, 0, first.stderr);
+  const packetHash = JSON.parse(first.stdout).evidence.packetHash;
+  assert.equal((await inspectFeedback(f.statePath)).evidence.packetHash, packetHash);
+  const second = run();
+  assert.equal(second.status, 0, second.stderr);
+  assert.equal(JSON.parse(second.stdout).evidence.packetHash, packetHash);
+  const snapshot = await readFile(dashboard, 'utf8');
+  const markdown = await readFile(f.statePath, 'utf8');
+  await inspectFeedback(f.statePath);
+  assert.equal(await readFile(dashboard, 'utf8'), snapshot);
+  assert.equal(await readFile(f.statePath, 'utf8'), markdown);
 });

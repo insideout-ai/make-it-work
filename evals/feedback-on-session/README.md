@@ -39,6 +39,19 @@ delegate, and a documented evidence field mistakenly described as missing. It
 checks evidence-bounded attribution, chronology, actionable recommendations and
 successful automatic feedback without inventing a skipped hook.
 
+`feedback-on-session-collection-gaps` covers a biased independent-review prompt,
+a required automatic resolver bypassed despite a correct default, a schema repair
+after the initial feedback draft, and a missing generated-Markdown readback. It
+requires those observations in the saved report while preserving legitimate
+bounded map maintenance, pending browser verification, normal waits and successful
+recovery. Authoring and validating the fixture do not establish a live model pass.
+
+`feedback-collection-runtime-notes` exercises automatic continuation with a real
+rejected earlier draft and a corrected save. Its trace grader receives the saved
+report as supplemental evidence and requires both writer-derived collection
+notes and an actual full readback. A separate trace grader now checks readback in
+`feedback-on-session-collection-gaps`; artifact presence cannot satisfy it.
+
 `feedback-on-session-attribution` covers explicit behavior knowingly missed by
 implementation, a misleading model-generated refinement diagnosis, ordinary waits
 with narration, skipped mandatory mapping and overstated inherited review depth.

@@ -8,6 +8,10 @@ import { feedbackEvidence, validateEvidenceReview } from './feedback-evidence.mj
 import { inspectFeedback, checkFeedback, writeFeedback } from './write-feedback.mjs';
 import { feedbackHold } from './feedback-handoff.mjs';
 
+function withoutFeedbackNotes(markdown) {
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+}
+
 test('numbered evidence removes embedded images; marker-only feedback is rejected and late delivery refreshes do not retrigger it', async t => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'feedback-source-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -45,7 +49,7 @@ test('numbered evidence removes embedded images; marker-only feedback is rejecte
   session.evidence_review = { packet_hash: absent.evidence.packetHash, dashboard: { status: 'unavailable', reason: 'Dashboard source is missing', sections: ['markup', 'styles'].map(id => ({ id, status: 'not-applicable' })) }, process: [] };
   assert.equal((await checkFeedback(statePath, { sessionReview: session })).valid, true);
   await writeFeedback(statePath, { sessionReview: session });
-  assert.equal(await readFile(statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(statePath, 'utf8')), state);
   await assert.rejects(readFile(htmlPath), { code: 'ENOENT' });
 });
 
@@ -55,4 +59,27 @@ test('stage diagnostics identify the exact process note and source location', ()
   const input = { packet_hash: packet.packetHash, dashboard: { status: 'unavailable', reason: 'Source missing', sections: ['markup', 'styles'].map(id => ({ id, status: 'not-applicable' })) },
     process: [{ source: 'Review', line: 3, result: 'limitation', note: 'Local terminology needs paraphrasing' }] };
   assert.throws(() => validateEvidenceReview(input, packet, (_value, label) => { if (label.includes('process[')) throw new Error(label); }), /evidence_review\.process\[0\]\.note \(Review line 3\)/);
+});
+
+test('stage diagnostics identify the rejected field and its allowed values without probing by deletion', () => {
+  const packet = { packetHash: 'a'.repeat(64), dashboard: { status: 'missing', sections: { markup: [], styles: [] }, omitted: [] },
+    sources: [
+      { label: 'Review', status: 'available', lines: [{ line: 3, text: 'Observed limit' }] },
+      { label: 'Package', status: 'available', lines: [{ line: 3, text: 'Context only' }] },
+      { label: 'Execution', status: 'missing' },
+    ] };
+  const valid = { source: 'Review', line: 3, result: 'limitation', note: 'Browser access unavailable' };
+  const input = { packet_hash: packet.packetHash, dashboard: { status: 'unavailable', reason: 'Source missing',
+    sections: ['markup', 'styles'].map(id => ({ id, status: 'not-applicable' })) }, process: [valid] };
+  for (const [entry, message] of [
+    [{ ...valid, source: 'Package' }, /process\[1\]\.source.*available stage report: Review.*Package.*context sources/],
+    [{ ...valid, source: 'Execution' }, /process\[1\]\.source.*available stage report: Review/],
+    [null, /process\[1\]\.source/],
+    [{ ...valid, line: 999 }, /process\[1\]\.line.*existing source line in Review.*not a packet line/],
+    [{ ...valid, result: 'approved' }, /process\[1\]\.result must be met, gap, or limitation/],
+    [{ ...valid, result: 'gap' }, /process\[1\]\.finding_id.*session finding/],
+  ]) {
+    assert.throws(() => validateEvidenceReview({ ...input, process: [valid, entry] }, packet, value => value), message);
+  }
+  assert.equal(validateEvidenceReview(input, packet, value => value), input);
 });

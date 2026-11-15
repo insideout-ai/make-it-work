@@ -9,6 +9,10 @@ import { checkFeedback, inspectFeedback, inspectState, renderBlock, upsertBlock,
 import { noteCell } from './audit-notes.mjs';
 import { createHash } from 'node:crypto';
 
+function withoutFeedbackNotes(markdown) {
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+}
+
 const EVAL_ROOT = path.resolve(import.meta.dirname, '../../../evals/implement');
 const SCRIPT_PATH = path.join(import.meta.dirname, 'write-feedback.mjs');
 
@@ -89,7 +93,7 @@ function sessionReview() {
   };
 }
 
-test('conversation friction on a zero-retry run shares captured provenance and updates both reports without state changes', async (t) => {
+test('conversation friction on a zero-retry run shares captured provenance and updates both reports with only informational state notes', async (t) => {
   const state = finish(await fixture('feedback-clean'));
   const f = await workspace(t, state);
   const review = sessionReview();
@@ -118,7 +122,7 @@ test('conversation friction on a zero-retry run shares captured provenance and u
   assert.match(updated, /F1 withdrawn/);
   assert.doesNotMatch(updated, /Provisional|F1 —/);
   assert.equal(await readFile(first.sessionOutputPath, 'utf8'), updated);
-  assert.equal(await readFile(f.statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), state);
 });
 
 test('combined review coexists with required artifact analysis and keeps legacy provenance unknown', async (t) => {
@@ -133,6 +137,38 @@ test('combined review coexists with required artifact analysis and keeps legacy 
   assert.match(output, /Extra-round analysis/);
   assert.match(output, /User declined additional input/);
   assert.equal(await readFile(f.statePath, 'utf8'), state);
+});
+
+test('combined save derives sanitized collection notes even when model findings are empty, without extra writes or rounds', async t => {
+  const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
+  const f = await workspace(t, state), transcriptPath = path.join(f.directory, 'runtime.jsonl');
+  const events = [];
+  const pair = (id, op, content, is_error = false) => events.push(
+    { type: 'assistant', timestamp: '2026-01-01T10:08:00Z', message: { content: [{ type: 'tool_use', id, name: 'Bash', input: { command: `node '${SCRIPT_PATH}' ${op} --state '${f.statePath}'` } }] } },
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, is_error, content: JSON.stringify(content) }] } });
+  pair('rejected', 'check', { valid: false, errors: ['Private terminology and /sensitive/path secret@example.invalid'] }, true);
+  pair('corrected', 'check', { valid: true, errors: [] });
+  pair('bad-save', 'write', 'Private invalid transcript contents', true);
+  await writeFile(transcriptPath, events.map(event => JSON.stringify(event)).join('\n') + '\n');
+  const review = { ...sessionReview(), findings: [] };
+  const result = await writeFeedback(f.statePath, { sessionReview: review, transcriptPath });
+  const output = await readFile(result.sessionOutputPath, 'utf8');
+  assert.match(output, /No supported workflow problems found/);
+  assert.match(output, /#### Collection notes/);
+  assert.match(output, /Input check: 1 failed tool attempt observed; a later successful result/);
+  assert.match(output, /Save: 1 failed tool attempt observed; no later successful result/);
+  assert.doesNotMatch(output, /Private terminology|sensitive|secret@/);
+  assert.match(output, /Fix rounds: 0/);
+  assert.equal(await readFile(f.feedbackPath, 'utf8'), output);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), state);
+  pair('saved', 'write', { feedbackReport: 'combined', runId: result.runId, stateHash: result.stateHash });
+  pair('delivery-later', 'write', 'Not part of original collection', true);
+  await writeFile(transcriptPath, events.map(event => JSON.stringify(event)).join('\n') + '\n');
+  await writeFeedback(f.statePath, { sessionReview: review, transcriptPath });
+  const updated = await readFile(result.sessionOutputPath, 'utf8');
+  assert.equal((updated.match(/#### Collection notes/g) ?? []).length, 1);
+  assert.match(updated, /Scope ends at the first observed successful combined save/);
+  assert.doesNotMatch(updated, /Save: 2 failed/);
 });
 
 test('session-review rejects unsafe or incomplete input before changing existing reports', async (t) => {
@@ -423,7 +459,7 @@ test('explicit limit stop is accepted with matching terminal evidence', async (t
   assert.match(await readFile(feedbackPath, 'utf8'), /Outcome: Stopped — loop limit/);
 });
 
-test('CLI inspect is read-only and CLI write emits the summary', async (t) => {
+test('CLI inspect records collection and CLI write emits the summary', async (t) => {
   const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
   const { directory, statePath, feedbackPath } = await workspace(t, state);
   const inspect = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', statePath], { encoding: 'utf8' });

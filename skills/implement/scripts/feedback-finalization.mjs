@@ -18,14 +18,27 @@ export async function readFeedbackFinalization(statePath, binding) {
 // The guard validates runtime proof before writing it or accepting its writerId.
 export async function finalizeFeedback(statePath, outcome, { refresh = true } = {}) {
   const existing = await readFeedbackFinalization(statePath, outcome);
-  if (existing?.status === outcome.status && existing?.writerId === outcome.writerId && existing?.kind === outcome.kind) return existing;
+  const unchanged = existing?.status === outcome.status && existing?.writerId === outcome.writerId && existing?.kind === outcome.kind;
   const file = receiptPath(statePath), temporary = `${file}.${randomUUID()}.tmp`;
   try {
     try { if (!(await lstat(file)).isFile()) throw new Error('Feedback finalization path must be a regular file.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
-    const receipt = { version: 1, ...outcome, finalizedAt: new Date().toISOString() };
-    await writeFile(temporary, JSON.stringify(receipt) + '\n', { flag: 'wx', mode: 0o600 });
-    await rename(temporary, file);
+    const receipt = unchanged ? existing : { version: 1, ...outcome, finalizedAt: new Date().toISOString() };
+    if (!unchanged) {
+      await writeFile(temporary, JSON.stringify(receipt) + '\n', { flag: 'wx', mode: 0o600 });
+      await rename(temporary, file);
+    }
+    // The caller has verified the outcome. Notes never serve as completion proof.
+    const { checkpointAuditNote } = await import('./dashboard-checkpoint.mjs');
+    const unavailable = outcome.status === 'unavailable';
+    const reason = outcome.reason?.replace(/[\x00-\x1f\x7f]+/g, ' ').trim();
+    try {
+      await checkpointAuditNote(statePath, { kind: 'result',
+        id: `feedback-${outcome.status}:${outcome.stateHash}`,
+        text: unavailable ? `Session feedback unavailable${reason ? `: ${reason}` : ''}` : 'Session feedback saved',
+        reference: unavailable ? 'feedback-finalized.json' : 'workflow-feedback.md',
+      }, { refresh: false });
+    } catch { /* Audit I/O failure cannot undo verified feedback or leave the spinner active. */ }
     if (refresh) {
       const { refreshFeedbackDashboard } = await import('./feedback-progress.mjs');
       await refreshFeedbackDashboard(statePath);
