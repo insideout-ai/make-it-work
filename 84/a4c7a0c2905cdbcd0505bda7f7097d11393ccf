@@ -1,0 +1,52 @@
+evals/run-suite.mjs
+  s_b84ad5300dc276::t_1407b9545bf832 51
+skills/implement/scripts/workflow.mjs
+  s_b84ad5300dc276::t_55eae3c6620b3b 651-658
+evals/suites.json
+  s_b84ad5300dc276::t_b41d55c77c456e 141-142,190-195
+  s_b84ad5300dc276::t_04a3c70abcaafa 196
+skills/review-the-code/SKILL.md
+  s_b84ad5300dc276::t_8ae9872cdc9fc2 253-256
+skills/implement/SKILL.md
+  s_b84ad5300dc276::t_8ae9872cdc9fc2 77-78,599,717
+  s_b84ad5300dc276::t_91176d93fe53d8 731
+  s_b84ad5300dc276::t_31fa1d11d6b4c4 732
+skills/implement/references/controller.md
+  s_b84ad5300dc276::t_8ae9872cdc9fc2 105,114-115,201-206
+evals/review-the-code/review-verification-context/graders/review-created.md
+  s_b84ad5300dc276::t_b41d55c77c456e 1-5
+evals/review-the-code/review-verification-context/case.yaml
+  s_b84ad5300dc276::t_b41d55c77c456e 1-5
+skills/implement/scripts/review-scope.mjs
+  s_b84ad5300dc276::t_55eae3c6620b3b 12-26,65,84
+skills/implement/scripts/review-scope.test.mjs
+  s_b84ad5300dc276::t_2a15247bbe0fa0 205-221
+evals/review-the-code/review-verification-context/fixture.sh
+  s_b84ad5300dc276::t_b41d55c77c456e 1-42
+evals/review-the-code/review-verification-context/prompt.md
+  s_b84ad5300dc276::t_b41d55c77c456e 1-9
+skills/implement/scripts/workflow.test.mjs
+  s_b84ad5300dc276::t_db82412f40faad 40-47
+evals/review-the-code/review-verification-context/graders/context-and-security.md
+  s_b84ad5300dc276::t_b41d55c77c456e 1-7
+skills/implement/references/testing-readiness.md
+  s_b84ad5300dc276::t_8ae9872cdc9fc2 56-59
+skills/implement/references/handoffs.md
+  s_b84ad5300dc276::t_2bce7c0d38ee3c 39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "84a4c7a0c2905cdbcd0505bda7f7097d11393ccf",
+  "prompts": {},
+  "sessions": {
+    "s_b84ad5300dc276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-3f3a-7ca2-8c0c-1b3d7dd3647d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
