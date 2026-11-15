@@ -9,7 +9,7 @@ plugin from this file's location and read the complete
 rules/domain/use-case skills by its actual loading gate. Do not invoke go-deep or
 repair onboarding. Missing mandatory guidance is a blocked result, not permission
 to continue with assumptions. Use the stage's existing Autopilot policy and logs;
-keep product decisions in its spec. No live question is allowed in this slice.
+keep product decisions in its spec. An obvious missing fact does not waive the full skill read: complete that read before assessing ticket inputs or constructing even a blocked handoff. No live question is allowed in this slice.
 
 The following ownership overrides apply only to this delegated invocation, not
 to standalone or ordinary inline refinement:

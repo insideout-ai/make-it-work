@@ -25,7 +25,7 @@ or scope, source/test edits, request-ID tampering and changed returned artifacts
 The opt-in controller requires an accepted worker receipt before routing a gaps
 handoff. The journal is never proof of agent liveness. If resumption is
 unavailable, reconcile the real runtime, record cancellation and recover inline
-from saved artifacts; this slice does not implement a general agent scheduler.
+from saved artifacts. Cancellation preserves any returned receipt and artifact hashes even when a changed choice makes revision stale; this slice does not implement a general agent scheduler.
 
 A native successful SendMessage resume of a previously launched child can restore
 its wait eligibility. The original launch time remains the stage boundary;

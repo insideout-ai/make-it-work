@@ -27,9 +27,9 @@ passed to this helper are absolute or relative to the ticket directory.
    proof of a live/completed/cancelled agent.
 2. Dispatch a **general-purpose Agent**, with fresh stage context, to read only
    [the worker contract](refinement-worker-task.md) and the returned assignment
-   path first. Include the resolved plugin/Implement paths. Do not fork/copy the
+   path first. Include the resolved plugin/Implement paths and explicitly instruct the worker to read the complete `close-the-gaps/SKILL.md` before ticket investigation or constructing any handoff, including an immediately blocked result. Do not fork/copy the
    parent's whole transcript, load the full stage into the parent, or inline
-   research/logs in its prompt. Attach the *actual* returned runtime ID using
+   research/logs in its prompt. Once startup/context prechecks are complete, do not open the delegated task’s source or authoritative inputs in the parent before dispatch or while the worker investigates; the parent reads the returned spec and compact evidence for its existing assessment. Attach the *actual* returned runtime ID using
    `attach` with `{"agent_id":"..."}`. Use normal runtime waiting/result tools;
    #101's verified wait rules apply, not metadata claims or parent polling.
 3. A worker may return `Parent request: <path>` before dependent work. Read that
@@ -53,7 +53,7 @@ passed to this helper are absolute or relative to the ticket directory.
 5. On interruption, inspect both assignment and actual runtime evidence. Resume
    the known agent when possible. On a changed choice or unavailable worker,
    record `cancel` with a reason after runtime reconciliation, then continue
-   inline from saved artifacts. Cancellation metadata does not stop an agent.
+   inline from saved artifacts. Cancellation retains any returned receipt and artifact hashes, including when a changed choice makes revision stale. Cancellation metadata does not stop an agent.
    Do not invent a successful result or silently launch another worker.
 
 `prepare` is idempotent for the same task; changed task/agent IDs, stale results

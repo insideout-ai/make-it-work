@@ -76,7 +76,7 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
     }
     if (command === 'cancel') {
       exactKeys(input, ['reason']); requireText(input.reason, 'Cancellation reason');
-      if (saved.status === 'returned') fail('Preserve the returned result; the parent must reconcile it through existing routing.');
+      // Keep any returned receipt and artifact hashes as evidence during explicit recovery.
       if (saved.status === 'cancelled' && input.reason !== saved.reason) fail('Cancellation already recorded with a different reason.');
       saved.status = 'cancelled'; saved.reason = input.reason; await persist();
       return { status: saved.status, instruction: 'This records cancellation only; reconcile or stop the actual runtime agent separately before inline recovery.' };

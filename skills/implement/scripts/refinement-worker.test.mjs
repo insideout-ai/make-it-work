@@ -106,7 +106,6 @@ test('accept preserves v1 handoffs and state; rejects duplicates with changed ou
   assert.equal(await readFile(f.state, 'utf8'), before);
   await f.file('DEMO-spec.md', '# Changed after return');
   await assert.rejects(f.run('accept', { handoff: result }), /artifact changed/);
-  await assert.rejects(f.run('cancel', { reason: 'Discard evidence' }), /Preserve/);
 });
 
 test('hard stops use unchanged handoffs; wrong stage, Slack delivery, and escaping artifacts fail', async t => {
@@ -183,4 +182,23 @@ test('reconciled cancellation recovers through the existing inline controller pa
   const result = await apply('handoff', { handoff: `make-it-work/DEMO/${handoff}` });
   assert.equal(result.fields.phase, 'lightweight');
   assert.equal((await f.run('inspect')).status, 'cancelled');
+});
+
+
+test('stale returned work can be cancelled without discarding its receipt or changing workflow state', async t => {
+  const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'finished-agent' });
+  await f.run('accept', { handoff: await f.handoff() });
+  const journal = path.join(f.directory, 'DEMO-refinement-worker.json');
+  const returned = JSON.parse(await readFile(journal, 'utf8'));
+  await f.patch('queued_autonomy', 'guided');
+  await assert.rejects(f.run('revise', { reason: 'Choice changed' }), /Stale/);
+  const state = await readFile(f.state, 'utf8');
+  await f.run('cancel', { reason: 'Finished runtime reconciled; queued user choice invalidates the returned result.' });
+  const cancelled = JSON.parse(await readFile(journal, 'utf8'));
+  assert.equal(cancelled.status, 'cancelled');
+  assert.deepEqual(cancelled.result, returned.result);
+  assert.deepEqual(cancelled.artifacts, returned.artifacts);
+  assert.deepEqual(cancelled.context_artifacts, returned.context_artifacts);
+  assert.equal(cancelled.agent_id, returned.agent_id);
+  assert.equal(await readFile(f.state, 'utf8'), state);
 });
