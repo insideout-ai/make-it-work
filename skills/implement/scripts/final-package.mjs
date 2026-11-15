@@ -6,7 +6,7 @@ import { readFile, realpath, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
-import { readVerification } from './verification.mjs';
+import { EXECUTION_OUTCOMES, acceptedUnrelatedGate, readVerification } from './verification.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { collectTestingSummary, parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
@@ -22,6 +22,7 @@ import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../s
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
 const LIGHTWEIGHT_VALIDATION = 'Lightweight — no regression gate; verified by independent review';
+const UNRELATED_GATE_RESULT = 'fail — accepted: only unrelated pre-existing failures (see Known unrelated regressions)';
 const MODE_LABEL = { lightweight: 'Lightweight', tdd: 'TDD', none: 'none' };
 
 function git(repo, args, { acceptDiff = false } = {}) {
@@ -158,18 +159,20 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     testingPolicy(await readFile(path.resolve(root, f.plan), 'utf8'), { required: true });
   }
   let verification = null;
+  const unrelatedGate = f.execution === 'gate-failed';
+  if (unrelatedGate && !acceptedUnrelatedGate(state)) fail('A failed gate can be packaged only after triage classified every failure as unrelated and recorded it under Known regressions.');
   if (f.verification_version === '1') {
-    if (!['passed', 'verified-manually', 'gate-no-result'].includes(f.execution)) fail('Final package requires completed execution or an accepted manual gate.');
+    if (!EXECUTION_OUTCOMES[f.execution]) fail('Final package requires completed execution, an accepted manual gate, or a gate whose only failures are recorded as unrelated.');
     const relative = runArtifact(f.ticket, `${f.ticket}-verification-v${f.plan_version}.json`);
     verification = await readVerification(root, relative, {
       ticket: f.ticket, planVersion: Number(f.plan_version), plan: await readFile(path.resolve(root, f.plan), 'utf8'),
-      outcome: f.execution === 'passed' ? 'PASSED' : f.execution === 'verified-manually' ? 'VERIFIED_MANUALLY' : 'GATE_NO_RESULT', requireComplete: true, requireClauses: f.acceptance_evidence_version === '1',
+      outcome: EXECUTION_OUTCOMES[f.execution], requireComplete: true, requireClauses: f.acceptance_evidence_version === '1',
     });
     if (f.execution === 'gate-no-result' && verification.gate.result !== 'manual-accepted') fail('The no-result gate requires an explicit manual acceptance.');
     if (verification.gate.mode !== f.gate) fail('Verification gate mode disagrees with state.');
     evidence.verification = await artifact(root, relative);
-  } else if (f.execution !== 'passed') fail('Final package requires passed execution.');
-  const validation = { mode: f.gate, result: verification ? verification.gate.result : f.gate === 'none' ? 'automated gate skipped; see execution report for manual verification' : 'PASS' };
+  } else if (f.execution !== 'passed' && !unrelatedGate) fail('Final package requires passed execution.');
+  const validation = { mode: f.gate, result: unrelatedGate ? UNRELATED_GATE_RESULT : verification ? verification.gate.result : f.gate === 'none' ? 'automated gate skipped; see execution report for manual verification' : 'PASS' };
   return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, verification ? { acceptance: verification.acceptance.map((row) => {
     if (!row.clause || row.status === 'unverified') return row;
     const check = verification.steps.find((step) => step.number === row.step).checks.find((item) => item.type === row.status && item.subject === row.scenario && item.assertions?.some((assertion) => assertion.clause === row.clause));

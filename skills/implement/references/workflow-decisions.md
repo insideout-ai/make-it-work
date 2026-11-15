@@ -53,7 +53,7 @@ On Resume, after the existing legacy-field normalization and before last-row cla
 node "<implement-base>/scripts/dashboard-checkpoint.mjs" resume --state "<state-path>"
 ```
 
-Use its `last_work_row` for the existing last-row/phase-closure classification; retain all fingerprint, pause, context-check and interruption checks. It ignores typed same-phase Activity/Result notes, explicitly marked transparent same-phase decisions, and legacy autonomy/publication decision rows. A transition still counts even when its outcome describes a decision or result. Other same-phase rows still cannot prove a phase closed. Do not ignore rows based only on an `Activity:`, `Result:`, or `Decision:` text prefix; informational notes carry their script-generated type marker.
+Use its `last_work_row` for the existing last-row/phase-closure classification; an optional `lost_delegate` reports a review dispatched for the current cycle with no handoff, already recorded once as a typed `Interrupted:` note; retain all fingerprint, pause, context-check and interruption checks. It ignores typed same-phase Activity/Result/Interrupted notes, explicitly marked transparent same-phase decisions, and legacy autonomy/publication decision rows. A transition still counts even when its outcome describes a decision or result. Other same-phase rows still cannot prove a phase closed. Do not ignore rows based only on an `Activity:`, `Result:`, or `Decision:` text prefix; informational notes carry their script-generated type marker.
 
 ## Stage and delivery ownership
 

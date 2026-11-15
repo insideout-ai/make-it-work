@@ -11,6 +11,17 @@ import { decisionCell } from './workflow-decisions.mjs';
 
 const MODES = ['updates', 'comments', 'local'];
 const KINDS = ['description', 'attachment', 'comment'];
+// Known comment-body limits, in characters. A connector-reported limit wins.
+const COMMENT_LIMITS = { jira: 32767 };
+
+function commentLimit(tracker, capabilities) {
+  const reported = capabilities?.comment_max_chars;
+  if (reported !== undefined) {
+    if (!Number.isSafeInteger(reported) || reported < 1) fail('capabilities.comment_max_chars must be a positive integer.');
+    return reported;
+  }
+  return COMMENT_LIMITS[String(tracker).toLowerCase()] ?? null;
+}
 const fail = (message) => { throw new Error(message); };
 function text(value, name) {
   if (typeof value !== 'string' || !value.trim()) fail(`${name} must be nonempty text.`);
@@ -201,6 +212,12 @@ export function updatePublication(previous, action, input = {}) {
     permitted(journal, input.kind, input.capabilities);
     text(input.key, 'key');
     text(input.content, 'content');
+    const limit = input.kind === 'comment' ? commentLimit(journal.target.tracker, input.capabilities) : null;
+    if (limit !== null && input.content.length > limit) {
+      // Checked before anything is journaled, so the caller can retry with a summary.
+      if (preparingBackup) return { journal, result: { action: 'defer', reason: `The original description (${input.content.length} characters as a backup comment) exceeds the ${limit}-character comment limit; defer the replacement.`, limit, length: input.content.length } };
+      return { journal, result: { action: 'summary-required', reason: `The comment is ${input.content.length} characters; the tracker limit is ${limit}. Prepare again with a labelled summary as content and the full snapshot as source_content.`, limit, length: input.content.length } };
+    }
     if (input.kind === 'attachment') attachmentFilename(input.filename);
     else if (input.filename != null) fail('Only attachments have filenames.');
     const contentHash = hash(input.content);

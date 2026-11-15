@@ -74,6 +74,9 @@ export const WORKFLOW_STYLES = `
   .current-activity strong, .feedback-progress strong { font-size: 0.8rem; color: #096bae; }
   .phase-activity { margin: 0.3rem 0 0; font-size: 0.85rem; line-height: 1.45; }
   .activity-updated { margin: 0.4rem 0 0; font-size: 0.75rem; color: #596773; }
+  .current-activity.interrupted { background: #fff7e6; border-left-color: #e8a317; }
+  .current-activity.interrupted strong { color: #8a5a00; }
+  .activity-stale { margin: 0.4rem 0 0; font-size: 0.75rem; color: #8a5a00; }
   .phase-duration { margin-top: 0.1rem; font-size: 0.65rem; color: #999; text-align: center; font-style: italic; }
   .phase-status { margin-top: 0.15rem; font-size: 0.68rem; font-weight: 600; text-align: center; }
   .phase-status.status-in-progress { color: #2196f3; }
@@ -137,5 +140,11 @@ export const WORKFLOW_TIMESTAMPS = `<script>
     }
     updateWaitingTimes();
     if (document.querySelector('[data-wait-since]')) setInterval(updateWaitingTimes, 1000);
+    document.querySelectorAll('[data-stale-since]').forEach(function (cell) {
+      var hours = (Date.now() - Date.parse(cell.getAttribute('data-stale-since'))) / 3600000;
+      if (!isFinite(hours) || hours < Number(cell.getAttribute('data-stale-after-hours'))) return;
+      cell.textContent = 'No update for ' + Math.floor(hours) + 'h. The session may have ended; resume the run to continue it.';
+      cell.hidden = false;
+    });
   })();
 </script>`;

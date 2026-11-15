@@ -30,6 +30,8 @@ const REQUIRED_FIELDS = [
   'current_activity', 'real_rows_from',
 ];
 
+// Hours without a checkpoint before an In Progress dashboard says it may have stopped.
+const STALE_AFTER_HOURS = 3;
 const STATUS_VALUES = new Set(['In Progress', 'Paused', 'Stopped', 'Complete']);
 const PHASE_VALUES = new Set([
   'context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval',
@@ -595,10 +597,23 @@ function renderCurrentActivity(state, timeline) {
   const timestamp = updatedAt && updatedAt !== 'none'
     ? `<time class="ts" datetime="${escapeHtml(updatedAt)}" data-ts="${escapeHtml(updatedAt)}">${escapeHtml(updatedAt)}</time>`
     : 'unavailable';
+  // A lost delegate recorded after the latest activity replaces the running state.
+  const lost = state.audit.findLast((row) => row.note?.kind === 'interruption' && row.to === state.fields.phase);
+  const lastActivity = state.audit.findLast((row) => row.note?.kind === 'activity');
+  if (lost && (!lastActivity || lost.number > lastActivity.number)) {
+    return `<section class="current-activity interrupted" aria-label="Current activity">
+  <strong>${label} interrupted</strong>
+  <p class="phase-activity">${escapeHtml(lost.outcome)}</p>
+  <p class="activity-updated">Recorded: <time class="ts" datetime="${escapeHtml(lost.time)}" data-ts="${escapeHtml(lost.time)}">${escapeHtml(lost.time)}</time></p>
+</section>`;
+  }
+  // The page is a static snapshot; the browser decides whether it has gone quiet.
+  const stale = hasActivity && updatedAt && updatedAt !== 'none'
+    ? `\n  <p class="activity-stale" data-stale-since="${escapeHtml(updatedAt)}" data-stale-after-hours="${STALE_AFTER_HOURS}" hidden></p>` : '';
   return `<section class="current-activity" aria-label="Current activity">
   <strong>${label} in progress</strong>
   <p class="phase-activity">${activity}</p>
-  ${hasActivity ? `<p class="activity-updated">Last updated: ${timestamp}</p>` : ''}
+  ${hasActivity ? `<p class="activity-updated">Last updated: ${timestamp}</p>` : ''}${stale}
 </section>`;
 }
 
