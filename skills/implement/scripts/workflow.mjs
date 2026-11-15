@@ -20,6 +20,7 @@ export { planHash } from '../../../scripts/lib/plan.mjs';
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
 import { checkReviewScope } from './review-scope.mjs';
 import { implementationBaseline, acceptBranchBaseline } from './implementation-guard.mjs';
+import { checkRefinementWorkerHandoff } from './refinement-worker.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { reviewRequirements } from './review-checks.mjs';
@@ -455,6 +456,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
+    if (handoff?.stage === 'gaps') await checkRefinementWorkerHandoff(root, statePath, effective.handoff);
     if (input.validated_waiver !== undefined) fail('validated_waiver is controller-owned.');
     if (effective.event === 'waive-manual-verification') {
       const plan = await readFile(await within(root, state.fields.plan), 'utf8');
@@ -646,6 +648,8 @@ export async function initializeWorkflow(root, input) {
     if (input.proceed_on_base !== true) fail('Branch guard requires a feature branch.');
     explicit(input);
   }
+  if (input.refinement_worker !== undefined && typeof input.refinement_worker !== 'boolean') fail('refinement_worker must be boolean.');
+  if (input.refinement_worker && (input.autonomy !== 'autopilot' || workspace || input.offline_pending || ![undefined, 'here'].includes(input.refinement_destination))) fail('Refinement worker requires a new local single-repository Autopilot run.');
   const fields = await workflowDefaults();
   const manifest = JSON.parse(await readFile(fileURLToPath(new URL('../../../.claude-plugin/plugin.json', import.meta.url)), 'utf8'));
   requireText(manifest.version, 'Plugin version');
@@ -663,6 +667,7 @@ export async function initializeWorkflow(root, input) {
     refinement_destination: input.refinement_destination ?? 'here', start_time: time, plugin_version: manifest.version,
     branch: repos[0].branch, base: workspace ? workspace.repos.find((repo) => repo.root === repos[0].root).base : requireText(input.base, 'Base branch'), head: repos[0].head,
     worktree_fingerprint: digest(JSON.stringify(repos)), workspace_snapshot: JSON.stringify(repos) });
+  if (input.refinement_worker) fields.refinement_worker_version = '1';
   fields.implementation_baseline = JSON.stringify({ version: 1, runId: time, origin_hash: digest(JSON.stringify(baseline)), repos: baseline });
   if (workspace) Object.assign(fields, { workspace_version: '1', workspace_contract: JSON.stringify(workspace) });
   if (!['here', 'slack-draft', 'slack-send'].includes(fields.refinement_destination)) fail('Invalid refinement destination.');
@@ -677,7 +682,7 @@ export async function initializeWorkflow(root, input) {
   await mkdir(directory, { recursive: true });
   if (!(await lstat(directory)).isDirectory()) fail('Run directory must not be a symlink.');
   const statePath = path.join(directory, `${input.ticket}-state.md`);
-  const markdown = `# Workflow state — ${input.ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | ${time} | start | ${fields.phase} | New ${input.autonomy} run; ${requireText(input.branch_guard, 'Branch guard outcome').replaceAll('|', '&#124;')} |\n`;
+  const markdown = `# Workflow state — ${input.ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | ${time} | start | ${fields.phase} | New ${input.autonomy} run; ${requireText(input.branch_guard, 'Branch guard outcome').replaceAll('|', '&#124;')}${input.refinement_worker ? '; Decision: Refinement worker enabled; source: user; via: flag; scope: local Autopilot refinement' : ''} |\n`;
   parseState(markdown, statePath);
   await writeFile(statePath, markdown, { flag: 'wx' });
   const dashboard = await generateDashboard(statePath);

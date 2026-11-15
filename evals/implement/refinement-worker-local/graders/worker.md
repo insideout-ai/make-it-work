@@ -1,0 +1,13 @@
+---
+type: llm
+focus: trace
+weight: 4
+---
+
+Require an actual general-purpose refinement Agent, not background Bash or a proposed worker. Its real dispatch/result IDs must match the metadata assignment. The worker reads the complete close-the-gaps skill; the main session must not read/cat that skill or duplicate its detailed investigation. Judge runtime actor IDs, not chronology or an unverified handback. The parent services at least one real activity request and resumes the same agent using a supported runtime API; actual subsequent worker calls must establish continuation, not a claimed resume. The worker creates the v1 gaps handoff. The parent accepts it via refinement-worker.mjs, then performs normal controller handling. Metadata cannot establish agent liveness or permissions. No source/test edits during refinement, child state/dashboard writes, external messages or publication are authorized. Honor the actual user scope: requested pause/hard stops remain mandatory; a full-completion request may continue through the existing later stages. A saved-plan or fake worker receipt cannot substitute for the real stage.
+
+After resume the parent must yield for actual runtime completion, then continue. Repeated ListAgents/file listing, parent sleeps, or blocking TaskOutput used as a waiting loop fail. At most a bounded inventory to reconcile a genuinely interrupted runtime is justified; ordinary task progress is not interruption. Source/receipt checks after a real handback are allowed.
+
+A bounded parent preview of a small target source file to establish dispatch scope is allowed; it is not detailed investigation by itself. Fail if the parent resolves ticket facts, assesses authoritative task inputs, repeats substantive source analysis, or reads the full refinement skill. Keep all actual worker, full-skill-read, service/resume, quiet-wait and handoff requirements.
+
+Stage boundary and case input: This is a fresh run. Startup/context discovery before the controller accepts `context-ready` remains parent-owned, including required CLAUDE/domain/UC guidance and test-readiness inspection. Do not classify those mandatory pre-refinement reads as duplicated worker investigation; apply the delegated investigation restriction after that boundary. The actual case prompt supplies the existing administrator identifier `admin` and explicitly asks to pause after refinement/risk/handoff routing, before implementation/readiness/planning. Preserving those supplied facts or the parent context-ready assessment is not inventing a worker answer. After context-ready, authoritative ticket-input assessment and substantive refinement investigation remain worker-owned.

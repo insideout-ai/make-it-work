@@ -811,3 +811,30 @@ test('older headless Bash waits require a Monitor wake-up source', async t => {
   await run.saveEvents();
   assert.deepEqual(await run.check(), {});
 });
+
+test('a successful native resume of this phase child restores quiet waiting, not completion', async t => {
+  const run = await activeAgentRun(t, 'close-the-gaps'); run.launch();
+  run.events.push({ type: 'queue-operation', operation: 'enqueue', content: '<task-notification><task-id>worker</task-id><status>completed</status></task-notification>' });
+  run.events.push(assistant({ type: 'tool_use', id: 'resume-worker', name: 'SendMessage', input: { to: 'worker', message: 'Continue with the recorded reply.' } }),
+    { type: 'user', timestamp: new Date(run.epoch + 3).toISOString(), toolUseResult: { success: true, resumedAgentId: 'worker' },
+      message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'resume-worker', content: 'Resuming worker.' }] } });
+  await run.saveEvents(); assert.deepEqual(await run.check(), {});
+  assert.equal(startupProgress(run.events).agents[0].launchedAt, run.epoch + 1);
+  run.events.push({ type: 'system', subtype: 'task_notification', task_id: 'worker', status: 'completed' });
+  await run.saveEvents(); assert.equal((await run.check()).decision, 'block');
+  run.events.push(run.events.find(event => event.toolUseResult?.resumedAgentId === 'worker'));
+  await run.saveEvents(); assert.equal((await run.check()).decision, 'block', 'A replayed old resume receipt cannot resurrect completed work.');
+});
+
+test('resume claims, failed sends, unknown peers and earlier-stage agents cannot release Stop', async t => {
+  for (const kind of ['text-only', 'failed', 'unknown', 'wrong-target', 'old-stage', 'synthetic']) {
+    const run = await activeAgentRun(t, 'plan');
+    if (kind !== 'unknown') run.launch('worker', kind === 'old-stage' ? run.epoch - 1 : run.epoch + 1);
+    run.events.push({ type: 'system', subtype: 'task_notification', task_id: 'worker', status: 'completed' });
+    run.events.push(assistant({ type: 'tool_use', id: 'resume', name: 'SendMessage', input: { to: kind === 'wrong-target' ? 'peer' : 'worker' } }),
+      { type: 'user', timestamp: new Date(run.epoch + 3).toISOString(), ...(kind === 'synthetic' ? { isSynthetic: true } : {}),
+        ...(kind === 'text-only' ? {} : { toolUseResult: { success: true, resumedAgentId: 'worker' } }),
+        message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'resume', is_error: kind === 'failed', content: '{"success":true,"resumedAgentId":"worker"}' }] } });
+    await run.saveEvents(); assert.equal((await run.check()).decision, 'block', kind);
+  }
+});
