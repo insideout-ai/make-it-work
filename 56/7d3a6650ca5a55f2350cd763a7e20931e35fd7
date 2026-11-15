@@ -1,0 +1,31 @@
+evals/grade-headless.mjs
+  s_2978f25d7b478e::t_a740cfc17ed355 122-123
+evals/grade-headless.test.mjs
+  s_2978f25d7b478e::t_f24b2c1c418c9c 564-570
+evals/implement/background-bash-wait/prompt.md
+  s_2978f25d7b478e::t_926d4e729bf676 14
+evals/implement/background-monitor-wait/prompt.md
+  s_2978f25d7b478e::t_67c59ea2c3b907 14
+skills/implement/references/activity.md
+  s_2978f25d7b478e::t_2fc38669a0dc0a 44-45
+skills/implement/scripts/startup-presentation.mjs
+  s_2978f25d7b478e::t_609ccfc32c937a 79-83,155-156
+skills/implement/scripts/startup-presentation.test.mjs
+  s_2978f25d7b478e::t_e46582b2f6e009 802-813
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "567d3a6650ca5a55f2350cd763a7e20931e35fd7",
+  "prompts": {},
+  "sessions": {
+    "s_2978f25d7b478e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df70-2717-79b3-bdba-32f3a995f7ec",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
