@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-payment-feedback-e2e
+tags: [implement, autopilot, adaptive, lightweight, feedback, end-to-end]
+context:
+  scaffold_script: fixture.sh

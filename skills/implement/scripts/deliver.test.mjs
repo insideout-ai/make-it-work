@@ -223,6 +223,13 @@ test('a PR failure resumes after the recorded commit and push', async (t) => {
   assert.match(await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8'), /phase-mode">Delivered/);
 });
 
+test('a saved report alone cannot open delivery for evidence-enabled runs', async t => {
+  const { root, state, artifacts } = await fixture(t);
+  await writeFile(state, (await readFile(state, 'utf8')).replace('status: Complete', 'status: Complete\nfeedback_evidence_version: 1'));
+  assert.throws(() => cli(deliveryCli, 'offer', root, state), /saved-report readback/);
+  await assert.rejects(readFile(path.join(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
+});
+
 test('offering and declining update delivery alone and never authorize a commit', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   const original = await readFile(state, 'utf8');

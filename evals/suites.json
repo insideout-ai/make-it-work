@@ -138,7 +138,8 @@
     "plan-assumption-low-risk",
     "drive-the-epic-uncertainty-unresolved",
     "drive-the-epic-uncertainty-resolved",
-    "define-test-strategy-negative-control"
+    "define-test-strategy-negative-control",
+    "implement-payment-feedback-e2e"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -185,6 +186,19 @@
     "autopilot-full-info": {
       "autopilot-log-content.md": [
         "make-it-work/TASK-100/review-the-code-autopilot-log.jsonl"
+      ]
+    },
+    "implement-payment-feedback-e2e": {
+      "workflow-and-feedback.md": [
+        "make-it-work/DEMO-PAYMENT/DEMO-PAYMENT-spec.md",
+        "make-it-work/DEMO-PAYMENT/DEMO-PAYMENT-state.md",
+        "make-it-work/DEMO-PAYMENT/DEMO-PAYMENT-lightweight.md",
+        "make-it-work/DEMO-PAYMENT/DEMO-PAYMENT-review.md",
+        "make-it-work/DEMO-PAYMENT/DEMO-PAYMENT-final-package.md",
+        "make-it-work/DEMO-PAYMENT/workflow-feedback.md",
+        "src/sessionDetails.js",
+        "src/views.js",
+        ".claude/skills/test-strategy/SKILL.md"
       ]
     }
   },

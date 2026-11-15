@@ -512,7 +512,7 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
   }
   if (sessionReview && !summary.analysisRequired && !summary.evidenceRequired) await finalizeFeedback(statePath,
     { runId: summary.runId, stateHash: summary.stateHash, status: 'saved', kind: 'legacy-minimal' }, { refresh: false });
-  return { ...summary, ...(sessionReview ? { feedbackReport: 'combined' } : {}), outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
+  return { ...(sessionReview ? { feedbackReport: 'combined', readback: { tool: 'Read', file_path: sessionOutputPath, instruction: 'Read the full saved Markdown before presenting feedback or offering delivery.' } } : {}), ...summary, outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
 }
 
 export async function unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop = false } = {}) {

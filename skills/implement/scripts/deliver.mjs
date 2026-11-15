@@ -61,11 +61,12 @@ async function saveProgress(context, progress) {
 
 async function lifecycle(context, action) {
   const prior = await loadProgress(context);
-  if (action === 'offer' && prior) { await refreshDashboard(context); return prior; }
+  if (action === 'offer' && prior && prior.status !== 'offered') { await refreshDashboard(context); return prior; }
   if (action === 'offer') {
     const feedback = await readFeedbackProgress(context.statePath, context.state);
-    if (feedback?.status === 'collecting' && !feedback.reportSaved) fail('Finish session feedback during finalization before offering optional delivery.');
+    if (feedback?.status === 'collecting') fail('Finish session feedback, including saved-report readback, before offering optional delivery.');
   }
+  if (action === 'offer' && prior) { await refreshDashboard(context); return prior; }
   if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {
     fail('Delivery already started; inspect its progress instead of changing its offer.');
   }
