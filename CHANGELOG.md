@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Construct complete execution-mode decision payloads for the shared log writer.
+- Keep workspace selection previews clickable and explicitly recommend the existing bounded closing check for feedback-collection findings.
 - Require supplied-conversation access, actionable findings and full saved-report readback when finalizing session feedback.
 - Clarify that fix planning preserves production code, including temporary mutation probes, while allowing regression coverage for already-correct behavior.
 
