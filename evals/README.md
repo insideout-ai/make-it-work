@@ -105,6 +105,35 @@ smoke requirement. Install with `bash scripts/install-pre-push-hook.sh`.
 The hook reports failures and allows the push; it does not certify merge or
 release readiness. Each push incurs model usage. No permission bypass is used.
 
+`implement-payment-feedback-e2e` is an extended, headless full-workflow case for
+the payment-date session-line request. It uses a disposable dependency-free app
+with Dashboard hover details and a Sessions table. Either documented Autopilot
+scope choice is acceptable. It exercises the real implementation and automatic
+feedback stages; it does not replay prewritten implementation reports. The
+`feedback_readback` grader requires successful tool results containing the full
+saved report after its latest file modification (or the last combined-save
+acknowledgement in timestamp-free fixtures) and before final presentation.
+It supports Read (including cumulative numbered ranges) and
+literal full-file cat commands; unrecognized read mechanisms fail closed and
+need trace inspection. File modification time establishes ordering even when a
+save's output is truncated. If neither that time nor an acknowledgement is
+available, an existing read yields a grader error, not a workflow defect.
+An artifact's existence or a model's claim cannot pass.
+The semantic grader also receives saved artifacts and distinguishes registered
+Unit tests from browser/DOM verification. To establish a baseline, run this one
+case twice from the same frozen snapshot before changing skill instructions:
+
+```sh
+node evals/run-suite.mjs full --case=implement-payment-feedback-e2e --max-cost-usd=4 --judge-model=sonnet
+```
+
+Repeat the invocation for the second independent run. A local-check failure
+skips paid judges; preserve that original failure and inspect saved evidence
+separately rather than treating an unrun semantic judge as a pass. This case is
+a workflow regression fixture, not a certification of the authenticated app.
+Its server uses an available port and reports its URL; keep temporary artifacts
+inside the fixture and stop only server PIDs started by that run.
+
 Script-backed skills receive declared Read/Bash capabilities from `suites.json`.
 `workingDirectories` selects a safe directory inside a headless fixture; native
 prompt frontmatter must not contain runner-only settings. New fixtures must

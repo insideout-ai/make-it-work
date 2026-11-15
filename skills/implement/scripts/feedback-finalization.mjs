@@ -18,7 +18,8 @@ export async function readFeedbackFinalization(statePath, binding) {
 // The guard validates runtime proof before writing it or accepting its writerId.
 export async function finalizeFeedback(statePath, outcome, { refresh = true } = {}) {
   const existing = await readFeedbackFinalization(statePath, outcome);
-  const unchanged = existing?.status === outcome.status && existing?.writerId === outcome.writerId && existing?.kind === outcome.kind;
+  const unchanged = existing?.status === outcome.status && existing?.writerId === outcome.writerId && existing?.kind === outcome.kind &&
+    JSON.stringify(existing?.readback) === JSON.stringify(outcome.readback);
   const file = receiptPath(statePath), temporary = `${file}.${randomUUID()}.tmp`;
   try {
     try { if (!(await lstat(file)).isFile()) throw new Error('Feedback finalization path must be a regular file.'); }

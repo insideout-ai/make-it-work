@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -117,6 +117,14 @@ async function sourceReview(run) {
   return { packet_hash: packet.packetHash, dashboard: { status: 'inspected', sections: ['markup', 'styles'].map(id => ({ id, status: 'checked', observations: [{ line: packet.dashboard.sections[id].find(row => id === 'styles' ? /body\s*\{/.test(row.text) : /<h1/.test(row.text))?.line ?? packet.dashboard.sections[id][0].line, note: id === 'styles' ? 'Declared layout rules inspected; actual rendering remains unverified' : 'Dashboard headline and source content compared with the saved terminal state' }] })) }, process: [] };
 }
 
+async function readSavedFeedback(run, id = 'feedback-readback', body) {
+  const file = path.join(path.dirname(run.result.state), 'workflow-feedback.md');
+  const content = body ?? await readFile(file, 'utf8'), timestamp = new Date(Date.now() + 1000).toISOString();
+  run.events.push({ ...assistant({ type: 'tool_use', id, name: 'Read', input: { file_path: file } }), timestamp },
+    { type: 'user', timestamp, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content }] } });
+  await run.saveEvents();
+}
+
 test('Complete cannot skip feedback by proceeding directly to delivery or the terminal summary', async (t) => {
   const run = await freshRun(t, 'autopilot');
   let state = await readFile(run.result.state, 'utf8');
@@ -134,6 +142,18 @@ test('Complete cannot skip feedback by proceeding directly to delivery or the te
     status: 'pending', context: ['Current visible conversation reviewed'], findings: [], userInput: [], limitations: ['Client version unknown'],
     evidence_review: await sourceReview(run),
   } });
+  assert.match((await run.check()).reason, /current body has not been read back/);
+  await readSavedFeedback(run, 'partial-readback', '# Implement workflow feedback');
+  assert.equal((await run.check()).decision, 'block');
+  await readSavedFeedback(run);
+  await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Read', transcript_path: run.transcript });
+  const dashboardMtime = (await stat(run.result.dashboard)).mtimeMs;
+  assert.deepEqual(await run.check(), {});
+  assert.equal((await stat(run.result.dashboard)).mtimeMs, dashboardMtime);
+  const file = path.join(path.dirname(run.result.state), 'workflow-feedback.md');
+  await writeFile(file, (await readFile(file, 'utf8')).replace('Client version unknown', 'Client version not captured'));
+  assert.match((await run.check()).reason, /current body has not been read back/);
+  await readSavedFeedback(run, 'revised-readback');
   assert.deepEqual(await run.check(), {});
   assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), state);
 });
@@ -190,6 +210,9 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   run.add('Bash', 'feedback-written', { command: writeCommand }, JSON.stringify(written));
   await run.saveEvents();
   await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', transcript_path: run.transcript });
+  assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny');
+  await readSavedFeedback(run);
+  await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Read', transcript_path: run.transcript });
   const directory = path.dirname(run.result.state), receiptPath = path.join(directory, 'feedback-finalized.json');
   const receipt = await readFile(receiptPath, 'utf8');
   assert.equal(JSON.parse(receipt).writerId, 'feedback-written');
@@ -241,20 +264,24 @@ test('an already-answered delivery question reuses earlier saved feedback instea
   }
 });
 
-test('a failed terminal retrospective dispatch permits an accurate receipt-only fallback, even if receipt saving fails', async (t) => {
+test('a failed terminal retrospective dispatch permits receipt-only fallback, including an unverified report and receipt-save failure', async (t) => {
   const run = await oneFixTerminal(t);
   run.add('Agent', 'invalid-retrospective', { prompt: run.prompt }, 'Invalid subagent argument', true);
   await run.saveEvents();
   await assert.rejects(unavailableFeedback(run.result.state, { transcriptPath: run.transcript, failureId: 'invalid-retrospective', reason: 'The dispatch input was rejected' }), /No qualifying technical failure/);
   run.add('Agent', 'failed-retrospective', { prompt: run.prompt }, 'Agent service unavailable', true);
+  const reportPath = path.join(path.dirname(run.result.state), 'workflow-feedback.md');
+  await writeFile(reportPath, `# Incomplete earlier report\n<!-- run:${run.summary.runId} -->\n### Session review\n<!-- feedback-state:${run.summary.stateHash} -->\n<!-- /run:${run.summary.runId} -->\n`);
   await run.saveEvents();
   const options = { transcriptPath: run.transcript, failureId: 'failed-retrospective', reason: 'The retrospective service failed to start' };
   const outcome = await unavailableFeedback(run.result.state, options);
   assert.equal(outcome.receiptSaved, true); assert.equal(outcome.reportSaved, false);
+  assert.equal(outcome.reportStatus, 'unverified');
   run.add('Bash', 'unavailable-1', { command: `node "${path.resolve('skills/implement/scripts/write-feedback.mjs')}" unavailable --state "${run.result.state}"` }, JSON.stringify(outcome));
   await run.saveEvents();
   const released = await startupHook({ hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', transcript_path: run.transcript });
   assert.equal(released.hookSpecificOutput, undefined);
+  assert.match(released.systemMessage, /existing report remains unverified/);
   assert.match(released.systemMessage, /Only a failure receipt was saved/);
   await rm(outcome.receiptPath);
   await mkdir(outcome.receiptPath); // Genuine local receipt-write failure.
@@ -265,7 +292,7 @@ test('a failed terminal retrospective dispatch permits an accurate receipt-only 
   await run.saveEvents();
   assert.match((await run.check()).systemMessage, /receipt could not be saved either/);
   assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), run.state);
-  await assert.rejects(readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md')), { code: 'ENOENT' });
+  assert.match(await readFile(reportPath, 'utf8'), /Incomplete earlier report/);
 });
 
 test('a resumed terminal handoff is enforced without a fresh startup announcement', async (t) => {

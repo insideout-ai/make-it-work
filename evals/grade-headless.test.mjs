@@ -343,7 +343,7 @@ test('parses every headless grader definition', async () => {
     const item = cases.find((entry) => entry.name === name);
     for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
       const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
-      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log', 'file_unchanged'].includes(grader.type), `${name}/${filename}`);
+      assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log', 'file_unchanged', 'feedback_readback'].includes(grader.type), `${name}/${filename}`);
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
   }

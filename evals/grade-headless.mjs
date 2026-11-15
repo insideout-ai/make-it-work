@@ -1,9 +1,10 @@
 import { execFile, execFileSync } from 'node:child_process';
-import { readFile, readdir, realpath } from 'node:fs/promises';
+import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { strategyPointer, validateStrategy } from '../scripts/test-strategy.mjs';
 import { validateMap } from '../scripts/test-map.mjs';
 import { normalizeEntry } from '../scripts/decision-log.mjs';
+import { feedbackReadback } from './feedback-readback.mjs';
 
 function scalar(value) {
   const trimmed = value.trim();
@@ -159,6 +160,11 @@ async function gradeStrategyPointer(context) {
 
 export async function gradeHeadlessLocal(grader, context) {
   try {
+    if (grader.type === 'feedback_readback') {
+      const report = await readEvidence({ source: 'file', path: grader.path }, context);
+      const file = safePath(context.fixtureDir, grader.path);
+      return { name: grader.name, ...feedbackReadback(context.events, context.fixtureDir, file, report, { modifiedAt: (await stat(file)).mtimeMs }) };
+    }
     if (grader.type === 'file_unchanged') {
       if ([grader.path, grader.baseline].some(file => typeof file !== 'string' || file.includes('*'))) throw new Error('file_unchanged requires literal file paths.');
       const actual = await readEvidence({ source: 'file', path: grader.path }, context);
