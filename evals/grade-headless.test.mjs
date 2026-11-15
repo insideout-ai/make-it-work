@@ -540,3 +540,24 @@ test('review log grader receives both the saved decisions and successful Git dis
     } });
   assert.equal(result.passed, true);
 });
+
+
+test('semantic evidence preserves actual worker identity and paired result provenance', () => {
+  const events = [
+    { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Agent', id: 'review-dispatch', input: { description: 'Independent review' } }] } },
+    { type: 'assistant', parent_tool_use_id: 'review-dispatch', message: { content: [{ type: 'tool_use', name: 'Bash', id: 'review-write', input: { command: 'node review-report.mjs --write' } }] } },
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'review-write', content: 'CLEAN', is_error: false }] } },
+    { type: 'assistant', parentToolUseId: 'review-dispatch', message: { content: [{ type: 'text', text: 'Review complete.' }] } },
+    { type: 'assistant', isSidechain: true, message: { content: [{ type: 'text', text: 'Unidentified child observation.' }] } },
+    { type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', id: 'parent-write', input: { command: 'node final-package.mjs build' } }] } },
+    { type: 'result', result: 'Parent summary.' },
+  ];
+  const context = transcriptContext(events.map(JSON.stringify).join('\n'), '/fixture');
+  assert.match(context.readableTrace, /DISPATCH ID review-dispatch/);
+  assert.ok(context.readableTrace.includes('[SUBAGENT parent_tool_use_id="review-dispatch"] TOOL Bash: {"command":"node review-report.mjs --write"}'));
+  assert.ok(context.readableTrace.includes('[SUBAGENT parent_tool_use_id="review-dispatch"] TOOL RESULT review-write: "CLEAN"'));
+  assert.ok(context.readableTrace.includes('[SUBAGENT parent_tool_use_id="review-dispatch"] ASSISTANT: Review complete.'));
+  assert.ok(context.readableTrace.includes('[SUBAGENT parent_tool_use_id="unknown"] ASSISTANT: Unidentified child observation.'));
+  assert.match(context.readableTrace, /^TOOL Bash: \{"command":"node final-package.mjs build"\}$/m);
+  assert.equal(context.lastMessage, 'Parent summary.');
+});
