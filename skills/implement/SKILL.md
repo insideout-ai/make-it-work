@@ -137,7 +137,7 @@ At the terminal report, summarize auto-resolved decisions and the implement log 
 
 ## Change autonomy during a run
 
-Apply [references/autonomy-changes.md](references/autonomy-changes.md) throughout the run. An explicit chat request such as "switch to Guided", "switch to Autonomous", or "switch to Autopilot" queues the current ticket's mode for the next phase without restarting it. Save `queued_autonomy` separately from effective `autonomy` and refresh an existing dashboard before acknowledging it. The latest request replaces the queue; requesting the effective mode cancels it. Use effective autonomy for all remaining work/questions in the current phase, including nested stages and open approvals. The ordinary phase transition applies the queue before next-phase work and records that application. No queued change supplies a missing answer or approves delivery.
+Follow the mandatory [autonomy-change contract](references/autonomy-changes.md) for chat requests: queue the new mode for the next phase, preserve the current phase's effective policy and pending approvals, and refresh an existing dashboard before acknowledging the queue.
 
 ---
 
@@ -279,7 +279,7 @@ Dashboard rendering is deterministic code, not model-authored HTML. All ordinary
 node "<base>/scripts/dashboard-checkpoint.mjs" render --state "make-it-work/<TICKET>/<TICKET>-state.md"
 ```
 
-For a narration/activity update, use the helper's one operation instead of manually writing `current_activity`: `node "<base>/scripts/dashboard-checkpoint.mjs" activity --state "make-it-work/<TICKET>/<TICKET>-state.md" --activity "<exact narrated sentence or none>"`. The helper validates the state, saves `current_activity`, `current_activity_updated_at` and an Activity audit row together, then renders the dashboard. A render failure retains the saved audit evidence; retry the same activity to repair rendering without another row or timestamp change. Only an activity update changes its timestamp; rendering and decision checkpoints preserve it. An active phase without activity shows an explicit fallback, and an existing description without a timestamp shows `Last updated: unavailable`. State transitions and Audit-log edits still use their existing write procedure, followed by the helper's `render` operation.
+For narration/activity updates, use the `activity` operation under [references/activity.md](references/activity.md); it saves the narrated sentence, timestamp and audit row and refreshes the dashboard together. State transitions and Audit-log edits still use their existing write procedure, followed by the helper's `render` operation.
 
 The renderer owns parsing and validating the state and current plan, calculating timing and loop-aware timeline state, escaping state-derived content, reading the fixed logo and HTML template from this skill's assets, and atomically replacing `<TICKET>-status.html`. Never reproduce, patch, or hand-edit the generated HTML. Its inputs are the workflow state, the plan while step progress is needed, and, after completion, the optional delivery plan/progress journal. Delivery never changes implementation's Complete status, loop counters, or elapsed time. Its own journal drives the Deliver dot, repository results, timestamps and links; its helper regenerates existing dashboards after delivery checkpoints.
 
@@ -297,14 +297,7 @@ For controller runs, run `workflow.mjs init` alone and perform its `next_action`
 
 Read and follow [references/activity.md](references/activity.md), including inside inline stages, testing readiness, and nested regression. Save each work description before the chunk starts. Before every subagent dispatch, checkpoint what the agent will do; keep that description visible while awaiting its result, then report the actual next activity. Subagents do not write workflow activity or edit HTML; legacy single-step Progress helpers retain their required dashboard refresh.
 
-Before any stretch of work that involves several tool calls with no natural pause point in between — reading multiple files to investigate something, writing and running a batch of tests, applying a fix and re-verifying it — say one plain sentence describing the high-level activity about to happen, then proceed without further narration until that chunk's natural conclusion. Not a sentence per tool call, and not a sentence per tiny sub-step — just enough that the user always knows what's currently happening without having to infer it from a string of tool calls.
-
-Each such sentence must use the dashboard checkpoint helper's `activity` operation to update the state file's `current_activity` field and regenerate the dashboard, so the same "what's happening right now" signal is visible to someone reading the dashboard async, not only someone reading live chat:
-
-- `current_activity` holds exactly the sentence just said in chat, or `none`.
-- Clear it and `current_activity_updated_at` back to `none` the moment a new phase becomes the active phase, before that phase's own first narrated sentence lands — a sentence from a finished phase must never linger under the next phase's dot.
-- Clear both fields back to `none` whenever `status` moves to `Paused`, `Stopped` or `Complete` — nothing is actively being done while waiting on the user, and the existing pause-reason banner already covers that state. A narrated sentence resumes the next time real work actually does.
-- Rendered on the dashboard only while `status: In Progress` (see Progress dashboard above).
+Before each substantial work chunk, say one high-level sentence in chat and checkpoint that exact sentence with the helper's `activity` operation before starting. Use one update per chunk, not per tool call. The activity reference defines retry/render recovery and clearing both `current_activity` and `current_activity_updated_at` on phase changes or Paused, Stopped and Complete checkpoints. The dashboard shows activity only while In Progress.
 
 **Worked example — Start's own checkpoints.** Start is the stretch of work most likely to be someone's first impression of this pipeline, and it runs through several tool calls (autonomy choice, branch guard, state-file/dashboard creation, Context check) with no interstitial text by default — apply the rule above explicitly here:
 
