@@ -4,7 +4,7 @@ import { lstat, readFile, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { declaredTest, dedicatedTestFile, draftPlanPath, fileImage, planningReceiptPath } from './planning-tests.mjs';
 import { parseSteps } from '../../../scripts/lib/plan.mjs';
-import { digest, within } from '../../../scripts/lib/artifacts.mjs';
+import { digest, fail, within } from '../../../scripts/lib/artifacts.mjs';
 
 const paths = ['.', ':!make-it-work', ':!.claude', ':!docs', ':(exclude,glob)**/*.md'];
 const exact = (file) => `:(literal)${file}`;
@@ -32,9 +32,32 @@ export async function implementationBaseline(roots) {
     }
     for (const [file, mode, sha256] of untracked) changes.push({ file, image: { mode: mode & 0o111, sha256 }, signature: digest(JSON.stringify([file, mode, sha256])) });
     changes.sort((a, b) => a.file.localeCompare(b.file));
-    return { root, changes, head: git(root, ['rev-parse', 'HEAD']).toString().trim(),
+    return { root, changes, branch: git(root, ['symbolic-ref', '--short', 'HEAD']).toString().trim(), head: git(root, ['rev-parse', 'HEAD']).toString().trim(),
       fingerprint: digest(Buffer.concat([git(root, ['diff', '--binary', '--no-ext-diff', 'HEAD', '--', ...paths]), Buffer.from(JSON.stringify(untracked))])) };
   }));
+}
+
+// Only an exact, explicitly approved branch advance may replace the guard's
+// commit baseline. Workspace acceptance alone never authorizes application edits.
+export async function acceptBranchBaseline(fields, requested, roots, eventId) {
+  if (!fields.implementation_baseline) fail('This legacy run has no saved branch baseline; start a new run rather than resetting its guard.');
+  const saved = JSON.parse(fields.implementation_baseline);
+  if (saved.version !== 1 || saved.runId !== fields.start_time || !Array.isArray(saved.repos)) fail('Invalid saved branch baseline.');
+  if (!Array.isArray(requested) || requested.length !== saved.repos.length || roots.length !== saved.repos.length) fail('Approved branch baseline must name every saved repository exactly once.');
+  requested = await Promise.all(requested.map(async item => ({ ...item, root: await realpath(item.root) })));
+  const current = await implementationBaseline(roots);
+  const named = new Set();
+  for (const repo of current) {
+    const prior = saved.repos.find(item => item.root === repo.root);
+    const approval = requested.find(item => item.root === repo.root);
+    if (!prior || !approval || named.has(approval.root) || approval.from_head !== prior.head || approval.to_head !== repo.head || approval.branch !== repo.branch) fail('Approved branch baseline differs from the saved or current repository target.');
+    named.add(approval.root);
+    if (JSON.stringify(repo.changes) !== JSON.stringify(prior.changes)) fail('Cannot accept a branch baseline with changed local application edits; preserve and reconcile them first.');
+    try { git(repo.root, ['merge-base', '--is-ancestor', prior.head, repo.head]); }
+    catch { fail('Approved branch baseline must be a fast-forward from the saved commit.'); }
+  }
+  if (named.size !== requested.length) fail('Approved branch baseline contains duplicate repositories.');
+  return { ...saved, repos: saved.repos.map(prior => current.find(repo => repo.root === prior.root)), event_id: eventId };
 }
 
 async function originalImage(repo, file) {
@@ -82,7 +105,16 @@ export async function prematureImplementation(initialized, state) {
   const fields = state.fields;
   if (state.audit.some((row) => ['execute', 'lightweight'].includes(row.to))) return null;
   if (!initialized.implementation_baseline || !PRE_IMPLEMENTATION.has(fields.phase)) return null;
-  const baseline = initialized.implementation_baseline;
+  let baseline = initialized.implementation_baseline;
+  if (fields.implementation_baseline) {
+    try {
+      const saved = JSON.parse(fields.implementation_baseline);
+      const rootsMatch = Array.isArray(saved.repos) && saved.repos.length === baseline.length &&
+        saved.repos.every((repo, index) => repo.root === baseline[index].root && /^[a-f0-9]{40,64}$/.test(repo.head) && Array.isArray(repo.changes));
+      if (saved.version !== 1 || saved.runId !== fields.start_time || saved.origin_hash !== digest(JSON.stringify(baseline)) || !rootsMatch) return 'Application files changed or implementation baseline binding is invalid; inspect the saved run.';
+      if (saved.event_id && state.audit.some(row => row.outcome?.includes(`[workflow-event: ${saved.event_id};`))) baseline = saved.repos;
+    } catch { return 'Application files changed or implementation baseline is unreadable; inspect the saved run.'; }
+  }
   const current = await implementationBaseline(baseline.map((repo) => repo.root));
   if (current.every((repo, i) => repo.head === baseline[i].head && repo.fingerprint === baseline[i].fingerprint)) return null;
   if (await authorizedPlanningChanges(initialized, state, baseline, current)) return null;

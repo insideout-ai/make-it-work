@@ -202,3 +202,20 @@ test('literal renamed paths are included as both deletion and addition', async (
   input.review_scope[0].paths = target.repos[0].paths;
   await writeReview(f.root, input); assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
 });
+
+test('frozen review context preserves policy provenance and unverified criteria without granting a pass', async t => {
+  const f = await fixture(t);
+  const retained = { source: 'user', via: 'chat', decisions: [{ decision: 'Use code inspection now', reference: 'Explicit restart choice', unverified: ['Database boundaries', 'Internal-only access'] }] };
+  const readiness = 'make-it-work/DEMO/DEMO-testing-readiness.md';
+  await writeFile(path.join(f.root, readiness), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User selected manual checks; no behavior observed |\n');
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: review', `phase: review\nmode: lightweight\ntesting_readiness: ${readiness}\nretained_verification: ${JSON.stringify(retained)}`));
+  const prepared = await prepareReviewScope(f.root, f.statePath);
+  const target = JSON.parse(await readFile(path.join(f.root, prepared.review_target), 'utf8'));
+  assert.equal(target.verification_context.mode, 'lightweight');
+  assert.deepEqual(target.verification_context.retained_decisions, retained);
+  assert.equal(target.verification_context.policy[0].Decision, 'user');
+  assert.equal(target.verification_context.policy[0].Mode, 'manual');
+  assert.equal(target.verification_context.policy_source.path, readiness);
+  await writeFile(path.join(f.root, readiness), (await readFile(path.join(f.root, readiness), 'utf8')).replace('no behavior observed', 'criteria still unverified'));
+  await assert.rejects(writeReview(f.root, { ...f.input(), review_target: prepared.review_target, review_target_sha256: prepared.sha256 }), /Verification context changed/);
+});

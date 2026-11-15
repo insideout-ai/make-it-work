@@ -276,10 +276,12 @@ export async function gradeHeadlessCase({ graderDir, transcript, fixtureDir, bud
         `Return PASS only if every required criterion is supported.\n\n` +
         `<rubric>\n${grader.rubric}\n</rubric>\n\n<evidence>\n${evidence}\n</evidence>`;
       const options = { cwd: fixtureDir, ...(judgeModel ? { model: judgeModel } : {}) };
+      let judgeRetries = 0;
       const askJudge = async () => {
         let answer;
         let response;
-        // A failed judge process (not a FAIL verdict) is retried once; it was seen failing ~1 call in 20.
+        let failure;
+        // Retry a process/protocol failure once, never a valid FAIL verdict.
         for (let attempt = 1; attempt <= 2; attempt += 1) {
           const budgetLeft = Math.floor((budgetUsd - judgeCostUsd) * 100) / 100;
           if (budgetLeft < 0.01) throw new Error('No budget left for semantic grader');
@@ -289,16 +291,20 @@ export async function gradeHeadlessCase({ graderDir, transcript, fixtureDir, bud
           const reportedCost = Number(response?.total_cost_usd ?? 0);
           if (!Number.isFinite(reportedCost) || reportedCost < 0) throw new Error('Judge reported invalid usage');
           judgeCostUsd += reportedCost;
-          if (!answer.error) break;
+          if (answer.error) {
+            const killed = answer.error.killed ? ` (judge killed by ${answer.error.signal ?? 'timeout'})` : '';
+            failure = new Error((answer.stderr?.trim() || response?.result || answer.error.message.split('\n')[0].slice(0, 200)) + killed);
+          } else {
+            try {
+              if (!response) throw new Error('Judge returned invalid JSON');
+              const result = response.structured_output ?? JSON.parse(response.result);
+              if (!['PASS', 'FAIL'].includes(result?.verdict)) throw new Error('Judge gave no valid verdict');
+              return result;
+            } catch (error) { failure = error; }
+          }
+          if (attempt < 2) judgeRetries += 1;
         }
-        if (answer.error) {
-          const killed = answer.error.killed ? ` (judge killed by ${answer.error.signal ?? 'timeout'})` : '';
-          throw new Error((answer.stderr?.trim() || response?.result || answer.error.message.split('\n')[0].slice(0, 200)) + killed);
-        }
-        if (!response) throw new Error('Judge returned invalid JSON');
-        const result = response.structured_output ?? JSON.parse(response.result);
-        if (!['PASS', 'FAIL'].includes(result.verdict)) throw new Error('Judge gave no valid verdict');
-        return result;
+        throw failure;
       };
       // Best two of three: a single judge call was seen voting FAIL while its own reasoning concluded PASS.
       const votes = [];
@@ -310,7 +316,7 @@ export async function gradeHeadlessCase({ graderDir, transcript, fixtureDir, bud
       const passed = votes.filter((vote) => vote.verdict === 'PASS').length >= 2;
       const winner = votes.find((vote) => (vote.verdict === 'PASS') === passed);
       verdicts.push({ name: grader.name, passed,
-        detail: `${winner.reason} (judge votes: ${votes.map((vote) => vote.verdict).join(' ')})` });
+        detail: `${winner.reason} (judge votes: ${votes.map((vote) => vote.verdict).join(' ')}${judgeRetries ? `; judge retries: ${judgeRetries}` : ''})` });
     } catch (error) {
       verdicts.push({ name: grader.name, passed: false, detail: `Grader error: ${error.message}` });
     }

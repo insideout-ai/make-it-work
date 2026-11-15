@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: review-verification-context
+tags: [review-the-code, verification, security, lightweight]
+context:
+  scaffold_script: fixture.sh

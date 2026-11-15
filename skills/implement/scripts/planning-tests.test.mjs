@@ -125,6 +125,10 @@ test('approved sibling test edits stay scoped and older initializer baselines fa
   const selected = [...JSON.parse(f.initialized.fields.workspace_snapshot), ...JSON.parse(sibling.initialized.fields.workspace_snapshot)];
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(/^workspace_snapshot:.*$/m, `workspace_snapshot: ${JSON.stringify(selected)}`));
   f.initialized.implementation_baseline.push(...sibling.initialized.implementation_baseline);
+  // This synthetic workspace fixture extends both initialization sources; a
+  // single-repo saved guard binding cannot certify a two-repo initialization.
+  const baseline = { version: 1, runId: f.initialized.fields.start_time, origin_hash: digest(JSON.stringify(f.initialized.implementation_baseline)), repos: f.initialized.implementation_baseline };
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(/^implementation_baseline:.*$/m, `implementation_baseline: ${JSON.stringify(baseline)}`));
   await testingReadiness(f.statePath, 'begin', { restart: true });
   await testingReadiness(f.statePath, 'complete');
   await f.authorize({ repo: sibling.root });

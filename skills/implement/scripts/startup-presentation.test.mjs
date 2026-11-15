@@ -459,7 +459,7 @@ test('a live terminal retrospective may finish, but its handback still requires 
 });
 
 test('live agents permit yielding in their active stage without completing or pausing the workflow', async (t) => {
-  for (const phase of ['plan', 'execute', 'review', 'lightweight', 'fix-plan']) {
+  for (const phase of ['close-the-gaps', 'plan', 'execute', 'review', 'lightweight', 'fix-plan']) {
     const run = await activeAgentRun(t, phase);
     run.launch();
     run.events.push(assistant(text('The delegated agent is still running; waiting for its report.')));
@@ -474,7 +474,7 @@ test('live agents permit yielding in their active stage without completing or pa
 });
 
 test('completion or failure notifications restore the active-stage continuation hold', async (t) => {
-  for (const phase of ['plan', 'review']) for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
+  for (const phase of ['close-the-gaps', 'plan', 'review']) for (const status of ['completed', 'failed', 'killed', 'cancelled', 'stopped']) {
     const run = await activeAgentRun(t, phase);
     run.launch();
     run.events.push({ type: 'queue-operation', operation: 'enqueue', content: `<task-notification>\n<task-id>worker</task-id>\n<status>${status}</status>\n</task-notification>` });
@@ -681,7 +681,7 @@ test('Plan waits require runtime proof and never hide production edits or releas
   assert.equal((await plan.check()).decision, undefined);
   await writeFile(path.join(plan.root, 'app.js'), '// unauthorized production change\n');
   assert.match((await plan.check()).reason, /Application files changed/);
-  for (const phase of ['context-check', 'close-the-gaps', 'spec-approval', 'plan-approval', 'final-sync']) {
+  for (const phase of ['context-check', 'spec-approval', 'plan-approval', 'final-sync']) {
     const run = await activeAgentRun(t, phase); run.launch(); await run.saveEvents();
     assert.equal((await run.check()).decision, 'block');
   }
@@ -717,4 +717,16 @@ test('a resumed run tracks the terminal delegate even when completion output is 
   assert.equal(progress.initialized, null);
   assert.equal(progress.terminalFeedback, null);
   assert.equal(progress.agents[0].id, 'retro-agent');
+});
+
+test('refinement waits require a live current-stage child and never hide application edits', async t => {
+  const run = await activeAgentRun(t, 'close-the-gaps');
+  run.events.push(assistant(text('Waiting for the survey.'))); await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  run.launch('old-survey', run.epoch - 1); await run.saveEvents();
+  assert.equal((await run.check()).decision, 'block');
+  run.launch('current-survey'); await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+  await writeFile(path.join(run.root, 'app.js'), '// premature edit');
+  assert.match((await run.check()).reason, /Application files changed/);
 });
