@@ -1,0 +1,82 @@
+skills/implement/scripts/workflow.mjs
+  s_852f9e573071fc::t_5e7192a64d0601 649-650,668,683
+skills/implement/scripts/refinement-worker.test.mjs
+  s_852f9e573071fc::t_66c60f0187836f 119-121
+  s_852f9e573071fc::t_93ac8442356328 1-118,122-125
+skills/implement/references/refinement-worker.md
+  s_852f9e573071fc::t_66c60f0187836f 42-45
+  s_852f9e573071fc::t_b722ce6119b309 1-41,46-69
+skills/implement/scripts/refinement-worker.mjs
+  s_852f9e573071fc::t_5e7192a64d0601 41,123
+  s_852f9e573071fc::t_bbbcfeca4ed916 1-40,42-122,124-148
+evals/implement/refinement-inline-baseline/case.yaml
+  s_852f9e573071fc::t_56dc153af60849 1-5
+evals/implement/refinement-inline-baseline/fixture.sh
+  s_852f9e573071fc::t_84b66363842918 1-8
+evals/implement/refinement-inline-baseline/graders/inline.md
+  s_852f9e573071fc::t_eb3dec43d3cfa3 1-5
+evals/implement/refinement-inline-baseline/graders/source.md
+  s_852f9e573071fc::t_ebc80ac88f8169 1-6
+evals/implement/refinement-inline-baseline/graders/state.md
+  s_852f9e573071fc::t_9ecff59f76e96d 1-7
+evals/implement/refinement-inline-baseline/prompt.md
+  s_852f9e573071fc::t_06a3e354025f41 1-12
+evals/implement/refinement-worker-blocked/case.yaml
+  s_852f9e573071fc::t_23ab8011f457d9 1-5
+evals/implement/refinement-worker-blocked/fixture.sh
+  s_852f9e573071fc::t_1a6de1ca5440af 1-8
+evals/implement/refinement-worker-blocked/graders/blocker.md
+  s_852f9e573071fc::t_5851c9e86e1026 1-6
+evals/implement/refinement-worker-blocked/graders/source.md
+  s_852f9e573071fc::t_9ea4e0c00c5de0 1-6
+evals/implement/refinement-worker-blocked/graders/state.md
+  s_852f9e573071fc::t_e0b168a0f8a76b 1-7
+evals/implement/refinement-worker-blocked/graders/worker.md
+  s_852f9e573071fc::t_96ee6aa01e45bf 1-7
+evals/implement/refinement-worker-blocked/prompt.md
+  s_852f9e573071fc::t_5e54dcad0768f6 1-12
+evals/implement/refinement-worker-local/case.yaml
+  s_852f9e573071fc::t_e1c0d924c01cfb 1-5
+evals/implement/refinement-worker-local/fixture.sh
+  s_852f9e573071fc::t_be4138edfbfc83 1-8
+evals/implement/refinement-worker-local/graders/source.md
+  s_852f9e573071fc::t_c81b18c13b8c63 1-6
+evals/implement/refinement-worker-local/graders/state.md
+  s_852f9e573071fc::t_04f60a52f9c999 1-7
+evals/implement/refinement-worker-local/graders/worker.md
+  s_852f9e573071fc::t_9efd544557adb5 1-7
+evals/implement/refinement-worker-local/prompt.md
+  s_852f9e573071fc::t_199feaeb173599 1-12
+evals/suites.json
+  s_852f9e573071fc::t_e130f3a4497fce 147-150
+skills/close-the-gaps/SKILL.md
+  s_852f9e573071fc::t_757ca806cc8ff0 537-538
+skills/implement/SKILL.md
+  s_852f9e573071fc::t_2312d3ae15897b 70
+skills/implement/references/controller.md
+  s_852f9e573071fc::t_adbfc160e45117 5
+skills/implement/references/orchestration/refinement.md
+  s_852f9e573071fc::t_56dc5fd1ff19ff 9-10
+skills/implement/references/orchestration/stage-contract.md
+  s_852f9e573071fc::t_56be624d0c2ce8 11
+skills/implement/references/orchestration/startup.md
+  s_852f9e573071fc::t_2a8398d5a38370 94,101,241
+skills/implement/references/refinement-worker-task.md
+  s_852f9e573071fc::t_2baba832d6a12d 1-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5edd2d19b17d0d37f16313e7649823b53eb8069d",
+  "prompts": {},
+  "sessions": {
+    "s_852f9e573071fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-7ff0-72d1-a752-b603ffaf4bd4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
