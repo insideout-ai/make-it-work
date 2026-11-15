@@ -212,6 +212,16 @@
         "make-it-work/REVIEW-2/review-target.json",
         "src/internalItems.js"
       ]
+    },
+    "implement-no-tooling": {
+      "readiness-and-completion.md": [
+        "make-it-work/DEMO-102/DEMO-102-status.html"
+      ]
+    },
+    "implement-existing-automation-no-strategy": {
+      "completion.md": [
+        "make-it-work/DEMO-103/DEMO-103-status.html"
+      ]
     }
   },
   "requiredToolsBySkill": {
