@@ -20,6 +20,7 @@ export { planHash } from '../../../scripts/lib/plan.mjs';
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
 import { checkReviewScope } from './review-scope.mjs';
 import { implementationBaseline, acceptBranchBaseline } from './implementation-guard.mjs';
+import { checkRefinementWorkerHandoff } from './refinement-worker.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { reviewRequirements } from './review-checks.mjs';
@@ -455,6 +456,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
     const handoff = await loadHandoff(root, workingState, effective);
+    if (handoff?.stage === 'gaps') await checkRefinementWorkerHandoff(root, statePath, effective.handoff);
     if (input.validated_waiver !== undefined) fail('validated_waiver is controller-owned.');
     if (effective.event === 'waive-manual-verification') {
       const plan = await readFile(await within(root, state.fields.plan), 'utf8');

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.8.0] — 2026-11-15
+
+### Added
+
+- Opt in to a fresh local Autopilot refinement worker with `implement --refinement-worker`, keeping detailed refinement instructions and research out of the parent session while preserving existing handoffs and parent-owned workflow gates.
+- Bind worker assignments, parent requests and returned artifacts to their run and repository; reject duplicate dispatches, stale results and changed application scope, with explicit inline recovery for unavailable workers.
+
+### Fixed
+
+- Recognize successful native resumption of an already launched, same-stage agent when waiting, retaining completion cleanup and rejecting failed, unknown, replayed or earlier-stage resume evidence.
+
 ## [5.7.2] — 2026-11-15
 
 ### Changed

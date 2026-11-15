@@ -18,7 +18,7 @@ to standalone or ordinary inline refinement:
   journals or assignment metadata. Do not invoke controller/checkpoint helpers.
   Do not commit, push, install tooling, modify production/tests, send messages,
   publish externally or start further agents. Research stays inside the supplied
-  local repository. An explicit request requiring Slack, another repository,
+  local repository. Use `assignment.baseline[0].root` as the explicit working directory, including after resumption, and keep scratch files under the ticket run directory. An explicit request requiring Slack, another repository,
   external permissions or an unsupported workflow choice returns a blocked gaps
   handoff so the parent can apply its existing policy; never silently drop it.
 - Before substantial investigation/drafting, request the ordinary activity

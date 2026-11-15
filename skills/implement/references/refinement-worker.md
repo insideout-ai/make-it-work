@@ -38,17 +38,17 @@ passed to this helper are absolute or relative to the ticket directory.
    update audit notes via existing parent checkpoint APIs. It never grants
    consent, performs external actions or advances a phase. Feed the returned
    reply path to the **same** worker using the host's supported resume/message
-   API. Do not reconstruct from raw logs. If runtime resumption is unavailable,
+   API (`SendMessage` to the actual agent ID on the tested 2.1.311 host). After a successful resume, yield for its native completion notification. Do not poll ListAgents, repeatedly list files, block on TaskOutput or use sleeps to keep the parent turn open. Do not reconstruct from raw logs. If runtime resumption is unavailable,
    first prove the prior agent is finished/unavailable, record cancellation and
    continue inline from the saved assignment, requests/replies and artifacts.
    This first slice does not replace a runtime ID or start a second writer.
 
 4. On `Handoff: <path>`, call `accept` with `{"handoff":"<path>"}`. This checks
    assignment/run/phase/autonomy/scope, application preservation and newest v1
-   handoff. It does **not** advance state or complete refinement. Read the spec
+   handoff. It does **not** advance state or complete refinement. The opt-in controller also requires that accepted receipt before routing a gaps handoff. Read the spec
    and a compact handback (at most roughly 1,500 characters: result, paths,
    unresolved facts and risk factors). Assess risk and route the unchanged gaps
-   handoff through the existing controller/approval logic. Hard stops and
+   handoff through the existing controller/approval logic. If the parent finds a material spec error before routing, call `revise` with a precise `reason`, then resume the same worker and require a newer gaps handoff. Earlier result hashes remain in history. A changed/consumed phase cannot be reopened by this helper. Hard stops and
    `needs_input` follow that same existing logic; never answer for the user.
 5. On interruption, inspect both assignment and actual runtime evidence. Resume
    the known agent when possible. On a changed choice or unavailable worker,

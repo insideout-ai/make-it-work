@@ -33,6 +33,9 @@ export function startupProgress(events) {
   const bashCalls = new Set();
   const agentCalls = new Map();
   const agents = new Map();
+  const knownAgents = new Map();
+  const resumeCalls = new Map();
+  const seenResumes = new Set();
   const tasks = new Map();
   const taskCalls = new Map();
   for (const event of events) {
@@ -85,6 +88,21 @@ export function startupProgress(events) {
         if (tool === 'TaskStop' && typeof result?.task_id === 'string') tasks.delete(result.task_id);
         if (tool === 'TaskOutput' && ['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(result?.task?.status)) tasks.delete(result.task.task_id);
       }
+      const parentRuntime = !event.isMeta && !event.isSynthetic && !event.isSidechain && !event.parent_tool_use_id && !event.parentToolUseId;
+      if ((initialized || terminalFeedback || feedbackRun) && parentRuntime && role === 'assistant' && part.type === 'tool_use' && part.name === 'SendMessage') {
+        resumeCalls.set(part.id, part.input?.to ?? part.input?.recipient);
+      }
+      if (parentRuntime && role === 'user' && part.type === 'tool_result' && resumeCalls.has(part.tool_use_id) && !seenResumes.has(part.tool_use_id)) {
+        seenResumes.add(part.tool_use_id);
+        const result = part.is_error ? null : event.toolUseResult;
+        const prior = knownAgents.get(result?.resumedAgentId);
+        // A resume never moves an earlier-phase launch into the current phase.
+        // Text, metadata journals, peer inventories and failed sends cannot create it.
+        if (result?.success === true && prior && resumeCalls.get(part.tool_use_id) === result.resumedAgentId &&
+            Number.isFinite(Date.parse(event.timestamp)) && Date.parse(event.timestamp) >= prior.launchedAt) {
+          agents.set(result.resumedAgentId, prior);
+        }
+      }
       if ((initialized || terminalFeedback || feedbackRun) && role === 'assistant' && part.type === 'tool_use' && ['Agent', 'Task', 'ListAgents', 'TaskOutput'].includes(part.name)) {
         agentCalls.set(part.id, part.name);
       }
@@ -92,6 +110,7 @@ export function startupProgress(events) {
         const result = event.toolUseResult;
         if (['Agent', 'Task'].includes(agentCalls.get(part.tool_use_id)) && result?.isAsync === true && result.status === 'async_launched' && typeof result.agentId === 'string') {
           agents.set(result.agentId, { id: result.agentId, launchedAt: Date.parse(event.timestamp) });
+          knownAgents.set(result.agentId, { id: result.agentId, launchedAt: Date.parse(event.timestamp) });
         }
         // A runtime inventory can invalidate stale launch evidence. Peers are
         // deliberately excluded: only this session's delegated agents qualify.
@@ -111,7 +130,7 @@ export function startupProgress(events) {
         const result = startupResult(output);
         if (result) {
           initialized = result; feedbackRun = { state: result.state, runId: result.runId ?? result.fields?.start_time };
-          terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); tasks.clear(); taskCalls.clear();
+          terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); knownAgents.clear(); resumeCalls.clear(); seenResumes.clear(); tasks.clear(); taskCalls.clear();
         }
         for (const line of output.split('\n')) {
           try {

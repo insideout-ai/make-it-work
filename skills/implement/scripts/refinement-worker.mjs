@@ -83,6 +83,15 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
     }
     await current(saved);
     if (saved.status === 'cancelled') fail('Worker assignment is cancelled.');
+    if (command === 'revise') {
+      exactKeys(input, ['reason']); requireText(input.reason, 'Revision reason');
+      if (saved.status !== 'returned') fail('Only a returned result can be reopened before controller routing.');
+      saved.history ??= [];
+      saved.history.push({ result: saved.result, artifacts: saved.artifacts, context_artifacts: saved.context_artifacts, reason: input.reason });
+      saved.handoff_floor = Math.max(saved.handoff_floor, Number(path.basename(saved.result.path).match(/gaps-(\d+)\.json$/)[1]));
+      delete saved.result; delete saved.artifacts; delete saved.context_artifacts; saved.status = 'running';
+      await persist(); return { status: saved.status, agent_id: saved.agent_id, instruction: 'Resume the same worker with this correction. Preserve the earlier handoff and emit a newer one; metadata is not runtime evidence.' };
+    }
     if (command === 'attach') {
       exactKeys(input, ['agent_id']); requireText(input.agent_id, 'Runtime agent ID');
       if (saved.agent_id && saved.agent_id !== input.agent_id) fail('A different runtime agent is already attached; do not replace it blindly.');
@@ -121,6 +130,7 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
       if (saved.status === 'returned') {
         if (saved.result.path !== ref.path || saved.result.sha256 !== ref.sha256) fail('Returned handoff changed or duplicate result differs.');
         for (const a of saved.artifacts) if ((await artifact(path.relative(directory, path.resolve(root, a.path)))).sha256 !== a.sha256) fail('Returned artifact changed.');
+        for (const a of saved.context_artifacts ?? []) if (digest(await readFile(await within(root, a.path))) !== a.sha256) fail('Returned context changed.');
         return { ...saved.result, replay: true };
       }
       if (saved.status !== 'running') fail('Attach the actual worker runtime before accepting its result.');
@@ -130,6 +140,11 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
       const h = await validateArtifacts(await json(path.resolve(root, ref.path)), root);
       if (h.ticket !== f.ticket || h.stage !== 'gaps' || h.plan_version !== Number(f.plan_version)) fail('Handoff ticket, stage or plan version does not match assignment.');
       if (h.status === 'done' && h.outcome !== 'SPEC_SAVED') fail('The local worker cannot claim Slack delivery.');
+      saved.context_artifacts = [];
+      for (const a of h.data?.context_updated ?? []) {
+        const file = await within(root, a);
+        saved.context_artifacts.push({ path: path.relative(root, file), sha256: digest(await readFile(file)) });
+      }
       saved.artifacts = [];
       for (const a of [...Object.values(h.artifacts ?? {}), ...(h.data?.context_updated ?? [])]) {
         // Artifact ownership remains subject to the stage's existing context-discovery rules.
@@ -143,6 +158,19 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
 }
 cli(import.meta.url, async argv => {
   const o = args(argv, ['--root', '--state', '--input']);
-  if (!o.root || !o.state) fail('Usage: refinement-worker.mjs prepare|inspect|attach|service|accept|cancel --root ROOT --state STATE [--input JSON]');
+  if (!o.root || !o.state) fail('Usage: refinement-worker.mjs prepare|inspect|attach|service|accept|revise|cancel --root ROOT --state STATE [--input JSON]');
   return refinementWorker(o.root, o.state, o.command, o.input ? await jsonInput(o.input) : {});
 });
+
+/** Opt-in controller boundary only; cancelled work returns to the existing inline route. */
+export async function checkRefinementWorkerHandoff(root, statePath, handoff) {
+  const state = parseState(await readFile(statePath, 'utf8'), statePath);
+  if (!state.fields.refinement_worker_version) return;
+  if (state.fields.refinement_worker_version !== '1') fail('Unsupported refinement-worker version.');
+  if (!eligible(state.fields)) return;
+  const journal = await json(await within(path.dirname(statePath), `${state.fields.ticket}-refinement-worker.json`));
+  if (journal.version !== 1 || journal.binding?.start_time !== state.fields.start_time || journal.binding?.ticket !== state.fields.ticket) fail('Worker receipt belongs to a different run.');
+  if (journal.status === 'cancelled' && typeof journal.reason === 'string' && journal.reason.trim()) return;
+  if (journal.status !== 'returned') fail('Accept the refinement worker result before controller routing.');
+  await refinementWorker(root, statePath, 'accept', { handoff: path.resolve(root, handoff) });
+}

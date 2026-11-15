@@ -147,7 +147,8 @@
     "implement-background-monitor-wait",
     "implement-refinement-inline-baseline",
     "implement-refinement-worker-local",
-    "implement-refinement-worker-blocked"
+    "implement-refinement-worker-blocked",
+    "implement-refinement-worker-full"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",

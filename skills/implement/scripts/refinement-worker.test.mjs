@@ -41,7 +41,6 @@ test('opt-in is explicit and new-run only; ordinary/legacy inspection writes no 
     await assert.rejects(access(path.join(f.root, 'make-it-work/NEW/NEW-state.md')));
   }
   await f.patch('refinement_destination', 'slack-draft');
-  await f.patch('refinement_worker_version', '9'); // absent replacement cannot add a marker
   assert.deepEqual(await f.run('inspect'), { enabled: false, route: 'inline' });
 });
 
@@ -122,4 +121,51 @@ test('hard stops use unchanged handoffs; wrong stage, Slack delivery, and escapi
   await symlink(outside, path.join(g.directory, 'escape.json'));
   await assert.rejects(g.run('service', { request: 'escape.json' }), /escapes/);
   await assert.rejects(g.run('service', { request: '../../outside.json' }), /escapes/);
+});
+
+
+test('opt-in controller routing requires an accepted result, then preserves normal phase/idempotence', async t => {
+  const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'agent-1' });
+  const handoff = await f.handoff();
+  const apply = (event, extra = {}) => readFile(f.state, 'utf8').then(markdown => applyWorkflow({ root: f.root, statePath: f.state,
+    input: { id: event, event, expected_hash: digest(markdown), repos: [f.root], ...extra } }));
+  await assert.rejects(apply('handoff', { handoff: `make-it-work/DEMO/${handoff}` }), /Accept the refinement worker result/);
+  await f.run('accept', { handoff });
+  await apply('mode', { source: 'assessed', risk: 'low', mode: 'lightweight', rationale: 'One bounded policy change.' });
+  const input = { id: 'handoff', event: 'handoff', expected_hash: digest(await readFile(f.state, 'utf8')), repos: [f.root], handoff: `make-it-work/DEMO/${handoff}` };
+  const result = await applyWorkflow({ root: f.root, statePath: f.state, input });
+  assert.equal(result.fields.phase, 'lightweight');
+  const replay = await applyWorkflow({ root: f.root, statePath: f.state, input });
+  assert.equal(replay.fields.phase, 'lightweight');
+});
+
+test('unknown opt-in versions and actual branch changes cannot silently fall back', async t => {
+  const f = await fixture(t); await f.patch('refinement_worker_version', '9');
+  await assert.rejects(f.run('inspect'), /Unsupported/);
+  const g = await fixture(t); await g.run('prepare', { task: 'Refine' }); g.git('switch', '-qc', 'OTHER');
+  await assert.rejects(g.run('attach', { agent_id: 'agent-1' }), /branch, HEAD/);
+});
+
+
+test('parent can request a newer corrected result only before the phase is consumed', async t => {
+  const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'agent-1' });
+  await f.run('accept', { handoff: await f.handoff(1) });
+  await f.run('revise', { reason: 'Spec omitted the explicit guest-denial criterion.' });
+  await assert.rejects(f.run('accept', { handoff: 'DEMO-handoffs/gaps-1.json' }), /after dispatch/);
+  await f.run('accept', { handoff: await f.handoff(2) });
+  const saved = JSON.parse(await readFile(path.join(f.directory, 'DEMO-refinement-worker.json'), 'utf8'));
+  assert.equal(saved.history.length, 1); assert.match(saved.history[0].result.path, /gaps-1.json$/);
+  assert.equal(saved.agent_id, 'agent-1');
+  await f.patch('phase', 'plan');
+  await assert.rejects(f.run('revise', { reason: 'Too late' }), /Stale/);
+});
+
+
+test('local context updates stay in approved scope and are bound after return', async t => {
+  const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'agent-1' });
+  await mkdir(path.join(f.root, 'docs')); await writeFile(path.join(f.root, 'docs/domain.md'), '# Updated local fact');
+  const handoff = await f.handoff(1, { data: { tbd_items: 0, context_updated: ['docs/domain.md'] } });
+  await f.run('accept', { handoff });
+  await writeFile(path.join(f.root, 'docs/domain.md'), '# Changed after return');
+  await assert.rejects(f.run('accept', { handoff }), /Returned context changed/);
 });
