@@ -76,7 +76,11 @@ export function startupProgress(events) {
         const launchedAt = Date.parse(event.timestamp);
         if (typeof id === 'string' && id && Number.isFinite(launchedAt) && !result.interrupted && !result.backgroundEndsWithFinalResponse &&
             (tool !== 'Monitor' || Number.isFinite(result.timeoutMs) && result.timeoutMs > 0 && !result.persistent)) {
-          tasks.set(id, { id, launchedAt, ...(tool === 'Monitor' ? { expiresAt: launchedAt + result.timeoutMs } : {}) });
+          // Older single-shot SDK CLIs exit after a Bash-only yield. A finite
+          // Monitor provides the wake-up source in that host instead.
+          const version = /^2\.1\.(\d+)$/.exec(event.version ?? '');
+          const needsMonitor = tool === 'Bash' && event.entrypoint === 'sdk-cli' && version && Number(version[1]) < 311;
+          tasks.set(id, { id, launchedAt, needsMonitor: Boolean(needsMonitor), ...(tool === 'Monitor' ? { expiresAt: launchedAt + result.timeoutMs } : {}) });
         }
         if (tool === 'TaskStop' && typeof result?.task_id === 'string') tasks.delete(result.task_id);
         if (tool === 'TaskOutput' && ['completed', 'failed', 'killed', 'cancelled', 'stopped'].includes(result?.task?.status)) tasks.delete(result.task.task_id);
@@ -148,7 +152,8 @@ async function continuationHold(initialized, toolCheck = false, agents = [], tas
   // Yielding to a live child is not workflow completion. Preserve In Progress
   // and all completion gates; a child from an earlier phase cannot release Stop.
   if (['close-the-gaps', 'plan', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
-      [...agents, ...tasks].some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
+      [...agents, ...tasks.filter(task => !task.needsMonitor)].some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
+  if (tasks.some(task => task.needsMonitor && task.launchedAt >= enteredPhase)) return { decision: 'block', reason: 'This older single-shot headless runtime cannot resume a Bash-only background wait. Start a finite Monitor for the existing command/output, then yield. Do not rerun the tests, poll in the parent, repeat waiting messages or pause the workflow merely to wait.' };
   if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };
   return { decision: 'block', reason: 'The dashboard link has been shared, but this fresh run is still in Context check with status In Progress. Continue Context check now in this same turn; do not repeat the link or ask the user to send another message. If a genuine question or blocker prevents continuation, save the documented pause or stop before reporting it.' };
 }

@@ -41,3 +41,5 @@ Feedback collection after a terminal checkpoint uses stable informational Activi
 ## Background command waits
 
 For a native background Bash command or finite Monitor watch launched in the current stage, keep the current activity and yield after the initial announcement. Successful runtime task IDs establish the wait; a shell PID, `&`, or prose claim does not. Do not poll or repeat waiting messages. Resume on the runtime event, inspect the actual result, and reconcile all required results before completing readiness. A monitor event is not itself proof that tests passed. On monitor expiry, reassess the task and its output under the existing stage rules; never infer success. Tasks that end with the response and persistent watches do not qualify.
+
+Older single-shot headless Claude Code hosts (before the tested 2.1.311 runtime) require a finite Monitor wake-up source for a Bash-only wait. If the hook requests this fallback, watch the existing task/output without rerunning tests. Prefer running the baseline through Monitor directly in those hosts. This restriction does not apply to interactive sessions.

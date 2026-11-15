@@ -799,3 +799,15 @@ test('runtime task inventories and status updates invalidate launches without ac
   ]) assert.equal(startupProgress([...run.events, event]).tasks.length, 0);
   assert.deepEqual(startupProgress([...run.events, { type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'baseline' }, { task_id: 'unrelated' }] }]).tasks.map(task => task.id), ['baseline']);
 });
+
+
+test('older headless Bash waits require a Monitor wake-up source', async t => {
+  const run = await activeAgentRun(t, 'plan');
+  launchBackground(run);
+  Object.assign(run.events.at(-1), { entrypoint: 'sdk-cli', version: '2.1.267' });
+  await run.saveEvents();
+  assert.match((await run.check()).reason, /finite Monitor/);
+  launchBackground(run, 'Monitor', { taskId: 'wake', timeoutMs: 60000 });
+  await run.saveEvents();
+  assert.deepEqual(await run.check(), {});
+});

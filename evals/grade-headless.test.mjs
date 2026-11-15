@@ -561,3 +561,10 @@ test('semantic evidence preserves actual worker identity and paired result prove
   assert.match(context.readableTrace, /^TOOL Bash: \{"command":"node final-package.mjs build"\}$/m);
   assert.equal(context.lastMessage, 'Parent summary.');
 });
+
+
+test('readable traces retain native background task lifecycle evidence', () => {
+  const notification = { type: 'system', subtype: 'task_notification', task_id: 'baseline', status: 'completed', summary: 'exit 0' };
+  const context = transcriptContext([notification, { type: 'result', result: 'Done' }].map(JSON.stringify).join('\n'), '/fixture');
+  assert.ok(context.readableTrace.includes(`RUNTIME TASK EVENT: ${JSON.stringify(notification)}`));
+});
