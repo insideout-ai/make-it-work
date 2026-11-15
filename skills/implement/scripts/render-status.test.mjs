@@ -144,7 +144,8 @@ test('terminal dashboard collects session feedback then refreshes to saved with 
   assert.equal(result.dashboardUpdated, true);
   const html = await readFile(f.outputPath, 'utf8');
   assert.match(html, /data-workflow-feedback-status="saved"/);
-  assert.match(html, /Session retrospective: Feedback saved/);
+  assert.doesNotMatch(html, /class="feedback-progress"|Session retrospective: Feedback saved/);
+  assert.equal((html.match(/Save this session’s feedback/g) ?? []).length, 1);
   assert.doesNotMatch(html, /http-equiv="refresh"/);
   assert.equal(withoutFeedbackNotes(await readFile(statePath, 'utf8')), state);
   assert.equal(await readFile(approvalPath, 'utf8'), 'Historical approval bytes');
@@ -163,7 +164,7 @@ test('completion keeps assurance details in artifacts and links only the session
   const packagePath = path.join(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
   await writeFile(packagePath, bytes);
   await generateDashboard(path.join(f.directory, 'DEMO-state.md'));
-  const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
+  const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved' }, assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
   assert.doesNotMatch(html, /Assurance:|Browser verification:|Inherited work not fully assessed|ASSURANCE_SUMMARY/);
   assert.match(html, /href="workflow-feedback.md"/);
   assert.match(html, /share only that session export/);
@@ -174,7 +175,7 @@ test('completion keeps assurance details in artifacts and links only the session
 
 test('feedback belongs to finalization and optional delivery appears only after collection settles', () => {
   const state = parseState(stateMarkdown({ fields: { status: 'Complete', phase: 'complete', final_package_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
-  const options = { state, template: '{{STATUS_BANNER}} {{PHASE_TIMELINE}} {{FEEDBACK_PROGRESS}}', logoBase64: '' };
+  const options = { state, template: '{{STATUS_BANNER}} {{PHASE_TIMELINE}} {{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '' };
   const pending = renderStatus({ ...options, feedback: { status: 'collecting' } });
   assert.match(pending, /Finalizing session\./);
   assert.match(pending, /phase-dot current spinning/);
@@ -183,10 +184,13 @@ test('feedback belongs to finalization and optional delivery appears only after 
   const saved = renderStatus({ ...options, feedback: { status: 'saved' } });
   assert.match(saved, /Implementation complete\./);
   assert.match(saved, /Optional delivery:/);
-  assert.match(saved, /Feedback saved/);
+  assert.doesNotMatch(saved, /class="feedback-progress"/);
+  assert.match(saved, /Save this session’s feedback/);
   assert.match(saved, /phase-mode">Session feedback saved<\/div>/);
   const unavailable = renderStatus({ ...options, feedback: { status: 'unavailable' } });
   assert.match(unavailable, /phase-mode">Session feedback unavailable<\/div>/);
+  assert.match(unavailable, /data-workflow-feedback-status="unavailable"/);
+  assert.doesNotMatch(unavailable, /class="feedback-progress"|href="workflow-feedback.md"/);
   assert.doesNotMatch(unavailable, /phase-dot current spinning/);
 });
 
@@ -1278,4 +1282,16 @@ test('final approval feedback retains separate finalization attempts', async (t)
   const finalSteps = timelineHtml(html).split('<div class="phase-step">').filter((step) => /phase-label">(?:Finalizing|Complete)</.test(step));
   assert.equal(finalSteps.length, 2);
   for (const step of finalSteps) assert.match(step, /phase-duration">2m/);
+});
+
+test('missing-strategy completion note is escaped inside the green banner before delivery guidance', () => {
+  const fields = { status: 'Complete', phase: 'complete', testing_summary: JSON.stringify([{ repo: '<api>', strategy: 'missing', verification: 'manual' }]) };
+  const state = parseState(stateMarkdown({ fields, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
+  const html = renderStatus({ state, template: '{{STATUS_BANNER}} {{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved' } });
+  assert.match(html, /class="complete"[\s\S]*<strong>Testing:<\/strong> Strategy missing for &lt;api&gt;; used manual verification\.[\s\S]*Delivery status reflects/);
+  assert.doesNotMatch(html, /class="feedback-progress"|Strategy missing for <api>/);
+  assert.equal((html.match(/Save this session’s feedback/g) ?? []).length, 1);
+  const unavailable = renderStatus({ state, template: '{{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'unavailable', reason: 'Could not save <report>' } });
+  assert.match(unavailable, /Could not save &lt;report&gt;/);
+  assert.doesNotMatch(unavailable, /href=|class="feedback-progress"/);
 });

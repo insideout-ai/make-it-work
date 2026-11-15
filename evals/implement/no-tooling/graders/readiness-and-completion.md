@@ -5,14 +5,16 @@ weight: 3
 ---
 
 The repo started with no tests, configured runner or strategy. Require the
-ordinary Implement pipeline to reach Complete with clean review and local
-uncommitted changes. Before feature planning, it must save a testing-readiness
-decision, establish minimal real automated testing, run a nonempty/non-skipped
-test of existing policy behavior, and generate an active strategy from actual
-configuration. The plan must retain that setup as an accepted baseline and an
-automated Verification Policy. Execution must test admin allowed, member
-allowed and guest denied, and complete its automated gate with full-suite
-evidence. Check the transcript and artifacts for the actual ordering/results;
-an invented command, static check, empty suite or placeholder is insufficient.
-FAIL if it silently selects manual verification, requires the user to run
-define-test-strategy first, or only writes a proposal without a working setup.
+ordinary Implement pipeline to reach Complete with clean independent review
+and local uncommitted changes. Before feature planning it must save bounded
+discovery evidence and select manual Verification Policy with autonomy-default
+provenance. It must not install a runner, generate a strategy/map or invoke
+define-test-strategy. Planning must name executable manual scenarios for admin
+allowed, member allowed and guest denied. Execution must actually exercise all
+three outcomes (direct runtime calls are suitable here), record observed evidence
+and finish VERIFIED_MANUALLY with gate none, never automated PASS. Source
+inspection, a proposal or an unexecuted walkthrough is not passing evidence.
+Completion must briefly note the missing strategy and recommend the separate
+command in the green completion panel and chat. After feedback is saved, no blue
+feedback panel may remain; the footer retains the session export link. FAIL for
+silent/no-evidence completion, implicit onboarding or altered existing contracts.

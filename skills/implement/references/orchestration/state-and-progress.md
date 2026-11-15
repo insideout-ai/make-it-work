@@ -42,6 +42,7 @@ plan_version: 1                # 1 = the initial plan; each replan adds 1
 plan_hash: none
 testing_readiness_version: 1    # parent completion checkpoint required before planning
 testing_readiness: none         # readiness artifact path, resolved within Plan before stage planning
+testing_summary: []             # script-owned missing-strategy repos and observed verification methods; new runs only
 execution: not-started         # not-started | running | passed | verified-manually | guardrail | retry-limit | gate-failed | gate-no-result | stopped
 review: not-started            # not-started | clean | fix-required | replan-required | human-decision
 review_cycle: 0                # reviews run for the current plan version (limit = fix_cycle's limit + 1 = 4 — one initial review plus one re-review per fix-plan round)

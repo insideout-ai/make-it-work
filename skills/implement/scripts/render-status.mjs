@@ -14,6 +14,7 @@ import { renderWorkspacePanel } from './workspace-view.mjs';
 import { readScope } from './workspace-scope.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
+import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -305,6 +306,7 @@ export function parseState(markdown, statePath = '') {
     parseIsoTimestamp(fields.current_activity_updated_at, 'Field "current_activity_updated_at"');
   }
 
+  parseTestingSummary(fields.testing_summary);
   const audit = parseAudit(section(markdown, 'Audit log'));
   const reviewCycle = parseInteger(fields, 'review_cycle');
   const fixCycle = parseInteger(fields, 'fix_cycle');
@@ -718,7 +720,8 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
     declined: 'Delivery was not requested. Changes remain local and uncommitted.',
     unknown: 'Delivery status is unavailable; inspect the delivery records below.',
   }[delivery?.status] ?? 'Changes remain local and uncommitted.';
-  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}<br><small>Delivery status reflects actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected here.</small></p>`;
+  const testing = testingSummaryNotes(parseTestingSummary(state.fields.testing_summary)).map(note => `<br><span class="testing-note"><strong>Testing:</strong> ${escapeHtml(note)}</span>`).join('');
+  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}${testing}<br><small>Delivery status reflects actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected here.</small></p>`;
 }
 
 function renderDeliveryDetails(delivery, ticket) {
@@ -800,13 +803,14 @@ function renderAutonomyBadge(state) {
 }
 
 function renderFeedbackProgress(feedback) {
-  if (!feedback) return '';
-  const content = feedback.status === 'saved'
-    ? '<strong>Session retrospective: Feedback saved</strong><p>The session review and workflow feedback have been collected. <a href="workflow-feedback.md">Read this session’s feedback</a>.</p>'
-    : feedback.status === 'unavailable'
-      ? '<strong>Session retrospective: Unavailable</strong><p>Feedback collection could not be completed. The implementation result is unchanged; see the session summary for the failure.</p>'
-      : '<strong>Session retrospective: Collecting feedback</strong><p>Reviewing the session and collecting workflow feedback. The implementation result is unchanged. This page will refresh when the report is saved.</p>';
-  return `<section class="feedback-progress" data-workflow-feedback-status="${feedback.status}" role="status" aria-label="Session retrospective">${content}</section>`;
+  if (feedback?.status !== 'collecting') return '';
+  return '<section class="feedback-progress" data-workflow-feedback-status="collecting" role="status" aria-label="Session retrospective"><strong>Session retrospective: Collecting feedback</strong><p>Reviewing the session and collecting workflow feedback. The implementation result is unchanged. This page will refresh when the report is saved.</p></section>';
+}
+
+function renderFeedbackNote(feedback) {
+  if (feedback?.status === 'unavailable') return `<p class="feedback-note" data-workflow-feedback-status="unavailable" role="status"><strong>Workflow feedback:</strong> Unavailable${feedback.reason ? ` — ${escapeHtml(feedback.reason)}` : ' — collection could not be completed'}. Implementation status is unchanged.</p>`;
+  if (feedback?.status !== 'saved') return '';
+  return '<p class="feedback-note" data-workflow-feedback-status="saved"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a>. Review and share only that session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>';
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null }) {
@@ -854,9 +858,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
-    FEEDBACK_NOTE: state.fields.status === 'Complete'
-      ? `<p class="feedback-note"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a>${feedback?.status === 'saved' ? '' : ' (available after the terminal retrospective)'}. Review and share only that session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>`
-      : '',
+    FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),

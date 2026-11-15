@@ -81,6 +81,7 @@
     "implement-readiness-order",
     "implement-dashboard-autonomous-start",
     "implement-no-tooling",
+    "implement-existing-automation-no-strategy",
     "implement-empty-strategy",
     "implement-lightweight-run",
     "implement-context-absent",
@@ -141,7 +142,9 @@
     "define-test-strategy-negative-control",
     "implement-payment-feedback-e2e",
     "review-verification-context",
-    "implement-fix-plan-boundary"
+    "implement-fix-plan-boundary",
+    "implement-background-bash-wait",
+    "implement-background-monitor-wait"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -208,6 +211,16 @@
         "make-it-work/REVIEW-2/REVIEW-2-review.md",
         "make-it-work/REVIEW-2/review-target.json",
         "src/internalItems.js"
+      ]
+    },
+    "implement-no-tooling": {
+      "readiness-and-completion.md": [
+        "make-it-work/DEMO-102/DEMO-102-status.html"
+      ]
+    },
+    "implement-existing-automation-no-strategy": {
+      "completion.md": [
+        "make-it-work/DEMO-103/DEMO-103-status.html"
       ]
     }
   },

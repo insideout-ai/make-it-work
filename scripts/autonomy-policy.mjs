@@ -25,7 +25,8 @@ export function resolveDecision(input) {
   const options = input.options ?? [];
   if (!Array.isArray(options) || options.some((option) => !/^[a-z0-9][a-z0-9-]*$/.test(option.id ?? '') || typeof option.label !== 'string' || !option.label.trim())) fail('Options require stable ids and labels.');
   if (new Set(options.map((option) => option.id)).size !== options.length) fail('Option ids must be unique.');
-  const rule = policy(input.skill, input.site);
+  let rule = policy(input.skill, input.site);
+  if (input.skill === 'implement' && input.site === 'testing-readiness' && input.testing_context?.strategy === 'missing' && input.testing_context?.tooling === 'absent') rule = 'manual';
   if (input.user_choice !== undefined) {
     if (input.source !== 'user' || !['chat', 'question'].includes(input.via)) fail('Explicit choice requires user provenance.');
     const selected = options.find((option) => option.id === input.user_choice);

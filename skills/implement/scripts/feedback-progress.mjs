@@ -32,18 +32,18 @@ export async function readFeedbackProgress(statePath, state) {
   };
   const saved = current(session) && current(cumulative);
   const finalized = await readFeedbackFinalization(statePath, { runId, stateHash });
-  if (finalized?.status === 'unavailable') return { status: 'unavailable' };
+  if (finalized?.status === 'unavailable') return { status: 'unavailable', ...(finalized.reason ? { reason: finalized.reason } : {}) };
   try {
     const receipt = JSON.parse(failure?.text ?? 'null');
     if (receipt?.feedbackAttempt === 'unavailable' && receipt.runId === runId && receipt.stateHash === stateHash && receipt.reportSaved === false &&
-        (!saved || failure.modified >= session.modified)) return { status: 'unavailable' };
+        (!saved || failure.modified >= session.modified)) return { status: 'unavailable', ...(receipt.reason ? { reason: receipt.reason } : {}) };
   } catch { /* An invalid receipt cannot certify an unavailable outcome. */ }
   const readback = state.fields.feedback_evidence_version !== '1' || finalized?.kind === 'answered-delivery' ||
     currentReadback(finalized, session?.text ?? '', session?.modified);
   return { status: saved && finalized?.status === 'saved' && readback ? 'saved' : 'collecting', reportSaved: saved };
 }
 
-// Only refresh dashboards generated with the progress panel. Supplied source
+// Only refresh dashboards generated with the feedback lifecycle marker. Supplied source
 // fixtures, missing HTML and old dashboards remain untouched. This is a writer
 // lifecycle update, never part of the read-only HTML evidence inspection.
 export async function refreshFeedbackDashboard(statePath) {
