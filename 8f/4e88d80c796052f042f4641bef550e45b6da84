@@ -1,0 +1,19 @@
+skills/find-the-repos/SKILL.md
+  s_b84ad5300dc276::t_8efd8866619bb6 172-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f4e88d80c796052f042f4641bef550e45b6da84",
+  "prompts": {},
+  "sessions": {
+    "s_b84ad5300dc276": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1de63-3f3a-7ca2-8c0c-1b3d7dd3647d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
