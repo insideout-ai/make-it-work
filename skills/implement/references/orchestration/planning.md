@@ -1,6 +1,6 @@
 ### Plan
 
-Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Before a planner writes or extends tests, it must follow [planning-test authorization](../planning-tests.md); this scopes the startup guard exception to declared tests in the active Plan run. It never authorizes production implementation or ends an active stage.
+Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Follow plan-the-work's Planning progress boundaries throughout initial planning, replanning and amendments; keep meaningful activity changes visible through the existing [activity contract](../activity.md), rather than leaving one generic planning description for the whole stage. Before a planner writes or extends tests, it must follow [planning-test authorization](../planning-tests.md); this scopes the startup guard exception to declared tests in the active Plan run. It never authorizes production implementation or ends an active stage.
 
 For `acceptance_evidence_version: 1`, pass the marker to every initial, replan and amendment dispatch. Require the plan template’s clause-level AC traceability inventory, checked against every material clause in the accepted spec. Reused plans must satisfy this contract before execution; do not infer clause evidence from existing scenario names.
 

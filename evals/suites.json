@@ -17,6 +17,7 @@
     "slice-the-epic-well-specified-epic-autopilot"
   ],
   "headless": [
+    "implement-planning-progress",
     "feedback-session-admitted-skips",
     "feedback-dashboard-html-clean",
     "feedback-dashboard-html-contradictory",
