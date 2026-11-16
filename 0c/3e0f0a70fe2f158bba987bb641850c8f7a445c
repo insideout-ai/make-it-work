@@ -1,0 +1,48 @@
+skills/implement/scripts/write-feedback.mjs
+  s_d5b4799db8ec84::t_c4fb121d05c40f 15,19,558-580,584,593,602,611-612,614-617,633-639
+skills/implement/scripts/deliver.mjs
+  s_d5b4799db8ec84::t_c4fb121d05c40f 18,71
+skills/implement/scripts/delegate-report.mjs
+  s_d5b4799db8ec84::t_441735c885f19c 1-40
+skills/implement/scripts/feedback-handoff.mjs
+  s_d5b4799db8ec84::t_15ec6d9e2bc897 12,21,51,119-120,241-244
+skills/implement/scripts/runtime-output.mjs
+  s_d5b4799db8ec84::t_15ec6d9e2bc897 1-13
+skills/implement/scripts/fixtures/session-completion.jsonl
+  s_d5b4799db8ec84::t_441735c885f19c 1-4
+skills/implement/scripts/startup-presentation.test.mjs
+  s_d5b4799db8ec84::t_963dfbcf1d3435 14,19,130-193
+  s_d5b4799db8ec84::t_09ed91696131c7 194
+skills/implement/scripts/feedback-finalization.mjs
+  s_d5b4799db8ec84::t_15ec6d9e2bc897 52-54
+skills/implement/scripts/runtime-output.test.mjs
+  s_d5b4799db8ec84::t_441735c885f19c 1-24
+skills/implement/scripts/startup-presentation.mjs
+  s_d5b4799db8ec84::t_15ec6d9e2bc897 13,18,135
+CHANGELOG.md
+  s_d5b4799db8ec84::t_fc7993a1e7a019 9-13
+skills/implement/references/controller.md
+  s_d5b4799db8ec84::t_728d1704e4d28a 207-208
+skills/implement/references/feedback.md
+  s_d5b4799db8ec84::t_e19eca4d6f87fa 9
+skills/implement/references/orchestration/feedback.md
+  s_d5b4799db8ec84::t_35ae4488a79579 16
+skills/implement/references/orchestration/stage-contract.md
+  s_d5b4799db8ec84::t_382798c589139e 32-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c3e0f0a70fe2f158bba987bb641850c8f7a445c",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
