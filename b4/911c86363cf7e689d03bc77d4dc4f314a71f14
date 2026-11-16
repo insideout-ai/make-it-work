@@ -1,0 +1,146 @@
+evals/README.md
+  s_266a14d372d54f::t_1bcb745db9bb21 44
+evals/assess-complexity/assessment-partial-multi/graders/behavior.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-7
+skills/implement/references/orchestration/startup.md
+  s_266a14d372d54f::t_529db3be5d50b8 241
+evals/assess-complexity/assessment-inaccessible-pr/case.yaml
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-docs/graders/report-json.md
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/run-suite-args.test.mjs
+  s_266a14d372d54f::t_82006f033baaf6 12
+skills/implement/scripts/render-status.mjs
+  s_266a14d372d54f::t_ff4601ae20940f 835
+  s_266a14d372d54f::t_529db3be5d50b8 2,832,834,836-838,872,960-961
+  s_266a14d372d54f::t_2fcf388aa7895b 833
+scripts/change-assessment.test.mjs
+  s_266a14d372d54f::t_8510cd90d134c7 1-89,102
+  s_266a14d372d54f::t_c0a0ecde3f0685 90-101
+evals/assess-complexity/assessment-partial-multi/case.yaml
+  s_266a14d372d54f::t_1bcb745db9bb21 1-5
+evals/assess-complexity/assessment-pr-snapshot/fixture.sh
+  s_266a14d372d54f::t_1bcb745db9bb21 1-28
+evals/assess-complexity/assessment-inherited/graders/report-json.md
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-sensitive/graders/report-md.md
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+README.md
+  s_266a14d372d54f::t_2a9960eb9d27a0 551-554
+  s_266a14d372d54f::t_d7912bc32cabb0 30,45
+evals/assess-complexity/assessment-sensitive/fixture.sh
+  s_266a14d372d54f::t_82006f033baaf6 1-18
+evals/AUDIT.md
+  s_266a14d372d54f::t_82006f033baaf6 89-91
+  s_266a14d372d54f::t_1bcb745db9bb21 92
+evals/assess-complexity/assessment-partial-multi/prompt.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-9
+evals/assess-complexity/assessment-docs/fixture.sh
+  s_266a14d372d54f::t_82006f033baaf6 1-13
+skills/implement/references/orchestration/completion.md
+  s_266a14d372d54f::t_529db3be5d50b8 54-55
+evals/assess-complexity/assessment-sensitive/prompt.md
+  s_266a14d372d54f::t_82006f033baaf6 1-9
+skills/implement/references/orchestration/final-package.md
+  s_266a14d372d54f::t_529db3be5d50b8 14-17
+evals/assess-complexity/assessment-docs/prompt.md
+  s_266a14d372d54f::t_82006f033baaf6 1-9
+evals/assess-complexity/assessment-inherited/fixture.sh
+  s_266a14d372d54f::t_82006f033baaf6 1-65
+skills/assess-complexity/SKILL.md
+  s_266a14d372d54f::t_2a9960eb9d27a0 1-21,23-28
+  s_266a14d372d54f::t_1a6dccdb5eb479 22
+docs/change-assessment.md
+  s_266a14d372d54f::t_2a9960eb9d27a0 1-33
+evals/assess-complexity/assessment-docs/graders/behavior.md
+  s_266a14d372d54f::t_82006f033baaf6 1-8
+evals/assess-complexity/assessment-partial-multi/fixture.sh
+  s_266a14d372d54f::t_1bcb745db9bb21 1-18
+evals/assess-complexity/assessment-sensitive/case.yaml
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+CONTRIBUTING.md
+  s_266a14d372d54f::t_82006f033baaf6 34,69
+evals/assess-complexity/assessment-docs/graders/report-md.md
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-partial-multi/graders/report-json.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-5
+skills/implement/assets/status-template.html
+  s_266a14d372d54f::t_529db3be5d50b8 24
+evals/assess-complexity/assessment-ambiguous/fixture.sh
+  s_266a14d372d54f::t_82006f033baaf6 1-17
+evals/assess-complexity/assessment-ambiguous/graders/behavior.md
+  s_266a14d372d54f::t_82006f033baaf6 1-8
+evals/assess-complexity/assessment-inherited/case.yaml
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+scripts/lib/workflow-dashboard.mjs
+  s_266a14d372d54f::t_ff4601ae20940f 32-33
+evals/assess-complexity/assessment-sensitive/graders/behavior.md
+  s_266a14d372d54f::t_82006f033baaf6 1-8
+evals/assess-complexity/assessment-inherited/graders/behavior.md
+  s_266a14d372d54f::t_82006f033baaf6 1-8
+evals/assess-complexity/assessment-ambiguous/prompt.md
+  s_266a14d372d54f::t_82006f033baaf6 1-9
+evals/assess-complexity/assessment-inaccessible-pr/graders/behavior.md
+  s_266a14d372d54f::t_82006f033baaf6 1-8
+evals/assess-complexity/assessment-inherited/prompt.md
+  s_266a14d372d54f::t_82006f033baaf6 1-9
+scripts/change-assessment.mjs
+  s_266a14d372d54f::t_ff4601ae20940f 91
+  s_266a14d372d54f::t_6d046d334c23b0 1-43,45-90,92-110,112-153
+  s_266a14d372d54f::t_2a9960eb9d27a0 111
+  s_266a14d372d54f::t_357829090ee83b 44
+evals/assess-complexity/assessment-ambiguous/case.yaml
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-inaccessible-pr/fixture.sh
+  s_266a14d372d54f::t_82006f033baaf6 1-17
+evals/suites.json
+  s_266a14d372d54f::t_1bcb745db9bb21 158-160
+  s_266a14d372d54f::t_82006f033baaf6 17-18,153-157,288-289
+  s_266a14d372d54f::t_ac6605aa01f8a6 290-291
+evals/assess-complexity/assessment-pr-snapshot/case.yaml
+  s_266a14d372d54f::t_1bcb745db9bb21 1-5
+evals/assess-complexity/assessment-pr-snapshot/graders/report-md.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-5
+skills/implement/assets/workflow-defaults.json
+  s_266a14d372d54f::t_529db3be5d50b8 54-55
+evals/assess-complexity/assessment-docs/case.yaml
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-inaccessible-pr/prompt.md
+  s_266a14d372d54f::t_82006f033baaf6 1-9
+evals/assess-complexity/assessment-inherited/graders/report-md.md
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-pr-snapshot/graders/report-json.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-5
+skills/implement/scripts/final-package.mjs
+  s_266a14d372d54f::t_529db3be5d50b8 22-23,67,232,234,260
+skills/implement/references/orchestration/state-and-progress.md
+  s_266a14d372d54f::t_529db3be5d50b8 21
+evals/assess-complexity/assessment-sensitive/graders/report-json.md
+  s_266a14d372d54f::t_82006f033baaf6 1-5
+evals/assess-complexity/assessment-pr-snapshot/prompt.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-9
+evals/assess-complexity/assessment-partial-multi/graders/report-md.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-5
+evals/assess-complexity/assessment-pr-snapshot/graders/behavior.md
+  s_266a14d372d54f::t_1bcb745db9bb21 1-7
+evals/run-suite.mjs
+  s_266a14d372d54f::t_e1c4598256d30e 30
+skills/implement/scripts/final-package.test.mjs
+  s_266a14d372d54f::t_6fe438fcd224ab 485-547
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b4911c86363cf7e689d03bc77d4dc4f314a71f14",
+  "prompts": {},
+  "sessions": {
+    "s_266a14d372d54f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e39c-b6bf-7f93-b42f-7377996a0597",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
