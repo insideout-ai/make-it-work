@@ -30,6 +30,17 @@ test('straightforward qualitative changes remain rated with missing analyzer mea
   const result = assess(snapshot, evidence(snapshot));
   assert.equal(result.complexity, 'Low'); assert.equal(result.risk, 'Low'); assert.equal(result.completeness, 'partial');
 });
+test('missing analyzer measurements cannot contain hand-filled metric values', async t => {
+  const { snapshot } = await fixture(t);
+  const input = evidence(snapshot, { measurements: 'complete' });
+  input.repos[0].measurements = 'missing';
+  input.repos[0].metrics[0].command = 'manual count (analyzer not found)';
+  assert.throws(() => assess(snapshot, input), /Missing measurements must leave metrics empty/);
+  input.repos[0].metrics = [];
+  const result = assess(snapshot, input);
+  assert.equal(result.completeness, 'partial');
+  assert.equal(result.complexity, 'Low');
+});
 for (const [value, expected] of [[1,'Low'],[10,'Low'],[11,'Medium'],[20,'Medium'],[21,'High']]) {
   test(`resulting cyclomatic complexity ${value} sets ${expected} minimum risk, including inherited complexity`, async t => {
     const { snapshot } = await fixture(t);

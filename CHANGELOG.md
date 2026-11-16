@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Deduplicate repeated delegate report revisions without changing workflow state, repeating completion messages or suppressing revised reports.
 
 - Preserve uncertain baseline attribution and unverified acceptance behavior through approval and delivery summaries; require an explicit Lightweight risk reassessment and actionable routing for declared accepted-requirement violations.
+- Reject numeric assessment metrics when analyzer measurements are marked missing; keep unsupported counts in qualitative evidence with partial completeness.
 
 ## [5.10.0] — 2026-11-16
 

@@ -62,6 +62,7 @@ export function assess(snapshot, input) {
     const risk_dimensions = dimensions(record.risk_dimensions, 'risk');
     if (!['complete', 'missing', 'inapplicable'].includes(record.measurements)) fail('Measurement availability required.');
     const metrics = record.metrics ?? [];
+    if (record.measurements === 'missing' && metrics.length) fail('Missing measurements must leave metrics empty; retain manual or incomplete analysis as qualitative evidence and measurement_limitation, not analyzer values.');
     if (record.measurements === 'inapplicable' && record.non_executable !== true) fail('Inapplicable metrics require confirmed non-executable scope.');
     if (record.non_executable === true) text(record.non_executable_evidence, 'Non-executable confirmation');
     if (record.measurements === 'complete' && !metrics.length) fail('Complete measurements require analyzer results.');
