@@ -10,8 +10,9 @@ import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { updateLog } from '../../../scripts/decision-log.mjs';
 
-async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false } = {}) {
+async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false, beforeInit = async () => {} } = {}) {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), prefix));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...argv) => execFileSync('git', ['-C', root, ...argv], { stdio: 'pipe' });
@@ -27,6 +28,7 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = 
     await writeFile(artifactJoin(root, 'source.txt'), 'pre-existing local edit');
     await writeFile(artifactJoin(root, 'local.js'), 'pre-existing untracked file');
   }
+  await beforeInit(root);
   const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing feature branch', ...init });
   const statePath = result.state;
   let id = 0;
@@ -37,6 +39,21 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = 
 }
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
+
+test('Autopilot initialization records its verified branch guard without losing prior decisions', async t => {
+  const entry = { phase: 'Start', site: 'autonomy-selection', kind: 'checkpoint', chosen: 'autopilot', rationale: 'Selected through the explicit flag.' };
+  for (const prior of [[], [entry], [entry, { ...entry, site: 'branch-guard', chosen: 'Existing feature branch' }]]) {
+    const f = await fixture(t, { init: { autonomy: 'autopilot' }, beforeInit: async root => {
+      if (prior.length) await updateLog({ root, skill: 'implement', ticket: 'DEMO', command: 'write', input: prior });
+    } });
+    const log = (await readFile(artifactJoin(path.dirname(f.statePath), 'implement-autopilot-log.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(log.filter(item => item.site === 'branch-guard').length, 1);
+    assert.equal(log.find(item => item.site === 'branch-guard').chosen, 'Existing feature branch');
+    assert.deepEqual(log.slice(0, prior.length), prior);
+  }
+  const f = await fixture(t);
+  await assert.rejects(readFile(artifactJoin(path.dirname(f.statePath), 'implement-autopilot-log.jsonl')), { code: 'ENOENT' });
+});
 
 test('fresh runs retain verification decisions only through an explicit user choice', async t => {
   const decision = { decision: 'Manual verification selected; build unavailable', reference: 'Prior run user decision', unverified: ['Endpoint behavior has not been observed'] };

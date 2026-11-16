@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Finalizing and overall session durations now include verified feedback collection and freeze before optional delivery. Live elapsed values update on the existing page-load cadence without changing the HTML being inspected for feedback.
+- Autopilot initialization records the supplied branch-guard outcome when its decision-log checkpoint is missing, preserving earlier startup decisions.
 
 ## [5.9.0] — 2026-11-15
 

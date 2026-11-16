@@ -2,6 +2,7 @@
 import { closeActivityTiming } from './activity-timing.mjs';
 import { captureUsage } from '../../../scripts/usage.mjs';
 import { ensureArtifactIgnored } from '../../../scripts/lib/artifact-git.mjs';
+import { updateLog } from '../../../scripts/decision-log.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { mkdir, readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
 import { lstat, readdir, realpath } from 'node:fs/promises';
@@ -698,6 +699,21 @@ export async function initializeWorkflow(root, input) {
   const markdown = `# Workflow state — ${input.ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | ${time} | start | ${fields.phase} | New ${input.autonomy} run; ${requireText(input.branch_guard, 'Branch guard outcome').replaceAll('|', '&#124;')}${input.refinement_worker ? '; Decision: Refinement worker enabled; source: user; via: flag; scope: local Autopilot refinement' : ''} |\n`;
   parseState(markdown, statePath);
   await writeFile(statePath, markdown, { flag: 'wx' });
+  if (input.autonomy === 'autopilot') {
+    const log = { root, skill: 'implement', ticket: input.ticket };
+    let decisions;
+    try {
+      decisions = (await readFile(artifactJoin(directory, 'implement-autopilot-log.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      await updateLog({ ...log, command: 'init' });
+      decisions = [];
+    }
+    if (!decisions.some(entry => entry.site === 'branch-guard')) await updateLog({ ...log, command: 'append', input: {
+      phase: 'Start', site: 'branch-guard', kind: 'checkpoint', chosen: input.branch_guard,
+      rationale: 'Branch guard outcome recorded with the verified initialization snapshot.',
+    } });
+  }
   const dashboard = await generateDashboard(statePath);
   const target = encodeURI(dashboard).replace(/[?#]/g, (character) => encodeURIComponent(character));
   return { state: statePath, dashboard,
