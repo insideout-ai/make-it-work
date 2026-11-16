@@ -19,6 +19,8 @@ import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { checkContextMaintenance } from './context-maintenance.mjs';
 import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../scripts/lib/review-evidence.mjs';
 
+import { readAssessment, assessmentSummary } from '../../../scripts/change-assessment.mjs';
+
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
 const LIGHTWEIGHT_VALIDATION = 'Lightweight — no regression gate; verified by independent review';
@@ -62,6 +64,7 @@ function markdown(pkg) {
       ...acceptance.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `| ${cell(criterion)} | ${cell(clause ? `${clause} — ${scenario}` : scenario)} | ${cell(note)} |`)), '',
     ] : [])] : []),
     ...(pkg.adaptive ? [`Mode: ${MODE_LABEL[pkg.adaptive.mode]} (${pkg.adaptive.mode_source}) · Risk: ${pkg.adaptive.risk} · Escalations: ${pkg.adaptive.escalations} / 1`, ''] : []),
+    ...(pkg.change_assessment ? ['## Change assessment', '', assessmentSummary(pkg.change_assessment), '', pkg.change_assessment.rationale ?? pkg.change_assessment.reason, '', ...Object.values(pkg.change_assessment.reports ?? {}).map(link => `[${path.basename(link)}](${path.basename(link)})`), ...(pkg.change_assessment.stale_history ? [`[Stale history — previous assessment](${pkg.change_assessment.stale_history})`] : []), ''] : []),
     '## Changes',
     '',
   ];
@@ -226,7 +229,9 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   if (f.review_scope_version === '1' && reviewScope.some((repo) => repo.status !== 'covered')) fail('Final package contains changes outside independent review coverage. Rerun review on the full delivery diff.');
   const testingSummary = await collectTestingSummary(root, f, { final: true });
   if (testingSummary !== null && JSON.stringify(parseTestingSummary(f.testing_summary)) !== JSON.stringify(testingSummary)) fail('Testing summary changed; complete final sync again before packaging.');
+  const changeAssessment = f.change_assessment_version === '1' ? await readAssessment(root, f.ticket, repos) : null;
   const pkg = {
+    ...(changeAssessment ? { change_assessment: changeAssessment } : {}),
     ...(testingSummary !== null ? { testing_summary: testingSummary } : {}),
     version: 1, ...(assuranceVersion === 1 ? { assurance_version: 1 } : {}), ...(f.review_context_version === '2' ? { test_map_maintenance: maintenance } : {}), ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
     draft, evidence, validation,
@@ -252,7 +257,7 @@ async function build(root, statePath, repos, bases, draftPath) {
   await atomicWrite(target.json, `${JSON.stringify(result.pkg, null, 2)}\n`);
   const hash = sha(JSON.stringify(result.pkg));
   await checkpointResult(statePath, { id: `final-package:${hash}`, text: 'Final approval package built.', reference: `${path.relative(root, target.md)}; sha256:${hash}` });
-  return { package: target.md, json: target.json, sha256: hash };
+  return { package: target.md, json: target.json, sha256: hash, ...(result.pkg.change_assessment ? { change_assessment: result.pkg.change_assessment } : {}) };
 }
 
 export async function checkFinalPackage(root, statePath, requireApproval = false) {
