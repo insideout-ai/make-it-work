@@ -1,0 +1,45 @@
+.claude-plugin/plugin.json
+  s_c1715f458f4968::t_fff1ecb0bc32f0 6
+CHANGELOG.md
+  s_c1715f458f4968::t_bcc8091136ed01 9-25
+README.md
+  s_c1715f458f4968::t_926df2bf0d22d2 373
+docs/artifact-observability.md
+  s_c1715f458f4968::t_1aa72459ba7a6f 54
+evals/implement/lightweight-run/graders/lightweight-mode.md
+  s_c1715f458f4968::t_75a44060890820 4
+evals/implement/lightweight-run/graders/time-breakdown.md
+  s_c1715f458f4968::t_215d70e6233038 1-7
+scripts/artifact-observability.test.mjs
+  s_c1715f458f4968::t_8839794dfe3ea2 149-161
+scripts/regression.mjs
+  s_c1715f458f4968::t_6b4483ba06fdb5 2,89,93,137
+skills/execute/references/step-control.md
+  s_c1715f458f4968::t_5a04cbd30d71d2 11
+skills/execute/scripts/plan-status.mjs
+  s_c1715f458f4968::t_8544b80a29d443 162,165
+skills/execute/scripts/step-control.mjs
+  s_c1715f458f4968::t_91b4b0adbe33c3 210
+skills/execute/scripts/step-control.test.mjs
+  s_c1715f458f4968::t_7cdf714a9fa9a6 185
+skills/implement/references/activity.md
+  s_c1715f458f4968::t_e9e5c6e6059e6c 15
+skills/implement/references/orchestration/lightweight.md
+  s_c1715f458f4968::t_be68d951dbc07a 7-14,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1824c6d9a23403e8e202c8df7e1ee6f98edef401",
+  "prompts": {},
+  "sessions": {
+    "s_c1715f458f4968": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e39b-2cfc-7a31-ade8-3a84dff269b0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
