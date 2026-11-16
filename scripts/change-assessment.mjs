@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { artifactOutputJoin, artifactResolve } from './lib/artifact-path.mjs';
 // Semantic evidence is supplied by assess-complexity; snapshot/rating policy is deterministic.
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from './lib/artifact-io.mjs';
+import { rename } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { snapshotDeliveryRepo } from './lib/delivery-scope.mjs';
@@ -18,7 +20,7 @@ export async function captureScope(scope) {
   const repos = [];
   const seen = new Set();
   for (const item of scope.repos) {
-    const root = path.resolve(text(item.path, 'Repository'));
+    const root = artifactResolve(text(item.path, 'Repository'));
     if (seen.has(root)) fail('Duplicate assessment repository.');
     seen.add(root);
     text(item.base, 'Base');
@@ -93,8 +95,8 @@ export function assessmentSummary(report) {
 }
 function reportPaths(root, ticket) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Unsafe assessment identifier.');
-  const dir = path.join(root, 'make-it-work', ticket);
-  return { dir, json: path.join(dir, `${ticket}-complexity.json`), md: path.join(dir, `${ticket}-complexity.md`) };
+  const dir = artifactOutputJoin(root, 'make-it-work', ticket);
+  return { dir, json: artifactOutputJoin(dir, `${ticket}-complexity.json`), md: artifactOutputJoin(dir, `${ticket}-complexity.md`) };
 }
 async function atomic(file, content) {
   const tmp = `${file}.${randomUUID()}.tmp`;
@@ -107,9 +109,9 @@ export async function saveAssessment(root, ticket, report) {
   try { previous = JSON.parse(await readFile(files.json, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (previous && previous.completeness !== 'unavailable') {
     const history = `${ticket}-complexity-stale-${hash(previous).slice(0, 16)}`;
-    await atomic(path.join(files.dir, `${history}.json`), JSON.stringify(previous, null, 2) + '\n');
-    await atomic(path.join(files.dir, `${history}.md`), '# Stale history — not a current assessment\n\n' + assessmentMarkdown({ ...previous, json_name: `${history}.json` }));
-    report.stale_history = `${history}.md`;
+    await atomic(artifactOutputJoin(files.dir, `${history}.json`), JSON.stringify(previous, null, 2) + '\n');
+    await atomic(artifactOutputJoin(files.dir, `${history}.md`), '# Stale history — not a current assessment\n\n' + assessmentMarkdown({ ...previous, json_name: path.basename(artifactOutputJoin(files.dir, `${history}.json`)) }));
+    report.stale_history = path.basename(artifactOutputJoin(files.dir, `${history}.md`));
   } else if (previous?.stale_history) report.stale_history = previous.stale_history;
   report.json_name = path.basename(files.json);
   const markdown = assessmentMarkdown(report);
@@ -150,4 +152,4 @@ async function main(args) {
   const report = command === 'fail' ? unavailable(snapshot, text(options.reason, 'Failure reason')) : assess(snapshot, JSON.parse(await readFile(options.input, 'utf8')));
   return saveAssessment(options.root, options.ticket, report);
 }
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main(process.argv.slice(2)).then(r => console.log(JSON.stringify(r))).catch(e => { console.error(e.message); process.exitCode = 1; });
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) main(process.argv.slice(2)).then(r => console.log(JSON.stringify(r))).catch(e => { console.error(e.message); process.exitCode = 1; });

@@ -24,6 +24,8 @@ hooks:
 
 # Implement
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
+
 Take one ticket through context check, refinement, risk assessment, the selected
 Lightweight/TDD implementation route, independent review, final context sync and
 completion. Act as the parent orchestrator; use the existing stage skills for

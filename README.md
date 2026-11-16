@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source b0ab3b1539b2e77a56763e96f7749419d322c1fa](https://github.com/insideout-ai/make-it-work/tree/b0ab3b1539b2e77a56763e96f7749419d322c1fa). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source 2489fe955c21f4f6642eaa9446a084db055dff25](https://github.com/insideout-ai/make-it-work/tree/2489fe955c21f4f6642eaa9446a084db055dff25). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -155,18 +155,18 @@ Orchestrates **source intake → shape-the-epic → full-epic review → slice-t
 /make-it-work:drive-the-epic --resume make-it-work/drive-order-exports-<timestamp>
 ```
 
-Every run keeps its epic, overview, complete slice files, `state.json`, and `dashboard.html` in a dedicated `make-it-work/drive-<title>-<timestamp>/` folder. The dashboard reflects saved progress and waits, links two primary artifacts (Requirement and Slicing summary), and places its decision/transition audit directly after them. Slice detail, dependencies, and parallel candidates live in the summary Markdown and linked slice files. The dashboard refreshes every 15 seconds while active or waiting, then stops refreshing at completion or a stop. The state file retains inputs, decisions, and history; one temporary event file is removed after successful checkpoints. Resume reuses decisions and revisits only affected work when requirements change.
+Every run keeps its epic, overview, complete slice files, `miw-state.json`, and `miw-dashboard.html` in a dedicated `make-it-work/drive-<title>-<timestamp>/` folder. The dashboard reflects saved progress and waits, links two primary artifacts (Requirement and Slicing summary), and places its decision/transition audit directly after them. Slice detail, dependencies, and parallel candidates live in the summary Markdown and linked slice files. The dashboard refreshes every 15 seconds while active or waiting, then stops refreshing at completion or a stop. The state file retains inputs, decisions, and history; one temporary event file is removed after successful checkpoints. Resume reuses decisions and revisits only affected work when requirements change.
 
 Generated Markdown names stay short because the run folder already identifies the epic:
 
 ```text
 make-it-work/drive-order-exports-<timestamp>/
-  dashboard.html
+  miw-dashboard.html
   requirement.md
   slicing-summary.md
   S-1-export-orders.md
   S-2-date-filter.md
-  state.json
+  miw-state.json
 ```
 
 Full titles remain inside the documents. Preserved revisions use `-v2`, `-v3`, and later suffixes; dashboard, overview, and prerequisite links use the actual generated paths. Existing artifacts keep their names until a new version is generated.
@@ -221,7 +221,7 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ### `/make-it-work:plan-the-work`
 
-Turns an agreed spec or refined ticket into an execution-ready implementation plan before implementation logic is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>/<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected. With a test-strategy skill, new tests go where the strategy says and are registered in the product repo's map with evidence and runner identities/selectors, without mapping comments in source/tests. Planning may edit embedded test code in implementation files while leaving existing implementation logic unchanged. A QA repo that receives tests joins the plan as test scope. The plan also records the domains and use cases it touches for the regression gate.
+Turns an agreed spec or refined ticket into an execution-ready implementation plan before implementation logic is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>/miw-<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected. With a test-strategy skill, new tests go where the strategy says and are registered in the product repo's map with evidence and runner identities/selectors, without mapping comments in source/tests. Planning may edit embedded test code in implementation files while leaving existing implementation logic unchanged. A QA repo that receives tests joins the plan as test scope. The plan also records the domains and use cases it touches for the regression gate.
 
 Pass a ticket ID or a spec path, or let the skill derive the ticket from the current branch. Use it after `close-the-gaps` and before implementation so another engineer or agent can execute the work step by step without guessing.
 
@@ -290,7 +290,7 @@ In Guided or Autonomous, when you supply a tracker ticket and a suitable connect
 
 When review asks for fixes, or the final regression run breaks a test tied to the ticket's own requirements, the fixes are added to the plan as new test-first steps, and execution continues from there. Regressions unrelated to the ticket are documented in the summary, not fixed. A project without an automated test suite can continue with the plan's manual test walkthrough instead. Fix rounds are capped at 3 and reviews at 4 per plan version (one initial review plus one re-review per fix-plan round), and replans at 2 per run, so a run never loops indefinitely.
 
-New runs keep their artifacts in `make-it-work/<TICKET>/`, with familiar `<TICKET>-` filenames inside. Progress is saved to `make-it-work/<TICKET>/<TICKET>-state.md` at every step, so running `implement` again resumes where it stopped — and if the repository changed in the meantime, it shows you what changed instead of assuming it's still safe to continue. Alongside it, a per-ticket progress dashboard (`make-it-work/<TICKET>/<TICKET>-status.html`) is created when a run starts and refreshed at every checkpoint, so you can see the run's phase, cycle counts, transition history, and — whenever it's waiting on you — what to do next, without reading the raw state file. Interactive runs ask before starting on the base branch; autopilot creates the safe suggested feature branch instead. Neither mode commits implementation changes, pushes, or opens a PR. Existing flat artifacts are left untouched; this version discovers nested runs only.
+New runs keep their artifacts in `make-it-work/<TICKET>/`, with `miw-<TICKET>-` filenames inside. Progress is saved to `make-it-work/<TICKET>/miw-<TICKET>-state.md` at every step, so running `implement` again resumes where it stopped — and if the repository changed in the meantime, it shows you what changed instead of assuming it's still safe to continue. Alongside it, a per-ticket progress dashboard (`make-it-work/<TICKET>/miw-<TICKET>-status.html`) is created when a run starts and refreshed at every checkpoint, so you can see the run's phase, cycle counts, transition history, and — whenever it's waiting on you — what to do next, without reading the raw state file. Interactive runs ask before starting on the base branch; autopilot creates the safe suggested feature branch instead. Neither mode commits implementation changes, pushes, or opens a PR. Existing flat artifacts are left untouched; this version discovers nested runs only.
 
 Every explicit user workflow decision is recorded in the run's Audit log and dashboard, including Jira permission grants or refusals, Slack selection, autonomy and execution preferences, approvals, resume/redo choices, and delivery decisions. Entries identify the source, choice and scope, with artifact versions or permission-journal references where applicable. Later changes preserve the earlier history; automatic defaults and skipped gates are identified separately from user approval. Permission journals continue to enforce authorization, and post-completion decisions preserve implementation timing.
 
@@ -310,7 +310,7 @@ Displayed durations are **elapsed time (includes waits and pauses)**. Active pro
 
 The HTML reflects delivery actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected; the saved delivery status can therefore remain failed or partial after external delivery succeeds.
 
-After final approval and completion, `implement` automatically follows `feedback-on-session`, combining a review of the available conversation with the existing artifact retrospective. It saves one anonymous, share-safe report in `make-it-work/<TICKET>/workflow-feedback.md` and the same run's entry in cumulative `make-it-work/implement-feedback.md`. The report includes the plugin version captured when the run began; legacy runs without a captured version remain explicitly unknown. Conversation review also runs when no retries were needed. Extra fix rounds, replanning, escalation, guardrail interventions, hook interruptions and repeated waits retain their evidence-backed artifact analysis, with safeguards and waits reported separately from implementation retries.
+After final approval and completion, `implement` automatically follows `feedback-on-session`, combining a review of the available conversation with the existing artifact retrospective. It saves one anonymous, share-safe report in `make-it-work/<TICKET>/miw-workflow-feedback.md` and the same run's entry in cumulative `make-it-work/miw-implement-feedback.md`. The report includes the plugin version captured when the run began; legacy runs without a captured version remain explicitly unknown. Conversation review also runs when no retries were needed. Extra fix rounds, replanning, escalation, guardrail interventions, hook interruptions and repeated waits retain their evidence-backed artifact analysis, with safeguards and waits reported separately from implementation retries.
 
 The combined report is saved before a single invitation to add or correct context. Each finding includes a suggested next step, owner, verification and recommendation confidence. The controller hands off to feedback explicitly; scoped hooks require the current report and any required retrospective dispatch before a terminal summary or delivery question. A genuine technical failure can instead produce a verified unavailable outcome and a local `feedback-unavailable.json` receipt when writable. That receipt is not a saved retrospective; an unperformed review or a claim of no friction does not qualify as unavailability. An unanswered invitation leaves feedback provisional without delaying the completion summary or delivery offer; later replies update the same report. Autopilot saves the review with input not requested and questions left open. The same integration runs at exhausted fix, review or replan limits. Feedback never changes the terminal workflow result or approved package, and recommendations are not applied automatically. Standalone `/make-it-work:feedback-on-session` remains available for interrupted or abandoned sessions and supplied transcripts. Nothing is uploaded automatically.
 
@@ -320,7 +320,7 @@ After final approval, the dashboard shows **Finalizing session** while feedback 
 
 Use it when you want one command to take a ticket from request to a reviewed, documented implementation, in a repo that has been onboarded with `go-deep`.
 
-Each feedback write also creates `make-it-work/<TICKET>/workflow-feedback.md`, containing only that session's feedback. The completion summary links this file so you can save/download it, review it, and optionally email it to InsideOut AI at [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com) as an attachment, with the subject "make-it-work workflow feedback". Share this session file rather than the cumulative history or implementation package. It is saved beside the final package after completion and does not change the package's approval; nothing is emailed automatically.
+Each feedback write also creates `make-it-work/<TICKET>/miw-workflow-feedback.md`, containing only that session's feedback. The completion summary links this file so you can save/download it, review it, and optionally email it to InsideOut AI at [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com) as an attachment, with the subject "make-it-work workflow feedback". Share this session file rather than the cumulative history or implementation package. It is saved beside the final package after completion and does not change the package's approval; nothing is emailed automatically.
 
 ---
 
@@ -372,7 +372,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.6.0 through the publisher's marketplace:
+Install commercial version 5.10.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -471,7 +471,7 @@ Run the whole pipeline for a ticket, from refinement to a reviewed, context-sync
 
 ## Data access and permissions
 
-This plugin contains Markdown-based skills and local helper scripts for progress, feedback, validated stage handoffs, final packages, optional ticket publication, and optional delivery. It bundles no MCP servers or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow; `run-regression` additionally runs the target project's own already-configured test command via Bash. `implement` also maintains the local `make-it-work/implement-feedback.md` retrospective file, but never uploads or submits it. With separate, explicit consent for the supplied tracker ticket, `implement` may preserve the original description in a tracker comment before replacing it with the accepted refined spec, publish finalized plans as attachments or explicitly authorized fallback comments, attach the final HTML dashboard to Jira once at completion, and comment on significant blockers, review/verification results and completion through available connector tools. Only the separate, explicitly approved `deliver` command commits, pushes, or creates/updates PRs.
+This plugin contains Markdown-based skills and local helper scripts for progress, feedback, validated stage handoffs, final packages, optional ticket publication, and optional delivery. It bundles no MCP servers or telemetry. When you invoke a skill, Claude may read files in the current project and may propose or write project documentation and review artifacts as part of that workflow; `run-regression` additionally runs the target project's own already-configured test command via Bash. `implement` also maintains the local `make-it-work/miw-implement-feedback.md` retrospective file, but never uploads or submits it. With separate, explicit consent for the supplied tracker ticket, `implement` may preserve the original description in a tracker comment before replacing it with the accepted refined spec, publish finalized plans as attachments or explicitly authorized fallback comments, attach the final HTML dashboard to Jira once at completion, and comment on significant blockers, review/verification results and completion through available connector tools. Only the separate, explicitly approved `deliver` command commits, pushes, or creates/updates PRs.
 
 With your explicit agreement to the disclosed scope, interactive `slice-the-epic` runs may create Jira tickets from the saved slices and native blocking links for their planned hard dependencies. Approval to create them as children of the original Jira ticket also covers posting the entire overview as a comment there, with a plain-text diagram. Earlier consent limited to ticket creation is not expanded to linking without authorization; an explicit request to add those links supplies it. The skill records ticket, link, and comment results locally and reports partial results. Saving Markdown or supplying a source reference does not authorize Jira writes, and `--autopilot` skips them.
 
@@ -481,13 +481,13 @@ With your explicit agreement to the disclosed scope, interactive `slice-the-epic
 
 `execute` goes further still: unlike `define-test-strategy` (which changes only make-it-work metadata) and `plan-the-work` above, which never write the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — and, like `plan-the-work`, it never runs `git commit` on the user's behalf either; every change it makes is left uncommitted for you to review.
 
-Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>/<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
+Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>/miw-<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
 
 `implement` changes the target project only through the stages it runs — `plan-the-work`'s uncommitted test files, `execute`'s uncommitted implementation, or, in Lightweight mode, the uncommitted code and tests written by its own implementation subagent — plus its own final context sync, which writes the project's skills and `.claude/rules` files directly. `close-the-gaps` and `plan-the-work` may also write those files directly at the end of a run, but only to record facts about the system as it already is, never the ticket's planned behavior.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection. Ticket publication additionally requires the relevant write capabilities and a saved opt-in for the specific ticket/run. Connector availability alone grants no permission.
 
-Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, handoffs, verification ledgers, review reports, final packages, delivery progress, and status dashboards—are working documents, not deliverables. Add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed. The cumulative `make-it-work/implement-feedback.md` file is also uncommitted working data, but it is not ticket-scoped: keep it when deleting a ticket directory if you intend to review or manually share the workflow feedback.
+Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, handoffs, verification ledgers, review reports, final packages, delivery progress, and status dashboards—are working documents, not deliverables. Add `make-it-work/` to your project's `.gitignore` so they're never committed by accident. If a project was onboarded with `go-deep`, its generated `CLAUDE.md` also reminds Claude to flag a ticket's stale artifacts for deletion right after that ticket's code is committed. The cumulative `make-it-work/miw-implement-feedback.md` file is also uncommitted working data, but it is not ticket-scoped: keep it when deleting a ticket directory if you intend to review or manually share the workflow feedback.
 
 ## Troubleshooting
 
@@ -499,12 +499,18 @@ Pipeline artifacts under `make-it-work/<TICKET>/`—including specs, plans, hand
 - **`plan-the-work` cannot find a refined spec:** pass an explicit spec path or run `close-the-gaps TICKET-123` first to create `make-it-work/TICKET-123/TICKET-123-spec.md`.
 - **`review-the-code` cannot find project guidance:** run `go-deep` first, or confirm the repository contains the expected `CLAUDE.md`, `.claude/rules`, and domain/use-case skills.
 - **`implement` reports incomplete go-deep context:** it continues with ticket-scoped discovery. Resolve any explicitly identified mandatory-context blocker or essential unknown; broader onboarding or repair can be run separately with `/make-it-work:go-deep`.
-- **`implement` stopped mid-run:** read the stop reason in chat, in `make-it-work/<TICKET>/<TICKET>-state.md` (`pause_reason`), or in `make-it-work/<TICKET>/<TICKET>-status.html`'s "Waiting on you" section, address it, and run `implement` again — it resumes from the saved phase.
+- **`implement` stopped mid-run:** read the stop reason in chat, in `make-it-work/<TICKET>/miw-<TICKET>-state.md` (`pause_reason`), or in `make-it-work/<TICKET>/miw-<TICKET>-status.html`'s "Waiting on you" section, address it, and run `implement` again — it resumes from the saved phase.
 - **The plugin is installed twice:** remove or disable one copy in `/plugin` and keep the marketplace channel you want to follow.
 
 If the problem persists, [open a GitHub issue](https://github.com/insideout-ai/make-it-work/issues) with your Claude Code version, installation channel, and the relevant error message.
 
 See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report suspected vulnerabilities privately by following [SECURITY.md](SECURITY.md).
+
+## Artifact identification and dashboard metrics
+
+New workflow runs prefix generated filenames with `miw-` (for example `miw-DEMO-status.html`); existing runs retain their saved paths. Artifact writes ensure the directory is Git-ignored and stop if files are already staged/tracked. Plugin-managed delivery additionally checks outgoing history.
+
+Both dashboards show the run's starting plugin version and optional stage-boundary context/cost snapshots. Implement's Finalizing and overall duration include feedback collection. Completed Lightweight/Execute passes add a category-only elapsed-time breakdown to the audit. See [setup, compatibility and metric definitions](docs/artifact-observability.md).
 
 ## Licensing
 

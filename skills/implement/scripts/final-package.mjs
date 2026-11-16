@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { readFile, realpath, rename, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { realpath, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
@@ -38,7 +40,7 @@ function git(repo, args, { acceptDiff = false } = {}) {
 
 async function artifact(root, relative) {
   if (typeof relative !== 'string' || !relative || path.isAbsolute(relative)) fail(`Invalid artifact path: ${relative}`);
-  const resolved = path.resolve(root, relative);
+  const resolved = artifactResolve(root, relative);
   if (!resolved.startsWith(`${root}${path.sep}make-it-work${path.sep}`)) fail(`Artifact must be in make-it-work/: ${relative}`);
   const actual = await realpath(resolved);
   if (!actual.startsWith(`${root}${path.sep}make-it-work${path.sep}`)) fail(`Artifact symlink escapes make-it-work/: ${relative}`);
@@ -103,9 +105,9 @@ async function atomicWrite(target, bytes) {
 function names(root, ticket) {
   const dir = runDirectory(root, ticket);
   return {
-    json: path.join(dir, textFileName(ticket, 'package.json')),
-    md: path.join(dir, textFileName(ticket, 'package.md')),
-    approval: path.join(dir, textFileName(ticket, 'approval.json')),
+    json: artifactJoin(dir, textFileName(ticket, 'package.json')),
+    md: artifactJoin(dir, textFileName(ticket, 'package.md')),
+    approval: artifactJoin(dir, textFileName(ticket, 'approval.json')),
   };
 }
 
@@ -141,7 +143,7 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   const draftRelative = path.relative(root, await realpath(draftPath));
   runArtifactName(draftRelative, f.ticket, 'Draft');
   const draftArtifact = await artifact(root, draftRelative);
-  const draft = assertDraft(JSON.parse(await readFile(path.resolve(root, draftArtifact.path), 'utf8')));
+  const draft = assertDraft(JSON.parse(await readFile(artifactResolve(root, draftArtifact.path), 'utf8')));
   const adaptive = f.adaptive_version === '1';
   if (adaptive && f.mode === 'lightweight') return lightweightPackage(root, state, repoInputs, baseInputs, draftArtifact, draft, assuranceVersion);
   for (const [name, relative] of [['spec', f.spec], ['plan', f.plan], ['execute', f.execute_report]]) {
@@ -151,24 +153,24 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
     spec: await artifact(root, f.spec),
     plan: await artifact(root, f.plan),
     execute: await artifact(root, f.execute_report),
-    review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
+    review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`, f.artifact_naming_version)),
   };
   if (adaptive && f.implementation_report !== 'none') evidence.implementation = await artifact(root, f.implementation_report);
   if (f.testing_readiness !== undefined) {
     runArtifactName(f.testing_readiness, f.ticket, 'Testing readiness');
     evidence.testing_readiness = await artifact(root, f.testing_readiness);
-    const readiness = await checkTestingReadiness(root, state, { plan: await readFile(path.resolve(root, f.plan), 'utf8') });
+    const readiness = await checkTestingReadiness(root, state, { plan: await readFile(artifactResolve(root, f.plan), 'utf8') });
     if (readiness.required) evidence.testing_readiness_checkpoint = await artifact(root, readiness.receipt);
-    testingPolicy(await readFile(path.resolve(root, f.plan), 'utf8'), { required: true });
+    testingPolicy(await readFile(artifactResolve(root, f.plan), 'utf8'), { required: true });
   }
   let verification = null;
   const unrelatedGate = f.execution === 'gate-failed';
   if (unrelatedGate && !acceptedUnrelatedGate(state)) fail('A failed gate can be packaged only after triage classified every failure as unrelated and recorded it under Known regressions.');
   if (f.verification_version === '1') {
     if (!EXECUTION_OUTCOMES[f.execution]) fail('Final package requires completed execution, an accepted manual gate, or a gate whose only failures are recorded as unrelated.');
-    const relative = runArtifact(f.ticket, `${f.ticket}-verification-v${f.plan_version}.json`);
+    const relative = runArtifact(f.ticket, `${f.ticket}-verification-v${f.plan_version}.json`, f.artifact_naming_version);
     verification = await readVerification(root, relative, {
-      ticket: f.ticket, planVersion: Number(f.plan_version), plan: await readFile(path.resolve(root, f.plan), 'utf8'),
+      ticket: f.ticket, planVersion: Number(f.plan_version), plan: await readFile(artifactResolve(root, f.plan), 'utf8'),
       outcome: EXECUTION_OUTCOMES[f.execution], requireComplete: true, requireClauses: f.acceptance_evidence_version === '1',
     });
     if (f.execution === 'gate-no-result' && verification.gate.result !== 'manual-accepted') fail('The no-result gate requires an explicit manual acceptance.');
@@ -192,14 +194,14 @@ async function lightweightPackage(root, state, repoInputs, baseInputs, draftArti
   const evidence = {
     spec: await artifact(root, f.spec),
     implementation: await artifact(root, f.implementation_report),
-    review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`)),
+    review: await artifact(root, runArtifact(f.ticket, `${f.ticket}-review.md`, f.artifact_naming_version)),
   };
   return assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, { mode: 'lightweight', result: LIGHTWEIGHT_VALIDATION }, {}, assuranceVersion);
 }
 
 async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, extra, assuranceVersion) {
   const f = state.fields;
-  const reviewReport = await readFile(path.resolve(root, evidence.review.path), 'utf8');
+  const reviewReport = await readFile(artifactResolve(root, evidence.review.path), 'utf8');
   const openNits = [...reviewReport.matchAll(/^\d+\.\s+\*\*\[Minor\]\*\*\s+(.+)$/gm)].map((match) => match[1].trim());
   const repos = [];
   const seen = new Set();
@@ -207,20 +209,20 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
     const snap = await snapshotDeliveryRepo(repoInputs[i], baseInputs[i] ?? f.base);
     if (seen.has(snap.name)) fail(`Duplicate repo name: ${snap.name}`);
     seen.add(snap.name);
-    snap.diff_file = textFileName(f.ticket, `${snap.name}.diff`);
+    snap.diff_file = path.basename(artifactJoin(runDirectory(root, f.ticket), textFileName(f.ticket, `${snap.name}.diff`)));
     repos.push(snap);
   }
   repos.sort((a, b) => a.name.localeCompare(b.name));
   let reviewEvidence = null;
-  const reviewEvidencePath = runArtifact(f.ticket, `${f.ticket}-review-evidence.json`);
+  const reviewEvidencePath = runArtifact(f.ticket, `${f.ticket}-review-evidence.json`, f.artifact_naming_version);
   const maintenance = await checkContextMaintenance(root, f);
   try {
-    reviewEvidence = JSON.parse(await readFile(path.resolve(root, reviewEvidencePath), 'utf8'));
+    reviewEvidence = JSON.parse(await readFile(artifactResolve(root, reviewEvidencePath), 'utf8'));
     if (reviewEvidence.version !== 1 || reviewEvidence.ticket !== f.ticket || reviewEvidence.report_sha256 !== evidence.review.sha256 || !Array.isArray(reviewEvidence.repos)) fail('Review evidence does not match the current report; rerun review.');
     evidence.review_scope = await artifact(root, reviewEvidencePath);
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (f.review_scope_version === '1') {
-    const checked = await checkReviewScope(root, path.join(root, runArtifact(f.ticket, `${f.ticket}-state.md`)));
+    const checked = await checkReviewScope(root, artifactJoin(root, runArtifact(f.ticket, `${f.ticket}-state.md`, f.artifact_naming_version)));
     evidence.review_target = await artifact(root, checked.target.path);
     for (const [index, relative] of checked.target_diffs.entries()) evidence[`review_target_diff_${index}`] = await artifact(root, relative);
     if (JSON.stringify(repos.map(({ diff, diff_file, ...repo }) => repo)) !== JSON.stringify(checked.repos)) fail('Final package repositories or bases differ from the reviewed delivery scope.');
@@ -252,7 +254,7 @@ async function build(root, statePath, repos, bases, draftPath) {
   if (state.fields.phase !== 'final-approval') fail('Build is only allowed at final approval.');
   const result = await packageFromState(root, statePath, repos, bases, draftPath);
   const target = names(root, result.pkg.ticket);
-  for (const repo of result.repos) await atomicWrite(path.join(runDirectory(root, result.pkg.ticket), repo.diff_file), repo.diff);
+  for (const repo of result.repos) await atomicWrite(artifactJoin(runDirectory(root, result.pkg.ticket), repo.diff_file), repo.diff);
   await atomicWrite(target.md, result.md);
   await atomicWrite(target.json, `${JSON.stringify(result.pkg, null, 2)}\n`);
   const hash = sha(JSON.stringify(result.pkg));
@@ -266,11 +268,11 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
   const saved = JSON.parse(await readFile(target.json, 'utf8'));
   if (saved.version !== 1 || saved.ticket !== state.fields.ticket) fail('Final package version or ticket does not match state.');
   if (saved.assurance_version !== undefined && saved.assurance_version !== 1) fail('Unsupported package assurance version.');
-  const result = await packageFromState(root, statePath, saved.repos.map((r) => r.path), saved.repos.map((r) => r.base), path.resolve(root, saved.draft_path), { assuranceVersion: saved.assurance_version ?? null });
+  const result = await packageFromState(root, statePath, saved.repos.map((r) => r.path), saved.repos.map((r) => r.base), artifactResolve(root, saved.draft_path), { assuranceVersion: saved.assurance_version ?? null });
   if (JSON.stringify(result.pkg) !== JSON.stringify(saved)) fail('Final package is stale; rebuild it and seek approval again.');
   if (await readFile(target.md, 'utf8') !== result.md) fail('Final package Markdown changed; rebuild it.');
   for (const repo of result.repos) {
-    const disk = await readFile(path.join(runDirectory(root, saved.ticket), repo.diff_file));
+    const disk = await readFile(artifactJoin(runDirectory(root, saved.ticket), repo.diff_file));
     if (sha(disk) !== repo.diff_sha256) fail(`Final diff changed: ${repo.name}.`);
   }
   const hash = sha(JSON.stringify(saved));
@@ -317,14 +319,14 @@ async function main(args) {
   assertRunState(root, state, parsed.fields.ticket);
   if (command === 'build') {
     if (!options.draft) fail('build requires --draft.');
-    return build(root, state, options.repo, options.base, path.resolve(options.draft));
+    return build(root, state, options.repo, options.base, artifactResolve(options.draft));
   }
   if (command === 'check') return checkFinalPackage(root, state, options.requireApproval);
   if (!options.hash || !/^[a-f0-9]{64}$/.test(options.hash)) fail('approve requires --hash SHA256.');
   return approve(root, state, options.hash);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main(process.argv.slice(2)).then((result) => console.log(JSON.stringify(result))).catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

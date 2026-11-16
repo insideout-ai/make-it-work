@@ -115,7 +115,7 @@ function renderAudit(state) {
     </tbody></table></div>`;
 }
 
-export function renderEpicDashboard(state) {
+export function renderEpicDashboard(state, { usageSnapshot = null } = {}) {
   const next = state.pending?.question ?? state.stop_reason ?? NEXT[state.phase];
   const refresh = ['In Progress', 'Paused'].includes(state.status);
   const badges = `<span class="pill autonomy-pill" title="${state.autonomy === 'autopilot' ? 'Unattended shaping and slicing; all outputs stay local.' : 'Interactive shaping, complete-epic review, and slicing.'}">Autonomy: ${escape(state.autonomy)}</span>`;
@@ -132,7 +132,7 @@ export function renderEpicDashboard(state) {
 ${refresh ? '<meta http-equiv="refresh" content="15">' : ''}
 <title>${escape(state.title)} — drive-the-epic status</title>
 <style>${WORKFLOW_STYLES}\n${EPIC_STYLES}</style></head><body>
-${renderWorkflowHeader({ workflow: 'Epic Workflow', title: state.title, logoBase64: logo, badges })}
+${renderWorkflowHeader({ workflow: 'Epic Workflow', title: state.title, pluginVersion: state.plugin_version, usageSnapshot, logoBase64: logo, badges })}
 <main><ol class="phase-timeline" tabindex="0" aria-label="Workflow phases">${renderTimeline(state)}</ol>
 <p class="timeline-scroll-hint">Scroll the timeline to see later steps.</p>
 ${renderBanner(state, next)}

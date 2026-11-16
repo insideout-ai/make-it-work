@@ -1,4 +1,6 @@
-import { lstat, readFile } from 'node:fs/promises';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { parseState } from './render-status.mjs';
@@ -26,7 +28,7 @@ function writerOperation(call, statePath) {
   if (path.basename(words[0] ?? '') !== 'node' || words[1] !== writerPath) return null;
   const index = words.indexOf('--state');
   const root = call.cwd ?? path.dirname(path.dirname(path.dirname(statePath)));
-  if (index < 0 || !words[index + 1] || path.resolve(root, words[index + 1]) !== path.resolve(statePath)) return null;
+  if (index < 0 || !words[index + 1] || artifactResolve(root, words[index + 1]) !== artifactResolve(statePath)) return null;
   return words[2];
 }
 
@@ -110,12 +112,12 @@ export function feedbackEligible(fields) {
 }
 
 export function feedbackCommands(statePath, { analysisRequired, limitStop = false } = {}) {
-  const state = path.resolve(statePath), directory = path.dirname(state);
+  const state = artifactResolve(statePath), directory = path.dirname(state);
   const quote = value => `'${String(value).replaceAll("'", "'\\''")}'`;
   const command = mode => ['node', quote(writerPath), mode, '--state', quote(state), ...(limitStop ? ['--limit-stop'] : [])];
   const result = { inspect: command('inspect').join(' '), evidence: command('evidence').join(' ') };
   if (typeof analysisRequired === 'boolean') {
-    const sessionReview = path.join(directory, 'feedback-session.json'), analysis = path.join(directory, 'feedback-analysis.json');
+    const sessionReview = artifactJoin(directory, 'feedback-session.json'), analysis = artifactJoin(directory, 'feedback-analysis.json');
     const inputs = [...(analysisRequired ? ['--analysis', quote(analysis)] : []), '--session-review', quote(sessionReview)];
     Object.assign(result, { input_paths: { sessionReview, ...(analysisRequired ? { analysis } : {}) },
       check: [...command('check'), ...inputs].join(' '), write: [...command('write'), ...inputs].join(' ') });
@@ -125,7 +127,7 @@ export function feedbackCommands(statePath, { analysisRequired, limitStop = fals
 
 export function feedbackAction(statePath, fields) {
   if (!feedbackEligible(fields)) return {};
-  return { next_action: { type: 'feedback', state: path.resolve(statePath), runId: fields.start_time,
+  return { next_action: { type: 'feedback', state: artifactResolve(statePath), runId: fields.start_time,
     commands: feedbackCommands(statePath, { limitStop: fields.status === 'Stopped' }),
     instruction: 'Read implement/references/feedback.md and feedback-on-session/SKILL.md now. Inspect this terminal run, dispatch the required retrospective when analysisRequired is true, review the available conversation even with zero retries, and save both feedback files through write-feedback.mjs with --session-review. Then use Read on sessionOutputPath and inspect the full saved Markdown before the terminal summary or delivery question. Preserve terminal state and captured plugin version. No friction or not performed is not unavailability. Only an evidenced technical failure permits the reference\'s unavailable procedure. Do not ask permission to run this already-required step.' } };
 }
@@ -161,7 +163,7 @@ async function answeredDelivery(events, statePath, fields, audit) {
   const terminal = Date.parse(feedbackTerminalRow(fields, audit)?.time);
   let offered;
   try {
-    const journal = JSON.parse(await readFile(path.join(path.dirname(statePath), `${fields.ticket}-delivery-progress.json`), 'utf8'));
+    const journal = JSON.parse(await readFile(artifactJoin(path.dirname(statePath), `${fields.ticket}-delivery-progress.json`), 'utf8'));
     offered = Date.parse(journal.offered_at);
     if (journal.ticket !== fields.ticket || !Number.isFinite(offered) || offered < terminal) return false;
   } catch { return false; }
@@ -193,7 +195,7 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
   if (persist && runtime.dispatches.length) await recordFeedbackReceipt(statePath, binding, { dispatches: runtime.dispatches });
   const finalized = await readFeedbackFinalization(statePath, binding);
   const settle = async outcome => { if (persist) await finalizeFeedback(statePath, { ...binding, ...outcome }); };
-  const reportPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
+  const reportPath = artifactJoin(path.dirname(statePath), 'workflow-feedback.md');
   const hold = reason => input.hook_event_name === 'Stop' ? { decision: 'block', reason } :
     input.hook_event_name === 'PreToolUse' && (input.tool_name === 'AskUserQuestion' ||
       input.tool_name === 'Bash' && /\bdeliver\.mjs["']?\s+offer\b/.test(input.tool_input?.command ?? ''))

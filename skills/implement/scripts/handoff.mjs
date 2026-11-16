@@ -1,6 +1,9 @@
 #!/usr/bin/env node
+import { logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
-import { readFile, readdir, realpath, stat } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
@@ -147,19 +150,19 @@ export async function validateArtifacts(handoff, root, { requireClauses = false 
     runArtifactName(artifact, h.ticket, kind);
     if (kind === 'verification') {
       const expected = `${h.ticket}-verification-v${h.plan_version}.json`;
-      if (path.basename(artifact) !== expected) fail(`Verification artifact does not match ticket and plan version: ${artifact}`);
+      if (logicalArtifactName(artifactResolve(rootPath, artifact)) !== expected) fail(`Verification artifact does not match ticket and plan version: ${artifact}`);
       const planName = h.plan_version === 1 ? `${h.ticket}-plan.md` : `${h.ticket}-plan-v${h.plan_version}.md`;
-      const plan = await readFile(path.join(directory, planName), 'utf8');
+      const plan = await readFile(artifactJoin(directory, planName), 'utf8');
       const verification = await readVerification(rootPath, artifact, { ticket: h.ticket, planVersion: h.plan_version, plan, outcome: h.outcome, requireClauses });
       if (verification.gate && verification.gate.mode !== h.data.gate) fail('Handoff gate disagrees with verification evidence.');
       continue;
     }
-    if (!expectedNames[h.stage].includes(path.basename(artifact))) fail(`Artifact filename does not match ${h.stage} and ticket: ${artifact}`);
+    if (!expectedNames[h.stage].includes(logicalArtifactName(artifactResolve(rootPath, artifact)))) fail(`Artifact filename does not match ${h.stage} and ticket: ${artifact}`);
     if (h.stage === 'plan') {
       const expected = h.plan_version === 1 ? `${h.ticket}-plan.md` : `${h.ticket}-plan-v${h.plan_version}.md`;
-      if (path.basename(artifact) !== expected) fail(`Plan artifact does not match plan_version: ${artifact}`);
+      if (logicalArtifactName(artifactResolve(rootPath, artifact)) !== expected) fail(`Plan artifact does not match plan_version: ${artifact}`);
     }
-    const resolved = path.resolve(rootPath, artifact);
+    const resolved = artifactResolve(rootPath, artifact);
     if (!resolved.startsWith(`${rootPath}${path.sep}`)) fail(`Artifact escapes project root: ${artifact}`);
     const relative = path.relative(rootPath, resolved);
     if (!relative.startsWith(`make-it-work${path.sep}${h.ticket}${path.sep}`)) fail(`Artifact must be under the ticket run directory: ${artifact}`);
@@ -382,27 +385,27 @@ async function main(args) {
   }
   const state = options.state ? parseState(await readFile(options.state, 'utf8'), options.state) : null;
   const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root, { requireClauses: state?.fields.acceptance_evidence_version === '1' });
-  const expectedDirectory = path.join(runDirectory(path.resolve(options.root), h.ticket), `${h.ticket}-handoffs`);
-  if (path.dirname(path.resolve(options.handoff)) !== expectedDirectory || !new RegExp(`^${h.stage}-[1-9]\\d*\\.json$`).test(path.basename(options.handoff))) {
+  const expectedDirectory = artifactJoin(runDirectory(artifactResolve(options.root), h.ticket), `${h.ticket}-handoffs`);
+  if (path.dirname(artifactResolve(options.handoff)) !== expectedDirectory || !new RegExp(`^(?:miw-)?${h.stage}-[1-9]\\d*\\.json$`).test(path.basename(options.handoff))) {
     fail(`Handoff path must be make-it-work/${h.ticket}/${h.ticket}-handoffs/${h.stage}-<N>.json.`);
   }
   const currentNumber = Number(path.basename(options.handoff).match(/-(\d+)\.json$/)[1]);
   const numbers = (await readdir(expectedDirectory))
-    .map((name) => name.match(new RegExp(`^${h.stage}-([1-9]\\d*)\\.json$`)))
+    .map((name) => name.match(new RegExp(`^(?:miw-)?${h.stage}-([1-9]\\d*)\\.json$`)))
     .filter(Boolean).map((match) => Number(match[1]));
   if (currentNumber !== Math.max(...numbers)) fail('Handoff is stale; use the newest result for this stage.');
   if (command === 'validate') return { valid: true, ticket: h.ticket, stage: h.stage, outcome: h.outcome ?? h.status };
   if (!options.state) fail('next requires --state.');
   if (h.stage === 'plan' && h.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
-    testingPolicy(await readFile(path.resolve(options.root, h.artifacts.plan), 'utf8'), { required: true });
-    await checkTestingReadiness(options.root, state, { plan: await readFile(path.resolve(options.root, h.artifacts.plan), 'utf8') });
+    testingPolicy(await readFile(artifactResolve(options.root, h.artifacts.plan), 'utf8'), { required: true });
+    await checkTestingReadiness(options.root, state, { plan: await readFile(artifactResolve(options.root, h.artifacts.plan), 'utf8') });
   }
   const previous = options['previous-review'] ? JSON.parse(await readFile(options['previous-review'], 'utf8')) : null;
   const related = options['related-failures'] === undefined ? null : Number(options['related-failures']);
   return decideNext(state, h, { previousReview: previous, relatedFailures: related, choice: options.choice, escalate: options.escalate });
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main(process.argv.slice(2)).then((result) => console.log(JSON.stringify(result))).catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

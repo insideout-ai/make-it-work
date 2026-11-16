@@ -1,8 +1,10 @@
 #!/usr/bin/env node
+import { artifactOutputJoin, artifactResolve } from './lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
-import { chmod, lstat, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from './lib/artifact-io.mjs';
+import { chmod, lstat, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -117,7 +119,7 @@ function parseExisting(contents, skill) {
 
 async function checkedPath(root, skill, { createDirectory = true, ticket = null } = {}) {
   if (!SKILLS.has(skill)) fail(`Unknown skill: ${skill}`);
-  const directory = path.resolve(root, 'make-it-work');
+  const directory = artifactResolve(root, 'make-it-work');
   let stat;
   try { stat = await lstat(directory); }
   catch (error) {
@@ -130,7 +132,7 @@ async function checkedPath(root, skill, { createDirectory = true, ticket = null 
   let logDirectory = directory;
   if (ticket !== null) {
     if (typeof ticket !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Unsafe ticket for decision log.');
-    logDirectory = path.join(directory, ticket);
+    logDirectory = artifactOutputJoin(directory, ticket);
     let runStat;
     try { runStat = await lstat(logDirectory); }
     catch (error) {
@@ -141,7 +143,7 @@ async function checkedPath(root, skill, { createDirectory = true, ticket = null 
     }
     if (!runStat.isDirectory() || runStat.isSymbolicLink()) fail('Ticket run directory must be a real directory, not a symlink.');
   }
-  const target = path.join(logDirectory, `${skill}-autopilot-log.jsonl`);
+  const target = artifactOutputJoin(logDirectory, `${skill}-autopilot-log.jsonl`);
   let targetStat;
   try { targetStat = await lstat(target); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -152,7 +154,7 @@ async function checkedPath(root, skill, { createDirectory = true, ticket = null 
 }
 
 async function atomicWrite(directory, target, content, mode) {
-  const temporary = path.join(directory, `.decision-log-${randomUUID()}.tmp`);
+  const temporary = artifactOutputJoin(directory, `.decision-log-${randomUUID()}.tmp`);
   try {
     await writeFile(temporary, content, { flag: 'wx', mode });
     await chmod(temporary, mode);

@@ -1,5 +1,7 @@
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Read-only source evidence. No HTML execution, asset fetching, or state writes.
-import { lstat, readFile } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 
@@ -12,8 +14,8 @@ async function source(file, label) {
 }
 
 export async function feedbackEvidence(statePath, summary) {
-  const directory = path.dirname(path.resolve(statePath));
-  const dashboard = await source(path.join(directory, `${summary.ticket}-status.html`), 'Dashboard');
+  const directory = path.dirname(artifactResolve(statePath));
+  const dashboard = await source(artifactJoin(directory, `${summary.ticket}-status.html`), 'Dashboard');
   const sections = { styles: [], markup: [], embedded: [] };
   let style = false, script = false, comment = false, remaining = 64000;
   const omitted = [];
@@ -33,10 +35,10 @@ export async function feedbackEvidence(statePath, summary) {
   }
   const sources = await Promise.all([
     source(statePath, 'State'),
-    source(path.join(directory, `${summary.ticket}-review.md`), 'Review'),
-    source(path.join(directory, `${summary.ticket}-lightweight.md`), 'Implementation'),
-    source(path.join(directory, `${summary.ticket}-execute.md`), 'Execution'),
-    source(path.join(directory, `${summary.ticket}-final-package.md`), 'Package'),
+    source(artifactJoin(directory, `${summary.ticket}-review.md`), 'Review'),
+    source(artifactJoin(directory, `${summary.ticket}-lightweight.md`), 'Implementation'),
+    source(artifactJoin(directory, `${summary.ticket}-execute.md`), 'Execution'),
+    source(artifactJoin(directory, `${summary.ticket}-final-package.md`), 'Package'),
   ]);
   const packetHash = digest(JSON.stringify({ stateHash: summary.stateHash, dashboard: dashboard.sha256 ?? dashboard.status,
     // Delivery decisions after completion may refresh HTML later. Bind the saved

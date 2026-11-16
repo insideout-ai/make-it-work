@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.10.0] — 2026-11-16
+
+### Added
+
+- Revision-bound code complexity and production-risk assessments for completed implementations and explicitly scoped PRs, including the assessment workflow introduced in #106.
+- The run's starting plugin version in both workflow dashboards, plus optional Claude Code context-window and estimated session-cost snapshots captured at main stage boundaries.
+- Category-only elapsed-time breakdowns after Lightweight and Execute passes, with linked interval evidence and explicit unclassified time.
+- A shared output resolver for manually written artifacts, automatic Git-ignore setup, and staged/tracked/outgoing artifact checks during plugin-managed delivery.
+
+### Changed
+
+- New runs and standalone generated outputs use `miw-` filenames. Existing runs and established artifact paths keep their naming convention; user-supplied files are not renamed.
+
+### Fixed
+
+- Finalizing and overall session durations now include verified feedback collection and freeze before optional delivery. Live elapsed values update on the existing page-load cadence without changing the HTML being inspected for feedback.
+- Autopilot initialization records the supplied branch-guard outcome when its decision-log checkpoint is missing, preserving earlier startup decisions.
+
 ## [5.9.0] — 2026-11-15
 
 ### Changed

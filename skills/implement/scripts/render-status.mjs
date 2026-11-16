@@ -1,8 +1,12 @@
 #!/usr/bin/env node
+import { readUsage } from '../../../scripts/usage.mjs';
+import { artifactReference } from '../../../scripts/lib/artifact-path.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { readAssessment, assessmentSummary } from '../../../scripts/change-assessment.mjs';
 
 import { randomUUID } from 'node:crypto';
-import { readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
@@ -19,8 +23,8 @@ import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs'
 import { summarizeAcceptance } from './acceptance-summary.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const TEMPLATE_PATH = path.resolve(SCRIPT_DIR, '../assets/status-template.html');
-const LOGO_PATH = path.resolve(SCRIPT_DIR, '../assets/insideout-ai-logo-base64.txt');
+const TEMPLATE_PATH = artifactResolve(SCRIPT_DIR, '../assets/status-template.html');
+const LOGO_PATH = artifactResolve(SCRIPT_DIR, '../assets/insideout-ai-logo-base64.txt');
 
 const REQUIRED_FIELDS = [
   'ticket', 'status', 'phase', 'autonomy', 'start_time', 'execution_mode',
@@ -278,10 +282,11 @@ export function parseState(markdown, statePath = '') {
   }
   if (statePath) {
     const expected = `${fields.ticket}-state.md`;
-    if (path.basename(statePath) !== expected) {
+    if (path.basename(artifactResolve(statePath)) !== (fields.artifact_naming_version === '1' && !expected.startsWith('miw-') ? `miw-${expected}` : expected)) {
       fail(`State filename must match its ticket field: expected ${expected}.`);
     }
   }
+  for (const field of ['artifact_naming_version', 'activity_timing_version']) if (fields[field] !== undefined && fields[field] !== '1') fail(`Unsupported ${field}.`);
   if (!STATUS_VALUES.has(fields.status)) fail(`Unsupported status: ${fields.status}`);
   if (fields.handoff_version !== undefined && fields.handoff_version !== '1') fail(`Unsupported handoff_version: ${fields.handoff_version}`);
   if (fields.review_scope_version !== undefined && fields.review_scope_version !== '1') fail('Unsupported review_scope_version.');
@@ -506,7 +511,7 @@ const DELIVERY_LABELS = {
 };
 const DELIVERY_PENDING = new Set(['not-started', 'offered', 'awaiting-approval', 'running']);
 
-function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null) {
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null, now = null) {
   const { slots, activeSlot } = timeline;
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const activated = slots.filter((slot) => slot.activationRow);
@@ -557,15 +562,17 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
     if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
 
-    if (passed && (slot.phase !== 'complete' || slot.finalizing)) {
+    if ((passed || finalizingFeedback) && (slot.phase !== 'complete' || slot.finalizing)) {
       const activatedIndex = activated.indexOf(slot);
       const next = slot.completionRow ? { activationRow: slot.completionRow } : activated[activatedIndex + 1];
       if (next) {
         const duration = slot.activationRow.number < state.realRowsFrom || next.activationRow.number < state.realRowsFrom ||
           next.activationRow.number >= invalidTimestampFrom
           ? '—'
-          : formatDuration(next.activationRow.epoch - slot.activationRow.epoch);
-        pieces.push(`  <div class="phase-duration">${duration}</div>`);
+          : formatDuration((slot.finalizing && slot.completed ? feedbackEndpoint(feedback, now, next.activationRow.epoch) : next.activationRow.epoch) - slot.activationRow.epoch);
+        const elapsed = slot.finalizing && slot.completed && feedback?.status === 'collecting' && now === null && duration !== '—'
+          ? ` data-elapsed-start="${slot.activationRow.epoch}" data-elapsed-min-end="${next.activationRow.epoch}"` : '';
+        pieces.push(`  <div class="phase-duration"${elapsed}>${duration}</div>`);
       }
     }
 
@@ -618,14 +625,24 @@ function renderCurrentActivity(state, timeline) {
 </section>`;
 }
 
-function timingDetails(state, invalidTimestampFrom) {
+function feedbackEndpoint(feedback, now, fallback) {
+  if (feedback?.status === 'collecting') return Math.max(fallback, now ?? fallback);
+  const value = Date.parse(feedback?.finalizedAt);
+  return Number.isFinite(value) && value >= fallback ? value : fallback;
+}
+function timingDetails(state, invalidTimestampFrom, feedback, now) {
   if (state.audit.length < 2 || state.realRowsFrom > state.audit.length || Number.isFinite(invalidTimestampFrom)) return null;
   const first = state.audit[state.realRowsFrom - 1];
   const last = state.fields.status === 'Complete'
     ? state.audit.findLast((row) => row.to === 'complete' && row.from !== row.to) ?? state.audit.at(-1)
     : state.audit.at(-1);
   if (last.number < first.number) return null;
-  return { total: formatDuration(last.epoch - first.epoch), first, last };
+  const end = state.fields.status === 'Complete' ? feedbackEndpoint(feedback, now, last.epoch) : last.epoch;
+  const formatted = formatDuration(end - first.epoch);
+  // Stable source bytes preserve feedback evidence; the existing page-load script hydrates live elapsed values.
+  const live = state.fields.status === 'Complete' && feedback?.status === 'collecting' && now === null;
+  const total = live ? `<span data-elapsed-start="${first.epoch}" data-elapsed-min-end="${last.epoch}">${formatted}</span>` : formatted;
+  return { total, first, last, feedbackCollecting: feedback?.status === 'collecting', feedbackEndpoint: state.fields.status === 'Complete' && (feedback?.status === 'collecting' || Number.isFinite(Date.parse(feedback?.finalizedAt))), feedbackExcluded: state.fields.status === 'Complete' && feedback?.status !== 'collecting' && !Number.isFinite(Date.parse(feedback?.finalizedAt)) };
 }
 
 function displayOutcome(outcome) {
@@ -655,9 +672,11 @@ function displayOutcome(outcome) {
 
 function renderAuditOutcome(state, outcome) {
   const text = displayOutcome(outcome);
+  const breakdown = text.match(/^(Result: (?:Execute|Lightweight) time breakdown \(elapsed estimate\): .*); evidence: ((?:miw-)?time-breakdown-(?:execute|lightweight)-[1-9]\d*\.json)$/);
+  if (breakdown) return `${escapeHtml(breakdown[1])} · <a href="${encodeURIComponent(breakdown[2])}">Timing details</a>`;
   const packageResult = text.match(/^Result: Final approval package built\.?; evidence: (.+); sha256:\s*[a-f0-9]{64}(?: \[audit-note: result; id: final-package:[a-f0-9]{64}\])?$/i);
   const filename = `${state.fields.ticket}-final-package.md`;
-  const expectedPath = runArtifact(state.fields.ticket, filename);
+  const expectedPath = runArtifact(state.fields.ticket, filename, state.fields.artifact_naming_version);
   if (packageResult && packageResult[1] === expectedPath) {
     return `Final approval package built. <a href="${encodeURIComponent(filename)}" title="${escapeHtml(expectedPath)}">View package</a>`;
   }
@@ -697,7 +716,7 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   const legacy = state.realRowsFrom > 1
     ? ` This is not the full session duration — everything before row ${state.realRowsFrom} happened before any real timestamp was captured.`
     : '';
-  return `<p class="session-timing">Session timing: rows ${state.realRowsFrom}→${timing.last.number} above span ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy} Total session cost cannot be shown here either — no tool in this session surfaces token usage or $ cost back to the model (check /usage in your own client for that).</p>`;
+  return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
 }
 
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
@@ -835,21 +854,21 @@ function renderAssessment(report) {
   return `<section class="change-assessment" aria-label="Change assessment"><h2>Change assessment</h2><p><strong>${escapeHtml(summary)}</strong></p><p>${escapeHtml(report?.rationale ?? report?.reason ?? '')}</p><p>${links}</p>${report?.scope ? `<p>Assessed snapshot: <code>${escapeHtml(report.scope.snapshot_id)}</code> · ${escapeHtml(report.timestamp)}</p>` : ''}${report?.stale_history ? `<a href="${escapeHtml(report.stale_history)}">Stale history — previous assessment</a>` : ''}</section>`;
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null }) {
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
-  const timing = timingDetails(state, invalidTimestampFrom);
+  const timing = timingDetails(state, invalidTimestampFrom, feedback, now);
   const reviewLink = state.fields.review === 'not-started'
     ? '<span class="none">Not yet created</span>'
-    : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`), 'review', state.fields.ticket);
+    : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`, state.fields.artifact_naming_version), 'review', state.fields.ticket);
   const replacements = {
     WORKFLOW_STYLES,
     WORKFLOW_TIMESTAMPS,
     WORKFLOW_HEADER: renderWorkflowHeader({
-      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64,
+      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot,
       badges: renderAutonomyBadge(state) +
         renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
     }),
@@ -861,7 +880,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
     MODE_PILL: renderModePill(state),
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback, now),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_BANNER: collectingFeedback
       ? renderStatusBanner(state, timing, invalidTimestampFrom, null).replace('<strong>Implementation complete.</strong>', '<strong>Finalizing session.</strong> Implementation checks and final approval are complete. Collecting workflow feedback before optional delivery.')
@@ -879,7 +898,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     IMPLEMENTATION_TILE: renderImplementationTile(state),
     REVIEW_LINK: reviewLink,
     FINAL_LINK: state.fields.final_package_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase)
-      ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`), 'final_package', state.fields.ticket)
+      ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
@@ -887,16 +906,25 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
     DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
   };
-  return applyTemplate(template, replacements);
+  let html = applyTemplate(template, replacements);
+  if (state.fields.artifact_naming_version === '1') html = html.replace(/href="([^"#:]+)"/g, (match, href) => {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return match;
+    if (!artifactDirectory) return `href="${artifactReference(href, 1)}"`;
+    try {
+      const resolved = artifactJoin(artifactDirectory, decodeURIComponent(href));
+      return `href="${path.relative(artifactDirectory, resolved).split(path.sep).map(encodeURIComponent).join('/')}"`;
+    } catch { return match; }
+  });
+  return html;
 }
 
 function resolvedPlanPath(statePath, planField, ticket) {
   const relative = validateArtifactPath(planField, 'plan', ticket);
-  return relative ? path.join(path.dirname(statePath), relative) : null;
+  return relative ? artifactJoin(path.dirname(statePath), relative) : null;
 }
 
 export async function generateDashboard(statePath) {
-  const absoluteStatePath = path.resolve(statePath);
+  const absoluteStatePath = artifactResolve(statePath);
   const [stateMarkdown, stateInfo, template, logo] = await Promise.all([
     readFile(absoluteStatePath, 'utf8'),
     stat(absoluteStatePath),
@@ -947,7 +975,7 @@ export async function generateDashboard(statePath) {
   if (scope || finalVerification) {
     const { readVerification, validateVerification } = await import('./verification.mjs');
     try {
-      const ledger = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
+      const ledger = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`, state.fields.artifact_naming_version), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
       if (finalVerification) {
         const plan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
         validateVerification(ledger, { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version), plan, requireComplete: true, requireClauses: state.fields.acceptance_evidence_version === '1' });
@@ -958,8 +986,8 @@ export async function generateDashboard(statePath) {
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
   const assessment = state.fields.change_assessment_version === '1' ? await readAssessment(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
-  const html = renderStatus({ assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback });
-  const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
+  const html = renderStatus({ assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) });
+  const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporaryPath, html, { encoding: 'utf8', flag: 'wx' });
@@ -989,7 +1017,7 @@ async function main() {
   process.stdout.write(`${outputPath}\n`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((error) => {
     process.stderr.write(`render-status: ${error.message}\n`);
     process.exitCode = 1;

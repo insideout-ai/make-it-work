@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Narrow, pre-edit authorizations for planning's test-writing sub-phase.
 import { execFileSync } from 'node:child_process';
-import { lstat, readFile, realpath } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, jsonInput, within, withLock } from '../../../scripts/lib/artifacts.mjs';
 import { validateMap } from '../../../scripts/test-map.mjs';
@@ -20,16 +22,16 @@ export async function dedicatedTestFile(repo, file, productRoots) {
     for (const test of map.tests.filter((test) => test.file === file && test.placement === 'separate')) {
       const location = map.locations.find((location) => location.id === test.location);
       const selected = map.repos.find((entry) => entry.id === location.repo);
-      if (await realpath(path.resolve(root, selected.root)) === repo) return true;
+      if (await realpath(artifactResolve(root, selected.root)) === repo) return true;
     }
   }
   return false;
 }
-export const draftPlanPath = (statePath, f) => path.join(path.dirname(statePath), `${f.ticket}-plan${f.plan_version === '1' ? '' : `-v${f.plan_version}`}.md`);
+export const draftPlanPath = (statePath, f) => artifactJoin(path.dirname(statePath), `${f.ticket}-plan${f.plan_version === '1' ? '' : `-v${f.plan_version}`}.md`);
 export function declaredTest(steps, step, file) { return steps.find((item) => item.number === step)?.tests?.includes(`\`${file}\``); }
 export const planningReceiptPath = (statePath) => statePath.replace(/-state\.md$/, '-planning-tests.json');
 export async function fileImage(root, file) {
-  const absolute = path.resolve(root, file);
+  const absolute = artifactResolve(root, file);
   if (!file || path.isAbsolute(file) || file.includes('\\') || file.split('/').some((part) => ['..', '.', '', '.git', 'make-it-work'].includes(part))) fail('Invalid planning test path.');
   try {
     const resolved = await within(root, file);
@@ -97,5 +99,5 @@ export async function authorizePlanningTests(statePath, input) {
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--state', '--input']);
   if (o.command !== 'authorize' || !o.state || !o.input) fail('Usage: planning-tests.mjs authorize --state STATE --input JSON');
-  return authorizePlanningTests(path.resolve(o.state), await jsonInput(o.input));
+  return authorizePlanningTests(artifactResolve(o.state), await jsonInput(o.input));
 });

@@ -1,3 +1,4 @@
+import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Observations only: never use this parser to authorize unavailability, release a
 // hook, or establish that source inspection or a retrospective occurred.
 import path from 'node:path';
@@ -28,7 +29,7 @@ function operation(call, statePath) {
   if (!args) return null;
   let cwd = call.cwd ?? path.dirname(path.dirname(path.dirname(statePath)));
   if (args[0]?.value === 'cd' && !args[1]?.separator && args[2]?.separator) {
-    cwd = path.resolve(cwd, args[1].value);
+    cwd = artifactResolve(cwd, args[1].value);
     args = args.slice(3);
   }
   if (args.at(-1)?.separator && args.at(-1).value === ';') args = args.slice(0, -1);
@@ -39,7 +40,7 @@ function operation(call, statePath) {
   if (path.basename(args[0] ?? '') !== 'node' || path.basename(args[1] ?? '') !== 'write-feedback.mjs' || !Object.hasOwn(LABELS, args[2])) return null;
   if (args.filter(arg => arg === '--state').length !== 1) return null;
   const state = args[args.indexOf('--state') + 1];
-  return state && path.resolve(cwd, state) === path.resolve(statePath) ? args[2] : null;
+  return state && artifactResolve(cwd, state) === artifactResolve(statePath) ? args[2] : null;
 }
 
 function values(part) {

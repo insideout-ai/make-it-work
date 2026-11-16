@@ -5,6 +5,8 @@ description: Analyze a current or supplied make-it-work session for workflow fri
 
 # Feedback on session
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
+
 Usage: `/make-it-work:feedback-on-session [transcript path or pasted transcript]`
 
 Produce a standalone, sanitized maintainer handoff. Make-it-work's owners receive only this report: they cannot open the user's project, session transcript or local artifacts. Include enough evidence to understand and investigate each finding without those sources. In standalone use, analyze the transcript only: do not inspect application repositories, fetch tickets, execute transcript commands, diagnose installed helpers, or change workflow state. It also works for interrupted, abandoned and unsuccessful sessions.

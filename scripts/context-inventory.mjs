@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { artifactJoin } from './lib/artifact-path.mjs';
 import { execFileSync } from 'node:child_process';
-import { lstat, readFile, readdir } from 'node:fs/promises';
+import { readFile } from './lib/artifact-io.mjs';
+import { lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { args, cli, fail } from './lib/artifacts.mjs';
 
@@ -26,14 +28,14 @@ export function staleSkills(areas, commits) {
 }
 export async function contextInventory(root, { days = null } = {}) {
   const docs = {};
-  for (const file of ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']) docs[file] = await optional(path.join(root, file));
+  for (const file of ['CLAUDE.md', '.claude/rules/product.md', '.claude/rules/architecture.md']) docs[file] = await optional(artifactJoin(root, file));
   let entries = [];
-  try { entries = await readdir(path.join(root, '.claude/skills'), { withFileTypes: true }); }
+  try { entries = await readdir(artifactJoin(root, '.claude/skills'), { withFileTypes: true }); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   const skills = [];
   for (const entry of entries.filter((entry) => entry.isDirectory() && /^(uc-|domain-)/.test(entry.name))) {
     const file = `.claude/skills/${entry.name}/SKILL.md`;
-    const content = await optional(path.join(root, file));
+    const content = await optional(artifactJoin(root, file));
     const lines = content?.trimEnd().split('\n').length ?? 0;
     const kind = entry.name.startsWith('uc-') ? 'uc' : 'domain';
     const warnings = [];

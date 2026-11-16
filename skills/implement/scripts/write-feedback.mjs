@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { artifactJoin, artifactResolve, logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
-import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 import { fileURLToPath } from 'node:url';
@@ -433,8 +435,8 @@ export function upsertBlock(existing, summary, block) {
 export async function inspectFeedback(statePath, { limitStop = false } = {}) {
   const state = await readFile(statePath, 'utf8');
   const summary = inspectState(state, { limitStop });
-  if (path.basename(statePath) !== `${summary.ticket}-state.md`) fail('State filename and ticket field disagree.');
-  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, summary.ticket);
+  if (path.basename(statePath) !== path.basename(artifactJoin(path.dirname(statePath), `${summary.ticket}-state.md`))) fail('State filename and ticket field disagree.');
+  assertRunState(path.dirname(path.dirname(path.dirname(artifactResolve(statePath)))), statePath, summary.ticket);
   let hookEvents;
   try { hookEvents = await readHookEvents(statePath); }
   catch (error) { fail(`Feedback hook evidence could not be read: ${error.message}`, 'FEEDBACK_EVIDENCE'); }
@@ -466,17 +468,17 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
       try { return [JSON.parse(line)]; } catch (error) { if (index < lines.length - 1) throw error; return []; }
     });
     const receipts = await readFeedbackReceipts(statePath, summary);
-    const runtime = feedbackRuntimeEvidence(events, path.resolve(statePath), fields, audit, undefined, receipts);
+    const runtime = feedbackRuntimeEvidence(events, artifactResolve(statePath), fields, audit, undefined, receipts);
     const missing = [summary.analysisRequired && !runtime.retrospectiveDispatched && 'a retrospective dispatch after inspection',
       summary.evidenceRequired && !runtime.sourcePackets.includes(sessionReview?.evidence_review?.packet_hash) && 'the inspected source packet'].filter(Boolean);
     if (missing.length) fail(`Feedback prerequisites missing: ${missing.join('; ')}. Run inspect/evidence and the required delegate before write; no report was changed.`);
-    summary.collectionNotes = collectFeedbackAttempts(events, { statePath: path.resolve(statePath), runId: summary.runId,
+    summary.collectionNotes = collectFeedbackAttempts(events, { statePath: artifactResolve(statePath), runId: summary.runId,
       stateHash: summary.stateHash, terminalTime: Date.parse(feedbackTerminalRow(fields, audit).time) });
     await recordFeedbackReceipt(statePath, summary, { dispatches: runtime.dispatches });
   }
   const block = renderBlock(summary, analysis, sessionReview);
-  const outputPath = path.join(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
-  const sessionOutputPath = path.join(path.dirname(statePath), 'workflow-feedback.md');
+  const outputPath = artifactJoin(path.dirname(path.dirname(statePath)), 'implement-feedback.md');
+  const sessionOutputPath = artifactJoin(path.dirname(statePath), 'workflow-feedback.md');
   try {
     const info = await lstat(sessionOutputPath);
     if (!info.isFile()) fail('Session feedback path must be a regular file, not a symlink or directory.', 'FEEDBACK_OUTPUT');
@@ -494,14 +496,14 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
     if (error.code !== 'ENOENT') throw error;
   }
   const result = upsertBlock(existing, summary, block);
-  const temporary = path.join(path.dirname(outputPath), `.implement-feedback.${randomUUID()}.tmp`);
+  const temporary = artifactJoin(path.dirname(outputPath), `.implement-feedback.${randomUUID()}.tmp`);
   try {
     await writeFile(temporary, result.text, { flag: 'wx', mode: mode ?? 0o600 });
     await rename(temporary, outputPath);
   } finally {
     await unlink(temporary).catch((error) => { if (error.code !== 'ENOENT') throw error; });
   }
-  const sessionTemporary = path.join(path.dirname(sessionOutputPath), `.workflow-feedback.${randomUUID()}.tmp`);
+  const sessionTemporary = artifactJoin(path.dirname(sessionOutputPath), `.workflow-feedback.${randomUUID()}.tmp`);
   try {
     await writeFile(sessionTemporary, `${HEADER}\n${block}\n`, { flag: 'wx', mode: 0o600 });
     await rename(sessionTemporary, sessionOutputPath);
@@ -520,7 +522,7 @@ export async function unavailableFeedback(statePath, { reason, transcriptPath, f
   inspectState(markdown, { limitStop }); // Validate identity/audit without rereading the failed hook journal.
   const { fields, audit } = parseState(markdown, statePath);
   if (!feedbackEligible(fields) || limitStop !== (fields.status === 'Stopped')) fail('Unavailable feedback requires a completed run or an explicit retry-limit stop.');
-  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, fields.ticket);
+  assertRunState(path.dirname(path.dirname(path.dirname(artifactResolve(statePath)))), statePath, fields.ticket);
   const safeReason = safeLine(reason, 'Feedback limitation', fields.ticket);
   if (!transcriptPath || !failureId) fail('Unavailable feedback requires --transcript and --failure-id identifying an actual failed feedback operation; not performed or no friction is not a technical failure.');
   const events = [];
@@ -530,18 +532,18 @@ export async function unavailableFeedback(statePath, { reason, transcriptPath, f
     try { events.push(JSON.parse(lines[index])); }
     catch (error) { if (index !== lines.length - 1) throw error; }
   }
-  const failure = findFeedbackFailure(events, path.resolve(statePath), fields, audit, failureId);
+  const failure = findFeedbackFailure(events, artifactResolve(statePath), fields, audit, failureId);
   if (!failure) fail('No qualifying technical failure found for this terminal run. Inspect feedback and perform the required retrospective; repair input/schema errors instead of skipping it.');
   const stateHash = feedbackStateHash(fields, audit);
   let reportStatus = 'missing';
   try {
-    const existing = await readFile(path.join(path.dirname(statePath), 'workflow-feedback.md'), 'utf8');
+    const existing = await readFile(artifactJoin(path.dirname(statePath), 'workflow-feedback.md'), 'utf8');
     if (existing.includes(`<!-- feedback-state:${stateHash} -->`)) reportStatus = 'unverified';
   } catch { /* A missing/unreadable current report cannot establish a saved retrospective. */ }
   const receipt = { version: 1, feedbackAttempt: 'unavailable', runId: fields.start_time,
     stateHash, ...failure, reason: safeReason, reportSaved: false, reportStatus };
-  const receiptPath = path.join(path.dirname(path.resolve(statePath)), 'feedback-unavailable.json');
-  const temporary = path.join(path.dirname(receiptPath), `.feedback-unavailable.${randomUUID()}.tmp`);
+  const receiptPath = artifactJoin(path.dirname(artifactResolve(statePath)), 'feedback-unavailable.json');
+  const temporary = artifactJoin(path.dirname(receiptPath), `.feedback-unavailable.${randomUUID()}.tmp`);
   try {
     try { if (!(await lstat(receiptPath)).isFile()) throw new Error('Receipt path is not a regular file.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -590,15 +592,15 @@ async function main() {
   if (mode === 'inspect') {
     // Validate identity and eligibility before adding the informational start note.
     const initial = inspectState(await readFile(statePath, 'utf8'), { limitStop });
-    assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(statePath)))), statePath, initial.ticket);
-    if (path.basename(statePath) !== `${initial.ticket}-state.md`) fail('State filename and ticket field disagree.');
+    assertRunState(path.dirname(path.dirname(path.dirname(artifactResolve(statePath)))), statePath, initial.ticket);
+    if (path.basename(artifactResolve(statePath)) !== path.basename(artifactJoin(path.dirname(statePath), `${initial.ticket}-state.md`))) fail('State filename and ticket field disagree.');
     await startFeedbackCollection(statePath);
     const summary = await inspectFeedback(statePath, { limitStop });
     await recordFeedbackReceipt(statePath, summary, { inspect: true, analysisRequired: summary.analysisRequired });
     const { ticket: _ticket, ...shareSafe } = summary;
     const commands = feedbackCommands(statePath, { analysisRequired: summary.analysisRequired, limitStop });
-    if (transcriptPath) commands.write += ` --transcript '${path.resolve(transcriptPath).replaceAll("'", "'\\''")}'`;
-    process.stdout.write(`${JSON.stringify({ feedbackContext: { state: path.resolve(statePath), runId: summary.runId }, ...shareSafe, commands,
+    if (transcriptPath) commands.write += ` --transcript '${artifactResolve(transcriptPath).replaceAll("'", "'\\''")}'`;
+    process.stdout.write(`${JSON.stringify({ feedbackContext: { state: artifactResolve(statePath), runId: summary.runId }, ...shareSafe, commands,
       session_review_template: sessionReviewTemplate(summary._packet), template_instruction: 'Fill context and source observations from actual inspection. The scaffold records no completed inspection; check validates the completed input. For combined write, append --transcript with this session JSONL path.' })}\n`);
     return;
   }
@@ -607,15 +609,16 @@ async function main() {
     const packet = summary._packet ?? await feedbackEvidence(statePath, summary);
     const text = evidenceText(packet);
     if (evidenceOutputPath) {
+      evidenceOutputPath = artifactResolve(evidenceOutputPath);
       try { if (!(await lstat(evidenceOutputPath)).isFile()) fail('Evidence output must be a regular file.'); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
-      if (path.dirname(path.resolve(evidenceOutputPath)) !== path.dirname(path.resolve(statePath)) || !/^feedback-evidence(?:-[A-Za-z0-9_-]+)?\.txt$/.test(path.basename(evidenceOutputPath))) fail('Evidence output must be feedback-evidence[-NAME].txt beside the state file.');
+      if (path.dirname(artifactResolve(evidenceOutputPath)) !== path.dirname(artifactResolve(statePath)) || !/^feedback-evidence(?:-[A-Za-z0-9_-]+)?\.txt$/.test(logicalArtifactName(evidenceOutputPath))) fail('Evidence output must be feedback-evidence[-NAME].txt beside the state file.');
       const temporary = `${evidenceOutputPath}.${randomUUID()}.tmp`;
       try { await writeFile(temporary, text, { mode: 0o600, flag: 'wx' }); await rename(temporary, evidenceOutputPath); }
       finally { await unlink(temporary).catch(() => {}); }
     }
     await recordFeedbackReceipt(statePath, summary, { packetHash: packet.packetHash });
-    process.stdout.write(evidenceOutputPath ? `${JSON.stringify({ feedbackEvidence: 'source-packet', runId: packet.runId, stateHash: packet.stateHash, packetHash: packet.packetHash, outputPath: path.resolve(evidenceOutputPath) })}\n` : text);
+    process.stdout.write(evidenceOutputPath ? `${JSON.stringify({ feedbackEvidence: 'source-packet', runId: packet.runId, stateHash: packet.stateHash, packetHash: packet.packetHash, outputPath: artifactResolve(evidenceOutputPath) })}\n` : text);
     return;
   }
   const analysis = analysisPath ? JSON.parse(await readFile(analysisPath, 'utf8')) : null;
@@ -633,7 +636,7 @@ async function main() {
   process.stdout.write(`${JSON.stringify({ ...shareSafe, outputPath })}\n`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(async (error) => {
     process.stderr.write(`Feedback writer: ${error.message}\n`);
     // Only concrete I/O/evidence failures can authorize unavailability. Schema

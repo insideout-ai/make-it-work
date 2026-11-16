@@ -1,13 +1,15 @@
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // A receipt for runtime-provided assistant text, never user approval or tool output.
 import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, open, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, open, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 import { parseState } from './render-status.mjs';
 
 const sha = (text) => createHash('sha256').update(text).digest('hex');
-const receiptPath = (statePath) => path.join(path.dirname(statePath), 'startup-confirmation.json');
+const receiptPath = (statePath) => artifactJoin(path.dirname(statePath), 'startup-confirmation.json');
 
 export function hasDashboardLink(text, dashboard) {
   const prose = text.replace(/```[\s\S]*?```/g, '').replace(/`[^`]*`/g, '');
@@ -19,9 +21,9 @@ export function hasDashboardLink(text, dashboard) {
 async function binding(input, progress) {
   const initialized = progress.initialized;
   const state = parseState(await readFile(initialized.state, 'utf8'), initialized.state);
-  assertRunState(path.dirname(path.dirname(path.dirname(path.resolve(initialized.state)))), initialized.state, state.fields.ticket);
+  assertRunState(path.dirname(path.dirname(path.dirname(artifactResolve(initialized.state)))), initialized.state, state.fields.ticket);
   return { version: 1, runId: state.fields.start_time,
-    sessionHash: sha(`${input.session_id ?? ''}\0${path.resolve(input.transcript_path)}`),
+    sessionHash: sha(`${input.session_id ?? ''}\0${artifactResolve(input.transcript_path)}`),
     initializationHash: sha(progress.initializationId), dashboardHash: sha(initialized.dashboard) };
 }
 

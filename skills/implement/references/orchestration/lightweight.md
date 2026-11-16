@@ -4,6 +4,14 @@ Phase `lightweight`, legal only with `mode: lightweight`. There is no plan, test
 
 **Route before dispatch, including Resume:** when `fix_cycle > 0`, use **Lightweight fix** below before any corrective edit or agent launch. Recover its saved diagnosis checkpoint first; do not restart initial implementation or patch source in the parent session. Both initial implementation and fixes require a fresh implementation subagent.
 
+Before initial or fix dispatch, narrate the implementation work and checkpoint that exact sentence with category `coding`:
+
+```sh
+node "<base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<exact narrated implementation sentence>" --category coding
+```
+
+This is the existing required before-work checkpoint, not a new approval. It measures the delegated implementation chunk, including checks the delegate embeds in that work; it does not claim typing/CPU time. If the parent does a separate investigation or verification chunk, checkpoint `investigation/setup` or `tests/verification` before that work. Use `unclassified` for mixed parallel work. On return, checkpoint the report/handoff inspection as `investigation/setup` before inspecting it, closing the coding interval. Use helper-returned `miw-` report and handoff filenames in new runs; preserve saved legacy paths.
+
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
 - give the absolute spec path and tell it, in effect, "implement this spec" — the way a developer handing it to Claude Code would: its own approach, following each affected repo's `CLAUDE.md` and rules, running whatever checks it chooses, or none;
@@ -21,5 +29,5 @@ Set `implementation_report`, re-record `head` and `worktree_fingerprint`, and ap
 
 **Lightweight fix** (operation `fix`, `review → lightweight`) — follow [the Lightweight fix checkpoint](../lightweight-fix.md) before dispatch, including on Resume. Apply the diagnosis requirement under [Fix](#fix), then use `scripts/lightweight-fix.mjs checkpoint` to save it in the existing report and audit log. `inspect` must confirm the current round's checkpoint before launching one fresh fix subagent; a missing or failed checkpoint blocks corrective edits and dispatch. The parent may inspect evidence but never substitutes its own source edits for that agent. The controller increments `fix_cycle` on entry; do not increment it again on resume. The legacy entry row lists the finding regions and diagnosis summary, as Fix does.
 
-Pass the spec, fix source, Decided findings, existing report, and checkpointed diagnosis to the fresh subagent. Have it preserve the diagnosis, fix every actionable finding at its root cause, cover sibling cases and the complement of any guard it adds, then append changes, paths and actual checks/results under the existing `## Fix round <n>` section and update `## Risk signal`. Route its handoff exactly as above; the controller rejects a completed fix without the saved report/audit checkpoint or with stale spec/fix-source bindings. A validator cannot prove agent dispatch or causal correctness, so the required dispatch and review still apply. The final package's **Request changes** uses the same procedure with `<TICKET>-final-feedback.md` as the fix source.
+Checkpoint the narrated corrective implementation as `coding` using the command above before dispatch. Pass the spec, fix source, Decided findings, existing report, and checkpointed diagnosis to the fresh subagent. Have it preserve the diagnosis, fix every actionable finding at its root cause, cover sibling cases and the complement of any guard it adds, then append changes, paths and actual checks/results under the existing `## Fix round <n>` section and update `## Risk signal`. Route its handoff exactly as above; the controller rejects a completed fix without the saved report/audit checkpoint or with stale spec/fix-source bindings. A validator cannot prove agent dispatch or causal correctness, so the required dispatch and review still apply. The final package's **Request changes** uses the same procedure with `<TICKET>-final-feedback.md` as the fix source.
 

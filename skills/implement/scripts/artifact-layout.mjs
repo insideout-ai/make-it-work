@@ -1,3 +1,5 @@
+import { artifactReference } from '../../../scripts/lib/artifact-path.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import path from 'node:path';
 
 const fail = (message) => { throw new Error(message); };
@@ -7,15 +9,15 @@ export function runDirectory(root, ticket) {
   return path.join(root, 'make-it-work', ticket);
 }
 
-export function runArtifact(ticket, filename) {
+export function runArtifact(ticket, filename, naming = 0) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Unsafe ticket for run artifact.');
   if (filename !== path.posix.basename(filename) || filename === '.' || filename === '..') fail('Unsafe artifact filename.');
-  return `make-it-work/${ticket}/${filename}`;
+  return artifactReference(`make-it-work/${ticket}/${filename}`, naming);
 }
 
 export function assertRunState(root, statePath, ticket) {
   const directory = runDirectory(root, ticket);
-  if (path.resolve(statePath) !== path.join(directory, `${ticket}-state.md`)) {
+  if (artifactResolve(statePath) !== artifactJoin(directory, `${ticket}-state.md`)) {
     fail(`State must be ${runArtifact(ticket, `${ticket}-state.md`)}.`);
   }
   return directory;
