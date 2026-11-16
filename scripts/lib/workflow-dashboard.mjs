@@ -3,9 +3,13 @@ export const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;'
 
 export function renderWorkflowHeader({ workflow, title, logoBase64, badges, pluginVersion = null, usageSnapshot = null }) {
   const usage = usageSnapshot;
-  const capacity = usage?.context_capacity ? new Intl.NumberFormat('en', { notation: 'compact' }).format(usage.context_capacity) : 'Unavailable';
-  const context = usage?.context_percent == null ? 'Unavailable' : `${usage.context_percent}% of ${capacity}`;
-  const cost = usage?.estimated_cost_usd == null ? 'Unavailable' : `~$${usage.estimated_cost_usd.toFixed(2)}`;
+  const metadata = [`<span class="plugin-version">${pluginVersion ? `Plugin v${escapeHtml(pluginVersion)}` : 'Plugin version: Unknown'}</span>`];
+  if (usage?.context_percent != null) {
+    const capacity = usage.context_capacity ? ` of ${new Intl.NumberFormat('en', { notation: 'compact' }).format(usage.context_capacity)}` : '';
+    metadata.push(`Context: ${escapeHtml(`${usage.context_percent}%${capacity}`)}`);
+  }
+  if (usage?.estimated_cost_usd != null) metadata.push(`Estimated session cost: ${escapeHtml(`~$${usage.estimated_cost_usd.toFixed(2)}`)}`);
+  if (metadata.length > 1 && usage?.captured_at) metadata.push(`Captured at ${escapeHtml(usage.captured_at)}`);
   return `<div class="header-row">
   <a href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
     <img src="data:image/png;base64,${escapeHtml(logoBase64)}" alt="InsideOut AI">
@@ -13,7 +17,7 @@ export function renderWorkflowHeader({ workflow, title, logoBase64, badges, plug
   <h1>Make-It-Work: ${escapeHtml(workflow)}: <em>${escapeHtml(title)}</em></h1>
   <div class="header-badges" aria-label="Workflow settings">${badges}</div>
 </div>
-<p class="workflow-metadata"><span class="plugin-version">${pluginVersion ? `Plugin v${escapeHtml(pluginVersion)}` : 'Plugin version: Unknown'}</span> · Context: ${escapeHtml(context)} · Estimated session cost: ${escapeHtml(cost)}${usage?.captured_at ? ` · Captured at ${escapeHtml(usage.captured_at)}` : ''}</p>`;
+<p class="workflow-metadata">${metadata.join(' · ')}</p>`;
 }
 
 export const WORKFLOW_STYLES = `
