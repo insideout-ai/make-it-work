@@ -53,3 +53,5 @@ Finally, for every completed run with `final_package_version: 1`, run `node "<ba
 
 
 For `change_assessment_version: 1`, include both change ratings, completeness, deciding rationale, exact snapshot and Markdown/JSON report links from the package. If unavailable, disclose the failure reason and label any previous report stale history; never repeat old ratings as current.
+
+Preserve each returned `validation_notes` qualification in the final approval prompt and completion summary, including suspected baseline attribution, unrun checks and unobserved acceptance behavior. Reuse the package checker’s assurance text without strengthening it. “CLEAN” is a routing outcome, not proof that every criterion passed; retain “Approve with nits” and open advisories. If risk was reassessed during Lightweight implementation, state the recorded rationale and remaining limits rather than reverting to the initial small-change description.

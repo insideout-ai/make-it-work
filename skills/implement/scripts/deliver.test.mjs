@@ -63,7 +63,7 @@ async function fixture(t, { dashboard = false, qualified = false } = {}) {
     coverage: 'Earlier work was only skimmed from the diff.', findings: [], repo_roots: { service: repo },
     review_scope: [{ repo: 'service', scope: 'branch', base: 'main', paths: ['code.txt'] }],
     review_limitations: [{ repo: 'service', depth: 'skimmed', paths: ['code.txt'], reason: 'Requirements of earlier work were not verified' }],
-    ...(qualified === true ? { validation_notes: ['Introduced TS2322 in the new component; shared wrapper typings are the evidenced cause; runtime impact remains unchecked'] } : {}),
+    ...(qualified === true ? { validation_notes: ['Introduced TS2322 in the new component; shared wrapper typings are the evidenced cause; runtime impact remains unchecked', 'Other build failures are suspected baseline issues by inspection; no clean baseline was run. Import integration and real service responses remain unverified.'] } : {}),
     ui_verification: { status: 'not-applicable', note: 'No UI changes' },
   });
   const built = cli(packageCli, 'build', root, state, ['--draft', draft, '--repo', repo]);
@@ -97,6 +97,11 @@ test('review-depth qualifications survive package, delivery preview and generate
   const pkg = JSON.parse(await readFile(artifactJoin(f.artifacts, 'DEMO-final-package.json'), 'utf8'));
   assert.match(pkg.validation_notes[0], /Introduced TS2322/);
   assert.match(summarizeAssurance(pkg).text, /Introduced TS2322/);
+  const qualification = pkg.validation_notes[1];
+  assert.match(qualification, /suspected baseline issues.*no clean baseline was run/);
+  for (const text of [preview, plan.draft.pr_description, summarizeAssurance(pkg).text]) {
+    assert.ok(text.includes(qualification), 'baseline uncertainty and unverified acceptance behavior must survive every summary');
+  }
   assert.equal(git(f.repo, 'rev-list', '--count', 'HEAD'), '1');
 });
 

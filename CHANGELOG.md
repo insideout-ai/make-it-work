@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Recover verified feedback finalization through an explicit transcript-backed command when hook discovery is missing; preserve complete controller JSON, support compact inspection, and surface receipt I/O failures and actionable delivery recovery.
 - Deduplicate repeated delegate report revisions without changing workflow state, repeating completion messages or suppressing revised reports.
 
+- Preserve uncertain baseline attribution and unverified acceptance behavior through approval and delivery summaries; require an explicit Lightweight risk reassessment and actionable routing for declared accepted-requirement violations.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added

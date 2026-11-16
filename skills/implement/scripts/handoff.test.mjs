@@ -242,7 +242,11 @@ test('routes Lightweight implementation to review and requires the lightweight p
   for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
     assert.deepEqual(decideNext(adaptive('lightweight', autonomy), implement()), { action: 'phase', reason: 'Lightweight implementation finished.', phase: 'review' });
   }
-  assert.equal(decideNext(adaptive('lightweight', 'autonomous'), implement({ risk_signal: 'Shared schema change' })).phase, 'review');
+  assert.throws(() => decideNext(adaptive('lightweight', 'autonomous'), implement({ risk_signal: 'Shared schema change' })), /risk_reassessment/);
+  const reassessed = decideNext(adaptive('lightweight', 'autonomous'), implement({ risk_signal: 'Shared helper touched', risk_reassessment: 'Retain Lightweight: the shared contract is unchanged and both callers have focused passing tests; staging remains unverified.' }));
+  assert.equal(reassessed.phase, 'review');
+  assert.match(reassessed.reason, /Risk reassessment:.*staging remains unverified/);
+  assert.equal(decideNext(adaptive('lightweight', 'autonomous'), implement({ risk_signal: 'none' })).phase, 'review');
   assert.equal(decideNext(adaptive('lightweight', 'autonomous'), { version: 1, ticket: 'DEMO-1', plan_version: 1, stage: 'implement', status: 'blocked', reason: 'Build broke' }).action, 'stop');
   assert.throws(() => decideNext(adaptive('execute', 'autonomous', { mode: 'tdd' }), implement()), /does not match state phase/);
   assert.throws(() => decideNext(adaptive('lightweight', 'autonomous'), execute('PASSED')), /does not match state phase/);

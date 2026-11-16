@@ -133,11 +133,11 @@ export function startupProgress(events) {
           terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); knownAgents.clear(); resumeCalls.clear(); seenResumes.clear(); tasks.clear(); taskCalls.clear();
         }
         for (const value of runtimeObjects(output)) {
-            const action = value.next_action;
-            if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
-                action.runId === value.fields?.start_time) { terminalFeedback = action; feedbackRun = action; }
-            const context = value.feedbackContext;
-            if (context && typeof context.state === 'string' && path.isAbsolute(context.state) && Number.isFinite(Date.parse(context.runId))) feedbackRun = context;
+          const action = value.next_action;
+          if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
+              action.runId === value.fields?.start_time) { terminalFeedback = action; feedbackRun = action; }
+          const context = value.feedbackContext;
+          if (context && typeof context.state === 'string' && path.isAbsolute(context.state) && Number.isFinite(Date.parse(context.runId))) feedbackRun = context;
         }
       }
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;

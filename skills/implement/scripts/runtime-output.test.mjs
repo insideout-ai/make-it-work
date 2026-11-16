@@ -13,7 +13,7 @@ test('complete JSON and JSONL envelopes are supported; incomplete JSON is not ev
 });
 
 test('historical projected/truncated handoff is not discovered; complete compact output restores it', async () => {
-  const events = (await readFile(new URL('./fixtures/session-completion.jsonl', import.meta.url), 'utf8')).trim().split('\n').map(JSON.parse);
+  const events = (await readFile(new URL('../../../evals/fixtures/session-completion/transcript.jsonl', import.meta.url), 'utf8')).trim().split('\n').map(JSON.parse);
   assert.equal(startupProgress(events).feedbackRun, null);
   const context = { state: '/fixture/make-it-work/DEMO/DEMO-state.md', runId: '2026-01-01T10:00:00Z' };
   for (const spacing of [undefined, 2]) {

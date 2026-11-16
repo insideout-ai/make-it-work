@@ -21,3 +21,5 @@ On **Request changes**, save the developer's notes in `make-it-work/<TICKET>/<TI
 
 ---
 
+
+When presenting exact-package approval, preserve the checker’s assurance and every `validation_notes` qualification, distinguishing confirmed baseline evidence from attribution by inspection. Never upgrade suspected baseline errors to proven pre-existing errors or an unobserved scenario to passing coverage. User acceptance of Limited assurance does not change these facts.
