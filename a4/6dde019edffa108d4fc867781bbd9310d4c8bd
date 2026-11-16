@@ -1,0 +1,53 @@
+CHANGELOG.md
+  s_083ab900d25fae::t_ad1b333c7c860a 25-26
+.githooks/pre-push
+  s_083ab900d25fae::t_a4dafdb35b8507 2,4-6
+.github/pull_request_template.md
+  s_083ab900d25fae::t_358b116e20da92 29,31-33
+CONTRIBUTING.md
+  s_083ab900d25fae::t_4a5de11839cd11 27-30,61-84
+docs/eval-release-checklist.md
+  s_083ab900d25fae::t_88dd72cdbaf32d 9,22-24
+evals/README.md
+  s_083ab900d25fae::t_30fff33d245919 10,15-28,35-36,43-63,104-106,137-140
+evals/define-test-strategy/README.md
+  s_083ab900d25fae::t_7b34a38612b651 26
+evals/deliver/README.md
+  s_083ab900d25fae::t_9e9bd319a2bb9c 11
+evals/drive-the-epic/README.md
+  s_083ab900d25fae::t_36d8a781bdff44 6-7
+evals/go-deep/README.md
+  s_083ab900d25fae::t_40b0bd0c4680c4 10
+evals/run-suite-args.test.mjs
+  s_083ab900d25fae::t_19d5ddeaab9c03 6,23-39
+evals/run-suite.mjs
+  s_083ab900d25fae::t_84fd43b40f7af2 13-14,19-21,38-41,53,63-85,98-99,236,248-253
+evals/shape-the-epic/README.md
+  s_083ab900d25fae::t_3ea404ae32717d 31
+evals/slice-the-epic/README.md
+  s_083ab900d25fae::t_8e46b1715a2891 18
+evals/smoke-policy.mjs
+  s_083ab900d25fae::t_bee4512f3649c5 1-58
+evals/smoke-policy.test.mjs
+  s_083ab900d25fae::t_23f68109366b96 1-63
+scripts/install-pre-push-hook.sh
+  s_083ab900d25fae::t_8e5e7f99ee450c 22
+scripts/pre-push-hook.test.mjs
+  s_083ab900d25fae::t_33a263a21be3cf 45,51-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a46dde019edffa108d4fc867781bbd9310d4c8bd",
+  "prompts": {},
+  "sessions": {
+    "s_083ab900d25fae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e45c-ac43-7b63-9266-bc4cebb9c9e9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
