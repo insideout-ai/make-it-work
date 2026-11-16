@@ -68,7 +68,13 @@ A successful report save does not trigger another closing check. If collection f
 
 ## Prepare the report and invite input
 
-Save a provisional Markdown report before asking for feedback. For standalone use, use a real current timestamp for `make-it-work/session-reviews/feedback-<YYYYMMDDTHHMMSSZ>.md` under the current working directory; create the directory and use a numeric suffix if the name exists. Never overwrite another review. Record this output path and update that same file throughout this review. Standalone use does not modify implement-feedback.md or workflow-feedback.md. Standalone mode does not modify state files or approved packages. Automatic integration preserves workflow fields and approved packages; only its helpers append informational feedback lifecycle audit notes.
+Save a provisional Markdown report before asking for feedback. For each new standalone review, generate the timestamp from the current UTC clock **in the resolver call**:
+
+```sh
+node "<base>/../../scripts/artifact-output.mjs" resolve --root "<project-root>" --directory make-it-work/session-reviews --name "feedback-$(date -u +%Y%m%dT%H%M%SZ).md"
+```
+
+The resolver adds the naming prefix and returns the actual path; it preserves the logical filename supplied and does not generate a timestamp or ensure uniqueness. Check that the returned path is unused before writing. If it exists, resolve again with a numeric suffix after the timestamp and before `.md`, until unused. Never overwrite another review. Record the returned `file`/`relative` and update that same report throughout this review, including user replies; only a new review chooses a new path. Standalone use does not modify implement-feedback.md or workflow-feedback.md. Standalone mode does not modify state files or approved packages. Automatic integration preserves workflow fields and approved packages; only its helpers append informational feedback lifecycle audit notes.
 
 Include these sections:
 

@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Move final change assessment into header badges and linked, deduplicated audit results; hide earlier-phase assessments and show neutral stale/unavailable badges while preserving reports, package evidence and legacy behavior.
 
+- Resolve standalone session feedback with a real UTC timestamp in the filename and check the returned path for collisions before saving, preserving separate reviews.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added
