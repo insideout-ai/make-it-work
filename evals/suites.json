@@ -14,7 +14,8 @@
     "autopilot-bare",
     "rr-full-pass",
     "shape-the-epic-rich-input-autopilot",
-    "slice-the-epic-well-specified-epic-autopilot"
+    "slice-the-epic-well-specified-epic-autopilot",
+    "assessment-sensitive"
   ],
   "headless": [
     "implement-planning-progress",
@@ -149,7 +150,14 @@
     "implement-refinement-inline-baseline",
     "implement-refinement-worker-local",
     "implement-refinement-worker-blocked",
-    "implement-refinement-worker-full"
+    "implement-refinement-worker-full",
+    "assessment-sensitive",
+    "assessment-inherited",
+    "assessment-ambiguous",
+    "assessment-inaccessible-pr",
+    "assessment-docs",
+    "assessment-pr-snapshot",
+    "assessment-partial-multi"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
@@ -275,6 +283,10 @@
       "Bash"
     ],
     "review-the-code": [
+      "Read",
+      "Bash"
+    ],
+    "assess-complexity": [
       "Read",
       "Bash"
     ]

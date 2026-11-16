@@ -27,7 +27,7 @@ const concurrencyArg = argv.find(arg => arg.startsWith('--concurrency='))?.slice
 const budget = budgetArg ? Number(budgetArg.split('=')[1]) : tier === 'critical' ? 20 : tier === 'full' ? 45 : 12;
 
 if (!['smoke', 'critical', 'extended', 'full'].includes(tier) || !Number.isFinite(budget) || budget <= 0 ||
-    skills.some(skill => !skill) || (concurrencyArg !== undefined && (!/^[1-9]\d*$/.test(concurrencyArg) || Number(concurrencyArg) > (tier === 'smoke' ? 14 : 4))) || requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
+    skills.some(skill => !skill) || (concurrencyArg !== undefined && (!/^[1-9]\d*$/.test(concurrencyArg) || Number(concurrencyArg) > (tier === 'smoke' ? 15 : 4))) || requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
     argv.some((arg, index) => index > 0 && arg !== '--dry-run' &&
       !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case=') && !arg.startsWith('--model=') &&
       !arg.startsWith('--judge-model=') && !arg.startsWith('--skill=') && !arg.startsWith('--shard=') && !arg.startsWith('--concurrency='))) {

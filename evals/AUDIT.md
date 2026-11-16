@@ -86,3 +86,7 @@ pass. Workflow fixes are separate follow-ups. Original case verdicts remain
 unchanged in local reports. The interrupted run's missing summary can be
 reconstructed from its saved per-case traces and grader results with an explicit
 recovery qualification; it must not be presented as an original runner summary.
+
+## Change assessment coverage
+
+New `assess-complexity` cases: `assessment-sensitive` (smoke), `assessment-inherited`, `assessment-docs`, `assessment-ambiguous`, `assessment-inaccessible-pr`, `assessment-pr-snapshot`, `assessment-partial-multi` (extended). They exercise real standalone skill behavior and durable reports. Deterministic tests in `scripts/change-assessment.test.mjs` cover bands, inherited minimum risk, analyzer availability, multi-repository gaps, unsupported generated/binary scope, snapshot reuse/invalidation, and stale failure history. Final-package integration tests cover both implementation modes and preservation of historical packages and approvals. Inventory does not imply passing behavioral evidence; record run reports before readiness.

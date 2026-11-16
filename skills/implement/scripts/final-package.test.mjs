@@ -482,3 +482,66 @@ test('approved historical packages retain their exact presentation and approval 
   assert.equal(run('check', root, state).approved, false);
   assert.match(await readFile(built.package, 'utf8'), /Assurance: Limited/);
 });
+
+for (const mode of ['tdd', 'lightweight']) test(`change assessment is informational and consistent across ${mode} packaging/dashboard`, async t => {
+  const { captureScope, assess, saveAssessment, unavailable } = await import('../../../scripts/change-assessment.mjs');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'assessment-package-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  if (mode === 'lightweight') {
+    await writeFile(state, adaptiveState('DEMO', { mode, risk: 'low', escalations: 0 }));
+    await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Implemented\n');
+  }
+  await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nchange_assessment_version: 1'));
+  const before = await readFile(state, 'utf8');
+  await generateDashboard(state);
+  const html = path.join(dir, 'DEMO-status.html');
+  assert.match(await readFile(html, 'utf8'), /Change assessment.*Not assessed yet/s);
+  let built = run('build', root, state, '--draft', draft, '--repo', root);
+  let pkg = JSON.parse(await readFile(built.json,'utf8'));
+  assert.equal(pkg.change_assessment.completeness,'unavailable');
+  assert.equal(run('check',root,state).current,true);
+  await writeFile(path.join(root,'src/existing.txt'),'after\n');
+  const scope={ label:'DEMO', repos:[{path:root,base:'main'}] };
+  const snap=await captureScope(scope);
+  const report=assess(snap,{ snapshot_id:snap.snapshot_id, rationale:'src/existing.txt:1 sensitive contract change', repos:[{
+    path:snap.repos[0].path, full_scope:true, coverage:[{file:'src/existing.txt',status:'assessed',evidence:'Full diff inspected'}],
+    dependencies:'All consumers checked', verification:'Existing validation retained', measurements:'missing', measurement_limitation:'No analyzer available',
+    complexity_dimensions:[{dimension:'state',rating:'High',evidence:'Inherited state complexity in changed function'}], risk_dimensions:[{dimension:'impact',rating:'Low',evidence:'Local change'}]
+  }] });
+  await saveAssessment(root,'DEMO',report);
+  built=run('build',root,state,'--draft',draft,'--repo',root);
+  pkg=JSON.parse(await readFile(built.json,'utf8'));
+  assert.equal(pkg.change_assessment.complexity,'High'); assert.equal(pkg.change_assessment.risk,'High'); assert.equal(pkg.review.status,'clean');
+  await generateDashboard(state);
+  assert.match(await readFile(html,'utf8'),/Code complexity: High · Production change risk: High · partial/);
+  assert.match(await readFile(built.package,'utf8'),/Code complexity: High · Production change risk: High · partial/);
+  assert.equal(run('check',root,state).current,true);
+  await writeFile(path.join(root,'src/existing.txt'),'changed again\n');
+  await generateDashboard(state);
+  assert.match(await readFile(html,'utf8'),/Assessment unavailable.*snapshot changed/s);
+  assert.doesNotMatch(await readFile(html,'utf8'),/Code complexity: High/);
+  const next=await captureScope(scope);
+  await saveAssessment(root,'DEMO',unavailable(next,'Reassessment failed: analyzer crashed'));
+  built=run('build',root,state,'--draft',draft,'--repo',root);
+  assert.match(await readFile(built.package,'utf8'),/Assessment unavailable.*analyzer crashed/);
+  assert.match(await readFile(built.package,'utf8'),/Stale history/);
+  assert.doesNotMatch(await readFile(built.package,'utf8'),/Code complexity: High/);
+  assert.equal(run('check',root,state).current,true);
+  // Only normal package checkpoints may change state; routing and validation are unchanged.
+  const after = await readFile(state,'utf8');
+  for (const key of ['phase','mode','risk','review','gate','execution']) assert.equal(parseState(after).fields[key],parseState(before).fields[key]);
+});
+
+test('explicit standalone reports leave older package bytes and approval intact', async t => {
+  const { captureScope, saveAssessment, unavailable }=await import('../../../scripts/change-assessment.mjs');
+  const root=await mkdtemp(path.join(os.tmpdir(),'assessment-legacy-'));
+  t.after(()=>rm(root,{recursive:true,force:true})); await initRepo(root);
+  const {state,draft}=await artifacts(root);
+  const built=run('build',root,state,'--draft',draft,'--repo',root); run('approve',root,state,'--hash',built.sha256);
+  const bytes=await readFile(built.json,'utf8');
+  await saveAssessment(root,'DEMO-assessment-new',unavailable(await captureScope({label:'Older DEMO',repos:[{path:root,base:'main'}]}),'No analyzer evidence'));
+  assert.equal(await readFile(built.json,'utf8'),bytes);
+  assert.equal(run('check',root,state,'--require-approval').approved,true);
+});

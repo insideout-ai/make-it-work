@@ -41,7 +41,7 @@ run all shards against the same commit and selection to cover that inventory.
 Do not equate one shard with a full tier pass. No automatic schedule is installed;
 maintainers can rotate these batches during normal maintenance.
 
-Non-smoke runs accept `--concurrency=1` through `4`; smoke accepts up to `14`.
+Non-smoke runs accept `--concurrency=1` through `4`; smoke accepts up to `15`.
 The runner divides each wave's remaining budget among its active cases, including
 grading. Unused per-case shares cannot move during a wave. An incomplete or
 budget-exhausted case is never a passing case. Use `--max-cost-usd=N` to select a

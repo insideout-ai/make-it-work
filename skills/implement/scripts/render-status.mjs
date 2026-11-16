@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readAssessment, assessmentSummary } from '../../../scripts/change-assessment.mjs';
 
 import { randomUUID } from 'node:crypto';
 import { readFile, rename, stat, unlink, writeFile } from 'node:fs/promises';
@@ -828,7 +829,13 @@ function renderFeedbackNote(feedback) {
   return '<p class="feedback-note" data-workflow-feedback-status="saved"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a>. Review and share only that session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>';
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null }) {
+function renderAssessment(report) {
+  const summary = report && report.reason !== 'Not assessed yet' ? assessmentSummary(report) : 'Not assessed yet';
+  const links = Object.values(report?.reports ?? {}).map(file => `<a href="${escapeHtml(path.basename(file))}">${escapeHtml(path.basename(file))}</a>`).join(' · ');
+  return `<section class="change-assessment" aria-label="Change assessment"><h2>Change assessment</h2><p><strong>${escapeHtml(summary)}</strong></p><p>${escapeHtml(report?.rationale ?? report?.reason ?? '')}</p><p>${links}</p>${report?.scope ? `<p>Assessed snapshot: <code>${escapeHtml(report.scope.snapshot_id)}</code> · ${escapeHtml(report.timestamp)}</p>` : ''}${report?.stale_history ? `<a href="${escapeHtml(report.stale_history)}">Stale history — previous assessment</a>` : ''}</section>`;
+}
+
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null }) {
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -862,6 +869,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
     // Older templates may still contain this placeholder. Details live in artifacts.
     ASSURANCE_SUMMARY: '',
+    CHANGE_ASSESSMENT: state.fields.change_assessment_version === '1' ? renderAssessment(assessment) : '',
     ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
@@ -949,7 +957,8 @@ export async function generateDashboard(statePath) {
   }
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
-  const html = renderStatus({ state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback });
+  const assessment = state.fields.change_assessment_version === '1' ? await readAssessment(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
+  const html = renderStatus({ assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback });
   const outputPath = path.join(path.dirname(absoluteStatePath), `${state.fields.ticket}-status.html`);
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {

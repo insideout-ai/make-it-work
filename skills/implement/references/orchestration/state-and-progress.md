@@ -18,6 +18,7 @@ review_checks_version: 1      # required skill/rule and mapping assessment evide
 feedback_evidence_version: 1  # numbered source packet and inspection coverage; new runs only
 status: In Progress            # In Progress | Paused | Stopped | Complete
 phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | lightweight | review | fix-plan | final-sync | final-approval | complete
+change_assessment_version: 1   # informational assessment after final sync; new runs only
 final_package_version: 1       # new runs build a content-bound final package; absent on older runs
 acceptance_evidence_version: 1 # new TDD runs map requirement clauses to assertions/observations
 verification_version: 1        # new runs persist per-step and AC evidence; absent on older runs
