@@ -514,6 +514,7 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   await saveAssessment(root,'DEMO',report);
   const afterSave = await readFile(state, 'utf8');
   assert.equal(parseState(afterSave).audit.filter(row => row.note?.id.startsWith('change-assessment:')).length, 1, 'Saving a final assessment must persist its audit entry immediately.');
+  assert.match(afterSave, /completeness: partial; rationale: src\/existing.txt:1 sensitive contract change/);
   for (const phase of mode === 'lightweight' ? ['close-the-gaps', 'lightweight', 'review', 'final-sync'] : ['close-the-gaps', 'plan', 'execute', 'review', 'final-sync']) {
     const early = before.replace('phase: final-approval', `phase: ${phase}`);
     await writeFile(state, early);
@@ -534,6 +535,14 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   assert.doesNotMatch(rendered, /class="change-assessment"|<h2>Change assessment|CHANGE_ASSESSMENT/);
   assert.match(rendered, /Result: Change assessment — Code complexity: High; Production risk: High; completeness: partial.*href="DEMO-complexity.md"/);
   const assessmentRows = async () => parseState(await readFile(state, 'utf8')).audit.filter(row => row.note?.id.startsWith('change-assessment:'));
+  assert.equal((await assessmentRows()).length, 1);
+  // Already persisted pre-rationale notes stay byte-identical and gain the
+  // reason in HTML only from their matching report, without duplicate results.
+  const legacyNoteState = (await readFile(state, 'utf8')).replace('; rationale: src/existing.txt:1 sensitive contract change', '');
+  await writeFile(state, legacyNoteState);
+  await generateDashboard(state);
+  assert.equal(await readFile(state, 'utf8'), legacyNoteState);
+  assert.match(await readFile(html, 'utf8'), /completeness: partial; rationale: src\/existing.txt:1 sensitive contract change.*View assessment report/);
   assert.equal((await assessmentRows()).length, 1);
   const savedState = await readFile(state, 'utf8');
   await generateDashboard(state); await generateDashboard(state);

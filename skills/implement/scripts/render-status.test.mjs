@@ -246,7 +246,7 @@ test('assessment badges appear only in final approval/completion after a recorde
   const report = { audit_id: 'change-assessment:fixture', complexity: 'Low', risk: 'Medium', completeness: 'partial', rationale: 'Missing analyzer; inspected "scope" <boundary>' };
   const rows = [
     ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
-    ['2026-01-01T10:01:00Z', 'final-approval', 'final-approval', noteCell({ kind: 'result', id: report.audit_id, text: 'Change assessment recorded', reference: 'DEMO-complexity.md' })],
+    ['2026-01-01T10:01:00Z', 'final-approval', 'final-approval', noteCell({ kind: 'result', id: report.audit_id, text: 'Change assessment — Code complexity: Low; Production risk: Medium; completeness: partial', reference: 'DEMO-complexity.md' })],
   ];
   for (const mode of ['lightweight', 'tdd']) for (const phase of ['close-the-gaps', 'spec-approval', 'plan', 'plan-approval', 'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete']) {
     const fields = { phase, status: phase === 'complete' ? 'Complete' : 'In Progress', final_package_version: '1', change_assessment_version: '1', adaptive_version: '1', mode, risk: 'low', mode_source: 'assessed', risk_rationale: 'Initial risk', escalations: '0', implementation_report: 'none' };
@@ -257,10 +257,18 @@ test('assessment badges appear only in final approval/completion after a recorde
       assert.match(html, /class="pill assessment-low"[^>]*>Code complexity: Low/);
       assert.match(html, /class="pill assessment-medium"[^>]*>Production risk: Medium/);
       assert.match(html, /title="Completeness: partial\. Missing analyzer; inspected &quot;scope&quot; &lt;boundary&gt;"/);
+      const row = html.indexOf('<span class="assessment-badge-row"');
+      assert.ok(row > html.indexOf('Mode: '), 'Assessment badges must follow the primary settings in their own row.');
+      assert.ok(html.indexOf('>Code complexity: Low') > row);
+      assert.ok(html.indexOf('>Production risk: Medium') > row);
+      const audit = renderStatus({ ...options, template: '{{AUDIT_ROWS}}' });
+      assert.match(audit, /rationale: Missing analyzer; inspected &quot;scope&quot; &lt;boundary&gt;.*View assessment report/);
+      assert.doesNotMatch(audit, /<boundary>/);
+      assert.doesNotMatch(renderStatus({ ...options, template: '{{AUDIT_ROWS}}', assessment: { ...report, audit_id: 'another-assessment' } }), /rationale:/);
       assert.doesNotMatch(renderStatus({ ...options, assessment: { ...report, audit_id: 'not-recorded' } }), /Code complexity:|Production risk:|Assessment:/);
       delete fields.change_assessment_version;
       assert.doesNotMatch(renderStatus({ ...options, state: parseState(stateMarkdown({ fields, rows })) }), /Code complexity:|Production risk:|Assessment:/);
-    } else assert.doesNotMatch(html, /Code complexity:|Production risk:|Assessment:|assessment-low|assessment-medium/);
+    } else assert.doesNotMatch(html, /Code complexity:|Production risk:|Assessment:|assessment-low|assessment-medium|assessment-badge-row/);
   }
 });
 
@@ -1432,19 +1440,43 @@ test('version and optional usage appear in header without changing refresh behav
     assert.equal(metadata, `<span class="plugin-version">Plugin v5.9.0-rc.1</span>${expected}`);
   }
 });
-test('finalizing and session time include feedback, freeze at its endpoint, and exclude delivery', () => {
-  const state = parseState(stateMarkdown({ fields: { phase: 'complete', status: 'Complete', final_package_version: '1' }, rows: [
+test('finalizing and session time include assessment and feedback, freeze at its endpoint, and exclude delivery', () => {
+  const state = parseState(stateMarkdown({ fields: { phase: 'complete', status: 'Complete', final_package_version: '1', change_assessment_version: '1' }, rows: [
     ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start'],
     ['2026-01-01T10:05:00Z', 'review', 'final-sync', 'Sync'],
     ['2026-01-01T10:07:00Z', 'final-sync', 'final-approval', 'Approval'],
+    ['2026-01-01T10:07:10Z', 'final-approval', 'final-approval', noteCell({ kind: 'activity', id: 'assessment-start', text: 'Assessing code complexity and production risk' })],
+    ['2026-01-01T10:07:50Z', 'final-approval', 'final-approval', noteCell({ kind: 'result', id: 'change-assessment:timing', text: 'Change assessment — Code complexity: Low; Production risk: Low; completeness: complete; rationale: Local change', reference: 'DEMO-complexity.md' })],
     ['2026-01-01T10:08:00Z', 'final-approval', 'complete', 'Done'],
     ['2026-01-01T11:00:00Z', 'complete', 'complete', 'Delivery'],
   ] }));
   const template = '{{PHASE_TIMELINE}} {{SESSION_TIMING}}';
   const collecting = renderStatus({ state, template, logoBase64: '', feedback: { status: 'collecting' }, now: Date.parse('2026-01-01T10:10:00Z') });
   assert.match(collecting, /phase-duration">5m/); assert.match(collecting, /10m of elapsed/);
+  assert.match(collecting, /assesses code complexity and production risk/);
+  assert.match(collecting, /Its elapsed time includes the assessment/);
   for (const status of ['saved', 'unavailable']) {
     const html = renderStatus({ state, template, logoBase64: '', feedback: { status, finalizedAt: '2026-01-01T10:12:00Z' }, now: Date.parse('2026-01-02T10:00:00Z') });
     assert.match(html, /phase-duration">7m/); assert.match(html, /12m of elapsed/);
+  }
+});
+
+test('both modes name active assessment inside Finalizing without adding a stage', () => {
+  for (const mode of ['lightweight', 'tdd']) {
+    const fields = { phase: 'final-approval', final_package_version: '1', change_assessment_version: '1', current_activity: 'Assessing code complexity and production risk', adaptive_version: '1', mode, risk: 'low', mode_source: 'assessed', risk_rationale: 'Initial risk', escalations: '0', implementation_report: 'none' };
+    const state = parseState(stateMarkdown({ fields, rows: [
+      ['2026-01-01T10:00:00Z', 'review', 'final-sync', 'Review clean'],
+      ['2026-01-01T10:01:00Z', 'final-sync', 'final-approval', 'Final sync done'],
+      ['2026-01-01T10:01:10Z', 'final-approval', 'final-approval', noteCell({ kind: 'activity', id: 'assessment-start', text: fields.current_activity })],
+    ] }));
+    const html = renderStatus({ state, template: '<div class="phase-timeline">{{PHASE_TIMELINE}}</div><p class="timeline-scroll-hint"></p>{{CURRENT_ACTIVITY}}', logoBase64: '' });
+    assert.equal(timelineLabels(html).filter(label => label === 'Finalizing').length, 1);
+    assert.match(html, /phase-mode">Assessing code complexity and production risk<\/div>/);
+    assert.match(html, /phase-activity">Assessing code complexity and production risk<\/p>/);
+    assert.doesNotMatch(html, /phase-label[^>]*>(?:Code complexity|Production risk|Assessment)</);
+    delete state.fields.change_assessment_version;
+    const legacy = renderStatus({ state, template: '{{PHASE_TIMELINE}}', logoBase64: '' });
+    assert.match(legacy, /Preparing final review/);
+    assert.doesNotMatch(legacy, /assesses code complexity|Its elapsed time includes the assessment/);
   }
 });
