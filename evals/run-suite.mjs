@@ -10,10 +10,15 @@ import { selectSuite, failureCategory } from './suite-policy.mjs';
 import { gradeHeadlessCase } from './grade-headless.mjs';
 import { contextMetrics } from './context-metrics.mjs';
 import { caseTools, pluginEvalArgs, caseWorkingDirectory } from './run-suite-args.mjs';
+import { beginSmoke } from './smoke-policy.mjs';
+import { rmSync } from 'node:fs';
 
 const argv = process.argv.slice(2);
 const tier = argv[0];
 const dryRun = argv.includes('--dry-run');
+const pr = argv.find(arg => arg.startsWith('--pr='))?.slice(5);
+const ready = argv.includes('--ready');
+const retryFailed = argv.includes('--retry-failed');
 const budgetArg = argv.find((arg) => arg.startsWith('--max-cost-usd='));
 const modelArg = argv.find((arg) => arg.startsWith('--model='));
 const model = modelArg?.slice('--model='.length);
@@ -30,8 +35,10 @@ if (!['smoke', 'critical', 'extended', 'full'].includes(tier) || !Number.isFinit
     skills.some(skill => !skill) || (concurrencyArg !== undefined && (!/^[1-9]\d*$/.test(concurrencyArg) || Number(concurrencyArg) > (tier === 'smoke' ? 15 : 4))) || requestedCases.some((name) => !name) || model === '' || judgeModel === '' ||
     argv.some((arg, index) => index > 0 && arg !== '--dry-run' &&
       !arg.startsWith('--max-cost-usd=') && !arg.startsWith('--case=') && !arg.startsWith('--model=') &&
-      !arg.startsWith('--judge-model=') && !arg.startsWith('--skill=') && !arg.startsWith('--shard=') && !arg.startsWith('--concurrency='))) {
-  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|critical|extended|full> [--dry-run] [--case=NAME ...] [--skill=NAME ...] [--shard=I/N] [--concurrency=N] [--max-cost-usd=N] [--model=ID] [--judge-model=ID]\n');
+      !arg.startsWith('--judge-model=') && !arg.startsWith('--skill=') && !arg.startsWith('--shard=') && !arg.startsWith('--concurrency=') &&
+      !arg.startsWith('--pr=') && arg !== '--ready' && arg !== '--retry-failed') ||
+    (tier !== 'smoke' && (pr !== undefined || ready || retryFailed))) {
+  process.stderr.write('Usage: node evals/run-suite.mjs <smoke|critical|extended|full> [--dry-run] [--case=NAME ...] [--skill=NAME ...] [--shard=I/N] [--concurrency=N] [--max-cost-usd=N] [--model=ID] [--judge-model=ID] [smoke: --pr=NUMBER --ready [--retry-failed]]\n');
   process.exit(64);
 }
 
@@ -43,7 +50,7 @@ if (errors.length) {
 let selected;
 try { selected = selectSuite({ cases, suites, tier, requestedCases, skills, shard }); }
 catch (error) { process.stderr.write(error.message + '\n'); process.exit(64); }
-const concurrency = concurrencyArg ? Math.min(Number(concurrencyArg), selected.length) : tier === 'smoke' ? selected.length : tier === 'critical' ? Math.min(3, selected.length) : 1;
+let concurrency = concurrencyArg ? Math.min(Number(concurrencyArg), selected.length) : tier === 'smoke' ? selected.length : tier === 'critical' ? Math.min(3, selected.length) : 1;
 if (dryRun) {
   for (const item of selected) {
     const mode = suites.headless.includes(item.name) ? 'headless + automated grading' : 'plugin eval';
@@ -51,6 +58,29 @@ if (dryRun) {
   }
   await new Promise(resolve => process.stdout.write(`${selected.length} cases; ${concurrency} concurrent; budget $${budget.toFixed(2)}. No model invoked.\n`, resolve));
   process.exit(0);
+}
+
+const git = (...args) => spawnSync('git', ['-C', REPO_ROOT, ...args], { encoding: 'utf8' });
+const before = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('status', '--porcelain').stdout };
+const stamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
+const reportRoot = process.env.MIW_EVAL_REPORT_ROOT || path.join(EVAL_ROOT, 'results');
+const reportDir = path.join(reportRoot, `${tier}-${stamp}`);
+let smoke;
+let releaseSmokeOnExit;
+if (tier === 'smoke') {
+  try {
+    if (requestedCases.length || skills.length || shard) throw new Error('Smoke selection is automatic: first run covers the suite; --retry-failed selects only unresolved cases. Use full --case=NAME for development diagnostics.');
+    if (before.status || !before.head) throw new Error('Commit the finished PR changes before its smoke run; the checkout must be clean.');
+    if (process.env.MIW_EVAL_SOURCE_COMMIT && process.env.MIW_EVAL_SOURCE_COMMIT !== before.head) throw new Error('Smoke must run directly against its recorded source commit.');
+    const common = git('rev-parse', '--path-format=absolute', '--git-common-dir');
+    if (common.status !== 0) throw new Error('Cannot locate shared Git directory for smoke ledger.');
+    smoke = await beginSmoke({ directory: path.join(common.stdout.trim(), 'miw-smoke'), pr, ready, retryFailed,
+      names: selected.map(item => item.name), commit: before.head, report: reportDir });
+    releaseSmokeOnExit = () => rmSync(smoke.lock, { recursive: true, force: true });
+    process.on('exit', releaseSmokeOnExit);
+    selected = selected.filter(item => smoke.selected.includes(item.name));
+    concurrency = Math.min(concurrency, selected.length);
+  } catch (error) { process.stderr.write(error.message + '\n'); process.exit(64); }
 }
 
 const auth = spawnSync('claude', ['auth', 'status', '--json'], { encoding: 'utf8' });
@@ -61,16 +91,12 @@ if (!loggedIn) {
   process.exit(69);
 }
 
-const stamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
-const reportRoot = process.env.MIW_EVAL_REPORT_ROOT || path.join(EVAL_ROOT, 'results');
-const reportDir = path.join(reportRoot, `${tier}-${stamp}`);
 await mkdir(reportDir, { recursive: true });
-const git = (...args) => spawnSync('git', ['-C', REPO_ROOT, ...args], { encoding: 'utf8' });
-const before = { head: git('rev-parse', 'HEAD').stdout.trim(), status: git('status', '--porcelain').stdout };
 const version = spawnSync('claude', ['--version'], { encoding: 'utf8' });
 if (version.status !== 0) throw new Error('Claude Code is not installed or available on PATH');
 const summary = {
-  tier, requestedCases, skills, shard, selectedCases: selected.map(item => item.name), partialSelection: Boolean(requestedCases.length || skills.length || shard), startedAt: new Date().toISOString(),
+  pr, smokeLedger: smoke?.file, smokeAttempt: smoke ? (retryFailed ? 'retry-failed' : 'initial') : undefined,
+  tier, requestedCases, skills, shard, selectedCases: selected.map(item => item.name), partialSelection: Boolean(requestedCases.length || skills.length || shard || retryFailed), startedAt: new Date().toISOString(),
   commit: process.env.MIW_EVAL_SOURCE_COMMIT || before.head,
   snapshotCommit: process.env.MIW_EVAL_SOURCE_COMMIT ? before.head : undefined,
   claudeVersion: version.stdout.trim(), budgetUsd: budget, concurrency, cases: [],
@@ -207,6 +233,7 @@ const run = await runBatches(selected, {
     summary.cases.push(entry);
     process.stdout.write(`  ${entry.name}: ${entry.status}; reported usage $${entry.costUsd.toFixed(2)}${entry.detail ? `; ${entry.detail}` : ''}\n`);
     await writeFile(path.join(reportDir, 'summary.json'), JSON.stringify({ ...summary, costUsd: cost }, null, 2) + '\n');
+    if (smoke) await smoke.record(entry, before.head === git('rev-parse', 'HEAD').stdout.trim() && before.status === git('status', '--porcelain').stdout);
   },
 });
 const { cost } = run;
@@ -218,6 +245,12 @@ summary.repoUnchanged = before.head === after.head && before.status === after.st
 summary.completedAt = new Date().toISOString();
 summary.costUsd = cost;
 await writeFile(path.join(reportDir, 'summary.json'), JSON.stringify(summary, null, 2) + '\n');
+if (smoke) {
+  const passed = await smoke.finish(summary);
+  process.removeListener('exit', releaseSmokeOnExit);
+  await smoke.release();
+  process.stdout.write(`PR #${pr} cumulative smoke: ${passed ? 'PASS' : 'UNRESOLVED'}. Ledger: ${smoke.file}\n`);
+}
 if (!summary.repoUnchanged) process.stderr.write('ERROR: Plugin checkout changed during the run. Inspect it before trusting results.\n');
 const failed = summary.cases.filter((entry) => entry.status === 'failed').length;
 process.stdout.write(`${summary.cases.length}/${selected.length} cases run; ${failed} failed; reported usage $${cost.toFixed(2)}.\n`);

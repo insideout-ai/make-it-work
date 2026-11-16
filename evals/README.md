@@ -7,34 +7,60 @@ API key, CI credential, recurring job or live-model schedule is created here.
 
 | Run | Purpose | Default execution / reported-usage cap |
 | --- | --- | --- |
-| `smoke` | One representative case per public skill; every PR | All selected cases concurrently / $12 |
+| `smoke` | One representative case per public skill; once when each PR is ready | All selected cases concurrently / $12 |
 | `critical` | Explicit cross-stage and failure/resume contracts; releases and relevant changes | Up to 3 concurrently / $20 |
 | `extended` | Remaining behavioral scenarios; focused work and periodic batches | Sequential / $12 |
 | `full` | Every discovered case, including maintenance cases; optional exhaustive investigation | Sequential / $45 |
 
-Every PR needs deterministic checks and a complete passing smoke run before
-ready-for-review or merge. Also run focused cases for changed behavior and
-known dependent skills. A shared controller or handoff change needs affected
-producer/consumer cases; path filtering does not establish dependency coverage.
-For releases, require smoke, critical and change-specific focused evidence on
-the exact release source commit, plus [the release checklist](../docs/eval-release-checklist.md).
-The archive-wide `full` run is no longer a blanket prerequisite. A confirmed
-behavior defect relevant to the release remains a blocker regardless of tier;
-a smaller suite cannot waive it. Document maintenance issues and their impact.
+Finish implementation, review fixes and deterministic checks before smoke.
+Open a draft PR first; run the complete smoke inventory once, immediately before
+marking that PR ready. If it fails, fix and commit the affected changes, then use
+`--retry-failed`. Only failed or unfinished cases run; passing cases are retained.
+Ready-for-review and merge require passing evidence for every smoke case across
+the initial report plus retries. Do not demand another complete all-green run.
+Do not launch smoke on pushes, intermediate edits or review iterations.
+
+For releases, reuse the release PR's smoke sequence and add critical and focused
+changed-behavior/dependent-skill evidence on the release commit, plus
+[the release checklist](../docs/eval-release-checklist.md). Smoke evidence records
+each case's tested source commit; cumulative coverage does not mean every case
+was rerun on the final commit. `full` is optional investigation, not a blanket
+prerequisite. A confirmed relevant behavior defect remains a blocker.
 
 ```sh
 node evals/validate.mjs
 node evals/catalog.mjs                   # every case, tier, disposition and check count
 node evals/catalog.mjs --json            # includes each actual grader requirement
 node evals/run-suite.mjs smoke --dry-run
-node evals/run-suite.mjs smoke
+node evals/run-suite.mjs smoke --pr=123 --ready
+node evals/run-suite.mjs smoke --pr=123 --ready --retry-failed  # after fixing failures
 node evals/run-suite.mjs critical
 node evals/run-suite.mjs full --skill=execute --dry-run
 node evals/run-suite.mjs full --case=execute-resume-inline
 node evals/run-suite.mjs extended --shard=1/4 --max-cost-usd=12
 ```
 
-Repeat `--case` or `--skill` for several selections; filters intersect, not union.
+Smoke requires `--pr=NUMBER --ready` and a clean committed checkout. Its first
+run covers the entire inventory; `--case`, `--skill` and `--shard` are rejected
+for paid smoke. `--dry-run` remains free and does not reserve a run. Use
+`full --case=NAME` for a necessary development diagnostic.
+
+The runner stores a per-PR ledger in `git rev-parse --git-common-dir` under
+`miw-smoke/`. It reserves the initial run before model execution, refuses a second
+full run even on a later commit, blocks concurrent attempts, and automatically
+selects unresolved cases on retries. A crash or authentication failure does not
+permit a fresh full run: resume with `--retry-failed`. Each completed case is checkpointed; an interrupted attempt leaves only cases
+without a passing checkpoint unresolved. Inventory changes
+fail closed for manual investigation. Do not delete the ledger to repeat smoke.
+If a killed process leaves a `.lock` directory, verify that process has stopped
+before removing only that lock; retain the JSON ledger.
+
+Worktrees share the ledger; separate clones and machines do not. Coordinate one
+smoke owner per PR and include every report in its description. These are local
+spending safeguards, not server-side proof or a configured GitHub merge gate.
+
+
+For non-smoke tiers, repeat `--case` or `--skill` for several selections; filters intersect, not union.
 Select dependent skills explicitly. Empty/unknown selections fail before login
 or model calls. Stable `I/N` shards partition the filtered list in catalog order;
 run all shards against the same commit and selection to cover that inventory.
@@ -75,8 +101,9 @@ requirement, actual artifact and transcript before assigning behavior or grader
 ownership; record the evidence-backed disposition beside the ignored report.
 The runner does not auto-excuse a failure or infer causality from changed files.
 Passing reports use a null category. Partial selections record their explicit
-case list, filters, source commit and completion state; a passing subset never
-certifies the parent suite. Native CLI limitations may leave a failure
+case list, filters, source commit and completion state; a standalone passing subset never
+certifies the parent suite. The smoke ledger explicitly composes the initial
+full inventory with failed-case retries; it retains the source of each result. Native CLI limitations may leave a failure
 unclassified; investigate rather than guess.
 
 Prefer deterministic saved-artifact checks for exact fields, bytes, state and
@@ -107,11 +134,10 @@ retain failed verdicts, and report single-sample limitations alongside savings.
 
 Reports are local under ignored `evals/results/`, including commit, CLI version,
 case results and reported usage. Do not publish private transcripts. The
-optional `.githooks/pre-push` runs smoke against an isolated committed snapshot;
-`MIW_SMOKE_CASES` can select diagnostic cases but cannot satisfy the complete
-smoke requirement. Install with `bash scripts/install-pre-push-hook.sh`.
-The hook reports failures and allows the push; it does not certify merge or
-release readiness. Each push incurs model usage. No permission bypass is used.
+optional `.githooks/pre-push` only prints a reminder. It never invokes Node,
+Claude, or paid evaluations, including when the legacy `MIW_SMOKE_CASES` variable
+is set. Install with `bash scripts/install-pre-push-hook.sh`.
+
 
 `implement-payment-feedback-e2e` is an extended, headless full-workflow case for
 the payment-date session-line request. It uses a disposable dependency-free app
@@ -162,14 +188,6 @@ Any `fixture.sh` that runs `git init`/`add`/`commit`/`checkout` must guard again
 - **`file_exists` grader unreliability**: this grader type has been observed reproducibly reporting a confirmed-present file as missing. Prefer a `regex` or `llm` grader targeting that file's content (`{source: file, path: ...}`) over `file_exists` for a positive existence check.
 - **Default judge model (`haiku`) unreliability on long `llm` graders**: `haiku` has been observed failing objectively-correct output on long, multi-criteria `llm` graders, especially with `focus: trace` (noisy raw JSONL). Prefer `focus: last_message` with short, single-question grader prompts, or pass `--judge-model sonnet`, for any grader judging substantial or complex content.
 - **Manual headless runs of a `disable-model-invocation` skill can stochastically fail to resolve on the first attempt**: a manual `claude -p "/make-it-work:<skill> ..." --dangerously-skip-permissions` invocation of any skill with `disable-model-invocation: true` in its frontmatter (`go-deep`, `close-the-gaps`, `define-test-strategy`, `execute`, `review-the-code`, `shape-the-epic`, `slice-the-epic`) can occasionally claim the skill "isn't in the available skills list" and either stop or silently substitute an unrelated skill, with no apparent deterministic trigger — confirmed to affect multiple skills and to disappear on a plain retry of the identical command. If a manual run reports the target skill as unavailable, just retry it once before treating it as a real defect.
-
-For a focused change, select relevant pre-push smoke cases explicitly, for example:
-
-```sh
-MIW_SMOKE_CASES=drive-the-epic-autopilot git push
-```
-
-Use comma-separated case names for multiple smoke cases. The hook still tests a committed snapshot and records its report; an unset selection runs the full suite. Document the selected scope in the PR.
 
 Headless graders may receive additional saved artifacts through
 `suites.json` → `graderEvidenceFiles[caseName][graderFilename]`. Entries are

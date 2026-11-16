@@ -26,9 +26,11 @@ Change type:
 
 Manual test and result:
 
-- [ ] A complete 13-case smoke run passed for this PR before ready-for-review or merge.
+- [ ] Smoke ran once when this PR was otherwise ready; only failed/unfinished cases were retried, and every case now has passing evidence.
 
-Smoke eval report (`node evals/run-suite.mjs smoke`):
+Initial smoke report (`node evals/run-suite.mjs smoke --pr=NUMBER --ready`):
+
+Failed-case retry reports (`--retry-failed`), if any:
 
 Failed or human-reviewed cases and disposition:
 

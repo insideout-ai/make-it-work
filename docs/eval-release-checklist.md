@@ -6,7 +6,7 @@ private transcripts or test-account data.
 - Release source commit SHA, plugin version and Claude Code version:
 - Deterministic helper/controller/eval-runner checks and strict validation:
 - `node evals/validate.mjs` result:
-- Complete `smoke` report, exact source commit and reported usage:
+- Release PR smoke ledger, initial report and failed-case retry reports, per-case source commits and reported usage (reuse; do not repeat the full suite):
 - Complete `critical` report, exact source commit and reported usage:
 - Focused changed-behavior and dependent producer/consumer cases, with selection rationale:
 - All selected cases graded; no incomplete, budget-exhausted or unknown result presented as passing:
@@ -19,8 +19,9 @@ private transcripts or test-account data.
 
 Release readiness requires the maintained tiers and focused evidence above;
 `full` is optional archive-wide investigation, not a prerequisite to run all
-historical cases at once. Partial smoke/critical runs do not satisfy their
-complete-tier requirements. Cases with broken graders require repair and rerun
+historical cases at once. A standalone partial smoke run does not satisfy coverage: use the initial full
+inventory plus targeted retries recorded in the PR ledger. Critical evidence
+must cover its complete tier. Cases with broken graders require repair and rerun
 before they can certify a required contract. A confirmed relevant skill defect
 requires a fix and regression evidence; tier placement cannot waive it. Record
 infrastructure, budget and grader problems separately from behavior failures,

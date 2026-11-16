@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Resolve standalone session feedback with a real UTC timestamp in the filename and check the returned path for collisions before saving, preserving separate reviews.
 
+- Stop paid smoke runs on push; allow one readiness smoke run per PR and retain passing evidence while retrying only failed or unfinished cases through a shared-worktree ledger.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added

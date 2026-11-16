@@ -8,4 +8,4 @@ partial completion, legacy journal resume, and final delivery links. They verify
 that implementation state and package approval remain unchanged, rendering
 failure stops further publication, and runs without HTML are not backfilled.
 
-Run `node evals/run-suite.mjs smoke --case=deliver-no-package` after signing in to Claude Code, or `node evals/validate.mjs` for the credential-free inventory check.
+Run `node evals/run-suite.mjs full --case=deliver-no-package` after signing in to Claude Code, or `node evals/validate.mjs` for the credential-free inventory check.

@@ -7,7 +7,7 @@ Three cases exercising `skills/go-deep/SKILL.md`'s `--autopilot` flag: `fresh-on
 `fresh-onboarding` (the skill's smoke case) and `repair-path` are listed under `headless` in `evals/suites.json`: the runner seeds a disposable fixture, runs the prompt headlessly, and grades `graders/*.md` automatically (regex checks locally, `llm` checks with a separate judge, which runs only when every regex check passes). `negative-control` only needs to prove the run never completes unattended, so it runs through plain `claude plugin eval`:
 
 ```
-node evals/run-suite.mjs smoke --case=fresh-onboarding
+node evals/run-suite.mjs full --case=fresh-onboarding
 node evals/run-suite.mjs full --case=repair-path
 claude plugin eval . --case negative-control --scaffold --allow-tools Write Edit --ablation none --runs 1 --trust-plugin --no-publish
 ```
