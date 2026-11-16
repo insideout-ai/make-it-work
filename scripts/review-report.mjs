@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { artifactOutputJoin } from './lib/artifact-path.mjs';
 import { execFileSync } from 'node:child_process';
-import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from './lib/artifact-io.mjs';
+import { lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, requireText, withLock, within } from './lib/artifacts.mjs';
 import { validateHandoff } from '../skills/implement/scripts/handoff.mjs';
@@ -105,26 +107,27 @@ export async function writeReview(root, input) {
     rendered.summary += `\nReview qualifications:\n${qualifications}`;
   }
   await validateLocations(input);
-  const artifacts = path.join(root, 'make-it-work');
+  const artifacts = artifactOutputJoin(root, 'make-it-work');
   await mkdir(artifacts, { recursive: true });
   if (!(await lstat(artifacts)).isDirectory()) fail('Artifact root must not be a symlink.');
-  const directory = path.join(artifacts, input.ticket);
+  const directory = artifactOutputJoin(artifacts, input.ticket);
   await mkdir(directory, { recursive: true });
   if (!(await lstat(directory)).isDirectory()) fail('Run directory must not be a symlink.');
-  const report = path.join(directory, `${input.ticket}-review.md`);
+  const report = artifactOutputJoin(directory, `${input.ticket}-review.md`);
   return withLock(report, async () => {
     const evidence = await captureReviewEvidence(input, rendered.markdown);
     await validateReviewScopeInput(root, input, evidence);
     await atomicWrite(report, rendered.markdown);
-    await atomicWrite(path.join(directory, `${input.ticket}-review-evidence.json`), JSON.stringify(evidence, null, 2) + '\n');
+    await atomicWrite(artifactOutputJoin(directory, `${input.ticket}-review-evidence.json`), JSON.stringify(evidence, null, 2) + '\n');
     let handoff = null;
     let archivedReport = null;
     if (rendered.handoff) {
-      const handoffs = path.join(directory, `${input.ticket}-handoffs`);
+      rendered.handoff.artifacts.report = path.relative(root, report);
+      const handoffs = artifactOutputJoin(directory, `${input.ticket}-handoffs`);
       await mkdir(handoffs, { recursive: true });
       if (!(await lstat(handoffs)).isDirectory()) fail('Handoff directory must not be a symlink.');
-      const numbers = (await readdir(handoffs)).map((name) => Number(name.match(/^review-([1-9]\d*)(?:\.json|\.md|\.evidence\.json)$/)?.[1] ?? 0));
-      const prefix = path.join(handoffs, `review-${Math.max(0, ...numbers) + 1}`);
+      const numbers = (await readdir(handoffs)).map((name) => Number(name.match(/^(?:miw-)?review-([1-9]\d*)(?:\.json|\.md|\.evidence\.json)$/)?.[1] ?? 0));
+      const prefix = artifactOutputJoin(handoffs, `review-${Math.max(0, ...numbers) + 1}.json`).slice(0, -5);
       handoff = `${prefix}.json`;
       archivedReport = `${prefix}.md`;
       await writeFile(archivedReport, rendered.markdown, { flag: 'wx' });

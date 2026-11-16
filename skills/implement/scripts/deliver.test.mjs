@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
@@ -32,29 +33,30 @@ function stateMarkdown(phase = 'final-approval', status = 'In Progress') {
 }
 
 async function fixture(t, { dashboard = false, qualified = false } = {}) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'delivery-test-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'delivery-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const repo = path.join(root, 'service');
-  const bare = path.join(root, 'remote.git');
+  const repo = artifactJoin(root, 'service');
+  const bare = artifactJoin(root, 'remote.git');
   await mkdir(repo);
   git(root, 'init', '-q', '--bare', bare);
   git(repo, 'init', '-q');
   git(repo, 'branch', '-m', 'main');
-  await writeFile(path.join(repo, '.gitignore'), 'make-it-work/\n');
-  await writeFile(path.join(repo, 'code.txt'), 'before\n');
+  await writeFile(artifactJoin(repo, '.gitignore'), 'make-it-work/\n');
+  await writeFile(artifactJoin(repo, 'code.txt'), 'before\n');
   git(repo, 'add', '.gitignore', 'code.txt');
   git(repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'Initial');
   git(repo, 'switch', '-qc', 'DEMO');
   git(repo, 'remote', 'add', 'origin', bare);
+  git(repo, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
   git(repo, 'config', 'url.' + bare + '.insteadOf', 'https://github.com/example/service.git');
   git(repo, 'remote', 'set-url', 'origin', 'https://github.com/example/service.git');
-  await writeFile(path.join(repo, 'code.txt'), 'after\n');
-  const artifacts = path.join(root, 'make-it-work', 'DEMO');
+  await writeFile(artifactJoin(repo, 'code.txt'), 'after\n');
+  const artifacts = artifactJoin(root, 'make-it-work', 'DEMO');
   await mkdir(artifacts, { recursive: true });
-  for (const name of ['spec', 'plan', 'execute', 'review']) await writeFile(path.join(artifacts, `DEMO-${name}.md`), `# ${name}\n`);
-  const draft = path.join(artifacts, 'DEMO-final-draft.json');
+  for (const name of ['spec', 'plan', 'execute', 'review']) await writeFile(artifactJoin(artifacts, `DEMO-${name}.md`), `# ${name}\n`);
+  const draft = artifactJoin(artifacts, 'DEMO-final-draft.json');
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO: Update code', pr_title: 'DEMO: Update code', pr_description: 'Verified change.' }));
-  const state = path.join(artifacts, 'DEMO-state.md');
+  const state = artifactJoin(artifacts, 'DEMO-state.md');
   await writeFile(state, stateMarkdown());
   if (qualified) await writeReview(root, {
     version: 1, ticket: 'DEMO', branch: 'DEMO', commit: git(repo, 'rev-parse', 'HEAD'), working_tree: true,
@@ -76,10 +78,10 @@ async function fixture(t, { dashboard = false, qualified = false } = {}) {
 test('delivery refuses changed content before any commit', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t);
   const prepared = cli(deliveryCli, 'prepare', root, state);
-  await writeFile(path.join(repo, 'code.txt'), 'later\n');
+  await writeFile(artifactJoin(repo, 'code.txt'), 'later\n');
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256]), /stale|Working tree changed/);
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '1');
-  await assert.rejects(readFile(path.join(artifacts, 'DEMO-status.html')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(artifacts, 'DEMO-status.html')), { code: 'ENOENT' });
 });
 
 test('review-depth qualifications survive package, delivery preview and generated PR text', async (t) => {
@@ -88,11 +90,11 @@ test('review-depth qualifications survive package, delivery preview and generate
   const preview = await readFile(prepared.plan, 'utf8');
   assert.match(preview, /Review qualification.*skimmed.*code\.txt/);
   assert.match(preview, /Requirements of earlier work were not verified/);
-  const plan = JSON.parse(await readFile(path.join(f.artifacts, 'DEMO-delivery-plan.json'), 'utf8'));
+  const plan = JSON.parse(await readFile(artifactJoin(f.artifacts, 'DEMO-delivery-plan.json'), 'utf8'));
   assert.match(plan.draft.pr_description, /Review qualification.*skimmed.*code\.txt/);
   assert.match(preview, /Validation qualification.*Introduced TS2322/);
   assert.match(plan.draft.pr_description, /Introduced TS2322.*runtime impact remains unchecked/);
-  const pkg = JSON.parse(await readFile(path.join(f.artifacts, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(f.artifacts, 'DEMO-final-package.json'), 'utf8'));
   assert.match(pkg.validation_notes[0], /Introduced TS2322/);
   assert.match(summarizeAssurance(pkg).text, /Introduced TS2322/);
   assert.equal(git(f.repo, 'rev-list', '--count', 'HEAD'), '1');
@@ -101,18 +103,18 @@ test('review-depth qualifications survive package, delivery preview and generate
 test('historical review evidence without validation notes preserves the exact saved package approval', async (t) => {
   const f = await fixture(t, { qualified: 'scope-only' });
   const hash = value => createHash('sha256').update(value).digest('hex');
-  const evidencePath = path.join(f.artifacts, 'DEMO-review-evidence.json');
+  const evidencePath = artifactJoin(f.artifacts, 'DEMO-review-evidence.json');
   const evidence = JSON.parse(await readFile(evidencePath, 'utf8'));
   delete evidence.validation_notes;
   const evidenceBytes = JSON.stringify(evidence, null, 2) + '\n';
   await writeFile(evidencePath, evidenceBytes);
-  const packagePath = path.join(f.artifacts, 'DEMO-final-package.json');
+  const packagePath = artifactJoin(f.artifacts, 'DEMO-final-package.json');
   const pkg = JSON.parse(await readFile(packagePath, 'utf8'));
   delete pkg.validation_notes;
   pkg.evidence.review_scope.sha256 = hash(evidenceBytes);
   const packageBytes = JSON.stringify(pkg, null, 2) + '\n';
   await writeFile(packagePath, packageBytes);
-  const approvalPath = path.join(f.artifacts, 'DEMO-final-approval.json');
+  const approvalPath = artifactJoin(f.artifacts, 'DEMO-final-approval.json');
   const approval = JSON.parse(await readFile(approvalPath, 'utf8'));
   approval.package_sha256 = hash(JSON.stringify(pkg));
   const approvalBytes = JSON.stringify(approval, null, 2) + '\n';
@@ -126,19 +128,19 @@ test('historical review evidence without validation notes preserves the exact sa
 
 test('delivery commits, pushes, creates a PR, and resumes without duplication', async (t) => {
   const { root, repo, bare, state, artifacts } = await fixture(t, { dashboard: true });
-  const dashboard = path.join(artifacts, 'DEMO-status.html');
+  const dashboard = artifactJoin(artifacts, 'DEMO-status.html');
   const originalState = await readFile(state, 'utf8');
-  const originalApproval = await readFile(path.join(artifacts, 'DEMO-final-approval.json'), 'utf8');
+  const originalApproval = await readFile(artifactJoin(artifacts, 'DEMO-final-approval.json'), 'utf8');
   // The fixture rewrites a GitHub-shaped remote to a local bare transport; no network is contacted.
-  const bin = path.join(root, 'bin');
+  const bin = artifactJoin(root, 'bin');
   await mkdir(bin);
-  const ghLog = path.join(root, 'gh.log');
-  const gh = path.join(bin, 'gh');
+  const ghLog = artifactJoin(root, 'gh.log');
+  const gh = artifactJoin(bin, 'gh');
   await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then echo "gh test"; exit 0; fi\ncp "$DASHBOARD" "$RUNNING_SNAPSHOT"\nif [ "$2" = "list" ]; then echo "[]"; else echo "https://github.com/example/service/pull/1"; fi\nprintf "%s\\n" "$*" >> "$GH_LOG"\n');
   git(repo, 'config', 'user.name', 'Test');
   git(repo, 'config', 'user.email', 'test@example.test');
   await chmod(gh, 0o755);
-  const runningSnapshot = path.join(root, 'running.html');
+  const runningSnapshot = artifactJoin(root, 'running.html');
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, GH_LOG: ghLog, DASHBOARD: dashboard, RUNNING_SNAPSHOT: runningSnapshot };
   const prepared = cli(deliveryCli, 'prepare', root, state, [], env);
   assert.match(await readFile(prepared.plan, 'utf8'), /https:\/\/github.com\/example\/service.git/);
@@ -157,13 +159,13 @@ test('delivery commits, pushes, creates a PR, and resumes without duplication', 
   assert.match(html, /href="https:\/\/github.com\/example\/service\/pull\/1"/);
   assert.doesNotMatch(html, /http-equiv="refresh"|Changes remain local and uncommitted/);
   assert.equal(await readFile(state, 'utf8'), originalState);
-  assert.equal(await readFile(path.join(artifacts, 'DEMO-final-approval.json'), 'utf8'), originalApproval);
+  assert.equal(await readFile(artifactJoin(artifacts, 'DEMO-final-approval.json'), 'utf8'), originalApproval);
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '2');
   assert.equal(git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/DEMO'), git(repo, 'rev-parse', 'HEAD'));
   const repeated = cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env);
   assert.equal(repeated.repos.service.commit, result.repos.service.commit);
   assert.equal((await readFile(ghLog, 'utf8')).match(/^pr (?:list|create) /gm).length, 2);
-  assert.equal(JSON.parse(await readFile(path.join(artifacts, 'DEMO-delivery-progress.json'), 'utf8')).repos.service.pushed, result.repos.service.commit);
+  assert.equal(JSON.parse(await readFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json'), 'utf8')).repos.service.pushed, result.repos.service.commit);
   assert.equal(cli(deliveryCli, 'status', root, state).status, 'delivered');
 });
 
@@ -171,12 +173,12 @@ test('a hook-rewritten tree stops delivery before push', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   git(repo, 'config', 'user.name', 'Test');
   git(repo, 'config', 'user.email', 'test@example.test');
-  const bin = path.join(root, 'bin');
+  const bin = artifactJoin(root, 'bin');
   await mkdir(bin);
-  const gh = path.join(bin, 'gh');
+  const gh = artifactJoin(bin, 'gh');
   await writeFile(gh, '#!/bin/sh\nexit 0\n');
   await chmod(gh, 0o755);
-  const hook = path.join(repo, '.git', 'hooks', 'pre-commit');
+  const hook = artifactJoin(repo, '.git', 'hooks', 'pre-commit');
   await writeFile(hook, '#!/bin/sh\nprintf "hook changed\\n" > code.txt\ngit add code.txt\n');
   await chmod(hook, 0o755);
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
@@ -186,7 +188,7 @@ test('a hook-rewritten tree stops delivery before push', async (t) => {
   const progress = cli(deliveryCli, 'status', root, state);
   assert.equal(progress.status, 'partial');
   assert.equal(progress.repos.service.commit, git(repo, 'rev-parse', 'HEAD'));
-  const html = await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8');
+  const html = await readFile(artifactJoin(artifacts, 'DEMO-status.html'), 'utf8');
   assert.match(html, /Partially delivered/);
   assert.match(html, /Not pushed/);
   assert.doesNotMatch(html, /Changes remain local and uncommitted/);
@@ -198,47 +200,47 @@ test('a PR failure resumes after the recorded commit and push', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   git(repo, 'config', 'user.name', 'Test');
   git(repo, 'config', 'user.email', 'test@example.test');
-  const bin = path.join(root, 'bin');
+  const bin = artifactJoin(root, 'bin');
   await mkdir(bin);
-  const gh = path.join(bin, 'gh');
+  const gh = artifactJoin(bin, 'gh');
   await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then exit 0; fi\nif [ "$2" = "list" ]; then echo "[]"; exit 0; fi\nif [ "$FAIL_PR" = "1" ]; then echo "temporary PR failure" >&2; exit 1; fi\necho "https://github.com/example/service/pull/2"\n');
   await chmod(gh, 0o755);
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
   const prepared = cli(deliveryCli, 'prepare', root, state, [], env);
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], { ...env, FAIL_PR: '1' }), /temporary PR failure/);
-  const progress = JSON.parse(await readFile(path.join(artifacts, 'DEMO-delivery-progress.json'), 'utf8'));
+  const progress = JSON.parse(await readFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json'), 'utf8'));
   assert.equal(progress.repos.service.commit, git(repo, 'rev-parse', 'HEAD'));
   assert.equal(progress.repos.service.pushed, progress.repos.service.commit);
   assert.equal(progress.repos.service.pr, undefined);
   assert.equal(progress.status, 'partial');
-  const partialHtml = await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8');
+  const partialHtml = await readFile(artifactJoin(artifacts, 'DEMO-status.html'), 'utf8');
   assert.match(partialHtml, /temporary PR failure/);
   assert.match(partialHtml, /<td>Pushed<\/td><td>Not created/);
   assert.doesNotMatch(partialHtml, /Changes remain local and uncommitted/);
   // An older helper saved only these fields. Resume must preserve the actual commit/push.
-  await writeFile(path.join(artifacts, 'DEMO-delivery-progress.json'), JSON.stringify({ version: 1, plan_sha256: progress.plan_sha256, repos: progress.repos }));
+  await writeFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json'), JSON.stringify({ version: 1, plan_sha256: progress.plan_sha256, repos: progress.repos }));
   const completed = cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env);
   assert.equal(completed.repos.service.pr.url, 'https://github.com/example/service/pull/2');
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '2');
-  assert.match(await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8'), /phase-mode">Delivered/);
+  assert.match(await readFile(artifactJoin(artifacts, 'DEMO-status.html'), 'utf8'), /phase-mode">Delivered/);
 });
 
 test('a saved report alone cannot open delivery for evidence-enabled runs', async t => {
   const { root, state, artifacts } = await fixture(t);
   await writeFile(state, (await readFile(state, 'utf8')).replace('status: Complete', 'status: Complete\nfeedback_evidence_version: 1'));
   assert.throws(() => cli(deliveryCli, 'offer', root, state), /saved-report readback/);
-  await assert.rejects(readFile(path.join(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
 });
 
 test('offering and declining update delivery alone and never authorize a commit', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   const original = await readFile(state, 'utf8');
-  const sessionPath = path.join(artifacts, 'workflow-feedback.md'), session = await readFile(sessionPath);
+  const sessionPath = artifactJoin(artifacts, 'workflow-feedback.md'), session = await readFile(sessionPath);
   await rm(sessionPath);
   assert.throws(() => cli(deliveryCli, 'offer', root, state), /Finish session feedback/);
-  await assert.rejects(readFile(path.join(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json')), { code: 'ENOENT' });
   await writeFile(sessionPath, session);
-  const dashboard = path.join(artifacts, 'DEMO-status.html');
+  const dashboard = artifactJoin(artifacts, 'DEMO-status.html');
   const offered = cli(deliveryCli, 'offer', root, state);
   assert.equal(offered.status, 'offered');
   assert.match(await readFile(dashboard, 'utf8'), /Awaiting choice/);
@@ -257,10 +259,10 @@ test('offering and declining update delivery alone and never authorize a commit'
 test('a stale package is displayed as failed before delivery starts', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   cli(deliveryCli, 'offer', root, state);
-  await writeFile(path.join(repo, 'code.txt'), 'changed after approval\n');
+  await writeFile(artifactJoin(repo, 'code.txt'), 'changed after approval\n');
   assert.throws(() => cli(deliveryCli, 'prepare', root, state), /stale/);
   assert.equal(cli(deliveryCli, 'status', root, state).status, 'failed');
-  const html = await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8');
+  const html = await readFile(artifactJoin(artifacts, 'DEMO-status.html'), 'utf8');
   assert.match(html, /Delivery failed/);
   assert.doesNotMatch(html, /Changes remain local and uncommitted|http-equiv="refresh"/);
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '1');
@@ -269,7 +271,7 @@ test('a stale package is displayed as failed before delivery starts', async (t) 
 test('dashboard checkpoint failure stops before publishing and retains the journal', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
   const prepared = cli(deliveryCli, 'prepare', root, state);
-  const dashboard = path.join(artifacts, 'DEMO-status.html');
+  const dashboard = artifactJoin(artifacts, 'DEMO-status.html');
   await rm(dashboard);
   await mkdir(dashboard);
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256]), /dashboard refresh failed/);
@@ -282,45 +284,45 @@ test('dashboard checkpoint failure stops before publishing and retains the journ
 
 test('delivery skips unchanged supporting repositories while retaining them in the approved package', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t);
-  const support = path.join(root, 'support');
+  const support = artifactJoin(root, 'support');
   git(root, 'clone', '-q', repo, support);
   git(support, 'branch', 'main', 'origin/main');
   // No remote setup for support: it must not be prepared for delivery.
   git(support, 'remote', 'remove', 'origin');
   await writeFile(state, stateMarkdown());
-  const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', support]);
+  const built = cli(packageCli, 'build', root, state, ['--draft', artifactJoin(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', support]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
   await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
   await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   const prepared = cli(deliveryCli, 'prepare', root, state);
   assert.deepEqual(prepared.repos.map((entry) => entry.name), ['service']);
-  const pkg = JSON.parse(await readFile(path.join(artifacts, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(artifacts, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(pkg.repos.map((entry) => entry.name), ['service', 'support']);
 });
 
 test('multi-repo partial delivery shows each actual result and resumes without duplicate commits', async (t) => {
   const { root, repo, state, artifacts } = await fixture(t, { dashboard: true });
-  const second = path.join(root, 'service-two');
-  const secondRemote = path.join(root, 'remote-two.git');
+  const second = artifactJoin(root, 'service-two');
+  const secondRemote = artifactJoin(root, 'remote-two.git');
   git(root, 'clone', '-q', repo, second);
   git(second, 'branch', 'main', 'origin/main');
   git(root, 'init', '-q', '--bare', secondRemote);
   git(second, 'config', 'url.' + secondRemote + '.insteadOf', 'https://github.com/example/service-two.git');
   git(second, 'remote', 'set-url', 'origin', 'https://github.com/example/service-two.git');
-  await writeFile(path.join(second, 'code.txt'), 'second change\n');
+  await writeFile(artifactJoin(second, 'code.txt'), 'second change\n');
   for (const target of [repo, second]) {
     git(target, 'config', 'user.name', 'Test');
     git(target, 'config', 'user.email', 'test@example.test');
   }
   await writeFile(state, stateMarkdown());
-  const built = cli(packageCli, 'build', root, state, ['--draft', path.join(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', second]);
+  const built = cli(packageCli, 'build', root, state, ['--draft', artifactJoin(artifacts, 'DEMO-final-draft.json'), '--repo', repo, '--repo', second]);
   cli(packageCli, 'approve', root, state, ['--hash', built.sha256]);
   await writeFile(state, stateMarkdown('complete', 'Complete') + '| 2 | 2026-01-01T10:01:00Z | final-approval | complete | Implementation complete |\n');
   await writeFeedback(state, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   await generateDashboard(state);
-  const bin = path.join(root, 'bin');
+  const bin = artifactJoin(root, 'bin');
   await mkdir(bin);
-  const gh = path.join(bin, 'gh');
+  const gh = artifactJoin(bin, 'gh');
   await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then exit 0; fi\nif [ "$2" = "list" ]; then echo "[]"; exit 0; fi\nif [ "$4" = "example/service-two" ] && [ "$FAIL_SECOND" = "1" ]; then echo "second repository PR failed" >&2; exit 1; fi\necho "https://github.com/$4/pull/7"\n');
   await chmod(gh, 0o755);
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
@@ -330,7 +332,7 @@ test('multi-repo partial delivery shows each actual result and resumes without d
   assert.equal(progress.status, 'partial');
   assert.equal(progress.repos.service.pr.url, 'https://github.com/example/service/pull/7');
   assert.equal(progress.repos['service-two'].pushed, git(second, 'rev-parse', 'HEAD'));
-  const html = await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8');
+  const html = await readFile(artifactJoin(artifacts, 'DEMO-status.html'), 'utf8');
   assert.match(html, /Partially delivered/);
   assert.match(html, /href="https:\/\/github.com\/example\/service\/pull\/7"/);
   assert.match(html, /<td>service-two<\/td>[\s\S]*<td>Pushed<\/td><td>Not created/);
@@ -338,7 +340,7 @@ test('multi-repo partial delivery shows each actual result and resumes without d
   assert.equal(delivered.delivered, true);
   assert.equal(git(repo, 'rev-list', '--count', 'HEAD'), '2');
   assert.equal(git(second, 'rev-list', '--count', 'HEAD'), '2');
-  assert.match(await readFile(path.join(artifacts, 'DEMO-status.html'), 'utf8'), /phase-mode">Delivered/);
+  assert.match(await readFile(artifactJoin(artifacts, 'DEMO-status.html'), 'utf8'), /phase-mode">Delivered/);
 });
 
 test('Bitbucket PR creation uses the approved source, base, and text', async (t) => {

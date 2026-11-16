@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
@@ -50,11 +51,11 @@ test('other runs, pre-run events and post-terminal observations cannot create re
 });
 
 async function workspace(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'hook-feedback-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'hook-feedback-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const directory = path.join(root, 'make-it-work/DEMO');
+  const directory = artifactJoin(root, 'make-it-work/DEMO');
   await mkdir(directory, { recursive: true });
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, 'untouched state');
   return { root, directory, statePath, state: { fields: { ticket: 'DEMO', start_time: new Date(Date.now() - 1000).toISOString(), phase: 'execute', status: 'In Progress' } } };
 }
@@ -70,18 +71,18 @@ test('recorder deduplicates retried hook calls, records release, and never saves
   const events = await readHookEvents(w.statePath);
   assert.equal(events.length, 2);
   assert.ok(summarizeHookEvents(events, w.state.fields.start_time, new Date().toISOString()).interventions[0].resolvedAt);
-  assert.doesNotMatch(await readFile(path.join(w.directory, 'hook-events.jsonl'), 'utf8'), /SECRET|customer|private-session|source/);
+  assert.doesNotMatch(await readFile(artifactJoin(w.directory, 'hook-events.jsonl'), 'utf8'), /SECRET|customer|private-session|source/);
   assert.equal(await readFile(w.statePath, 'utf8'), 'untouched state');
 });
 
 test('journal absence is compatible; malformed records and symlinks fail without altering targets', async (t) => {
   const w = await workspace(t);
   assert.deepEqual(await readHookEvents(w.statePath), []);
-  const journal = path.join(w.directory, 'hook-events.jsonl');
+  const journal = artifactJoin(w.directory, 'hook-events.jsonl');
   await writeFile(journal, JSON.stringify({ ...observation('raw'), reason: 'private text' }) + '\n');
   await assert.rejects(readHookEvents(w.statePath), /Invalid workflow hook observation/);
   await rm(journal);
-  const target = path.join(w.root, 'target'); await writeFile(target, 'keep'); await symlink(target, journal);
+  const target = artifactJoin(w.root, 'target'); await writeFile(target, 'keep'); await symlink(target, journal);
   await assert.rejects(readHookEvents(w.statePath));
   await assert.rejects(recordHookEvent({ ...w, input: { hook_event_name: 'Stop' }, events: [], kind: 'active-stage' }));
   assert.equal(await readFile(target, 'utf8'), 'keep');

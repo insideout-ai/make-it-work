@@ -24,6 +24,8 @@ hooks:
 
 # Implement
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 Take one ticket through context check, refinement, risk assessment, the selected
 Lightweight/TDD implementation route, independent review, final context sync and
 completion. Act as the parent orchestrator; use the existing stage skills for

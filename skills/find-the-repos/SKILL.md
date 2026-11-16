@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Find The Repos
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 Act as the routing step before ticket refinement or planning. Identify the repositories involved and hand back an evidence-backed shortlist, including existing implementation and unassessed external work. This skill also supplies evidence-backed routing inline to `implement` workspace runs.
 
 ## Usage

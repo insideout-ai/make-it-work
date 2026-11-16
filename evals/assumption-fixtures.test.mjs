@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
@@ -9,14 +10,14 @@ import { digest } from '../scripts/lib/artifacts.mjs';
 const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
 for (const variant of ['unsupported', 'supported', 'low-risk']) {
   test(`${variant} assumption fixture preserves planning boundaries and separates header forwarding from provider behavior`, async (t) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'assumption-fixture-'));
+    const root = await mkdtemp(artifactJoin(os.tmpdir(), 'assumption-fixture-'));
     t.after(() => rm(root, { recursive: true, force: true }));
-    const fixture = path.join(import.meta.dirname, 'plan-the-work', `assumption-${variant}`, 'fixture.sh');
+    const fixture = artifactJoin(import.meta.dirname, 'plan-the-work', `assumption-${variant}`, 'fixture.sh');
     execFileSync('bash', [fixture], { cwd: root, env, stdio: 'pipe' });
-    const baseline = JSON.parse(await readFile(path.join(root, 'make-it-work/ASSUME-1/ASSUME-1-smoke-baseline.json')));
+    const baseline = JSON.parse(await readFile(artifactJoin(root, 'make-it-work/ASSUME-1/ASSUME-1-smoke-baseline.json')));
     assert.equal(baseline.variant, variant);
-    for (const [file, hash] of Object.entries(baseline.hashes)) assert.equal(digest(await readFile(path.join(root, file))), hash);
-    assert.equal(JSON.parse(await readFile(path.join(root, 'package.json'))).scripts?.test, undefined);
+    for (const [file, hash] of Object.entries(baseline.hashes)) assert.equal(digest(await readFile(artifactJoin(root, file))), hash);
+    assert.equal(JSON.parse(await readFile(artifactJoin(root, 'package.json'))).scripts?.test, undefined);
     // Two possible server behaviors accept the exact same request headers.
     // This demonstrates why the wrapper alone cannot prove replay safety.
     const observed = JSON.parse(execFileSync(process.execPath, ['-e', `
@@ -43,6 +44,6 @@ for (const variant of ['unsupported', 'supported', 'low-risk']) {
     assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }), '');
     const second = spawnSync('bash', [fixture], { cwd: root, env, encoding: 'utf8' });
     assert.notEqual(second.status, 0); assert.match(second.stderr, /existing repository/);
-    for (const [file, hash] of Object.entries(baseline.hashes)) assert.equal(digest(await readFile(path.join(root, file))), hash);
+    for (const [file, hash] of Object.entries(baseline.hashes)) assert.equal(digest(await readFile(artifactJoin(root, file))), hash);
   });
 }

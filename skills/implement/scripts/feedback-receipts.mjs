@@ -1,9 +1,11 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 // Run-bound local observations; no conversation or source contents are retained.
-import { lstat, readFile } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { atomicWrite, withLock } from '../../../scripts/lib/artifacts.mjs';
 
-const location = statePath => path.join(path.dirname(statePath), 'feedback-observations.json');
+const location = statePath => artifactJoin(path.dirname(statePath), 'feedback-observations.json');
 export async function readFeedbackReceipts(statePath, binding) {
   try {
     const file = location(statePath);

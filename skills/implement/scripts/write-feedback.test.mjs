@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
@@ -14,10 +15,10 @@ function withoutFeedbackNotes(markdown) {
 }
 
 const EVAL_ROOT = path.resolve(import.meta.dirname, '../../../evals/implement');
-const SCRIPT_PATH = path.join(import.meta.dirname, 'write-feedback.mjs');
+const SCRIPT_PATH = artifactJoin(import.meta.dirname, 'write-feedback.mjs');
 
 async function fixture(name) {
-  return readFile(path.join(EVAL_ROOT, name, 'fixture/fixture-artifacts/DEMO-state.md'), 'utf8');
+  return readFile(artifactJoin(EVAL_ROOT, name, 'fixture/fixture-artifacts/DEMO-state.md'), 'utf8');
 }
 
 function finish(markdown, time = '2026-01-03T10:06:00Z') {
@@ -65,14 +66,14 @@ function guardrailAnalysis(summary) {
 }
 
 async function workspace(t, state) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-feedback-test-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'implement-feedback-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const directory = path.join(root, 'make-it-work');
-  const runDirectory = path.join(directory, 'DEMO');
+  const directory = artifactJoin(root, 'make-it-work');
+  const runDirectory = artifactJoin(directory, 'DEMO');
   await mkdir(runDirectory, { recursive: true });
-  const statePath = path.join(runDirectory, 'DEMO-state.md');
+  const statePath = artifactJoin(runDirectory, 'DEMO-state.md');
   await writeFile(statePath, state);
-  return { directory, statePath, feedbackPath: path.join(directory, 'implement-feedback.md') };
+  return { directory, statePath, feedbackPath: artifactJoin(directory, 'implement-feedback.md') };
 }
 
 function sessionReview() {
@@ -141,7 +142,7 @@ test('combined review coexists with required artifact analysis and keeps legacy 
 
 test('combined save derives sanitized collection notes even when model findings are empty, without extra writes or rounds', async t => {
   const state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
-  const f = await workspace(t, state), transcriptPath = path.join(f.directory, 'runtime.jsonl');
+  const f = await workspace(t, state), transcriptPath = artifactJoin(f.directory, 'runtime.jsonl');
   const events = [];
   const pair = (id, op, content, is_error = false) => events.push(
     { type: 'assistant', timestamp: '2026-01-01T10:08:00Z', message: { content: [{ type: 'tool_use', id, name: 'Bash', input: { command: `node '${SCRIPT_PATH}' ${op} --state '${f.statePath}'` } }] } },
@@ -199,7 +200,7 @@ test('session-review rejects unsafe or incomplete input before changing existing
 
 test('CLI accepts session review separately from artifact analysis', async (t) => {
   const f = await workspace(t, finish(await fixture('feedback-clean')));
-  const input = path.join(f.directory, 'review.json');
+  const input = artifactJoin(f.directory, 'review.json');
   await writeFile(input, JSON.stringify(sessionReview()));
   const result = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', f.statePath, '--session-review', input], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
@@ -241,7 +242,7 @@ test('input check reports independent errors together without changing existing 
   assert.ok(result.errors.some(error => error.includes('clarifications')));
   assert.ok(result.errors.some(error => error.includes('basis.requirement')));
   assert.ok(result.errors.some(error => error.includes('numbered source locator')));
-  const analysisPath = path.join(f.directory, 'analysis-input.json'), sessionPath = path.join(f.directory, 'session-input.json');
+  const analysisPath = artifactJoin(f.directory, 'analysis-input.json'), sessionPath = artifactJoin(f.directory, 'session-input.json');
   await writeFile(analysisPath, JSON.stringify(analysis)); await writeFile(sessionPath, JSON.stringify(session));
   const cli = spawnSync(process.execPath, [SCRIPT_PATH, 'check', '--state', f.statePath, '--analysis', analysisPath, '--session-review', sessionPath], { encoding: 'utf8' });
   assert.equal(cli.status, 1, cli.stderr);
@@ -337,7 +338,7 @@ test('feedback preserves the plugin version captured by the run', () => {
 test('same run replaces only its block and preserves user text and other runs', async (t) => {
   const state = finish(await fixture('feedback-idempotent'));
   const { statePath, feedbackPath } = await workspace(t, state);
-  const original = await readFile(path.join(EVAL_ROOT, 'feedback-idempotent/fixture/fixture-artifacts/implement-feedback.md'), 'utf8');
+  const original = await readFile(artifactJoin(EVAL_ROOT, 'feedback-idempotent/fixture/fixture-artifacts/implement-feedback.md'), 'utf8');
   await writeFile(feedbackPath, original);
   await writeFeedback(statePath);
   const once = await readFile(feedbackPath, 'utf8');
@@ -352,11 +353,11 @@ test('same run replaces only its block and preserves user text and other runs', 
 test('session export contains only current run and refreshes after clarification', async (t) => {
   const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z');
   const { statePath, feedbackPath } = await workspace(t, state);
-  const older = await readFile(path.join(EVAL_ROOT, 'feedback-idempotent/fixture/fixture-artifacts/implement-feedback.md'), 'utf8');
+  const older = await readFile(artifactJoin(EVAL_ROOT, 'feedback-idempotent/fixture/fixture-artifacts/implement-feedback.md'), 'utf8');
   await writeFile(feedbackPath, older);
   const analysis = diagnosis(inspectState(state));
   const result = await writeFeedback(statePath, { analysis });
-  assert.equal(result.sessionOutputPath, path.join(path.dirname(statePath), 'workflow-feedback.md'));
+  assert.equal(result.sessionOutputPath, artifactJoin(path.dirname(statePath), 'workflow-feedback.md'));
   const exported = await readFile(result.sessionOutputPath, 'utf8');
   assert.match(exported, /Reporter: Anonymous/);
   assert.match(exported, /Map every acceptance path/);
@@ -372,10 +373,10 @@ test('session export contains only current run and refreshes after clarification
 
 test('session export refuses a symlink without changing its target or cumulative feedback', async (t) => {
   const { statePath, feedbackPath } = await workspace(t, finish(await fixture('feedback-clean')));
-  const target = path.join(path.dirname(feedbackPath), 'private-note.md');
+  const target = artifactJoin(path.dirname(feedbackPath), 'private-note.md');
   await writeFile(target, 'Keep this private');
   await writeFile(feedbackPath, 'Existing feedback');
-  await symlink(target, path.join(path.dirname(statePath), 'workflow-feedback.md'));
+  await symlink(target, artifactJoin(path.dirname(statePath), 'workflow-feedback.md'));
   await assert.rejects(writeFeedback(statePath), /Session feedback path must be a regular file/);
   assert.equal(await readFile(target, 'utf8'), 'Keep this private');
   assert.equal(await readFile(feedbackPath, 'utf8'), 'Existing feedback');
@@ -540,7 +541,7 @@ test('hook-only failures require analysis despite zero fix rounds, and resolved 
   const w = await workspace(t, state);
   const events = [hookObservation('blocked'), hookObservation('blocked'), hookObservation('again'),
     hookObservation('release', 'clear', '2026-01-01T10:04:00Z')];
-  await writeFile(path.join(path.dirname(w.statePath), 'hook-events.jsonl'), events.map(JSON.stringify).join('\n') + '\n');
+  await writeFile(artifactJoin(path.dirname(w.statePath), 'hook-events.jsonl'), events.map(JSON.stringify).join('\n') + '\n');
   const summary = await inspectFeedback(w.statePath);
   assert.equal(summary.minimal, true); assert.equal(summary.fixRounds, 0); assert.equal(summary.replans, 0);
   assert.equal(summary.analysisRequired, true); assert.equal(summary.hookInterventions.length, 1);
@@ -569,7 +570,7 @@ test('single legitimate waits are informational; repeated waits require their ow
 
 test('CLI inspect includes the journal and a corrupt journal cannot silently produce clean feedback', async (t) => {
   const w = await workspace(t, finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z'));
-  const journal = path.join(path.dirname(w.statePath), 'hook-events.jsonl');
+  const journal = artifactJoin(path.dirname(w.statePath), 'hook-events.jsonl');
   await writeFile(journal, JSON.stringify(hookObservation('blocked')) + '\n');
   const child = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', w.statePath], { encoding: 'utf8' });
   assert.equal(child.status, 0); assert.equal(JSON.parse(child.stdout).analysisRequired, true);

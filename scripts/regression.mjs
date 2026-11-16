@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { readFile, realpath } from 'node:fs/promises';
+import { readFile } from './lib/artifact-io.mjs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, cli, digest, fail, jsonInput, requireText } from './lib/artifacts.mjs';
 import { checkpointResult } from '../skills/implement/scripts/dashboard-checkpoint.mjs';

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { readFile } from './lib/artifact-io.mjs';
 import { args, cli, fail, jsonInput, section } from './lib/artifacts.mjs';
 
 export function questionWaves(questions, limit = 4) {

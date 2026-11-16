@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -48,9 +49,9 @@ test('initialization failures and Resume do not impose a startup announcement', 
 });
 
 test('init, tool and Stop holds require actual chat delivery', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-presentation-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'startup-presentation-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const transcript = path.join(root, 'transcript.jsonl');
+  const transcript = artifactJoin(root, 'transcript.jsonl');
   const write = (events) => writeFile(transcript, events.map((event) => JSON.stringify(event)).join('\n') + '\n');
   await write(startup());
   const before = await readFile(transcript, 'utf8');
@@ -69,9 +70,9 @@ test('init, tool and Stop holds require actual chat delivery', async (t) => {
 });
 
 test('a chat link flushed shortly after tool dispatch releases the hold automatically', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-flush-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'startup-flush-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const transcript = path.join(root, 'transcript.jsonl');
+  const transcript = artifactJoin(root, 'transcript.jsonl');
   const events = startup();
   await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
   const checking = startupHook({ hook_event_name: 'PreToolUse', transcript_path: transcript });
@@ -82,24 +83,24 @@ test('a chat link flushed shortly after tool dispatch releases the hold automati
 });
 
 async function freshRun(t, autonomy, offline = false) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-continuation-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'startup-continuation-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
   git('init', '-q', '-b', 'main');
   git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Baseline', '--allow-empty');
   git('switch', '-qc', 'feature');
-  await mkdir(path.join(root, '.claude/rules'), { recursive: true });
-  await mkdir(path.join(root, '.claude/skills/domain-demo'), { recursive: true });
-  await writeFile(path.join(root, 'CLAUDE.md'), '# Skill Loading Gate\n');
-  await writeFile(path.join(root, '.claude/rules/product.md'), '# Product\n');
-  await writeFile(path.join(root, '.claude/rules/architecture.md'), '# Architecture\n');
-  await writeFile(path.join(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
+  await mkdir(artifactJoin(root, '.claude/rules'), { recursive: true });
+  await mkdir(artifactJoin(root, '.claude/skills/domain-demo'), { recursive: true });
+  await writeFile(artifactJoin(root, 'CLAUDE.md'), '# Skill Loading Gate\n');
+  await writeFile(artifactJoin(root, '.claude/rules/product.md'), '# Product\n');
+  await writeFile(artifactJoin(root, '.claude/rules/architecture.md'), '# Architecture\n');
+  await writeFile(artifactJoin(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
   const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy, base: 'main', repos: [root], branch_guard: 'Existing feature branch', offline_pending: offline });
   const initialized = { ...result, continuation: offline ? 'wait_for_offline_answers' : 'continue_context_check_without_user_reply' };
   const events = [assistant({ type: 'tool_use', id: 'init', name: 'Bash' }),
     { type: 'user', message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'init', content: JSON.stringify(initialized) }] } },
     assistant(text(result.startup_message + '\nSend another message to continue.'))];
-  const transcript = path.join(root, 'make-it-work/transcript.jsonl');
+  const transcript = artifactJoin(root, 'make-it-work/transcript.jsonl');
   const saveEvents = () => writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
   await saveEvents();
   const check = () => startupHook({ hook_event_name: 'Stop', transcript_path: transcript });
@@ -118,7 +119,7 @@ async function sourceReview(run) {
 }
 
 async function readSavedFeedback(run, id = 'feedback-readback', body) {
-  const file = path.join(path.dirname(run.result.state), 'workflow-feedback.md');
+  const file = artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md');
   const content = body ?? await readFile(file, 'utf8'), timestamp = new Date(Date.now() + 1000).toISOString();
   run.events.push({ ...assistant({ type: 'tool_use', id, name: 'Read', input: { file_path: file } }), timestamp },
     { type: 'user', timestamp, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content }] } });
@@ -150,7 +151,7 @@ test('Complete cannot skip feedback by proceeding directly to delivery or the te
   const dashboardMtime = (await stat(run.result.dashboard)).mtimeMs;
   assert.deepEqual(await run.check(), {});
   assert.equal((await stat(run.result.dashboard)).mtimeMs, dashboardMtime);
-  const file = path.join(path.dirname(run.result.state), 'workflow-feedback.md');
+  const file = artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md');
   await writeFile(file, (await readFile(file, 'utf8')).replace('Client version unknown', 'Client version not captured'));
   assert.match((await run.check()).reason, /current body has not been read back/);
   await readSavedFeedback(run, 'revised-readback');
@@ -213,18 +214,18 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny');
   await readSavedFeedback(run);
   await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Read', transcript_path: run.transcript });
-  const directory = path.dirname(run.result.state), receiptPath = path.join(directory, 'feedback-finalized.json');
+  const directory = path.dirname(run.result.state), receiptPath = artifactJoin(directory, 'feedback-finalized.json');
   const receipt = await readFile(receiptPath, 'utf8');
   assert.equal(JSON.parse(receipt).writerId, 'feedback-written');
   assert.deepEqual(await startupHook(offerInput), {});
   assert.deepEqual(await delivery(), {});
   assert.deepEqual(await run.check(), {});
-  const report = await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
+  const report = await readFile(artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
   assert.match(report, /Fix rounds: 1/); assert.match(report, /### Session review/);
   assert.ok(report.includes(`Plugin version: ${run.summary.pluginVersion}`));
   // Later delivery choices and presentation changes must reuse the sealed
   // result, even if the old source/journal can no longer be re-inspected.
-  await writeFile(path.join(directory, 'hook-events.jsonl'), 'No longer readable as an event journal\n');
+  await writeFile(artifactJoin(directory, 'hook-events.jsonl'), 'No longer readable as an event journal\n');
   assert.deepEqual(await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', transcript_path: run.transcript }), {});
   const question = 'Prepare delivery for this completed run?';
   for (const answer of ['Not now', 'Prepare delivery']) {
@@ -234,7 +235,7 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
     await run.saveEvents();
     assert.deepEqual(await run.check(), {});
     assert.equal(await readFile(receiptPath, 'utf8'), receipt);
-    assert.equal(await readFile(path.join(directory, 'workflow-feedback.md'), 'utf8'), report);
+    assert.equal(await readFile(artifactJoin(directory, 'workflow-feedback.md'), 'utf8'), report);
   }
   assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), run.state);
 });
@@ -251,16 +252,16 @@ test('an already-answered delivery question reuses earlier saved feedback instea
   await run.saveEvents();
   assert.equal((await run.check()).decision, 'block');
   const question = 'Prepare delivery for this completed run?', timestamp = new Date(Date.now() + 3000).toISOString();
-  await writeFile(path.join(path.dirname(run.result.state), 'DEMO-delivery-progress.json'), JSON.stringify({ version: 1, ticket: 'DEMO', status: 'offered', repos: {}, offered_at: timestamp }));
+  await writeFile(artifactJoin(path.dirname(run.result.state), 'DEMO-delivery-progress.json'), JSON.stringify({ version: 1, ticket: 'DEMO', status: 'offered', repos: {}, offered_at: timestamp }));
   run.events.push({ ...assistant({ type: 'tool_use', id: 'delivery-existing', name: 'AskUserQuestion', input: { questions: [{ header: 'Delivery', question }] } }), timestamp });
   await run.saveEvents();
   assert.equal((await run.check()).decision, 'block');
-  const base = [...run.events], report = await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
+  const base = [...run.events], report = await readFile(artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
   for (const answer of ['Not now', 'Prepare delivery']) {
     run.events.splice(0, run.events.length, ...base, { type: 'user', timestamp, toolUseResult: { answers: { [question]: answer } }, message: { content: [{ type: 'tool_result', tool_use_id: 'delivery-existing', content: answer }] } });
     await run.saveEvents();
     assert.deepEqual(await run.check(), {});
-    assert.equal(await readFile(path.join(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8'), report);
+    assert.equal(await readFile(artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8'), report);
   }
 });
 
@@ -270,7 +271,7 @@ test('a failed terminal retrospective dispatch permits receipt-only fallback, in
   await run.saveEvents();
   await assert.rejects(unavailableFeedback(run.result.state, { transcriptPath: run.transcript, failureId: 'invalid-retrospective', reason: 'The dispatch input was rejected' }), /No qualifying technical failure/);
   run.add('Agent', 'failed-retrospective', { prompt: run.prompt }, 'Agent service unavailable', true);
-  const reportPath = path.join(path.dirname(run.result.state), 'workflow-feedback.md');
+  const reportPath = artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md');
   await writeFile(reportPath, `# Incomplete earlier report\n<!-- run:${run.summary.runId} -->\n### Session review\n<!-- feedback-state:${run.summary.stateHash} -->\n<!-- /run:${run.summary.runId} -->\n`);
   await run.saveEvents();
   const options = { transcriptPath: run.transcript, failureId: 'failed-retrospective', reason: 'The retrospective service failed to start' };
@@ -355,14 +356,14 @@ test('a new user turn clears continuation and missing or invalid state cannot si
 
 test('early application edits cannot be hidden by recording a same-phase stop', async (t) => {
   const run = await freshRun(t, 'autopilot');
-  await writeFile(path.join(run.root, 'app.js'), 'export const fallbackDays = 30;');
+  await writeFile(artifactJoin(run.root, 'app.js'), 'export const fallbackDays = 30;');
   const afterWrite = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', transcript_path: run.transcript });
   assert.match(afterWrite.hookSpecificOutput.additionalContext, /Application files changed/);
   await run.apply('stop');
   const held = await run.check();
   assert.equal(held.decision, 'block');
   assert.match(held.reason, /Recording Stopped.*does not complete recovery/);
-  assert.equal(await readFile(path.join(run.root, 'app.js'), 'utf8'), 'export const fallbackDays = 30;');
+  assert.equal(await readFile(artifactJoin(run.root, 'app.js'), 'utf8'), 'export const fallbackDays = 30;');
   run.events.push({ type: 'user', message: { role: 'user', content: 'Keep the edits; stop this run.' } });
   await run.saveEvents();
   assert.deepEqual(await run.check(), {});
@@ -371,18 +372,18 @@ test('early application edits cannot be hidden by recording a same-phase stop', 
 test('refinement edits are detected while documentation changes are permitted', async (t) => {
   const run = await freshRun(t, 'autopilot');
   await run.apply('context-ready');
-  await writeFile(path.join(run.root, '.claude/rules/product.md'), '# Updated rules');
-  await writeFile(path.join(run.root, 'notes.md'), '# Refinement');
+  await writeFile(artifactJoin(run.root, '.claude/rules/product.md'), '# Updated rules');
+  await writeFile(artifactJoin(run.root, 'notes.md'), '# Refinement');
   await run.apply('stop');
   assert.deepEqual(await run.check(), {});
-  await writeFile(path.join(run.root, 'app.js'), 'export const amount = 10;');
+  await writeFile(artifactJoin(run.root, 'app.js'), 'export const amount = 10;');
   assert.match((await run.check()).reason, /Application files changed/);
 });
 
 test('buffered partial transcript lines and diagnostic replay events do not manufacture a new init', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'startup-partial-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'startup-partial-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const transcript = path.join(root, 'transcript.jsonl');
+  const transcript = artifactJoin(root, 'transcript.jsonl');
   const events = [...startup(), assistant(text(initialized.startup_message)),
     { type: 'api-request-blob', message: startup()[1].message }];
   await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n{"type":');
@@ -396,7 +397,7 @@ test('synthetic Stop feedback cannot release a fresh-run continuation or prematu
  run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: continue.' } });
  await run.saveEvents();
  assert.match((await run.check()).reason, /Continue Context check/);
- await writeFile(path.join(run.root, 'app.js'), 'premature edit');
+ await writeFile(artifactJoin(run.root, 'app.js'), 'premature edit');
  await run.apply('stop');
  run.events.push({ type: 'user', isSynthetic: true, message: { role: 'user', content: 'Stop hook feedback: recover the skipped stages.' } });
  await run.saveEvents();
@@ -520,7 +521,7 @@ test('agent waits never release missing-link or premature-implementation protect
   await run.saveEvents();
   assert.match((await run.check()).reason, /ASSISTANT CHAT MESSAGE/);
   run.events.push(assistant(text(run.result.startup_message)));
-  await writeFile(path.join(run.root, 'app.js'), 'premature edit');
+  await writeFile(artifactJoin(run.root, 'app.js'), 'premature edit');
   await run.saveEvents();
   assert.match((await run.check()).reason, /Application files changed/);
 });
@@ -564,7 +565,7 @@ test('hook decisions persist deduplicated observations and record a later releas
 
 test('journal write failures are visible without releasing enforcement or blocking an otherwise valid yield', async (t) => {
   const run = await activeAgentRun(t);
-  await mkdir(path.join(path.dirname(run.result.state), 'hook-events.jsonl'));
+  await mkdir(artifactJoin(path.dirname(run.result.state), 'hook-events.jsonl'));
   const blocked = await run.check();
   assert.equal(blocked.decision, 'block'); assert.match(blocked.systemMessage, /could not be recorded/);
   run.launch(); await run.saveEvents();
@@ -585,7 +586,7 @@ test('Stop confirms runtime assistant text before the transcript flushes and sub
   assert.equal(await readFile(run.transcript, 'utf8'), before);
   assert.deepEqual(await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, session_id: 'runtime-session' }), {});
   assert.deepEqual(await readHookEvents(run.result.state), []); // expected internal boundary, not an interruption
-  const receipt = await readFile(path.join(path.dirname(run.result.state), 'startup-confirmation.json'), 'utf8');
+  const receipt = await readFile(artifactJoin(path.dirname(run.result.state), 'startup-confirmation.json'), 'utf8');
   assert.doesNotMatch(receipt, /Open implementation dashboard|runtime-session|DEMO-status|\/Users\/|\/tmp\//);
 });
 
@@ -596,7 +597,7 @@ test('runtime text is not confirmation on tool hooks, and a code sample cannot c
   assert.match(tool.hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
   const stop = await startupHook({ ...input, hook_event_name: 'Stop', last_assistant_message: `\`\`\`markdown\n${run.result.startup_message}\n\`\`\`` });
   assert.match(stop.reason, /ASSISTANT CHAT MESSAGE/);
-  await assert.rejects(readFile(path.join(path.dirname(run.result.state), 'startup-confirmation.json')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(path.dirname(run.result.state), 'startup-confirmation.json')), { code: 'ENOENT' });
 });
 
 test('a confirmation receipt cannot cross sessions, initializations, runs or dashboard targets', async (t) => {
@@ -606,7 +607,7 @@ test('a confirmation receipt cannot cross sessions, initializations, runs or das
   const check = (session_id = 'first') => startupHook({ hook_event_name: 'PostToolUse', transcript_path: run.transcript, session_id });
   assert.deepEqual(await check(), {});
   assert.match((await check('other')).hookSpecificOutput.additionalContext, /ASSISTANT CHAT MESSAGE/);
-  const receiptPath = path.join(path.dirname(run.result.state), 'startup-confirmation.json');
+  const receiptPath = artifactJoin(path.dirname(run.result.state), 'startup-confirmation.json');
   const original = await readFile(receiptPath, 'utf8');
   for (const key of ['runId', 'initializationHash', 'dashboardHash']) {
     const modified = JSON.parse(original); modified[key] = 'stale'; await writeFile(receiptPath, JSON.stringify(modified));
@@ -620,7 +621,7 @@ test('a confirmation receipt cannot cross sessions, initializations, runs or das
 
 test('runtime announcement confirmation preserves premature-edit and stage-continuation guards', async (t) => {
   const run = await freshRun(t, 'autopilot'); run.events.splice(2, 1); await run.saveEvents();
-  await writeFile(path.join(run.root, 'app.js'), 'premature implementation');
+  await writeFile(artifactJoin(run.root, 'app.js'), 'premature implementation');
   const held = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
   assert.equal(held.decision, 'block'); assert.match(held.reason, /Application files changed/);
   assert.equal((await readHookEvents(run.result.state))[0].kind, 'premature-implementation');
@@ -629,7 +630,7 @@ test('runtime announcement confirmation preserves premature-edit and stage-conti
 
 test('receipt write failure is visible while runtime confirmation still requires stage continuation', async (t) => {
   const run = await freshRun(t, 'autonomous'); run.events.splice(2, 1); await run.saveEvents();
-  await mkdir(path.join(path.dirname(run.result.state), 'startup-confirmation.json'));
+  await mkdir(artifactJoin(path.dirname(run.result.state), 'startup-confirmation.json'));
   const result = await startupHook({ hook_event_name: 'Stop', transcript_path: run.transcript, last_assistant_message: run.result.startup_message });
   assert.equal(result.decision, 'block'); assert.match(result.reason, /Continue Context check now/);
   assert.match(result.systemMessage, /receipt could not be saved/);
@@ -638,20 +639,20 @@ test('receipt write failure is visible while runtime confirmation still requires
 test('authorized Plan test edits remove only the premature-edit hold; active-stage and production guards remain', async (t) => {
   const run = await freshRun(t, 'autopilot');
   const spec = 'make-it-work/DEMO/DEMO-spec.md';
-  await writeFile(path.join(run.root, spec), '# accepted spec\n');
+  await writeFile(artifactJoin(run.root, spec), '# accepted spec\n');
   await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: caller change').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# accepted spec\n')}`));
-  await mkdir(path.join(run.root, 'test'));
-  await writeFile(path.join(run.root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
+  await mkdir(artifactJoin(run.root, 'test'));
+  await writeFile(artifactJoin(run.root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
   const readiness = await testingReadiness(run.result.state, 'begin');
-  await writeFile(path.join(run.root, readiness.report), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing Node runner |\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ready | existing | not-run | Hook-only fixture; baseline not requested |\n');
+  await writeFile(artifactJoin(run.root, readiness.report), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing Node runner |\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ready | existing | not-run | Hook-only fixture; baseline not requested |\n');
   await testingReadiness(run.result.state, 'complete');
   await authorizePlanningTests(run.result.state, { repo: run.root, file: 'test/policy.test.js', kind: 'test-file', step: 1, reason: 'Progression assertion' });
-  await writeFile(path.join(run.root, 'test/policy.test.js'), '// planned red test\n');
+  await writeFile(artifactJoin(run.root, 'test/policy.test.js'), '// planned red test\n');
   const after = await startupHook({ hook_event_name: 'PostToolUse', tool_name: 'Write', transcript_path: run.transcript });
   assert.deepEqual(after, {});
   assert.match((await run.check()).reason, /still In Progress at plan/);
   assert.equal((await readHookEvents(run.result.state)).some((event) => event.kind === 'premature-implementation'), false);
-  await writeFile(path.join(run.root, 'app.js'), '// unauthorized production change\n');
+  await writeFile(artifactJoin(run.root, 'app.js'), '// unauthorized production change\n');
   assert.match((await run.check()).reason, /Application files changed/);
 });
 
@@ -679,7 +680,7 @@ test('Plan waits require runtime proof and never hide production edits or releas
   assert.match((await plan.check()).reason, /still In Progress at plan/);
   plan.launch(); await plan.saveEvents();
   assert.equal((await plan.check()).decision, undefined);
-  await writeFile(path.join(plan.root, 'app.js'), '// unauthorized production change\n');
+  await writeFile(artifactJoin(plan.root, 'app.js'), '// unauthorized production change\n');
   assert.match((await plan.check()).reason, /Application files changed/);
   for (const phase of ['context-check', 'spec-approval', 'plan-approval', 'final-sync']) {
     const run = await activeAgentRun(t, phase); run.launch(); await run.saveEvents();
@@ -727,7 +728,7 @@ test('refinement waits require a live current-stage child and never hide applica
   assert.equal((await run.check()).decision, 'block');
   run.launch('current-survey'); await run.saveEvents();
   assert.deepEqual(await run.check(), {});
-  await writeFile(path.join(run.root, 'app.js'), '// premature edit');
+  await writeFile(artifactJoin(run.root, 'app.js'), '// premature edit');
   assert.match((await run.check()).reason, /Application files changed/);
 });
 
@@ -783,7 +784,7 @@ test('background tasks cannot bypass premature edits or readiness completion and
   run.events.push(assistant({ type: 'tool_use', id: 'stop-watch', name: 'TaskStop' }),
     { type: 'user', toolUseResult: { task_id: 'watch' }, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'stop-watch', content: 'Stopped' }] } });
   assert.deepEqual(startupProgress(run.events).tasks.map(task => task.id), ['baseline']);
-  await writeFile(path.join(run.root, 'app.js'), 'premature production edit');
+  await writeFile(artifactJoin(run.root, 'app.js'), 'premature production edit');
   await run.saveEvents();
   assert.match((await run.check()).reason, /Application files changed/);
 });

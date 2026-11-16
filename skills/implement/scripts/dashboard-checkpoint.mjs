@@ -1,7 +1,11 @@
 #!/usr/bin/env node
+import { recordActivityTiming } from './activity-timing.mjs';
+import { validateCategory } from '../../../scripts/lib/activity-timing.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
-import { lstat, readFile, readdir, rename, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, readdir, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -40,16 +44,18 @@ function replaceActivity(markdown, activity, time) {
 }
 
 /** Persist activity history before rendering; a retry repairs the snapshot. */
-export async function checkpointDashboard(statePath, { activity } = {}) {
-  const absoluteStatePath = path.resolve(statePath);
+export async function checkpointDashboard(statePath, { activity, category = 'unclassified' } = {}) {
+  const absoluteStatePath = artifactResolve(statePath);
   const info = await lstat(absoluteStatePath);
   if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
   const original = await readFile(absoluteStatePath, 'utf8');
   const state = parseState(original, absoluteStatePath);
   if (activity === undefined) return generateDashboard(absoluteStatePath);
 
+  validateCategory(category);
   const time = new Date().toISOString();
   let updated = replaceActivity(original, activity, time);
+  await recordActivityTiming(absoluteStatePath, state, category, time);
   if (activity.trim() !== 'none') {
     const last = state.audit.findLast((row) => row.note?.kind === 'activity');
     if (state.fields.current_activity === activity.trim() && last?.to === state.fields.phase &&
@@ -83,7 +89,7 @@ export async function checkpointResult(statePath, note) {
 /** Stable informational notes, including post-completion feedback lifecycle events. */
 export async function checkpointAuditNote(statePath, { kind, id, text, reference }, { refresh = true } = {}) {
   const cell = noteCell({ kind, id, text, reference });
-  const absoluteStatePath = path.resolve(statePath);
+  const absoluteStatePath = artifactResolve(statePath);
   const info = await lstat(absoluteStatePath);
   if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
   const original = await readFile(absoluteStatePath, 'utf8');
@@ -102,7 +108,7 @@ export async function checkpointAuditNote(statePath, { kind, id, text, reference
 /** Save a decision once; rendering failure must not erase its audit evidence. */
 export async function checkpointDecision(statePath, input) {
   const d = validateDecision(input);
-  const absoluteStatePath = path.resolve(statePath);
+  const absoluteStatePath = artifactResolve(statePath);
   const info = await lstat(absoluteStatePath);
   if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
   const original = await readFile(absoluteStatePath, 'utf8');
@@ -138,14 +144,14 @@ export async function checkpointDecision(statePath, input) {
 export async function lostReview(statePath, state) {
   const f = state.fields;
   if (f.phase !== 'review' || f.status !== 'In Progress' || f.review_scope_version !== '1') return null;
-  const dir = path.dirname(path.resolve(statePath));
+  const dir = path.dirname(artifactResolve(statePath));
   const target = `${f.ticket}-review-target-${f.review_cycle}.json`;
   let dispatchedAt;
-  try { dispatchedAt = (await lstat(path.join(dir, target))).mtime.toISOString(); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  try { dispatchedAt = (await lstat(artifactJoin(dir, target))).mtime.toISOString(); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
   let names = [];
-  try { names = (await readdir(path.join(dir, `${f.ticket}-handoffs`))).filter((name) => /^review-[1-9]\d*\.json$/.test(name)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try { names = (await readdir(artifactJoin(dir, `${f.ticket}-handoffs`))).filter((name) => /^(?:miw-)?review-[1-9]\d*\.json$/.test(name)); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   for (const name of names) {
-    const handoff = JSON.parse(await readFile(path.join(dir, `${f.ticket}-handoffs`, name), 'utf8'));
+    const handoff = JSON.parse(await readFile(artifactJoin(dir, `${f.ticket}-handoffs`, name), 'utf8'));
     if (String(handoff.review_cycle) === f.review_cycle && String(handoff.plan_version) === f.plan_version) return null;
   }
   return { stage: 'review', cycle: Number(f.review_cycle), plan_version: Number(f.plan_version), target, dispatched_at: dispatchedAt };
@@ -160,13 +166,14 @@ export async function recordLostReview(statePath, lost) {
   });
 }
 
-const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> | decision --state <state.md> --input <decision.json>';
+const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> [--category <category>] | decision --state <state.md> --input <decision.json>';
 
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === '--help') return { help: true };
   if (argv[0] === 'render' && argv.length === 3 && argv[1] === '--state' && argv[2]) return { statePath: argv[2] };
-  if (argv[0] === 'activity' && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--activity' && argv[4]) {
-    return { statePath: argv[2], activity: argv[4] };
+  if (argv[0] === 'activity' && [5, 7].includes(argv.length) && argv[1] === '--state' && argv[2] && argv[3] === '--activity' && argv[4]) {
+    if (argv.length === 7 && argv[5] !== '--category') fail(USAGE);
+    return { statePath: argv[2], activity: argv[4], category: argv[6] };
   }
   if (argv[0] === 'decision' && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--input' && argv[4]) {
     return { statePath: argv[2], input: argv[4] };
@@ -193,11 +200,11 @@ async function main() {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const output = await checkpointDashboard(args.statePath, args.activity === undefined ? {} : { activity: args.activity });
+  const output = await checkpointDashboard(args.statePath, args.activity === undefined ? {} : { activity: args.activity, category: args.category });
   process.stdout.write(`${output}\n`);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((error) => {
     process.stderr.write(`dashboard-checkpoint: ${error.message}\n`);
     process.exitCode = 1;

@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-import { lstat, readFile } from 'node:fs/promises';
+import { logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { args, atomicWrite, cli, digest, fail, integer, jsonInput, requireText, withLock } from '../../../scripts/lib/artifacts.mjs';
@@ -128,7 +131,7 @@ async function readJournal(file, hash, steps, completed, allowEditedStop = false
 }
 export async function executionControl(planPath, event, { ledgerPath, ticket, planVersion = 1, dashboardState, requireClauses = false } = {}) {
   if (!(await lstat(planPath)).isFile()) fail('Execution plan must be a regular file.');
-  if (ledgerPath && (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket ?? '') || !Number.isSafeInteger(planVersion) || planVersion < 1 || path.dirname(path.resolve(ledgerPath)) !== path.dirname(path.resolve(planPath)) || path.basename(ledgerPath) !== `${ticket}-verification-v${planVersion}.json`)) fail('Verification ledger must match ticket/version beside its plan.');
+  if (ledgerPath && (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket ?? '') || !Number.isSafeInteger(planVersion) || planVersion < 1 || path.dirname(artifactResolve(ledgerPath)) !== path.dirname(artifactResolve(planPath)) || path.basename(artifactResolve(ledgerPath)) !== path.basename(artifactJoin(path.dirname(artifactResolve(planPath)), `${ticket}-verification-v${planVersion}.json`)))) fail('Verification ledger must match ticket/version beside its plan.');
   const journalPath = `${planPath}.execution.json`;
   return withLock(journalPath, async () => {
     const plan = await readFile(planPath, 'utf8');
@@ -161,9 +164,9 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
     }
     await checkpointGuardrails(planPath, dashboardState, journal);
     if (event.action === 'complete' || status.completed || journal.amendment_pending) {
-      const directory = path.dirname(path.resolve(planPath));
-      const inferredTicket = path.basename(planPath).match(/^(.+)-plan(?:-v\d+)?\.md$/)?.[1];
-      const statePath = dashboardState ?? (path.basename(directory) === inferredTicket && path.basename(path.dirname(directory)) === 'make-it-work' ? path.join(directory, `${inferredTicket}-state.md`) : null);
+      const directory = path.dirname(artifactResolve(planPath));
+      const inferredTicket = logicalArtifactName(planPath).match(/^(.+)-plan(?:-v\d+)?\.md$/)?.[1];
+      const statePath = dashboardState ?? (path.basename(directory) === inferredTicket && path.basename(path.dirname(directory)) === 'make-it-work' ? artifactJoin(directory, `${inferredTicket}-state.md`) : null);
       if (statePath) {
         try { requireClauses ||= parseState(await readFile(statePath, 'utf8'), statePath).fields.acceptance_evidence_version === '1'; }
         catch (error) { if (error.code !== 'ENOENT' || dashboardState) throw error; }
@@ -215,7 +218,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
         if (statePath) {
           const { step, attempt, diagnosis: d } = journal.diagnoses[event.id];
           await checkpointResult(statePath, {
-            id: `fix-diagnosis-${digest(JSON.stringify([path.resolve(planPath), journal.history?.length ?? 0, event.id]))}`,
+            id: `fix-diagnosis-${digest(JSON.stringify([artifactResolve(planPath), journal.history?.length ?? 0, event.id]))}`,
             text: `Step ${step}, fix attempt ${attempt}: ${d.failure}; cause: ${d.cause}; next: ${d.next_change}; expected: ${d.expected_result}${d.prior_result ? `; previous result: ${d.prior_result}` : ''}`,
             reference: `${journalPath}#${event.id}; ${d.evidence}`,
           });

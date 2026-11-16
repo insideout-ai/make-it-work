@@ -1,4 +1,6 @@
-import { lstat, readFile } from 'node:fs/promises';
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { feedbackEligible, feedbackStateHash } from './feedback-handoff.mjs';
 import { readFeedbackFinalization } from './feedback-finalization.mjs';
@@ -19,9 +21,9 @@ export async function readFeedbackProgress(statePath, state) {
   const stateHash = feedbackStateHash(state.fields, state.audit);
   const directory = path.dirname(statePath);
   const [session, cumulative, failure] = await Promise.all([
-    artifact(path.join(directory, 'workflow-feedback.md')),
-    artifact(path.join(path.dirname(directory), 'implement-feedback.md')),
-    artifact(path.join(directory, 'feedback-unavailable.json')),
+    artifact(artifactJoin(directory, 'workflow-feedback.md')),
+    artifact(artifactJoin(path.dirname(directory), 'implement-feedback.md')),
+    artifact(artifactJoin(directory, 'feedback-unavailable.json')),
   ]);
   const current = value => {
     if (!value) return false;
@@ -32,7 +34,7 @@ export async function readFeedbackProgress(statePath, state) {
   };
   const saved = current(session) && current(cumulative);
   const finalized = await readFeedbackFinalization(statePath, { runId, stateHash });
-  if (finalized?.status === 'unavailable') return { status: 'unavailable', ...(finalized.reason ? { reason: finalized.reason } : {}) };
+  if (finalized?.status === 'unavailable') return { status: 'unavailable', finalizedAt: finalized.finalizedAt, ...(finalized.reason ? { reason: finalized.reason } : {}) };
   try {
     const receipt = JSON.parse(failure?.text ?? 'null');
     if (receipt?.feedbackAttempt === 'unavailable' && receipt.runId === runId && receipt.stateHash === stateHash && receipt.reportSaved === false &&
@@ -40,14 +42,14 @@ export async function readFeedbackProgress(statePath, state) {
   } catch { /* An invalid receipt cannot certify an unavailable outcome. */ }
   const readback = state.fields.feedback_evidence_version !== '1' || finalized?.kind === 'answered-delivery' ||
     currentReadback(finalized, session?.text ?? '', session?.modified);
-  return { status: saved && finalized?.status === 'saved' && readback ? 'saved' : 'collecting', reportSaved: saved };
+  return { finalizedAt: finalized?.finalizedAt, status: saved && finalized?.status === 'saved' && readback ? 'saved' : 'collecting', reportSaved: saved };
 }
 
 // Only refresh dashboards generated with the feedback lifecycle marker. Supplied source
 // fixtures, missing HTML and old dashboards remain untouched. This is a writer
 // lifecycle update, never part of the read-only HTML evidence inspection.
 export async function refreshFeedbackDashboard(statePath) {
-  const dashboard = path.join(path.dirname(statePath), `${path.basename(statePath, '-state.md')}-status.html`);
+  const dashboard = artifactJoin(path.dirname(statePath), `${path.basename(statePath, '-state.md')}-status.html`);
   const existing = await artifact(dashboard);
   if (!existing?.text.includes('data-workflow-feedback-status=')) return {};
   try {
@@ -66,6 +68,7 @@ export async function startFeedbackCollection(statePath) {
   if (!feedbackEligible(state.fields)) return;
   const binding = { runId: state.fields.start_time, stateHash: feedbackStateHash(state.fields, state.audit) };
   if (await readFeedbackFinalization(statePath, binding)) return;
+  if (state.audit.some(row => row.note?.id === `feedback-start:${binding.stateHash}`)) return;
   const { checkpointAuditNote } = await import('./dashboard-checkpoint.mjs');
   await checkpointAuditNote(statePath, { kind: 'activity', id: `feedback-start:${binding.stateHash}`,
     text: 'Collecting session feedback' }, { refresh: false });

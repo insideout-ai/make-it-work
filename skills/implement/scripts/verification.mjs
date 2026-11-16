@@ -1,4 +1,6 @@
-import { readFile, realpath } from 'node:fs/promises';
+import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -184,13 +186,13 @@ export async function readVerification(root, relative, options) {
       !/^make-it-work\/[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9._-]+-verification-v\d+\.json$/.test(relative) ||
       relative !== runArtifact(options.ticket, path.posix.basename(relative))) fail('Invalid verification artifact path.');
   const rootPath = await realpath(root);
-  const resolved = path.resolve(rootPath, relative);
+  const resolved = artifactResolve(rootPath, relative);
   const actual = await realpath(resolved);
   if (!actual.startsWith(`${runDirectory(rootPath, options.ticket)}${path.sep}`)) fail('Verification artifact escapes run root.');
   return validateVerification(JSON.parse(await readFile(actual, 'utf8')), options);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const action = args.shift();
   const options = {};

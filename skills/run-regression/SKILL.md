@@ -5,6 +5,8 @@ description: "Runs a project's regression suite — full, per repo (`full:<repo>
 
 # Run Regression
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 ## Usage
 
 ```

@@ -1,8 +1,11 @@
-import { lstat, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { captureUsage } from '../../../scripts/usage.mjs';
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, rename, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-const receiptPath = statePath => path.join(path.dirname(statePath), 'feedback-finalized.json');
+const receiptPath = statePath => artifactJoin(path.dirname(statePath), 'feedback-finalized.json');
 
 export async function readFeedbackFinalization(statePath, binding) {
   try {
@@ -16,7 +19,7 @@ export async function readFeedbackFinalization(statePath, binding) {
 
 // A local lifecycle receipt, separate from the implementation state/package.
 // The guard validates runtime proof before writing it or accepting its writerId.
-export async function finalizeFeedback(statePath, outcome, { refresh = true } = {}) {
+export async function finalizeFeedback(statePath, outcome, { refresh = true, now = () => new Date().toISOString() } = {}) {
   const existing = await readFeedbackFinalization(statePath, outcome);
   const unchanged = existing?.status === outcome.status && existing?.writerId === outcome.writerId && existing?.kind === outcome.kind &&
     JSON.stringify(existing?.readback) === JSON.stringify(outcome.readback);
@@ -24,8 +27,9 @@ export async function finalizeFeedback(statePath, outcome, { refresh = true } = 
   try {
     try { if (!(await lstat(file)).isFile()) throw new Error('Feedback finalization path must be a regular file.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
-    const receipt = unchanged ? existing : { version: 1, ...outcome, finalizedAt: new Date().toISOString() };
+    const receipt = unchanged ? existing : { version: 1, ...outcome, finalizedAt: now() };
     if (!unchanged) {
+      await captureUsage(path.dirname(statePath));
       await writeFile(temporary, JSON.stringify(receipt) + '\n', { flag: 'wx', mode: 0o600 });
       await rename(temporary, file);
     }

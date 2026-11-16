@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
@@ -26,19 +27,19 @@ test('validates stage results and rejects contradictory outcomes', () => {
 });
 
 test('validates real artifact files within the run root', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-handoff-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'implement-handoff-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'make-it-work', 'DEMO-1'), { recursive: true });
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
+  await mkdir(artifactJoin(root, 'make-it-work', 'DEMO-1'), { recursive: true });
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
   assert.equal((await validateArtifacts(gaps(), root)).status, 'done');
   await assert.rejects(validateArtifacts({ ...gaps(), artifacts: { spec: '../make-it-work/DEMO-1/DEMO-1-spec.md' } }, root), /must be under/);
   await assert.rejects(validateArtifacts(plan(), root), /ENOENT/);
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-execute.md'), 'Execute outcome: PASSED\n');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-execute.md'), 'Execute outcome: PASSED\n');
   assert.equal((await validateArtifacts(execute('PASSED'), root)).outcome, 'PASSED');
   await assert.rejects(validateArtifacts(execute('GUARDRAIL'), root), /disagrees with its Markdown report/);
   const verified = { ...execute('PASSED'), artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md', verification: 'make-it-work/DEMO-1/DEMO-1-verification-v1.json' } };
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Happy path |\n');
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO-1', plan_version: 1,
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Happy path |\n');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO-1', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'full-suite', result: 'pass', note: 'Passed' },
     acceptance: [{ criterion: 'AC1', scenario: 'Happy path', status: 'automated', step: 1, note: 'Passed' }] }));
@@ -95,13 +96,13 @@ test('rejects stale or mismatched handoffs before routing', () => {
 });
 
 test('CLI validates a handoff and routes it against a saved Markdown state', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-handoff-cli-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'implement-handoff-cli-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const artifacts = path.join(root, 'make-it-work', 'DEMO-1');
-  const handoffs = path.join(artifacts, 'DEMO-1-handoffs');
+  const artifacts = artifactJoin(root, 'make-it-work', 'DEMO-1');
+  const handoffs = artifactJoin(artifacts, 'DEMO-1-handoffs');
   await mkdir(handoffs, { recursive: true });
-  await writeFile(path.join(artifacts, 'DEMO-1-spec.md'), '# Spec\n');
-  const handoffPath = path.join(handoffs, 'gaps-1.json');
+  await writeFile(artifactJoin(artifacts, 'DEMO-1-spec.md'), '# Spec\n');
+  const handoffPath = artifactJoin(handoffs, 'gaps-1.json');
   await writeFile(handoffPath, JSON.stringify(gaps()));
   const fields = {
     ticket: 'DEMO-1', handoff_version: '1', status: 'In Progress', phase: 'close-the-gaps',
@@ -113,22 +114,22 @@ test('CLI validates a handoff and routes it against a saved Markdown state', asy
     head: 'abc123', worktree_fingerprint: 'fingerprint', execute_report: 'none',
     context_updated: 'none', current_activity: 'none', real_rows_from: '1',
   };
-  const statePath = path.join(artifacts, 'DEMO-1-state.md');
+  const statePath = artifactJoin(artifacts, 'DEMO-1-state.md');
   await writeFile(statePath, `# Workflow state — DEMO-1\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | start | close-the-gaps | Refinement started |\n`);
   const cli = path.resolve('skills/implement/scripts/handoff.mjs');
   const valid = JSON.parse(execFileSync(process.execPath, [cli, 'validate', '--handoff', handoffPath, '--root', root], { encoding: 'utf8' }));
   assert.equal(valid.valid, true);
   const next = JSON.parse(execFileSync(process.execPath, [cli, 'next', '--handoff', handoffPath, '--root', root, '--state', statePath], { encoding: 'utf8' }));
   assert.equal(next.phase, 'spec-approval');
-  await writeFile(path.join(handoffs, 'gaps-2.json'), JSON.stringify(gaps()));
+  await writeFile(artifactJoin(handoffs, 'gaps-2.json'), JSON.stringify(gaps()));
   assert.throws(() => execFileSync(process.execPath, [cli, 'validate', '--handoff', handoffPath, '--root', root], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /stale/);
-  const planHandoff = path.join(handoffs, 'plan-1.json');
+  const planHandoff = artifactJoin(handoffs, 'plan-1.json');
   await writeFile(planHandoff, JSON.stringify(plan()));
-  await writeFile(path.join(artifacts, 'DEMO-1-plan.md'), '# Plan without a verification policy\n');
+  await writeFile(artifactJoin(artifacts, 'DEMO-1-plan.md'), '# Plan without a verification policy\n');
   const stateText = `# Workflow state — DEMO-1\n\n\`\`\`\n${Object.entries({ ...fields, phase: 'plan', testing_readiness: 'none' }).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | close-the-gaps | plan | Spec ready |\n`;
   await writeFile(statePath, stateText);
   assert.throws(() => execFileSync(process.execPath, [cli, 'next', '--handoff', planHandoff, '--root', root, '--state', statePath], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /requires a Verification Policy/);
-  await writeFile(path.join(artifacts, 'DEMO-1-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing runner |\n');
+  await writeFile(artifactJoin(artifacts, 'DEMO-1-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing runner |\n');
   assert.equal(JSON.parse(execFileSync(process.execPath, [cli, 'next', '--handoff', planHandoff, '--root', root, '--state', statePath], { encoding: 'utf8' })).phase, 'plan-approval');
 });
 
@@ -147,9 +148,9 @@ test('manual execution routes to review in every mode but missing automated resu
 });
 
 test('manual artifact validation binds the report, selected plan policy, observations and gate', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'manual-handoff-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'manual-handoff-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const dir = path.join(root, 'make-it-work', 'DEMO-1');
+  const dir = artifactJoin(root, 'make-it-work', 'DEMO-1');
   await mkdir(dir, { recursive: true });
   const manual = { ...execute('VERIFIED_MANUALLY'),
     artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md', verification: 'make-it-work/DEMO-1/DEMO-1-verification-v1.json' },
@@ -159,14 +160,14 @@ test('manual artifact validation binds the report, selected plan policy, observa
     steps: [{ number: 1, checks: [{ type: 'manual', subject: 'Happy path', command: null, result: 'pass', note: 'Observed saved record' }] }],
     gate: { mode: 'none', result: 'manual-accepted', note: 'Selected manual policy; observed scenarios' },
     acceptance: [{ criterion: 'AC1', scenario: 'Happy path', status: 'manual', step: 1, note: 'Observed saved record' }] };
-  await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan);
-  await writeFile(path.join(dir, 'DEMO-1-execute.md'), 'Execute outcome: VERIFIED_MANUALLY\n');
-  await writeFile(path.join(dir, 'DEMO-1-verification-v1.json'), JSON.stringify(evidence));
+  await writeFile(artifactJoin(dir, 'DEMO-1-plan.md'), manualPlan);
+  await writeFile(artifactJoin(dir, 'DEMO-1-execute.md'), 'Execute outcome: VERIFIED_MANUALLY\n');
+  await writeFile(artifactJoin(dir, 'DEMO-1-verification-v1.json'), JSON.stringify(evidence));
   assert.equal((await validateArtifacts(manual, root)).outcome, 'VERIFIED_MANUALLY');
-  await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan.replace('manual | user', 'automated | configured'));
+  await writeFile(artifactJoin(dir, 'DEMO-1-plan.md'), manualPlan.replace('manual | user', 'automated | configured'));
   await assert.rejects(validateArtifacts(manual, root), /all-manual policy/);
-  await writeFile(path.join(dir, 'DEMO-1-plan.md'), manualPlan);
-  await writeFile(path.join(dir, 'DEMO-1-verification-v1.json'), JSON.stringify({ ...evidence, gate: { mode: 'full-suite', result: 'pass', note: 'Reported suite' } }));
+  await writeFile(artifactJoin(dir, 'DEMO-1-plan.md'), manualPlan);
+  await writeFile(artifactJoin(dir, 'DEMO-1-verification-v1.json'), JSON.stringify({ ...evidence, gate: { mode: 'full-suite', result: 'pass', note: 'Reported suite' } }));
   await assert.rejects(validateArtifacts(manual, root), /accepted manual gate/);
 });
 
@@ -175,13 +176,13 @@ test('validates and pauses on exported PM questions without claiming Slack deliv
   assert.throws(() => validateHandoff({ ...questionsSent(), data: { tbd_items: 0 } }), /unknown field/);
   assert.throws(() => validateHandoff({ ...questionsSent(), artifacts: { spec: 'make-it-work/DEMO-1/DEMO-1-spec.md' } }), /unknown field|questions/);
   assert.throws(() => validateHandoff({ ...gaps(), artifacts: { questions: 'make-it-work/DEMO-1/DEMO-1-questions.md' } }), /unknown field|spec/);
-  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-handoff-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'implement-handoff-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'make-it-work', 'DEMO-1'), { recursive: true });
+  await mkdir(artifactJoin(root, 'make-it-work', 'DEMO-1'), { recursive: true });
   await assert.rejects(validateArtifacts(questionsSent(), root), /ENOENT/);
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-questions.md'), '# Offline Questions');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-questions.md'), '# Offline Questions');
   assert.equal((await validateArtifacts(questionsSent(), root)).outcome, 'QUESTIONS_SENT');
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-spec.md'), 'spec');
   await assert.rejects(validateArtifacts({ ...questionsSent(), artifacts: { questions: 'make-it-work/DEMO-1/DEMO-1-spec.md' } }, root), /does not match/);
   for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
     assert.deepEqual(decideNext(state('close-the-gaps', autonomy), questionsSent()), {
@@ -210,13 +211,13 @@ test('validates the Lightweight implement handoff and its report artifact', asyn
   assert.throws(() => validateHandoff({ ...implement(), review_cycle: 1 }), /Only Review/);
   assert.throws(() => validateHandoff({ ...implement(), plan_version: 0 }), /positive plan_version/);
   assert.equal(validateHandoff({ version: 1, ticket: 'DEMO-1', plan_version: 1, stage: 'implement', status: 'blocked', reason: 'Build broke' }).status, 'blocked');
-  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-lightweight-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'implement-lightweight-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'make-it-work', 'DEMO-1'), { recursive: true });
+  await mkdir(artifactJoin(root, 'make-it-work', 'DEMO-1'), { recursive: true });
   await assert.rejects(validateArtifacts(implement(), root), /ENOENT/);
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-lightweight.md'), '# Lightweight report\n');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-lightweight.md'), '# Lightweight report\n');
   assert.equal((await validateArtifacts(implement(), root)).outcome, 'IMPLEMENTED');
-  await writeFile(path.join(root, 'make-it-work/DEMO-1/DEMO-1-execute.md'), 'Execute outcome: PASSED\n');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO-1/DEMO-1-execute.md'), 'Execute outcome: PASSED\n');
   await assert.rejects(validateArtifacts({ ...implement(), artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-execute.md' } }, root), /does not match implement/);
 });
 
@@ -313,13 +314,13 @@ test('adaptive TDD runs route review and execution exactly like runs without ada
 });
 
 test('CLI routes a Lightweight implement handoff and passes --escalate', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'implement-lightweight-cli-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'implement-lightweight-cli-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const artifacts = path.join(root, 'make-it-work', 'DEMO-1');
-  const handoffs = path.join(artifacts, 'DEMO-1-handoffs');
+  const artifacts = artifactJoin(root, 'make-it-work', 'DEMO-1');
+  const handoffs = artifactJoin(artifacts, 'DEMO-1-handoffs');
   await mkdir(handoffs, { recursive: true });
-  await writeFile(path.join(artifacts, 'DEMO-1-lightweight.md'), '# Lightweight report\n');
-  const handoffPath = path.join(handoffs, 'implement-1.json');
+  await writeFile(artifactJoin(artifacts, 'DEMO-1-lightweight.md'), '# Lightweight report\n');
+  const handoffPath = artifactJoin(handoffs, 'implement-1.json');
   await writeFile(handoffPath, JSON.stringify(implement()));
   const fields = {
     ticket: 'DEMO-1', handoff_version: '1', status: 'In Progress', phase: 'lightweight',
@@ -333,7 +334,7 @@ test('CLI routes a Lightweight implement handoff and passes --escalate', async (
     adaptive_version: '1', risk: 'low', mode: 'lightweight', mode_source: 'assessed',
     risk_rationale: 'Small local change', escalations: '0', implementation_report: 'make-it-work/DEMO-1/DEMO-1-lightweight.md',
   };
-  const statePath = path.join(artifacts, 'DEMO-1-state.md');
+  const statePath = artifactJoin(artifacts, 'DEMO-1-state.md');
   const writeState = (overrides = {}) => writeFile(statePath, `# Workflow state — DEMO-1\n\n\`\`\`\n${Object.entries({ ...fields, ...overrides }).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | close-the-gaps | lightweight | Spec ready |\n`);
   await writeState();
   const cli = path.resolve('skills/implement/scripts/handoff.mjs');
@@ -343,7 +344,7 @@ test('CLI routes a Lightweight implement handoff and passes --escalate', async (
   assert.deepEqual(run('--escalate', 'Touches shared auth'), escalated('Touches shared auth'));
   await writeState({ escalations: '1', mode_source: 'user' });
   assert.throws(() => run('--escalate', 'Again'), /Escalation requires/);
-  const misnamed = path.join(handoffs, 'execute-1.json');
+  const misnamed = artifactJoin(handoffs, 'execute-1.json');
   await writeFile(misnamed, JSON.stringify(implement()));
   assert.throws(() => execFileSync(process.execPath, [cli, 'validate', '--handoff', misnamed, '--root', root], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /implement-<N>\.json/);
 });

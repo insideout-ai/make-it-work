@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 // Freeze the delivery diff before independent review; recheck it before packaging.
-import { readFile, realpath } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, within } from '../../../scripts/lib/artifacts.mjs';
 import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
@@ -47,7 +49,7 @@ export async function deliverySnapshots(root, state) {
   }
   return repos.sort((a, b) => a.name.localeCompare(b.name));
 }
-const manifestRepos = (repos, f) => repos.map(({ diff, ...repo }) => ({ ...repo, diff_file: `${f.ticket}-review-${f.review_cycle}-${repo.name}.diff` }));
+const manifestRepos = (repos, f) => repos.map(({ diff, ...repo }) => ({ ...repo, diff_file: `${f.artifact_naming_version === '1' ? 'miw-' : ''}${f.ticket}-review-${f.review_cycle}-${repo.name}.diff` }));
 
 export async function prepareReviewScope(root, statePath) {
   root = await realpath(root);
@@ -68,22 +70,22 @@ export async function prepareReviewScope(root, statePath) {
     if (requirements.length !== repos.length) fail('Checkpoint the required review skills and mapping scope before freezing review.');
     target.review_requirements = requirements;
   }
-  const relative = runArtifact(f.ticket, targetName(f));
-  for (const [index, repo] of repos.entries()) await atomicWrite(path.join(root, 'make-it-work', f.ticket, target.repos[index].diff_file), repo.diff);
-  await atomicWrite(path.join(root, relative), `${JSON.stringify(target, null, 2)}\n`);
-  return { review_target: relative, sha256: digest(await readFile(path.join(root, relative))),
+  const relative = runArtifact(f.ticket, targetName(f), f.artifact_naming_version);
+  for (const [index, repo] of repos.entries()) await atomicWrite(artifactJoin(root, 'make-it-work', f.ticket, target.repos[index].diff_file), repo.diff);
+  await atomicWrite(artifactJoin(root, relative), `${JSON.stringify(target, null, 2)}\n`);
+  return { review_target: relative, sha256: digest(await readFile(artifactJoin(root, relative))),
     repos: target.repos.map(({ name, path: repoRoot, base, merge_base, paths, diff_file }) => ({ name, root: repoRoot, base, merge_base, paths, diff_file })) };
 }
 
 async function readTarget(root, state, relative) {
   const f = state.fields;
-  if (relative !== runArtifact(f.ticket, targetName(f))) fail('Review target must match the current run and review cycle.');
+  if (relative !== runArtifact(f.ticket, targetName(f), f.artifact_naming_version)) fail('Review target must match the current run and review cycle.');
   const bytes = await readFile(await within(root, relative));
   const target = JSON.parse(bytes);
   if (target.version !== 1 || target.ticket !== f.ticket || target.runId !== f.start_time || target.planVersion !== Number(f.plan_version) || target.cycle !== Number(f.review_cycle) || !Array.isArray(target.repos)) fail('Review target binding is stale. Prepare the current delivery scope again.');
   if (target.verification_context && JSON.stringify(target.verification_context) !== JSON.stringify(await verificationContext(root, f))) fail('Verification context changed; prepare the review target and independently review the current context again.');
   for (const repo of target.repos) {
-    const diff = await readFile(await within(root, runArtifact(f.ticket, repo.diff_file)));
+    const diff = await readFile(await within(root, runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)));
     if (digest(diff) !== repo.diff_sha256) fail('Review target diff changed. Prepare the current delivery scope again.');
   }
   return { target, sha256: digest(bytes) };
@@ -101,7 +103,7 @@ function fullCoverage(evidence, repos) {
 export async function validateReviewScopeInput(root, input, evidence) {
   if (!input.implement) return;
   root = await realpath(root);
-  const statePath = path.join(root, 'make-it-work', input.ticket, `${input.ticket}-state.md`);
+  const statePath = artifactJoin(root, 'make-it-work', input.ticket, `${input.ticket}-state.md`);
   let state;
   try {
     const text = await readFile(statePath, 'utf8');
@@ -118,7 +120,7 @@ export async function validateReviewScopeInput(root, input, evidence) {
   if (state.fields.review_checks_version === '1') {
     validateReviewChecks(input.review_checks, target.review_requirements ?? []);
     for (const item of target.review_requirements) for (const skill of item.skills) {
-      if (digest(await readFile(path.join(item.repo, skill.path))) !== skill.sha256) fail('Required review context changed; prepare the current target again.');
+      if (digest(await readFile(artifactJoin(item.repo, skill.path))) !== skill.sha256) fail('Required review context changed; prepare the current target again.');
     }
     for (const check of input.review_checks) for (const skill of check.skills) for (const rule of skill.rules) {
       if (rule.result === 'finding' && !input.findings[Number(rule.finding_id?.slice(1)) - 1]) fail('An applied-rule finding needs its actual finding_id in this review.');
@@ -135,8 +137,8 @@ export async function validateReviewScopeInput(root, input, evidence) {
 
 export async function checkReviewScope(root, statePath, { requireCurrent = true } = {}) {
   const state = await readState(root, statePath), f = state.fields;
-  const evidence = JSON.parse(await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review-evidence.json`)), 'utf8'));
-  const report = await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review.md`)));
+  const evidence = JSON.parse(await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review-evidence.json`, f.artifact_naming_version)), 'utf8'));
+  const report = await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review.md`, f.artifact_naming_version)));
   if (evidence.version !== 1 || evidence.ticket !== f.ticket || evidence.report_sha256 !== digest(report) || !evidence.delivery_target) fail('Clean review needs delivery-bound scope evidence; rerun the independent review.');
   const { target, sha256 } = await readTarget(root, state, evidence.delivery_target.path);
   if (f.review_checks_version === '1') validateReviewChecks(evidence.review_checks, target.review_requirements ?? []);
@@ -145,7 +147,7 @@ export async function checkReviewScope(root, statePath, { requireCurrent = true 
   const result = fullCoverage(evidence, repos);
   result.covered = result.covered && sameTarget(target, repos, f);
   if (requireCurrent && !result.covered) fail('Delivery scope is not fully reviewed. Prepare and independently review the full current branch-to-base diff before final packaging.');
-  return { ...result, target: evidence.delivery_target, target_diffs: target.repos.map((repo) => runArtifact(f.ticket, repo.diff_file)), repos: repos.map(({ diff, ...repo }) => repo) };
+  return { ...result, target: evidence.delivery_target, target_diffs: target.repos.map((repo) => runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)), repos: repos.map(({ diff, ...repo }) => repo) };
 }
 
 cli(import.meta.url, async (argv) => {

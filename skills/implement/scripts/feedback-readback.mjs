@@ -1,9 +1,10 @@
+import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import path from 'node:path';
 import { realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 const canonical = (file, cwd) => {
-  const resolved = path.resolve(cwd, file);
+  const resolved = artifactResolve(cwd, file);
   try { return realpathSync(resolved); } catch { return resolved; }
 };
 const output = part => typeof part.content === 'string' ? part.content :

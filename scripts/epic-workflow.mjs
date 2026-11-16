@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-import { lstat, mkdir, readFile, realpath, unlink } from 'node:fs/promises';
+import { captureUsage, readUsage } from './usage.mjs';
+import { ensureArtifactIgnored } from './lib/artifact-git.mjs';
+import { artifactJoin, artifactResolve } from './lib/artifact-path.mjs';
+import { mkdir, readFile } from './lib/artifact-io.mjs';
+import { lstat, realpath, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, slug, withLock, within } from './lib/artifacts.mjs';
@@ -176,42 +180,49 @@ export function evolve(previous, event) {
 }
 async function directory(root, run) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(run)) fail('Unsafe run name.');
-  const base = await realpath(root), parent = path.join(base, 'make-it-work');
+  const base = await realpath(root), parent = artifactJoin(base, 'make-it-work');
+  await ensureArtifactIgnored(parent);
   await mkdir(parent, { recursive: true });
-  for (const dir of [parent, path.join(parent, run)]) {
+  for (const dir of [parent, artifactJoin(parent, run)]) {
     const stat = await lstat(dir); if (!stat.isDirectory() || stat.isSymbolicLink()) fail('Run folders must be real directories.');
   }
-  return path.join(parent, run);
+  return artifactJoin(parent, run);
 }
 async function checkpoint(dir, state) {
+  let previous; try { previous = JSON.parse(await readFile(artifactJoin(dir, 'state.json'), 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (!previous || previous.phase !== state.phase || (previous.history.length !== state.history.length && state.history.at(-1)?.event === 'resume') || (previous.status !== state.status && ['Complete', 'Stopped'].includes(state.status))) await captureUsage(dir);
   let legacyDecisions = false;
-  try { legacyDecisions = (await lstat(path.join(dir, 'decisions.jsonl'))).isFile(); }
+  try { legacyDecisions = (await lstat(artifactJoin(dir, 'decisions.jsonl'))).isFile(); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   for (const file of ['state.json', 'dashboard.html', 'decisions.jsonl']) {
-    try { if ((await lstat(path.join(dir, file))).isSymbolicLink()) fail('Checkpoint target must not be a symlink.'); }
+    try { if ((await lstat(artifactJoin(dir, file))).isSymbolicLink()) fail('Checkpoint target must not be a symlink.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
   // State is authoritative. refresh repairs derived views after an interrupted render.
-  await atomicWrite(path.join(dir, 'state.json'), JSON.stringify(state, null, 2) + '\n');
+  await atomicWrite(artifactJoin(dir, 'state.json'), JSON.stringify(state, null, 2) + '\n');
   // Existing runs retain their export; new runs keep the same decisions in state only.
-  if (legacyDecisions) await atomicWrite(path.join(dir, 'decisions.jsonl'), state.decisions.map((entry) => JSON.stringify(entry)).join('\n') + (state.decisions.length ? '\n' : ''));
-  await atomicWrite(path.join(dir, 'dashboard.html'), renderEpicDashboard(state));
+  if (legacyDecisions) await atomicWrite(artifactJoin(dir, 'decisions.jsonl'), state.decisions.map((entry) => JSON.stringify(entry)).join('\n') + (state.decisions.length ? '\n' : ''));
+  await atomicWrite(artifactJoin(dir, 'dashboard.html'), renderEpicDashboard(state, { usageSnapshot: await readUsage(dir) }));
 }
 export async function initEpicRun({ root, input }) {
   requireText(input.title, 'Title'); requireText(input.goal, 'Goal');
   if (!['interactive', 'autopilot'].includes(input.autonomy ?? 'interactive')) fail('Invalid autonomy.');
   const sourceList = sources(input.sources ?? []);
-  const base = await realpath(root), parent = path.join(base, 'make-it-work');
+  const manifest = JSON.parse(await readFile(new URL('../.claude-plugin/plugin.json', import.meta.url), 'utf8'));
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(manifest.version)) fail('Invalid plugin version.');
+  const base = await realpath(root), parent = artifactJoin(base, 'make-it-work');
+  await ensureArtifactIgnored(parent);
   await mkdir(parent, { recursive: true });
   if ((await lstat(parent)).isSymbolicLink()) fail('make-it-work must not be a symlink.');
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15).replace('T', '-');
   const prefix = `drive-${slug(input.title).slice(0, 65)}-${stamp}`;
   let run, dir;
   for (let suffix = 1; ; suffix++) {
-    run = suffix === 1 ? prefix : `${prefix}-${suffix}`; dir = path.join(parent, run);
+    run = suffix === 1 ? prefix : `${prefix}-${suffix}`; dir = artifactJoin(parent, run);
     try { await mkdir(dir); break; } catch (error) { if (error.code !== 'EEXIST') throw error; }
   }
-  const state = { version: 1, run, title: input.title, goal: input.goal, autonomy: input.autonomy ?? 'interactive',
+  await atomicWrite(artifactJoin(dir, 'miw-run.json'), JSON.stringify({ artifact_naming_version: 1 }));
+  const state = { version: 1, artifact_naming_version: 1, plugin_version: manifest.version, run, title: input.title, goal: input.goal, autonomy: input.autonomy ?? 'interactive',
     phase: 'intake', status: 'In Progress', revision: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     sources: sourceList, epic: null, overview: null, slices: [], retired: [], affected: [], graph: null, parallel_groups: [],
     open_items: [], decisions: [], history: [], events: [], pending: null, stop_reason: null, publication: [] };
@@ -235,7 +246,7 @@ export async function inspectEpicRun({ root, run }) {
 }
 export async function updateEpicRun({ root, run, event }) {
   const dir = await directory(root, run);
-  return withLock(path.join(dir, 'state.json'), async () => {
+  return withLock(artifactJoin(dir, 'state.json'), async () => {
     const { state, problems } = await inspectEpicRun({ root, run });
     if (problems.length && !['revise', 'stop'].includes(event.type)) fail(`${problems.join('; ')}. Reconcile through revise before continuing.`);
     const prior = state.events.find((item) => item.id === event.id);
@@ -282,8 +293,8 @@ export async function updateEpicRun({ root, run, event }) {
 // legacy/custom input files are never removed implicitly.
 export async function applyEpicEventFile({ root, run, input }) {
   const dir = await directory(root, run);
-  const scratch = path.join(dir, '.event.json');
-  const file = path.resolve(input);
+  const scratch = artifactJoin(dir, '.event.json');
+  const file = artifactResolve(input);
   const owned = file === scratch;
   if (owned) await within(dir, '.event.json');
   const raw = await readFile(file, 'utf8');
@@ -307,7 +318,7 @@ cli(import.meta.url, async (argv) => {
   if (o.command === 'event') return applyEpicEventFile({ root, run: o.run, input: o.input });
   if (o.command === 'refresh') {
     const dir = await directory(root, o.run);
-    return withLock(path.join(dir, 'state.json'), async () => {
+    return withLock(artifactJoin(dir, 'state.json'), async () => {
       const result = await inspectEpicRun({ root, run: o.run });
       if (result.problems.length) fail(result.problems.join('; '));
       await checkpoint(dir, result.state); return result;

@@ -1,3 +1,4 @@
+import { artifactJoin } from './lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -47,12 +48,12 @@ test('focused revisions preserve untouched sections and custom content from the 
   const result = renderEpic(input(), existing); assert.match(result, /## Rollout Plan\n\nKeep user wording exactly\./); assert.match(result, /## Custom evidence\n\nKeep this table\./);
 });
 test('successive drafts write distinct files without changing earlier artifacts', async (t) => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'epic-write-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await mkdtemp(artifactJoin(os.tmpdir(), 'epic-write-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const first = await writeEpic(dir, input()); const original = await readFile(first.files[0], 'utf8');
   const second = await writeEpic(dir, input()); assert.notEqual(first.files[0], second.files[0]); assert.equal(await readFile(first.files[0], 'utf8'), original);
 });
 test('orchestrated requirements use short versioned names and preserve full titles and earlier drafts', async (t) => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'epic-compact-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await mkdtemp(artifactJoin(os.tmpdir(), 'epic-compact-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const spec = input(); spec.title = 'Premium customer coverage with a deliberately complete descriptive title';
   const first = await writeEpic(dir, spec, null, { compact: true });
   const old = await readFile(first.files[0], 'utf8');
@@ -72,7 +73,7 @@ test('automatic markers require audit metadata while ordinary proposals and quot
 });
 
 test('invalid automatic audit metadata prevents a new epic artifact without damaging a prior draft', async (t) => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'epic-audit-validation-'));
+  const dir = await mkdtemp(artifactJoin(os.tmpdir(), 'epic-audit-validation-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const prior = await writeEpic(dir, input()); const body = await readFile(prior.files[0], 'utf8');
   const spec = input(); spec.decisions.push({ topic: 'Unlogged assumption', decision: '[autopilot best-guess] Existing email is reusable.', status: 'Proposed' });

@@ -1,3 +1,4 @@
+import { artifactJoin } from './lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -80,8 +81,8 @@ test('standalone nits without routes retain advisory behavior and legacy impleme
   }
 });
 test('source bounds are checked before saving and repeated reviews allocate fresh handoffs', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'review-render-')); t.after(() => rm(root, { recursive: true, force: true }));
-  await writeFile(path.join(root, 'src.js'), 'save();\n');
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'review-render-')); t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(artifactJoin(root, 'src.js'), 'save();\n');
   const value = { ...input([finding()]), repo_roots: { app: root } };
   const first = await writeReview(root, value); assert.match(first.handoff, /review-1.json$/);
   const saved = await readFile(first.report, 'utf8');
@@ -103,9 +104,9 @@ test('legacy implement reviews retain routes and outcome lines without adding a 
 
 
 test('saved Minor fix findings reach the handoff, while saved advisory findings stay in the report', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'review-minor-routing-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'review-minor-routing-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await writeFile(path.join(root, 'src.js'), 'save();\n');
+  await writeFile(artifactJoin(root, 'src.js'), 'save();\n');
   const result = await writeReview(root, { ...input([finding('Minor', 'fix'), finding('Minor', 'advisory')]), repo_roots: { app: root } });
   const handoff = JSON.parse(await readFile(result.handoff, 'utf8'));
   assert.equal(handoff.outcome, 'FIX_REQUIRED');

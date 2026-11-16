@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Ticket Refinement Session
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 **Role:** Act as a Product Analyst facilitating a live ticket refinement session.
 
 **Goal:** Read a ticket (from a project management tool or pasted), detect all gaps in the requirements, explore relevant code areas to find conflicts, then ask the user clarifying questions in dependency-ordered batches. Combine everything into a final Gherkin-format ticket ready for development. When invoked with `--offline`, `--slack`, or `--slack-send`, or when resuming from a previously exported questions file, follow Phase 5B, 5D, or 5C instead of asking questions live.

@@ -1,3 +1,5 @@
+import { artifactPath, artifactOutputJoin, namingVersion, prefixed } from './artifact-path.mjs';
+import { protectArtifact } from './artifact-git.mjs';
 import { createHash, randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { lstat, mkdir, open, readFile, realpath, rename, rm, unlink, writeFile } from 'node:fs/promises';
@@ -15,6 +17,8 @@ export function integer(value, name, min = 0) {
   return value;
 }
 export async function atomicWrite(file, content) {
+  file = artifactPath(file);
+  await protectArtifact(file);
   try { if (!(await lstat(file)).isFile()) fail(`Not a regular file: ${file}`); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
   const temp = `${file}.${randomUUID()}.tmp`;
@@ -22,6 +26,8 @@ export async function atomicWrite(file, content) {
   finally { await unlink(temp).catch((error) => { if (error.code !== 'ENOENT') throw error; }); }
 }
 export async function withLock(file, run) {
+  file = artifactPath(file);
+  await protectArtifact(file);
   const lock = `${file}.lock`;
   const handle = await open(lock, 'wx').catch((error) => {
     if (error.code === 'EEXIST') fail(`Checkpoint is locked: ${lock}. Reconcile an interrupted writer before retrying.`);
@@ -32,7 +38,7 @@ export async function withLock(file, run) {
 }
 export async function within(root, file, { existing = true } = {}) {
   const base = await realpath(root);
-  const resolved = path.resolve(base, file);
+  const resolved = artifactPath(path.resolve(base, file));
   if (!resolved.startsWith(`${base}${path.sep}`)) fail(`Path escapes root: ${file}`);
   const actual = existing ? await realpath(resolved) : path.join(await realpath(path.dirname(resolved)), path.basename(resolved));
   if (!actual.startsWith(`${base}${path.sep}`)) fail(`Symlink escapes root: ${file}`);
@@ -60,6 +66,8 @@ export function table(markdown, headers) {
 export const cell = (value) => String(value).replaceAll('|', '\\|').replaceAll('\n', ' ');
 export const slug = (value) => String(value).normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled';
 export async function writeSet(directory, prefix, files, { versioned = false } = {}) {
+  await protectArtifact(path.join(directory, 'miw-write-probe'));
+  if (namingVersion(path.join(directory, 'probe.md')) === 1 || artifactOutputJoin(directory, 'probe.md') !== path.join(directory, 'probe.md')) prefix = prefixed(prefix);
   await mkdir(directory, { recursive: true });
   if (!(await lstat(directory)).isDirectory()) fail('Artifact directory must not be a symlink.');
   for (let n = 1; ; n += 1) {

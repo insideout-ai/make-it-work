@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
@@ -6,18 +7,18 @@ import path from 'node:path';
 import { validateEvalTree } from './validate.mjs';
 
 test('runner-owned working directories validate without adding native prompt fields', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'eval-config-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'eval-config-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const evalRoot = path.join(root, 'evals');
-  const caseDir = path.join(evalRoot, 'example', 'example-case');
-  await mkdir(path.join(root, 'skills', 'example'), { recursive: true });
-  await mkdir(path.join(caseDir, 'graders'), { recursive: true });
-  await writeFile(path.join(caseDir, 'case.yaml'), 'name: example-case\n');
-  await writeFile(path.join(caseDir, 'graders', 'check.md'), '---\ntype: llm\n---\nCheck behavior.\n');
+  const evalRoot = artifactJoin(root, 'evals');
+  const caseDir = artifactJoin(evalRoot, 'example', 'example-case');
+  await mkdir(artifactJoin(root, 'skills', 'example'), { recursive: true });
+  await mkdir(artifactJoin(caseDir, 'graders'), { recursive: true });
+  await writeFile(artifactJoin(caseDir, 'case.yaml'), 'name: example-case\n');
+  await writeFile(artifactJoin(caseDir, 'graders', 'check.md'), '---\ntype: llm\n---\nCheck behavior.\n');
   const suites = { schemaVersion: 1, smoke: ['example-case'], headless: ['example-case'] };
   async function check(config, prompt = '---\nmax_turns: 5\n---\nRun case.\n') {
-    await writeFile(path.join(evalRoot, 'suites.json'), JSON.stringify(config));
-    await writeFile(path.join(caseDir, 'prompt.md'), prompt);
+    await writeFile(artifactJoin(evalRoot, 'suites.json'), JSON.stringify(config));
+    await writeFile(artifactJoin(caseDir, 'prompt.md'), prompt);
     return (await validateEvalTree(evalRoot)).errors;
   }
   assert.deepEqual(await check(suites), []);

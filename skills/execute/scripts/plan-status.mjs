@@ -1,7 +1,10 @@
 #!/usr/bin/env node
+import { logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
-import { lstat, readFile, realpath, rename, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, realpath, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -125,13 +128,13 @@ export function changePlan(markdown, command, options = {}) {
 }
 
 async function dashboardStateForPlan(planPath) {
-  const filename = path.basename(planPath);
+  const filename = logicalArtifactName(planPath);
   const match = filename.match(/^(.+)-plan(?:-v\d+)?\.md$/);
   if (!match) return null;
-  const directory = path.dirname(path.resolve(planPath));
+  const directory = path.dirname(artifactResolve(planPath));
   if (path.basename(directory) !== match[1] || path.basename(path.dirname(directory)) !== 'make-it-work') return null;
-  const statePath = path.join(directory, `${match[1]}-state.md`);
-  const dashboardPath = path.join(directory, `${match[1]}-status.html`);
+  const statePath = artifactJoin(directory, `${match[1]}-state.md`);
+  const dashboardPath = artifactJoin(directory, `${match[1]}-status.html`);
   try {
     const [markdown, dashboard] = await Promise.all([readFile(statePath, 'utf8'), lstat(dashboardPath)]);
     if (!dashboard.isFile()) return null;
@@ -149,7 +152,7 @@ export async function executionDashboardState(planPath, supplied, allowInactive 
   if (!target) return null;
   const state = parseState(await readFile(target, 'utf8'), target);
   if (state.fields.phase !== 'execute' || !(state.fields.status === 'In Progress' || allowInactive && ['Paused', 'Stopped'].includes(state.fields.status)) ||
-      await realpath(path.resolve(path.dirname(target), path.basename(state.fields.plan))) !== await realpath(planPath)) fail('Execution dashboard must belong to this active plan.');
+      await realpath(artifactResolve(path.dirname(target), path.basename(state.fields.plan))) !== await realpath(planPath)) fail('Execution dashboard must belong to this active plan.');
   // Activity reporting must not create a dashboard for an older run.
   try { if (!(await lstat(target.replace(/-state\.md$/, '-status.html'))).isFile()) fail('Dashboard must be a regular file.'); }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
@@ -173,7 +176,7 @@ export async function updatePlan(planPath, command, options = {}) {
   if (command === 'inspect') return inspectPlan(original);
   const updated = changePlan(original, command, options);
   if (updated === original) return inspectPlan(original);
-  const temporary = path.join(path.dirname(planPath), '.plan-status.' + randomUUID() + '.tmp');
+  const temporary = artifactJoin(path.dirname(planPath), '.plan-status.' + randomUUID() + '.tmp');
   try {
     await writeFile(temporary, updated, { flag: 'wx', mode: info.mode & 0o777 });
     await rename(temporary, planPath);
@@ -203,6 +206,6 @@ async function main() {
   process.stdout.write(JSON.stringify(result) + '\n');
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((error) => { process.stderr.write('Plan status: ' + error.message + '\n'); process.exitCode = 1; });
 }

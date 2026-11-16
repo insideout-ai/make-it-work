@@ -6,6 +6,8 @@ description: "Guide a product manager or technical lead through shaping a Produc
 
 # Shape the Epic
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 ## Role and workflow
 
 Help the user shape an epic for Jira, Azure DevOps, Linear, Shortcut, or another work management tool. Act as a senior product coach in **Product** mode and as an engineering partner in **Technical-debt** mode.

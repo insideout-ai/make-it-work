@@ -1,3 +1,4 @@
+import { artifactJoin } from './lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -32,7 +33,7 @@ test('summary, diagram, dependency table and per-slice links derive from the sam
   assert.match(output.summary, /S-3/);
 });
 test('writing a second set uses one collision-free prefix and preserves every earlier file', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'slices-write-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'slices-write-')); t.after(() => rm(root, { recursive: true, force: true }));
   const first = await writeSlices(root, data()); const bytes = await readFile(first.files[0], 'utf8');
   assert.equal(first.chat_summary, `${first.summary}\n\nRecommended starting slice: S-1.`);
   const second = await writeSlices(root, data()); assert.notEqual(first.prefix, second.prefix); assert.equal(second.files.length, 4);
@@ -67,18 +68,18 @@ test('approach preview rejects incomplete candidates and ambiguous recommendatio
   }
 });
 test('compact slice sets have bounded ID-based names, valid links, and coherent revision suffixes', async (t) => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'slice-compact-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const dir = await mkdtemp(artifactJoin(os.tmpdir(), 'slice-compact-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const input = data(); input.title = 'An epic whose full title should never repeat in every slice filename';
   input.slices[0].title = 'Create a saved draft that retains all information after a browser restart'; input.slices[0].short_title = 'save-draft';
   const first = await writeSlices(dir, input, { compact: true });
   assert.equal(first.overview, 'slicing-summary.md'); assert.equal(first.slice_files['S-1'], 'S-1-save-draft.md');
-  const original = await readFile(path.join(dir, first.overview), 'utf8');
+  const original = await readFile(artifactJoin(dir, first.overview), 'utf8');
   const second = await writeSlices(dir, input, { compact: true });
   assert.equal(second.overview, 'slicing-summary-v2.md'); assert.equal(second.slice_files['S-1'], 'S-1-save-draft-v2.md');
-  assert.equal(await readFile(path.join(dir, first.overview), 'utf8'), original);
+  assert.equal(await readFile(artifactJoin(dir, first.overview), 'utf8'), original);
   for (const result of [first, second]) for (const file of result.files) {
     const body = await readFile(file, 'utf8'); assert.ok(path.basename(file).length < 65);
-    for (const match of body.matchAll(/\]\(([^)]+\.md)\)/g)) await readFile(path.join(dir, match[1]));
+    for (const match of body.matchAll(/\]\(([^)]+\.md)\)/g)) await readFile(artifactJoin(dir, match[1]));
   }
-  const sliceBody = await readFile(path.join(dir, second.slice_files['S-1']), 'utf8'); assert.ok(sliceBody.includes(input.slices[0].title));
+  const sliceBody = await readFile(artifactJoin(dir, second.slice_files['S-1']), 'utf8'); assert.ok(sliceBody.includes(input.slices[0].title));
 });

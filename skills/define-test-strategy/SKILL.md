@@ -18,6 +18,8 @@ hooks:
 
 # Define the Test Strategy
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 ## Usage
 
 ```

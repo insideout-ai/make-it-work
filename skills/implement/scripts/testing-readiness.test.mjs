@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -13,22 +14,22 @@ import { checkTestingReadiness, readinessPaths, testingReadiness } from './testi
 const policy = '| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | automated | configured | Existing Node runner |';
 const report = ({ status = 'ready', setup = 'existing', baseline = 'pass', evidence = 'node --test: 1 behavior assertion passed' } = {}) => `# Testing readiness\n\n## Verification Policy\n\n${policy}\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| app | ${status} | ${setup} | ${baseline} | ${evidence} |\n`;
 async function fixture(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'readiness-order-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'readiness-order-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
   git('init', '-q', '-b', 'feature');
-  await writeFile(path.join(root, 'app.js'), 'module.exports = 1;\n');
-  await mkdir(path.join(root, 'test'));
+  await writeFile(artifactJoin(root, 'app.js'), 'module.exports = 1;\n');
+  await mkdir(artifactJoin(root, 'test'));
   git('add', '.'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Baseline');
   const initialized = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autopilot', base: 'main', repos: [root], branch_guard: 'Feature branch' });
   const statePath = initialized.state, dir = path.dirname(statePath), spec = 'make-it-work/DEMO/DEMO-spec.md';
-  await writeFile(path.join(root, spec), '# Accepted spec\n');
+  await writeFile(artifactJoin(root, spec), '# Accepted spec\n');
   await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Changed behavior').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# Accepted spec\n')}`));
-  const planPath = path.join(dir, 'DEMO-plan.md');
+  const planPath = artifactJoin(dir, 'DEMO-plan.md');
   await writeFile(planPath, `# Plan\n\n## Execution Status\n\n**Mode:** Inline — execute here.\n\n**Progress:** Step 0 of 1 complete.\n\n## Verification Policy\n\n${policy}\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: \`test/progression.test.js\`, node --test, progression pending\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | New behavior | Progression |\n`);
   const state = async () => parseState(await readFile(statePath, 'utf8'), statePath);
   const paths = readinessPaths((await state()).fields);
-  const save = (text = report()) => writeFile(path.join(root, paths.report), text);
+  const save = (text = report()) => writeFile(artifactJoin(root, paths.report), text);
   const check = async (plan = null) => checkTestingReadiness(root, await state(), { plan });
   const authorize = () => authorizePlanningTests(statePath, { repo: root, file: 'test/progression.test.js', kind: 'test-file', step: 1, reason: 'Progression assertion' });
   return { root, statePath, dir, planPath, state, paths, save, check, authorize };
@@ -41,7 +42,7 @@ test('pending readiness prevents planning test authorization even when a delegat
   await assert.rejects(f.authorize(), /readiness is pending/);
   await assert.rejects(f.check(), /readiness is pending/);
   assert.equal((await f.state()).fields.testing_readiness, 'none');
-  await assert.rejects(readFile(path.join(f.root, 'make-it-work/DEMO/DEMO-planning-tests.json')), /ENOENT/);
+  await assert.rejects(readFile(artifactJoin(f.root, 'make-it-work/DEMO/DEMO-planning-tests.json')), /ENOENT/);
   await testingReadiness(f.statePath, 'complete');
   assert.equal((await f.check()).ready, true);
   await f.authorize();
@@ -52,13 +53,13 @@ test('completion is idempotent and accepts later progression-red tests without r
   const begun = await testingReadiness(f.statePath, 'begin');
   assert.equal((await testingReadiness(f.statePath, 'begin')).reused, true);
   await f.save(); await testingReadiness(f.statePath, 'complete');
-  const saved = await readFile(f.statePath, 'utf8'), sealed = await readFile(path.join(f.root, begun.receipt), 'utf8');
+  const saved = await readFile(f.statePath, 'utf8'), sealed = await readFile(artifactJoin(f.root, begun.receipt), 'utf8');
   await testingReadiness(f.statePath, 'complete');
   assert.equal(await readFile(f.statePath, 'utf8'), saved);
-  assert.equal(await readFile(path.join(f.root, begun.receipt), 'utf8'), sealed);
+  assert.equal(await readFile(artifactJoin(f.root, begun.receipt), 'utf8'), sealed);
   assert.equal((await testingReadiness(f.statePath, 'begin')).reused, true);
   await f.authorize();
-  await writeFile(path.join(f.root, 'test/progression.test.js'), "const assert = require('node:assert/strict'); assert.equal(require('../app'), 2);\n");
+  await writeFile(artifactJoin(f.root, 'test/progression.test.js'), "const assert = require('node:assert/strict'); assert.equal(require('../app'), 2);\n");
   assert.throws(() => execFileSync(process.execPath, ['test/progression.test.js'], { cwd: f.root, stdio: 'pipe' }));
   assert.equal((await f.check(await readFile(f.planPath, 'utf8'))).results[0].Baseline, 'pass');
 });
@@ -75,13 +76,13 @@ test('pending/blocked reports and failed new setup cannot be completed; existing
 
 test('scope/spec/plan/report and policy drift invalidate completion without advancing workflow', async (t) => {
   const f = await fixture(t); await testingReadiness(f.statePath, 'begin'); await f.save(); await testingReadiness(f.statePath, 'complete');
-  const savedState = await readFile(f.statePath, 'utf8'), savedReport = await readFile(path.join(f.root, f.paths.report), 'utf8');
+  const savedState = await readFile(f.statePath, 'utf8'), savedReport = await readFile(artifactJoin(f.root, f.paths.report), 'utf8');
   await f.save(savedReport + '\nLate worker write\n'); await assert.rejects(f.check(), /changed after completion/);
   await f.save(savedReport);
   const plan = await readFile(f.planPath, 'utf8');
   await assert.rejects(f.check(plan.replace('Existing Node runner', 'Different choice')), /policy differs/);
-  await writeFile(path.join(f.dir, 'DEMO-spec.md'), '# changed\n'); await assert.rejects(f.check(), /unchanged accepted spec/);
-  await writeFile(path.join(f.dir, 'DEMO-spec.md'), '# Accepted spec\n');
+  await writeFile(artifactJoin(f.dir, 'DEMO-spec.md'), '# changed\n'); await assert.rejects(f.check(), /unchanged accepted spec/);
+  await writeFile(artifactJoin(f.dir, 'DEMO-spec.md'), '# Accepted spec\n');
   await writeFile(f.statePath, savedState.replace('plan_version: 1', 'plan_version: 2')); await assert.rejects(f.check(), /has not begun/);
   await writeFile(f.statePath, savedState.replace('"branch":"feature"', '"branch":"other"')); await assert.rejects(f.check(), /pending or stale/);
   await writeFile(f.statePath, savedState);
@@ -89,9 +90,9 @@ test('scope/spec/plan/report and policy drift invalidate completion without adva
 });
 
 test('controller refuses a completed plan until readiness is complete', async (t) => {
-  const f = await fixture(t), handoffs = path.join(f.dir, 'DEMO-handoffs'); await mkdir(handoffs);
+  const f = await fixture(t), handoffs = artifactJoin(f.dir, 'DEMO-handoffs'); await mkdir(handoffs);
   const handoff = 'make-it-work/DEMO/DEMO-handoffs/plan-1.json';
-  await writeFile(path.join(f.root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'plan', plan_version: 1, status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  await writeFile(artifactJoin(f.root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'plan', plan_version: 1, status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(f.statePath, 'utf8');
   const run = () => applyWorkflow({ root: f.root, statePath: f.statePath, input: { event: 'handoff', id: 'plan-ready', handoff, repos: [f.root], expected_hash: digest(before) } });
   await assert.rejects(run(), /readiness has not begun/);
@@ -106,7 +107,7 @@ test('explicit manual policy and legacy runs preserve their existing choices', a
   await f.save(report({ status: 'manual', setup: 'manual', baseline: 'not-applicable', evidence: 'User explicitly deferred tooling' }).replace('automated | configured | Existing Node runner', 'manual | user | User explicitly deferred tooling'));
   await testingReadiness(f.statePath, 'complete'); assert.equal((await f.check()).policy[0].Mode, 'manual');
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(/^testing_readiness_version:.*\n/m, ''));
-  await rm(path.join(f.root, f.paths.receipt));
+  await rm(artifactJoin(f.root, f.paths.receipt));
   assert.equal((await f.check()).required, false);
   assert.equal((await testingReadiness(f.statePath, 'begin')).required, false);
 });
@@ -114,12 +115,12 @@ test('explicit manual policy and legacy runs preserve their existing choices', a
 test('Guided approval cannot enter Execute with a late readiness write, and does not consume the approval', async (t) => {
   const f = await fixture(t); await testingReadiness(f.statePath, 'begin'); await f.save(); await testingReadiness(f.statePath, 'complete');
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('autonomy: autopilot', 'autonomy: guided'));
-  const handoffs = path.join(f.dir, 'DEMO-handoffs'); await mkdir(handoffs);
+  const handoffs = artifactJoin(f.dir, 'DEMO-handoffs'); await mkdir(handoffs);
   const handoff = 'make-it-work/DEMO/DEMO-handoffs/plan-1.json';
-  await writeFile(path.join(f.root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'plan', plan_version: 1, status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  await writeFile(artifactJoin(f.root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'plan', plan_version: 1, status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const apply = async (input) => applyWorkflow({ root: f.root, statePath: f.statePath, input: { repos: [f.root], expected_hash: digest(await readFile(f.statePath, 'utf8')), ...input } });
   const waiting = await apply({ event: 'handoff', id: 'plan-ready', handoff });
-  const before = await readFile(f.statePath, 'utf8'), savedReport = await readFile(path.join(f.root, f.paths.report), 'utf8');
+  const before = await readFile(f.statePath, 'utf8'), savedReport = await readFile(artifactJoin(f.root, f.paths.report), 'utf8');
   await f.save(savedReport + '\nLate readiness-worker update\n');
   const answer = { event: 'resolve-input', id: 'approve-plan', pending_id: waiting.pending[0].id, answer: 'approve', source: 'user', via: 'chat' };
   await assert.rejects(apply(answer), /changed after completion/);
@@ -141,7 +142,7 @@ test('missing strategy and absent tooling permit an audited manual default in ei
     // Changing chat autonomy later must not reinterpret an already selected policy.
     await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace(`autonomy: ${mode}`, 'autonomy: guided'));
     assert.equal((await f.check()).ready, true);
-    await assert.rejects(readFile(path.join(f.root, '.claude/skills/test-strategy/SKILL.md')), /ENOENT/);
+    await assert.rejects(readFile(artifactJoin(f.root, '.claude/skills/test-strategy/SKILL.md')), /ENOENT/);
   }
 });
 
@@ -152,8 +153,8 @@ test('manual defaults reject absent discovery, Guided defaults, unavailable runn
     await f.save(invalid);
     await assert.rejects(testingReadiness(f.statePath, 'complete'), /table|default|discovery/);
   }
-  await mkdir(path.join(f.root, '.claude/skills/test-strategy'), { recursive: true });
-  await writeFile(path.join(f.root, '.claude/skills/test-strategy/SKILL.md'), '# Existing strategy\n');
+  await mkdir(artifactJoin(f.root, '.claude/skills/test-strategy'), { recursive: true });
+  await writeFile(artifactJoin(f.root, '.claude/skills/test-strategy/SKILL.md'), '# Existing strategy\n');
   await f.save(valid);
   await assert.rejects(testingReadiness(f.statePath, 'complete'), /existing strategy/);
 });

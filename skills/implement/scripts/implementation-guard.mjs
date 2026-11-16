@@ -1,6 +1,8 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 // Evidence for fresh-run stage enforcement; never changes the product worktree.
 import { execFileSync } from 'node:child_process';
-import { lstat, readFile, readlink, realpath } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { declaredTest, dedicatedTestFile, draftPlanPath, fileImage, planningReceiptPath } from './planning-tests.mjs';
 import { parseSteps } from '../../../scripts/lib/plan.mjs';
@@ -15,7 +17,7 @@ export async function implementationBaseline(roots) {
     const files = git(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', ...paths]).toString().split('\0').filter(Boolean).sort();
     const untracked = [];
     for (const file of files) {
-      const absolute = path.join(root, file);
+      const absolute = artifactJoin(root, file);
       const info = await lstat(absolute);
       untracked.push([file, info.mode & 0o777, digest(info.isSymbolicLink() ? await readlink(absolute) : await readFile(absolute))]);
     }
@@ -24,9 +26,9 @@ export async function implementationBaseline(roots) {
     for (const file of tracked) {
       let image = null, directory = false;
       try {
-        const info = await lstat(path.join(root, file));
+        const info = await lstat(artifactJoin(root, file));
         directory = info.isDirectory();
-        if (info.isFile() || info.isSymbolicLink()) image = { mode: info.mode & 0o111, sha256: digest(info.isSymbolicLink() ? await readlink(path.join(root, file)) : await readFile(path.join(root, file))) };
+        if (info.isFile() || info.isSymbolicLink()) image = { mode: info.mode & 0o111, sha256: digest(info.isSymbolicLink() ? await readlink(artifactJoin(root, file)) : await readFile(artifactJoin(root, file))) };
       } catch (error) { if (error.code !== 'ENOENT') throw error; }
       changes.push({ file, image, signature: directory ? digest(git(root, ['diff', '--binary', '--no-ext-diff', '--no-renames', 'HEAD', '--', exact(file)])) : digest(JSON.stringify({ tracked: true, image })) });
     }

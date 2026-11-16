@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../scripts/lib/artifact-path.mjs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { initEpicRun, updateEpicRun } from '../../scripts/epic-workflow.mjs';

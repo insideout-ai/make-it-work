@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -12,13 +13,13 @@ import { inspectFeedback, writeFeedback } from './write-feedback.mjs';
 const script = path.resolve('skills/implement/scripts/write-feedback.mjs');
 const reference = path.resolve('skills/implement/references/feedback.md');
 async function fixture(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'feedback-receipts-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'feedback-receipts-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const dir = path.join(root, 'make-it-work/DEMO'); await mkdir(dir, { recursive: true });
-  const statePath = path.join(dir, 'DEMO-state.md');
+  const dir = artifactJoin(root, 'make-it-work/DEMO'); await mkdir(dir, { recursive: true });
+  const statePath = artifactJoin(dir, 'DEMO-state.md');
   const markdown = (await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: final-sync', 'phase: complete\nfeedback_evidence_version: 1').trimEnd() + '\n| 7 | 2026-01-01T10:06:00Z | final-sync | complete | Context synchronized |\n';
   await writeFile(statePath, markdown);
-  await writeFile(path.join(dir, 'DEMO-status.html'), '<html>\n<style>body{margin:1em}</style>\n<h1>Complete</h1>\n</html>');
+  await writeFile(artifactJoin(dir, 'DEMO-status.html'), '<html>\n<style>body{margin:1em}</style>\n<h1>Complete</h1>\n</html>');
   return { root, dir, statePath, state: parseState(markdown) };
 }
 
@@ -28,7 +29,7 @@ test('inspection and evidence receipts survive output piping; output files stay 
   assert.equal(inspect.status, 0, inspect.stderr);
   const summary = await inspectFeedback(f.statePath);
   assert.equal((await readFeedbackReceipts(f.statePath, summary)).analysisRequired, false);
-  const output = path.join(f.dir, 'feedback-evidence.txt');
+  const output = artifactJoin(f.dir, 'feedback-evidence.txt');
   const result = spawnSync(process.execPath, [script, 'evidence', '--state', f.statePath, '--output', output], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   const receipt = JSON.parse(result.stdout);
@@ -36,7 +37,7 @@ test('inspection and evidence receipts survive output piping; output files stay 
   assert.match(await readFile(output, 'utf8'), /Dashboard markup/);
   assert.equal((await readFeedbackReceipts(f.statePath, summary)).packets[0], receipt.packetHash);
   assert.equal(await readFeedbackReceipts(f.statePath, { ...summary, stateHash: '0'.repeat(64) }), null);
-  const outside = spawnSync(process.execPath, [script, 'evidence', '--state', f.statePath, '--output', path.join(f.root, 'feedback-evidence.txt')], { encoding: 'utf8' });
+  const outside = spawnSync(process.execPath, [script, 'evidence', '--state', f.statePath, '--output', artifactJoin(f.root, 'feedback-evidence.txt')], { encoding: 'utf8' });
   assert.equal(outside.status, 1);
 });
 
@@ -66,10 +67,10 @@ test('writer preflight identifies missing evidence before changing reports', asy
       { id: 'styles', status: 'checked', observations: [{ line: 2, note: 'Margins declared; rendered behavior unverified' }] },
     ] }, process: [],
   } };
-  const transcriptPath = path.join(f.dir, 'transcript.jsonl'); await writeFile(transcriptPath, '');
+  const transcriptPath = artifactJoin(f.dir, 'transcript.jsonl'); await writeFile(transcriptPath, '');
   await assert.rejects(writeFeedback(f.statePath, { sessionReview, transcriptPath }), /prerequisites missing: the inspected source packet/);
-  await assert.rejects(readFile(path.join(f.dir, 'workflow-feedback.md')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(f.dir, 'workflow-feedback.md')), { code: 'ENOENT' });
   await recordFeedbackReceipt(f.statePath, summary, { packetHash: packet.packetHash });
   await writeFeedback(f.statePath, { sessionReview, transcriptPath });
-  assert.match(await readFile(path.join(f.dir, 'workflow-feedback.md'), 'utf8'), /### Session review/);
+  assert.match(await readFile(artifactJoin(f.dir, 'workflow-feedback.md'), 'utf8'), /### Session review/);
 });

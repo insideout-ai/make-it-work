@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import path from 'node:path';
@@ -20,9 +21,9 @@ test('machine defaults preserve every annotated pre-refactor state value and eac
 
 test('relocated instruction links resolve and the small entry does not embed the legacy state template', async () => {
   const base = fileURLToPath(new URL('..', import.meta.url));
-  const entry = await readFile(path.join(base, 'SKILL.md'), 'utf8');
+  const entry = await readFile(artifactJoin(base, 'SKILL.md'), 'utf8');
   assert.doesNotMatch(entry, /# Workflow state — <TICKET>/);
-  const inventory = JSON.parse(await readFile(path.join(base, 'assets/orchestration-relocation.json'), 'utf8'));
+  const inventory = JSON.parse(await readFile(artifactJoin(base, 'assets/orchestration-relocation.json'), 'utf8'));
   for (const relative of ['skills/implement/SKILL.md', ...inventory.sections.map(section => section.path)]) {
     const file = path.resolve(base, '../..', relative);
     const text = await readFile(file, 'utf8');

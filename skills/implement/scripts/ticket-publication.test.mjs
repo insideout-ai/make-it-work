@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, readdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
@@ -385,15 +386,15 @@ test('superseded prepared content cannot be dispatched, and capability loss stop
 });
 
 async function fixture(t, { initialize = true } = {}) {
-  const temp = await mkdtemp(path.join(os.tmpdir(), 'ticket-publication-'));
+  const temp = await mkdtemp(artifactJoin(os.tmpdir(), 'ticket-publication-'));
   t.after(() => rm(temp, { recursive: true, force: true }));
   const root = await realpath(temp);
-  const directory = path.join(root, 'make-it-work/DEMO');
+  const directory = artifactJoin(root, 'make-it-work/DEMO');
   await mkdir(directory, { recursive: true });
-  const state = path.join(directory, 'DEMO-state.md');
+  const state = artifactJoin(directory, 'DEMO-state.md');
   const original = await readFile(new URL('../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', import.meta.url), 'utf8');
   await writeFile(state, original.replace(/^start_time: .*$/m, `start_time: ${source.workflow_start}`));
-  const input = path.join(directory, 'publication-input.json');
+  const input = artifactJoin(directory, 'publication-input.json');
   const options = { '--root': root, '--state': state, '--input': input };
   async function command(action, value) {
     if (value !== undefined) await writeFile(input, JSON.stringify(value));
@@ -462,7 +463,7 @@ test('disk and CLI resume cannot dispatch a description until its backup receipt
 
 test('consent changes refresh an existing badge while legacy runs remain without a dashboard', async (t) => {
   const f = await fixture(t);
-  const dashboard = path.join(f.root, 'make-it-work/DEMO/DEMO-status.html');
+  const dashboard = artifactJoin(f.root, 'make-it-work/DEMO/DEMO-status.html');
   await f.command('consent', { mode: 'comments', allowed: ['comment'], artifact_comments: true, decision });
   await assert.rejects(readFile(dashboard), /ENOENT/);
   await generateDashboard(f.state);
@@ -474,7 +475,7 @@ test('consent changes refresh an existing badge while legacy runs remain without
 
 test('dashboard failure reports saved revocation without restoring write permission', async (t) => {
   const f = await fixture(t);
-  const dashboard = path.join(f.root, 'make-it-work/DEMO/DEMO-status.html');
+  const dashboard = artifactJoin(f.root, 'make-it-work/DEMO/DEMO-status.html');
   await mkdir(dashboard); // Makes atomic replacement fail after the journal is saved.
   await assert.rejects(f.command('consent', { mode: 'local', decision }), /consent was saved, but dashboard refresh failed/);
   assert.equal((await f.command('status')).mode, 'local');
@@ -487,15 +488,15 @@ test('unconfigured legacy runs fail closed and journal locks and paths protect s
   await writeFile(f.state, original.replace(/^ticket_publication: .*\n/m, ''));
   await assert.rejects(f.command('prepare', request()), /writes are disabled/);
   await writeFile(f.state, original);
-  const journalPath = path.join(f.root, f.init.journal);
+  const journalPath = artifactJoin(f.root, f.init.journal);
   await writeFile(`${journalPath}.lock`, '');
   await assert.rejects(f.command('prepare', request()), /EEXIST/);
   assert.equal((await f.command('status')).operations.length, 0);
   await rm(`${journalPath}.lock`);
   const saved = await readFile(journalPath, 'utf8');
-  await writeFile(path.join(f.root, 'outside.json'), saved);
+  await writeFile(artifactJoin(f.root, 'outside.json'), saved);
   await rm(journalPath);
-  await symlink(path.join(f.root, 'outside.json'), journalPath);
+  await symlink(artifactJoin(f.root, 'outside.json'), journalPath);
   await assert.rejects(f.command('status'), /symlink/);
 });
 

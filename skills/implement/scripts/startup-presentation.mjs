@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Skill-scoped hooks: verify assistant chat, never infer it from tool output.
-import { readFile } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -281,7 +282,7 @@ export async function startupHook(input) {
   return observeHook(input, progress, events, hold.reason ? advisory(input.hook_event_name, hold.reason) : {});
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     let data = '';
     for await (const chunk of process.stdin) data += chunk;

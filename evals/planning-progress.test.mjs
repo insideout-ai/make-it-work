@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
@@ -9,17 +10,17 @@ import { parseGrader } from './grade-headless.mjs';
 const caseDir = path.resolve('evals/implement/planning-progress');
 
 test('planning progress fixture has a passing protected baseline and a real missing behavior', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'planning-progress-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'planning-progress-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
-  const output = execFileSync('bash', [path.join(caseDir, 'fixture.sh')], { cwd: root, env, encoding: 'utf8' });
+  const output = execFileSync('bash', [artifactJoin(caseDir, 'fixture.sh')], { cwd: root, env, encoding: 'utf8' });
   assert.match(output, /pass 2/);
-  const same = async (file, baseline) => assert.equal(await readFile(path.join(root, file), 'utf8'), await readFile(path.join(root, baseline), 'utf8'));
+  const same = async (file, baseline) => assert.equal(await readFile(artifactJoin(root, file), 'utf8'), await readFile(artifactJoin(root, baseline), 'utf8'));
   await same('src/policy.js', '.eval-baseline-policy.js');
   await same('test/policy.test.js', '.eval-baseline-regression.txt');
   await same('make-it-work/DEMO-PROGRESS/DEMO-PROGRESS-spec.md', '.eval-baseline-spec.md');
-  await assert.rejects(readFile(path.join(root, 'make-it-work/DEMO-PROGRESS/DEMO-PROGRESS-state.md')), /ENOENT/);
-  await writeFile(path.join(root, 'test/admin.test.js'), `const test = require('node:test');
+  await assert.rejects(readFile(artifactJoin(root, 'make-it-work/DEMO-PROGRESS/DEMO-PROGRESS-state.md')), /ENOENT/);
+  await writeFile(artifactJoin(root, 'test/admin.test.js'), `const test = require('node:test');
 const assert = require('node:assert/strict');
 const { canProceed } = require('../src/policy');
 test('administrator is allowed', () => assert.equal(canProceed('admin'), true));
@@ -34,7 +35,7 @@ test('administrator is allowed', () => assert.equal(canProceed('admin'), true));
 });
 
 test('planning progress graders accept the actual handoff schema and reject an executed state', async () => {
-  const graders = await Promise.all((await readdir(path.join(caseDir, 'graders'))).map(async name => parseGrader(await readFile(path.join(caseDir, 'graders', name), 'utf8'), name)));
+  const graders = await Promise.all((await readdir(artifactJoin(caseDir, 'graders'))).map(async name => parseGrader(await readFile(artifactJoin(caseDir, 'graders', name), 'utf8'), name)));
   const handoff = graders.find(g => g.name === 'handoff.md');
   const handoffPattern = new RegExp(handoff.pattern, handoff.flags);
   assert.ok(handoffPattern.test(JSON.stringify({ version: 1, status: 'done', outcome: 'PLAN_SAVED' })));

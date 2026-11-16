@@ -75,9 +75,9 @@ export function renderSlices(input, prefix, { compact = false } = {}) {
     for (const word of words.slice(0, 4)) { if (`${result}-${word}`.length > 40) break; result += `-${word}`; }
     return result;
   };
-  const revision = compact ? prefix.slice('slicing-summary'.length) : '';
+  const revision = compact ? prefix.replace(/^miw-/, '').slice('slicing-summary'.length) : '';
   const names = Object.fromEntries(input.slices.map((slice) => [slice.id, compact
-    ? `${slice.id}-${shortName(slice)}${revision}.md` : `${prefix}-${slice.id}-${slug(slice.title)}.md`]));
+    ? `${prefix.startsWith('miw-') ? 'miw-' : ''}${slice.id}-${shortName(slice)}${revision}.md` : `${prefix}-${slice.id}-${slug(slice.title)}.md`]));
   const reference = (id) => `[${id}](${names[id]})`;
   const files = {};
   const summary = ['| Slice | Summary / outcome | Hard prerequisites | Recommended after | Stage |', '|---|---|---|---|---|'];

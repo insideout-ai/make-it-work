@@ -1,3 +1,4 @@
+import { artifactJoin } from './lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -31,9 +32,9 @@ test('unavailable prerequisites and missing commands produce no result, never a 
   assert.equal(workspace.overall, 'fail'); assert.equal(workspace.runs.length, 2);
 });
 test('scoped node tests run selected files only and merge equivalent selections', async (t) => {
-  const cwd = await mkdtemp(path.join(os.tmpdir(), 'regression-runner-')); t.after(() => rm(cwd, { recursive: true, force: true }));
-  await writeFile(path.join(cwd, 'pass.test.mjs'), 'import test from "node:test";test("pass",()=>{});');
-  await writeFile(path.join(cwd, 'fail.test.mjs'), 'throw new Error("must not run");');
+  const cwd = await mkdtemp(artifactJoin(os.tmpdir(), 'regression-runner-')); t.after(() => rm(cwd, { recursive: true, force: true }));
+  await writeFile(artifactJoin(cwd, 'pass.test.mjs'), 'import test from "node:test";test("pass",()=>{});');
+  await writeFile(artifactJoin(cwd, 'fail.test.mjs'), 'throw new Error("must not run");');
   const selected = { repo: 'app', cwd, command: { bin: process.execPath, args: ['--test'] }, scope: 'scoped', adapter: 'node', selectors: ['pass.test.mjs'] };
   const result = await runRegression({ version: 1, mode: 'tokens', runs: [selected, selected] });
   assert.equal(result.overall, 'pass'); assert.equal(result.runs.length, 1);

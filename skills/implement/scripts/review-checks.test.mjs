@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -6,11 +7,11 @@ import test from 'node:test';
 import { reviewRequirements, validateReviewChecks } from './review-checks.mjs';
 
 test('completed reviews require applied skill rules and bounded mapping assessment; stale mappings remain qualified', async t => {
-  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'review-checks-')));
+  const root = await realpath(await mkdtemp(artifactJoin(os.tmpdir(), 'review-checks-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   for (const [name, text] of [['domain-sessions', '# Sessions\nKeep session details when calendar lookup fails.\n'], ['test-strategy', '# Strategy\n## Test Map\nAssess actual assertions and retain unknown freshness.\n']]) {
-    await mkdir(path.join(root, '.claude/skills', name), { recursive: true });
-    await writeFile(path.join(root, '.claude/skills', name, 'SKILL.md'), text);
+    await mkdir(artifactJoin(root, '.claude/skills', name), { recursive: true });
+    await writeFile(artifactJoin(root, '.claude/skills', name, 'SKILL.md'), text);
   }
   const req = await reviewRequirements([root], [{ repo: root, reason: 'Session detail changes', skills: [{ name: 'domain-sessions', method: 'Skill' }] }], [{ repo: root, affected_tests: ['src/session.test.js'] }]);
   assert.deepEqual(req[0].skills.map(s => s.name), ['domain-sessions', 'test-strategy']);
@@ -22,5 +23,5 @@ test('completed reviews require applied skill rules and bounded mapping assessme
     const invalid = structuredClone(checks); change(invalid); assert.throws(() => validateReviewChecks(invalid, req));
   }
   assert.throws(() => validateReviewChecks([], req), /every repository/);
-  assert.equal(await readFile(path.join(root, '.claude/skills/domain-sessions/SKILL.md'), 'utf8'), '# Sessions\nKeep session details when calendar lookup fails.\n');
+  assert.equal(await readFile(artifactJoin(root, '.claude/skills/domain-sessions/SKILL.md'), 'utf8'), '# Sessions\nKeep session details when calendar lookup fails.\n');
 });

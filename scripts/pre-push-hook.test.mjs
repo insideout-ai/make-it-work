@@ -1,3 +1,4 @@
+import { artifactJoin } from './lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -11,12 +12,12 @@ const run = (cmd, args, cwd, env = process.env) =>
   spawnSync(cmd, args, { cwd, env, encoding: 'utf8' });
 
 async function fixture() {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-hook-test-'));
-  await mkdir(path.join(root, 'scripts'));
-  await mkdir(path.join(root, '.githooks'));
-  await copyFile(path.join(sourceRoot, 'scripts/install-pre-push-hook.sh'),
-    path.join(root, 'scripts/install-pre-push-hook.sh'));
-  await copyFile(path.join(sourceRoot, '.githooks/pre-push'), path.join(root, '.githooks/pre-push'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-hook-test-'));
+  await mkdir(artifactJoin(root, 'scripts'));
+  await mkdir(artifactJoin(root, '.githooks'));
+  await copyFile(artifactJoin(sourceRoot, 'scripts/install-pre-push-hook.sh'),
+    artifactJoin(root, 'scripts/install-pre-push-hook.sh'));
+  await copyFile(artifactJoin(sourceRoot, '.githooks/pre-push'), artifactJoin(root, '.githooks/pre-push'));
   assert.equal(run('git', ['init', '-q'], root).status, 0);
   assert.equal(run('git', ['add', '-A'], root).status, 0);
   const commitEnv = { ...process.env, GIT_AUTHOR_NAME: 'Hook Test',
@@ -44,16 +45,16 @@ test('installer enables the versioned hook without replacing existing hooks', as
 test('pre-push runs smoke once and propagates its result', async () => {
   const root = await fixture();
   try {
-    const bin = path.join(root, 'bin');
-    const log = path.join(root, 'invocations.txt');
-    const mock = path.join(bin, 'node');
+    const bin = artifactJoin(root, 'bin');
+    const log = artifactJoin(root, 'invocations.txt');
+    const mock = artifactJoin(bin, 'node');
     await mkdir(bin);
     await writeFile(mock, '#!/bin/sh\ntest ! -e uncommitted-marker || exit 99\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\nexit "$HOOK_TEST_EXIT"\n');
     await chmod(mock, 0o755);
-    await writeFile(path.join(root, 'uncommitted-marker'), 'must not enter snapshot\n');
+    await writeFile(artifactJoin(root, 'uncommitted-marker'), 'must not enter snapshot\n');
     const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`,
-      HOOK_TEST_LOG: log, HOOK_TEST_EXIT: '0', GIT_DIR: path.join(root, '.git'),
-      GIT_WORK_TREE: root, GIT_INDEX_FILE: path.join(root, '.git/index') };
+      HOOK_TEST_LOG: log, HOOK_TEST_EXIT: '0', GIT_DIR: artifactJoin(root, '.git'),
+      GIT_WORK_TREE: root, GIT_INDEX_FILE: artifactJoin(root, '.git/index') };
     const passed = run('bash', ['.githooks/pre-push'], root, env);
     assert.equal(passed.status, 0);
     assert.equal((await readFile(log, 'utf8')).trim(), 'evals/run-suite.mjs smoke');
@@ -68,8 +69,8 @@ test('pre-push runs smoke once and propagates its result', async () => {
 test('pre-push supports an explicit relevant-case selection without running the full smoke suite', async () => {
   const root = await fixture();
   try {
-    const bin = path.join(root, 'bin'); const log = path.join(root, 'selected.txt'); await mkdir(bin);
-    const mock = path.join(bin, 'node'); await writeFile(mock, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\n'); await chmod(mock, 0o755);
+    const bin = artifactJoin(root, 'bin'); const log = artifactJoin(root, 'selected.txt'); await mkdir(bin);
+    const mock = artifactJoin(bin, 'node'); await writeFile(mock, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\n'); await chmod(mock, 0o755);
     const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, HOOK_TEST_LOG: log, MIW_SMOKE_CASES: 'drive-the-epic-autopilot' };
     const selected = run('bash', ['.githooks/pre-push'], root, env); assert.equal(selected.status, 0);
     assert.equal((await readFile(log, 'utf8')).trim(), 'evals/run-suite.mjs smoke --case=drive-the-epic-autopilot');

@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
@@ -68,14 +69,14 @@ test('waiver requires explicit authorization, completed implementation, exact sc
 });
 
 test('stopped execution continues without plan edits, retains unverified clauses and still requires a passing automated gate', async t => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'manual-waiver-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'manual-waiver-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
   git('init', '-b', 'main'); git('config', 'user.email', 'test@example.invalid'); git('config', 'user.name', 'Test');
-  await writeFile(path.join(root, 'source.js'), 'export const x = 1;'); git('add', '.'); git('commit', '-m', 'baseline'); git('switch', '-c', 'DEMO');
+  await writeFile(artifactJoin(root, 'source.js'), 'export const x = 1;'); git('add', '.'); git('commit', '-m', 'baseline'); git('switch', '-c', 'DEMO');
   const initialized = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' });
-  const statePath = initialized.state, directory = path.dirname(statePath), planPath = path.join(directory, 'DEMO-plan.md');
-  const ledgerPath = path.join(directory, 'DEMO-verification-v1.json');
+  const statePath = initialized.state, directory = path.dirname(statePath), planPath = artifactJoin(directory, 'DEMO-plan.md');
+  const ledgerPath = artifactJoin(directory, 'DEMO-verification-v1.json');
   await writeFile(planPath, plan);
   await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: execute').replace('plan: none', 'plan: make-it-work/DEMO/DEMO-plan.md').replace('plan_hash: none', `plan_hash: ${planHash(plan)}`).replace(/^acceptance_evidence_version: 1\n/m, ''));
   const options = { ledgerPath, ticket: 'DEMO', planVersion: 1, dashboardState: statePath };

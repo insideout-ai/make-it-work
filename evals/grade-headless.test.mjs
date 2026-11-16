@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { updateStrategyPointer } from '../scripts/test-strategy.mjs';
@@ -18,9 +19,9 @@ const transcript = [
 ].map((event) => JSON.stringify(event)).join('\n') + '\n';
 
 test('saved decision grader accepts supported option forms and rejects wrong or missing decisions', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'decision-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'decision-grader-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const file = path.join(root, 'make-it-work/DEMO-2/execute-autopilot-log.jsonl');
+  const file = artifactJoin(root, 'make-it-work/DEMO-2/execute-autopilot-log.jsonl');
   await mkdir(path.dirname(file), { recursive: true });
   const rubric = await readFile(new URL('./execute/execute-full-pass/graders/decision-log-content.md', import.meta.url), 'utf8');
   const grader = parseGrader(rubric, 'decision-log-content.md');
@@ -43,9 +44,9 @@ test('saved decision grader accepts supported option forms and rejects wrong or 
 });
 
 test('judge permits a structured-output follow-up while keeping tools disabled and the usage cap', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'structured-judge-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'structured-judge-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const fake = path.join(root, 'claude');
+  const fake = artifactJoin(root, 'claude');
   await writeFile(fake, `#!${process.execPath}\nconst args=process.argv.slice(2); const option=name=>args[args.indexOf(name)+1]; const turns=Number(option('--max-turns')); if(turns<2){process.stdout.write(JSON.stringify({subtype:'error_max_turns'}));process.exit(1);} let input='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>input+=chunk);process.stdin.on('end',()=>process.stdout.write(JSON.stringify({structured_output:{verdict:'PASS',reason:'Structured result emitted'},tools:option('--tools'),budget:option('--max-budget-usd'),inputLength:input.length,promptInArgs:args.some(arg=>arg.includes('Grade synthetic evidence'))})));\n`);
   await chmod(fake, 0o755);
   const previous = process.env.PATH;
@@ -69,18 +70,18 @@ test('parses headless grader frontmatter', () => {
 });
 
 test('epic artifact graders accept script output and reject missing, empty or incomplete files', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-epic-artifact-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-epic-artifact-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const input = { version: 1, title: 'Saved Search Alerts', mode: 'product',
     categories: Array.from({ length: 7 }, (_, i) => ({ id: i + 1, assessed: true, ready: true,
       content: '### Scenarios\n\nUser-supplied requirement and observable acceptance criteria.' })) };
   const context = transcriptContext(transcript, root);
   for (const name of ['shape-the-epic-rich-input-autopilot', 'shape-the-epic-sparse-input-autopilot']) {
-    const grader = parseGrader(await readFile(path.join('evals/shape-the-epic', name,
+    const grader = parseGrader(await readFile(artifactJoin('evals/shape-the-epic', name,
       'graders/epic-file-written.md'), 'utf8'), 'epic-file-written.md');
     const grade = () => gradeHeadlessLocal(grader, context);
     assert.equal((await grade()).passed, false, 'A success claim cannot replace a missing artifact');
-    const { files: [file] } = await writeEpic(path.join(root, 'make-it-work'), input);
+    const { files: [file] } = await writeEpic(artifactJoin(root, 'make-it-work'), input);
     assert.equal((await grade()).passed, true, 'No Write-tool success message is needed');
     await writeFile(file, '');
     assert.equal((await grade()).passed, false);
@@ -101,16 +102,16 @@ test('epic artifact graders accept script output and reject missing, empty or in
 });
 
 test('epic semantic graders receive saved Markdown without a Write call or transcript readback', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-epic-semantic-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-epic-semantic-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
   for (const [caseName, graderName] of [
     ['shape-the-epic-rich-input-autopilot', 'epic-structure-sections.md'],
     ['shape-the-epic-sparse-input-autopilot', 'open-items-populated.md'],
   ]) {
-    const definition = await readFile(path.join('evals/shape-the-epic', caseName, 'graders', graderName), 'utf8');
-    await writeFile(path.join(graderDir, graderName), definition);
+    const definition = await readFile(artifactJoin('evals/shape-the-epic', caseName, 'graders', graderName), 'utf8');
+    await writeFile(artifactJoin(graderDir, graderName), definition);
   }
   const input = { version: 1, title: 'Saved Search Alerts', mode: 'product',
     categories: [{ id: 3, assessed: true, ready: false, content: 'Outcome remains TBD.',
@@ -124,43 +125,43 @@ test('epic semantic graders receive saved Markdown without a Write call or trans
   const grade = () => gradeHeadlessCase({ graderDir, fixtureDir: root, transcript, budgetUsd: 1, judge });
   assert.equal((await grade()).passed, false, 'Missing artifacts fail before calling the judge');
   assert.equal(calls, 0);
-  const { files: [file] } = await writeEpic(path.join(root, 'make-it-work'), input);
+  const { files: [file] } = await writeEpic(artifactJoin(root, 'make-it-work'), input);
   assert.equal((await grade()).passed, true);
   assert.equal(calls, 4, 'Both graders judge the saved file');
-  await writeFile(path.join(root, 'make-it-work', 'epic-another.md'), renderEpic(input));
+  await writeFile(artifactJoin(root, 'make-it-work', 'epic-another.md'), renderEpic(input));
   assert.equal((await grade()).passed, false, 'Ambiguous artifacts fail before calling the judge');
   assert.equal(calls, 4);
   await rm(file);
 });
 
 test('file evidence globs reject ambiguity, traversal and symlink escapes', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-evidence-glob-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-evidence-glob-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'fixture'));
-  await writeFile(path.join(root, 'secret.md'), 'PASS');
-  const context = transcriptContext(transcript, path.join(root, 'fixture'));
+  await mkdir(artifactJoin(root, 'fixture'));
+  await writeFile(artifactJoin(root, 'secret.md'), 'PASS');
+  const context = transcriptContext(transcript, artifactJoin(root, 'fixture'));
   const grade = (file) => gradeHeadlessLocal({ name: 'file', type: 'regex',
     target: { source: 'file', path: file }, pattern: 'PASS' }, context);
   assert.equal((await grade('../*.md')).passed, false);
-  assert.equal((await grade(path.join(root, '*.md'))).passed, false);
-  await symlink(path.join(root, 'secret.md'), path.join(root, 'fixture', 'linked.md'));
+  assert.equal((await grade(artifactJoin(root, '*.md'))).passed, false);
+  await symlink(artifactJoin(root, 'secret.md'), artifactJoin(root, 'fixture', 'linked.md'));
   assert.equal((await grade('linked.md')).passed, false);
   assert.equal((await grade('*.md')).passed, false, 'Symlinks cannot supply glob evidence');
-  await writeFile(path.join(root, 'fixture', 'one.md'), 'PASS');
+  await writeFile(artifactJoin(root, 'fixture', 'one.md'), 'PASS');
   assert.equal((await grade('*.md')).passed, true);
-  await writeFile(path.join(root, 'fixture', 'two.md'), 'PASS');
+  await writeFile(artifactJoin(root, 'fixture', 'two.md'), 'PASS');
   assert.equal((await grade('*.md')).passed, false, 'Do not combine evidence from multiple files');
 });
 
 test('explicit multi-file evidence includes saved artifacts without transcript readbacks', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-evidence-files-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-evidence-files-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const fixtureDir = path.join(root, 'fixture');
-  const graderDir = path.join(root, 'graders');
+  const fixtureDir = artifactJoin(root, 'fixture');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(fixtureDir); await mkdir(graderDir);
-  await writeFile(path.join(fixtureDir, 'slices-b.md'), '# Slice B\nNeeds A.');
-  await writeFile(path.join(fixtureDir, 'slices-a.md'), '# Slice A\nNo prerequisites.');
-  await writeFile(path.join(graderDir, 'saved.md'), '---\ntype: llm\nfocus: { source: files, path: "slices-*.md" }\n---\nCheck the saved files.');
+  await writeFile(artifactJoin(fixtureDir, 'slices-b.md'), '# Slice B\nNeeds A.');
+  await writeFile(artifactJoin(fixtureDir, 'slices-a.md'), '# Slice A\nNo prerequisites.');
+  await writeFile(artifactJoin(graderDir, 'saved.md'), '---\ntype: llm\nfocus: { source: files, path: "slices-*.md" }\n---\nCheck the saved files.');
   const judge = async (prompt) => {
     assert.match(prompt, /FILE: slices-a.md\n# Slice A\nNo prerequisites\./);
     assert.match(prompt, /FILE: slices-b.md\n# Slice B\nNeeds A\./);
@@ -173,23 +174,23 @@ test('explicit multi-file evidence includes saved artifacts without transcript r
     target: { source: 'files', path: file }, pattern: 'Slice' }, context);
   assert.equal((await grade('missing-*.md')).passed, false);
   assert.equal((await grade('../*.md')).passed, false);
-  await writeFile(path.join(root, 'outside.md'), '# Slice outside');
-  await symlink(path.join(root, 'outside.md'), path.join(fixtureDir, 'linked.md'));
+  await writeFile(artifactJoin(root, 'outside.md'), '# Slice outside');
+  await symlink(artifactJoin(root, 'outside.md'), artifactJoin(fixtureDir, 'linked.md'));
   assert.equal((await grade('linked.md')).passed, false);
 });
 
 test('grades local checks and semantic checks without a review status', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
-  await mkdir(path.join(root, '.claude'));
-  await writeFile(path.join(root, '.claude', 'log.jsonl'), '{}\n');
-  await writeFile(path.join(root, 'report.md'), 'The regression gate passed.\n');
-  await writeFile(path.join(graderDir, 'exists.md'), '---\ntype: file_exists\npath: .claude/*.jsonl\n---\n');
-  await writeFile(path.join(graderDir, 'pattern.md'), '---\ntype: regex\ntarget: { source: file, path: "report.md" }\npattern: "regression gate passed"\n---\n');
-  await writeFile(path.join(graderDir, 'tool.md'), '---\ntype: tool_used\ntool: Bash\ninput_match: "npm test"\nmin: 1\n---\n');
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  await mkdir(artifactJoin(root, '.claude'));
+  await writeFile(artifactJoin(root, '.claude', 'log.jsonl'), '{}\n');
+  await writeFile(artifactJoin(root, 'report.md'), 'The regression gate passed.\n');
+  await writeFile(artifactJoin(graderDir, 'exists.md'), '---\ntype: file_exists\npath: .claude/*.jsonl\n---\n');
+  await writeFile(artifactJoin(graderDir, 'pattern.md'), '---\ntype: regex\ntarget: { source: file, path: "report.md" }\npattern: "regression gate passed"\n---\n');
+  await writeFile(artifactJoin(graderDir, 'tool.md'), '---\ntype: tool_used\ntool: Bash\ninput_match: "npm test"\nmin: 1\n---\n');
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const judge = async (prompt) => {
     assert.match(prompt, /Gate result: PASS/);
     return { stdout: JSON.stringify({ total_cost_usd: 0.02,
@@ -203,11 +204,11 @@ test('grades local checks and semantic checks without a review status', async (t
 });
 
 test('passes an explicit judge model to the semantic judge', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const models = [];
   const judge = async (prompt, options) => {
     models.push(options.model);
@@ -221,11 +222,11 @@ test('passes an explicit judge model to the semantic judge', async (t) => {
 });
 
 test('retries a crashed judge process and decides by best two of three votes', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const verdict = (value) => ({ stdout: JSON.stringify({ total_cost_usd: 0.01,
     structured_output: { reason: 'checked', verdict: value } }) });
   const grade = async (answers) => {
@@ -251,11 +252,11 @@ test('retries a crashed judge process and decides by best two of three votes', a
 });
 
 test('fails closed on an ungradable semantic check', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root,
     budgetUsd: 1, judge: async () => ({ stdout: 'not json' }) });
   assert.equal(graded.passed, false);
@@ -263,10 +264,10 @@ test('fails closed on an ungradable semantic check', async (t) => {
 });
 
 test('retries malformed judge responses once, charges usage and never retries a valid FAIL', async t => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'judge-protocol-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'judge-protocol-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const graderDir = path.join(root, 'graders'); await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  const graderDir = artifactJoin(root, 'graders'); await mkdir(graderDir);
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const response = verdict => ({ stdout: JSON.stringify({ total_cost_usd: 0.01, structured_output: { verdict, reason: 'checked' } }) });
   const malformed = { stdout: JSON.stringify({ total_cost_usd: 0.01, result: 'The StructuredOutput response was not emitted.' }) };
   async function run(answers, budgetUsd = 1) {
@@ -292,12 +293,12 @@ test('retries malformed judge responses once, charges usage and never retries a 
 });
 
 test('skips paid judges after a failed local check', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'missing.md'), '---\ntype: file_exists\npath: absent.txt\n---\n');
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
+  await writeFile(artifactJoin(graderDir, 'missing.md'), '---\ntype: file_exists\npath: absent.txt\n---\n');
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: last_message\n---\nRequire a passing gate.\n');
   const graded = await gradeHeadlessCase({ graderDir, transcript, fixtureDir: root,
     budgetUsd: 1, judge: async () => { throw new Error('judge should not run'); } });
   assert.equal(graded.passed, false);
@@ -338,11 +339,11 @@ test('readable traces preserve loaded skill text, user context and tool results 
 });
 
 test('semantic judges receive injected skill evidence as transcript data', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-headless-grader-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-headless-grader-'));
   t.after(async () => { const { rm } = await import('node:fs/promises'); await rm(root, { recursive: true }); });
-  const graderDir = path.join(root, 'graders');
+  const graderDir = artifactJoin(root, 'graders');
   await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: trace\n---\nRequire documented domain responsibility and asserted behavior.\n');
+  await writeFile(artifactJoin(graderDir, 'semantic.md'), '---\ntype: llm\nfocus: trace\n---\nRequire documented domain responsibility and asserted behavior.\n');
   const events = [
     { type: 'user', message: { content: [{ type: 'text', text: 'Base directory for this skill: /fixture/domain-tasks\nTask creation includes title validation.' }] } },
     { type: 'assistant', message: { content: [{ type: 'text', text: 'The test asserts that createTask rejects an empty title.' }] } },
@@ -370,8 +371,8 @@ test('parses every headless grader definition', async () => {
   const { cases, suites } = await validateEvalTree();
   for (const name of suites.headless) {
     const item = cases.find((entry) => entry.name === name);
-    for (const filename of (await readdir(path.join(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
-      const grader = parseGrader(await readFile(path.join(item.dir, 'graders', filename), 'utf8'), filename);
+    for (const filename of (await readdir(artifactJoin(item.dir, 'graders'))).filter((file) => file.endsWith('.md'))) {
+      const grader = parseGrader(await readFile(artifactJoin(item.dir, 'graders', filename), 'utf8'), filename);
       assert.ok(['file_exists', 'regex', 'tool_used', 'llm', 'strategy_pointer', 'decision_log', 'file_unchanged', 'feedback_readback'].includes(grader.type), `${name}/${filename}`);
       if (grader.type === 'llm') assert.ok(grader.focus, `${name}/${filename}: missing focus`);
     }
@@ -379,7 +380,7 @@ test('parses every headless grader definition', async () => {
 });
 
 test('plan tests field accepts required evidence in either order', async () => {
-  const markdown = await readFile(path.join('evals', 'plan-the-work', 'with-tests',
+  const markdown = await readFile(artifactJoin('evals', 'plan-the-work', 'with-tests',
     'graders', 'plan-tests-field-recorded.md'), 'utf8');
   const { pattern } = parseGrader(markdown, 'plan-tests-field-recorded.md');
   const expression = new RegExp(pattern);
@@ -389,7 +390,7 @@ test('plan tests field accepts required evidence in either order', async () => {
 });
 
 test('sparse epic turn-cap check accepts only a bounded summary', async () => {
-  const markdown = await readFile(path.join('evals', 'shape-the-epic',
+  const markdown = await readFile(artifactJoin('evals', 'shape-the-epic',
     'shape-the-epic-sparse-input-autopilot', 'graders', 'turn-cap-exercised.md'), 'utf8');
   const { pattern } = parseGrader(markdown, 'turn-cap-exercised.md');
   const expression = new RegExp(pattern);
@@ -399,11 +400,11 @@ test('sparse epic turn-cap check accepts only a bounded summary', async () => {
 });
 
 test('runner-owned artifact evidence supplies saved files and explicit missing markers alongside trace', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-grader-artifacts-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-grader-artifacts-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const graderDir = path.join(root, 'graders'); await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'check.md'), '---\ntype: llm\nfocus: trace\n---\nInspect actual artifacts and write outcomes.\n');
-  await writeFile(path.join(root, 'report.md'), 'Refresh: npm run test:map\n');
+  const graderDir = artifactJoin(root, 'graders'); await mkdir(graderDir);
+  await writeFile(artifactJoin(graderDir, 'check.md'), '---\ntype: llm\nfocus: trace\n---\nInspect actual artifacts and write outcomes.\n');
+  await writeFile(artifactJoin(root, 'report.md'), 'Refresh: npm run test:map\n');
   let calls = 0;
   const judge = async (prompt) => {
     calls++;
@@ -415,20 +416,20 @@ test('runner-owned artifact evidence supplies saved files and explicit missing m
   const grade = await gradeHeadlessCase({ graderDir, fixtureDir: root, transcript, budgetUsd: 1,
     evidenceFiles: { 'check.md': ['report.md', 'missing.md'] }, judge });
   assert.equal(grade.passed, true); assert.equal(calls, 2);
-  assert.equal(await readFile(path.join(root, 'report.md'), 'utf8'), 'Refresh: npm run test:map\n');
+  assert.equal(await readFile(artifactJoin(root, 'report.md'), 'utf8'), 'Refresh: npm run test:map\n');
 });
 
 test('supplemental evidence rejects traversal, globs, directories and symlink escapes before judging', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-grader-artifact-safety-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-grader-artifact-safety-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const fixtureDir = path.join(root, 'fixture'); await mkdir(fixtureDir);
-  const graderDir = path.join(root, 'graders'); await mkdir(graderDir);
-  await writeFile(path.join(graderDir, 'check.md'), '---\ntype: llm\nfocus: trace\n---\nInspect artifacts.\n');
-  await writeFile(path.join(root, 'outside.md'), 'outside');
-  await symlink(path.join(root, 'outside.md'), path.join(fixtureDir, 'escape.md'));
+  const fixtureDir = artifactJoin(root, 'fixture'); await mkdir(fixtureDir);
+  const graderDir = artifactJoin(root, 'graders'); await mkdir(graderDir);
+  await writeFile(artifactJoin(graderDir, 'check.md'), '---\ntype: llm\nfocus: trace\n---\nInspect artifacts.\n');
+  await writeFile(artifactJoin(root, 'outside.md'), 'outside');
+  await symlink(artifactJoin(root, 'outside.md'), artifactJoin(fixtureDir, 'escape.md'));
   let calls = 0;
   const judge = async () => { calls++; throw new Error('Must not invoke judge'); };
-  for (const files of [['../outside.md'], [path.join(root, 'outside.md')], ['*.md'], ['bad\\path'], ['bad\0path'], ['escape.md'], ['.'], 'report.md']) {
+  for (const files of [['../outside.md'], [artifactJoin(root, 'outside.md')], ['*.md'], ['bad\\path'], ['bad\0path'], ['escape.md'], ['.'], 'report.md']) {
     const grade = await gradeHeadlessCase({ graderDir, fixtureDir, transcript, budgetUsd: 1,
       evidenceFiles: { 'check.md': files }, judge });
     assert.equal(grade.passed, false, JSON.stringify(files));
@@ -457,19 +458,19 @@ test('Bash helper writes retain command/result identity and error status for sem
 
 
 test('strategy pointer grading checks actual saved state and helper receipts without guessing transcript chronology', async (t) => {
- const root = await mkdtemp(path.join(os.tmpdir(), 'pointer-grade-'));
+ const root = await mkdtemp(artifactJoin(os.tmpdir(), 'pointer-grade-'));
  t.after(() => rm(root, { recursive: true, force: true }));
  const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
  git('init', '-q', '-b', 'main');
  const original = '# Project\n\n## Skills Reference\n\nExisting domain table.\n';
- await writeFile(path.join(root, 'CLAUDE.md'), original);
+ await writeFile(artifactJoin(root, 'CLAUDE.md'), original);
  git('add', 'CLAUDE.md'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'Seed');
- await mkdir(path.join(root, '.claude/skills/test-strategy'), { recursive: true });
- await mkdir(path.join(root, '.claude/testing'), { recursive: true });
+ await mkdir(artifactJoin(root, '.claude/skills/test-strategy'), { recursive: true });
+ await mkdir(artifactJoin(root, '.claude/testing'), { recursive: true });
  const strategy = await readFile('evals/fixtures/multi-repo-workspace/payments-api/claude-dir/skills/test-strategy/SKILL.md', 'utf8');
  const map = { schemaVersion: 1, productRepo: 'payments-api', tokens: [], repos: [{ id: 'payments-api', root: '.' }], locations: [{ id: 'local', repo: 'payments-api', paths: ['.'], config: [], complete: true, assessedTokens: [] }], tests: [], mappings: [], decisions: [], snapshots: {}, discovery: {} };
- await writeFile(path.join(root, '.claude/skills/test-strategy/SKILL.md'), strategy);
- await writeFile(path.join(root, '.claude/testing/test-map.json'), JSON.stringify(map));
+ await writeFile(artifactJoin(root, '.claude/skills/test-strategy/SKILL.md'), strategy);
+ await writeFile(artifactJoin(root, '.claude/testing/test-map.json'), JSON.stringify(map));
  const receipt = await updateStrategyPointer(root);
  const events = [
   { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'pointer', name: 'Bash', input: { command: 'node scripts/test-strategy.mjs pointer --root .' } }] } },
@@ -481,37 +482,37 @@ test('strategy pointer grading checks actual saved state and helper receipts wit
  const grade = () => gradeHeadlessLocal(grader, context);
  assert.equal((await grade()).passed, true);
  assert.equal((await gradeHeadlessLocal(grader, transcriptContext(JSON.stringify({ type: 'result', result: 'Done' }), root))).passed, false, 'A changed pointer needs a helper receipt');
- const canonical = await readFile(path.join(root, 'CLAUDE.md'), 'utf8');
- await writeFile(path.join(root, 'CLAUDE.md'), canonical + '\n| /test-strategy | duplicate | duplicate |\n');
+ const canonical = await readFile(artifactJoin(root, 'CLAUDE.md'), 'utf8');
+ await writeFile(artifactJoin(root, 'CLAUDE.md'), canonical + '\n| /test-strategy | duplicate | duplicate |\n');
  assert.equal((await grade()).passed, false);
- await writeFile(path.join(root, 'CLAUDE.md'), canonical);
- await rm(path.join(root, '.claude/testing/test-map.json'));
+ await writeFile(artifactJoin(root, 'CLAUDE.md'), canonical);
+ await rm(artifactJoin(root, '.claude/testing/test-map.json'));
  assert.equal((await grade()).passed, false, 'Dangling pointer must fail');
- await writeFile(path.join(root, 'CLAUDE.md'), original);
+ await writeFile(artifactJoin(root, 'CLAUDE.md'), original);
  context.events.push({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'blocked', content: 'Permission denied', is_error: true }] } });
  assert.equal((await grade()).passed, true, 'Blocked partial write must preserve the pointer');
- await writeFile(path.join(root, '.claude/testing/test-map.json'), JSON.stringify(map));
+ await writeFile(artifactJoin(root, '.claude/testing/test-map.json'), JSON.stringify(map));
  assert.equal((await grade()).passed, false, 'Written metadata requires a pointer when Skills Reference exists');
- await writeFile(path.join(root, 'CLAUDE.md'), '# No Skills Reference\n');
+ await writeFile(artifactJoin(root, 'CLAUDE.md'), '# No Skills Reference\n');
  git('add', 'CLAUDE.md'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'No orientation section');
  assert.equal((await grade()).passed, true, 'Missing inventory section is a supported skip');
 });
 
 test('untouched guidance uses exact fixture bytes, not historical prose expectations', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'unchanged-guidance-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'unchanged-guidance-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const grader = parseGrader(await readFile('evals/define-test-strategy/define-test-strategy-negative-control/graders/claude-md-untouched.md', 'utf8'), 'untouched');
   const baseline = await readFile('evals/define-test-strategy/fresh-tests/fixture/CLAUDE.md', 'utf8');
   assert.doesNotMatch(baseline, /testing-strategy\.md/);
-  await writeFile(path.join(root, grader.baseline), baseline);
-  await writeFile(path.join(root, grader.path), baseline);
+  await writeFile(artifactJoin(root, grader.baseline), baseline);
+  await writeFile(artifactJoin(root, grader.path), baseline);
   assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, true);
-  await writeFile(path.join(root, grader.path), baseline + '\n');
+  await writeFile(artifactJoin(root, grader.path), baseline + '\n');
   assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false);
-  await rm(path.join(root, grader.path));
+  await rm(artifactJoin(root, grader.path));
   assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false);
-  await writeFile(path.join(root, grader.path), baseline);
-  await rm(path.join(root, grader.baseline));
+  await writeFile(artifactJoin(root, grader.path), baseline);
+  await rm(artifactJoin(root, grader.baseline));
   assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false);
   for (const invalid of ['../outside', '/tmp/private', '*.md']) {
     assert.equal((await gradeHeadlessLocal({ ...grader, baseline: invalid }, { fixtureDir: root })).passed, false);
@@ -519,14 +520,14 @@ test('untouched guidance uses exact fixture bytes, not historical prose expectat
 });
 
 test('review log grader receives both the saved decisions and successful Git discovery evidence', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'review-count-evidence-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'review-count-evidence-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const dir = path.join(root, 'graders'); await mkdir(dir);
+  const dir = artifactJoin(root, 'graders'); await mkdir(dir);
   const filename = 'autopilot-log-content.md';
-  await writeFile(path.join(dir, filename), await readFile(`evals/review-the-code/autopilot-full-info/graders/${filename}`, 'utf8'));
+  await writeFile(artifactJoin(dir, filename), await readFile(`evals/review-the-code/autopilot-full-info/graders/${filename}`, 'utf8'));
   const log = 'make-it-work/TASK-100/review-the-code-autopilot-log.jsonl';
-  await mkdir(path.dirname(path.join(root, log)), { recursive: true });
-  await writeFile(path.join(root, log), '{"site":"branch-pair","rationale":"1 commit, 1 file"}');
+  await mkdir(path.dirname(artifactJoin(root, log)), { recursive: true });
+  await writeFile(artifactJoin(root, log), '{"site":"branch-pair","rationale":"1 commit, 1 file"}');
   const trace = [
     { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'git', name: 'Bash', input: { command: 'git diff --name-only main...HEAD' } }] } },
     { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'git', content: 'src/tasks/completeTask.js' }] } },

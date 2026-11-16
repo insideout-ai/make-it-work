@@ -5,6 +5,8 @@ description: "Orchestrate an idea, documents, or Jira ticket into a shaped epic 
 
 # Drive the Epic
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+
 Act as a thin orchestrator: source intake → `shape-the-epic` → full-epic review → `slice-the-epic` → prepared handoff. The existing skills own their stage reasoning. This phase prepares work; it does not dispatch `implement`, edit implementation code, or claim delivery. The saved handoff anticipates a later phase coordinating sequential and parallel `implement` runs.
 
 ## Usage
