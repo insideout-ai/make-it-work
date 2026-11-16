@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Slice the Epic
 
-For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention.
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
 
 Turn an oversized requirement into a small, ordered backlog of independently demonstrable increments. Let the user choose a slicing approach, then save a shared Markdown overview and a separate Markdown file per slice under `make-it-work/`. In interactive mode, offer optional Jira Story/Task creation when a suitable integration is available.
 

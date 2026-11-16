@@ -88,3 +88,17 @@ test('stage diagnostics identify the rejected field and its allowed values witho
   }
   assert.equal(validateEvidenceReview(input, packet, value => value), input);
 });
+
+test('new runs export numbered evidence to a prefixed filename', async t => {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-evidence-export-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = path.join(root, 'make-it-work', 'DEMO'); await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, 'miw-run.json'), '{"artifact_naming_version":1}');
+  const state = (await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8'))
+    .replace('ticket: DEMO', 'ticket: DEMO\nartifact_naming_version: 1')
+    .replace('status: In Progress', 'status: Complete').replace('phase: final-sync', 'phase: complete\nfeedback_evidence_version: 1').trimEnd() + '\n| 7 | 2026-01-01T10:06:00Z | final-sync | complete | Context synchronized |\n';
+  const statePath = path.join(directory, 'miw-DEMO-state.md'); await writeFile(statePath, state);
+  const output = path.join(directory, 'miw-feedback-evidence.txt');
+  const result = spawnSync(process.execPath, [path.resolve('skills/implement/scripts/write-feedback.mjs'), 'evidence', '--state', statePath, '--output', output], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr); assert.equal(JSON.parse(result.stdout).outputPath, output);
+  assert.match(await readFile(output, 'utf8'), /LOCAL EVIDENCE ONLY/);
+});

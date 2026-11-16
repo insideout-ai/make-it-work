@@ -4,6 +4,14 @@
 
 New Implement and Drive-the-epic runs have `miw-run.json` with `artifact_naming_version: 1`. Every generated file in those runs, including nested handoffs, assessment snapshots, receipts and temporary files, starts with `miw-`. Directories keep their existing names. For example: `make-it-work/DEMO/miw-DEMO-state.md`, `miw-DEMO-status.html`, `DEMO-handoffs/miw-review-1.json`, and epic `miw-state.json` / `miw-dashboard.html`.
 
+Before a skill manually writes prose/JSON (rather than using an existing deterministic writer), resolve the path first:
+
+```sh
+node /absolute/plugin/path/scripts/artifact-output.mjs resolve --root /absolute/project/path --directory make-it-work/DEMO --name DEMO-plan.md
+```
+
+The resolver performs Git protection, preserves an established legacy path, and returns the actual `file`, repository-relative `relative`, and basename `name`. Use those values for Write/Edit, stored references, and links. It does not write or overwrite the artifact itself. Non-Git workspaces return a notice in `gitProtection` to surface in the handoff. Existing collision/overwrite approval rules still apply.
+
 Always use paths returned by helpers and preserve actual saved references. Do not reconstruct names from documentation examples. Older examples denote logical artifact roles; shared artifact path/IO helpers resolve those names to the marked run's actual filenames. An existing unmarked run retains its original naming, including artifacts created on later resumes. Existing standalone artifacts retain their paths; new standalone outputs under `make-it-work/` get the prefix. User-supplied input files are not renamed. Never create a marker in an existing run or rename its history.
 
 Before writing artifacts, shared IO checks the containing Git worktree, rejects staged/tracked artifacts, adds the artifact directory's anchored rule to `.gitignore` when needed, and verifies effective exclusion. Preserve that `.gitignore` edit for ordinary review. Fix reported tracked paths deliberately; the plugin never unstages, deletes or rewrites history automatically. Delivery also checks outgoing commits, including artifacts removed by later commits. `.gitignore` cannot prevent manual force-adds or external pushes. Non-Git workspaces can keep local artifacts.

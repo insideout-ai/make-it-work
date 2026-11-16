@@ -15,6 +15,7 @@ export async function ensureArtifactIgnored(directory) {
       const parent = path.dirname(existing); if (parent === existing) throw error; existing = parent;
     }
   }
+  if ((await lstat(existing)).isSymbolicLink()) throw new Error('Artifact root must be a real directory, not a symlink.');
   const top = git(existing, ['rev-parse', '--show-toplevel']);
   if (top.status !== 0) {
     if (!/not a git repository/i.test(top.stderr)) throw new Error(`Cannot inspect artifact Git worktree: ${top.stderr}`);

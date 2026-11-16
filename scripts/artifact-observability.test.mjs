@@ -131,3 +131,18 @@ test('page-load elapsed hydration updates the display without a timer or changin
   });
   assert.equal(element.textContent, '5m');
 });
+
+test('manual prose writers resolve new, legacy, and established standalone output paths before writing', async t => {
+  const { resolveArtifactOutput } = await import('./artifact-output.mjs');
+  const root = await fixture(t, true), directory = 'make-it-work/MANUAL';
+  const fresh = await resolveArtifactOutput({ root, directory, name: 'MANUAL-plan.md' });
+  assert.equal(fresh.name, 'miw-MANUAL-plan.md');
+  assert.equal(fresh.relative, 'make-it-work/MANUAL/miw-MANUAL-plan.md');
+  assert.equal(fresh.gitProtection.applicable, true);
+  await assert.rejects(readFile(fresh.file), { code: 'ENOENT' });
+  const old = path.join(root, 'make-it-work', 'LEGACY'); await mkdir(old);
+  await writeFile(path.join(old, 'LEGACY-state.md'), 'Existing state');
+  const continued = await resolveArtifactOutput({ root, directory: 'make-it-work/LEGACY', name: 'LEGACY-review.md' });
+  assert.equal(continued.name, 'LEGACY-review.md');
+  await assert.rejects(resolveArtifactOutput({ root, directory: 'source', name: 'code.md' }), /under make-it-work/);
+});

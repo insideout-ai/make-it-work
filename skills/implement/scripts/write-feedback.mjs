@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { artifactJoin, artifactResolve, logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
@@ -609,9 +609,10 @@ async function main() {
     const packet = summary._packet ?? await feedbackEvidence(statePath, summary);
     const text = evidenceText(packet);
     if (evidenceOutputPath) {
+      evidenceOutputPath = artifactResolve(evidenceOutputPath);
       try { if (!(await lstat(evidenceOutputPath)).isFile()) fail('Evidence output must be a regular file.'); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
-      if (path.dirname(artifactResolve(evidenceOutputPath)) !== path.dirname(artifactResolve(statePath)) || !/^feedback-evidence(?:-[A-Za-z0-9_-]+)?\.txt$/.test(path.basename(evidenceOutputPath))) fail('Evidence output must be feedback-evidence[-NAME].txt beside the state file.');
+      if (path.dirname(artifactResolve(evidenceOutputPath)) !== path.dirname(artifactResolve(statePath)) || !/^feedback-evidence(?:-[A-Za-z0-9_-]+)?\.txt$/.test(logicalArtifactName(evidenceOutputPath))) fail('Evidence output must be feedback-evidence[-NAME].txt beside the state file.');
       const temporary = `${evidenceOutputPath}.${randomUUID()}.tmp`;
       try { await writeFile(temporary, text, { mode: 0o600, flag: 'wx' }); await rename(temporary, evidenceOutputPath); }
       finally { await unlink(temporary).catch(() => {}); }
