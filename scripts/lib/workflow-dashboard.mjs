@@ -34,8 +34,10 @@ export const WORKFLOW_STYLES = `
   .pending-since, .pending-reference { font-size: 0.8rem; }
   .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .session-timing { font-size: 0.75rem; color: #888; }
-  .change-assessment { margin: 1rem 0; padding: 0.75rem 1rem; border: 1px solid #d6dde4; border-radius: 0.4rem; background: #f7f9fb; overflow-wrap: anywhere; }
-  .change-assessment h2 { margin-top: 0; }
+  .assessment-low { color: #1e6231; background: #e6f4ea; }
+  .assessment-medium { color: #805400; background: #fff6e0; }
+  .assessment-high { color: #a61c00; background: #fce8e6; }
+  .assessment-neutral { color: #596773; background: #eee; }
   .delivery-details { margin: 1.25rem 0; }
   .delivery-updated, .delivery-records { font-size: 0.85rem; color: #596773; }
 

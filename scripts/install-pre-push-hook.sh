@@ -19,4 +19,4 @@ if [ -z "$current_path" ] && [ -e "$(git rev-parse --git-path hooks/pre-push)" ]
 fi
 
 git config --local core.hooksPath .githooks
-echo "Installed local pre-push smoke hook for $repo_root."
+echo "Installed local pre-push reminder (no paid evals) for $repo_root."

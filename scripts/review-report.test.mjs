@@ -49,6 +49,18 @@ test('advisory Minor findings stay visible and explicitly unfixed without being 
   assert.match(result.summary, /unfixed advisory/);
   assert.doesNotMatch(result.markdown, /Route: fix/);
 });
+
+test('an accepted requirement violation cannot become an optional nit', () => {
+  const violation = { ...finding('Minor', 'advisory'), requirement_violation: true, requirement: 'Accepted spec: emit source log on every read' };
+  assert.throws(() => renderReview(input([violation])), /requirement violation cannot be an advisory/);
+  for (const route of ['fix', 'replan', 'human']) {
+    const result = renderReview(input([{ ...violation, route }]));
+    assert.notEqual(result.outcome, 'CLEAN');
+    assert.equal(result.handoff.data.findings.length, 1);
+  }
+  assert.throws(() => renderReview(input([{ ...violation, route: 'fix', requirement: '' }])), /requirement citation/);
+  assert.throws(() => renderReview(input([{ ...violation, requirement_violation: 'true' }])), /must be a boolean/);
+});
 test('explicit route and actionability cannot contradict each other or hide serious findings', () => {
   assert.throws(() => renderReview(input([{ ...finding('Minor', 'fix'), actionable: false }])), /route.*actionable|actionable.*route/i);
   assert.throws(() => renderReview(input([{ ...finding('Minor', 'advisory'), actionable: true }])), /route.*actionable|actionable.*route/i);

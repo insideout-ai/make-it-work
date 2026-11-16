@@ -68,7 +68,13 @@ A successful report save does not trigger another closing check. If collection f
 
 ## Prepare the report and invite input
 
-Save a provisional Markdown report before asking for feedback. For standalone use, use a real current timestamp for `make-it-work/session-reviews/feedback-<YYYYMMDDTHHMMSSZ>.md` under the current working directory; create the directory and use a numeric suffix if the name exists. Never overwrite another review. Record this output path and update that same file throughout this review. Standalone use does not modify implement-feedback.md or workflow-feedback.md. Standalone mode does not modify state files or approved packages. Automatic integration preserves workflow fields and approved packages; only its helpers append informational feedback lifecycle audit notes.
+Save a provisional Markdown report before asking for feedback. For each new standalone review, generate the timestamp from the current UTC clock **in the resolver call**:
+
+```sh
+node "<base>/../../scripts/artifact-output.mjs" resolve --root "<project-root>" --directory make-it-work/session-reviews --name "feedback-$(date -u +%Y%m%dT%H%M%SZ).md"
+```
+
+The resolver adds the naming prefix and returns the actual path; it preserves the logical filename supplied and does not generate a timestamp or ensure uniqueness. Check that the returned path is unused before writing. If it exists, resolve again with a numeric suffix after the timestamp and before `.md`, until unused. Never overwrite another review. Record the returned `file`/`relative` and update that same report throughout this review, including user replies; only a new review chooses a new path. Standalone use does not modify implement-feedback.md or workflow-feedback.md. Standalone mode does not modify state files or approved packages. Automatic integration preserves workflow fields and approved packages; only its helpers append informational feedback lifecycle audit notes.
 
 Include these sections:
 
@@ -91,7 +97,7 @@ The proposed/untested label applies to reproduction or verification scenarios wh
 
 Sanitize all report content, including user additions and reproduction scenarios: omit credentials, names, customer/project/ticket identifiers, internal URLs, absolute local paths and unnecessary proprietary details. Use consistent neutral placeholders. Preserve public skill names, controller event names and generic error codes when needed to explain the sequence; omit proprietary identifiers rather than erasing useful workflow vocabulary. Short sanitized excerpts of workflow instructions and tool messages are useful when wording matters; do not copy raw logs or application source code. Preserve the behavioral sequence and concrete generic inputs/outcomes needed to understand it. If essential evidence cannot be shared safely, mark the finding **Needs clarification: essential evidence omitted** and explain the resulting limit rather than implying it is fully established.
 
-Show a concise initial summary and the saved report link, then ask once:
+Show a concise initial summary and the saved report link, then ask once. For a standalone report that has been successfully saved and fully read back (including a provisional report), put the **Email feedback** link and exact attachment/optional-sharing reminder from Finish beside that report link. If saving or readback is incomplete, omit the sharing links.
 
 > Is anything missing or inaccurate? The maintainers will only receive this report, so please add any context they would need.
 
@@ -105,6 +111,8 @@ Read the **complete current saved file** successfully before presenting its link
 
 Read back the saved Markdown once before presenting it, including provisional reports and updates after user input. Inspect the generated report itself; a successful writer receipt or the staged JSON does not establish its contents. Check that section headings remain intact, each finding includes its own supporting evidence and precise available locator(s), and its title/conclusions do not overstate incomplete evidence, material approvals/recovery and captured provenance remain present, user corrections are reflected, uncertainty is explicit, and sensitive details are removed. Conversation evidence uses actual transcript line/record/message IDs or numbered visible turns, rather than workflow-step names alone; an artifact row must support the claim, not merely satisfy a numbered-locator check. **Could an owner understand and investigate this using only this file?** Replace source-dependent references with sanitized evidence, or mark the missing context explicitly. This readback checks the saved output, not the whole transcript again, and does not trigger another retrospective or certify factual accuracy beyond the available evidence.
 
-After incorporating feedback or an explicit skip, save and link the completed report, briefly summarize the main supported problems or the absence of findings, and preserve unresolved uncertainty. Invite the user to review the sanitized file before sharing it manually with make-it-work's owners. Do not upload, email, open issues or PRs, or claim that maintainers received it. This skill never implements its suggestions.
+After incorporating feedback or an explicit skip, successfully save and read back the full current report, then link it beside [Email feedback](mailto:insideoutaitech@gmail.com?subject=make-it-work%20workflow%20feedback&body=I%20would%20like%20to%20share%20my%20reviewed%20session%20feedback%20report.) in the standalone session-review completion message. Show this exact instruction alongside the links: “Review and save the report, then attach it to the email. Sharing is optional.” Briefly summarize the supported findings and preserve uncertainty. If saving or readback fails, omit the sharing links. Share only this current session report, not cumulative history, transcripts or an implementation package.
+
+The link opens the user's composer with recipient `insideoutaitech@gmail.com`, subject `make-it-work workflow feedback` and a short generic body. Its URL must contain no project identifiers, report contents or local paths. The user attaches the reviewed report and chooses whether to send. Do not open a composer, attach files, upload, send email, open issues/PRs or claim submission on the user's behalf; presenting the link does not send anything. No email service or credentials are added. This skill never implements its suggestions.
 
 If saving or updating fails, state which operation failed and that the durable report is missing or stale. Show the available feedback in chat without claiming it was saved or bypassing filesystem permissions.

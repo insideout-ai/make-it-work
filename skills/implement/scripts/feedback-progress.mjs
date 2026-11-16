@@ -42,7 +42,8 @@ export async function readFeedbackProgress(statePath, state) {
   } catch { /* An invalid receipt cannot certify an unavailable outcome. */ }
   const readback = state.fields.feedback_evidence_version !== '1' || finalized?.kind === 'answered-delivery' ||
     currentReadback(finalized, session?.text ?? '', session?.modified);
-  return { finalizedAt: finalized?.finalizedAt, status: saved && finalized?.status === 'saved' && readback ? 'saved' : 'collecting', reportSaved: saved };
+  const shareReady = Boolean(saved && finalized?.status === 'saved' && currentReadback(finalized, session?.text ?? '', session?.modified));
+  return { finalizedAt: finalized?.finalizedAt, status: saved && finalized?.status === 'saved' && readback ? 'saved' : 'collecting', reportSaved: saved, shareReady };
 }
 
 // Only refresh dashboards generated with the feedback lifecycle marker. Supplied source

@@ -15,7 +15,7 @@ Seven cases cover the interactive choice, local completion, unattended backlog g
 The two autopilot cases, the interactive local-completion case, comment preparation, and native-link planning use the disposable headless path in `evals/suites.json`, since they save files. The two interactive question cases use the plugin eval harness and need no filesystem writes.
 
 ```sh
-node evals/run-suite.mjs smoke --case=slice-the-epic-well-specified-epic-autopilot
+node evals/run-suite.mjs full --case=slice-the-epic-well-specified-epic-autopilot
 node evals/run-suite.mjs full --case=slice-the-epic-ambiguous-epic-autopilot --case=slice-the-epic-negative-control --case=slice-the-epic-approach-selection
 node evals/run-suite.mjs full --case=slice-the-epic-interactive-files-only
 node evals/run-suite.mjs full --case=slice-the-epic-jira-summary-comment-preparation

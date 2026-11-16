@@ -23,7 +23,7 @@ older projects regenerate the strategy/map from current evidence.
 | `dts-index-refresh` | Reuse a saved map, reassess changed label assertions, retain user rejection of checkout-to-refund mapping, and leave source/tests unchanged. |
 
 Run with `node evals/run-suite.mjs full --case=<case-name>`; `dts-fresh-tests` is
-also in `node evals/run-suite.mjs smoke`. See `evals/README.md` for sign-in,
+also in the once-per-PR smoke inventory. See `evals/README.md` for sign-in,
 budgets, disposable fixtures and grading. `node --test scripts/test-map.test.mjs`
 covers deterministic freshness, queries, partial scope, missing repos, working
 files, user decisions and non-intrusive helper behavior without model access.

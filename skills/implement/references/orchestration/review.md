@@ -4,6 +4,8 @@ Controller runs increment `review_cycle` when entering Review; do not increment 
 
 ## Review dispatch
 
+Pass [compilation evidence and branch provenance](../compilation-evidence.md) to the reviewer. Preserve inherited branch-build failures and unavailable/unrun compilation in `validation_notes`, distinguish starting-branch evidence from the PR destination, and keep emitted-JavaScript test passes separate. No mandatory destination baseline build or unrelated fix work is added.
+
 Before every review dispatch, maintain the known ticket-scoped documentation and test-map changes using Final context sync's bounded procedure below. Use the current implementation/Execute report and accumulated review gaps; do not postpone already-known gaps until after CLEAN. This is preparation within Review, not a new phase or another code-review pass. Preserve unchanged context and test selection. If new evidence invalidates completed validation, checkpoint the concrete stop rather than claiming the previous gate covers it.
 
 For controller runs, checkpoint `review-context` with explicit repository roots and `context_updated: [<changed paths>]` (or `[]`). This preserves the review/fix/replan counters and records the context paths. Saved version-1 runs cannot freeze a review target before this checkpoint. Saved runs without that marker keep their existing compatibility; do not retrofit it.

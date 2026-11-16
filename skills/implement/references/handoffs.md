@@ -75,3 +75,7 @@ Ticket publication also belongs to `implement`, under [ticket-publication.md](ti
 ## Requirements-conflict override
 
 The current accepted refined spec is the requirements authority; a plan is implementation context. A planning requirements conflict returns a blocked handoff with the criterion, evidence and decision needed in `reason` plus `Spec conflict:` in its chat report. Review records an unresolved requirements decision as `Route: human`. Before ordinary blocked/human/replan routing, the parent follows Implement's requirements-conflict section and controller `spec-conflict` event. This pauses dependent work, returns to refinement and requires explicit revised-spec approval in every mode; it does not introduce a new handoff outcome or allow a plan assumption to amend the spec. A clear implementation defect with a correction consistent with the accepted spec retains ordinary fix/replan routing.
+
+## Implementation risk reassessment
+
+An implementation handoff may add `data.risk_reassessment`, a nonempty single-line rationale written by the parent for retaining Lightweight after a reported risk signal. For a non-null `risk_signal` other than `none`, routing requires that rationale or `--escalate REASON`. The saved transition includes the rationale; null/none risk signals and existing handoff fields retain their behavior. No automatic TDD conversion or additional user approval is introduced.

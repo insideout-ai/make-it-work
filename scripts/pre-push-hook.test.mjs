@@ -42,40 +42,26 @@ test('installer enables the versioned hook without replacing existing hooks', as
   }
 });
 
-test('pre-push runs smoke once and propagates its result', async () => {
+test('pushes never launch paid evals, including with the legacy selection variable', async () => {
   const root = await fixture();
   try {
     const bin = artifactJoin(root, 'bin');
     const log = artifactJoin(root, 'invocations.txt');
-    const mock = artifactJoin(bin, 'node');
     await mkdir(bin);
-    await writeFile(mock, '#!/bin/sh\ntest ! -e uncommitted-marker || exit 99\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\nexit "$HOOK_TEST_EXIT"\n');
-    await chmod(mock, 0o755);
-    await writeFile(artifactJoin(root, 'uncommitted-marker'), 'must not enter snapshot\n');
-    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`,
-      HOOK_TEST_LOG: log, HOOK_TEST_EXIT: '0', GIT_DIR: artifactJoin(root, '.git'),
-      GIT_WORK_TREE: root, GIT_INDEX_FILE: artifactJoin(root, '.git/index') };
-    const passed = run('bash', ['.githooks/pre-push'], root, env);
-    assert.equal(passed.status, 0);
-    assert.equal((await readFile(log, 'utf8')).trim(), 'evals/run-suite.mjs smoke');
-    assert.equal(run('git', ['rev-parse', '--is-bare-repository'], root).stdout.trim(), 'false');
-    const failed = run('bash', ['.githooks/pre-push'], root, { ...env, HOOK_TEST_EXIT: '7' });
-    assert.equal(failed.status, 0);
-    assert.match(failed.stderr, /Push proceeds/);
+    for (const binary of ['node', 'claude']) {
+      const mock = artifactJoin(bin, binary);
+      await writeFile(mock, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\nexit 99\n');
+      await chmod(mock, 0o755);
+    }
+    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, HOOK_TEST_LOG: log,
+      MIW_SMOKE_CASES: 'drive-the-epic-autopilot' };
+    for (let push = 0; push < 2; push++) {
+      const result = run('bash', ['.githooks/pre-push'], root, env);
+      assert.equal(result.status, 0);
+      assert.match(result.stderr, /no paid evals/);
+    }
+    await assert.rejects(readFile(log), { code: 'ENOENT' });
   } finally {
     await rm(root, { recursive: true, force: true });
   }
-});
-test('pre-push supports an explicit relevant-case selection without running the full smoke suite', async () => {
-  const root = await fixture();
-  try {
-    const bin = artifactJoin(root, 'bin'); const log = artifactJoin(root, 'selected.txt'); await mkdir(bin);
-    const mock = artifactJoin(bin, 'node'); await writeFile(mock, '#!/bin/sh\nprintf "%s\\n" "$*" >> "$HOOK_TEST_LOG"\n'); await chmod(mock, 0o755);
-    const env = { ...process.env, PATH: `${bin}:${process.env.PATH}`, HOOK_TEST_LOG: log, MIW_SMOKE_CASES: 'drive-the-epic-autopilot' };
-    const selected = run('bash', ['.githooks/pre-push'], root, env); assert.equal(selected.status, 0);
-    assert.equal((await readFile(log, 'utf8')).trim(), 'evals/run-suite.mjs smoke --case=drive-the-epic-autopilot');
-    const invalid = run('bash', ['.githooks/pre-push'], root, { ...env, MIW_SMOKE_CASES: '--unexpected-option' });
-    assert.match(invalid.stderr, /invalid smoke case selection/);
-    assert.equal((await readFile(log, 'utf8')).trim().split('\n').length, 1);
-  } finally { await rm(root, { recursive: true, force: true }); }
 });

@@ -28,7 +28,7 @@ The per-skill script uses disposable headless runs for the technical-debt and di
 
 ```sh
 node evals/run-suite.mjs full --case=shape-the-epic-technical-debt-outcomes --max-cost-usd=3
-node evals/run-suite.mjs smoke --case=shape-the-epic-rich-input-autopilot --max-cost-usd=3
+node evals/run-suite.mjs full --case=shape-the-epic-rich-input-autopilot --max-cost-usd=3
 node evals/run-suite.mjs full --case=shape-the-epic-jira-full-description --max-cost-usd=3
 ```
 

@@ -49,6 +49,8 @@ export async function finalizeFeedback(statePath, outcome, { refresh = true, now
       await refreshFeedbackDashboard(statePath);
     }
     return receipt;
-  } catch { return null; } // A receipt failure cannot undo a verified collection.
+  } catch (error) {
+    throw Object.assign(new Error(`Could not persist feedback finalization at ${file}: ${error.message}. Keep the workflow terminal and retry write-feedback.mjs finalize after resolving this I/O error.`), { code: 'FEEDBACK_FINALIZATION', cause: error });
+  }
   finally { await unlink(temporary).catch(() => {}); }
 }

@@ -30,6 +30,17 @@ test('straightforward qualitative changes remain rated with missing analyzer mea
   const result = assess(snapshot, evidence(snapshot));
   assert.equal(result.complexity, 'Low'); assert.equal(result.risk, 'Low'); assert.equal(result.completeness, 'partial');
 });
+test('missing analyzer measurements cannot contain hand-filled metric values', async t => {
+  const { snapshot } = await fixture(t);
+  const input = evidence(snapshot, { measurements: 'complete' });
+  input.repos[0].measurements = 'missing';
+  input.repos[0].metrics[0].command = 'manual count (analyzer not found)';
+  assert.throws(() => assess(snapshot, input), /Missing measurements must leave metrics empty/);
+  input.repos[0].metrics = [];
+  const result = assess(snapshot, input);
+  assert.equal(result.completeness, 'partial');
+  assert.equal(result.complexity, 'Low');
+});
 for (const [value, expected] of [[1,'Low'],[10,'Low'],[11,'Medium'],[20,'Medium'],[21,'High']]) {
   test(`resulting cyclomatic complexity ${value} sets ${expected} minimum risk, including inherited complexity`, async t => {
     const { snapshot } = await fixture(t);
@@ -87,6 +98,19 @@ test('report drift is unavailable; a missing report cannot produce a Low rating'
   await saveAssessment(root,'DEMO',assess(snapshot,evidence(snapshot)));
   await writeFile(artifactJoin(root,'make-it-work/DEMO/DEMO-complexity.md'),'tampered');
   assert.match((await readAssessment(root,'DEMO')).reason,/disagree/);
+});
+
+test('audit update failure preserves saved assessment evidence without changing workflow state', async t => {
+  const { root, snapshot } = await fixture(t);
+  const dir = artifactJoin(root, 'make-it-work/DEMO');
+  await mkdir(dir, { recursive: true });
+  const state = artifactJoin(dir, 'DEMO-state.md');
+  const malformed = 'change_assessment_version: 1\nphase: final-approval\n';
+  await writeFile(state, malformed);
+  const saved = await saveAssessment(root, 'DEMO', assess(snapshot, evidence(snapshot)));
+  assert.match(saved.audit_warning, /Assessment reports saved; audit\/dashboard update could not finish:/);
+  assert.equal((await readAssessment(root, 'DEMO')).complexity, 'Low');
+  assert.equal(await readFile(state, 'utf8'), malformed);
 });
 
 test('exact PR identity and head changes bind the report even when the net diff stays the same', async t => {

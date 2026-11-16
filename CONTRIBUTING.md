@@ -24,18 +24,10 @@ claude --plugin-dir .
 
 The local copy takes precedence over an installed marketplace copy for that session. After editing a plugin file, run `/reload-plugins` in Claude Code before testing again.
 
-Maintainers who want smoke to run before every push should install the local
-Git hook once:
-
-```sh
-bash scripts/install-pre-push-hook.sh
-```
-
-The hook runs the 15-skill smoke suite against a disposable snapshot of the
-commit being pushed, using your existing Claude Code sign-in before each push.
-It reports failures but does not block the push or PR. It does not request an
-API key or run in CI. Installation is local to your clone; the installer
-refuses to replace an existing hooks setup.
+The optional local Git hook prints a smoke-readiness reminder and never starts
+paid evaluations. Install it with `bash scripts/install-pre-push-hook.sh`.
+Existing installations that point at `.githooks` pick up the new behavior.
+The installer refuses to replace an existing hooks setup.
 
 ## Repository structure
 
@@ -66,7 +58,30 @@ node --test evals/*.test.mjs
 
 If you changed a skill, invoke it from a representative project and verify its checkpoints, expected output, and failure behavior. Describe that manual test in the pull request.
 
-Before opening a pull request, run the 15-skill smoke suite with your existing Claude Code sign-in: `node evals/run-suite.mjs smoke`. Maintainers with the local hook installed get this automatically before each push; others can run it explicitly. Each PR must have a complete passing 15-case smoke run before it is marked ready for review or merged. Record its report path and investigated failures in the PR description. Focused reruns help diagnose fixes but do not replace a passing full smoke run; do not waive failures as unrelated. Releases require complete smoke and curated critical runs (`node evals/run-suite.mjs critical`), plus change-specific and dependent-skill evidence on the release commit and the eval release checklist. The exhaustive `full` archive is optional; rotate `extended` shards for maintenance. Confirmed relevant behavior defects remain blockers regardless of tier. See [evals/README.md](evals/README.md) for cost estimates and automatic headless grading. No model run is triggered by CI. Draft PRs may be opened while fixes or smoke results are pending; readiness and merge require the passing full smoke evidence above.
+Open a draft PR while implementation and review are in progress. Finish review
+fixes and deterministic checks, commit the finished changes, then run smoke
+**once per PR, immediately before marking it ready**:
+
+```sh
+node evals/run-suite.mjs smoke --pr=NUMBER --ready
+```
+
+If a case fails, inspect and fix it, commit the fix, then rerun only unresolved
+cases. Previously passing cases are retained; another full smoke run is refused:
+
+```sh
+node evals/run-suite.mjs smoke --pr=NUMBER --ready --retry-failed
+```
+
+Record the initial report and retry reports in the PR. Every smoke case needs
+passing evidence across this sequence before ready-for-review or merge. Never
+waive failures as unrelated or rerun the whole suite to obtain one green report.
+Do not run paid smoke on every push, edit, or review iteration. During development,
+use deterministic checks and necessary focused cases (`full --case=NAME`).
+Releases additionally need critical and change-specific/dependent-skill evidence;
+reuse the release PR's smoke sequence. See [evals/README.md](evals/README.md) for
+ledger behavior and [the release checklist](docs/eval-release-checklist.md).
+CI does not launch model evaluations.
 
 ## Pull requests
 
@@ -85,11 +100,3 @@ The [commercial agreement](LICENSE) is an approved outbound customer license, no
 For the initial commercial release, code and documentation changes are maintained by Erez Morabia and Yael Morabia (Rabinovitz). External code or documentation patches are deferred until a contributor agreement is ready and the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions rather than submitting an external patch. Customer rights to make internal modifications under an applicable license and GitHub platform view/fork rights remain unaffected.
 
 The maintainer's ownership and partner-permission confirmations are recorded in the [migration record](docs/licensing/MIGRATION.md) for legal review. Before reopening external patches, establish written contribution terms that address ownership and permission for commercial licensing and distribution (such as an appropriate CLA). No CLA execution, transfer of ownership, or relicensing consent is implied by opening an issue or PR.
-
-For a focused change, select relevant pre-push smoke cases explicitly, for example:
-
-```sh
-MIW_SMOKE_CASES=drive-the-epic-autopilot git push
-```
-
-Use comma-separated case names for multiple smoke cases. The hook still tests a committed snapshot and records its report; an unset selection runs the full suite. Document the selected scope in the PR.

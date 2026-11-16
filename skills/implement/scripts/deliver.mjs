@@ -15,6 +15,7 @@ import { assertRunState, runDirectory } from './artifact-layout.mjs';
 import { deliveryPaths } from './delivery-progress.mjs';
 import { reviewDisclosure } from '../../../scripts/lib/review-evidence.mjs';
 import { readFeedbackProgress } from './feedback-progress.mjs';
+import { feedbackCommands } from './feedback-handoff.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -67,7 +68,7 @@ async function lifecycle(context, action) {
   if (action === 'offer' && prior && prior.status !== 'offered') { await refreshDashboard(context); return prior; }
   if (action === 'offer') {
     const feedback = await readFeedbackProgress(context.statePath, context.state);
-    if (feedback?.status === 'collecting') fail('Finish session feedback, including saved-report readback, before offering optional delivery.');
+    if (feedback?.status === 'collecting') fail(`Finish session feedback, including saved-report readback, before offering optional delivery. ${feedback.reportSaved ? 'The reports are saved, but verified finalization is missing or stale.' : 'Both current reports have not been saved.'} Run ${feedbackCommands(context.statePath, { limitStop: context.state.fields.status === 'Stopped' }).finalize} (replace <session-jsonl> with the current transcript path). This validates existing evidence without repeating collection or changing implementation approval.`);
   }
   if (action === 'offer' && prior) { await refreshDashboard(context); return prior; }
   if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {

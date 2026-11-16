@@ -3,8 +3,8 @@
 Six isolated headless model cases exercise full autopilot preparation, the interactive full-epic review gate, a scoped slice-only resume, an inaccessible sole Jira source, and unresolved/resolved uncertainty handoffs. The new-skill smoke case is `drive-the-epic-autopilot`.
 
 ```sh
-node evals/run-suite.mjs smoke --case=drive-the-epic-autopilot --dry-run
-node evals/run-suite.mjs smoke --case=drive-the-epic-autopilot
+node evals/run-suite.mjs full --case=drive-the-epic-autopilot --dry-run
+node evals/run-suite.mjs full --case=drive-the-epic-autopilot
 node evals/run-suite.mjs full --case=drive-the-epic-review-gate --case=drive-the-epic-scoped-resume --case=drive-the-epic-jira-unavailable
 ```
 

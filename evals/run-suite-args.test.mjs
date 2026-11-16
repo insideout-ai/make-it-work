@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync, execFileSync } from 'node:child_process';
 import { caseTools, pluginEvalArgs, caseWorkingDirectory } from './run-suite-args.mjs';
-import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -18,6 +18,23 @@ test('dry-run starts every selected smoke case concurrently and leaves full sequ
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, expected);
   }
+});
+
+test('paid smoke refuses manual subsets before Claude authentication or invocation', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'smoke-cli-guard-'));
+  try {
+    const log = path.join(directory, 'calls');
+    const mock = path.join(directory, 'claude');
+    await writeFile(mock, '#!/bin/sh\nprintf called >> "$SMOKE_CLI_LOG"\nexit 99\n');
+    await chmod(mock, 0o755);
+    const result = spawnSync(process.execPath, [new URL('./run-suite.mjs', import.meta.url).pathname,
+      'smoke', '--pr=123', '--ready', '--case=deliver-no-package'], {
+      encoding: 'utf8', env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, SMOKE_CLI_LOG: log },
+    });
+    assert.equal(result.status, 64);
+    assert.match(result.stderr, /selection is automatic/);
+    await assert.rejects(readFile(log), { code: 'ENOENT' });
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });
 
 test('scripted skills get only their declared helper tools while unrelated cases retain their own tools', () => {
