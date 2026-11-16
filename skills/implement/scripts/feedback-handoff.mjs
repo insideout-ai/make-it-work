@@ -211,15 +211,18 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
       const block = report.slice(start, end);
       if (start >= 0 && end > start && block.includes('\n### Session review\n') &&
           block.includes(`<!-- feedback-state:${stateHash} -->`)) {
-        if (!finalized?.readback && await answeredDelivery(events, statePath, saved.fields, saved.audit)) {
-          await settle({ status: 'saved', kind: 'answered-delivery' });
-          return null;
-        }
-        const readback = saved.fields.feedback_evidence_version === '1' ? feedbackReadback(events, {
+        const observedReadback = feedbackReadback(events, {
           reportPath, report, modifiedAt: info.mtimeMs,
           terminalTime: Date.parse(feedbackTerminalRow(saved.fields, saved.audit)?.time),
           root: path.dirname(path.dirname(path.dirname(statePath))),
-        }) : undefined;
+        });
+        if (!finalized?.readback && await answeredDelivery(events, statePath, saved.fields, saved.audit)) {
+          await settle({ status: 'saved', kind: 'answered-delivery', ...(observedReadback ? { readback: observedReadback } : {}) });
+          return null;
+        }
+        // Legacy completion/delivery behavior is unchanged. Sharing alone needs
+        // proof that the current report was read, including on a legacy run.
+        const readback = observedReadback ?? (saved.fields.feedback_evidence_version === '1' ? null : undefined);
         const finish = async outcome => {
           if (readback === null) return hold(`The combined feedback report is saved, but its current body has not been read back. Use Read on ${JSON.stringify(reportPath)} now (read all numbered ranges if needed), inspect the returned Markdown, then continue the terminal summary or delivery offer. A writer acknowledgement, file listing, line count or delegate summary is not a readback. Keep the workflow terminal; do not rewrite feedback or rerun the retrospective just to complete this read.`);
           if (finalized?.status === 'saved' && finalized.kind === outcome.kind && finalized.writerId === outcome.writerId &&

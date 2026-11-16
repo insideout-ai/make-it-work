@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Clarify inherited ticket failures versus branch and destination build evidence; retain actual compiler exits/full output, unperformed command startup, and separate emitted-JavaScript test results through existing validation qualifications.
 
+- Add optional Email feedback links beside the current-session report download after verified readback, with generic prefilled email fields and a manual attachment reminder; collecting/unavailable/unread reports expose no sharing links.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added

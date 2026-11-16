@@ -21,6 +21,7 @@ import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../.
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
+import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_PATH = artifactResolve(SCRIPT_DIR, '../assets/status-template.html');
@@ -845,7 +846,8 @@ function renderFeedbackProgress(feedback) {
 function renderFeedbackNote(feedback) {
   if (feedback?.status === 'unavailable') return `<p class="feedback-note" data-workflow-feedback-status="unavailable" role="status"><strong>Workflow feedback:</strong> Unavailable${feedback.reason ? ` — ${escapeHtml(feedback.reason)}` : ' — collection could not be completed'}. Implementation status is unchanged.</p>`;
   if (feedback?.status !== 'saved') return '';
-  return '<p class="feedback-note" data-workflow-feedback-status="saved"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a>. Review and share only that session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>';
+  if (!feedback.shareReady) return '<p class="feedback-note" data-workflow-feedback-status="saved"><strong>Workflow feedback:</strong> Session feedback saved. Read the saved report before sharing.</p>';
+  return `<p class="feedback-note" data-workflow-feedback-status="saved"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a> · <a href="${escapeHtml(FEEDBACK_EMAIL_URL)}">Email feedback</a>. ${escapeHtml(FEEDBACK_SHARING_REMINDER)} Share only this session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>`;
 }
 
 function renderAssessment(report) {

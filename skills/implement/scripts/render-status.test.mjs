@@ -2,7 +2,7 @@ import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -14,8 +14,18 @@ import { lastWorkRow } from './workflow-decisions.mjs';
 import { runRegression } from '../../../scripts/regression.mjs';
 import { inspectState, writeFeedback } from './write-feedback.mjs';
 import { initializePublication, updatePublication } from './ticket-publication.mjs';
-import { feedbackStateHash } from './feedback-handoff.mjs';
+import { feedbackHold, feedbackStateHash } from './feedback-handoff.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
+import { feedbackReadback } from './feedback-readback.mjs';
+import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
+
+async function reportReadEvents(reportPath) {
+  const timestamp = new Date(Date.now() + 1000).toISOString();
+  return [
+    { type: 'assistant', timestamp, message: { content: [{ type: 'tool_use', id: 'read-feedback', name: 'Read', input: { file_path: reportPath } }] } },
+    { type: 'user', timestamp, message: { content: [{ type: 'tool_result', tool_use_id: 'read-feedback', content: await readFile(reportPath, 'utf8') }] } },
+  ];
+}
 
 function withoutFeedbackNotes(markdown) {
   return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
@@ -125,7 +135,9 @@ async function renderSettledFixture(t, state, plan = null) {
   const block = `<!-- run:${runId} -->\n### Session review\n<!-- feedback-state:${stateHash} -->\n<!-- /run:${runId} -->\n`;
   await writeFile(artifactJoin(f.directory, 'workflow-feedback.md'), block);
   await writeFile(artifactJoin(path.dirname(f.directory), 'implement-feedback.md'), block);
-  await finalizeFeedback(statePath, { runId, stateHash, status: 'saved', kind: 'fixture' }, { now: () => parsed.audit.findLast(row => row.to === 'complete' && row.from !== row.to)?.time ?? parsed.audit.at(-1).time });
+  const reportPath = artifactJoin(f.directory, 'workflow-feedback.md');
+  const readback = feedbackReadback(await reportReadEvents(reportPath), { reportPath, report: block, modifiedAt: (await stat(reportPath)).mtimeMs, terminalTime: Date.parse(runId), root: f.directory });
+  await finalizeFeedback(statePath, { runId, stateHash, status: 'saved', kind: 'fixture', readback }, { now: () => parsed.audit.findLast(row => row.to === 'complete' && row.from !== row.to)?.time ?? parsed.audit.at(-1).time });
   await generateDashboard(statePath);
   return { ...f, html: await readFile(f.outputPath, 'utf8') };
 }
@@ -143,13 +155,31 @@ test('terminal dashboard collects session feedback then refreshes to saved with 
   await writeFile(approvalPath, 'Historical approval bytes');
   const result = await writeFeedback(statePath, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   assert.equal(result.dashboardUpdated, true);
+  const beforeReadback = await readFile(f.outputPath, 'utf8');
+  assert.doesNotMatch(beforeReadback, /Email feedback|mailto:|Save this session’s feedback/);
+  await feedbackHold({ hook_event_name: 'Stop' }, statePath, parseState(state).fields,
+    await reportReadEvents(result.sessionOutputPath));
   const html = await readFile(f.outputPath, 'utf8');
   assert.match(html, /data-workflow-feedback-status="saved"/);
   assert.doesNotMatch(html, /class="feedback-progress"|Session retrospective: Feedback saved/);
   assert.equal((html.match(/Save this session’s feedback/g) ?? []).length, 1);
+  assert.equal((html.match(/>Email feedback<\/a>/g) ?? []).length, 1);
+  const encoded = html.match(/href="(mailto:[^"]+)"/)?.[1];
+  assert.ok(encoded.includes('&amp;body='), 'The mailto query separator must be HTML-escaped.');
+  const mailto = new URL(encoded.replaceAll('&amp;', '&'));
+  assert.equal(mailto.pathname, 'insideoutaitech@gmail.com');
+  assert.equal(mailto.searchParams.get('subject'), 'make-it-work workflow feedback');
+  assert.equal(mailto.searchParams.get('body'), 'I would like to share my reviewed session feedback report.');
+  assert.deepEqual([...mailto.searchParams.keys()], ['subject', 'body']);
+  assert.equal(mailto.href, FEEDBACK_EMAIL_URL);
+  assert.doesNotMatch(mailto.href, /DEMO|make-it-work\/|workflow-feedback\.md|file:|attachment/i);
+  assert.ok(html.includes(FEEDBACK_SHARING_REMINDER));
   assert.doesNotMatch(html, /http-equiv="refresh"/);
   assert.equal(withoutFeedbackNotes(await readFile(statePath, 'utf8')), state);
   assert.equal(await readFile(approvalPath, 'utf8'), 'Historical approval bytes');
+  await writeFile(result.sessionOutputPath, (await readFile(result.sessionOutputPath, 'utf8')) + '\nUpdated report body\n');
+  await generateDashboard(statePath);
+  assert.doesNotMatch(await readFile(f.outputPath, 'utf8'), /Email feedback|mailto:|Save this session’s feedback/);
   // A new run cannot inherit a saved badge from this run's report.
   await writeFile(statePath, state.replace('2026-01-01T10:00:00Z', '2026-01-01T09:59:00Z'));
   await generateDashboard(statePath);
@@ -165,10 +195,10 @@ test('completion keeps assurance details in artifacts and links only the session
   const packagePath = artifactJoin(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
   await writeFile(packagePath, bytes);
   await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
-  const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved' }, assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
+  const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved', shareReady: true }, assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
   assert.doesNotMatch(html, /Assurance:|Browser verification:|Inherited work not fully assessed|ASSURANCE_SUMMARY/);
   assert.match(html, /href="workflow-feedback.md"/);
-  assert.match(html, /share only that session export/);
+  assert.match(html, /Share only this session export/);
   assert.equal(await readFile(packagePath, 'utf8'), bytes);
   assert.doesNotMatch(await readFile(f.outputPath, 'utf8'), /Assurance:|Inherited work not fully assessed/);
   assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
@@ -182,7 +212,10 @@ test('feedback belongs to finalization and optional delivery appears only after 
   assert.match(pending, /phase-dot current spinning/);
   assert.match(pending, /phase-mode">Collecting session feedback<\/div>/);
   assert.doesNotMatch(pending, /Optional delivery:/);
-  const saved = renderStatus({ ...options, feedback: { status: 'saved' } });
+  assert.doesNotMatch(pending, /Email feedback|mailto:|Save this session’s feedback/);
+  const unread = renderStatus({ ...options, feedback: { status: 'saved' } });
+  assert.doesNotMatch(unread, /Email feedback|mailto:|Save this session’s feedback/);
+  const saved = renderStatus({ ...options, feedback: { status: 'saved', shareReady: true } });
   assert.match(saved, /Implementation complete\./);
   assert.match(saved, /Optional delivery:/);
   assert.doesNotMatch(saved, /class="feedback-progress"/);
@@ -191,8 +224,21 @@ test('feedback belongs to finalization and optional delivery appears only after 
   const unavailable = renderStatus({ ...options, feedback: { status: 'unavailable' } });
   assert.match(unavailable, /phase-mode">Session feedback unavailable<\/div>/);
   assert.match(unavailable, /data-workflow-feedback-status="unavailable"/);
-  assert.doesNotMatch(unavailable, /class="feedback-progress"|href="workflow-feedback.md"/);
+  assert.doesNotMatch(unavailable, /class="feedback-progress"|href="workflow-feedback.md"|Email feedback|mailto:/);
   assert.doesNotMatch(unavailable, /phase-dot current spinning/);
+});
+
+test('automatic and standalone completion guidance use the same generic email link as the dashboard', async () => {
+  const state = parseState(stateMarkdown({ fields: { status: 'Complete', phase: 'complete', artifact_naming_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
+  const html = renderStatus({ state, template: '{{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved', shareReady: true } });
+  assert.match(html, /href="miw-workflow-feedback\.md"/);
+  assert.ok(html.includes(`href="${FEEDBACK_EMAIL_URL.replaceAll('&', '&amp;')}"`), 'Artifact naming must not rewrite the mailto URL.');
+  for (const relative of ['../references/feedback.md', '../../feedback-on-session/SKILL.md']) {
+    const guidance = await readFile(new URL(relative, import.meta.url), 'utf8');
+    const links = [...guidance.matchAll(/\[Email feedback\]\((mailto:[^)]+)\)/g)].map(match => match[1]);
+    assert.deepEqual(links, [FEEDBACK_EMAIL_URL]);
+    assert.ok(guidance.includes(FEEDBACK_SHARING_REMINDER));
+  }
 });
 
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
@@ -1292,7 +1338,7 @@ test('final approval feedback retains separate finalization attempts', async (t)
 test('missing-strategy completion note is escaped inside the green banner before delivery guidance', () => {
   const fields = { status: 'Complete', phase: 'complete', testing_summary: JSON.stringify([{ repo: '<api>', strategy: 'missing', verification: 'manual' }]) };
   const state = parseState(stateMarkdown({ fields, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
-  const html = renderStatus({ state, template: '{{STATUS_BANNER}} {{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved' } });
+  const html = renderStatus({ state, template: '{{STATUS_BANNER}} {{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved', shareReady: true } });
   assert.match(html, /class="complete"[\s\S]*<strong>Testing:<\/strong> Strategy missing for &lt;api&gt;; used manual verification\.[\s\S]*Delivery status reflects/);
   assert.doesNotMatch(html, /class="feedback-progress"|Strategy missing for <api>/);
   assert.equal((html.match(/Save this session’s feedback/g) ?? []).length, 1);
