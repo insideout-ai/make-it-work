@@ -1,0 +1,41 @@
+skills/implement/scripts/render-status.mjs
+  s_d5b4799db8ec84::t_5bf644f31f5232 24,849-850
+skills/implement/scripts/feedback-handoff.mjs
+  s_d5b4799db8ec84::t_5bf644f31f5232 214,218-225
+skills/feedback-on-session/SKILL.md
+  s_d5b4799db8ec84::t_b5a05bfcf82aaa 94,108-110
+skills/implement/scripts/render-status.test.mjs
+  s_d5b4799db8ec84::t_f490bd0664c4e6 5,17,19-28,138-140,158-161,166-176,180-182,198,201,215-218,227
+  s_d5b4799db8ec84::t_c7dfa9f7cb5313 232
+  s_d5b4799db8ec84::t_056f04cd6adae5 233-235
+  s_d5b4799db8ec84::t_18bf4c4997446a 1341
+  s_d5b4799db8ec84::t_9671dd50808016 231,236-243
+scripts/lib/feedback-sharing.mjs
+  s_d5b4799db8ec84::t_5bf644f31f5232 1-6
+skills/implement/scripts/feedback-progress.mjs
+  s_d5b4799db8ec84::t_5bf644f31f5232 45-46
+CHANGELOG.md
+  s_d5b4799db8ec84::t_a11854b3635223 19-20
+README.md
+  s_d5b4799db8ec84::t_b6567cfeb8e28d 321
+skills/implement/references/feedback.md
+  s_d5b4799db8ec84::t_0f43d7431c1053 57-59
+skills/implement/references/orchestration/completion.md
+  s_d5b4799db8ec84::t_5453645619b606 41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bef7ca5bd57e7a42bdac47bfcd957f20af82e483",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
