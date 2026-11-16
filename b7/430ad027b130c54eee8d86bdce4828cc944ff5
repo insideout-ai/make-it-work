@@ -1,0 +1,21 @@
+skills/feedback-on-session/SKILL.md
+  s_d5b4799db8ec84::t_f62ccd04eda049 71-77
+CHANGELOG.md
+  s_d5b4799db8ec84::t_f62ccd04eda049 23-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b7430ad027b130c54eee8d86bdce4828cc944ff5",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
