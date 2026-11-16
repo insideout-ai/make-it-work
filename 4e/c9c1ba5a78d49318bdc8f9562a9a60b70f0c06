@@ -1,0 +1,46 @@
+scripts/review-report.test.mjs
+  s_d5b4799db8ec84::t_b5726ae7791d75 52-63
+skills/implement/scripts/handoff.mjs
+  s_d5b4799db8ec84::t_b5726ae7791d75 103,108,250-255
+skills/implement/scripts/deliver.test.mjs
+  s_d5b4799db8ec84::t_73b62f542d7207 66,100-104
+skills/implement/scripts/runtime-output.test.mjs
+  s_d5b4799db8ec84::t_70b4cdaf7c9ed1 16
+skills/implement/references/orchestration/final-package.md
+  s_d5b4799db8ec84::t_db9164b1eaf4ef 24-25
+docs/deterministic-artifacts.md
+  s_d5b4799db8ec84::t_bac32ce14e929b 96,98
+skills/review-the-code/SKILL.md
+  s_d5b4799db8ec84::t_4a286d61dcfc51 308-309,330-333
+skills/implement/references/handoffs.md
+  s_d5b4799db8ec84::t_cfe8748acc5704 78-81
+skills/implement/scripts/handoff.test.mjs
+  s_d5b4799db8ec84::t_b5726ae7791d75 245-249
+skills/implement/scripts/startup-presentation.mjs
+  s_d5b4799db8ec84::t_70b4cdaf7c9ed1 136-140
+skills/implement/references/orchestration/lightweight.md
+  s_d5b4799db8ec84::t_d741561dd179b3 28
+CHANGELOG.md
+  s_d5b4799db8ec84::t_b77b5d148f83d5 14-15
+scripts/review-report.mjs
+  s_d5b4799db8ec84::t_b5726ae7791d75 28-32
+  s_d5b4799db8ec84::t_73b62f542d7207 60,65
+skills/implement/references/orchestration/completion.md
+  s_d5b4799db8ec84::t_6fd8f717f8da45 56-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ec9c1ba5a78d49318bdc8f9562a9a60b70f0c06",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}
