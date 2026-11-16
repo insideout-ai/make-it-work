@@ -146,3 +146,16 @@ test('manual prose writers resolve new, legacy, and established standalone outpu
   assert.equal(continued.name, 'LEGACY-review.md');
   await assert.rejects(resolveArtifactOutput({ root, directory: 'source', name: 'code.md' }), /under make-it-work/);
 });
+
+test('audited regression records a verification boundary without creating a legacy dashboard', async t => {
+  const { runRegression } = await import('./regression.mjs');
+  const root = await fixture(t), directory = path.join(root, 'make-it-work', 'DEMO'); await mkdir(directory, { recursive: true });
+  const statePath = path.join(directory, 'DEMO-state.md');
+  const state = (await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8'))
+    .replace('ticket: DEMO', 'ticket: DEMO\nactivity_timing_version: 1').replace('phase: final-sync', 'phase: execute').trimEnd() + '\n| 7 | 2026-01-01T10:06:00Z | review | execute | Resume execution |\n';
+  await writeFile(statePath, state);
+  await runRegression({ version: 1, mode: 'full', runs: [{ repo: 'app', cwd: root, scope: 'full', command: { bin: process.execPath, args: ['-e', 'process.exit(0)'] } }] }, { statePath, auditId: 'timed-check' });
+  const journal = JSON.parse(await readFile(path.join(directory, 'activity-timing.json'), 'utf8'));
+  assert.equal(journal.events.at(-1).category, 'tests/verification');
+  await assert.rejects(readFile(path.join(directory, 'DEMO-status.html')), { code: 'ENOENT' });
+});

@@ -12,7 +12,7 @@ For a participating run, before each substantial chunk of investigation, draftin
 node "<implement-base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<exact narrated sentence>"
 ```
 
-For new timing-enabled runs, add `--category "coding"`, `--category "tests/verification"`, `--category "investigation/setup"`, or `--category "unclassified"` to this same checkpoint according to the upcoming chunk. Mixed delegated step/batch work stays unclassified; do not guess from the sentence. See [category timing](../../../docs/artifact-observability.md#post-coding-time-breakdown).
+For new timing-enabled runs, add `--category "coding"`, `--category "tests/verification"`, `--category "investigation/setup"`, or `--category "unclassified"` to this same checkpoint according to the upcoming chunk. Mixed parallel batches stay unclassified; a declared single implementation chunk is coding, including its embedded checks. Do not guess categories from the sentence. See [category timing](../../../docs/artifact-observability.md#post-coding-time-breakdown).
 
 Use one update per meaningful work chunk, not per tool call. This applies after entering an inline stage and when entering a nested skill; reading another skill does not suspend activity reporting. If the checkpoint fails, correct the reported problem before starting dependent work. Do not hand-edit the generated HTML.
 

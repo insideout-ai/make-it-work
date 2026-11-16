@@ -207,7 +207,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
         const ids = journal.active_steps;
         const subject = ids.length === 1 ? `step ${ids[0]}` : `steps ${ids.join(', ')}`;
         const activity = journal.activity_dispatch === event.id ? undefined : `Running ${subject} of ${status.total} — ${ids.map((id) => steps[id - 1].title).join('; ')}. ${status.completed} of ${status.total} steps verified complete.`;
-        if (await checkpointExecutionActivity(planPath, dashboardState, activity)) {
+        if (await checkpointExecutionActivity(planPath, dashboardState, activity, false, ids.length === 1 ? 'coding' : 'unclassified')) {
           journal.activity_dispatch = event.id;
           await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
         }

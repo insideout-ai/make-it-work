@@ -159,10 +159,10 @@ export async function executionDashboardState(planPath, supplied, allowInactive 
   return { path: target, state };
 }
 
-export async function checkpointExecutionActivity(planPath, supplied, activity, allowInactive = false) {
+export async function checkpointExecutionActivity(planPath, supplied, activity, allowInactive = false, category = 'unclassified') {
   const dashboard = await executionDashboardState(planPath, supplied, allowInactive);
   if (!dashboard) return null;
-  return checkpointDashboard(dashboard.path, activity === undefined || dashboard.state.fields.status !== 'In Progress' || dashboard.state.fields.current_activity === activity ? {} : { activity });
+  return checkpointDashboard(dashboard.path, activity === undefined || dashboard.state.fields.status !== 'In Progress' || dashboard.state.fields.current_activity === activity ? {} : { activity, category });
 }
 
 export function completedActivity(completed, total) {

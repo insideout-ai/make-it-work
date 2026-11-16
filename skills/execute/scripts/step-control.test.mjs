@@ -182,6 +182,7 @@ test('dashboard updates at dispatch, verified completion and failure without tre
   await assert.rejects(run({ action: 'complete', steps: [evidence(1)] }), /Start the exact/);
   const event = { action: 'start', id: 'first-step', steps: [1] };
   await run(event);
+  assert.equal(JSON.parse(await readFile(artifactJoin(path.dirname(statePath), 'activity-timing.json'), 'utf8')).events.at(-1).category, 'coding');
   assert.match(await html(), /Running step 1 of 2/); assert.match(await html(), /Running step 1 of 2 — First/);
   assert.match(await readFile(file, 'utf8'), /Step 0 of 2 complete/);
   const timestamp = parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at;
