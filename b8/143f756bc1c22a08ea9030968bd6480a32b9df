@@ -1,0 +1,99 @@
+skills/plan-the-work/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+skills/feedback-on-session/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 8
+skills/shape-the-epic/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+skills/slice-the-epic/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+skills/implement/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 27
+skills/drive-the-epic/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 8
+skills/review-the-code/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+skills/close-the-gaps/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+skills/find-the-repos/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+skills/execute/SKILL.md
+  s_c1715f458f4968::t_f0010b75496868 9
+docs/artifact-observability.md
+  s_c1715f458f4968::t_c8a8bab59c6b29 7-14
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/admin-role-gap-addressed.md
+  s_c1715f458f4968::t_cf9347111bc8cd 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/autopilot-markers-present.md
+  s_c1715f458f4968::t_8f179dfc2df3ec 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/decision-log-table-present.md
+  s_c1715f458f4968::t_83cde1b7b7c4ca 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/gherkin-keyword-spacing.md
+  s_c1715f458f4968::t_6b659124d23e7c 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/gherkin-scenarios-present.md
+  s_c1715f458f4968::t_7b921abe702a8f 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/no-tbd-section.md
+  s_c1715f458f4968::t_fbeb5fcb5e2e41 3
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/spec-exists.md
+  s_c1715f458f4968::t_79fd331718488c 3
+evals/close-the-gaps/close-the-gaps-offline-injection/fixture/.gitignore
+  s_c1715f458f4968::t_2db374f71a1e0a 1
+evals/close-the-gaps/close-the-gaps-stale-questions-file/fixture/.gitignore
+  s_c1715f458f4968::t_e96ce2d9ddb4d7 1
+evals/define-test-strategy/fresh-tests/graders/log-denial-handled-gracefully.md
+  s_c1715f458f4968::t_d0f78aeb30a5ad 8
+evals/execute/execute-full-pass/fixture/.gitignore
+  s_c1715f458f4968::t_0ef583c5df9370 1
+evals/execute/execute-manual-policy/fixture/.gitignore
+  s_c1715f458f4968::t_884d5bfbc3a0a6 1
+evals/execute/execute-negative-control/fixture/.gitignore
+  s_c1715f458f4968::t_e05fedfc1a46ef 1
+evals/execute/execute-resume-inline/fixture/.gitignore
+  s_c1715f458f4968::t_e0898a3f67dc8c 1
+evals/execute/execute-stop-at-gate/fixture/.gitignore
+  s_c1715f458f4968::t_a46ec14aec5d5c 1
+evals/feedback-on-session/feedback-collection-runtime-notes/fixture/.gitignore
+  s_c1715f458f4968::t_cc22ac932112ae 1
+evals/plan-the-work/happy-path/fixture/.gitignore
+  s_c1715f458f4968::t_e12ab8435b4d5d 1
+evals/plan-the-work/happy-path/graders/miw-plan-name.md
+  s_c1715f458f4968::t_0cdf40b987165c 1-6
+evals/plan-the-work/negative-control/fixture/.gitignore
+  s_c1715f458f4968::t_5b3e19eeb5c15f 1
+evals/plan-the-work/plan-collision-negative-control/fixture/.gitignore
+  s_c1715f458f4968::t_b322e110a8a47b 1
+evals/plan-the-work/plan-collision/fixture/.gitignore
+  s_c1715f458f4968::t_685c7bf02f3ff8 1
+evals/plan-the-work/spec-gap-triage/fixture/.gitignore
+  s_c1715f458f4968::t_f9dc61b530a354 1
+evals/plan-the-work/with-tests/fixture/.gitignore
+  s_c1715f458f4968::t_5c2b1c19740454 1
+evals/shape-the-epic/shape-the-epic-jira-full-description/fixture/.gitignore
+  s_c1715f458f4968::t_8add2bf1aaed7e 1
+evals/slice-the-epic/jira-summary-comment-preparation/fixture/.gitignore
+  s_c1715f458f4968::t_d77de4e731e305 1
+scripts/artifact-observability.test.mjs
+  s_c1715f458f4968::t_3517d8fdcce65e 134-148
+scripts/artifact-output.mjs
+  s_c1715f458f4968::t_a9136a49e3e111 1-39
+scripts/lib/artifact-git.mjs
+  s_c1715f458f4968::t_94da591927318d 18
+skills/implement/scripts/feedback-evidence.test.mjs
+  s_c1715f458f4968::t_cb7e11ea4e05b9 91-104
+skills/implement/scripts/write-feedback.mjs
+  s_c1715f458f4968::t_1e70166cfc8adb 2,612,615
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b8143f756bc1c22a08ea9030968bd6480a32b9df",
+  "prompts": {},
+  "sessions": {
+    "s_c1715f458f4968": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e39b-2cfc-7a31-ade8-3a84dff269b0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
