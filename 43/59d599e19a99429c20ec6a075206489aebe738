@@ -1,0 +1,25 @@
+scripts/change-assessment.mjs
+  s_d5b4799db8ec84::t_0e65cc7bc3a717 65
+CHANGELOG.md
+  s_d5b4799db8ec84::t_0e65cc7bc3a717 15
+skills/assess-complexity/SKILL.md
+  s_d5b4799db8ec84::t_0e65cc7bc3a717 23
+scripts/change-assessment.test.mjs
+  s_d5b4799db8ec84::t_1b85d531944b44 33-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4359d599e19a99429c20ec6a075206489aebe738",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
