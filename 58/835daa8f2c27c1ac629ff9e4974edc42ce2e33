@@ -1,0 +1,51 @@
+skills/implement/references/orchestration/completion.md
+  s_d5b4799db8ec84::t_735122c42f0638 30
+skills/implement/references/orchestration/review.md
+  s_d5b4799db8ec84::t_735122c42f0638 7-8
+skills/implement/references/orchestration/final-package.md
+  s_d5b4799db8ec84::t_735122c42f0638 26-27
+skills/implement/references/orchestration/lightweight.md
+  s_d5b4799db8ec84::t_735122c42f0638 26-27
+evals/review-the-code/review-workflow-obligations/fixture/verification-evidence.mjs
+  s_d5b4799db8ec84::t_df5e909ec6dd4e 1-2,4-40
+  s_d5b4799db8ec84::t_b83ec163f19804 3
+skills/implement/scripts/deliver.test.mjs
+  s_d5b4799db8ec84::t_b83ec163f19804 66-72,106-111
+evals/review-the-code/review-workflow-obligations/graders/context-and-new-diagnostic.md
+  s_d5b4799db8ec84::t_df5e909ec6dd4e 8-9
+skills/implement/references/compilation-evidence.md
+  s_d5b4799db8ec84::t_735122c42f0638 1-51
+evals/review-the-code/review-workflow-obligations/fixture.sh
+  s_d5b4799db8ec84::t_df5e909ec6dd4e 6-17,26
+skills/review-the-code/SKILL.md
+  s_d5b4799db8ec84::t_735122c42f0638 171-172
+  s_d5b4799db8ec84::t_3ac233c1d90d55 173
+skills/execute/SKILL.md
+  s_d5b4799db8ec84::t_735122c42f0638 13-14
+evals/review-the-code/review-workflow-obligations/fixture/implementation.md
+  s_d5b4799db8ec84::t_df5e909ec6dd4e 11-21
+evals/review-parity-fixtures.test.mjs
+  s_d5b4799db8ec84::t_b83ec163f19804 11-40
+skills/implement/references/orchestration/execution.md
+  s_d5b4799db8ec84::t_735122c42f0638 3-4
+CHANGELOG.md
+  s_d5b4799db8ec84::t_935563d208c83d 17-18
+evals/review-the-code/README.md
+  s_d5b4799db8ec84::t_9fdf06878eb1f4 228-233
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58835daa8f2c27c1ac629ff9e4974edc42ce2e33",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
