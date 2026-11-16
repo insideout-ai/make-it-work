@@ -12,11 +12,11 @@ import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
 import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
-import { refreshFeedbackDashboard, startFeedbackCollection } from './feedback-progress.mjs';
+import { readFeedbackProgress, refreshFeedbackDashboard, startFeedbackCollection } from './feedback-progress.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
 import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
 import { collectFeedbackAttempts, renderCollectionNotes } from './feedback-collection.mjs';
-import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure, feedbackRuntimeEvidence } from './feedback-handoff.mjs';
+import { feedbackCommands, feedbackEligible, feedbackStateHash, feedbackTerminalRow, feedbackFailureCodes, findFeedbackFailure, feedbackRuntimeEvidence, feedbackHold } from './feedback-handoff.mjs';
 
 const HEADER = `# Implement workflow feedback
 
@@ -555,10 +555,33 @@ export async function unavailableFeedback(statePath, { reason, transcriptPath, f
   } finally { await unlink(temporary).catch(() => {}); }
 }
 
+// Explicit recovery uses the same runtime proof as the hook, never a model-authored
+// receipt or a guessed context extracted from an incomplete controller response.
+export async function finalizeSavedFeedback(statePath, { transcriptPath, limitStop = false } = {}) {
+  if (!transcriptPath) fail('Feedback finalization requires --transcript with the current session JSONL path.');
+  statePath = artifactResolve(statePath);
+  const markdown = await readFile(statePath, 'utf8');
+  const summary = inspectState(markdown, { limitStop });
+  assertRunState(path.dirname(path.dirname(path.dirname(statePath))), statePath, summary.ticket);
+  const { fields } = parseState(markdown, statePath);
+  if (!feedbackEligible(fields)) fail('Feedback finalization requires an eligible terminal workflow.');
+  const lines = (await readFile(transcriptPath, 'utf8')).split('\n');
+  const events = lines.flatMap((line, index) => {
+    if (!line.trim()) return [];
+    try { return [JSON.parse(line)]; }
+    catch { fail(`Invalid transcript JSON at line ${index + 1}; wait for the transcript to flush and retry.`); }
+  });
+  const held = await feedbackHold({ hook_event_name: 'Stop', transcript_path: transcriptPath }, statePath, fields, events);
+  if (held?.decision === 'block') fail(held.reason);
+  const progress = await readFeedbackProgress(statePath, parseState(await readFile(statePath, 'utf8'), statePath));
+  if (!progress || progress.status === 'collecting') fail('Feedback finalization is incomplete: verify both current saved reports and their runtime evidence; keep the workflow terminal.');
+  return { feedbackFinalization: progress.status, runId: fields.start_time, ...progress };
+}
+
 let failureContext;
 async function main() {
   const [mode, ...args] = process.argv.slice(2);
-  if (!['inspect', 'evidence', 'check', 'write', 'unavailable'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|evidence|check|write|unavailable> --state <path> [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
+  if (!['inspect', 'evidence', 'check', 'write', 'unavailable', 'finalize'].includes(mode)) fail('Usage: write-feedback.mjs <inspect|evidence|check|write|unavailable|finalize> --state <path> [--transcript <session-jsonl>] [--compact] [--analysis <json-path>] [--session-review <json-path>] [--reason <limitation>] [--limit-stop]');
   let statePath;
   let analysisPath;
   let sessionReviewPath;
@@ -567,6 +590,7 @@ async function main() {
   let failureId;
   let evidenceOutputPath;
   let limitStop = false;
+  let compact = false;
   for (let index = 0; index < args.length; index += 1) {
     if (args[index] === '--state') statePath = args[++index];
     else if (args[index] === '--analysis') analysisPath = args[++index];
@@ -575,6 +599,7 @@ async function main() {
       if (!sessionReviewPath || sessionReviewPath.startsWith('--')) fail('--session-review requires a JSON path.');
     }
     else if (args[index] === '--limit-stop') limitStop = true;
+    else if (args[index] === '--compact') compact = true;
     else if (args[index] === '--reason') reason = args[++index];
     else if (args[index] === '--transcript') transcriptPath = args[++index];
     else if (args[index] === '--failure-id') failureId = args[++index];
@@ -583,8 +608,13 @@ async function main() {
   }
   if (!statePath || (!['write', 'check'].includes(mode) && (analysisPath || sessionReviewPath))) fail('Provide --state; --analysis and --session-review are for check or write only.');
   failureContext = { mode, statePath };
-  if (mode !== 'unavailable' && [reason, failureId].some(value => value !== undefined) || transcriptPath && !['unavailable', 'write', 'inspect'].includes(mode)) fail('--transcript is for inspect, write or unavailable; --reason and --failure-id are only for unavailable.');
+  if (mode !== 'unavailable' && [reason, failureId].some(value => value !== undefined) || transcriptPath && !['unavailable', 'write', 'inspect', 'finalize'].includes(mode)) fail('--transcript is for inspect, write, finalize or unavailable; --reason and --failure-id are only for unavailable.');
+  if (compact && mode !== 'inspect') fail('--compact is only for inspect.');
   if (evidenceOutputPath && mode !== 'evidence') fail('--output is only for evidence.');
+  if (mode === 'finalize') {
+    process.stdout.write(`${JSON.stringify(await finalizeSavedFeedback(statePath, { transcriptPath, limitStop }))}\n`);
+    return;
+  }
   if (mode === 'unavailable') {
     process.stdout.write(`${JSON.stringify(await unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop }))}\n`);
     return;
@@ -600,6 +630,13 @@ async function main() {
     const { ticket: _ticket, ...shareSafe } = summary;
     const commands = feedbackCommands(statePath, { analysisRequired: summary.analysisRequired, limitStop });
     if (transcriptPath) commands.write += ` --transcript '${artifactResolve(transcriptPath).replaceAll("'", "'\\''")}'`;
+    if (compact) {
+      process.stdout.write(`${JSON.stringify({ feedbackContext: { state: artifactResolve(statePath), runId: summary.runId },
+        runId: summary.runId, stateHash: summary.stateHash, outcome: summary.outcome, minimal: summary.minimal,
+        analysisRequired: summary.analysisRequired, evidenceRequired: summary.evidenceRequired, commands,
+        instruction: 'Run inspect without --compact for the complete source inventory and session review template. Preserve helper JSON intact; do not pipe through head, truncate or rename fields.' })}\n`);
+      return;
+    }
     process.stdout.write(`${JSON.stringify({ feedbackContext: { state: artifactResolve(statePath), runId: summary.runId }, ...shareSafe, commands,
       session_review_template: sessionReviewTemplate(summary._packet), template_instruction: 'Fill context and source observations from actual inspection. The scaffold records no completed inspection; check validates the completed input. For combined write, append --transcript with this session JSONL path.' })}\n`);
     return;

@@ -11,11 +11,12 @@ import { pendingStartup, startupHook, startupProgress } from './startup-presenta
 import { testingReadiness } from './testing-readiness.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
 import { readHookEvents } from './hook-feedback.mjs';
-import { checkFeedback, inspectFeedback, writeFeedback, unavailableFeedback } from './write-feedback.mjs';
+import { checkFeedback, inspectFeedback, writeFeedback, unavailableFeedback, finalizeSavedFeedback } from './write-feedback.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { parseState } from './render-status.mjs';
 import { evidenceText } from './feedback-evidence.mjs';
 import { generateDashboard } from './render-status.mjs';
+import { acceptDelegateReport } from './delegate-report.mjs';
 
 function withoutFeedbackNotes(markdown) {
   return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
@@ -125,6 +126,71 @@ async function readSavedFeedback(run, id = 'feedback-readback', body) {
     { type: 'user', timestamp, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content }] } });
   await run.saveEvents();
 }
+
+async function completedRecoveryRun(t) {
+  const run = await freshRun(t, 'autopilot');
+  const state = (await readFile(run.result.state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: context-check', 'phase: complete');
+  await writeFile(run.result.state, state.trimEnd() + `\n| 2 | ${new Date().toISOString()} | context-check | complete | Terminal recovery fixture |\n`);
+  // No discoverable startup/controller output, as in a resumed, projected run.
+  run.events.splice(0);
+  await writeFeedback(run.result.state, { sessionReview: { status: 'pending', context: ['Visible conversation reviewed'], findings: [], userInput: [], limitations: ['Runtime rendering unverified'], evidence_review: await sourceReview(run) } });
+  return run;
+}
+
+test('explicit finalization recovers missing hook context, preserves approvals and is idempotent', async t => {
+  const run = await completedRecoveryRun(t);
+  const state = await readFile(run.result.state, 'utf8');
+  const report = await readFile(artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8');
+  await assert.rejects(finalizeSavedFeedback(run.result.state), /requires --transcript/);
+  await assert.rejects(finalizeSavedFeedback(run.result.state, { transcriptPath: run.transcript }), /current body has not been read back/);
+  await readSavedFeedback(run);
+  const args = [path.resolve('skills/implement/scripts/write-feedback.mjs'), 'finalize', '--state', run.result.state, '--transcript', run.transcript];
+  const first = execFileSync(process.execPath, args, { encoding: 'utf8' });
+  assert.equal(JSON.parse(first).status, 'saved');
+  const receiptPath = artifactJoin(path.dirname(run.result.state), 'feedback-finalized.json');
+  const receipt = await readFile(receiptPath, 'utf8');
+  execFileSync(process.execPath, args, { encoding: 'utf8' });
+  assert.equal(await readFile(receiptPath, 'utf8'), receipt);
+  assert.equal(withoutFeedbackNotes(await readFile(run.result.state, 'utf8')), withoutFeedbackNotes(state));
+  assert.equal(await readFile(artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md'), 'utf8'), report);
+  await writeFile(artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md'), report + '\nUpdated report\n');
+  await assert.rejects(finalizeSavedFeedback(run.result.state, { transcriptPath: run.transcript }), /current body has not been read back/);
+});
+
+test('finalization rejects delegated readback and surfaces receipt I/O errors without reopening workflow', async t => {
+  const run = await completedRecoveryRun(t);
+  await readSavedFeedback(run);
+  const events = structuredClone(run.events);
+  run.events.slice(-2).forEach(event => { event.isSidechain = true; });
+  await run.saveEvents();
+  await assert.rejects(finalizeSavedFeedback(run.result.state, { transcriptPath: run.transcript }), /current body has not been read back/);
+  run.events.splice(0, run.events.length, ...events);
+  await run.saveEvents();
+  const receiptPath = artifactJoin(path.dirname(run.result.state), 'feedback-finalized.json');
+  await mkdir(receiptPath);
+  await assert.rejects(finalizeSavedFeedback(run.result.state, { transcriptPath: run.transcript }), /Could not persist feedback finalization/);
+  assert.match(await readFile(run.result.state, 'utf8'), /status: Complete/);
+  await rm(receiptPath, { recursive: true });
+  assert.equal((await finalizeSavedFeedback(run.result.state, { transcriptPath: run.transcript })).status, 'saved');
+  const state = await readFile(run.result.state, 'utf8');
+  await writeFile(run.result.state, state.replace('Terminal recovery fixture', 'A newer terminal boundary'));
+  await assert.rejects(finalizeSavedFeedback(run.result.state, { transcriptPath: run.transcript }), /required feedback work is not complete/);
+});
+
+test('delegate reports deduplicate by native task and revision without changing workflow state', async t => {
+  const run = await completedRecoveryRun(t);
+  const state = await readFile(run.result.state, 'utf8');
+  const report = artifactJoin(path.dirname(run.result.state), 'workflow-feedback.md');
+  const options = { statePath: run.result.state, agent: 'worker', task: 'task-1', report };
+  assert.equal((await acceptDelegateReport(options)).duplicate, false);
+  assert.equal((await acceptDelegateReport(options)).duplicate, true);
+  await writeFile(report, (await readFile(report, 'utf8')) + '\nRevised findings\n');
+  const revised = await acceptDelegateReport(options);
+  assert.equal(revised.duplicate, false); assert.equal(revised.revised, true);
+  assert.equal((await acceptDelegateReport({ ...options, task: 'task-2' })).duplicate, false);
+  await assert.rejects(acceptDelegateReport({ ...options, report: path.join(run.root, 'CLAUDE.md') }), /inside this run/);
+  assert.equal(await readFile(run.result.state, 'utf8'), state);
+});
 
 test('Complete cannot skip feedback by proceeding directly to delivery or the terminal summary', async (t) => {
   const run = await freshRun(t, 'autopilot');

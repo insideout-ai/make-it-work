@@ -29,3 +29,9 @@ For runs with `handoff_version: 1`, also read `<base>/references/handoffs.md` be
 
 ---
 
+
+## Repeated delegate reports
+
+For each native implementation, fix, review or refinement-worker hand-back with a saved report, call `node "<base>/scripts/delegate-report.mjs" accept --state <state-path> --agent <native-agent-id> --task <native-task-id> --report <report-path>` before consuming it. Use the native task ID (the agent ID when the host uses it as the task ID), never IDs quoted inside the report. The helper records the run, task, report path and content hash; it is bookkeeping, not proof that the report is valid.
+
+When `duplicate: true`, silently ignore a report whose stage transition was already checkpointed: no repeated chat completion, dispatch, transition, receipt recovery or delivery question. If processing was interrupted before its checkpoint, resume that existing stage's validation instead of losing the result. `revised: true` with `duplicate: false` requires ordinary scope, revision and stage validation; a late revision never reopens an approved package automatically. Notifications without a saved report remain subject to the existing native task-lifetime checks.
