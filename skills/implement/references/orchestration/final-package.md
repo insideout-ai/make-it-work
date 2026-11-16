@@ -23,3 +23,5 @@ On **Request changes**, save the developer's notes in `make-it-work/<TICKET>/<TI
 
 
 When presenting exact-package approval, preserve the checker’s assurance and every `validation_notes` qualification, distinguishing confirmed baseline evidence from attribution by inspection. Never upgrade suspected baseline errors to proven pre-existing errors or an unobserved scenario to passing coverage. User acceptance of Limited assurance does not change these facts.
+
+Apply [compilation evidence and branch provenance](../compilation-evidence.md): a ticket-scoped fix can coexist with an inherited failing branch build; starting-branch evidence does not prove destination provenance. Keep actual compiler status, full-output locators, failed startup and runtime-only JavaScript passes distinct in the existing qualifications through approval and delivery.

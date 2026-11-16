@@ -10,6 +10,8 @@ For generated files under `make-it-work/`, follow the [artifact naming, Git prot
 
 **When owned by implement:** follow [ticket-scoped context discovery](../implement/references/context-discovery.md) for absent or partial go-deep context. Use available guidance and scoped code/test evidence; do not require optional go-deep files, invent missing rules, or create onboarding structure. Explicit mandatory loading gates remain binding. This overrides the go-deep layout assumptions below only for implement-owned runs and must be forwarded to nested delegates.
 
+For selected checks, follow [compilation evidence and branch provenance](../implement/references/compilation-evidence.md) and pass it to step executors. Preserve the compiler's actual exit/full raw output, distinguish inherited starting-branch failures from unknown destination provenance, and report passing emitted-JavaScript tests separately from compilation. Command startup failure means compilation was not performed. This adds no compilation gate or mandatory baseline build and does not change existing step/gate stops or approvals.
+
 ## Usage
 
 ```

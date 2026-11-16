@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Preserve uncertain baseline attribution and unverified acceptance behavior through approval and delivery summaries; require an explicit Lightweight risk reassessment and actionable routing for declared accepted-requirement violations.
 - Reject numeric assessment metrics when analyzer measurements are marked missing; keep unsupported counts in qualitative evidence with partial completeness.
 
+- Clarify inherited ticket failures versus branch and destination build evidence; retain actual compiler exits/full output, unperformed command startup, and separate emitted-JavaScript test results through existing validation qualifications.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added

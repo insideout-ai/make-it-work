@@ -8,6 +8,36 @@ import test from 'node:test';
 import { validateVerification } from '../skills/implement/scripts/verification.mjs';
 
 const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+test('review workflow fixture retains inherited failures, complete compiler output, JS passes and failed startup separately', async t => {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'review-verification-fixture-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const fixture = path.join(import.meta.dirname, 'review-the-code/review-workflow-obligations/fixture.sh');
+  execFileSync('bash', [fixture], { cwd: root, env, stdio: 'pipe' });
+  const git = (...args) => spawnSync('git', args, { cwd: root, env, encoding: 'utf8' });
+  const directory = path.join(root, 'make-it-work/REVIEW-1/evidence');
+  const starting = JSON.parse(await readFile(path.join(directory, 'starting/results.json'), 'utf8'));
+  const current = JSON.parse(await readFile(path.join(directory, 'current/results.json'), 'utf8'));
+  assert.equal(starting.synthetic, true); assert.equal(current.synthetic, true);
+  assert.notEqual(starting.revision, current.revision);
+  assert.match(git('show', `${starting.revision}:src/tasks/inheritedTypeInfo.js`).stdout, /inheritedLabel = 7/);
+  assert.notEqual(git('show', `${starting.revision}:src/tasks/typeInfo.js`).status, 0);
+  assert.equal(git('show', `${current.revision}:src/tasks/typeInfo.js`).status, 0);
+  assert.equal(starting.compiler.exit, 2); assert.equal(current.compiler.exit, 2);
+  const stdout = await readFile(path.join(directory, 'current', current.compiler.stdout), 'utf8');
+  const stderr = await readFile(path.join(directory, 'current', current.compiler.stderr), 'utf8');
+  assert.ok(stdout.split('\n').length > 40, 'The full compiler output must survive a tempting short preview.');
+  assert.match(stdout, /inheritedTypeInfo.js.*TS2322/);
+  assert.match(stderr, /src\/tasks\/typeInfo.js.*TS2322/);
+  assert.equal(current.javascript_tests.exit, 0);
+  assert.match(await readFile(path.join(directory, 'current', current.javascript_tests.stdout), 'utf8'), /not type checking/);
+  assert.equal(current.missing_utility.exit, null);
+  assert.equal(current.missing_utility.startup_error, 'ENOENT');
+  assert.match(await readFile(path.join(directory, 'current', current.missing_utility.stderr), 'utf8'), /miw-fixture-unavailable-timeout.*ENOENT/);
+  assert.equal(current.destination.remote_provenance, 'unknown');
+  assert.equal(current.destination.compilation, 'not performed');
+  assert.equal(git('status', '--porcelain').stdout, '', 'Capturing verification must not change fixture source.');
+});
+
 for (const [name, supported] of [['review-the-code-false-parity', false], ['review-the-code-shared-parity', true]]) {
   test(`${name}: real passing evidence distinguishes unsupported and supported shared coverage`, async (t) => {
     const root = await mkdtemp(artifactJoin(os.tmpdir(), 'review-parity-fixture-'));
