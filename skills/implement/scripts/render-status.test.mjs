@@ -18,6 +18,7 @@ import { feedbackHold, feedbackStateHash } from './feedback-handoff.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
 import { feedbackReadback } from './feedback-readback.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
+import { noteCell } from './audit-notes.mjs';
 
 async function reportReadEvents(reportPath) {
   const timestamp = new Date(Date.now() + 1000).toISOString();
@@ -239,6 +240,37 @@ test('automatic and standalone completion guidance use the same generic email li
     assert.deepEqual(links, [FEEDBACK_EMAIL_URL]);
     assert.ok(guidance.includes(FEEDBACK_SHARING_REMINDER));
   }
+});
+
+test('assessment badges appear only in final approval/completion after a recorded result, in both modes', () => {
+  const report = { audit_id: 'change-assessment:fixture', complexity: 'Low', risk: 'Medium', completeness: 'partial', rationale: 'Missing analyzer; inspected "scope" <boundary>' };
+  const rows = [
+    ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
+    ['2026-01-01T10:01:00Z', 'final-approval', 'final-approval', noteCell({ kind: 'result', id: report.audit_id, text: 'Change assessment recorded', reference: 'DEMO-complexity.md' })],
+  ];
+  for (const mode of ['lightweight', 'tdd']) for (const phase of ['close-the-gaps', 'spec-approval', 'plan', 'plan-approval', 'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete']) {
+    const fields = { phase, status: phase === 'complete' ? 'Complete' : 'In Progress', final_package_version: '1', change_assessment_version: '1', adaptive_version: '1', mode, risk: 'low', mode_source: 'assessed', risk_rationale: 'Initial risk', escalations: '0', implementation_report: 'none' };
+    const options = { state: parseState(stateMarkdown({ fields, rows })), template: '{{WORKFLOW_HEADER}} {{CHANGE_ASSESSMENT}}', logoBase64: '', planStatus: { mode: 'Inline', complete: 0, total: 1 }, assessment: report };
+    const html = renderStatus(options);
+    assert.doesNotMatch(html, /CHANGE_ASSESSMENT|<section|<h2>Change assessment/);
+    if (['final-approval', 'complete'].includes(phase)) {
+      assert.match(html, /class="pill assessment-low"[^>]*>Code complexity: Low/);
+      assert.match(html, /class="pill assessment-medium"[^>]*>Production risk: Medium/);
+      assert.match(html, /title="Completeness: partial\. Missing analyzer; inspected &quot;scope&quot; &lt;boundary&gt;"/);
+      assert.doesNotMatch(renderStatus({ ...options, assessment: { ...report, audit_id: 'not-recorded' } }), /Code complexity:|Production risk:|Assessment:/);
+      delete fields.change_assessment_version;
+      assert.doesNotMatch(renderStatus({ ...options, state: parseState(stateMarkdown({ fields, rows })) }), /Code complexity:|Production risk:|Assessment:/);
+    } else assert.doesNotMatch(html, /Code complexity:|Production risk:|Assessment:|assessment-low|assessment-medium/);
+  }
+});
+
+test('partial unknown overall ratings use a neutral badge without borrowing individual repo ratings', () => {
+  const id = 'change-assessment:partial';
+  const state = parseState(stateMarkdown({ fields: { phase: 'final-approval', final_package_version: '1', change_assessment_version: '1' }, rows: [['2026-01-01T10:00:00Z', 'final-approval', 'final-approval', noteCell({ kind: 'result', id, text: 'Partial assessment', reference: 'DEMO-complexity.md' })]] }));
+  const html = renderStatus({ state, template: '{{WORKFLOW_HEADER}} {{CHANGE_ASSESSMENT}}', logoBase64: '', assessment: { audit_id: id, complexity: null, risk: null, completeness: 'partial', rationale: 'One repository could not be assessed', repos: [{ complexity: 'Low', risk: 'Low' }] } });
+  assert.match(html, /class="pill assessment-neutral"[^>]*>Assessment: Unavailable/);
+  assert.match(html, /Completeness: partial\. One repository could not be assessed/);
+  assert.doesNotMatch(html, /Code complexity:|Production risk:|CHANGE_ASSESSMENT/);
 });
 
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {

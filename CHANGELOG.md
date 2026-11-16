@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Add optional Email feedback links beside the current-session report download after verified readback, with generic prefilled email fields and a manual attachment reminder; collecting/unavailable/unread reports expose no sharing links.
 
+- Move final change assessment into header badges and linked, deduplicated audit results; hide earlier-phase assessments and show neutral stale/unavailable badges while preserving reports, package evidence and legacy behavior.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added

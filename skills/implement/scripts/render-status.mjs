@@ -2,7 +2,7 @@
 import { readUsage } from '../../../scripts/usage.mjs';
 import { artifactReference } from '../../../scripts/lib/artifact-path.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
-import { readAssessment, assessmentSummary } from '../../../scripts/change-assessment.mjs';
+import { assessmentPhase, checkpointAssessment } from './assessment-audit.mjs';
 
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
@@ -673,6 +673,12 @@ function displayOutcome(outcome) {
 
 function renderAuditOutcome(state, outcome) {
   const text = displayOutcome(outcome);
+  if (text.startsWith('Result: Change assessment — ')) {
+    const split = text.lastIndexOf('; evidence: ');
+    const reference = text.slice(split + '; evidence: '.length);
+    const files = ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-complexity.${extension}`, `miw-${state.fields.ticket}-complexity.${extension}`]);
+    if (split >= 0 && files.includes(reference)) return `${escapeHtml(text.slice(0, split))} · <a href="${encodeURIComponent(reference)}">View assessment report</a>`;
+  }
   const breakdown = text.match(/^(Result: (?:Execute|Lightweight) time breakdown \(elapsed estimate\): .*); evidence: ((?:miw-)?time-breakdown-(?:execute|lightweight)-[1-9]\d*\.json)$/);
   if (breakdown) return `${escapeHtml(breakdown[1])} · <a href="${encodeURIComponent(breakdown[2])}">Timing details</a>`;
   const packageResult = text.match(/^Result: Final approval package built\.?; evidence: (.+); sha256:\s*[a-f0-9]{64}(?: \[audit-note: result; id: final-package:[a-f0-9]{64}\])?$/i);
@@ -850,10 +856,12 @@ function renderFeedbackNote(feedback) {
   return `<p class="feedback-note" data-workflow-feedback-status="saved"><strong>Workflow feedback:</strong> <a href="workflow-feedback.md">Save this session’s feedback</a> · <a href="${escapeHtml(FEEDBACK_EMAIL_URL)}">Email feedback</a>. ${escapeHtml(FEEDBACK_SHARING_REMINDER)} Share only this session export. <code>make-it-work/implement-feedback.md</code> is the separate cumulative local history.</p>`;
 }
 
-function renderAssessment(report) {
-  const summary = report && report.reason !== 'Not assessed yet' ? assessmentSummary(report) : 'Not assessed yet';
-  const links = Object.values(report?.reports ?? {}).map(file => `<a href="${escapeHtml(path.basename(file))}">${escapeHtml(path.basename(file))}</a>`).join(' · ');
-  return `<section class="change-assessment" aria-label="Change assessment"><h2>Change assessment</h2><p><strong>${escapeHtml(summary)}</strong></p><p>${escapeHtml(report?.rationale ?? report?.reason ?? '')}</p><p>${links}</p>${report?.scope ? `<p>Assessed snapshot: <code>${escapeHtml(report.scope.snapshot_id)}</code> · ${escapeHtml(report.timestamp)}</p>` : ''}${report?.stale_history ? `<a href="${escapeHtml(report.stale_history)}">Stale history — previous assessment</a>` : ''}</section>`;
+function renderAssessmentBadges(state, report) {
+  if (!assessmentPhase(state) || !report?.audit_id || !state.audit.some(row => row.note?.kind === 'result' && row.note.id === report.audit_id)) return '';
+  const title = escapeHtml(`Completeness: ${report.completeness}. ${report.reason ?? report.rationale ?? 'Overall ratings unavailable for the assessed scope.'}`);
+  const rated = report.completeness !== 'unavailable' && [report.complexity, report.risk].every(rating => ['Low', 'Medium', 'High'].includes(rating));
+  if (report.stale || !rated) return `<span class="pill assessment-neutral" title="${title}">Assessment: ${report.stale ? 'Stale' : 'Unavailable'}</span>`;
+  return [['Code complexity', report.complexity], ['Production risk', report.risk]].map(([label, rating]) => `<span class="pill assessment-${rating.toLowerCase()}" title="${title}">${label}: ${rating}</span>`).join('');
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null }) {
@@ -872,7 +880,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     WORKFLOW_HEADER: renderWorkflowHeader({
       workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot,
       badges: renderAutonomyBadge(state) +
-        renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
+        renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderAssessmentBadges(state, assessment) + renderModePill(state),
     }),
     TICKET: escapeHtml(state.fields.ticket),
     AUTO_REFRESH: feedback?.status === 'collecting' || state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
@@ -890,7 +898,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
     // Older templates may still contain this placeholder. Details live in artifacts.
     ASSURANCE_SUMMARY: '',
-    CHANGE_ASSESSMENT: state.fields.change_assessment_version === '1' ? renderAssessment(assessment) : '',
+    CHANGE_ASSESSMENT: '', // Compatibility with older templates; no standalone section.
     ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
@@ -927,14 +935,20 @@ function resolvedPlanPath(statePath, planField, ticket) {
 
 export async function generateDashboard(statePath) {
   const absoluteStatePath = artifactResolve(statePath);
-  const [stateMarkdown, stateInfo, template, logo] = await Promise.all([
+  const [stateMarkdown, initialStateInfo, template, logo] = await Promise.all([
     readFile(absoluteStatePath, 'utf8'),
     stat(absoluteStatePath),
     readFile(TEMPLATE_PATH, 'utf8'),
     readFile(LOGO_PATH, 'utf8'),
   ]);
-  const state = parseState(stateMarkdown, absoluteStatePath);
+  let state = parseState(stateMarkdown, absoluteStatePath);
   assertRunState(path.dirname(path.dirname(path.dirname(absoluteStatePath))), absoluteStatePath, state.fields.ticket);
+  const assessment = await checkpointAssessment(absoluteStatePath, state);
+  let stateInfo = initialStateInfo;
+  if (assessment) {
+    state = parseState(await readFile(absoluteStatePath, 'utf8'), absoluteStatePath);
+    stateInfo = await stat(absoluteStatePath);
+  }
   const invalidTimestampFrom = state.audit.find((row) => row.epoch > stateInfo.mtimeMs + 60_000)?.number ?? Infinity;
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -987,7 +1001,6 @@ export async function generateDashboard(statePath) {
   }
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
-  const assessment = state.fields.change_assessment_version === '1' ? await readAssessment(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.ticket) : null;
   const html = renderStatus({ assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) });
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;

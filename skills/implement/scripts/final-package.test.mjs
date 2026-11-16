@@ -498,7 +498,7 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   const before = await readFile(state, 'utf8');
   await generateDashboard(state);
   const html = artifactJoin(dir, 'DEMO-status.html');
-  assert.match(await readFile(html, 'utf8'), /Change assessment.*Not assessed yet/s);
+  assert.doesNotMatch(await readFile(html, 'utf8'), /class="change-assessment"|Assessment:|Code complexity:|CHANGE_ASSESSMENT/);
   let built = run('build', root, state, '--draft', draft, '--repo', root);
   let pkg = JSON.parse(await readFile(built.json,'utf8'));
   assert.equal(pkg.change_assessment.completeness,'unavailable');
@@ -512,17 +512,45 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
     complexity_dimensions:[{dimension:'state',rating:'High',evidence:'Inherited state complexity in changed function'}], risk_dimensions:[{dimension:'impact',rating:'Low',evidence:'Local change'}]
   }] });
   await saveAssessment(root,'DEMO',report);
+  const afterSave = await readFile(state, 'utf8');
+  assert.equal(parseState(afterSave).audit.filter(row => row.note?.id.startsWith('change-assessment:')).length, 1, 'Saving a final assessment must persist its audit entry immediately.');
+  for (const phase of mode === 'lightweight' ? ['close-the-gaps', 'lightweight', 'review', 'final-sync'] : ['close-the-gaps', 'plan', 'execute', 'review', 'final-sync']) {
+    const early = before.replace('phase: final-approval', `phase: ${phase}`);
+    await writeFile(state, early);
+    await generateDashboard(state);
+    assert.doesNotMatch(await readFile(html, 'utf8'), /class="pill assessment-|class="change-assessment"|CHANGE_ASSESSMENT/);
+    assert.equal(await readFile(state, 'utf8'), early, 'Earlier phases must not checkpoint an assessment.');
+  }
+  await writeFile(state, afterSave);
   built=run('build',root,state,'--draft',draft,'--repo',root);
   pkg=JSON.parse(await readFile(built.json,'utf8'));
   assert.equal(pkg.change_assessment.complexity,'High'); assert.equal(pkg.change_assessment.risk,'High'); assert.equal(pkg.review.status,'clean');
   await generateDashboard(state);
-  assert.match(await readFile(html,'utf8'),/Code complexity: High · Production change risk: High · partial/);
+  const rendered = await readFile(html, 'utf8');
+  const header = value => value.match(/<div class="header-badges"[^>]*>(.*?)<\/div>/s)?.[1] ?? '';
+  assert.match(header(rendered), /class="pill assessment-high"[^>]*>Code complexity: High/);
+  assert.match(header(rendered), /class="pill assessment-high"[^>]*>Production risk: High/);
+  assert.match(header(rendered), /title="Completeness: partial\. src\/existing.txt:1 sensitive contract change"/);
+  assert.doesNotMatch(rendered, /class="change-assessment"|<h2>Change assessment|CHANGE_ASSESSMENT/);
+  assert.match(rendered, /Result: Change assessment — Code complexity: High; Production risk: High; completeness: partial.*href="DEMO-complexity.md"/);
+  const assessmentRows = async () => parseState(await readFile(state, 'utf8')).audit.filter(row => row.note?.id.startsWith('change-assessment:'));
+  assert.equal((await assessmentRows()).length, 1);
+  const savedState = await readFile(state, 'utf8');
+  await generateDashboard(state); await generateDashboard(state);
+  const resumed = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/dashboard-checkpoint.mjs'), 'resume', '--state', state], { encoding: 'utf8' }));
+  assert.equal(resumed.last_work_row.number, 1);
+  await generateDashboard(state);
+  assert.equal(await readFile(state, 'utf8'), savedState, 'Refresh and resume cannot repeat the assessment audit entry.');
   assert.match(await readFile(built.package,'utf8'),/Code complexity: High · Production change risk: High · partial/);
   assert.equal(run('check',root,state).current,true);
   await writeFile(artifactJoin(root,'src/existing.txt'),'changed again\n');
   await generateDashboard(state);
-  assert.match(await readFile(html,'utf8'),/Assessment unavailable.*snapshot changed/s);
-  assert.doesNotMatch(await readFile(html,'utf8'),/Code complexity: High/);
+  const staleHtml = await readFile(html, 'utf8');
+  assert.match(header(staleHtml), /class="pill assessment-neutral"[^>]*>Assessment: Stale/);
+  assert.match(header(staleHtml), /snapshot changed/);
+  assert.doesNotMatch(header(staleHtml), /Code complexity:|Production risk:/);
+  assert.equal((await assessmentRows()).length, 2);
+  await generateDashboard(state); assert.equal((await assessmentRows()).length, 2);
   const next=await captureScope(scope);
   await saveAssessment(root,'DEMO',unavailable(next,'Reassessment failed: analyzer crashed'));
   built=run('build',root,state,'--draft',draft,'--repo',root);
@@ -530,7 +558,37 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   assert.match(await readFile(built.package,'utf8'),/Stale history/);
   assert.doesNotMatch(await readFile(built.package,'utf8'),/Code complexity: High/);
   assert.equal(run('check',root,state).current,true);
-  // Only normal package checkpoints may change state; routing and validation are unchanged.
+  const failedHtml = await readFile(html, 'utf8');
+  assert.match(header(failedHtml), /class="pill assessment-neutral"[^>]*>Assessment: Unavailable/);
+  assert.match(header(failedHtml), /analyzer crashed/);
+  assert.doesNotMatch(header(failedHtml), /Code complexity:|Production risk:/);
+  assert.equal((await assessmentRows()).length, 3);
+  // Reassessment of the same scope is a new result, not a repeated refresh.
+  const reassessed = structuredClone(report);
+  reassessed.scope = next; reassessed.timestamp = '2026-11-16T15:00:00Z';
+  await saveAssessment(root, 'DEMO', reassessed);
+  await generateDashboard(state);
+  assert.equal((await assessmentRows()).length, 4);
+  assert.match(header(await readFile(html, 'utf8')), /Code complexity: High/);
+  const completed = (await readFile(state, 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: final-approval', 'phase: complete');
+  await writeFile(state, completed);
+  await generateDashboard(state);
+  assert.equal((await assessmentRows()).length, 4);
+  assert.match(header(await readFile(html, 'utf8')), /Production risk: High/);
+  await writeFile(state, completed.replace('status: Complete', 'status: In Progress').replace('phase: complete', 'phase: final-approval'));
+  await writeFile(artifactJoin(dir, 'DEMO-complexity.json'), '{broken report');
+  await generateDashboard(state);
+  assert.match(header(await readFile(html, 'utf8')), /Assessment: Unavailable/);
+  assert.doesNotMatch(header(await readFile(html, 'utf8')), /Code complexity:|Production risk:/);
+  assert.equal((await assessmentRows()).length, 5);
+  await generateDashboard(state); assert.equal((await assessmentRows()).length, 5);
+  await rm(artifactJoin(dir, 'DEMO-complexity.json'));
+  await generateDashboard(state);
+  assert.match(header(await readFile(html, 'utf8')), /Assessment: Unavailable/);
+  assert.match(header(await readFile(html, 'utf8')), /Recorded assessment evidence is missing/);
+  assert.equal((await assessmentRows()).length, 6);
+  await generateDashboard(state); assert.equal((await assessmentRows()).length, 6);
+  // Informational assessment/package checkpoints may change audit only; gates are unchanged.
   const after = await readFile(state,'utf8');
   for (const key of ['phase','mode','risk','review','gate','execution']) assert.equal(parseState(after).fields[key],parseState(before).fields[key]);
 });
@@ -545,4 +603,10 @@ test('explicit standalone reports leave older package bytes and approval intact'
   await saveAssessment(root,'DEMO-assessment-new',unavailable(await captureScope({label:'Older DEMO',repos:[{path:root,base:'main'}]}),'No analyzer evidence'));
   assert.equal(await readFile(built.json,'utf8'),bytes);
   assert.equal(run('check',root,state,'--require-approval').approved,true);
+  const stateBytes = await readFile(state, 'utf8');
+  await saveAssessment(root, 'DEMO', unavailable(await captureScope({ label: 'Legacy DEMO', repos: [{ path: root, base: 'main' }] }), 'Explicit assessment on an older run'));
+  const legacyHtml = await readFile(await generateDashboard(state), 'utf8');
+  assert.doesNotMatch(legacyHtml, /Assessment:|Code complexity:|Production risk:|CHANGE_ASSESSMENT/);
+  assert.equal(await readFile(state, 'utf8'), stateBytes);
+  assert.equal(await readFile(built.json, 'utf8'), bytes);
 });

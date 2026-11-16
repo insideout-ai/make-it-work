@@ -118,7 +118,28 @@ export async function saveAssessment(root, ticket, report) {
   const markdown = assessmentMarkdown(report);
   await atomic(files.md, markdown);
   await atomic(files.json, JSON.stringify(report, null, 2) + '\n');
-  return { ...report, reports: { json: path.relative(root, files.json), markdown: path.relative(root, files.md) } };
+  const result = { ...report, reports: { json: path.relative(root, files.json), markdown: path.relative(root, files.md) } };
+  // Only an assessment-enabled Implement run at its final boundary gets audit/UI
+  // updates. Standalone and legacy assessments remain report-only.
+  const statePath = artifactOutputJoin(files.dir, `${ticket}-state.md`);
+  let stateMarkdown;
+  try {
+    stateMarkdown = await readFile(statePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return result;
+    result.audit_warning = `Assessment reports saved; workflow state could not be read: ${error.message}`;
+    return result;
+  }
+  try {
+    if (/^change_assessment_version:\s*1\s*$/m.test(stateMarkdown)) {
+      const { parseState, generateDashboard } = await import('../skills/implement/scripts/render-status.mjs');
+      const { checkpointAssessment } = await import('../skills/implement/scripts/assessment-audit.mjs');
+      if (await checkpointAssessment(statePath, parseState(stateMarkdown, statePath))) await generateDashboard(statePath);
+    }
+  } catch (error) {
+    result.audit_warning = `Assessment reports saved; audit/dashboard update could not finish: ${error.message}`;
+  }
+  return result;
 }
 export async function readAssessment(root, ticket, snapshots = null) {
   try {
