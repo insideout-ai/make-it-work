@@ -1,0 +1,41 @@
+README.md
+  s_d5b4799db8ec84::t_4f5babb42fcacd 560
+docs/change-assessment.md
+  s_d5b4799db8ec84::t_4f5babb42fcacd 35,37-39
+skills/implement/scripts/assessment-audit.mjs
+  s_d5b4799db8ec84::t_b51a3a77308d2e 32-33,35,37-41
+skills/implement/scripts/render-status.test.mjs
+  s_d5b4799db8ec84::t_20fe1b4adba5ad 267
+  s_d5b4799db8ec84::t_a49b32b0e01a70 1443-1444,1448-1449,1456-1457,1463-1471,1473-1480
+  s_d5b4799db8ec84::t_c560fd14aa78ab 249,260-266,271
+  s_d5b4799db8ec84::t_037bc1d9cd036a 1472
+  s_d5b4799db8ec84::t_d8d814d156025a 1481-1482
+skills/implement/scripts/render-status.mjs
+  s_d5b4799db8ec84::t_b51a3a77308d2e 383,386-388,524,558-560,678,684-685,687-690,711,724,893-894,925
+  s_d5b4799db8ec84::t_20fe1b4adba5ad 686
+skills/implement/references/orchestration/final-package.md
+  s_d5b4799db8ec84::t_4f5babb42fcacd 16-17,19
+skills/implement/scripts/final-package.test.mjs
+  s_d5b4799db8ec84::t_c560fd14aa78ab 517,539-545
+  s_d5b4799db8ec84::t_ee44aff7cb7b39 546
+CHANGELOG.md
+  s_d5b4799db8ec84::t_4f5babb42fcacd 12
+scripts/lib/workflow-dashboard.mjs
+  s_d5b4799db8ec84::t_b51a3a77308d2e 4,18,54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c62ab41dd4f960f1789818aad9605ebd5df13a23",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
