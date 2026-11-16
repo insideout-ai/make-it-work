@@ -1,0 +1,49 @@
+scripts/lib/workflow-dashboard.mjs
+  s_d5b4799db8ec84::t_0d7de8c4cebfd4 37-40
+docs/change-assessment.md
+  s_d5b4799db8ec84::t_11ced8edbb3ccb 29,34-37
+scripts/change-assessment.mjs
+  s_d5b4799db8ec84::t_8ff3a9734ef56a 121-124,126,135-136,138-139,141-142
+  s_d5b4799db8ec84::t_11ced8edbb3ccb 125,127-134,137,140
+skills/implement/scripts/render-status.test.mjs
+  s_d5b4799db8ec84::t_8ff3a9734ef56a 252
+  s_d5b4799db8ec84::t_f555554872a7db 269
+  s_d5b4799db8ec84::t_78e0aa14461216 21,245-251,253-268,270-274
+  s_d5b4799db8ec84::t_e5ed1119165869 275
+skills/implement/scripts/render-status.mjs
+  s_d5b4799db8ec84::t_0d7de8c4cebfd4 5,676-681,859-864,883,901,938,944,946-951
+skills/implement/scripts/final-package.test.mjs
+  s_d5b4799db8ec84::t_5f9af3cfc98108 501,529-543,548-553,561-578,591
+  s_d5b4799db8ec84::t_d9c204ebfaf127 585-590
+  s_d5b4799db8ec84::t_11e33e42cc9277 515-524,579-584
+  s_d5b4799db8ec84::t_78e0aa14461216 606-611
+skills/implement/scripts/assessment-audit.mjs
+  s_d5b4799db8ec84::t_5f9af3cfc98108 17,19,23-26
+  s_d5b4799db8ec84::t_0d7de8c4cebfd4 1-5,7-14,16,18,27-37
+  s_d5b4799db8ec84::t_8ff3a9734ef56a 6,15
+  s_d5b4799db8ec84::t_d9c204ebfaf127 20-22
+README.md
+  s_d5b4799db8ec84::t_11ced8edbb3ccb 560
+skills/implement/references/orchestration/final-package.md
+  s_d5b4799db8ec84::t_11ced8edbb3ccb 17
+CHANGELOG.md
+  s_d5b4799db8ec84::t_11ced8edbb3ccb 21-22
+scripts/change-assessment.test.mjs
+  s_d5b4799db8ec84::t_11ced8edbb3ccb 103-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7d361ffab887831d503082ec5da8b792f5825ba8",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
