@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -12,18 +13,18 @@ import { finalizeFeedback } from './feedback-finalization.mjs';
 import { decisionCell } from './workflow-decisions.mjs';
 
 async function fixture(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'feedback-handoff-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'feedback-handoff-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const directory = path.join(root, 'make-it-work/DEMO');
+  const directory = artifactJoin(root, 'make-it-work/DEMO');
   await mkdir(directory, { recursive: true });
   let markdown = await readFile(new URL('../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', import.meta.url), 'utf8');
   markdown = markdown.replace('status: In Progress', 'status: Complete').replace('phase: final-sync', 'phase: complete');
   const count = [...markdown.matchAll(/^\| \d+ \|/gm)].length;
   markdown = markdown.trimEnd() + `\n| ${count + 1} | 2026-01-01T10:06:00Z | final-sync | complete | Final context sync complete |\n`;
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, markdown);
   const fields = parseState(markdown, statePath).fields;
-  const report = path.join(directory, 'workflow-feedback.md');
+  const report = artifactJoin(directory, 'workflow-feedback.md');
   return { statePath, fields, report, markdown };
 }
 function withoutFeedbackNotes(markdown) {
@@ -109,12 +110,12 @@ test('an evidenced technical failure saves only a receipt and releases the termi
   const f = await fixture(t);
   const dashboard = await generateDashboard(f.statePath);
   assert.match(await readFile(dashboard, 'utf8'), /data-workflow-feedback-status="collecting"/);
-  await writeFile(path.join(path.dirname(f.statePath), 'hook-events.jsonl'), 'corrupt evidence\n');
+  await writeFile(artifactJoin(path.dirname(f.statePath), 'hook-events.jsonl'), 'corrupt evidence\n');
   const failed = spawnSync(process.execPath, [script, 'inspect', '--state', f.statePath], { encoding: 'utf8' });
   assert.equal(failed.status, 1);
   assert.equal(JSON.parse(failed.stdout).code, 'FEEDBACK_EVIDENCE');
   const events = toolEvents('failed-inspect', `node "${script}" inspect --state "${f.statePath}"`, failed.stdout, true);
-  const transcript = path.join(path.dirname(f.statePath), 'transcript.jsonl');
+  const transcript = artifactJoin(path.dirname(f.statePath), 'transcript.jsonl');
   await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
   const args = ['unavailable', '--state', f.statePath, '--reason', 'Runtime feedback evidence could not be parsed', '--transcript', transcript, '--failure-id', 'failed-inspect'];
   const result = spawnSync(process.execPath, [script, ...args], { encoding: 'utf8' });
@@ -151,13 +152,13 @@ test('an evidenced technical failure saves only a receipt and releases the termi
 
 test('schema/input mistakes are repairable work, not technical failures permitting a bypass', async (t) => {
   const f = await fixture(t);
-  const invalid = path.join(path.dirname(f.statePath), 'invalid.json');
+  const invalid = artifactJoin(path.dirname(f.statePath), 'invalid.json');
   await writeFile(invalid, '{}');
   const failed = spawnSync(process.execPath, [script, 'write', '--state', f.statePath, '--session-review', invalid], { encoding: 'utf8' });
   assert.equal(failed.status, 1);
   assert.equal(failed.stdout, '');
   const events = toolEvents('bad-input', `node "${script}" write --state "${f.statePath}" --session-review "${invalid}"`, failed.stderr, true);
-  const transcript = path.join(path.dirname(f.statePath), 'transcript.jsonl');
+  const transcript = artifactJoin(path.dirname(f.statePath), 'transcript.jsonl');
   await writeFile(transcript, events.map(JSON.stringify).join('\n') + '\n');
   const result = spawnSync(process.execPath, [script, 'unavailable', '--state', f.statePath, '--reason', 'Input was rejected', '--transcript', transcript, '--failure-id', 'bad-input'], { encoding: 'utf8' });
   assert.equal(result.status, 1);

@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -32,18 +33,18 @@ test('checks actual step and AC evidence against plan traceability', () => {
 });
 
 test('checks a ledger file stays inside the run root', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'verification-test-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'verification-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await mkdir(path.join(root, 'make-it-work', 'DEMO'), { recursive: true });
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-verification-v1.json'), JSON.stringify(ledger()));
-  const planPath = path.join(root, 'make-it-work/DEMO/DEMO-plan.md');
+  await mkdir(artifactJoin(root, 'make-it-work', 'DEMO'), { recursive: true });
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-verification-v1.json'), JSON.stringify(ledger()));
+  const planPath = artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md');
   await writeFile(planPath, plan);
   assert.equal((await readVerification(root, 'make-it-work/DEMO/DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1, plan, outcome: 'PASSED' })).ticket, 'DEMO');
   const cli = path.resolve('skills/implement/scripts/verification.mjs');
   const result = JSON.parse(execFileSync(process.execPath, [cli, 'check', '--root', root, '--file', 'make-it-work/DEMO/DEMO-verification-v1.json',
     '--ticket', 'DEMO', '--plan-version', '1', '--plan', planPath, '--outcome', 'PASSED'], { encoding: 'utf8' }));
   assert.equal(result.valid, true);
-  const statePath = path.join(root, 'make-it-work/DEMO/DEMO-state.md');
+  const statePath = artifactJoin(root, 'make-it-work/DEMO/DEMO-state.md');
   const fixture = await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8');
   await writeFile(statePath, fixture);
   const before = parseState(fixture);
@@ -57,7 +58,7 @@ test('checks a ledger file stays inside the run root', async (t) => {
   assert.match(state.audit.at(-1).outcome, /Gate: pass; acceptance: 1\/1 verified/);
   execFileSync(process.execPath, auditedArgs);
   assert.equal(await readFile(statePath, 'utf8'), saved);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-verification-v1.json'), JSON.stringify({ ...ledger(), acceptance: [] }));
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-verification-v1.json'), JSON.stringify({ ...ledger(), acceptance: [] }));
   assert.throws(() => execFileSync(process.execPath, auditedArgs, { stdio: 'pipe' }));
   assert.equal(await readFile(statePath, 'utf8'), saved);
   await assert.rejects(readVerification(root, '../DEMO-verification-v1.json', { ticket: 'DEMO', planVersion: 1 }), /Invalid verification artifact path/);

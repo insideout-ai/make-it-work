@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -85,7 +86,7 @@ export function testingScope(plan, options) {
   };
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   if (args.shift() !== 'check' || args.shift() !== '--plan' || !args.length) fail('Usage: testing-policy.mjs check --plan PATH [--required]');
   const planPath = args.shift();

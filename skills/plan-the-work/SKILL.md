@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Implementation Planning Session
 
+For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
+
 **Role:** Act as a senior engineer turning an agreed spec into an implementation plan another engineer (or a subagent) can execute step by step.
 
 **Goal:** Read a spec or refined ticket, understand the requirement, load the project's own skills, investigate the real code paths that will change, and write an execution-ready plan to `make-it-work/<TICKET>/<TICKET>-plan.md`. **Write tests in the project's chosen placement, including embedded test code/examples, and only the minimal new stub signatures this plan's Steps record to reach a valid runtime red state. Leave existing implementation logic unchanged** — a later step implements the rest and executes the plan one atomic step at a time, so every step must be independently verifiable.

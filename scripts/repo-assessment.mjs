@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { artifactOutputJoin } from './lib/artifact-path.mjs';
 import { spawn, execFileSync } from 'node:child_process';
 import { constants } from 'node:fs';
-import { access, lstat, mkdir, readFile, readdir, realpath } from 'node:fs/promises';
+import { mkdir, readFile } from './lib/artifact-io.mjs';
+import { access, lstat, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cell, cli, fail, jsonInput, within } from './lib/artifacts.mjs';
 
@@ -9,7 +11,7 @@ async function exists(file) {
   try { return await lstat(file); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 }
 async function metadataRepos(root) {
-  const file = path.join(root, 'CLAUDE.md');
+  const file = artifactOutputJoin(root, 'CLAUDE.md');
   if (!await exists(file)) return [];
   const names = [];
   let column = -1;
@@ -27,11 +29,11 @@ async function metadataRepos(root) {
 }
 export async function repositoryInventory(root, { namedRepos = [] } = {}) {
   root = await realpath(root);
-  const single = await exists(path.join(root, '.git'));
-  const candidates = single ? [root] : (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => path.join(root, entry.name));
+  const single = await exists(artifactOutputJoin(root, '.git'));
+  const candidates = single ? [root] : (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => artifactOutputJoin(root, entry.name));
   const repos = [];
   for (const directory of candidates) {
-    const info = await exists(path.join(directory, '.git'));
+    const info = await exists(artifactOutputJoin(directory, '.git'));
     if (!info || !info.isDirectory() && !info.isFile()) continue;
     try {
       const top = execFileSync('git', ['-C', directory, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -42,7 +44,7 @@ export async function repositoryInventory(root, { namedRepos = [] } = {}) {
     if (typeof entry.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(entry.id)) fail('Named repo must be a basename.');
     const found = repos.find((repo) => repo.id === entry.id);
     if (found) { if (entry.metadata) found.metadata = entry.metadata; continue; }
-    const directory = path.join(root, entry.id);
+    const directory = artifactOutputJoin(root, entry.id);
     repos.push({ ...entry, root: directory, unavailable: await exists(directory) ? 'not a Git checkout' : 'absent on disk' });
   }
   return repos.sort((a, b) => a.id.localeCompare(b.id));
@@ -50,8 +52,8 @@ export async function repositoryInventory(root, { namedRepos = [] } = {}) {
 export async function ownerEvidence(root) {
   const evidence = [];
   for (const file of ['catalog-info.yaml', '.github/CODEOWNERS', 'CODEOWNERS']) {
-    if (!await exists(path.join(root, file))) continue;
-    const content = await readFile(path.join(root, file), 'utf8');
+    if (!await exists(artifactOutputJoin(root, file))) continue;
+    const content = await readFile(artifactOutputJoin(root, file), 'utf8');
     const lines = content.split(/\r?\n/);
     if (file.endsWith('.yaml')) {
       let inSpec = false;
@@ -73,7 +75,7 @@ export async function ownerEvidence(root) {
 export async function searchExecutable() {
   for (const directory of (process.env.PATH ?? '').split(path.delimiter)) {
     if (!path.isAbsolute(directory)) continue;
-    const file = path.join(directory, 'rg');
+    const file = artifactOutputJoin(directory, 'rg');
     try { await access(file, constants.X_OK); return await realpath(file); } catch { /* try the next PATH entry */ }
   }
   return null;
@@ -116,7 +118,7 @@ export async function collectAssessments(root, input) {
   const queue = inventory.filter((repo) => !input.restrict_to || input.restrict_to.includes(repo.id));
   for (const name of [...(input.named_repos ?? []), ...(input.restrict_to ?? [])]) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) fail('Named repo must be a basename.');
-    if (!queue.some((repo) => repo.id === name)) queue.push({ id: name, root: path.join(root, name), unavailable: 'absent on disk' });
+    if (!queue.some((repo) => repo.id === name)) queue.push({ id: name, root: artifactOutputJoin(root, name), unavailable: 'absent on disk' });
   }
   const visited = new Set(), assessments = [];
   for (const repo of queue) {
@@ -176,8 +178,9 @@ export async function writeAssessmentReport(root, input) {
   const markdown = input.markdown.slice(0, start) + `\n\n${table}\n\n` + (after < 0 ? '' : input.markdown.slice(start + after));
   const relative = input.report_path ?? `make-it-work/${input.ticket}/${input.ticket}-repos.md`;
   if (typeof relative !== 'string' || path.isAbsolute(relative) || relative.split(/[\\/]/).includes('..') || !relative.startsWith('make-it-work/')) fail('Report path must be inside make-it-work.');
-  await mkdir(path.dirname(path.join(root, relative)), { recursive: true });
-  const file = await within(root, relative, { existing: false });
+  await mkdir(path.dirname(artifactOutputJoin(root, relative)), { recursive: true });
+  const output = artifactOutputJoin(root, relative);
+  const file = await within(root, path.relative(root, output), { existing: false });
   await atomicWrite(file, markdown);
   return { file, repositories: inventory.map((repo) => repo.id) };
 }

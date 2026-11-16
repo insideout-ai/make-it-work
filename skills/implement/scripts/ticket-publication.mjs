@@ -1,7 +1,9 @@
 #!/usr/bin/env node
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, realpath, rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assertRunState, runArtifactName, runDirectory } from './artifact-layout.mjs';
@@ -307,14 +309,14 @@ async function journalPathFor(root, fields) {
   if (await realpath(directory) !== directory) fail('Publication directory must not be a symlink.');
   const name = runArtifactName(fields.ticket_publication, fields.ticket, 'ticket_publication');
   if (!name.startsWith(`${fields.ticket}-ticket-publication-`) || !name.endsWith('.json')) fail('Invalid publication journal filename.');
-  const journalPath = path.join(directory, name);
+  const journalPath = artifactJoin(directory, name);
   if (await realpath(journalPath) !== journalPath) fail('Publication journal must not be a symlink.');
   return journalPath;
 }
 
 async function readBoundJournal(journalPath, fields) {
   const journal = validatePublication(JSON.parse(await readFile(journalPath, 'utf8')));
-  if (journal.ticket !== fields.ticket || journal.workflow_start !== (fields.start_time ?? 'none') || path.basename(journalPath) !== `${fields.ticket}-ticket-publication-${journal.run_id}.json`) fail('Publication journal does not belong to this run.');
+  if (journal.ticket !== fields.ticket || journal.workflow_start !== (fields.start_time ?? 'none') || path.basename(journalPath) !== path.basename(artifactJoin(path.dirname(journalPath), `${fields.ticket}-ticket-publication-${journal.run_id}.json`))) fail('Publication journal does not belong to this run.');
   return journal;
 }
 
@@ -350,11 +352,11 @@ export async function publicationCommand(options) {
   // Lazy loading lets the renderer import the consent reader without a module cycle.
   const { parseState, generateDashboard } = await import('./render-status.mjs');
   const root = await realpath(options['--root']);
-  const statePath = await realpath(path.resolve(root, options['--state']));
+  const statePath = await realpath(artifactResolve(root, options['--state']));
   const fields = parseState(await readFile(statePath, 'utf8'), statePath).fields;
   const directory = assertRunState(root, statePath, fields.ticket);
   if (await realpath(directory) !== directory) fail('Publication directory must not be a symlink.');
-  const input = options['--input'] ? JSON.parse(await readFile(path.resolve(root, options['--input']), 'utf8')) : {};
+  const input = options['--input'] ? JSON.parse(await readFile(artifactResolve(root, options['--input']), 'utf8')) : {};
   if (action === 'init') {
     return withLock(statePath, async () => {
       const original = await readFile(statePath, 'utf8');
@@ -367,7 +369,7 @@ export async function publicationCommand(options) {
       candidate.initialization_hash = initializationHash;
       const configured = state.fields.ticket_publication && state.fields.ticket_publication !== 'none';
       const name = `${candidate.ticket}-ticket-publication-${candidate.run_id}.json`;
-      const journalPath = configured ? await journalPathFor(root, state.fields) : path.join(directory, name);
+      const journalPath = configured ? await journalPathFor(root, state.fields) : artifactJoin(directory, name);
       let journal, replayed = false;
       try {
         if (!(await lstat(journalPath)).isFile()) fail('Publication journal must be a regular file.');
@@ -389,7 +391,7 @@ export async function publicationCommand(options) {
         scope: 'This implementation run', reference: relative, resume: 'transparent' }), new Date().toISOString());
       parseState(updated, statePath);
       if (updated !== original) await atomicWrite(statePath, updated);
-      try { await lstat(path.join(directory, `${state.fields.ticket}-status.html`)); }
+      try { await lstat(artifactJoin(directory, `${state.fields.ticket}-status.html`)); }
       catch (error) { if (error.code === 'ENOENT') return { journal: relative, mode: journal.mode, replayed }; throw error; }
       await generateDashboard(statePath); // Retry init repairs rendering without resetting consent.
       return { journal: relative, mode: journal.mode, replayed };
@@ -406,7 +408,7 @@ export async function publicationCommand(options) {
     await writeFile(temporary, `${JSON.stringify(journal, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
     await rename(temporary, journalPath);
     if (action === 'consent') {
-      const dashboard = path.join(directory, `${fields.ticket}-status.html`);
+      const dashboard = artifactJoin(directory, `${fields.ticket}-status.html`);
       try {
         await stat(dashboard);
       } catch (error) {
@@ -428,7 +430,7 @@ export async function publicationCommand(options) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   Promise.resolve().then(() => publicationCommand(args(process.argv.slice(2)))).then(
     (result) => process.stdout.write(`${JSON.stringify(result, null, 2)}\n`),
     (error) => { process.stderr.write(`ticket-publication: ${error.message}\n`); process.exitCode = 1; },

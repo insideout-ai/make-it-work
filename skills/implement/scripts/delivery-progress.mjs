@@ -1,10 +1,12 @@
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { realpath, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { runDirectory } from './artifact-layout.mjs';
 
 export function deliveryPaths(root, ticket) {
-  const base = path.join(runDirectory(root, ticket), `${ticket}-delivery`);
+  const base = artifactJoin(runDirectory(root, ticket), `${ticket}-delivery.json`).slice(0, -5);
   return { plan: `${base}-plan.json`, preview: `${base}-plan.md`, journal: `${base}-progress.json`, lock: `${base}.lock` };
 }
 

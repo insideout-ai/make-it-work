@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -9,17 +10,17 @@ import test from 'node:test';
 const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
 for (const variant of ['vendor-contract', 'prior-notes', 'boundary-conflict', 'boundary-supported']) {
   test(`fact handoff ${variant}: executable evidence supports the intended planning decision`, async (t) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'fact-handoff-fixture-'));
+    const root = await mkdtemp(artifactJoin(os.tmpdir(), 'fact-handoff-fixture-'));
     t.after(() => rm(root, { recursive: true, force: true }));
-    const fixture = path.join(import.meta.dirname, 'plan-the-work', `plan-facts-${variant}`, 'fixture.sh');
+    const fixture = artifactJoin(import.meta.dirname, 'plan-the-work', `plan-facts-${variant}`, 'fixture.sh');
     execFileSync('bash', [fixture], { cwd: root, env, stdio: 'pipe' });
-    const prefix = path.join(root, 'make-it-work/FACT-500/FACT-500');
+    const prefix = artifactJoin(root, 'make-it-work/FACT-500/FACT-500');
     const baseline = JSON.parse(await readFile(`${prefix}-fact-baseline.json`));
     const spec = await readFile(`${prefix}-spec.md`, 'utf8');
     const evaluate = (code) => JSON.parse(execFileSync(process.execPath, ['-e', code], { cwd: root, env, encoding: 'utf8' }));
     if (variant === 'vendor-contract') {
       // Test the actual local contract's predicates, not HTTP status alone.
-      const contract = await readFile(path.join(root, 'docs/vendor-create.md'), 'utf8');
+      const contract = await readFile(artifactJoin(root, 'docs/vendor-create.md'), 'utf8');
       assert.match(contract, /2xx.*body\.status exactly REQUIRES_ACTION.*nonempty string body\.payment_id/);
       assert.match(contract, /non-object body.*non-2xx/);
       assert.match(spec, /docs\/vendor-create\.md/);
@@ -50,7 +51,7 @@ c.executescript(Path('db/alternate-proposal.sql').read_text())
 print(json.dumps({'reuse':reuse, 'alternateType':c.execute("SELECT type_id FROM gateways WHERE provider='alternate'").fetchone()[0]}))
 `], { cwd: root, encoding: 'utf8' }));
       assert.deepEqual(observed, { reuse: false, alternateType: 8 });
-      const note = await readFile(path.join(root, 'docs/research-notes.md'), 'utf8');
+      const note = await readFile(artifactJoin(root, 'docs/research-notes.md'), 'utf8');
       assert.match(note, /reuse gateway type 7/);
       assert.match(note, /schema was not inspected/);
       assert.match(spec, /db\/alternate-proposal\.sql/);
@@ -64,10 +65,10 @@ console.log(JSON.stringify({internal,empty:createPayment({}),blank:createPayment
       const expectedCode = variant === 'boundary-conflict' ? 'VALIDATION_ERROR' : 'FAILOVER';
       assert.ok(spec.includes(`AC2: For missing or blank reference, return {ok:false, code:'${expectedCode}'}`));
       assert.equal(expectedCode === observed.empty.code, variant === 'boundary-supported');
-      assert.match(await readFile(path.join(root, 'docs/original-ticket.md'), 'utf8'), /VALIDATION_ERROR/);
+      assert.match(await readFile(artifactJoin(root, 'docs/original-ticket.md'), 'utf8'), /VALIDATION_ERROR/);
     }
     assert.equal(spawnSync('npm', ['test'], { cwd: root, env }).status, 0);
-    for (const [file, hash] of Object.entries(baseline.protectedFiles)) assert.equal(createHash('sha256').update(await readFile(path.join(root, file))).digest('hex'), hash);
+    for (const [file, hash] of Object.entries(baseline.protectedFiles)) assert.equal(createHash('sha256').update(await readFile(artifactJoin(root, file))).digest('hex'), hash);
     assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }), '');
     assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(), baseline.head);
     const repeated = spawnSync('bash', [fixture], { cwd: root, env, encoding: 'utf8' });

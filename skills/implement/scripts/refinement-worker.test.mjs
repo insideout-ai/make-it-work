@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
@@ -10,21 +11,21 @@ import { refinementWorker } from './refinement-worker.mjs';
 import { parseState } from './render-status.mjs';
 
 async function fixture(t, enabled = true) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'refinement-worker-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'refinement-worker-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' }).toString().trim();
   git('init', '-q', '-b', 'main'); git('config', 'user.email', 'fixture@example.invalid'); git('config', 'user.name', 'Fixture');
-  await writeFile(path.join(root, 'source.js'), 'module.exports = 1;\n');
+  await writeFile(artifactJoin(root, 'source.js'), 'module.exports = 1;\n');
   git('add', '.'); git('commit', '-qm', 'baseline'); git('switch', '-qc', 'DEMO');
   const input = { ticket: 'DEMO', autonomy: 'autopilot', repos: [root], base: 'main', branch_guard: 'Existing feature branch', refinement_worker: enabled };
   const init = await initializeWorkflow(root, input);
   const state = init.state, directory = path.dirname(state);
   await applyWorkflow({ root, statePath: state, input: { id: 'context-1', event: 'context-ready', expected_hash: digest(await readFile(state, 'utf8')), repos: [root], outcome: 'Ticket-scoped context is sufficient.' } });
   const run = (command, data = {}) => refinementWorker(root, state, command, data);
-  const file = async (name, value) => { const p = path.join(directory, name); await writeFile(p, typeof value === 'string' ? value : JSON.stringify(value)); return name; };
+  const file = async (name, value) => { const p = artifactJoin(directory, name); await writeFile(p, typeof value === 'string' ? value : JSON.stringify(value)); return name; };
   const patch = async (key, value) => writeFile(state, (await readFile(state, 'utf8')).replace(new RegExp(`^${key}:.*$`, 'm'), `${key}: ${value}`));
   const handoff = async (n = 1, changes = {}) => {
-    await mkdir(path.join(directory, 'DEMO-handoffs'), { recursive: true });
+    await mkdir(artifactJoin(directory, 'DEMO-handoffs'), { recursive: true });
     await file('DEMO-spec.md', '# Spec\nMembers remain allowed.\n');
     return file(`DEMO-handoffs/gaps-${n}.json`, { version: 1, ticket: 'DEMO', stage: 'gaps', plan_version: 1, status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] }, ...changes });
   };
@@ -34,11 +35,11 @@ async function fixture(t, enabled = true) {
 test('opt-in is explicit and new-run only; ordinary/legacy inspection writes no worker journal', async t => {
   const f = await fixture(t, false);
   assert.deepEqual(await f.run('inspect'), { enabled: false, route: 'inline' });
-  await assert.rejects(access(path.join(f.directory, 'DEMO-refinement-worker.json')));
+  await assert.rejects(access(artifactJoin(f.directory, 'DEMO-refinement-worker.json')));
   await assert.rejects(f.run('prepare', { task: 'Refine' }), /absent/);
   for (const override of [{ autonomy: 'guided' }, { refinement_destination: 'slack-send' }, { offline_pending: true }]) {
     await assert.rejects(initializeWorkflow(f.root, { ...f.input, ticket: 'NEW', refinement_worker: true, ...override }), /new local/);
-    await assert.rejects(access(path.join(f.root, 'make-it-work/NEW/NEW-state.md')));
+    await assert.rejects(access(artifactJoin(f.root, 'make-it-work/NEW/NEW-state.md')));
   }
   await f.patch('refinement_destination', 'slack-draft');
   assert.deepEqual(await f.run('inspect'), { enabled: false, route: 'inline' });
@@ -91,7 +92,7 @@ test('stale phases, autonomy, queued choices and changed application scope rejec
     assert.equal((await f.run('inspect')).status, 'cancelled');
   }
   const f = await fixture(t); await f.run('prepare', { task: 'Refine' });
-  await writeFile(path.join(f.root, 'source.js'), 'module.exports = 2;\n');
+  await writeFile(artifactJoin(f.root, 'source.js'), 'module.exports = 2;\n');
   await assert.rejects(f.run('attach', { agent_id: 'agent-1' }), /application files changed/);
 });
 
@@ -115,9 +116,9 @@ test('hard stops use unchanged handoffs; wrong stage, Slack delivery, and escapi
   const blocked = await f.handoff(2, { status: 'blocked', outcome: undefined, artifacts: undefined, data: undefined, reason: 'Required project skill unavailable.' });
   assert.equal((await f.run('accept', { handoff: blocked })).status, 'blocked');
   const g = await fixture(t);
-  const outside = path.join(g.root, 'outside.json'); await writeFile(outside, '{}');
+  const outside = artifactJoin(g.root, 'outside.json'); await writeFile(outside, '{}');
   await g.run('prepare', { task: 'Refine' }); await g.run('attach', { agent_id: 'agent-2' });
-  await symlink(outside, path.join(g.directory, 'escape.json'));
+  await symlink(outside, artifactJoin(g.directory, 'escape.json'));
   await assert.rejects(g.run('service', { request: 'escape.json' }), /escapes/);
   await assert.rejects(g.run('service', { request: '../../outside.json' }), /escapes/);
 });
@@ -152,7 +153,7 @@ test('parent can request a newer corrected result only before the phase is consu
   await f.run('revise', { reason: 'Spec omitted the explicit guest-denial criterion.' });
   await assert.rejects(f.run('accept', { handoff: 'DEMO-handoffs/gaps-1.json' }), /after dispatch/);
   await f.run('accept', { handoff: await f.handoff(2) });
-  const saved = JSON.parse(await readFile(path.join(f.directory, 'DEMO-refinement-worker.json'), 'utf8'));
+  const saved = JSON.parse(await readFile(artifactJoin(f.directory, 'DEMO-refinement-worker.json'), 'utf8'));
   assert.equal(saved.history.length, 1); assert.match(saved.history[0].result.path, /gaps-1.json$/);
   assert.equal(saved.agent_id, 'agent-1');
   await f.patch('phase', 'plan');
@@ -162,10 +163,10 @@ test('parent can request a newer corrected result only before the phase is consu
 
 test('local context updates stay in approved scope and are bound after return', async t => {
   const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'agent-1' });
-  await mkdir(path.join(f.root, 'docs')); await writeFile(path.join(f.root, 'docs/domain.md'), '# Updated local fact');
+  await mkdir(artifactJoin(f.root, 'docs')); await writeFile(artifactJoin(f.root, 'docs/domain.md'), '# Updated local fact');
   const handoff = await f.handoff(1, { data: { tbd_items: 0, context_updated: ['docs/domain.md'] } });
   await f.run('accept', { handoff });
-  await writeFile(path.join(f.root, 'docs/domain.md'), '# Changed after return');
+  await writeFile(artifactJoin(f.root, 'docs/domain.md'), '# Changed after return');
   await assert.rejects(f.run('accept', { handoff }), /Returned context changed/);
 });
 
@@ -188,7 +189,7 @@ test('reconciled cancellation recovers through the existing inline controller pa
 test('stale returned work can be cancelled without discarding its receipt or changing workflow state', async t => {
   const f = await fixture(t); await f.run('prepare', { task: 'Refine' }); await f.run('attach', { agent_id: 'finished-agent' });
   await f.run('accept', { handoff: await f.handoff() });
-  const journal = path.join(f.directory, 'DEMO-refinement-worker.json');
+  const journal = artifactJoin(f.directory, 'DEMO-refinement-worker.json');
   const returned = JSON.parse(await readFile(journal, 'utf8'));
   await f.patch('queued_autonomy', 'guided');
   await assert.rejects(f.run('revise', { reason: 'Choice changed' }), /Stale/);

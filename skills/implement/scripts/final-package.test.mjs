@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import { writeReview } from '../../../scripts/review-report.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -20,9 +21,9 @@ async function initRepo(root) {
   await mkdir(root, { recursive: true });
   git(root, 'init', '-q');
   git(root, 'branch', '-m', 'main');
-  await writeFile(path.join(root, '.gitignore'), 'make-it-work/\n');
-  await mkdir(path.join(root, 'src'));
-  await writeFile(path.join(root, 'src/existing.txt'), 'before\n');
+  await writeFile(artifactJoin(root, '.gitignore'), 'make-it-work/\n');
+  await mkdir(artifactJoin(root, 'src'));
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'before\n');
   git(root, 'add', '.gitignore', 'src/existing.txt');
   git(root, '-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'Initial');
 }
@@ -41,20 +42,20 @@ function stateMarkdown(ticket) {
   return `# Workflow state — ${ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | final-sync | final-approval | Context synced |\n`;
 }
 async function artifacts(root, ticket = 'DEMO') {
-  const dir = path.join(root, 'make-it-work', ticket);
+  const dir = artifactJoin(root, 'make-it-work', ticket);
   await mkdir(dir, { recursive: true });
-  for (const name of ['spec', 'plan', 'execute', 'review']) await writeFile(path.join(dir, `${ticket}-${name}.md`), `# ${name}\n`);
-  const draft = path.join(dir, `${ticket}-final-draft.json`);
+  for (const name of ['spec', 'plan', 'execute', 'review']) await writeFile(artifactJoin(dir, `${ticket}-${name}.md`), `# ${name}\n`);
+  const draft = artifactJoin(dir, `${ticket}-final-draft.json`);
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO Add feature', pr_title: 'DEMO: Add feature', pr_description: 'Implements AC1. Full suite passed.' }));
-  const state = path.join(dir, `${ticket}-state.md`);
+  const state = artifactJoin(dir, `${ticket}-state.md`);
   await writeFile(state, stateMarkdown(ticket));
   return { state, draft, dir };
 }
 
 async function verifiedAcceptance(root, state, dir) {
   await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1'));
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
-  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'full-suite', result: 'pass', note: 'Full suite passed' },
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }],
@@ -62,14 +63,14 @@ async function verifiedAcceptance(root, state, dir) {
 }
 
 test('builds a binary-safe working-tree package and invalidates approval on changes', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
-  await writeFile(path.join(dir, 'DEMO-review.md'), '**Verdict:** Approve with nits — 0 Critical, 0 Major, 1 Minor\n\n1. **[Minor]** Simplify the local name.\n\nOrchestrator outcome: CLEAN\n');
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
-  await writeFile(path.join(root, 'src/new.txt'), 'new\n');
-  await writeFile(path.join(root, 'src/image.bin'), Buffer.from([0, 1, 2, 3, 255]));
+  await writeFile(artifactJoin(dir, 'DEMO-review.md'), '**Verdict:** Approve with nits — 0 Critical, 0 Major, 1 Minor\n\n1. **[Minor]** Simplify the local name.\n\nOrchestrator outcome: CLEAN\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/new.txt'), 'new\n');
+  await writeFile(artifactJoin(root, 'src/image.bin'), Buffer.from([0, 1, 2, 3, 255]));
   const built = run('build', root, state, '--draft', draft, '--repo', root);
   const audited = parseState(await readFile(state, 'utf8'));
   assert.equal(audited.audit.at(-1).note.kind, 'result');
@@ -77,18 +78,18 @@ test('builds a binary-safe working-tree package and invalidates approval on chan
   assert.equal(lastWorkRow(audited.audit).number, 1);
   run('build', root, state, '--draft', draft, '--repo', root);
   assert.equal(parseState(await readFile(state, 'utf8')).audit.length, audited.audit.length);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(pkg.repos[0].paths, ['src/existing.txt', 'src/image.bin', 'src/new.txt']);
   assert.deepEqual(pkg.open_nits, ['Simplify the local name.']);
   assert.equal(pkg.validation.result, 'PASS');
   assert.match(await readFile(built.package, 'utf8'), /DEMO: Add feature/);
-  const diff = await readFile(path.join(dir, pkg.repos[0].diff_file), 'utf8');
+  const diff = await readFile(artifactJoin(dir, pkg.repos[0].diff_file), 'utf8');
   assert.match(diff, /new\n/);
   assert.match(diff, /GIT binary patch/);
   assert.throws(() => run('check', root, state, '--require-approval'), /no current approval/);
   run('approve', root, state, '--hash', built.sha256);
   assert.equal(run('check', root, state, '--require-approval').approved, true);
-  await writeFile(path.join(root, 'src/existing.txt'), 'changed again\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'changed again\n');
   assert.throws(() => run('check', root, state), /stale/);
   const rebuilt = run('build', root, state, '--draft', draft, '--repo', root);
   assert.notEqual(rebuilt.sha256, built.sha256);
@@ -97,36 +98,36 @@ test('builds a binary-safe working-tree package and invalidates approval on chan
   assert.throws(() => run('check', root, state), /stale/);
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO Add feature', pr_title: 'DEMO: Add feature', pr_description: 'Implements AC1. Full suite passed.' }));
   run('build', root, state, '--draft', draft, '--repo', root);
-  await writeFile(path.join(dir, 'DEMO-execute.md'), '# execution changed\n');
+  await writeFile(artifactJoin(dir, 'DEMO-execute.md'), '# execution changed\n');
   assert.throws(() => run('check', root, state), /stale/);
 });
 
 test('includes every explicitly affected repository', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-workspace-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-workspace-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const one = path.join(root, 'service-one');
-  const two = path.join(root, 'service-two');
+  const one = artifactJoin(root, 'service-one');
+  const two = artifactJoin(root, 'service-two');
   await initRepo(one);
   await initRepo(two);
   const { state, draft, dir } = await artifacts(root);
-  await writeFile(path.join(one, 'src/existing.txt'), 'one\n');
-  await writeFile(path.join(two, 'src/existing.txt'), 'two\n');
+  await writeFile(artifactJoin(one, 'src/existing.txt'), 'one\n');
+  await writeFile(artifactJoin(two, 'src/existing.txt'), 'two\n');
   run('build', root, state, '--draft', draft, '--repo', one, '--repo', two);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(pkg.repos.map((r) => r.name), ['service-one', 'service-two']);
   assert.equal(run('check', root, state).current, true);
 });
 
 test('delivery scope distinguishes reviewed changes from earlier commits in the same file and binds browser evidence', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-review-scope-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-review-scope-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   git(root, 'switch', '-qc', 'feature');
   const { state, draft, dir } = await artifacts(root);
-  await writeFile(path.join(root, 'src/existing.txt'), 'earlier branch work\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'earlier branch work\n');
   git(root, 'add', 'src/existing.txt');
   git(root, '-c', 'user.name=Test', '-c', 'user.email=test@example.test', 'commit', '-qm', 'Earlier work');
-  await writeFile(path.join(root, 'src/existing.txt'), 'earlier branch work\ninvoice change\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'earlier branch work\ninvoice change\n');
   const reviewInput = { version: 1, ticket: 'DEMO', branch: 'feature', commit: git(root, 'rev-parse', 'HEAD'), working_tree: true,
     coverage: 'Reviewed only current invoice edits', findings: [], repo_roots: { app: root },
     review_scope: [{ repo: 'app', base: 'main', scope: 'working-tree', paths: ['src/existing.txt'] }],
@@ -159,32 +160,32 @@ test('delivery scope distinguishes reviewed changes from earlier commits in the 
   pkg = JSON.parse(await readFile(built.json, 'utf8'));
   assert.equal(pkg.review_scope[0].status, 'covered');
   assert.equal(pkg.ui_verification.status, 'passed');
-  const evidencePath = path.join(dir, 'DEMO-review-evidence.json');
+  const evidencePath = artifactJoin(dir, 'DEMO-review-evidence.json');
   const evidence = JSON.parse(await readFile(evidencePath, 'utf8'));
   evidence.ui_verification.note = 'Changed observation';
   await writeFile(evidencePath, JSON.stringify(evidence));
   assert.throws(() => run('check', root, state), /stale/);
-  await writeFile(path.join(dir, 'DEMO-review.md'), '# Different report\n');
+  await writeFile(artifactJoin(dir, 'DEMO-review.md'), '# Different report\n');
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /does not match the current report/);
 });
 
 test('binds AC verification evidence into the final package', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-verification-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-verification-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
   const oldState = await readFile(state, 'utf8');
   await writeFile(state, oldState.replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1'));
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
   const ledger = { version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'full-suite', result: 'pass', note: 'Full suite passed' },
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] };
-  const ledgerPath = path.join(dir, 'DEMO-verification-v1.json');
+  const ledgerPath = artifactJoin(dir, 'DEMO-verification-v1.json');
   await writeFile(ledgerPath, JSON.stringify(ledger));
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.equal(pkg.evidence.verification.path, 'make-it-work/DEMO/DEMO-verification-v1.json');
   assert.equal(pkg.acceptance[0].status, 'automated');
   assert.match(await readFile(built.package, 'utf8'), /AC1 works/);
@@ -194,12 +195,12 @@ test('binds AC verification evidence into the final package', async (t) => {
 });
 
 test('a complete workflow reports partial criterion verification consistently in its package and single-repo dashboard', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-partial-verification-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-partial-verification-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
   await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1'));
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 parity | Happy path |\n| AC1 parity | Failure path |\n| AC2 display | Observe display |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 parity | Happy path |\n| AC1 parity | Failure path |\n| AC2 display | Observe display |\n');
   const ledger = { version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [
       { type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' },
@@ -211,12 +212,12 @@ test('a complete workflow reports partial criterion verification consistently in
       { criterion: 'AC1 parity', scenario: 'Failure path', status: 'unverified', step: null, note: 'Reference <unavailable>' },
       { criterion: 'AC2 display', scenario: 'Observe display', status: 'manual', step: 1, note: 'Observed display' },
     ] };
-  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify(ledger));
+  await writeFile(artifactJoin(dir, 'DEMO-verification-v1.json'), JSON.stringify(ledger));
   const built = run('build', root, state, '--draft', draft, '--repo', root);
   const markdown = await readFile(built.package, 'utf8');
   assert.match(markdown, /Acceptance verification: Partially verified — 1 of 2 acceptance criteria pending/);
   assert.ok(markdown.indexOf('### Pending verification') < markdown.indexOf('## Changes'));
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.equal(pkg.acceptance[1].status, 'unverified');
   const checked = run('check', root, state);
   assert.equal(checked.current, true);
@@ -235,29 +236,29 @@ test('a complete workflow reports partial criterion verification consistently in
 });
 
 test('builds with matching scoped+full gate modes and rejects a mismatch', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-scoped-full-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-scoped-full-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
   const oldState = await readFile(state, 'utf8');
   await writeFile(state, oldState.replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1').replace('gate: full-suite', 'gate: scoped+full'));
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
   const ledger = { version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'scoped+full', result: 'pass', note: 'Scoped then full suite passed' },
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] };
-  const ledgerPath = path.join(dir, 'DEMO-verification-v1.json');
+  const ledgerPath = artifactJoin(dir, 'DEMO-verification-v1.json');
   await writeFile(ledgerPath, JSON.stringify(ledger));
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
   run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.equal(pkg.validation.mode, 'scoped+full');
   await writeFile(ledgerPath, JSON.stringify({ ...ledger, gate: { ...ledger.gate, mode: 'scoped' } }));
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /disagrees with state/);
 });
 
 test('packages a failed gate only when triage recorded every failure as unrelated', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-unrelated-gate-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-unrelated-gate-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
@@ -265,44 +266,44 @@ test('packages a failed gate only when triage recorded every failure as unrelate
     .replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1')
     .replace('execution: passed', 'execution: gate-failed');
   await writeFile(state, failedGate);
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
-  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'full-suite', result: 'fail', note: 'Legacy runtime tests fail on a clean base' },
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] }));
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /triage classified every failure as unrelated/);
 
   await writeFile(state, failedGate
     .replace('## Known regressions\n\nNone', '## Known regressions\n\n- demo: test/legacy.test.js — runs on the old runtime')
     .replace('| 1 | 2026-01-01T10:00:00Z | final-sync |', '| 1 | 2026-01-01T09:00:00Z | execute | review | Only unrelated regressions remain. |\n| 2 | 2026-01-01T10:00:00Z | final-sync |'));
   run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.match(pkg.validation.result, /accepted: only unrelated pre-existing failures/);
   assert.deepEqual(pkg.known_regressions, ['demo: test/legacy.test.js — runs on the old runtime']);
-  const markdown = await readFile(path.join(dir, 'DEMO-final-package.md'), 'utf8');
+  const markdown = await readFile(artifactJoin(dir, 'DEMO-final-package.md'), 'utf8');
   assert.match(markdown, /Known unrelated regressions: demo: test\/legacy\.test\.js/);
   assert.equal(run('check', root, state).current, true);
 });
 
 test('packages an explicitly manual completion without claiming automated PASS', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-manual-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-manual-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
   await writeFile(state, stateMarkdown('DEMO').replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1')
     .replace('execution: passed', 'execution: verified-manually').replace('gate: full-suite', 'gate: none')
     .replace('context_updated: none', `testing_readiness: make-it-work/DEMO/DEMO-testing-readiness.md\ntesting_summary: ${JSON.stringify([{ repo: 'app', strategy: 'missing', verification: 'manual' }])}\nworkspace_snapshot: ${JSON.stringify([{ root, id: 'app' }])}\ncontext_updated: none`));
-  await writeFile(path.join(dir, 'DEMO-testing-readiness.md'), '# Readiness\n\nUser selected manual verification before planning.\n');
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User deferred setup |\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| Happy path | app | Manual | Start app; perform action; observe result |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-testing-readiness.md'), '# Readiness\n\nUser selected manual verification before planning.\n');
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User deferred setup |\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| Happy path | app | Manual | Start app; perform action; observe result |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
   const evidence = { version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'manual', subject: 'Happy path', command: null, result: 'pass', note: 'Observed expected behavior' }] }],
     gate: { mode: 'none', result: 'manual-accepted', note: 'Manual policy selected before planning; automated regression unavailable' },
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'manual', step: 1, note: 'Observed expected behavior' }] };
-  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify(evidence));
+  await writeFile(artifactJoin(dir, 'DEMO-verification-v1.json'), JSON.stringify(evidence));
   await writeFile(draft, JSON.stringify({ commit_message: 'DEMO Add feature', pr_title: 'DEMO: Add feature', pr_description: 'Manual scenarios verified; automated regression unavailable.' }));
   run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(pkg.validation, { mode: 'none', result: 'manual-accepted' });
   assert.equal(pkg.acceptance[0].status, 'manual');
   assert.equal(pkg.evidence.testing_readiness.path, 'make-it-work/DEMO/DEMO-testing-readiness.md');
@@ -313,9 +314,9 @@ test('packages an explicitly manual completion without claiming automated PASS',
   assert.throws(() => run('check', root, state), /Testing summary changed/);
   await writeFile(state, savedState);
   assert.equal(run('check', root, state).current, true);
-  await writeFile(path.join(dir, 'DEMO-testing-readiness.md'), '# Readiness changed\n');
+  await writeFile(artifactJoin(dir, 'DEMO-testing-readiness.md'), '# Readiness changed\n');
   assert.throws(() => run('check', root, state), /stale/);
-  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ ...evidence, acceptance: [{ ...evidence.acceptance[0], status: 'unverified', step: null }] }));
+  await writeFile(artifactJoin(dir, 'DEMO-verification-v1.json'), JSON.stringify({ ...evidence, acceptance: [{ ...evidence.acceptance[0], status: 'unverified', step: null }] }));
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /every acceptance criterion/);
 });
 
@@ -331,16 +332,16 @@ function adaptiveState(ticket, { mode, risk, escalations, implementationReport =
 }
 
 test('packages a Lightweight run from spec, implementation report and review only', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-lightweight-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-lightweight-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
-  for (const name of ['plan', 'execute']) await rm(path.join(dir, `DEMO-${name}.md`));
-  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Lightweight\n\nChanged src/existing.txt; ran unit tests.\n');
+  for (const name of ['plan', 'execute']) await rm(artifactJoin(dir, `DEMO-${name}.md`));
+  await writeFile(artifactJoin(dir, 'DEMO-lightweight.md'), '# Lightweight\n\nChanged src/existing.txt; ran unit tests.\n');
   await writeFile(state, adaptiveState('DEMO', { mode: 'lightweight', risk: 'low', escalations: 0 }));
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(Object.keys(pkg.evidence), ['spec', 'implementation', 'review']);
   assert.equal(pkg.evidence.implementation.path, 'make-it-work/DEMO/DEMO-lightweight.md');
   assert.deepEqual(pkg.validation, { mode: 'lightweight', result: 'Lightweight — no regression gate; verified by independent review' });
@@ -353,7 +354,7 @@ test('packages a Lightweight run from spec, implementation report and review onl
   assert.doesNotMatch(md, /- plan:|- execute:/);
   run('approve', root, state, '--hash', built.sha256);
   assert.equal(run('check', root, state, '--require-approval').approved, true);
-  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Lightweight changed\n');
+  await writeFile(artifactJoin(dir, 'DEMO-lightweight.md'), '# Lightweight changed\n');
   assert.throws(() => run('check', root, state), /stale/);
   await writeFile(state, adaptiveState('DEMO', { mode: 'lightweight', risk: 'low', escalations: 0 }).replace('review: clean', 'review: fix-required'));
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /clean review/);
@@ -362,43 +363,43 @@ test('packages a Lightweight run from spec, implementation report and review onl
 });
 
 test('packages an escalated run on the TDD path with the Lightweight report as extra evidence', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-escalated-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-escalated-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
-  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Lightweight baseline\n');
+  await writeFile(artifactJoin(dir, 'DEMO-lightweight.md'), '# Lightweight baseline\n');
   await writeFile(state, adaptiveState('DEMO', { mode: 'tdd', risk: 'medium', escalations: 1 }));
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
-  await writeFile(path.join(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 works | Happy path |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-verification-v1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Happy path', command: 'npm test', result: 'pass', note: 'Passed' }] }],
     gate: { mode: 'full-suite', result: 'pass', note: 'Full suite passed' },
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }] }));
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(Object.keys(pkg.evidence), ['spec', 'plan', 'execute', 'review', 'implementation', 'verification']);
   assert.deepEqual(pkg.validation, { mode: 'full-suite', result: 'pass' });
   assert.equal(pkg.acceptance[0].status, 'automated');
   assert.match(await readFile(built.package, 'utf8'), /Mode: TDD \(assessed\) · Risk: medium · Escalations: 1 \/ 1/);
-  await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Baseline changed\n');
+  await writeFile(artifactJoin(dir, 'DEMO-lightweight.md'), '# Baseline changed\n');
   assert.throws(() => run('check', root, state), /stale/);
 });
 
 test('new builds for old runs add assurance presentation without adaptive fields', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-package-legacy-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-legacy-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
-  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  await writeFile(artifactJoin(root, 'src/existing.txt'), 'after\n');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.deepEqual(Object.keys(pkg), ['version', 'assurance_version', 'ticket', 'draft_path', 'draft_sha256', 'draft', 'evidence', 'validation', 'review', 'open_nits', 'known_regressions', 'decided_findings', 'repos']);
   assert.match(await readFile(built.package, 'utf8'), /^# Final approval — DEMO\n\n\*\*Assurance: Limited[^\n]*\n\nReview: clean\. Validation: full-suite — PASS\.\n\n## Changes/);
 });
 
 
 test('a rendered advisory review remains visible as an unfixed nit in the final package', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'package-advisory-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'package-advisory-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
@@ -411,20 +412,20 @@ test('a rendered advisory review remains visible as an unfixed nit in the final 
   });
   assert.equal(reviewed.outcome, 'CLEAN');
   const built = run('build', root, state, '--draft', draft, '--repo', root);
-  const pkg = JSON.parse(await readFile(path.join(dir, 'DEMO-final-package.json'), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(dir, 'DEMO-final-package.json'), 'utf8'));
   assert.equal(pkg.open_nits.length, 1);
   assert.match(pkg.open_nits[0], /Simplify the local name/);
   assert.match(await readFile(built.package, 'utf8'), /Open review nits \(unfixed\):.*Simplify the local name/);
 });
 
 test('new clause contract blocks name-only handoff/package claims and renders each pending clause', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'final-clause-evidence-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-clause-evidence-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
   await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nverification_version: 1\nacceptance_evidence_version: 1'));
-  await writeFile(path.join(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Total\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 parity | Include prepaid value | Total |\n| AC1 parity | Preserve ascending output order | Total |\n');
-  await writeFile(path.join(dir, 'DEMO-execute.md'), 'Execute outcome: PASSED\n');
+  await writeFile(artifactJoin(dir, 'DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Total\n\n## Test Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 parity | Include prepaid value | Total |\n| AC1 parity | Preserve ascending output order | Total |\n');
+  await writeFile(artifactJoin(dir, 'DEMO-execute.md'), 'Execute outcome: PASSED\n');
   const evidence = { version: 1, ticket: 'DEMO', plan_version: 1,
     steps: [{ number: 1, checks: [{ type: 'automated', subject: 'Total', command: 'node test.js', result: 'pass', note: 'Named test passes', assertions: [{ clause: 'Include prepaid value', expected: '100 + 25 = 125', observed: '125', source: 'test.js:12 assert.equal(total, 125)' }] }] }],
     gate: { mode: 'full-suite', result: 'pass', note: 'Tests passed' },
@@ -433,12 +434,12 @@ test('new clause contract blocks name-only handoff/package claims and renders ea
       { criterion: 'AC1 parity', clause: 'Preserve ascending output order', scenario: 'Total', status: 'automated', step: 1, note: 'Same named test passes' },
     ] };
   const relative = 'make-it-work/DEMO/DEMO-verification-v1.json';
-  await writeFile(path.join(root, relative), JSON.stringify(evidence));
+  await writeFile(artifactJoin(root, relative), JSON.stringify(evidence));
   const handoff = { version: 1, ticket: 'DEMO', stage: 'execute', plan_version: 1, status: 'done', outcome: 'PASSED', artifacts: { report: 'make-it-work/DEMO/DEMO-execute.md', verification: relative }, data: { discoveries: [], failing_tests: [], gate: 'full-suite' } };
   await assert.rejects(validateArtifacts(handoff, root, { requireClauses: true }), /Acceptance evidence is missing/);
   assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root), /Acceptance evidence is missing/);
   evidence.acceptance[1] = { ...evidence.acceptance[1], status: 'unverified', step: null, note: 'No ordering assertion was executed.' };
-  await writeFile(path.join(root, relative), JSON.stringify(evidence));
+  await writeFile(artifactJoin(root, relative), JSON.stringify(evidence));
   await validateArtifacts(handoff, root, { requireClauses: true });
   const built = run('build', root, state, '--draft', draft, '--repo', root);
   const md = await readFile(built.package, 'utf8');
@@ -454,7 +455,7 @@ test('new clause contract blocks name-only handoff/package claims and renders ea
 
 
 test('approved historical packages retain their exact presentation and approval while exposing a limited check summary', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'assurance-legacy-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'assurance-legacy-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
@@ -468,7 +469,7 @@ test('approved historical packages retain their exact presentation and approval 
   await writeFile(built.json, JSON.stringify(pkg, null, 2) + '\n');
   await writeFile(built.package, oldMarkdown);
   const hash = createHash('sha256').update(JSON.stringify(pkg)).digest('hex');
-  await writeFile(path.join(dir, 'DEMO-final-approval.json'), JSON.stringify({ version: 1, ticket: 'DEMO', package_sha256: hash }));
+  await writeFile(artifactJoin(dir, 'DEMO-final-approval.json'), JSON.stringify({ version: 1, ticket: 'DEMO', package_sha256: hash }));
   const checked = run('check', root, state, '--require-approval');
   assert.equal(checked.approved, true);
   assert.equal(checked.sha256, hash);
@@ -485,24 +486,24 @@ test('approved historical packages retain their exact presentation and approval 
 
 for (const mode of ['tdd', 'lightweight']) test(`change assessment is informational and consistent across ${mode} packaging/dashboard`, async t => {
   const { captureScope, assess, saveAssessment, unavailable } = await import('../../../scripts/change-assessment.mjs');
-  const root = await mkdtemp(path.join(os.tmpdir(), 'assessment-package-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'assessment-package-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   await initRepo(root);
   const { state, draft, dir } = await artifacts(root);
   if (mode === 'lightweight') {
     await writeFile(state, adaptiveState('DEMO', { mode, risk: 'low', escalations: 0 }));
-    await writeFile(path.join(dir, 'DEMO-lightweight.md'), '# Implemented\n');
+    await writeFile(artifactJoin(dir, 'DEMO-lightweight.md'), '# Implemented\n');
   }
   await writeFile(state, (await readFile(state, 'utf8')).replace('final_package_version: 1', 'final_package_version: 1\nchange_assessment_version: 1'));
   const before = await readFile(state, 'utf8');
   await generateDashboard(state);
-  const html = path.join(dir, 'DEMO-status.html');
+  const html = artifactJoin(dir, 'DEMO-status.html');
   assert.match(await readFile(html, 'utf8'), /Change assessment.*Not assessed yet/s);
   let built = run('build', root, state, '--draft', draft, '--repo', root);
   let pkg = JSON.parse(await readFile(built.json,'utf8'));
   assert.equal(pkg.change_assessment.completeness,'unavailable');
   assert.equal(run('check',root,state).current,true);
-  await writeFile(path.join(root,'src/existing.txt'),'after\n');
+  await writeFile(artifactJoin(root,'src/existing.txt'),'after\n');
   const scope={ label:'DEMO', repos:[{path:root,base:'main'}] };
   const snap=await captureScope(scope);
   const report=assess(snap,{ snapshot_id:snap.snapshot_id, rationale:'src/existing.txt:1 sensitive contract change', repos:[{
@@ -518,7 +519,7 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   assert.match(await readFile(html,'utf8'),/Code complexity: High · Production change risk: High · partial/);
   assert.match(await readFile(built.package,'utf8'),/Code complexity: High · Production change risk: High · partial/);
   assert.equal(run('check',root,state).current,true);
-  await writeFile(path.join(root,'src/existing.txt'),'changed again\n');
+  await writeFile(artifactJoin(root,'src/existing.txt'),'changed again\n');
   await generateDashboard(state);
   assert.match(await readFile(html,'utf8'),/Assessment unavailable.*snapshot changed/s);
   assert.doesNotMatch(await readFile(html,'utf8'),/Code complexity: High/);
@@ -536,7 +537,7 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
 
 test('explicit standalone reports leave older package bytes and approval intact', async t => {
   const { captureScope, saveAssessment, unavailable }=await import('../../../scripts/change-assessment.mjs');
-  const root=await mkdtemp(path.join(os.tmpdir(),'assessment-legacy-'));
+  const root=await mkdtemp(artifactJoin(os.tmpdir(),'assessment-legacy-'));
   t.after(()=>rm(root,{recursive:true,force:true})); await initRepo(root);
   const {state,draft}=await artifacts(root);
   const built=run('build',root,state,'--draft',draft,'--repo',root); run('approve',root,state,'--hash',built.sha256);

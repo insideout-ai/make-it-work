@@ -1,3 +1,4 @@
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Local runtime observations. Never copy hook reasons, chat, paths or agent IDs.
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
@@ -11,7 +12,7 @@ const phases = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'pla
 const hooks = new Set(['PreToolUse', 'Stop']);
 const iso = (value) => typeof value === 'string' && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/.test(value) && Number.isFinite(Date.parse(value));
 const hash = (value) => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
-const journalPath = (statePath) => path.join(path.dirname(statePath), 'hook-events.jsonl');
+const journalPath = (statePath) => artifactJoin(path.dirname(statePath), 'hook-events.jsonl');
 
 export function validateHookEvent(event) {
   if (!event || Object.keys(event).sort().join(',') !== 'at,eventId,hook,kind,phase,runId,subject,version' || event.version !== 1 ||
@@ -36,7 +37,7 @@ export async function recordHookEvent({ statePath, state, input, events, kind, a
   if (!hooks.has(input.hook_event_name)) return;
   const { ticket, start_time: runId, phase, status } = state.fields;
   if (!iso(runId)) return; // Legacy runs cannot be attributed safely.
-  const root = path.dirname(path.dirname(path.dirname(path.resolve(statePath))));
+  const root = path.dirname(path.dirname(path.dirname(artifactResolve(statePath))));
   assertRunState(root, statePath, ticket);
   const history = await readHookEvents(statePath);
   if (status !== 'In Progress') kind = 'clear';

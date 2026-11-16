@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
@@ -16,10 +17,10 @@ const plan = (parallel = false) => `# Plan\n\n## Execution Status\n\n**Mode:** I
 const evidence = (number) => ({ number, checks: [{ type: 'automated', subject: number === 1 ? 'A works' : 'B works', command: 'node --test', result: 'pass', note: 'Actual check passed.' }] });
 const diagnosis = (prior = false) => ({ failure: 'Expected one result; received two.', evidence: 'node --test results.test.js: duplicate selection fails; src/results.js:42 appends a fallback.', cause: 'The fallback also runs after a successful selection.', next_change: 'Restrict the fallback to empty selection.', expected_result: 'Duplicate selection returns one item; empty selection still returns the fallback.', ...(prior ? { prior_result: 'The earlier null guard did not affect nonempty selection; the failure output points to fallback append.' } : {}) });
 async function fixture(t, parallel = false) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'step-control-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'step-control-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const file = path.join(root, 'DEMO-plan.md'); await writeFile(file, plan(parallel));
-  const options = { ledgerPath: path.join(root, 'DEMO-verification-v1.json'), ticket: 'DEMO', planVersion: 1 };
+  const file = artifactJoin(root, 'DEMO-plan.md'); await writeFile(file, plan(parallel));
+  const options = { ledgerPath: artifactJoin(root, 'DEMO-verification-v1.json'), ticket: 'DEMO', planVersion: 1 };
   return { file, options, run: (event) => executionControl(file, event, options) };
 }
 test('parses dependencies and conservatively batches only mutually marked disjoint steps', () => {
@@ -100,7 +101,7 @@ test('retrying completion after a failed dashboard render still requires renderi
   const { file, options, run } = await fixture(t);
   // Parseable state with a deliberately unrenderable legacy layout: the failure
   // occurs after evidence/Progress persist, rather than failing state lookup.
-  const statePath = path.join(path.dirname(file), 'DEMO-state.md');
+  const statePath = artifactJoin(path.dirname(file), 'DEMO-state.md');
   const state = (await readFile(new URL('../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', import.meta.url), 'utf8')).replace('phase: final-sync', 'phase: execute');
   await writeFile(statePath, state); await writeFile(statePath.replace('-state.md', '-status.html'), 'Existing dashboard');
   const event = { action: 'complete', steps: [evidence(1)] };
@@ -151,13 +152,13 @@ test('a failed start checkpoint blocks dispatch and the same event recovers with
 });
 
 async function dashboardFixture(t, parallel = false) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'step-dashboard-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'step-dashboard-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...args) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' });
   git('init', '-b', 'main'); git('config', 'user.name', 'Fixture'); git('config', 'user.email', 'fixture@example.invalid');
-  await writeFile(path.join(root, 'code.txt'), 'Baseline'); git('add', '.'); git('commit', '-m', 'Fixture'); git('switch', '-c', 'DEMO');
+  await writeFile(artifactJoin(root, 'code.txt'), 'Baseline'); git('add', '.'); git('commit', '-m', 'Fixture'); git('switch', '-c', 'DEMO');
   const initialized = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autopilot', base: 'main', repos: [root], branch_guard: 'Existing feature branch' });
-  const directory = path.dirname(initialized.state), file = path.join(directory, 'DEMO-plan.md');
+  const directory = path.dirname(initialized.state), file = artifactJoin(directory, 'DEMO-plan.md');
   await writeFile(file, plan(parallel));
   let state = await readFile(initialized.state, 'utf8');
   // These dashboard fixtures exercise the legacy two-column evidence contract.
@@ -165,7 +166,7 @@ async function dashboardFixture(t, parallel = false) {
   state = state.replace(/^phase: .*$/m, 'phase: execute').replace(/^plan: .*$/m, 'plan: make-it-work/DEMO/DEMO-plan.md');
   state += `| 2 | ${new Date().toISOString()} | context-check | execute | Ready to execute |\n`;
   await writeFile(initialized.state, state); await generateDashboard(initialized.state);
-  const options = { dashboardState: initialized.state, ledgerPath: path.join(directory, 'DEMO-verification-v1.json'), ticket: 'DEMO' };
+  const options = { dashboardState: initialized.state, ledgerPath: artifactJoin(directory, 'DEMO-verification-v1.json'), ticket: 'DEMO' };
   return { file, statePath: initialized.state, html: () => readFile(initialized.dashboard, 'utf8'), run: (event) => executionControl(file, event, options) };
 }
 
@@ -181,6 +182,7 @@ test('dashboard updates at dispatch, verified completion and failure without tre
   await assert.rejects(run({ action: 'complete', steps: [evidence(1)] }), /Start the exact/);
   const event = { action: 'start', id: 'first-step', steps: [1] };
   await run(event);
+  assert.equal(JSON.parse(await readFile(artifactJoin(path.dirname(statePath), 'activity-timing.json'), 'utf8')).events.at(-1).category, 'coding');
   assert.match(await html(), /Running step 1 of 2/); assert.match(await html(), /Running step 1 of 2 — First/);
   assert.match(await readFile(file, 'utf8'), /Step 0 of 2 complete/);
   const timestamp = parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at;
@@ -312,7 +314,7 @@ test('a supplied workflow state records guardrails without creating a missing le
 });
 test('verification writes cannot target an unrelated source file', async (t) => {
   const { file, options } = await fixture(t);
-  const source = path.join(path.dirname(file), 'source.js'); await writeFile(source, 'original source');
+  const source = artifactJoin(path.dirname(file), 'source.js'); await writeFile(source, 'original source');
   await assert.rejects(executionControl(file, { action: 'complete', steps: [evidence(1)] }, { ...options, ledgerPath: source }), /ledger must match/);
   assert.equal(await readFile(source, 'utf8'), 'original source');
 });
@@ -381,7 +383,7 @@ test('diagnosis audit survives render failure and replay repairs it once without
 
 test('render failure after audit persistence retains one diagnosis entry across retries', async (t) => {
   const { file, options } = await fixture(t);
-  const statePath = path.join(path.dirname(file), 'DEMO-state.md');
+  const statePath = artifactJoin(path.dirname(file), 'DEMO-state.md');
   const legacy = (await readFile(new URL('../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', import.meta.url), 'utf8')).replace('phase: final-sync', 'phase: execute');
   await writeFile(statePath, legacy);
   await writeFile(statePath.replace('-state.md', '-status.html'), 'Existing dashboard');

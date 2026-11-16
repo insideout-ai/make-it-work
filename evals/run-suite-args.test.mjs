@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { spawnSync, execFileSync } from 'node:child_process';
@@ -58,12 +59,12 @@ test('passes allowed tools and scaffold for a Bash-enabled case', () => {
 
 
 test('headless workdir starts inside the selected repo and rejects traversal, files and escaping links', async (t) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'eval-working-directory-'));
-  const outside = await mkdtemp(path.join(os.tmpdir(), 'eval-working-directory-outside-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'eval-working-directory-'));
+  const outside = await mkdtemp(artifactJoin(os.tmpdir(), 'eval-working-directory-outside-'));
   t.after(() => Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]));
-  const child = path.join(root, 'connector-app');
-  await mkdir(child); await writeFile(path.join(root, 'file.txt'), 'text');
-  await symlink(outside, path.join(root, 'escape'));
+  const child = artifactJoin(root, 'connector-app');
+  await mkdir(child); await writeFile(artifactJoin(root, 'file.txt'), 'text');
+  await symlink(outside, artifactJoin(root, 'escape'));
   execFileSync('git', ['init', '-q', '-b', 'main'], { cwd: child });
   assert.equal(await caseWorkingDirectory(root), await realpath(root));
   const cwd = await caseWorkingDirectory(root, 'connector-app');

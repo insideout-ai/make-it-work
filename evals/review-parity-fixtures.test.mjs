@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -9,11 +10,11 @@ import { validateVerification } from '../skills/implement/scripts/verification.m
 const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
 for (const [name, supported] of [['review-the-code-false-parity', false], ['review-the-code-shared-parity', true]]) {
   test(`${name}: real passing evidence distinguishes unsupported and supported shared coverage`, async (t) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'review-parity-fixture-'));
+    const root = await mkdtemp(artifactJoin(os.tmpdir(), 'review-parity-fixture-'));
     t.after(() => rm(root, { recursive: true, force: true }));
-    const fixture = path.join(import.meta.dirname, 'review-the-code', name, 'fixture.sh');
+    const fixture = artifactJoin(import.meta.dirname, 'review-the-code', name, 'fixture.sh');
     execFileSync('bash', [fixture], { cwd: root, env, stdio: 'pipe' });
-    const prefix = path.join(root, 'make-it-work/PAY-200/PAY-200');
+    const prefix = artifactJoin(root, 'make-it-work/PAY-200/PAY-200');
     const ledger = JSON.parse(await readFile(`${prefix}-verification-v1.json`));
     const plan = await readFile(`${prefix}-plan.md`, 'utf8');
     assert.equal(validateVerification(ledger, { ticket: 'PAY-200', planVersion: 1, plan, outcome: 'PASSED', requireComplete: true }).acceptance.length, 2);
@@ -35,8 +36,8 @@ for (const [name, supported] of [['review-the-code-false-parity', false], ['revi
     if (supported) {
       assert.deepEqual(probe.actualError, probe.referenceError);
       assert.deepEqual(probe.actualCancel, probe.referenceCancel);
-      const source = await readFile(path.join(root, 'src/connector.js'), 'utf8');
-      await writeFile(path.join(root, 'src/connector.js'), source.replace("code: 'FAILOVER', retry: true", "code: 'INVALID_INPUT', retry: false"));
+      const source = await readFile(artifactJoin(root, 'src/connector.js'), 'utf8');
+      await writeFile(artifactJoin(root, 'src/connector.js'), source.replace("code: 'FAILOVER', retry: true", "code: 'INVALID_INPUT', retry: false"));
       assert.equal(runTests().status, 1, 'Reference-comparison assertions must catch an error-parity mutation.');
     } else {
       assert.notDeepEqual(probe.actualError, probe.referenceError);

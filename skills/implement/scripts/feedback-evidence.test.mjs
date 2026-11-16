@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -13,11 +14,11 @@ function withoutFeedbackNotes(markdown) {
 }
 
 test('numbered evidence removes embedded images; marker-only feedback is rejected and late delivery refreshes do not retrigger it', async t => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'feedback-source-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'feedback-source-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const dir = path.join(root, 'make-it-work/DEMO'); await mkdir(dir, { recursive: true });
+  const dir = artifactJoin(root, 'make-it-work/DEMO'); await mkdir(dir, { recursive: true });
   const state = (await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8')).replace('status: In Progress', 'status: Complete').replace('phase: final-sync', 'phase: complete\nfeedback_evidence_version: 1').trimEnd() + '\n| 7 | 2026-01-01T10:06:00Z | final-sync | complete | Context synchronized |\n';
-  const statePath = path.join(dir, 'DEMO-state.md'), htmlPath = path.join(dir, 'DEMO-status.html');
+  const statePath = artifactJoin(dir, 'DEMO-state.md'), htmlPath = artifactJoin(dir, 'DEMO-status.html');
   await writeFile(statePath, state);
   const html = '<html>\n<style>body{overflow-wrap:anywhere}</style>\n<h1>Complete</h1>\n<img alt="Logo" src="data:image/png;base64,' + 'A'.repeat(20000) + '">\n</html>\n';
   await writeFile(htmlPath, html);
@@ -43,8 +44,8 @@ test('numbered evidence removes embedded images; marker-only feedback is rejecte
     { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'packet', content: output.stdout }] } }];
   assert.match((await feedbackHold({ hook_event_name: 'Stop' }, statePath, fields, events)).reason, /current body has not been read back/);
   const timestamp = new Date(Date.now() + 1000).toISOString();
-  events.push({ type: 'assistant', timestamp, message: { content: [{ type: 'tool_use', id: 'readback', name: 'Read', input: { file_path: path.join(dir, 'workflow-feedback.md') } }] } },
-    { type: 'user', timestamp, message: { content: [{ type: 'tool_result', tool_use_id: 'readback', content: await readFile(path.join(dir, 'workflow-feedback.md'), 'utf8') }] } });
+  events.push({ type: 'assistant', timestamp, message: { content: [{ type: 'tool_use', id: 'readback', name: 'Read', input: { file_path: artifactJoin(dir, 'workflow-feedback.md') } }] } },
+    { type: 'user', timestamp, message: { content: [{ type: 'tool_result', tool_use_id: 'readback', content: await readFile(artifactJoin(dir, 'workflow-feedback.md'), 'utf8') }] } });
   assert.equal(await feedbackHold({ hook_event_name: 'Stop' }, statePath, fields, events), null);
   await writeFile(htmlPath, html.replace('Complete</h1>', 'Complete; delivery declined</h1>'));
   assert.equal(await feedbackHold({ hook_event_name: 'Stop' }, statePath, fields, events), null);
@@ -86,4 +87,18 @@ test('stage diagnostics identify the rejected field and its allowed values witho
     assert.throws(() => validateEvidenceReview({ ...input, process: [valid, entry] }, packet, value => value), message);
   }
   assert.equal(validateEvidenceReview(input, packet, value => value), input);
+});
+
+test('new runs export numbered evidence to a prefixed filename', async t => {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-evidence-export-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = path.join(root, 'make-it-work', 'DEMO'); await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, 'miw-run.json'), '{"artifact_naming_version":1}');
+  const state = (await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8'))
+    .replace('ticket: DEMO', 'ticket: DEMO\nartifact_naming_version: 1')
+    .replace('status: In Progress', 'status: Complete').replace('phase: final-sync', 'phase: complete\nfeedback_evidence_version: 1').trimEnd() + '\n| 7 | 2026-01-01T10:06:00Z | final-sync | complete | Context synchronized |\n';
+  const statePath = path.join(directory, 'miw-DEMO-state.md'); await writeFile(statePath, state);
+  const output = path.join(directory, 'miw-feedback-evidence.txt');
+  const result = spawnSync(process.execPath, [path.resolve('skills/implement/scripts/write-feedback.mjs'), 'evidence', '--state', statePath, '--output', output], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr); assert.equal(JSON.parse(result.stdout).outputPath, output);
+  assert.match(await readFile(output, 'utf8'), /LOCAL EVIDENCE ONLY/);
 });

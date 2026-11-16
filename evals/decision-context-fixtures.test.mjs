@@ -1,3 +1,4 @@
+import { artifactJoin } from '../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -10,11 +11,11 @@ import { parseQuestions, resolveQuestions } from '../scripts/questions.mjs';
 const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
 for (const variant of ['mixed-sources', 'pm-followup', 'stale-recommendation']) {
   test(`decision context ${variant}: source records, question state and current export evidence remain distinct`, async (t) => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'decision-context-fixture-'));
+    const root = await mkdtemp(artifactJoin(os.tmpdir(), 'decision-context-fixture-'));
     t.after(() => rm(root, { recursive: true, force: true }));
-    const fixture = path.join(import.meta.dirname, 'close-the-gaps', `close-the-gaps-${variant}`, 'fixture.sh');
+    const fixture = artifactJoin(import.meta.dirname, 'close-the-gaps', `close-the-gaps-${variant}`, 'fixture.sh');
     execFileSync('bash', [fixture], { cwd: root, env, stdio: 'pipe' });
-    const prefix = path.join(root, 'make-it-work/DEC-600/DEC-600');
+    const prefix = artifactJoin(root, 'make-it-work/DEC-600/DEC-600');
     const questions = await readFile(`${prefix}-questions.md`, 'utf8');
     const resolved = resolveQuestions(parseQuestions(questions));
     assert.deepEqual(resolved.conflicts, []);
@@ -46,14 +47,14 @@ console.log(JSON.stringify({total:orders.length,pages,distinct:new Set(pages.fla
       assert.deepEqual(current.pages[0], current.pages[2]);
       assert.equal(current.distinct, 100);
       assert.match(questions, /Automatically paginate to export every order \(Recommended\)/);
-      const old = await readFile(path.join(root, 'docs/prior-session.md'), 'utf8');
+      const old = await readFile(artifactJoin(root, 'docs/prior-session.md'), 'utf8');
       assert.match(old, /older claim.*supported cursors/);
       assert.match(old, /Q2 recommended CSV-only/);
-      assert.match(await readFile(path.join(root, 'docs/provider-contract.md'), 'utf8'), /no cursor, offset/);
+      assert.match(await readFile(artifactJoin(root, 'docs/provider-contract.md'), 'utf8'), /no cursor, offset/);
     }
     const baseline = JSON.parse(await readFile(`${prefix}-decision-baseline.json`));
     assert.equal(baseline.variant, variant);
-    for (const [file, hash] of Object.entries(baseline.protectedFiles)) assert.equal(createHash('sha256').update(await readFile(path.join(root, file))).digest('hex'), hash);
+    for (const [file, hash] of Object.entries(baseline.protectedFiles)) assert.equal(createHash('sha256').update(await readFile(artifactJoin(root, file))).digest('hex'), hash);
     const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' }).trim();
     assert.equal(git('status', '--porcelain'), '');
     assert.equal(git('rev-parse', 'HEAD'), baseline.head);

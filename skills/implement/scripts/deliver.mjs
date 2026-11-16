@@ -1,8 +1,11 @@
 #!/usr/bin/env node
+import { ensureArtifactIgnored, assertNoOutgoingArtifacts } from '../../../scripts/lib/artifact-git.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, open, readFile, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { mkdtemp, open, realpath, rename, rm, stat, unlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,7 +47,7 @@ async function loadProgress(context) {
 }
 
 async function refreshDashboard(context) {
-  const dashboard = path.join(path.dirname(context.statePath), `${context.state.fields.ticket}-status.html`);
+  const dashboard = context.statePath.replace(/-state\.md$/, '-status.html');
   try { await stat(dashboard); }
   catch (error) { if (error.code === 'ENOENT') return; throw error; }
   await generateDashboard(context.statePath);
@@ -107,8 +110,8 @@ function assertSafeRepo(repo) {
 }
 
 async function targetTree(repo) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'make-it-work-delivery-'));
-  const index = path.join(directory, 'index');
+  const directory = await mkdtemp(artifactJoin(os.tmpdir(), 'make-it-work-delivery-'));
+  const index = artifactJoin(directory, 'index');
   try {
     const env = { ...process.env, GIT_INDEX_FILE: index };
     git(repo.path, ['read-tree', repo.head], { env });
@@ -150,11 +153,13 @@ async function prepare(context) {
     fail('Delivery already started; use status or run to resume.');
   }
   const check = await checkFinalPackage(root, statePath, state.fields.autonomy === 'guided');
-  const pkg = JSON.parse(await readFile(path.join(runDirectory(root, state.fields.ticket), `${state.fields.ticket}-final-package.json`), 'utf8'));
+  const pkg = JSON.parse(await readFile(artifactJoin(runDirectory(root, state.fields.ticket), `${state.fields.ticket}-final-package.json`), 'utf8'));
   const repos = [];
   for (const original of pkg.repos) {
     if (original.paths.length === 0) continue; // Supporting repos remain bound by the package, but need no delivery.
     const repo = { ...original };
+    await ensureArtifactIgnored(artifactJoin(repo.path, 'make-it-work'));
+    assertNoOutgoingArtifacts(repo.path);
     assertSafeRepo(repo);
     if (utf8(git(repo.path, ['rev-parse', 'HEAD']).stdout) !== repo.head) fail(`HEAD changed in ${repo.name}.`);
     if (utf8(git(repo.path, ['symbolic-ref', '--quiet', '--short', 'HEAD']).stdout) !== repo.branch) fail(`Branch changed in ${repo.name}.`);
@@ -181,18 +186,18 @@ async function prepare(context) {
 }
 
 async function verifyEvidence(context, plan) {
-  const pkgPath = path.join(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-package.json`);
+  const pkgPath = artifactJoin(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-package.json`);
   const pkg = JSON.parse(await readFile(pkgPath, 'utf8'));
   if (sha(JSON.stringify(pkg)) !== plan.package_sha256) fail('Approved final package changed.');
   const evidenceDirectory = runDirectory(context.root, plan.ticket);
   for (const item of [...Object.values(pkg.evidence), { path: pkg.draft_path, sha256: pkg.draft_sha256 }]) {
-    const file = path.resolve(context.root, item.path);
+    const file = artifactResolve(context.root, item.path);
     if (!file.startsWith(`${evidenceDirectory}${path.sep}`)) fail(`Approved evidence path escaped: ${item.path}`);
     const actual = await realpath(file);
     if (!actual.startsWith(`${evidenceDirectory}${path.sep}`) || sha(await readFile(actual)) !== item.sha256) fail(`Approved evidence changed: ${item.path}`);
   }
   if (context.state.fields.autonomy === 'guided') {
-    const stamp = JSON.parse(await readFile(path.join(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-approval.json`), 'utf8'));
+    const stamp = JSON.parse(await readFile(artifactJoin(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-approval.json`), 'utf8'));
     if (stamp.package_sha256 !== plan.package_sha256) fail('Final package approval changed.');
   }
 }
@@ -334,6 +339,7 @@ async function run(context, expectedHash) {
       if (!item.pushed) {
         progress.activity = `Pushing ${repo.name}.`;
         await saveProgress(context, progress);
+        assertNoOutgoingArtifacts(repo.path);
         if (remoteHead !== item.commit) git(repo.path, ['push', 'origin', `refs/heads/${repo.branch}:refs/heads/${repo.branch}`]);
         item.pushed = item.commit;
         await saveProgress(context, progress);
@@ -387,7 +393,7 @@ async function main(args) {
   return run(context, options.hash);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main(process.argv.slice(2)).then((result) => console.log(JSON.stringify(result))).catch((error) => {
     console.error(error.message);
     process.exitCode = 1;

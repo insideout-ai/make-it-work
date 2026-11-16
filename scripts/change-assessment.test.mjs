@@ -1,3 +1,4 @@
+import { artifactJoin } from './lib/artifact-path.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
@@ -7,13 +8,13 @@ import path from 'node:path';
 import { assess, captureScope, saveAssessment, readAssessment, unavailable, assessmentSummary } from './change-assessment.mjs';
 
 async function fixture(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'assessment-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'assessment-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const repo = path.join(root, 'app'); await mkdir(repo);
+  const repo = artifactJoin(root, 'app'); await mkdir(repo);
   const git = (...args) => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' });
   git('init', '-b', 'main'); git('config', 'user.email', 'test@example.test'); git('config', 'user.name', 'Test');
-  await writeFile(path.join(repo, 'code.py'), 'def run():\n    return 1\n'); git('add', '.'); git('commit', '-m', 'base'); git('switch', '-c', 'feature');
-  await writeFile(path.join(repo, 'code.py'), 'def run():\n    return 2\n');
+  await writeFile(artifactJoin(repo, 'code.py'), 'def run():\n    return 1\n'); git('add', '.'); git('commit', '-m', 'base'); git('switch', '-c', 'feature');
+  await writeFile(artifactJoin(repo, 'code.py'), 'def run():\n    return 2\n');
   const scope = { label: 'DEMO', reference: 'explicit delivery', repos: [{ path: repo, base: 'main' }] };
   return { root, repo, scope, git, snapshot: await captureScope(scope) };
 }
@@ -54,7 +55,7 @@ test('confirmed non-executable scope has complete inapplicable metrics and indep
   const result = assess(snapshot,input); assert.equal(result.complexity,'Low'); assert.equal(result.risk,'High'); assert.equal(result.completeness,'complete');
 });
 test('inaccessible multi-repository scope preserves assessed portions without delivery ratings', async t => {
-  const { scope, root } = await fixture(t); scope.repos.push({ path: path.join(root,'missing'), base:'main' });
+  const { scope, root } = await fixture(t); scope.repos.push({ path: artifactJoin(root,'missing'), base:'main' });
   const snap = await captureScope(scope); const result = assess(snap,evidence(snap));
   assert.equal(result.completeness,'partial'); assert.equal(result.complexity,null); assert.equal(result.risk,null); assert.equal(result.repos[0].complexity,'Low');
 });
@@ -72,19 +73,19 @@ test('snapshots include committed, staged, unstaged and untracked changes; repor
   await saveAssessment(root,'DEMO',assess(snapshot,evidence(snapshot)));
   const a=await readAssessment(root,'DEMO'); const b=await readAssessment(root,'DEMO'); assert.deepEqual(a,b);
   assert.equal((await readAssessment(root,'DEMO',snapshot.repos)).complexity,'Low');
-  await writeFile(path.join(repo,'new.bin'),Buffer.from([0,1,2])); git('add','code.py');
+  await writeFile(artifactJoin(repo,'new.bin'),Buffer.from([0,1,2])); git('add','code.py');
   const changed=await captureScope(scope); assert.notEqual(changed.snapshot_id,snapshot.snapshot_id); assert.ok(changed.repos[0].paths.includes('new.bin'));
   assert.throws(()=>assess(changed,evidence(snapshot)),/snapshot/);
   const stale=await readAssessment(root,'DEMO'); assert.equal(stale.stale,true); assert.equal(stale.complexity,null);
   await saveAssessment(root,'DEMO',unavailable(changed,'Analyzer crashed during reassessment'));
   const failed=await readAssessment(root,'DEMO'); assert.match(assessmentSummary(failed),/Assessment unavailable.*crashed/); assert.equal(failed.complexity,null);
-  assert.match(await readFile(path.join(root,'make-it-work/DEMO',failed.stale_history),'utf8'),/Stale history/);
+  assert.match(await readFile(artifactJoin(root,'make-it-work/DEMO',failed.stale_history),'utf8'),/Stale history/);
 });
 test('report drift is unavailable; a missing report cannot produce a Low rating', async t => {
   const { root,snapshot }=await fixture(t);
   assert.equal((await readAssessment(root,'DEMO')).reason,'Not assessed yet');
   await saveAssessment(root,'DEMO',assess(snapshot,evidence(snapshot)));
-  await writeFile(path.join(root,'make-it-work/DEMO/DEMO-complexity.md'),'tampered');
+  await writeFile(artifactJoin(root,'make-it-work/DEMO/DEMO-complexity.md'),'tampered');
   assert.match((await readAssessment(root,'DEMO')).reason,/disagree/);
 });
 

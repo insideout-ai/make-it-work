@@ -1,4 +1,6 @@
-import { readFile, realpath } from 'node:fs/promises';
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { digest, fail, requireText } from '../../../scripts/lib/artifacts.mjs';
 
@@ -15,14 +17,14 @@ export async function reviewRequirements(repoRoots, records, maintenance = []) {
     if (!Array.isArray(entry.skills)) fail('Review requirements need selected skill names and loading methods.');
     const selected = [...entry.skills];
     let strategy = '';
-    try { strategy = await readFile(path.join(repo, '.claude/skills/test-strategy/SKILL.md'), 'utf8'); }
+    try { strategy = await readFile(artifactJoin(repo, '.claude/skills/test-strategy/SKILL.md'), 'utf8'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (strategy && !selected.some(s => s.name === 'test-strategy')) selected.push({ name: 'test-strategy', method: 'Read' });
     const skills = [];
     for (const skill of selected) {
       if (!/^[a-z0-9][a-z0-9-]*$/.test(skill.name ?? '') || !['Skill', 'Read'].includes(skill.method) || skills.some(s => s.name === skill.name)) fail('Required skills need unique names and the repository-prescribed Skill or Read method.');
       const relative = `.claude/skills/${skill.name}/SKILL.md`;
-      const file = await realpath(path.join(repo, relative));
+      const file = await realpath(artifactJoin(repo, relative));
       if (!file.startsWith(`${repo}${path.sep}`)) fail('Required review skill escapes the approved repository.');
       const bytes = await readFile(file, 'utf8');
       skills.push({ name: skill.name, method: skill.method, path: relative, sha256: digest(bytes), lines: bytes.split(/\r?\n/).length });

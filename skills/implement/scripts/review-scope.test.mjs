@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
@@ -12,14 +13,14 @@ import { parseState } from './render-status.mjs';
 
 const git = (root, ...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim();
 async function fixture(t) {
-  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'delivery-review-')));
+  const root = await realpath(await mkdtemp(artifactJoin(os.tmpdir(), 'delivery-review-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   git(root, 'init', '-qb', 'main'); git(root, 'config', 'user.name', 'Test'); git(root, 'config', 'user.email', 'test@example.invalid');
-  await mkdir(path.join(root, 'src')); await writeFile(path.join(root, 'src/code.js'), 'export const count = 0;\n');
-  await writeFile(path.join(root, '.gitignore'), 'make-it-work/\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'Baseline'); git(root, 'switch', '-qc', 'feature');
-  await writeFile(path.join(root, 'src/code.js'), 'export const count = 1;\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'Earlier branch work');
-  await writeFile(path.join(root, 'src/code.js'), 'export const count = 1;\nexport const extra = 2;\n');
-  const dir = path.join(root, 'make-it-work/DEMO'); await mkdir(dir, { recursive: true });
+  await mkdir(artifactJoin(root, 'src')); await writeFile(artifactJoin(root, 'src/code.js'), 'export const count = 0;\n');
+  await writeFile(artifactJoin(root, '.gitignore'), 'make-it-work/\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'Baseline'); git(root, 'switch', '-qc', 'feature');
+  await writeFile(artifactJoin(root, 'src/code.js'), 'export const count = 1;\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'Earlier branch work');
+  await writeFile(artifactJoin(root, 'src/code.js'), 'export const count = 1;\nexport const extra = 2;\n');
+  const dir = artifactJoin(root, 'make-it-work/DEMO'); await mkdir(dir, { recursive: true });
   const fields = { ticket: 'DEMO', handoff_version: '1', controller_version: '1', final_package_version: '1', review_scope_version: '1',
     status: 'In Progress', phase: 'review', autonomy: 'autonomous', start_time: '2026-01-01T10:00:00Z',
     execution_mode: 'inline', inline_pause_mode: 'run-straight-through', spec: 'make-it-work/DEMO/DEMO-spec.md', spec_hash: 'spec',
@@ -28,9 +29,9 @@ async function fixture(t) {
     branch: 'feature', base: 'main', head: git(root, 'rev-parse', 'HEAD'), worktree_fingerprint: 'fingerprint',
     execute_report: 'make-it-work/DEMO/DEMO-execute.md', context_updated: 'none', current_activity: 'none', real_rows_from: '1',
     workspace_snapshot: JSON.stringify([{ root, branch: 'feature' }]) };
-  const statePath = path.join(dir, 'DEMO-state.md');
+  const statePath = artifactJoin(dir, 'DEMO-state.md');
   await writeFile(statePath, `# Workflow state — DEMO\n\n\`\`\`\n${Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | 2026-01-01T10:00:00Z | execute | review | Execution passed |\n`);
-  for (const name of ['spec', 'plan', 'execute']) await writeFile(path.join(dir, `DEMO-${name}.md`), `# ${name}\n`);
+  for (const name of ['spec', 'plan', 'execute']) await writeFile(artifactJoin(dir, `DEMO-${name}.md`), `# ${name}\n`);
   const input = () => ({ version: 1, ticket: 'DEMO', branch: 'feature', commit: git(root, 'rev-parse', 'HEAD'), working_tree: true,
     coverage: 'The entire branch-to-base delivery diff was inspected.', findings: [], repo_roots: { app: root },
     review_scope: [{ repo: 'app', base: 'main', scope: 'branch', paths: ['src/code.js'] }],
@@ -47,31 +48,31 @@ test('review cannot silently narrow a full delivery target to HEAD or omit earli
   const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
   input.review_scope[0].scope = 'working-tree';
   await assert.rejects(writeReview(f.root, input), /full delivery diff/);
-  await assert.rejects(readFile(path.join(f.dir, 'DEMO-review.md')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(f.dir, 'DEMO-review.md')), { code: 'ENOENT' });
   input.review_scope[0].scope = 'branch'; input.review_scope[0].paths = [];
   await assert.rejects(writeReview(f.root, input), /full delivery diff/);
   input.review_scope[0].paths = ['src/code.js'];
   const review = await writeReview(f.root, input);
   assert.equal(review.outcome, 'CLEAN'); assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
-  const proof = JSON.parse(await readFile(path.join(f.dir, 'DEMO-review-evidence.json'), 'utf8'));
+  const proof = JSON.parse(await readFile(artifactJoin(f.dir, 'DEMO-review-evidence.json'), 'utf8'));
   assert.equal(proof.delivery_target.sha256, target.sha256);
   proof.repos[0].scope = 'working-tree';
-  await writeFile(path.join(f.dir, 'DEMO-review-evidence.json'), JSON.stringify(proof));
+  await writeFile(artifactJoin(f.dir, 'DEMO-review-evidence.json'), JSON.stringify(proof));
   await assert.rejects(checkReviewScope(f.root, f.statePath), /not fully reviewed/);
 });
 
 test('missing required skill applications or mapping assessment cannot produce a CLEAN handoff', async t => {
   const f = await fixture(t);
-  await mkdir(path.join(f.root, '.claude/skills/domain-demo'), { recursive: true });
-  await writeFile(path.join(f.root, '.claude/skills/domain-demo/SKILL.md'), '# Domain\nPreserve the documented count.\n');
+  await mkdir(artifactJoin(f.root, '.claude/skills/domain-demo'), { recursive: true });
+  await writeFile(artifactJoin(f.root, '.claude/skills/domain-demo/SKILL.md'), '# Domain\nPreserve the documented count.\n');
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('review_scope_version: 1', 'review_scope_version: 1\nreview_checks_version: 1'));
   await f.apply('review-context', { context_updated: [], review_requirements: [{ repo: f.root, reason: 'Count changes belong to the demo domain', skills: [{ name: 'domain-demo', method: 'Read' }] }] });
   const target = await prepareReviewScope(f.root, f.statePath);
   const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
   input.review_scope[0].paths = target.repos[0].paths;
   await assert.rejects(writeReview(f.root, input), /review_checks/);
-  await assert.rejects(readFile(path.join(f.dir, 'DEMO-review.md')), { code: 'ENOENT' });
-  const skill = JSON.parse(await readFile(path.join(f.root, target.review_target), 'utf8')).review_requirements[0].skills[0];
+  await assert.rejects(readFile(artifactJoin(f.dir, 'DEMO-review.md')), { code: 'ENOENT' });
+  const skill = JSON.parse(await readFile(artifactJoin(f.root, target.review_target), 'utf8')).review_requirements[0].skills[0];
   input.review_checks = [{ repo: f.root, skills: [{ name: skill.name, method: skill.method, sha256: skill.sha256, rules: [{ line: 2, rule: 'Preserve count behavior', observation: 'Inspected count and extra exports against the required domain behavior', result: 'satisfied' }] }], test_map: { status: 'not-applicable', note: 'No test-map strategy is registered', tests: [] } }];
   const reviewed = await writeReview(f.root, input);
   assert.equal(reviewed.outcome, 'CLEAN'); assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
@@ -81,7 +82,7 @@ test('known context is included before review so unchanged final sync needs no a
   const f = await fixture(t);
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('review_scope_version: 1', 'review_scope_version: 1\nreview_context_version: 1'));
   await assert.rejects(prepareReviewScope(f.root, f.statePath), /checkpoint review-context/);
-  await writeFile(path.join(f.root, 'README.md'), '# Updated behavior\n');
+  await writeFile(artifactJoin(f.root, 'README.md'), '# Updated behavior\n');
   const prepared = await f.apply('review-context', { context_updated: ['README.md'] });
   assert.equal(prepared.fields.phase, 'review'); assert.equal(prepared.fields.review_cycle, '1');
   assert.equal(prepared.fields.context_updated, 'README.md');
@@ -98,13 +99,13 @@ test('known context is included before review so unchanged final sync needs no a
 
 test('staged, untracked, binary and deleted changes share the review/package snapshot; drift invalidates the target', async (t) => {
   const f = await fixture(t);
-  await writeFile(path.join(f.root, 'new.bin'), Buffer.from([0, 1, 255]));
-  await rm(path.join(f.root, 'src/code.js')); git(f.root, 'add', 'src/code.js');
+  await writeFile(artifactJoin(f.root, 'new.bin'), Buffer.from([0, 1, 255]));
+  await rm(artifactJoin(f.root, 'src/code.js')); git(f.root, 'add', 'src/code.js');
   const target = await prepareReviewScope(f.root, f.statePath);
   assert.deepEqual(target.repos[0].paths, ['new.bin', 'src/code.js']);
   const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 }; input.review_scope[0].paths = target.repos[0].paths;
   await writeReview(f.root, input); assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
-  await writeFile(path.join(f.root, 'new.bin'), Buffer.from([0, 2, 255]));
+  await writeFile(artifactJoin(f.root, 'new.bin'), Buffer.from([0, 2, 255]));
   await assert.rejects(checkReviewScope(f.root, f.statePath), /not fully reviewed/);
   await assert.rejects(writeReview(f.root, input), /changed during review/);
 });
@@ -113,13 +114,13 @@ test('clean handoffs require target evidence; final-sync changes route back to r
   const f = await fixture(t);
   const target = await prepareReviewScope(f.root, f.statePath);
   const review = await writeReview(f.root, { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 });
-  const proofPath = path.join(f.dir, 'DEMO-review-evidence.json');
+  const proofPath = artifactJoin(f.dir, 'DEMO-review-evidence.json');
   const proof = await readFile(proofPath, 'utf8'); const omitted = JSON.parse(proof); delete omitted.delivery_target;
   await writeFile(proofPath, JSON.stringify(omitted));
   await assert.rejects(f.apply('handoff', { handoff: review.handoff }), /delivery-bound scope evidence/);
   await writeFile(proofPath, proof);
   assert.equal((await f.apply('handoff', { handoff: review.handoff })).fields.phase, 'final-sync');
-  await writeFile(path.join(f.root, 'CLAUDE.md'), '# Final context sync\n');
+  await writeFile(artifactJoin(f.root, 'CLAUDE.md'), '# Final context sync\n');
   const syncInput = { event: 'sync-complete', id: 'sync-docs', repos: [f.root], expected_hash: digest(await readFile(f.statePath, 'utf8')), context_updated: ['CLAUDE.md'], delivery_scope_changed: false };
   const sync = await applyWorkflow({ root: f.root, statePath: f.statePath, input: syncInput });
   assert.equal(sync.fields.phase, 'review'); assert.equal(sync.next_action.phase, 'review'); assert.equal(sync.fields.review_cycle, '2'); assert.equal(sync.fields.fix_cycle, '0');
@@ -132,7 +133,7 @@ test('clean handoffs require target evidence; final-sync changes route back to r
   assert.equal((await f.apply('handoff', { handoff: second.handoff })).fields.phase, 'final-sync');
   assert.equal((await f.apply('sync-complete', { context_updated: [] })).fields.phase, 'final-approval');
   assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
-  const draft = path.join(f.dir, 'DEMO-final-draft.json');
+  const draft = artifactJoin(f.dir, 'DEMO-final-draft.json');
   await writeFile(draft, JSON.stringify({ commit_message: 'Feature', pr_title: 'Feature', pr_description: 'Full delivered scope reviewed.' }));
   const script = new URL('./final-package.mjs', import.meta.url).pathname;
   const build = (...extra) => JSON.parse(execFileSync(process.execPath, [script, 'build', '--root', f.root, '--state', f.statePath, '--draft', draft, '--repo', f.root, ...extra], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
@@ -144,10 +145,10 @@ test('clean handoffs require target evidence; final-sync changes route back to r
   const { reviewDisclosure } = await import('../../../scripts/lib/review-evidence.mjs');
   assert.match(reviewDisclosure(pkg.review_scope, pkg.ui_verification), /skimmed.*src\/code.js/);
   assert.ok(pkg.evidence.review_target); assert.ok(pkg.evidence.review_target_diff_0);
-  assert.equal(pkg.repos[0].diff_sha256, JSON.parse(await readFile(path.join(f.root, updated.review_target), 'utf8')).repos[0].diff_sha256);
+  assert.equal(pkg.repos[0].diff_sha256, JSON.parse(await readFile(artifactJoin(f.root, updated.review_target), 'utf8')).repos[0].diff_sha256);
   assert.throws(() => build('--base', 'feature'), /repositories or bases differ/);
   await assert.rejects(f.apply('refresh-review'), /already reviewed/);
-  await writeFile(path.join(f.root, 'CLAUDE.md'), '# Changed after review\n');
+  await writeFile(artifactJoin(f.root, 'CLAUDE.md'), '# Changed after review\n');
   assert.throws(() => build(), /not fully reviewed/);
   const refresh = await f.apply('refresh-review'); assert.equal(refresh.fields.phase, 'review');
   assert.equal(refresh.fields.review_cycle, '3'); assert.equal(refresh.fields.fix_cycle, '0');
@@ -157,13 +158,13 @@ test('review-target artifacts cannot be rebound or changed without another revie
   const f = await fixture(t), target = await prepareReviewScope(f.root, f.statePath);
   const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
   await writeReview(f.root, input);
-  const file = path.join(f.root, target.review_target), original = await readFile(file, 'utf8');
+  const file = artifactJoin(f.root, target.review_target), original = await readFile(file, 'utf8');
   await writeFile(file, original.replace('2026-01-01T10:00:00Z', '2025-01-01T10:00:00Z'));
   await assert.rejects(checkReviewScope(f.root, f.statePath), /binding is stale/);
   await writeFile(file, original);
-  const manifest = JSON.parse(original); await writeFile(path.join(f.dir, manifest.repos[0].diff_file), 'tampered');
+  const manifest = JSON.parse(original); await writeFile(artifactJoin(f.dir, manifest.repos[0].diff_file), 'tampered');
   await assert.rejects(checkReviewScope(f.root, f.statePath), /target diff changed/);
-  await writeFile(path.join(f.root, 'src/code.js'), 'export const count = 3;\n');
+  await writeFile(artifactJoin(f.root, 'src/code.js'), 'export const count = 3;\n');
   const replacement = await prepareReviewScope(f.root, f.statePath);
   assert.notEqual(replacement.sha256, target.sha256);
   await assert.rejects(writeReview(f.root, input), /hash differs from the dispatched snapshot/);
@@ -207,15 +208,15 @@ test('frozen review context preserves policy provenance and unverified criteria 
   const f = await fixture(t);
   const retained = { source: 'user', via: 'chat', decisions: [{ decision: 'Use code inspection now', reference: 'Explicit restart choice', unverified: ['Database boundaries', 'Internal-only access'] }] };
   const readiness = 'make-it-work/DEMO/DEMO-testing-readiness.md';
-  await writeFile(path.join(f.root, readiness), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User selected manual checks; no behavior observed |\n');
+  await writeFile(artifactJoin(f.root, readiness), '# Readiness\n\n## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| app | manual | user | User selected manual checks; no behavior observed |\n');
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: review', `phase: review\nmode: lightweight\ntesting_readiness: ${readiness}\nretained_verification: ${JSON.stringify(retained)}`));
   const prepared = await prepareReviewScope(f.root, f.statePath);
-  const target = JSON.parse(await readFile(path.join(f.root, prepared.review_target), 'utf8'));
+  const target = JSON.parse(await readFile(artifactJoin(f.root, prepared.review_target), 'utf8'));
   assert.equal(target.verification_context.mode, 'lightweight');
   assert.deepEqual(target.verification_context.retained_decisions, retained);
   assert.equal(target.verification_context.policy[0].Decision, 'user');
   assert.equal(target.verification_context.policy[0].Mode, 'manual');
   assert.equal(target.verification_context.policy_source.path, readiness);
-  await writeFile(path.join(f.root, readiness), (await readFile(path.join(f.root, readiness), 'utf8')).replace('no behavior observed', 'criteria still unverified'));
+  await writeFile(artifactJoin(f.root, readiness), (await readFile(artifactJoin(f.root, readiness), 'utf8')).replace('no behavior observed', 'criteria still unverified'));
   await assert.rejects(writeReview(f.root, { ...f.input(), review_target: prepared.review_target, review_target_sha256: prepared.sha256 }), /Verification context changed/);
 });

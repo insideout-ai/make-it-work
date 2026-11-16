@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { recordActivityTiming } from '../skills/implement/scripts/activity-timing.mjs';
 import { spawn } from 'node:child_process';
-import { readFile, realpath } from 'node:fs/promises';
+import { readFile } from './lib/artifact-io.mjs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, cli, digest, fail, jsonInput, requireText } from './lib/artifacts.mjs';
 import { checkpointResult } from '../skills/implement/scripts/dashboard-checkpoint.mjs';
@@ -84,10 +86,11 @@ function combineRuns(runs) {
   return result.map((item) => item.run);
 }
 export async function runRegression(input, { env = process.env, statePath, auditId } = {}) {
-  let workspaceContract = null;
+  let workspaceContract = null, workflowState = null;
   if (statePath || auditId) {
     if (!statePath || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(auditId ?? '')) fail('Audited regression requires a state path and stable audit id.');
     const state = parseState(await readFile(statePath, 'utf8'), statePath);
+    workflowState = state;
     if (state.fields.phase !== 'execute' || state.fields.status !== 'In Progress') fail('Audited regression requires active execution.');
     if (state.fields.workspace_version === '1') workspaceContract = JSON.parse(state.fields.workspace_contract);
   }
@@ -131,6 +134,7 @@ export async function runRegression(input, { env = process.env, statePath, audit
     }
     if (unavailable) continue;
     const c = run.scope === 'scoped' ? scopedCommand(run.command, run.selectors, run.adapter) : command(run.command);
+    if (workflowState) await recordActivityTiming(statePath, workflowState, 'tests/verification');
     result.runs.push({ repo: run.repo, cwd, scope: run.scope, command: c,
       ...(await runCommand(c, cwd, { env, timeoutMs: run.timeout_ms ?? 300000 })) });
   }

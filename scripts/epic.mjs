@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { readFile } from './lib/artifact-io.mjs';
 import { args, cell, cli, fail, jsonInput, requireText, slug, writeSet } from './lib/artifacts.mjs';
 import { normalizeEntry, assertShapingResolutions } from './decision-log.mjs';
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Parent-owned completion barrier between testing readiness and planning.
-import { readFile, realpath } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, section, table, within, withLock } from '../../../scripts/lib/artifacts.mjs';
 import { parseState } from './render-status.mjs';
@@ -11,8 +13,8 @@ import { checkpointResult } from './dashboard-checkpoint.mjs';
 export const readinessMutationCommand = (input) => input.tool_name === 'Bash' && /testing-readiness\.mjs["']?\s+(?:begin|complete)\b/.test(input.tool_input?.command ?? '');
 const enabled = (f) => f.testing_readiness_version === '1';
 export const readinessPaths = (f) => ({
-  receipt: runArtifact(f.ticket, `${f.ticket}-readiness-v${f.plan_version}.json`),
-  report: runArtifact(f.ticket, `${f.ticket}-testing-readiness${f.plan_version === '1' ? '' : `-v${f.plan_version}`}.md`),
+  receipt: runArtifact(f.ticket, `${f.ticket}-readiness-v${f.plan_version}.json`, f.artifact_naming_version),
+  report: runArtifact(f.ticket, `${f.ticket}-testing-readiness${f.plan_version === '1' ? '' : `-v${f.plan_version}`}.md`, f.artifact_naming_version),
 });
 function binding(f) {
   const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos : JSON.parse(f.workspace_snapshot);
@@ -40,7 +42,7 @@ async function reportEvidence(root, state, { newSelection = false } = {}) {
       const repo = expected.scope.find(repo => repo.id === row.Repo) ?? (expected.scope.length === 1 ? expected.scope[0] : null);
       if (!repo) fail('Manual default repo is outside the selected scope.');
       if (newSelection) try {
-        await readFile(path.join(repo.root, '.claude/skills/test-strategy/SKILL.md'));
+        await readFile(artifactJoin(repo.root, '.claude/skills/test-strategy/SKILL.md'));
         fail('An existing strategy cannot use the missing-strategy manual default.');
       } catch (error) { if (error.code !== 'ENOENT') throw error; }
     }
@@ -92,7 +94,7 @@ export async function testingReadiness(statePath, action, { restart = false } = 
         if (prior.status === 'pending') return { required: true, ready: false, report: names.report, receipt: names.receipt, reused: true };
         fail('Invalid readiness checkpoint status.');
       }
-      await atomicWrite(path.join(root, names.receipt), JSON.stringify({ ...expected, status: 'pending', ...(prior?.policy ? { previous_policy: prior.policy } : prior?.previous_policy ? { previous_policy: prior.previous_policy } : {}) }, null, 2) + '\n');
+      await atomicWrite(artifactJoin(root, names.receipt), JSON.stringify({ ...expected, status: 'pending', ...(prior?.policy ? { previous_policy: prior.policy } : prior?.previous_policy ? { previous_policy: prior.previous_policy } : {}) }, null, 2) + '\n');
       return { required: true, ready: false, report: names.report, receipt: names.receipt };
     }
     const prior = await readReceipt(root, f);
@@ -103,7 +105,7 @@ export async function testingReadiness(statePath, action, { restart = false } = 
       if (row.Mode === 'manual' && row.Decision === 'autonomy-default' && previous.some(item => item.Repo === row.Repo && item.Mode === 'automated')) fail('An automated policy cannot become manual by autonomy-default; an explicit decision is required.');
     }
     const receipt = { ...expected, status: 'complete', ...evidence };
-    await atomicWrite(path.join(root, names.receipt), JSON.stringify(receipt, null, 2) + '\n');
+    await atomicWrite(artifactJoin(root, names.receipt), JSON.stringify(receipt, null, 2) + '\n');
     // Only the existing readiness pointer changes; no phase, approval or counter is advanced.
     const updated = markdown.replace(/^testing_readiness:.*$/m, `testing_readiness: ${names.report}`);
     parseState(updated, resolved);
@@ -120,5 +122,5 @@ export async function testingReadiness(statePath, action, { restart = false } = 
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--state', '--restart']);
   if (!['begin', 'complete', 'check'].includes(o.command) || !o.state || (o.restart !== undefined && (o.restart !== '1' || o.command !== 'begin'))) fail('Usage: testing-readiness.mjs begin|complete|check --state STATE [begin --restart 1]');
-  return testingReadiness(path.resolve(o.state), o.command, { restart: o.restart === '1' });
+  return testingReadiness(artifactResolve(o.state), o.command, { restart: o.restart === '1' });
 });

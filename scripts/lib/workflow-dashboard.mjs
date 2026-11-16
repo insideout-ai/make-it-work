@@ -1,14 +1,19 @@
 // Shared presentation for the implement and drive-the-epic dashboards.
 export const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 
-export function renderWorkflowHeader({ workflow, title, logoBase64, badges }) {
+export function renderWorkflowHeader({ workflow, title, logoBase64, badges, pluginVersion = null, usageSnapshot = null }) {
+  const usage = usageSnapshot;
+  const capacity = usage?.context_capacity ? new Intl.NumberFormat('en', { notation: 'compact' }).format(usage.context_capacity) : 'Unavailable';
+  const context = usage?.context_percent == null ? 'Unavailable' : `${usage.context_percent}% of ${capacity}`;
+  const cost = usage?.estimated_cost_usd == null ? 'Unavailable' : `~$${usage.estimated_cost_usd.toFixed(2)}`;
   return `<div class="header-row">
   <a href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
     <img src="data:image/png;base64,${escapeHtml(logoBase64)}" alt="InsideOut AI">
   </a>
   <h1>Make-It-Work: ${escapeHtml(workflow)}: <em>${escapeHtml(title)}</em></h1>
   <div class="header-badges" aria-label="Workflow settings">${badges}</div>
-</div>`;
+</div>
+<p class="workflow-metadata"><span class="plugin-version">${pluginVersion ? `Plugin v${escapeHtml(pluginVersion)}` : 'Plugin version: Unknown'}</span> · Context: ${escapeHtml(context)} · Estimated session cost: ${escapeHtml(cost)}${usage?.captured_at ? ` · Captured at ${escapeHtml(usage.captured_at)}` : ''}</p>`;
 }
 
 export const WORKFLOW_STYLES = `
@@ -34,6 +39,7 @@ export const WORKFLOW_STYLES = `
   .delivery-details { margin: 1.25rem 0; }
   .delivery-updated, .delivery-records { font-size: 0.85rem; color: #596773; }
 
+  .workflow-metadata { color: #596773; font-size: 0.8rem; overflow-wrap: anywhere; margin: 0.3rem 0 0.8rem; }
   .header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
   .header-row h1 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
@@ -149,4 +155,16 @@ export const WORKFLOW_TIMESTAMPS = `<script>
       cell.hidden = false;
     });
   })();
+// Refresh live elapsed values once per page load, using the existing HTML reload cadence.
+// No timer, polling, network request, or source-file mutation is introduced.
+document.querySelectorAll('[data-elapsed-start]').forEach(function (element) {
+  var start = Number(element.getAttribute('data-elapsed-start'));
+  var end = Math.max(Date.now(), Number(element.getAttribute('data-elapsed-min-end')));
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return;
+  var seconds = Math.floor((end - start) / 1000);
+  var days = Math.floor(seconds / 86400); seconds %= 86400;
+  var hours = Math.floor(seconds / 3600); seconds %= 3600;
+  var minutes = Math.floor(seconds / 60); seconds %= 60;
+  element.textContent = [days ? days + 'd' : '', hours ? hours + 'h' : '', minutes ? minutes + 'm' : '', seconds || (!days && !hours && !minutes) ? seconds + 's' : ''].filter(Boolean).join(' ');
+});
 </script>`;

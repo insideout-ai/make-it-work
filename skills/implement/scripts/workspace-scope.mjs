@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { artifactOutputJoin } from '../../../scripts/lib/artifact-path.mjs';
 import { execFileSync } from 'node:child_process';
-import { lstat, mkdir, readFile, realpath } from 'node:fs/promises';
+import { mkdir, readFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, withLock, within } from '../../../scripts/lib/artifacts.mjs';
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
@@ -10,7 +12,7 @@ import { renderScopePreview } from './workspace-view.mjs';
 
 const git = (root, argv) => execFileSync('git', ['-C', root, ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const hasRef = (root, ref) => { try { git(root, ['rev-parse', '--verify', '--quiet', ref]); return true; } catch { return false; } };
-const filename = (root, ticket) => path.join(runDirectory(root, ticket), `${ticket}-workspace.json`);
+const filename = (root, ticket) => artifactOutputJoin(runDirectory(root, ticket), `${ticket}-workspace.json`);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const user = (input) => { if (input.source !== 'user' || !['chat', 'question'].includes(input.via)) fail('Repository and branch approval requires an explicit user decision.'); };
 
@@ -24,26 +26,26 @@ export async function readScope(root, ticket) {
 async function save(root, journal) {
   await atomicWrite(filename(root, journal.plan.ticket), JSON.stringify(journal, null, 2) + '\n');
   // An active workflow owns its dashboard; preflight must not overwrite it.
-  const state = path.join(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-state.md`);
+  const state = artifactOutputJoin(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-state.md`);
   let active = true;
   try { await lstat(state); } catch (error) { if (error.code !== 'ENOENT') throw error; active = false; }
   if (active) {
     // Render only an existing dashboard, preserving the legacy no-backfill rule.
-    try { await lstat(path.join(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-status.html`)); }
+    try { await lstat(artifactOutputJoin(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-status.html`)); }
     catch (error) { if (error.code === 'ENOENT') return { file: filename(root, journal.plan.ticket), hash: journal.hash, status: journal.status, plan: journal.plan }; throw error; }
     await (await import('./render-status.mjs')).generateDashboard(state);
   } else {
-    await atomicWrite(path.join(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-status.html`), renderScopePreview(journal));
+    await atomicWrite(artifactOutputJoin(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-status.html`), renderScopePreview(journal));
   }
   return { file: filename(root, journal.plan.ticket), hash: journal.hash, status: journal.status,
-    dashboard: path.join(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-status.html`), plan: journal.plan, progress: journal.progress };
+    dashboard: artifactOutputJoin(runDirectory(root, journal.plan.ticket), `${journal.plan.ticket}-status.html`), plan: journal.plan, progress: journal.progress };
 }
 
 export async function prepareScope(root, input) {
   root = await realpath(root);
   const ticket = input.ticket;
   const directory = runDirectory(root, ticket);
-  const artifacts = path.join(root, 'make-it-work');
+  const artifacts = artifactOutputJoin(root, 'make-it-work');
   await mkdir(artifacts, { recursive: true });
   if (!(await lstat(artifacts)).isDirectory()) fail('Artifact root must not be a symlink.');
   await mkdir(directory, { recursive: true });
@@ -52,7 +54,7 @@ export async function prepareScope(root, input) {
   return withLock(filename(root, ticket), async () => {
     let activeContract = null;
     try {
-      const state = (await import('./render-status.mjs')).parseState(await readFile(path.join(directory, `${ticket}-state.md`), 'utf8'));
+      const state = (await import('./render-status.mjs')).parseState(await readFile(artifactOutputJoin(directory, `${ticket}-state.md`), 'utf8'));
       if (state.fields.workspace_version !== '1' || state.fields.status !== 'Paused' || state.pendingInputs.some((record) => record.blocking)) fail('Pause the active workspace run and resolve pending inputs before revising repository scope.');
       activeContract = JSON.parse(state.fields.workspace_contract);
     } catch (error) { if (error.code !== 'ENOENT') throw error; }

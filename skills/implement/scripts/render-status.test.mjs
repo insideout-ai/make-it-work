@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -101,30 +102,30 @@ Details.
 }
 
 async function workspace(t) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'render-status-test-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'render-status-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const directory = path.join(root, 'make-it-work', 'DEMO');
+  const directory = artifactJoin(root, 'make-it-work', 'DEMO');
   await mkdir(directory, { recursive: true });
   return directory;
 }
 
 async function renderFixture(t, state, plan = null) {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, state);
-  if (plan !== null) await writeFile(path.join(directory, 'DEMO-plan.md'), plan);
+  if (plan !== null) await writeFile(artifactJoin(directory, 'DEMO-plan.md'), plan);
   const outputPath = await generateDashboard(statePath);
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
 // Timing/history tests render a session whose feedback was already finalized.
 async function renderSettledFixture(t, state, plan = null) {
-  const f = await renderFixture(t, state, plan), statePath = path.join(f.directory, 'DEMO-state.md');
+  const f = await renderFixture(t, state, plan), statePath = artifactJoin(f.directory, 'DEMO-state.md');
   const parsed = parseState(state), runId = parsed.fields.start_time, stateHash = feedbackStateHash(parsed.fields, parsed.audit);
   const block = `<!-- run:${runId} -->\n### Session review\n<!-- feedback-state:${stateHash} -->\n<!-- /run:${runId} -->\n`;
-  await writeFile(path.join(f.directory, 'workflow-feedback.md'), block);
-  await writeFile(path.join(path.dirname(f.directory), 'implement-feedback.md'), block);
-  await finalizeFeedback(statePath, { runId, stateHash, status: 'saved', kind: 'fixture' });
+  await writeFile(artifactJoin(f.directory, 'workflow-feedback.md'), block);
+  await writeFile(artifactJoin(path.dirname(f.directory), 'implement-feedback.md'), block);
+  await finalizeFeedback(statePath, { runId, stateHash, status: 'saved', kind: 'fixture' }, { now: () => parsed.audit.findLast(row => row.to === 'complete' && row.from !== row.to)?.time ?? parsed.audit.at(-1).time });
   await generateDashboard(statePath);
   return { ...f, html: await readFile(f.outputPath, 'utf8') };
 }
@@ -132,13 +133,13 @@ async function renderSettledFixture(t, state, plan = null) {
 test('terminal dashboard collects session feedback then refreshes to saved with informational audit notes and unchanged approval artifacts', async t => {
   const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] });
   const f = await renderFixture(t, state);
-  const statePath = path.join(f.directory, 'DEMO-state.md');
+  const statePath = artifactJoin(f.directory, 'DEMO-state.md');
   assert.match(f.html, /data-workflow-feedback-status="collecting"/);
   assert.match(f.html, /Session retrospective: Collecting feedback/);
   assert.match(f.html, /Finalizing session\./);
   assert.doesNotMatch(f.html, /<strong>Implementation complete\./);
   assert.match(f.html, /http-equiv="refresh"/);
-  const approvalPath = path.join(f.directory, 'DEMO-final-package.approval.json');
+  const approvalPath = artifactJoin(f.directory, 'DEMO-final-package.approval.json');
   await writeFile(approvalPath, 'Historical approval bytes');
   const result = await writeFeedback(statePath, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
   assert.equal(result.dashboardUpdated, true);
@@ -161,16 +162,16 @@ test('completion keeps assurance details in artifacts and links only the session
   assert.doesNotMatch(f.html, /assurance-summary|Assurance:|Recorded verification limits/);
   assert.match(f.html, /href="DEMO-final-package\.md"/);
   const pkg = { version: 1, ticket: 'DEMO', repos: [{ name: 'app' }], review_scope: [{ repo: 'app', status: 'covered', limitations: [{ depth: 'skimmed', paths: ['old.js'], reason: 'Inherited work not fully assessed' }] }], ui_verification: { status: 'pending', note: 'No browser observations' }, validation: { mode: 'lightweight', result: 'No regression gate' }, open_nits: ['A nonblocking note'], known_regressions: [] };
-  const packagePath = path.join(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
+  const packagePath = artifactJoin(f.directory, 'DEMO-final-package.json'), bytes = JSON.stringify(pkg);
   await writeFile(packagePath, bytes);
-  await generateDashboard(path.join(f.directory, 'DEMO-state.md'));
+  await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
   const html = renderStatus({ state: parseState(state), template: '{{ASSURANCE_SUMMARY}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved' }, assurance: { label: 'Limited', browser: 'pending', limitations: ['Inherited work not fully assessed'] } });
   assert.doesNotMatch(html, /Assurance:|Browser verification:|Inherited work not fully assessed|ASSURANCE_SUMMARY/);
   assert.match(html, /href="workflow-feedback.md"/);
   assert.match(html, /share only that session export/);
   assert.equal(await readFile(packagePath, 'utf8'), bytes);
   assert.doesNotMatch(await readFile(f.outputPath, 'utf8'), /Assurance:|Inherited work not fully assessed/);
-  assert.equal(await readFile(path.join(f.directory, 'DEMO-state.md'), 'utf8'), state);
+  assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
 });
 
 test('feedback belongs to finalization and optional delivery appears only after collection settles', () => {
@@ -236,7 +237,7 @@ test('hides controller retry markers while preserving outcome text and saved aud
   assert.match(html, /Review is &lt;clean&gt;\. Follow-up preserved\./);
   assert.ok(html.includes(`Artifact checksum sha256: ${hash} [kept for review].`));
   assert.match(html, /\(\+1m\)/);
-  assert.equal(await readFile(path.join(directory, 'DEMO-state.md'), 'utf8'), state);
+  assert.equal(await readFile(artifactJoin(directory, 'DEMO-state.md'), 'utf8'), state);
   assert.ok(parseState(state).audit[1].outcome.includes(marker));
 });
 
@@ -255,7 +256,7 @@ test('package build audit links the package without displaying its approval fing
   assert.match(html, /Final approval package built\. <a href="DEMO-final-package\.md"[^>]*>View package<\/a>/);
   assert.doesNotMatch(html, new RegExp(hash));
   assert.match(html, /\(\+1m\)/);
-  const saved = await readFile(path.join(directory, 'DEMO-state.md'), 'utf8');
+  const saved = await readFile(artifactJoin(directory, 'DEMO-state.md'), 'utf8');
   assert.equal(saved, state);
   assert.ok(parseState(saved).audit[1].outcome.includes(reference));
 });
@@ -322,7 +323,7 @@ test('activity timestamps are optional for legacy states and validated when pres
 
 test('dashboard checkpoint updates activity and its rendered snapshot together', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({
     fields: { current_activity: 'none' },
     rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']],
@@ -360,7 +361,7 @@ test('retains a delegated-work description through refresh and decisions until t
     fields: { phase: 'plan' },
     rows: [['2026-01-01T10:00:00Z', 'start', 'plan', 'Planning started']],
   }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const activity = 'Refreshing the test strategy and test map in a background agent.';
   await checkpointDashboard(statePath, { activity });
   const timestamp = parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at;
@@ -379,7 +380,7 @@ test('retains a delegated-work description through refresh and decisions until t
 
 test('activity audit survives a render failure and identical retry repairs without a duplicate', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md', current_activity: 'Earlier activity.', current_activity_updated_at: '2026-01-01T10:00:00Z' },
     rows: [['2026-01-01T10:00:00Z', 'start', 'execute', 'Execution started']],
@@ -388,7 +389,7 @@ test('activity audit survives a render failure and identical retry repairs witho
   await assert.rejects(checkpointDashboard(statePath, { activity: 'Running a step.' }), /Could not read the plan required for timeline progress/);
   const saved = await readFile(statePath, 'utf8');
   assert.equal(parseState(saved).audit.at(-1).outcome, 'Activity: Running a step.');
-  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await writeFile(artifactJoin(directory, 'DEMO-plan.md'), planMarkdown());
   await checkpointDashboard(statePath, { activity: 'Running a step.' });
   assert.equal(await readFile(statePath, 'utf8'), saved);
 });
@@ -398,7 +399,7 @@ test('informational results are idempotent, escape text, and never replace resum
     fields: { phase: 'final-approval', final_package_version: '1' },
     rows: [['2026-01-01T10:00:00Z', 'final-sync', 'final-approval', 'Context synced']],
   }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const before = parseState(await readFile(statePath, 'utf8'));
   const input = { id: 'package-1', text: 'Built <package> | ready', reference: 'file.md \\ & evidence' };
   await checkpointResult(statePath, input);
@@ -421,7 +422,7 @@ test('audit results hide evidence hashes while retaining results, references and
     fields: { phase: 'final-approval', final_package_version: '1' },
     rows: [['2026-01-01T10:00:00Z', 'final-sync', 'final-approval', 'Context synced']],
   }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const hash = createHash('sha256').update('evidence digest').digest('hex');
   for (const [id, text, reference] of [
     ['readiness', 'Testing readiness complete. Baseline: pass.', `readiness.json; sha256:${hash}`],
@@ -445,7 +446,7 @@ test('regression audits actual pass, failure and no-result without advancing the
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
     rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Execution started']],
   }), planMarkdown());
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const originalFields = parseState(await readFile(statePath, 'utf8')).fields;
   for (const [id, code, expected] of [['pass', '', 'PASS'], ['fail', 'process.exit(2)', 'FAIL'], ['missing', null, 'NO RESULT']]) {
     await runRegression({ version: 1, mode: 'tokens', runs: [{ repo: 'app', cwd: directory, scope: 'full', command: code === null ? null : { bin: process.execPath, args: ['-e', code] } }] }, { statePath, auditId: id });
@@ -458,8 +459,8 @@ test('regression audits actual pass, failure and no-result without advancing the
 
 test('result history survives render failure and retry repairs it without another event', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
-  const dashboardPath = path.join(directory, 'DEMO-status.html');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  const dashboardPath = artifactJoin(directory, 'DEMO-status.html');
   await writeFile(statePath, stateMarkdown({ fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
     rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Execution started']] }));
   await writeFile(dashboardPath, 'Previous dashboard');
@@ -468,7 +469,7 @@ test('result history survives render failure and retry repairs it without anothe
   const saved = await readFile(statePath, 'utf8');
   assert.equal(parseState(saved).audit.at(-1).note.kind, 'result');
   assert.equal(await readFile(dashboardPath, 'utf8'), 'Previous dashboard');
-  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await writeFile(artifactJoin(directory, 'DEMO-plan.md'), planMarkdown());
   await checkpointResult(statePath, result);
   assert.equal(await readFile(statePath, 'utf8'), saved);
   assert.match(await readFile(dashboardPath, 'utf8'), /Result: Completion gate: FAIL/);
@@ -476,11 +477,11 @@ test('result history survives render failure and retry repairs it without anothe
 
 test('regression CLI retains observed evidence when audit rendering fails, without rerunning for repair', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({ fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
     rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Execution started']] }));
-  await writeFile(path.join(directory, 'DEMO-status.html'), 'Previous dashboard');
-  const manifest = path.join(directory, 'gate.json');
+  await writeFile(artifactJoin(directory, 'DEMO-status.html'), 'Previous dashboard');
+  const manifest = artifactJoin(directory, 'gate.json');
   await writeFile(manifest, JSON.stringify({ version: 1, mode: 'full', runs: [{ repo: 'app', cwd: directory, scope: 'full',
     command: { bin: process.execPath, args: ['-e', 'require("node:fs").appendFileSync("gate-ran", "once\\n")'] } }] }));
   assert.throws(() => execFileSync(process.execPath, [path.resolve('scripts/regression.mjs'), 'run', '--input', manifest,
@@ -491,15 +492,15 @@ test('regression CLI retains observed evidence when audit rendering fails, witho
   });
   const saved = await readFile(statePath, 'utf8');
   assert.equal(parseState(saved).audit.at(-1).note.id, 'regression:gate-v1');
-  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await writeFile(artifactJoin(directory, 'DEMO-plan.md'), planMarkdown());
   await checkpointDashboard(statePath);
-  assert.equal(await readFile(path.join(directory, 'gate-ran'), 'utf8'), 'once\n');
+  assert.equal(await readFile(artifactJoin(directory, 'gate-ran'), 'utf8'), 'once\n');
   assert.equal(await readFile(statePath, 'utf8'), saved);
 });
 
 test('result notes neither create a legacy dashboard nor inflate feedback review counts', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({ fields: { status: 'Complete', phase: 'complete' },
     rows: [['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Review cycle 1 complete']] }));
   const before = inspectState(await readFile(statePath, 'utf8'));
@@ -531,14 +532,14 @@ test('queued autonomy is optional for older runs and rejects invalid or complete
 
 test('ticket permission badge is independent of autonomy and shows scoped consent without private payloads', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   let journal = initializePublication({ ticket: 'DEMO', workflow_start: DEFAULT_FIELDS.start_time }, {
     target: { tracker: 'ado', site: 'https://tracker.example.test', issue: 'DEMO <script>alert(1)</script>', url: 'https://tracker.example.test/DEMO' },
     original_description: 'PRIVATE ORIGINAL DESCRIPTION', mode: 'comments', allowed: ['comment'], artifact_comments: true,
     decision: { source: 'user', text: 'Autopilot + update ticket: publish the plan and summaries as comments.' },
   });
   const filename = `DEMO-ticket-publication-${journal.run_id}.json`;
-  const journalPath = path.join(directory, filename);
+  const journalPath = artifactJoin(directory, filename);
   const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
   const fields = { ticket_publication: `make-it-work/DEMO/${filename}` };
   await writeFile(journalPath, JSON.stringify(journal));
@@ -561,9 +562,9 @@ test('ticket permission badge is independent of autonomy and shows scoped consen
 
 test('unverifiable referenced permission shows Unknown without preventing dashboard rendering', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const filename = 'DEMO-ticket-publication-fixture.json';
-  const journalPath = path.join(directory, filename);
+  const journalPath = artifactJoin(directory, filename);
   await writeFile(statePath, stateMarkdown({
     fields: { ticket_publication: `make-it-work/DEMO/${filename}` },
     rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']],
@@ -583,7 +584,7 @@ test('unverifiable referenced permission shows Unknown without preventing dashbo
   anotherRun.run_id = 'fixture';
   await writeFile(journalPath, JSON.stringify(anotherRun));
   await assertUnknown();
-  const outside = path.join(path.dirname(directory), 'outside.json');
+  const outside = artifactJoin(path.dirname(directory), 'outside.json');
   await writeFile(outside, JSON.stringify({ ...anotherRun, workflow_start: DEFAULT_FIELDS.start_time }));
   await rm(journalPath);
   await symlink(outside, journalPath);
@@ -690,7 +691,7 @@ test('keeps completed stages minimal and retains approval details and fix histor
   assert.match(html, /make-it-work\/implement-feedback\.md/);
   assert.match(html, /href="DEMO-final-package\.md" title="make-it-work\/DEMO\/DEMO-final-package\.md">DEMO-final-package\.md<\/a>/);
   assert.doesNotMatch(html, /spec\/plan\/execute\/review\/final package\/state\/dashboard/);
-  assert.match(html, /Session timing: rows 1→13 above span 12m/);
+  assert.match(html, /Session timing: from row 1 through feedback finalization spans 12m/);
   assert.match(html, /href="DEMO-review\.md" title="make-it-work\/DEMO\/DEMO-review\.md">DEMO-review\.md<\/a>/);
   assert.match(html, /phase-dot passed[^>]+complete:/);
   assert.doesNotMatch(html, /phase-dot current/);
@@ -745,7 +746,7 @@ test('rejects unsafe artifact paths', async (t) => {
     rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']],
   });
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, markdown);
   await assert.rejects(generateDashboard(statePath), /must be under make-it-work\/DEMO\//);
 });
@@ -764,8 +765,8 @@ test('rejects malformed timestamps and ticket filename mismatches', () => {
 
 test('renderer failure preserves an existing dashboard', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
-  const outputPath = path.join(directory, 'DEMO-status.html');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  const outputPath = artifactJoin(directory, 'DEMO-status.html');
   const state = stateMarkdown({
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
     rows: [
@@ -803,11 +804,15 @@ async function deliveryFixture(t, { status, repos = {}, names = ['api'], legacy 
   const progress = { version: 1, plan_sha256: createHash('sha256').update(JSON.stringify(plan)).digest('hex'), repos,
     ...(!legacy ? { status, error, started_at: '2026-01-01T10:02:00Z', updated_at: '2026-01-01T10:04:00Z',
       ...(['delivered', 'failed', 'partial'].includes(status) ? { completed_at: '2026-01-01T10:04:00Z' } : {}) } : {}) };
-  await writeFile(path.join(rendered.directory, 'DEMO-delivery-plan.json'), JSON.stringify(plan));
-  await writeFile(path.join(rendered.directory, 'DEMO-delivery-progress.json'), JSON.stringify(progress));
-  const statePath = path.join(rendered.directory, 'DEMO-state.md');
+  await writeFile(artifactJoin(rendered.directory, 'DEMO-delivery-plan.json'), JSON.stringify(plan));
+  await writeFile(artifactJoin(rendered.directory, 'DEMO-delivery-progress.json'), JSON.stringify(progress));
+  const statePath = artifactJoin(rendered.directory, 'DEMO-state.md');
   // Delivery follows the already-saved terminal feedback in these fixtures.
   await writeFeedback(statePath, { sessionReview: { version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] } });
+  const receiptPath = artifactJoin(rendered.directory, 'feedback-finalized.json');
+  const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+  receipt.finalizedAt = '2026-01-01T10:01:00Z';
+  await writeFile(receiptPath, JSON.stringify(receipt));
   await generateDashboard(statePath);
   return { ...rendered, statePath, html: await readFile(rendered.outputPath, 'utf8') };
 }
@@ -884,7 +889,7 @@ const USER_DECISION = {
 test('decision checkpoints retain fields, capture host time, and render safely', async (t) => {
   const original = stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] });
   const { directory, outputPath } = await renderFixture(t, original);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const input = { ...USER_DECISION, choice: 'Use <script> | C:\\drafts & &#124;', reason: 'Review before sending' };
   const before = Date.now();
   const result = await checkpointDecision(statePath, input);
@@ -911,7 +916,7 @@ test('delivery audit rows hide full and shortened reference hashes while preserv
   const original = stateMarkdown({ fields: { phase: 'complete', status: 'Complete', autonomy: 'autopilot' },
     rows: [['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Implementation complete.']] });
   const { directory, outputPath } = await renderFixture(t, original);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const hash = createHash('sha256').update('approved delivery plan').digest('hex');
   const preparation = { id: 'delivery-prepare', topic: 'Delivery preparation', choice: 'Prepare delivery', source: 'user', via: 'question',
     scope: 'DEMO completed run, preparation only; exact-plan approval still required', reference: `final package sha256 ${hash.slice(0, 8)}`, resume: 'transparent' };
@@ -934,7 +939,7 @@ test('delivery audit rows hide full and shortened reference hashes while preserv
 
 test('readable automatic decisions retain their attribution, restrictions and reason', async (t) => {
   const { directory, outputPath } = await renderFixture(t, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Run created']] }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   for (const source of ['autopilot', 'policy']) await checkpointDecision(statePath, {
     id: `mode-${source}`, topic: 'Execution mode', choice: 'Sequential', source, via: 'policy',
     scope: 'DEMO; implementation only; delivery approval required separately', reason: 'Dependent steps must stay ordered',
@@ -948,7 +953,7 @@ test('readable automatic decisions retain their attribution, restrictions and re
 
 test('decision IDs make retries idempotent and changed decisions append history', async (t) => {
   const { directory } = await renderFixture(t, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await checkpointDecision(statePath, USER_DECISION);
   const saved = await readFile(statePath, 'utf8');
   await checkpointDecision(statePath, USER_DECISION);
@@ -964,26 +969,26 @@ test('decision IDs make retries idempotent and changed decisions append history'
 
 test('decision checkpoints do not backfill a missing dashboard or overwrite following sections', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   const notes = '\n## Additional notes\n\nUser-authored text.\n';
   await writeFile(statePath, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] }) + notes);
   const result = await checkpointDecision(statePath, USER_DECISION);
   assert.equal(result.dashboard, null);
   assert.ok((await readFile(statePath, 'utf8')).endsWith(notes));
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 2);
-  await assert.rejects(readFile(path.join(directory, 'DEMO-status.html')), { code: 'ENOENT' });
+  await assert.rejects(readFile(artifactJoin(directory, 'DEMO-status.html')), { code: 'ENOENT' });
 });
 
 test('render failure preserves decision evidence and retry repairs the dashboard once', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
-  const outputPath = path.join(directory, 'DEMO-status.html');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  const outputPath = artifactJoin(directory, 'DEMO-status.html');
   await writeFile(statePath, stateMarkdown({ fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' }, rows: [['2026-01-01T10:00:00Z', 'plan', 'execute', 'Plan accepted']] }));
   await writeFile(outputPath, 'Existing dashboard');
   await assert.rejects(checkpointDecision(statePath, USER_DECISION), /Could not read the plan required for timeline progress/);
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 2);
   assert.equal(await readFile(outputPath, 'utf8'), 'Existing dashboard');
-  await writeFile(path.join(directory, 'DEMO-plan.md'), planMarkdown());
+  await writeFile(artifactJoin(directory, 'DEMO-plan.md'), planMarkdown());
   await checkpointDecision(statePath, USER_DECISION);
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 2);
   assert.ok((await readFile(outputPath, 'utf8')).includes('Comments and attachments only'));
@@ -991,7 +996,7 @@ test('render failure preserves decision evidence and retry repairs the dashboard
 
 test('resume distinguishes transparent decisions from interrupted in-phase choices and transitions', async (t) => {
   const { directory } = await renderFixture(t, stateMarkdown({ fields: { phase: 'plan' }, rows: [['2026-01-01T10:00:00Z', 'context-check', 'plan', 'Ready to plan']] }));
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await checkpointDecision(statePath, USER_DECISION);
   let state = parseState(await readFile(statePath, 'utf8'));
   assert.equal(lastWorkRow(state.audit).number, 1);
@@ -1015,10 +1020,10 @@ test('post-completion delivery decisions preserve implementation timing and feed
     ['2026-01-01T10:05:00Z', 'execute', 'review', 'Review cycle 1'],
     ['2026-01-01T10:10:00Z', 'final-sync', 'complete', 'Complete'],
   ] });
-  const { directory, html: before } = await renderFixture(t, original);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const { directory, html: before } = await renderSettledFixture(t, original);
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await checkpointDecision(statePath, { ...USER_DECISION, id: 'delivery-plan-abc', topic: 'Delivery approval', choice: 'Deliver this exact plan after Review cycle 7', reference: 'delivery plan hash abc' });
-  const after = await readFile(path.join(directory, 'DEMO-status.html'), 'utf8');
+  const after = await readFile(artifactJoin(directory, 'DEMO-status.html'), 'utf8');
   assert.equal(after.match(/<p class="session-timing">.*?<\/p>/)[0], before.match(/<p class="session-timing">.*?<\/p>/)[0]);
   assert.ok(after.includes('Elapsed time (includes waits and pauses): 10m.'));
   assert.ok(after.includes('Deliver this exact plan after Review cycle 7'));
@@ -1035,7 +1040,7 @@ test('post-completion delivery decisions preserve implementation timing and feed
 test('invalid decision inputs cannot alter state or imply a user approval', async (t) => {
   const original = stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] });
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, original);
   for (const changes of [{ id: '../other' }, { source: 'user', via: 'policy' }, { source: 'autopilot', via: 'question' }, { choice: 'yes\n| forged row |' }, { source: 'default' }, { resume: 'skip' }, { scope: '' }, { time: '2020-01-01' }]) {
     await assert.rejects(checkpointDecision(statePath, { ...USER_DECISION, ...changes }));
@@ -1048,8 +1053,8 @@ test('invalid decision inputs cannot alter state or imply a user approval', asyn
 
 test('decision and resume CLI commands handle JSON input files and preserve read-only resume', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
-  const inputPath = path.join(directory, 'decision input.json');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  const inputPath = artifactJoin(directory, 'decision input.json');
   await writeFile(statePath, stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run']] }));
   await writeFile(inputPath, JSON.stringify(USER_DECISION));
   const script = fileURLToPath(new URL('./dashboard-checkpoint.mjs', import.meta.url));
@@ -1070,8 +1075,8 @@ test('post-completion decisions cannot create implementation timing for a legacy
       ['2026-01-01T10:00:00Z', 'final-sync', 'complete', 'Legacy complete'],
     ],
   }));
-  await checkpointDecision(path.join(directory, 'DEMO-state.md'), USER_DECISION);
-  const after = await readFile(path.join(directory, 'DEMO-status.html'), 'utf8');
+  await checkpointDecision(artifactJoin(directory, 'DEMO-state.md'), USER_DECISION);
+  const after = await readFile(artifactJoin(directory, 'DEMO-status.html'), 'utf8');
   assert.ok(before.includes('Elapsed: unknown'));
   assert.ok(after.includes('Elapsed: unknown'));
   assert.doesNotMatch(after, /Session timing: rows/);
@@ -1185,7 +1190,7 @@ test('mode pill appears only for adaptive runs and cycle counters stay out of th
   assert.doesNotMatch(forced.html, /phase-dot skipped|Skipped \(Lightweight\)/);
   for (const fixture of [legacy, pending, lightweight, forced]) {
     assert.doesNotMatch(fixture.html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
-    const saved = parseState(await readFile(path.join(fixture.directory, 'DEMO-state.md'), 'utf8'));
+    const saved = parseState(await readFile(artifactJoin(fixture.directory, 'DEMO-state.md'), 'utf8'));
     assert.equal(saved.fields.review_cycle, '0');
     assert.equal(saved.fields.fix_cycle, '0');
     assert.equal(saved.fields.replans_used, '0');
@@ -1298,7 +1303,7 @@ test('missing-strategy completion note is escaped inside the green banner before
 
 test('a dispatched review with no handoff is reported as lost once and shown as interrupted', async (t) => {
   const directory = await workspace(t);
-  const statePath = path.join(directory, 'DEMO-state.md');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
   await writeFile(statePath, stateMarkdown({
     fields: { phase: 'review', review_scope_version: '1', review_cycle: '1', current_activity: 'An independent agent is reviewing the change', current_activity_updated_at: '2026-01-01T10:07:00Z' },
     rows: [
@@ -1312,7 +1317,7 @@ test('a dispatched review with no handoff is reported as lost once and shown as 
   assert.match(stillRunning, /Review in progress/);
   assert.match(stillRunning, /data-stale-since="2026-01-01T10:07:00Z" data-stale-after-hours="3" hidden/);
 
-  await writeFile(path.join(directory, 'DEMO-review-target-1.json'), '{}');
+  await writeFile(artifactJoin(directory, 'DEMO-review-target-1.json'), '{}');
   const lost = await lostReview(statePath, parseState(await readFile(statePath, 'utf8')));
   assert.equal(lost.stage, 'review');
   assert.equal(lost.cycle, 1);
@@ -1326,7 +1331,31 @@ test('a dispatched review with no handoff is reported as lost once and shown as 
   assert.match(html, /Review interrupted/);
   assert.doesNotMatch(html, /Review in progress/);
 
-  await mkdir(path.join(directory, 'DEMO-handoffs'));
-  await writeFile(path.join(directory, 'DEMO-handoffs', 'review-1.json'), JSON.stringify({ stage: 'review', plan_version: 1, review_cycle: 1, status: 'done' }));
+  await mkdir(artifactJoin(directory, 'DEMO-handoffs'));
+  await writeFile(artifactJoin(directory, 'DEMO-handoffs', 'review-1.json'), JSON.stringify({ stage: 'review', plan_version: 1, review_cycle: 1, status: 'done' }));
   assert.equal(await lostReview(statePath, parseState(await readFile(statePath, 'utf8'))), null, 'a returned handoff means the review was not lost');
+});
+
+test('version and optional usage appear in header without changing refresh behavior', () => {
+  const state = parseState(stateMarkdown({ fields: { plugin_version: '5.9.0-rc.1' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start']] }));
+  const html = renderStatus({ state, template: '{{WORKFLOW_HEADER}}', logoBase64: '', usageSnapshot: { context_percent: 0, context_capacity: 200000, estimated_cost_usd: 0, captured_at: '2026-01-01T10:00:00Z' } });
+  assert.match(html, /Plugin v5.9.0-rc.1/); assert.match(html, /Context: 0% of 200K/); assert.match(html, /~\$0.00/);
+  const legacy = renderStatus({ state: parseState(stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start']] })), template: '{{WORKFLOW_HEADER}}', logoBase64: '' });
+  assert.match(legacy, /Plugin version: Unknown/); assert.match(legacy, /Context: Unavailable/);
+});
+test('finalizing and session time include feedback, freeze at its endpoint, and exclude delivery', () => {
+  const state = parseState(stateMarkdown({ fields: { phase: 'complete', status: 'Complete', final_package_version: '1' }, rows: [
+    ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start'],
+    ['2026-01-01T10:05:00Z', 'review', 'final-sync', 'Sync'],
+    ['2026-01-01T10:07:00Z', 'final-sync', 'final-approval', 'Approval'],
+    ['2026-01-01T10:08:00Z', 'final-approval', 'complete', 'Done'],
+    ['2026-01-01T11:00:00Z', 'complete', 'complete', 'Delivery'],
+  ] }));
+  const template = '{{PHASE_TIMELINE}} {{SESSION_TIMING}}';
+  const collecting = renderStatus({ state, template, logoBase64: '', feedback: { status: 'collecting' }, now: Date.parse('2026-01-01T10:10:00Z') });
+  assert.match(collecting, /phase-duration">5m/); assert.match(collecting, /10m of elapsed/);
+  for (const status of ['saved', 'unavailable']) {
+    const html = renderStatus({ state, template, logoBase64: '', feedback: { status, finalizedAt: '2026-01-01T10:12:00Z' }, now: Date.parse('2026-01-02T10:00:00Z') });
+    assert.match(html, /phase-duration">7m/); assert.match(html, /12m of elapsed/);
+  }
 });

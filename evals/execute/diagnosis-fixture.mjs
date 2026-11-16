@@ -16,7 +16,7 @@ try { await lstat(path.join(root, '.git')); throw new Error('Fixture refuses an 
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
 const put = async (file, contents) => { await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, contents); };
-const ticket = 'DIAG-1', relative = `make-it-work/${ticket}`, prefix = `${relative}/${ticket}`;
+const ticket = 'DIAG-1', relative = `make-it-work/${ticket}`, prefix = `${relative}/miw-${ticket}`;
 const source = variant === 'unknown'
   ? "const { collect } = require('./collector');\nfunction choose(selected, fallback) { return collect(selected, fallback); }\nmodule.exports = { choose };\n"
   : "function choose(selected, fallback) { return [...selected, fallback]; }\nmodule.exports = { choose };\n";
@@ -114,7 +114,7 @@ await capture(`${prefix}-initial-failure.txt`);
 if (variant === 'lightweight') {
   await put(`${prefix}-lightweight.md`, '# Implementation report\n\n## Summary\nChoice selection implementation needs a review correction.\n\n## Changed paths\nsrc/selection.js\n\n## Checks\nnode --test test/selection.test.js: FAIL; output in DIAG-1-initial-failure.txt.\n\n## Discoveries\nCommonJS choice helper.\n\n## Risk signal\nnone\n');
   await put(`${prefix}-review.md`, '# Review\n\nReview outcome: FIX_REQUIRED\n\n## Finding #1\nRoute: fix\nRegion: src/selection.js:choose\nThe accepted spec requires nonempty selected choices to exclude the fallback. The actual scoped tests fail for both one and multiple selected choices. Empty-selection behavior passes. Correct the implementation and preserve all assertions. Evidence: DIAG-1-initial-failure.txt.\n');
-  await put(`${prefix}-handoffs/review-1.json`, JSON.stringify({ version: 1, ticket, stage: 'review', review_cycle: 1, plan_version: 1, status: 'done', outcome: 'FIX_REQUIRED', artifacts: { report: `${prefix}-review.md` }, data: { findings: [{ id: '#1', route: 'fix', region: 'src/selection.js:choose', introduced_by_fix_of: null }], context_gaps: [] } }, null, 2) + '\n');
+  await put(`${relative}/${ticket}-handoffs/miw-review-1.json`, JSON.stringify({ version: 1, ticket, stage: 'review', review_cycle: 1, plan_version: 1, status: 'done', outcome: 'FIX_REQUIRED', artifacts: { report: `${prefix}-review.md` }, data: { findings: [{ id: '#1', route: 'fix', region: 'src/selection.js:choose', introduced_by_fix_of: null }], context_gaps: [] } }, null, 2) + '\n');
 }
 let state = await readFile(initialized.state, 'utf8');
 const fields = variant === 'lightweight'
@@ -139,4 +139,4 @@ const repos = await snapshot([root]);
 state = await readFile(initialized.state, 'utf8');
 state = state.replace(/^worktree_fingerprint:.*$/m, `worktree_fingerprint: ${digest(JSON.stringify(repos))}`).replace(/^workspace_snapshot:.*$/m, `workspace_snapshot: ${JSON.stringify(repos)}`);
 await writeFile(initialized.state, state); await generateDashboard(initialized.state);
-await put(`${relative}/smoke-baseline.json`, JSON.stringify({ variant, head: git('rev-parse', 'HEAD').toString().trim(), testHash: digest(await readFile('test/selection.test.js')) }, null, 2) + '\n');
+await put(`${relative}/miw-smoke-baseline.json`, JSON.stringify({ variant, head: git('rev-parse', 'HEAD').toString().trim(), testHash: digest(await readFile('test/selection.test.js')) }, null, 2) + '\n');

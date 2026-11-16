@@ -5,7 +5,7 @@ weight: 2
 ---
 
 The autopilot decision log goes to
-`make-it-work/define-test-strategy-autopilot-log.jsonl`, which is writable in
+`make-it-work/miw-define-test-strategy-autopilot-log.jsonl`, which is writable in
 a headless run. If the environment denies that write, the skill must say so in
 its summary and keep going.
 

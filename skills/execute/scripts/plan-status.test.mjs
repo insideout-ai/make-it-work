@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
@@ -7,7 +8,7 @@ import test from 'node:test';
 
 import { changePlan, inspectPlan, updatePlan } from './plan-status.mjs';
 
-const SCRIPT = path.join(import.meta.dirname, 'plan-status.mjs');
+const SCRIPT = artifactJoin(import.meta.dirname, 'plan-status.mjs');
 const TEMPLATE = path.resolve(import.meta.dirname, '../../plan-the-work/references/plan-template.md');
 const LEGACY_PLAN = path.resolve(import.meta.dirname, '../../../evals/implement/fixture-base/fixture-artifacts/DEMO-plan.md');
 const WORKFLOW_STATE = path.resolve(import.meta.dirname, '../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md');
@@ -17,11 +18,11 @@ async function fixture() {
 }
 
 async function workspace(t, contents) {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'plan-status-test-'));
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'plan-status-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const directory = path.join(root, 'make-it-work', 'DEMO');
+  const directory = artifactJoin(root, 'make-it-work', 'DEMO');
   await mkdir(directory, { recursive: true });
-  const planPath = path.join(directory, 'DEMO-plan.md');
+  const planPath = artifactJoin(directory, 'DEMO-plan.md');
   await writeFile(planPath, contents, { mode: 0o600 });
   return planPath;
 }
@@ -110,10 +111,10 @@ test('step completion refreshes a matching active dashboard without an explicit 
   const plan = changePlan(changePlan(await fixture(), 'set-total', { total: '2' }), 'set-mode', { mode: 'subagent-driven' });
   const initialPath = await workspace(t, plan);
   const directory = path.dirname(initialPath);
-  const planPath = path.join(directory, 'DEMO-plan-v2.md');
+  const planPath = artifactJoin(directory, 'DEMO-plan-v2.md');
   await writeFile(planPath, plan);
-  const statePath = path.join(directory, 'DEMO-state.md');
-  const dashboardPath = path.join(directory, 'DEMO-status.html');
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  const dashboardPath = artifactJoin(directory, 'DEMO-status.html');
   const state = (await readFile(WORKFLOW_STATE, 'utf8'))
     .replaceAll('make-it-work/DEMO-', 'make-it-work/DEMO/DEMO-')
     .replace('phase: final-sync', 'phase: execute')

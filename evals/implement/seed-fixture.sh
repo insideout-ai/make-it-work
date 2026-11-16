@@ -27,6 +27,7 @@ if [ -f make-it-work/DEMO/implement-feedback.md ]; then
 fi
 
 git init -q -b main
+printf '/make-it-work/\n' >> .gitignore
 git add -A
 GIT_AUTHOR_NAME="fixture" GIT_AUTHOR_EMAIL="fixture@example.com" \
 GIT_COMMITTER_NAME="fixture" GIT_COMMITTER_EMAIL="fixture@example.com" \

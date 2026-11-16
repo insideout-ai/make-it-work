@@ -18,6 +18,7 @@ const command = (file, action, ...args) => JSON.parse(execFileSync(process.execP
 const remote = path.join(root, '.git/fixture-origin.git');
 git('init', '-q', '--bare', remote);
 git('remote', 'add', 'origin', 'https://github.com/example/delivery-fixture.git');
+git('update-ref', 'refs/remotes/origin/main', 'HEAD');
 git('config', `url.${remote}.insteadOf`, 'https://github.com/example/delivery-fixture.git');
 await writeFile('src/policy.js', "function canProceed(role) {\n  return role === 'member' || role === 'admin';\n}\n\nmodule.exports = { canProceed };\n");
 let state = await readFile(statePath, 'utf8');

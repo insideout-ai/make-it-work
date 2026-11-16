@@ -1,3 +1,4 @@
+import { artifactOutputJoin, logicalArtifactName } from '../scripts/lib/artifact-path.mjs';
 import { execFile, execFileSync } from 'node:child_process';
 import { readFile, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -52,7 +53,7 @@ async function pathsBelow(root) {
 function safePath(root, relative) {
   if (typeof relative !== 'string' || !relative || path.isAbsolute(relative) ||
       relative.split(/[\\/]/).includes('..')) throw new Error(`Unsafe grader path: ${relative}`);
-  return path.join(root, relative);
+  return artifactOutputJoin(root, relative);
 }
 
 function pathPattern(relative) {
@@ -60,13 +61,17 @@ function pathPattern(relative) {
     part.replace(/[|\\{}()[\]^$+?.]/g, '\\$&')).join('[^/]*')}$`);
 }
 
+function matchesEvidencePath(root, file, pattern) {
+  const alias = path.posix.join(path.posix.dirname(file), logicalArtifactName(path.join(root, file)));
+  return pathPattern(pattern).test(file) || pathPattern(pattern).test(alias);
+}
 async function readEvidence(focus, context) {
   if (focus === 'trace') return context.trace;
   if (focus === 'last_message') return context.lastMessage;
   if (['file', 'files'].includes(focus?.source)) {
     safePath(context.fixtureDir, focus.path);
     const matches = focus.path.includes('*')
-      ? (await pathsBelow(context.fixtureDir)).filter((file) => pathPattern(focus.path).test(file)).sort()
+      ? (await pathsBelow(context.fixtureDir)).filter(file => matchesEvidencePath(context.fixtureDir, file, focus.path)).sort()
       : [focus.path];
     if (!matches.length || (focus.source === 'file' && matches.length !== 1)) {
       throw new Error(`Expected ${focus.source === 'file' ? 'exactly one' : 'at least one'} evidence file for ${focus.path}; found ${matches.length}`);
@@ -200,7 +205,7 @@ export async function gradeHeadlessLocal(grader, context) {
       safePath(context.fixtureDir, relative);
       const files = await pathsBelow(context.fixtureDir);
       const expression = pathPattern(relative);
-      const exists = files.some((file) => expression.test(file));
+      const exists = files.some(file => matchesEvidencePath(context.fixtureDir, file, relative));
       const expected = grader.exists !== false;
       return { name: grader.name, passed: exists === expected,
         detail: `${relative}: ${exists ? 'present' : 'absent'}` };

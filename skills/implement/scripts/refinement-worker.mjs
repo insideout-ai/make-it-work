@@ -1,6 +1,8 @@
 #!/usr/bin/env node
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Parent-owned dispatch metadata, not runtime-agent or permission evidence.
-import { readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, withLock, within } from '../../../scripts/lib/artifacts.mjs';
@@ -26,7 +28,7 @@ function binding(state) {
     entry: state.audit.findLast(row => row.to === 'close-the-gaps' && row.from !== row.to)?.number ?? null };
 }
 async function handoffs(directory) {
-  try { return (await readdir(path.join(directory, `${path.basename(directory)}-handoffs`))).flatMap(name => /^gaps-(\d+)\.json$/.test(name) ? [Number(name.match(/\d+/)[0])] : []); }
+  try { return (await readdir(artifactJoin(directory, `${path.basename(directory)}-handoffs`))).flatMap(name => /^(?:miw-)?gaps-(\d+)\.json$/.test(name) ? [Number(name.match(/\d+/)[0])] : []); }
   catch (error) { if (error.code === 'ENOENT') return []; throw error; }
 }
 export async function refinementWorker(root, stateFile, command, input = {}) {
@@ -35,10 +37,10 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
   const directory = path.dirname(statePath);
   const state = parseState(await readFile(statePath, 'utf8'), statePath);
   const f = state.fields;
-  const file = path.join(directory, `${f.ticket}-refinement-worker.json`);
+  const file = artifactJoin(directory, `${f.ticket}-refinement-worker.json`);
   if (command === 'inspect' && !f.refinement_worker_version) return { enabled: false, route: 'inline' };
   if (f.refinement_worker_version !== '1') fail('Unsupported or absent refinement-worker version; do not backfill saved runs.');
-  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(f.ticket) || await realpath(directory) !== directory || directory !== path.join(root, 'make-it-work', f.ticket)) fail('Unexpected worker run directory.');
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(f.ticket) || await realpath(directory) !== directory || directory !== artifactJoin(root, 'make-it-work', f.ticket)) fail('Unexpected worker run directory.');
   const artifact = async relative => {
     const resolved = await within(directory, relative);
     return { path: path.relative(root, resolved), sha256: digest(await readFile(resolved)) };
@@ -103,7 +105,7 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
       exactKeys(input, ['request']);
       if (saved.status !== 'running') fail('Only a running worker may request parent service.');
       const ref = await artifact(input.request);
-      const request = await json(path.resolve(root, ref.path));
+      const request = await json(artifactResolve(root, ref.path));
       exactKeys(request, ['version', 'assignment_id', 'id', 'kind', 'text', 'reason']);
       if (request.version !== 1 || request.assignment_id !== saved.id || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(request.id ?? '')) fail('Request belongs to a different assignment or has an unsafe ID.');
       if (!['activity', 'context-update'].includes(request.kind)) fail('Unsupported worker request; return a blocked/needs_input gaps handoff for parent routing.');
@@ -117,7 +119,7 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
         await checkpointDecision(statePath, { id: `refinement-worker:${saved.id}:${request.id}`, topic: 'Refinement context update',
           choice: request.text, reason: request.reason, source: 'autopilot', via: 'policy', scope: `${f.ticket} local refinement`, resume: 'in-phase' });
       }
-      const reply = path.join(directory, `${f.ticket}-worker-reply-${request.id}.json`);
+      const reply = artifactJoin(directory, `${f.ticket}-worker-reply-${request.id}.json`);
       // Exact request identity plus idempotent checkpoint APIs recover render/write interruptions.
       const body = { version: 1, assignment_id: saved.id, request_id: request.id, request_sha256: ref.sha256, status: 'recorded', kind: request.kind };
       await atomicWrite(reply, JSON.stringify(body) + '\n');
@@ -129,15 +131,15 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
       const ref = await artifact(input.handoff);
       if (saved.status === 'returned') {
         if (saved.result.path !== ref.path || saved.result.sha256 !== ref.sha256) fail('Returned handoff changed or duplicate result differs.');
-        for (const a of saved.artifacts) if ((await artifact(path.relative(directory, path.resolve(root, a.path)))).sha256 !== a.sha256) fail('Returned artifact changed.');
+        for (const a of saved.artifacts) if ((await artifact(path.relative(directory, artifactResolve(root, a.path)))).sha256 !== a.sha256) fail('Returned artifact changed.');
         for (const a of saved.context_artifacts ?? []) if (digest(await readFile(await within(root, a.path))) !== a.sha256) fail('Returned context changed.');
         return { ...saved.result, replay: true };
       }
       if (saved.status !== 'running') fail('Attach the actual worker runtime before accepting its result.');
-      const match = /^gaps-(\d+)\.json$/.exec(path.basename(ref.path));
-      const expectedDirectory = path.join(directory, `${f.ticket}-handoffs`);
-      if (!match || path.dirname(path.resolve(root, ref.path)) !== expectedDirectory || Number(match[1]) <= saved.handoff_floor || Number(match[1]) !== Math.max(...await handoffs(directory))) fail('Require the newest gaps handoff created after dispatch.');
-      const h = await validateArtifacts(await json(path.resolve(root, ref.path)), root);
+      const match = /^(?:miw-)?gaps-(\d+)\.json$/.exec(path.basename(ref.path));
+      const expectedDirectory = artifactJoin(directory, `${f.ticket}-handoffs`);
+      if (!match || path.dirname(artifactResolve(root, ref.path)) !== expectedDirectory || Number(match[1]) <= saved.handoff_floor || Number(match[1]) !== Math.max(...await handoffs(directory))) fail('Require the newest gaps handoff created after dispatch.');
+      const h = await validateArtifacts(await json(artifactResolve(root, ref.path)), root);
       if (h.ticket !== f.ticket || h.stage !== 'gaps' || h.plan_version !== Number(f.plan_version)) fail('Handoff ticket, stage or plan version does not match assignment.');
       if (h.status === 'done' && h.outcome !== 'SPEC_SAVED') fail('The local worker cannot claim Slack delivery.');
       saved.context_artifacts = [];
@@ -148,7 +150,7 @@ export async function refinementWorker(root, stateFile, command, input = {}) {
       saved.artifacts = [];
       for (const a of [...Object.values(h.artifacts ?? {}), ...(h.data?.context_updated ?? [])]) {
         // Artifact ownership remains subject to the stage's existing context-discovery rules.
-        if (a.startsWith(`make-it-work/${f.ticket}/`)) saved.artifacts.push(await artifact(path.relative(directory, path.resolve(root, a))));
+        if (a.startsWith(`make-it-work/${f.ticket}/`)) saved.artifacts.push(await artifact(path.relative(directory, artifactResolve(root, a))));
       }
       saved.status = 'returned'; saved.result = ref; await persist();
       return { ...ref, status: h.status, outcome: h.outcome ?? null, instruction: 'Parent must read the spec, assess risk and route this unchanged v1 handoff through the controller. This receipt does not complete or advance the workflow.' };
@@ -172,5 +174,5 @@ export async function checkRefinementWorkerHandoff(root, statePath, handoff) {
   if (journal.version !== 1 || journal.binding?.start_time !== state.fields.start_time || journal.binding?.ticket !== state.fields.ticket) fail('Worker receipt belongs to a different run.');
   if (journal.status === 'cancelled' && typeof journal.reason === 'string' && journal.reason.trim()) return;
   if (journal.status !== 'returned') fail('Accept the refinement worker result before controller routing.');
-  await refinementWorker(root, statePath, 'accept', { handoff: path.resolve(root, handoff) });
+  await refinementWorker(root, statePath, 'accept', { handoff: artifactResolve(root, handoff) });
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, withLock, within } from '../../../scripts/lib/artifacts.mjs';
 import { parseState } from './render-status.mjs';
@@ -30,7 +30,7 @@ async function context(root, statePath) {
   const state = parseState(await readFile(await within(root, statePath), 'utf8'), statePath);
   const f = state.fields;
   if (f.status !== 'In Progress' || f.phase !== 'lightweight' || f.mode !== 'lightweight' || Number(f.fix_cycle) < 1) fail('A Lightweight fix round must be active.');
-  const prefix = `make-it-work/${f.ticket}/${f.ticket}`;
+  const prefix = `make-it-work/${f.ticket}/${f.artifact_naming_version === '1' && !f.ticket.startsWith('miw-') ? 'miw-' : ''}${f.ticket}`;
   if (f.implementation_report !== `${prefix}-lightweight.md`) fail('Lightweight fix requires its existing implementation report.');
   return { state, prefix, report: await within(root, f.implementation_report), spec: await within(root, f.spec) };
 }

@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import { lstat, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
+import { closeActivityTiming } from './activity-timing.mjs';
+import { captureUsage } from '../../../scripts/usage.mjs';
+import { ensureArtifactIgnored } from '../../../scripts/lib/artifact-git.mjs';
+import { updateLog } from '../../../scripts/decision-log.mjs';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { mkdir, readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
+import { lstat, readdir, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, withLock, within } from '../../../scripts/lib/artifacts.mjs';
@@ -322,10 +328,10 @@ async function loadHandoff(root, state, input) {
   if (input.event !== 'handoff') return null;
   const file = await within(root, input.handoff);
   const handoff = await validateArtifacts(JSON.parse(await readFile(file, 'utf8')), root, { requireClauses: state.fields.acceptance_evidence_version === '1' });
-  const directory = path.join(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
-  const number = path.basename(file).match(new RegExp(`^${handoff.stage}-([1-9]\\d*)\\.json$`));
+  const directory = artifactJoin(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
+  const number = path.basename(file).match(new RegExp(`^(?:miw-)?${handoff.stage}-([1-9]\\d*)\\.json$`));
   if (!number || path.dirname(file) !== directory) fail('Invalid handoff location.');
-  const numbers = (await readdir(directory)).map((name) => name.match(new RegExp(`^${handoff.stage}-([1-9]\\d*)\\.json$`))).filter(Boolean).map((match) => Number(match[1]));
+  const numbers = (await readdir(directory)).map((name) => name.match(new RegExp(`^(?:miw-)?${handoff.stage}-([1-9]\\d*)\\.json$`))).filter(Boolean).map((match) => Number(match[1]));
   if (Number(number[1]) !== Math.max(...numbers)) fail('Handoff is stale.');
   return handoff;
 }
@@ -333,7 +339,7 @@ const APPROVAL_CHOICES = [{ id: 'approve', label: 'Approve' }, { id: 'redo', lab
 async function bindingFor(root, ticket, relative, kind, strict) {
   if (typeof relative !== 'string' || !relative.startsWith(`make-it-work/${ticket}/`) || path.posix.normalize(relative) !== relative) fail('Pending input artifacts must belong to the ticket run.');
   const file = await within(root, relative);
-  const runRoot = await realpath(path.join(root, 'make-it-work', ticket));
+  const runRoot = await realpath(artifactJoin(root, 'make-it-work', ticket));
   if (!(await realpath(file)).startsWith(`${runRoot}${path.sep}`)) fail('Pending input artifact escapes the ticket run.');
   return { kind, path: relative, sha256: digest(await readFile(file)), strict };
 }
@@ -401,6 +407,7 @@ function reviewScopeAction(fields, event) {
 
 export async function applyWorkflow({ root, statePath, input, render = refresh }) {
   root = await realpath(root);
+  await ensureArtifactIgnored(artifactJoin(root, 'make-it-work'));
   statePath = await within(root, statePath);
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(input.id ?? '')) fail('A stable event id is required.');
   if (input.event === 'input-answered') fail('Input answers must use resolve-input.');
@@ -470,7 +477,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       const approvedRoots = await Promise.all((reposInput ?? [root]).map((repo) => realpath(repo)));
       for (const file of effective.context_updated) {
         oneLine(file, 'Context path');
-        const resolved = await realpath(path.resolve(root, file));
+        const resolved = await realpath(artifactResolve(root, file));
         if (!approvedRoots.some((repo) => resolved.startsWith(`${repo}${path.sep}`)) || !(await lstat(resolved)).isFile()) fail('Context path must be a file in an approved repository.');
       }
     }
@@ -498,10 +505,10 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     }
     let previousReview = effective.previous_review ? JSON.parse(await readFile(await within(root, effective.previous_review), 'utf8')) : null;
     if (handoff?.stage === 'review' && handoff.review_cycle > 1) {
-      const directory = path.join(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
+      const directory = artifactJoin(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
       const candidates = [];
-      for (const name of (await readdir(directory)).filter((name) => /^review-[1-9]\d*\.json$/.test(name))) {
-        const candidate = JSON.parse(await readFile(await within(root, path.join(directory, name)), 'utf8'));
+      for (const name of (await readdir(directory)).filter((name) => /^(?:miw-)?review-[1-9]\d*\.json$/.test(name))) {
+        const candidate = JSON.parse(await readFile(await within(root, artifactJoin(directory, name)), 'utf8'));
         if (candidate.plan_version === handoff.plan_version && candidate.review_cycle === handoff.review_cycle - 1 && candidate.status === 'done') candidates.push({ name, candidate });
       }
       candidates.sort((a, b) => Number(b.name.match(/-(\d+)\.json$/)[1]) - Number(a.name.match(/-(\d+)\.json$/)[1]));
@@ -626,8 +633,11 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const outcome = `${reason}${next.autonomyNote ? ` ${next.autonomyNote}` : ''}`;
     const row = `| ${state.audit.length + 1} | ${time} | ${state.fields.phase} | ${f.phase} | ${String(outcome).replaceAll('|', '&#124;').replaceAll('\n', ' ')} ${marker}${transparent} |\n`;
     updated = updated.trimEnd() + '\n' + row;
+    const timingState = { ...state, audit: [...state.audit, { number: state.audit.length + 1 }] };
+    updated = await closeActivityTiming(statePath, timingState, updated, f.phase, f.status, time, { resumed: effective.event === 'resume' });
     parseState(updated, statePath);
     await atomicWrite(statePath, updated);
+    if (f.phase !== state.fields.phase || effective.event === 'resume' || ['complete', 'stop'].includes(effective.event)) await captureUsage(path.dirname(statePath));
     // Keep the event on render failure. Replaying its id refreshes without recounting.
     return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
@@ -640,6 +650,7 @@ export async function workflowDefaults() {
 }
 export async function initializeWorkflow(root, input) {
   root = await realpath(root);
+  await ensureArtifactIgnored(artifactJoin(root, 'make-it-work'));
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '')) fail('Unsafe ticket.');
   if (!['guided', 'autonomous', 'autopilot'].includes(input.autonomy)) fail('Choose autonomy first.');
   const repos = await snapshot(input.repos);
@@ -651,6 +662,8 @@ export async function initializeWorkflow(root, input) {
   if (input.refinement_worker !== undefined && typeof input.refinement_worker !== 'boolean') fail('refinement_worker must be boolean.');
   if (input.refinement_worker && (input.autonomy !== 'autopilot' || workspace || input.offline_pending || ![undefined, 'here'].includes(input.refinement_destination))) fail('Refinement worker requires a new local single-repository Autopilot run.');
   const fields = await workflowDefaults();
+  fields.artifact_naming_version = '1';
+  fields.activity_timing_version = '1';
   const manifest = JSON.parse(await readFile(fileURLToPath(new URL('../../../.claude-plugin/plugin.json', import.meta.url)), 'utf8'));
   requireText(manifest.version, 'Plugin version');
   const time = new Date().toISOString();
@@ -675,16 +688,32 @@ export async function initializeWorkflow(root, input) {
     Object.assign(fields, { phase: 'close-the-gaps', status: 'Paused', pause_reason: 'offline refinement pending' });
     fields.pending_inputs = JSON.stringify([createPendingInput({ id: 'offline-refinement', kind: 'slack', waiting_for: 'pm', question: 'Waiting for answers to the saved refinement questions.' }, fields.phase, time)]);
   }
-  const artifactRoot = path.join(root, 'make-it-work');
+  const artifactRoot = artifactJoin(root, 'make-it-work');
   await mkdir(artifactRoot, { recursive: true });
   if (!(await lstat(artifactRoot)).isDirectory()) fail('Artifact root must not be a symlink.');
   const directory = path.join(artifactRoot, input.ticket);
   await mkdir(directory, { recursive: true });
   if (!(await lstat(directory)).isDirectory()) fail('Run directory must not be a symlink.');
-  const statePath = path.join(directory, `${input.ticket}-state.md`);
+  await writeFile(artifactJoin(directory, 'miw-run.json'), JSON.stringify({ artifact_naming_version: 1 }), { flag: 'wx' });
+  const statePath = artifactJoin(directory, `${input.ticket}-state.md`);
   const markdown = `# Workflow state — ${input.ticket}\n\n\`\`\`\n${Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join('\n')}\n\`\`\`\n\n## Known regressions\n\nNone\n\n## Decided findings\n\nNone\n\n## Context discoveries\n\nNone\n\n## Audit log\n\n| # | Time | From | To | Outcome / reason |\n| --- | --- | --- | --- | --- |\n| 1 | ${time} | start | ${fields.phase} | New ${input.autonomy} run; ${requireText(input.branch_guard, 'Branch guard outcome').replaceAll('|', '&#124;')}${input.refinement_worker ? '; Decision: Refinement worker enabled; source: user; via: flag; scope: local Autopilot refinement' : ''} |\n`;
   parseState(markdown, statePath);
   await writeFile(statePath, markdown, { flag: 'wx' });
+  if (input.autonomy === 'autopilot') {
+    const log = { root, skill: 'implement', ticket: input.ticket };
+    let decisions;
+    try {
+      decisions = (await readFile(artifactJoin(directory, 'implement-autopilot-log.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      await updateLog({ ...log, command: 'init' });
+      decisions = [];
+    }
+    if (!decisions.some(entry => entry.site === 'branch-guard')) await updateLog({ ...log, command: 'append', input: {
+      phase: 'Start', site: 'branch-guard', kind: 'checkpoint', chosen: input.branch_guard,
+      rationale: 'Branch guard outcome recorded with the verified initialization snapshot.',
+    } });
+  }
   const dashboard = await generateDashboard(statePath);
   const target = encodeURI(dashboard).replace(/[?#]/g, (character) => encodeURIComponent(character));
   return { state: statePath, dashboard,

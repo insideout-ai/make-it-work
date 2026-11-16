@@ -1,3 +1,4 @@
+import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
@@ -9,23 +10,25 @@ import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { updateLog } from '../../../scripts/decision-log.mjs';
 
-async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false } = {}) {
-  const root = await mkdtemp(path.join(os.tmpdir(), prefix));
+async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false, beforeInit = async () => {} } = {}) {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), prefix));
   t.after(() => rm(root, { recursive: true, force: true }));
   const git = (...argv) => execFileSync('git', ['-C', root, ...argv], { stdio: 'pipe' });
   git('init', '-b', 'main'); git('config', 'user.email', 'test@example.invalid'); git('config', 'user.name', 'Test');
-  await writeFile(path.join(root, 'source.txt'), 'baseline'); git('add', '.'); git('commit', '-m', 'baseline'); git('switch', '-c', 'DEMO');
-  await mkdir(path.join(root, '.claude/skills/domain-demo'), { recursive: true });
-  await mkdir(path.join(root, '.claude/rules'), { recursive: true });
-  await writeFile(path.join(root, 'CLAUDE.md'), '# Skill Loading Gate\n');
-  await writeFile(path.join(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
-  await writeFile(path.join(root, '.claude/rules/product.md'), '# Product');
-  await writeFile(path.join(root, '.claude/rules/architecture.md'), '# Architecture');
+  await writeFile(artifactJoin(root, 'source.txt'), 'baseline'); git('add', '.'); git('commit', '-m', 'baseline'); git('switch', '-c', 'DEMO');
+  await mkdir(artifactJoin(root, '.claude/skills/domain-demo'), { recursive: true });
+  await mkdir(artifactJoin(root, '.claude/rules'), { recursive: true });
+  await writeFile(artifactJoin(root, 'CLAUDE.md'), '# Skill Loading Gate\n');
+  await writeFile(artifactJoin(root, '.claude/skills/domain-demo/SKILL.md'), '---\nname: domain-demo\n---\n');
+  await writeFile(artifactJoin(root, '.claude/rules/product.md'), '# Product');
+  await writeFile(artifactJoin(root, '.claude/rules/architecture.md'), '# Architecture');
   if (dirty) {
-    await writeFile(path.join(root, 'source.txt'), 'pre-existing local edit');
-    await writeFile(path.join(root, 'local.js'), 'pre-existing untracked file');
+    await writeFile(artifactJoin(root, 'source.txt'), 'pre-existing local edit');
+    await writeFile(artifactJoin(root, 'local.js'), 'pre-existing untracked file');
   }
+  await beforeInit(root);
   const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing feature branch', ...init });
   const statePath = result.state;
   let id = 0;
@@ -36,6 +39,21 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = 
 }
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
+
+test('Autopilot initialization records its verified branch guard without losing prior decisions', async t => {
+  const entry = { phase: 'Start', site: 'autonomy-selection', kind: 'checkpoint', chosen: 'autopilot', rationale: 'Selected through the explicit flag.' };
+  for (const prior of [[], [entry], [entry, { ...entry, site: 'branch-guard', chosen: 'Existing feature branch' }]]) {
+    const f = await fixture(t, { init: { autonomy: 'autopilot' }, beforeInit: async root => {
+      if (prior.length) await updateLog({ root, skill: 'implement', ticket: 'DEMO', command: 'write', input: prior });
+    } });
+    const log = (await readFile(artifactJoin(path.dirname(f.statePath), 'implement-autopilot-log.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+    assert.equal(log.filter(item => item.site === 'branch-guard').length, 1);
+    assert.equal(log.find(item => item.site === 'branch-guard').chosen, 'Existing feature branch');
+    assert.deepEqual(log.slice(0, prior.length), prior);
+  }
+  const f = await fixture(t);
+  await assert.rejects(readFile(artifactJoin(path.dirname(f.statePath), 'implement-autopilot-log.jsonl')), { code: 'ENOENT' });
+});
 
 test('fresh runs retain verification decisions only through an explicit user choice', async t => {
   const decision = { decision: 'Manual verification selected; build unavailable', reference: 'Prior run user decision', unverified: ['Endpoint behavior has not been observed'] };
@@ -50,7 +68,7 @@ test('an exact approved branch advance clears the guard without absorbing local 
   const git = (...args) => execFileSync('git', ['-C', f.root, ...args], { stdio: 'pipe' }).toString().trim();
   const from = git('rev-parse', 'HEAD');
   git('switch', '-c', 'approved');
-  await writeFile(path.join(f.root, 'upstream.js'), 'export const upstream = true;');
+  await writeFile(artifactJoin(f.root, 'upstream.js'), 'export const upstream = true;');
   git('add', 'upstream.js'); git('commit', '-qm', 'Approved upstream change');
   const change = { root: f.root, from_head: from, to_head: git('rev-parse', 'HEAD'), branch: 'approved' };
   const current = async () => parseState(await readFile(f.statePath, 'utf8'));
@@ -60,14 +78,14 @@ test('an exact approved branch advance clears the guard without absorbing local 
   await f.apply('accept-workspace', { source: 'user', via: 'chat', reason: 'Approved exact branch advance', branch_baseline: [change] });
   assert.equal((await current()).fields.branch, 'approved');
   assert.equal(await prematureImplementation(f.result, await current()), null);
-  assert.equal(await readFile(path.join(f.root, 'local.js'), 'utf8'), 'pre-existing untracked file');
-  assert.equal(await readFile(path.join(f.root, 'source.txt'), 'utf8'), 'pre-existing local edit');
+  assert.equal(await readFile(artifactJoin(f.root, 'local.js'), 'utf8'), 'pre-existing untracked file');
+  assert.equal(await readFile(artifactJoin(f.root, 'source.txt'), 'utf8'), 'pre-existing local edit');
   const acceptedState = await current();
   const receipt = JSON.parse(acceptedState.fields.implementation_baseline);
   for (const corrupted of [{ ...receipt, repos: [] }, { ...receipt, runId: 'another-run' }, { ...receipt, origin_hash: '0'.repeat(64) }]) {
     assert.match(await prematureImplementation(f.result, { ...acceptedState, fields: { ...acceptedState.fields, implementation_baseline: JSON.stringify(corrupted) } }), /binding is invalid/);
   }
-  await writeFile(path.join(f.root, 'source.txt'), 'unauthorized edit');
+  await writeFile(artifactJoin(f.root, 'source.txt'), 'unauthorized edit');
   assert.match(await prematureImplementation(f.result, await current()), /Application files changed/);
 });
 
@@ -75,16 +93,16 @@ test('branch baseline acceptance rejects mixed edits and incorrect targets witho
   const f = await fixture(t);
   const git = (...args) => execFileSync('git', ['-C', f.root, ...args], { stdio: 'pipe' }).toString().trim();
   const from = git('rev-parse', 'HEAD');
-  await writeFile(path.join(f.root, 'upstream.js'), 'upstream');
+  await writeFile(artifactJoin(f.root, 'upstream.js'), 'upstream');
   git('add', 'upstream.js'); git('commit', '-qm', 'Advance');
   const change = { root: f.root, from_head: from, to_head: git('rev-parse', 'HEAD'), branch: 'DEMO' };
   const before = await readFile(f.statePath, 'utf8');
   const input = { source: 'user', via: 'chat', reason: 'Approved advance', branch_baseline: [change] };
-  await writeFile(path.join(f.root, 'local.js'), 'unapproved');
+  await writeFile(artifactJoin(f.root, 'local.js'), 'unapproved');
   await assert.rejects(f.apply('accept-workspace', input), /local application edits/);
   assert.equal(await readFile(f.statePath, 'utf8'), before);
-  await rm(path.join(f.root, 'local.js'));
-  await writeFile(path.join(f.root, 'source.txt'), 'unapproved tracked change');
+  await rm(artifactJoin(f.root, 'local.js'));
+  await writeFile(artifactJoin(f.root, 'source.txt'), 'unapproved tracked change');
   await assert.rejects(f.apply('accept-workspace', input), /local application edits/);
   git('add', 'source.txt');
   await assert.rejects(f.apply('accept-workspace', input), /local application edits/);
@@ -164,7 +182,7 @@ test('startup handoff links the created dashboard for all modes and offline paus
 });
 test('init CLI prioritizes the startup message in a concise successful handoff', async (t) => {
   const { root } = await fixture(t);
-  const inputPath = path.join(root, 'init-cli.json');
+  const inputPath = artifactJoin(root, 'init-cli.json');
   await writeFile(inputPath, JSON.stringify({ ticket: 'CLI', autonomy: 'autonomous', base: 'main', repos: [root], branch_guard: 'Existing branch' }));
   const script = new URL('./workflow.mjs', import.meta.url).pathname;
   const result = JSON.parse(execFileSync(process.execPath, [script, 'init', '--root', root, '--input', inputPath], { encoding: 'utf8' }));
@@ -181,7 +199,7 @@ test('init CLI prioritizes the startup message in a concise successful handoff',
 });
 test('offline init CLI preserves its genuine answer wait instead of starting Context check', async (t) => {
   const { root } = await fixture(t);
-  const inputPath = path.join(root, 'offline-init.json');
+  const inputPath = artifactJoin(root, 'offline-init.json');
   await writeFile(inputPath, JSON.stringify({ ticket: 'OFFLINE', autonomy: 'autonomous', offline_pending: true, base: 'main', repos: [root], branch_guard: 'Existing branch' }));
   const result = JSON.parse(execFileSync(process.execPath, [new URL('./workflow.mjs', import.meta.url).pathname, 'init', '--root', root, '--input', inputPath], { encoding: 'utf8' }));
   assert.equal(result.next_action.type, 'assistant_message');
@@ -196,10 +214,10 @@ test('checkpoint clears activity, increments review once, and preserves unrelate
   const ready = await apply('context-ready');
   assert.equal(ready.next_action.phase, 'close-the-gaps');
   assert.match(ready.next_action.instruction, /does not authorize application edits/);
-  const dir = path.join(root, 'make-it-work/DEMO');
-  await mkdir(path.join(dir, 'DEMO-handoffs'));
-  await writeFile(path.join(dir, 'DEMO-spec.md'), '# Spec');
-  await writeFile(path.join(dir, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  const dir = artifactJoin(root, 'make-it-work/DEMO');
+  await mkdir(artifactJoin(dir, 'DEMO-handoffs'));
+  await writeFile(artifactJoin(dir, 'DEMO-spec.md'), '# Spec');
+  await writeFile(artifactJoin(dir, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
   await checkpointDashboard(statePath, { activity: 'Writing the refined spec.' });
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   const next = await apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json' });
@@ -277,8 +295,8 @@ test('render failure leaves durable event; retry refreshes without counting twic
 test('optimistic concurrency and resume reject changed workspace including renamed untracked files', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   await assert.rejects(apply('context-ready', { expected_hash: 'stale' }), /state changed/);
-  await writeFile(path.join(root, 'new.txt'), 'same bytes');
-  const a = await snapshot([root]); await rename(path.join(root, 'new.txt'), path.join(root, 'renamed.txt'));
+  await writeFile(artifactJoin(root, 'new.txt'), 'same bytes');
+  const a = await snapshot([root]); await rename(artifactJoin(root, 'new.txt'), artifactJoin(root, 'renamed.txt'));
   assert.notEqual((await snapshot([root]))[0].fingerprint, a[0].fingerprint);
   await assert.rejects(apply('resume'), /Workspace changed/);
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, 1);
@@ -310,7 +328,7 @@ test('plan content hash excludes only Execution Status', () => {
 });
 test('mode changes preserve artifact fingerprints even when a spec changed; normal resume catches that drift', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  const spec = path.join(root, 'make-it-work/DEMO/DEMO-spec.md'); await writeFile(spec, 'Original spec');
+  const spec = artifactJoin(root, 'make-it-work/DEMO/DEMO-spec.md'); await writeFile(spec, 'Original spec');
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const previous = parseState(await readFile(statePath, 'utf8')).fields;
@@ -335,12 +353,12 @@ test('queued requests survive render failure and replay, then apply once at a re
 });
 test('the controller retains the existing handoff boundary requiring testing policy before execution', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
-  const directory = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(directory);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | Save record | Save |\n');
-  await writeFile(path.join(directory, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  const directory = artifactJoin(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(directory);
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | Save record | Save |\n');
+  await writeFile(artifactJoin(directory, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(statePath, 'utf8');
   await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Verification Policy/);
   assert.equal(await readFile(statePath, 'utf8'), before);
@@ -421,7 +439,7 @@ test('spec conflicts invalidate dependent evidence and require explicit resoluti
 test('spec conflict persists an approval wait that Autopilot cannot skip', async (t) => {
   const { root, statePath, apply } = await fixture(t, { init: { autonomy: 'autopilot' } });
   const spec = 'make-it-work/DEMO/DEMO-spec.md';
-  await writeFile(path.join(root, spec), '# Accepted spec\nAC1: preserve error parity.\n');
+  await writeFile(artifactJoin(root, spec), '# Accepted spec\nAC1: preserve error parity.\n');
   await apply('mode', { mode: 'tdd', risk: 'medium', source: 'assessed', rationale: 'Requirements affect error parity.' });
   await apply('context-ready', { reuse_spec: true, spec, source: 'user', via: 'chat' });
   const conflict = await apply('spec-conflict', { reason: 'AC1 versus provider.js:4; confirm parity. Snapshot: DEMO-spec-before-conflict-v1.md.' });
@@ -429,10 +447,10 @@ test('spec conflict persists an approval wait that Autopilot cannot skip', async
   await assert.rejects(apply('resume', { blocker_resolved: true }), /explicit user/);
   await apply('resume', { blocker_resolved: true, source: 'user', via: 'chat' });
   // Refinement records the user's decision in the accepted spec before returning.
-  await writeFile(path.join(root, spec), '# Revised spec\nAC1: preserve error parity.\nDecision Log: User confirmed parity; correct the implementation approach.\n');
+  await writeFile(artifactJoin(root, spec), '# Revised spec\nAC1: preserve error parity.\nDecision Log: User confirmed parity; correct the implementation approach.\n');
   const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
-  await mkdir(path.dirname(path.join(root, handoff)), { recursive: true });
-  await writeFile(path.join(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec }, data: { tbd_items: 0, context_updated: [] } }));
+  await mkdir(path.dirname(artifactJoin(root, handoff)), { recursive: true });
+  await writeFile(artifactJoin(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec }, data: { tbd_items: 0, context_updated: [] } }));
   const waiting = await apply('handoff', { handoff });
   assert.equal(waiting.fields.phase, 'spec-approval');
   assert.equal(waiting.fields.status, 'Paused');
@@ -446,12 +464,12 @@ test('spec conflict persists an approval wait that Autopilot cannot skip', async
 
 test('a fresh controller rejects a scenario-only plan without advancing state', async (t) => {
   const { root, statePath, apply } = await fixture(t);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-spec.md'), '# Spec');
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
-  const dir = path.join(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(dir);
-  await writeFile(path.join(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Total passes |\n');
-  await writeFile(path.join(dir, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  const dir = artifactJoin(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(dir);
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Total passes |\n');
+  await writeFile(artifactJoin(dir, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(statePath, 'utf8');
   assert.equal(parseState(before).fields.acceptance_evidence_version, '1');
   await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Requirement clause column/);
@@ -460,7 +478,7 @@ test('a fresh controller rejects a scenario-only plan without advancing state', 
 
 test('execution-mode records the plan and controller decision together and rejects policy overrides', async t => {
   const f = await fixture(t);
-  const planPath = path.join(f.root, 'make-it-work/DEMO/DEMO-plan.md');
+  const planPath = artifactJoin(f.root, 'make-it-work/DEMO/DEMO-plan.md');
   await writeFile(planPath, '# Plan\n\n## Execution Status\n\n**Mode:** Not yet chosen\n- **Subagent-Driven** — fresh agent.\n- **Inline** — here.\n\n**Progress:** Step 0 of 1 complete.\n\n## Steps\n\n### Step 1 — Change\n\n**Verify:** Check.\n');
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: context-check', 'phase: execute').replace('plan: none', 'plan: make-it-work/DEMO/DEMO-plan.md'));
   const result = await f.apply('execution-mode', { mode: 'inline', pause_mode: 'run-straight-through', source: 'user', via: 'chat' });
@@ -476,10 +494,10 @@ test('execution-mode records the plan and controller decision together and rejec
 test('mode and handoff reject omitted roots without mutation and accept the same event with explicit roots', async t => {
   const f = await fixture(t);
   await f.apply('context-ready');
-  const directory = path.join(f.root, 'make-it-work/DEMO');
-  await mkdir(path.join(directory, 'DEMO-handoffs'));
-  await writeFile(path.join(directory, 'DEMO-spec.md'), '# Spec');
-  await writeFile(path.join(directory, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
+  const directory = artifactJoin(f.root, 'make-it-work/DEMO');
+  await mkdir(artifactJoin(directory, 'DEMO-handoffs'));
+  await writeFile(artifactJoin(directory, 'DEMO-spec.md'), '# Spec');
+  await writeFile(artifactJoin(directory, 'DEMO-handoffs/gaps-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, data: { tbd_items: 0, context_updated: [] } }));
   for (const payload of [
     { event: 'mode', risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'Bounded change.' },
     { event: 'handoff', handoff: 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json' },
@@ -520,13 +538,13 @@ for (const context of ['absent', 'partial', 'complete', 'unreadable']) {
   test(`context-ready handles ${context} go-deep context without changing inventory semantics`, async (t) => {
     const { root, statePath, apply } = await fixture(t);
     if (context === 'absent') {
-      await rm(path.join(root, '.claude'), { recursive: true });
-      await rm(path.join(root, 'CLAUDE.md'));
+      await rm(artifactJoin(root, '.claude'), { recursive: true });
+      await rm(artifactJoin(root, 'CLAUDE.md'));
     } else if (context === 'partial') {
-      await rm(path.join(root, '.claude/rules/product.md'));
+      await rm(artifactJoin(root, '.claude/rules/product.md'));
     } else if (context === 'unreadable') {
-      await rm(path.join(root, 'CLAUDE.md'));
-      await mkdir(path.join(root, 'CLAUDE.md'));
+      await rm(artifactJoin(root, 'CLAUDE.md'));
+      await mkdir(artifactJoin(root, 'CLAUDE.md'));
     }
     const before = await readFile(statePath, 'utf8');
     if (context === 'unreadable') {

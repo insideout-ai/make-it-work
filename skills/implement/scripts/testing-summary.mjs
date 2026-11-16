@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
+import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
 import { testingPolicy } from './testing-policy.mjs';
 
@@ -26,7 +27,7 @@ export async function collectTestingSummary(root, fields, { final = false } = {}
   const scope = fields.workspace_version === '1' ? JSON.parse(fields.workspace_contract).repos : JSON.parse(fields.workspace_snapshot);
   let policy = [], ledger = null, plan = '';
   if (final && fields.mode !== 'lightweight' && fields.verification_version === '1' && fields.plan && fields.plan !== 'none') {
-    plan = await readFile(path.resolve(root, fields.plan), 'utf8');
+    plan = await readFile(artifactResolve(root, fields.plan), 'utf8');
     policy = testingPolicy(plan) ?? [];
     const { readVerification, EXECUTION_OUTCOMES } = await import('./verification.mjs');
     ledger = await readVerification(root, `make-it-work/${fields.ticket}/${fields.ticket}-verification-v${fields.plan_version}.json`, {
@@ -37,7 +38,7 @@ export async function collectTestingSummary(root, fields, { final = false } = {}
   }
   const rows = [];
   for (const repo of scope.filter(repo => !repo.role || repo.role === 'product')) {
-    try { await readFile(path.join(repo.root, '.claude/skills/test-strategy/SKILL.md')); continue; }
+    try { await readFile(artifactJoin(repo.root, '.claude/skills/test-strategy/SKILL.md')); continue; }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     const id = repo.id ?? path.basename(repo.root);
     const selected = policy.find(row => row.Repo === id) ?? (scope.length === 1 ? policy[0] : null);
