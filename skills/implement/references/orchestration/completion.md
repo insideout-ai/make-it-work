@@ -51,3 +51,5 @@ Finally, for every completed run with `final_package_version: 1`, run `node "<ba
 
 ---
 
+
+For `change_assessment_version: 1`, include both change ratings, completeness, deciding rationale, exact snapshot and Markdown/JSON report links from the package. If unavailable, disclose the failure reason and label any previous report stale history; never repeat old ratings as current.

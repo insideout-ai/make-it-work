@@ -27,7 +27,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 
 ## Skills
 
-14 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
+15 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
 
 | What you need | Skill | What you get |
 | --- | --- | --- |
@@ -42,6 +42,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 | Turn a spec into an implementation plan | [plan-the-work](skills/plan-the-work/SKILL.md) | Small steps, verification criteria, and acceptance traceability |
 | Carry out an agreed plan | [execute](skills/execute/SKILL.md) | Verified steps and the plan's completion-gate result |
 | Check for regressions | [run-regression](skills/run-regression/SKILL.md) | Full or scoped test results, with unavailable checks made explicit |
+| Assess completed change complexity and risk | [assess-complexity](skills/assess-complexity/SKILL.md) | Revision-bound ratings, evidence, completeness, and linked reports |
 | Review changes against project intent | [review-the-code](skills/review-the-code/SKILL.md) | A verdict and findings grounded in requirements, code, and project guidance |
 | Publish a completed implementation | [deliver](skills/deliver/SKILL.md) | An approved commit, push, and new or updated PR |
 | Review a session and provide workflow feedback | [feedback-on-session](skills/feedback-on-session/SKILL.md) | Evidence-backed findings and your perspective in a local, shareable report |
@@ -547,3 +548,7 @@ Built by [insideout-ai](https://github.com/insideout-ai)
 Launch `implement` from a folder of Git checkouts; no workspace-root `CLAUDE.md` or `.git` is required. From inside a service, pass `--workspace /path/to/workspace` to select the wider boundary. `implement` uses `find-the-repos` to assess relevance, then shows one repository-and-branch preview. **Explicit user confirmation is required before creating or switching branches, even in Autopilot.** Revisions to repositories or branch targets require renewed approval.
 
 Workspace artifacts stay together under `<workspace>/make-it-work/<TICKET>/`. Each repository retains its own branch, base, context and test commands. HTML shows approved scope, proposed changes, selection evidence and per-repository Git snapshots alongside the shared pipeline. Single-repo runs retain their existing branch guard and artifact layout. See [the workspace contract](skills/implement/references/workspace.md) for resume, scope changes and delivery.
+
+### Assess completed change complexity and risk
+
+Use `/make-it-work:assess-complexity <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD, displaying informational ratings, completeness and report links in the dashboard and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. See [evidence contract](docs/change-assessment.md).
