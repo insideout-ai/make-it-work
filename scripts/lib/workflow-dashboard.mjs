@@ -49,7 +49,7 @@ export const WORKFLOW_STYLES = `
   .header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
   .header-row h1 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
-  .header-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-left: auto; max-width: 100%; }
+  .header-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.4rem; margin-left: auto; max-width: 100%; }
   .header-badges .pill { margin-right: 0; white-space: nowrap; }
   .assessment-badge-row { display: flex; flex-wrap: wrap; flex-basis: 100%; justify-content: flex-end; gap: 0.4rem; }
   .ticket-updates-allowed { color: #1e6231; background: #e6f4ea; }
