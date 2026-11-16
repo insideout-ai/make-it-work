@@ -1,0 +1,21 @@
+scripts/lib/workflow-dashboard.mjs
+  s_d5b4799db8ec84::t_26459291e80667 52
+CHANGELOG.md
+  s_d5b4799db8ec84::t_26459291e80667 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "92a4d96bba9e7d639f4b3c50c9bd9c4d963d3acd",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
