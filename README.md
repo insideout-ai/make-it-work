@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source 2489fe955c21f4f6642eaa9446a084db055dff25](https://github.com/insideout-ai/make-it-work/tree/2489fe955c21f4f6642eaa9446a084db055dff25). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source aadd96053162dca42cfbb711075c2df7e30d8b8f](https://github.com/insideout-ai/make-it-work/tree/aadd96053162dca42cfbb711075c2df7e30d8b8f). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -320,7 +320,7 @@ After final approval, the dashboard shows **Finalizing session** while feedback 
 
 Use it when you want one command to take a ticket from request to a reviewed, documented implementation, in a repo that has been onboarded with `go-deep`.
 
-Each feedback write also creates `make-it-work/<TICKET>/miw-workflow-feedback.md`, containing only that session's feedback. The completion summary links this file so you can save/download it, review it, and optionally email it to InsideOut AI at [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com) as an attachment, with the subject "make-it-work workflow feedback". Share this session file rather than the cumulative history or implementation package. It is saved beside the final package after completion and does not change the package's approval; nothing is emailed automatically.
+Each feedback write also creates `make-it-work/<TICKET>/miw-workflow-feedback.md`, containing only that session's feedback. After the report is saved and fully read back, the dashboard and completion message show **Email feedback** beside **Save this session’s feedback**; standalone session reviews offer the same email link beside their report link. It opens your email composer addressed to `insideoutaitech@gmail.com`, with subject `make-it-work workflow feedback` and a short generic body. **Review and save the report, then attach it to the email. Sharing is optional.** Share only the current session report, never cumulative history, the transcript or implementation package. The URL contains no project identifiers, report contents or local paths. Sharing links are hidden while collecting, unavailable or awaiting readback. No email service, credentials, automatic attachments or automatic sending are involved, and the approved implementation package stays unchanged.
 
 ---
 
@@ -372,7 +372,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.10.0 through the publisher's marketplace:
+Install commercial version 5.11.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -559,4 +559,4 @@ Workspace artifacts stay together under `<workspace>/make-it-work/<TICKET>/`. Ea
 
 ### Assess completed change complexity and risk
 
-Use `/make-it-work:assess-complexity <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD, displaying informational ratings, completeness and report links in the dashboard and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. See [evidence contract](docs/change-assessment.md).
+Use `/make-it-work:assess-complexity <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD. Only at final approval or completion, the dashboard header shows Code complexity and Production risk badges with completeness and rationale tooltips, or a neutral Assessment: Unavailable/Stale badge. The persisted audit log links each result to its report without repeating it on refresh or resume; reassessments get a new entry. Detailed evidence remains in the reports and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. See [evidence contract](docs/change-assessment.md).

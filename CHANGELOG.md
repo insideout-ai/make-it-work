@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.11.0] — 2026-11-16
+
+### Added
+
+- Add optional Email feedback links beside the current-session report download after verified readback, with generic prefilled email fields and a manual attachment reminder; collecting/unavailable/unread reports expose no sharing links.
+
+### Changed
+
+- Move final change assessment into header badges and linked, deduplicated audit results; hide earlier-phase assessments and show neutral stale/unavailable badges while preserving reports, package evidence and legacy behavior.
+- Stop paid smoke runs on push; allow one readiness smoke run per PR and retain passing evidence while retrying only failed or unfinished cases through a shared-worktree ledger.
+
+### Fixed
+
+- Recover verified feedback finalization through an explicit transcript-backed command when hook discovery is missing; preserve complete controller JSON, support compact inspection, and surface receipt I/O failures and actionable delivery recovery.
+- Deduplicate repeated delegate report revisions without changing workflow state, repeating completion messages or suppressing revised reports.
+- Preserve uncertain baseline attribution and unverified acceptance behavior through approval and delivery summaries; require an explicit Lightweight risk reassessment and actionable routing for declared accepted-requirement violations.
+- Reject numeric assessment metrics when analyzer measurements are marked missing; keep unsupported counts in qualitative evidence with partial completeness.
+- Clarify inherited ticket failures versus branch and destination build evidence; retain actual compiler exits/full output, unperformed command startup, and separate emitted-JavaScript test results through existing validation qualifications.
+- Resolve standalone session feedback with a real UTC timestamp in the filename and check the returned path for collisions before saving, preserving separate reviews.
+
 ## [5.10.0] — 2026-11-16
 
 ### Added

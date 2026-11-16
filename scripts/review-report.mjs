@@ -25,6 +25,11 @@ export function reviewResult(input) {
     if (hasRoute && !['fix', 'replan', 'human', 'advisory'].includes(finding.route)) fail('Invalid finding route.');
     if (finding.route === 'advisory' && finding.severity !== 'Minor') fail('Only Minor findings may use the advisory route.');
     const actionable = finding.actionable ?? (hasRoute ? finding.route !== 'advisory' : finding.severity !== 'Minor');
+    if (finding.requirement_violation !== undefined && typeof finding.requirement_violation !== 'boolean') fail('Finding requirement_violation must be a boolean.');
+    if (finding.requirement_violation === true) {
+      requireText(finding.requirement, 'Accepted requirement citation');
+      if (!actionable) fail('An accepted requirement violation cannot be an advisory; route it to fix, replan or human, or resolve it through an explicitly approved spec amendment.');
+    }
     if (typeof actionable !== 'boolean') fail('Finding actionable must be a boolean.');
     if (!actionable && finding.severity !== 'Minor') fail('Major/Critical findings cannot be hidden as non-actionable.');
     if (hasRoute && actionable !== (finding.route !== 'advisory')) fail('Finding route and actionable contradict each other.');
@@ -52,10 +57,12 @@ export function renderReview(input) {
       lines.push(`   Route: ${finding.route}`);
       if (input.implement.review_cycle > 1) lines.push(`   Introduced by fix of: ${finding.introduced_by_fix_of ?? 'none'}`);
     }
+    if (finding.requirement_violation) lines.push(`   Accepted requirement: ${finding.requirement}`);
     if (!finding.actionable) lines.push('   Status: Unfixed advisory (not routed)');
     lines.push('');
     const disposition = !finding.actionable ? ' (unfixed advisory; not routed)' : input.implement ? ` (Route: ${finding.route})` : '';
     summary.push(`${finding.id.slice(1)}. [${finding.severity}] ${finding.claim} — ${locations.join('; ')}${disposition}`);
+    if (finding.requirement_violation) summary.push(`Accepted requirement: ${finding.requirement}`);
   }
   for (const [name, items] of [['Pre-existing (not blocking)', input.preexisting], ['Context gaps (for final sync)', input.context_gaps], ['Known unrelated regressions (documented, out of scope)', input.known_regressions], ['Decided (not re-raised)', input.decided]]) {
     if (items?.length) lines.push(`**${name}:**`, ...items.map((item) => `- ${requireText(item, name)}`), '');

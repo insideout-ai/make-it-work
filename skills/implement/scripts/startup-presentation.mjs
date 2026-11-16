@@ -10,13 +10,12 @@ import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
 import { feedbackEligible, feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
+import { runtimeObjects } from './runtime-output.mjs';
 import { readStartupConfirmation, saveStartupConfirmation, isConfirmationBoundary, hasDashboardLink as hasLink } from './startup-confirmation.mjs';
 
 export function startupResult(output) {
   if (typeof output !== 'string') return null;
-  for (const line of output.split('\n').reverse()) {
-    let value;
-    try { value = JSON.parse(line); } catch { continue; }
+  for (const value of runtimeObjects(output).reverse()) {
     if (typeof value?.startup_message === 'string' && typeof value.state === 'string' &&
         typeof value.dashboard === 'string' && value.state.endsWith('-state.md') &&
         value.dashboard.endsWith('-status.html') &&
@@ -133,15 +132,12 @@ export function startupProgress(events) {
           initialized = result; feedbackRun = { state: result.state, runId: result.runId ?? result.fields?.start_time };
           terminalFeedback = null; initializationId = part.tool_use_id; announced = false; agentCalls.clear(); agents.clear(); knownAgents.clear(); resumeCalls.clear(); seenResumes.clear(); tasks.clear(); taskCalls.clear();
         }
-        for (const line of output.split('\n')) {
-          try {
-            const value = JSON.parse(line);
-            const action = value.next_action;
-            if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
-                action.runId === value.fields?.start_time) { terminalFeedback = action; feedbackRun = action; }
-            const context = value.feedbackContext;
-            if (context && typeof context.state === 'string' && path.isAbsolute(context.state) && Number.isFinite(Date.parse(context.runId))) feedbackRun = context;
-          } catch { /* Only structured controller results establish a terminal handoff. */ }
+        for (const value of runtimeObjects(output)) {
+          const action = value.next_action;
+          if (action?.type === 'feedback' && typeof action.state === 'string' && path.isAbsolute(action.state) &&
+              action.runId === value.fields?.start_time) { terminalFeedback = action; feedbackRun = action; }
+          const context = value.feedbackContext;
+          if (context && typeof context.state === 'string' && path.isAbsolute(context.state) && Number.isFinite(Date.parse(context.runId))) feedbackRun = context;
         }
       }
       if (initialized && role === 'assistant' && part.type === 'text' && hasLink(part.text ?? '', initialized.dashboard)) announced = true;

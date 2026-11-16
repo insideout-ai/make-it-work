@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { finalizeFeedback, readFeedbackFinalization } from './feedback-finalization.mjs';
 import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
 import { feedbackReadback } from './feedback-readback.mjs';
+import { runtimeObjects } from './runtime-output.mjs';
 
 const writerPath = fileURLToPath(new URL('./write-feedback.mjs', import.meta.url));
 const feedbackReference = fileURLToPath(new URL('../references/feedback.md', import.meta.url));
@@ -17,7 +18,7 @@ export const feedbackFailureCodes = new Set(['EACCES', 'EPERM', 'EROFS', 'ENOSPC
 const outputText = part => typeof part.content === 'string' ? part.content :
   Array.isArray(part.content) ? part.content.filter(item => item.type === 'text').map(item => item.text).join('\n') : '';
 function jsonLines(text) {
-  return text.split('\n').flatMap(line => { try { return [JSON.parse(line)]; } catch { return []; } });
+  return runtimeObjects(text);
 }
 function writerOperation(call, statePath) {
   const command = call?.input?.command;
@@ -47,7 +48,7 @@ export function feedbackRuntimeEvidence(events, statePath, fields, audit, failur
   retrospectiveDispatched = dispatches.some(item => Date.parse(item.at) >= terminalTime);
   const completedReports = [];
   for (const event of events) {
-    if (!['assistant', 'user'].includes(event.type) || event.isSynthetic || event.isMeta) continue;
+    if (!['assistant', 'user'].includes(event.type) || event.isSynthetic || event.isMeta || event.isSidechain || event.parent_tool_use_id || event.parentToolUseId) continue;
     const role = event.message?.role ?? event.type;
     if (!Array.isArray(event.message?.content)) continue;
     for (const part of event.message.content) {
@@ -115,7 +116,8 @@ export function feedbackCommands(statePath, { analysisRequired, limitStop = fals
   const state = artifactResolve(statePath), directory = path.dirname(state);
   const quote = value => `'${String(value).replaceAll("'", "'\\''")}'`;
   const command = mode => ['node', quote(writerPath), mode, '--state', quote(state), ...(limitStop ? ['--limit-stop'] : [])];
-  const result = { inspect: command('inspect').join(' '), evidence: command('evidence').join(' ') };
+  const result = { inspect: [...command('inspect'), '--compact'].join(' '), evidence: command('evidence').join(' '),
+    finalize: [...command('finalize'), '--transcript', '<session-jsonl>'].join(' ') };
   if (typeof analysisRequired === 'boolean') {
     const sessionReview = artifactJoin(directory, 'feedback-session.json'), analysis = artifactJoin(directory, 'feedback-analysis.json');
     const inputs = [...(analysisRequired ? ['--analysis', quote(analysis)] : []), '--session-review', quote(sessionReview)];
@@ -209,15 +211,18 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
       const block = report.slice(start, end);
       if (start >= 0 && end > start && block.includes('\n### Session review\n') &&
           block.includes(`<!-- feedback-state:${stateHash} -->`)) {
-        if (!finalized?.readback && await answeredDelivery(events, statePath, saved.fields, saved.audit)) {
-          await settle({ status: 'saved', kind: 'answered-delivery' });
-          return null;
-        }
-        const readback = saved.fields.feedback_evidence_version === '1' ? feedbackReadback(events, {
+        const observedReadback = feedbackReadback(events, {
           reportPath, report, modifiedAt: info.mtimeMs,
           terminalTime: Date.parse(feedbackTerminalRow(saved.fields, saved.audit)?.time),
           root: path.dirname(path.dirname(path.dirname(statePath))),
-        }) : undefined;
+        });
+        if (!finalized?.readback && await answeredDelivery(events, statePath, saved.fields, saved.audit)) {
+          await settle({ status: 'saved', kind: 'answered-delivery', ...(observedReadback ? { readback: observedReadback } : {}) });
+          return null;
+        }
+        // Legacy completion/delivery behavior is unchanged. Sharing alone needs
+        // proof that the current report was read, including on a legacy run.
+        const readback = observedReadback ?? (saved.fields.feedback_evidence_version === '1' ? null : undefined);
         const finish = async outcome => {
           if (readback === null) return hold(`The combined feedback report is saved, but its current body has not been read back. Use Read on ${JSON.stringify(reportPath)} now (read all numbered ranges if needed), inspect the returned Markdown, then continue the terminal summary or delivery offer. A writer acknowledgement, file listing, line count or delegate summary is not a readback. Keep the workflow terminal; do not rewrite feedback or rerun the retrospective just to complete this read.`);
           if (finalized?.status === 'saved' && finalized.kind === outcome.kind && finalized.writerId === outcome.writerId &&
@@ -236,7 +241,10 @@ export async function feedbackHold(input, statePath, fields, events, { persist =
         }
       }
     }
-  } catch { /* Missing or unreadable feedback still needs a reported outcome. */ }
+  } catch (error) {
+    if (error.code === 'FEEDBACK_FINALIZATION') throw error;
+    // Missing or unreadable feedback still needs a reported outcome.
+  }
   const unavailable = unavailableAttempt(events, statePath, saved.fields, saved.audit);
   if (unavailable) {
     await settle({ status: 'unavailable', kind: 'verified-failure', failureId: unavailable.failureId, reason: unavailable.reason });

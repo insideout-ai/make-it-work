@@ -62,6 +62,7 @@ export function assess(snapshot, input) {
     const risk_dimensions = dimensions(record.risk_dimensions, 'risk');
     if (!['complete', 'missing', 'inapplicable'].includes(record.measurements)) fail('Measurement availability required.');
     const metrics = record.metrics ?? [];
+    if (record.measurements === 'missing' && metrics.length) fail('Missing measurements must leave metrics empty; retain manual or incomplete analysis as qualitative evidence and measurement_limitation, not analyzer values.');
     if (record.measurements === 'inapplicable' && record.non_executable !== true) fail('Inapplicable metrics require confirmed non-executable scope.');
     if (record.non_executable === true) text(record.non_executable_evidence, 'Non-executable confirmation');
     if (record.measurements === 'complete' && !metrics.length) fail('Complete measurements require analyzer results.');
@@ -117,7 +118,28 @@ export async function saveAssessment(root, ticket, report) {
   const markdown = assessmentMarkdown(report);
   await atomic(files.md, markdown);
   await atomic(files.json, JSON.stringify(report, null, 2) + '\n');
-  return { ...report, reports: { json: path.relative(root, files.json), markdown: path.relative(root, files.md) } };
+  const result = { ...report, reports: { json: path.relative(root, files.json), markdown: path.relative(root, files.md) } };
+  // Only an assessment-enabled Implement run at its final boundary gets audit/UI
+  // updates. Standalone and legacy assessments remain report-only.
+  const statePath = artifactOutputJoin(files.dir, `${ticket}-state.md`);
+  let stateMarkdown;
+  try {
+    stateMarkdown = await readFile(statePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return result;
+    result.audit_warning = `Assessment reports saved; workflow state could not be read: ${error.message}`;
+    return result;
+  }
+  try {
+    if (/^change_assessment_version:\s*1\s*$/m.test(stateMarkdown)) {
+      const { parseState, generateDashboard } = await import('../skills/implement/scripts/render-status.mjs');
+      const { checkpointAssessment } = await import('../skills/implement/scripts/assessment-audit.mjs');
+      if (await checkpointAssessment(statePath, parseState(stateMarkdown, statePath))) await generateDashboard(statePath);
+    }
+  } catch (error) {
+    result.audit_warning = `Assessment reports saved; audit/dashboard update could not finish: ${error.message}`;
+  }
+  return result;
 }
 export async function readAssessment(root, ticket, snapshots = null) {
   try {

@@ -100,11 +100,12 @@ export function validateHandoff(input) {
     if (data.mode !== 'amend' && data.recommend_replan !== null) fail('Only amend mode can recommend replanning.');
     stringList(data.context_updated, 'handoff.data.context_updated');
   } else if (h.stage === 'implement') {
-    keys(data, ['changed_paths', 'checks', 'discoveries', 'risk_signal'], 'handoff.data');
+    keys(data, ['changed_paths', 'checks', 'discoveries', 'risk_signal', 'risk_reassessment'], 'handoff.data');
     stringList(data.changed_paths, 'handoff.data.changed_paths');
     stringList(data.checks, 'handoff.data.checks');
     stringList(data.discoveries, 'handoff.data.discoveries');
     if (data.risk_signal !== null) string(data.risk_signal, 'handoff.data.risk_signal');
+    if (data.risk_reassessment !== undefined) string(data.risk_reassessment, 'handoff.data.risk_reassessment');
   } else if (h.stage === 'execute') {
     keys(data, ['discoveries', 'failing_tests', 'gate'], 'handoff.data');
     stringList(data.discoveries, 'handoff.data.discoveries');
@@ -246,7 +247,12 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
       });
     return outcome('phase', 'Spec is ready.', { phase: ready });
   }
-  if (h.stage === 'implement') return outcome('phase', 'Lightweight implementation finished.', { phase: 'review' });
+  if (h.stage === 'implement') {
+    if (h.data.risk_signal !== null && h.data.risk_signal.trim().toLowerCase() !== 'none' && !h.data.risk_reassessment) {
+      fail('Implementation reports additional risk: record data.risk_reassessment explaining why Lightweight remains suitable, or use --escalate with the reason.');
+    }
+    return outcome('phase', `Lightweight implementation finished.${h.data.risk_reassessment ? ` Risk reassessment: ${h.data.risk_reassessment}` : ''}`, { phase: 'review' });
+  }
   if (h.stage === 'plan' && fields.phase === 'plan') {
     return outcome('phase', 'Plan is ready.', { phase: nextGuided ? 'plan-approval' : 'execute' });
   }
