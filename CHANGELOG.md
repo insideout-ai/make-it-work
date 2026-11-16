@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.11.1] — 2026-11-16
+
 ### Fixed
 
 - Hide unavailable context usage and estimated session cost independently in both dashboard headers, while retaining the plugin version and valid zero values.
