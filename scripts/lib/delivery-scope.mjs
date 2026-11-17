@@ -15,6 +15,9 @@ function git(repo, args, { acceptDiff = false } = {}) {
   return result.stdout;
 }
 
+// Paths that plugin-managed delivery never stages automatically.
+export const SENSITIVE_PATH = /(^|\/)(\.env[^/]*|\.npmrc|[^/]*\.(?:pem|key)|[^/]*credentials[^/]*)$/i;
+
 function uniquePaths(changed, untracked) { return [...new Set([...changed, ...untracked])].sort(); }
 
 export async function snapshotDeliveryRepo(repoPath, base) {

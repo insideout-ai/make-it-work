@@ -14,6 +14,7 @@ import { generateDashboard, parseState } from './render-status.mjs';
 import { assertRunState, runDirectory } from './artifact-layout.mjs';
 import { deliveryPaths } from './delivery-progress.mjs';
 import { reviewDisclosure } from '../../../scripts/lib/review-evidence.mjs';
+import { SENSITIVE_PATH } from '../../../scripts/lib/delivery-scope.mjs';
 import { readFeedbackProgress } from './feedback-progress.mjs';
 import { feedbackCommands } from './feedback-handoff.mjs';
 
@@ -104,7 +105,7 @@ function assertSafeRepo(repo) {
   if (repo.paths.length === 0) fail(`No changed paths in ${repo.name}.`);
   for (const changed of repo.paths) {
     if (changed.startsWith('-') || changed.includes('\0') || changed === 'make-it-work' || changed.startsWith('make-it-work/')) fail(`Unsafe changed path: ${changed}`);
-    if (/(^|\/)(\.env[^/]*|\.npmrc|[^/]*\.(?:pem|key)|[^/]*credentials[^/]*)$/i.test(changed)) {
+    if (SENSITIVE_PATH.test(changed)) {
       fail(`Sensitive path requires manual delivery: ${changed}`);
     }
   }

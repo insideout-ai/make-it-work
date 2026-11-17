@@ -2,10 +2,11 @@
 import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 // Freeze the delivery diff before independent review; recheck it before packaging.
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
-import { realpath } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { lstat, readFile as readPlain, readlink, realpath, writeFile as writePlain } from 'node:fs/promises';
 import path from 'node:path';
-import { args, atomicWrite, cli, digest, fail, within } from '../../../scripts/lib/artifacts.mjs';
-import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
+import { args, atomicWrite, cli, digest, fail, jsonInput, within } from '../../../scripts/lib/artifacts.mjs';
+import { SENSITIVE_PATH, snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { compareReviewScope } from '../../../scripts/lib/review-evidence.mjs';
 import { parseState } from './render-status.mjs';
 import { assertRunState, runArtifact } from './artifact-layout.mjs';
@@ -73,8 +74,64 @@ export async function prepareReviewScope(root, statePath) {
   const relative = runArtifact(f.ticket, targetName(f), f.artifact_naming_version);
   for (const [index, repo] of repos.entries()) await atomicWrite(artifactJoin(root, 'make-it-work', f.ticket, target.repos[index].diff_file), repo.diff);
   await atomicWrite(artifactJoin(root, relative), `${JSON.stringify(target, null, 2)}\n`);
+  const preexisting = await preexistingUntracked(root, state);
   return { review_target: relative, sha256: digest(await readFile(artifactJoin(root, relative))),
-    repos: target.repos.map(({ name, path: repoRoot, base, merge_base, paths, diff_file }) => ({ name, root: repoRoot, base, merge_base, paths, diff_file })) };
+    repos: target.repos.map(({ name, path: repoRoot, base, merge_base, paths, diff_file }) => ({ name, root: repoRoot, base, merge_base, paths, diff_file })),
+    ...(preexisting.repos.length ? { preexisting_untracked: preexisting.repos } : {}) };
+}
+
+// Untracked files that already existed, byte-identical, in the startup baseline.
+// The run did not write them, so they are not part of its delivery by default.
+export async function preexistingUntracked(root, state) {
+  const f = state.fields;
+  if (!f.implementation_baseline || f.implementation_baseline === 'none') return { available: false, repos: [] };
+  let saved;
+  try { saved = JSON.parse(f.implementation_baseline); } catch { return { available: false, repos: [] }; }
+  if (!Array.isArray(saved.repos)) return { available: false, repos: [] };
+  const repos = [];
+  for (const prior of saved.repos) {
+    if (!Array.isArray(prior.changes)) continue;
+    const images = new Map(prior.changes.filter((entry) => entry.image).map((entry) => [entry.file, entry.image]));
+    const untracked = execFileSync('git', ['-C', prior.root, 'ls-files', '--others', '--exclude-standard', '-z', '--', '.', ':(exclude)make-it-work'], { maxBuffer: 100 * 1024 * 1024 }).toString().split('\0').filter(Boolean).sort();
+    const paths = [];
+    for (const file of untracked) {
+      const before = images.get(file);
+      if (!before) continue;
+      const absolute = artifactJoin(prior.root, file);
+      const info = await lstat(absolute);
+      const bytes = info.isSymbolicLink() ? await readlink(absolute) : await readPlain(absolute);
+      if ((info.mode & 0o111) === before.mode && digest(bytes) === before.sha256) paths.push(file);
+    }
+    if (paths.length) repos.push({ root: prior.root, paths, sensitive: paths.filter((file) => SENSITIVE_PATH.test(file) || /(^|\/)\.[^/]+$/.test(file)) });
+  }
+  return { available: true, repos };
+}
+
+const ignorePattern = (file) => `/${file.replace(/[\\*?[]/g, (char) => `\\${char}`).replace(/ $/, '\\ ')}`;
+// Keep chosen pre-existing files out of review, package and delivery through the
+// repository's local-only exclude file. Never committed; the block can be removed.
+export async function excludePreexisting(root, statePath, input = {}) {
+  root = await realpath(root);
+  const state = await readState(root, statePath), f = state.fields;
+  const found = await preexistingUntracked(root, state);
+  if (!found.available) fail('This run has no startup baseline, so pre-existing untracked files cannot be identified.');
+  const results = [];
+  for (const repo of found.repos) {
+    const requested = input.paths ? input.paths.filter((file) => repo.paths.includes(file)) : repo.paths;
+    if (!requested.length) continue;
+    const exclude = path.resolve(repo.root, execFileSync('git', ['-C', repo.root, 'rev-parse', '--git-path', 'info/exclude']).toString().trim());
+    let text = '';
+    try { text = await readPlain(exclude, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    const begin = `# make-it-work ${f.ticket}: pre-existing untracked files kept out of review and delivery`, end = `# end make-it-work ${f.ticket}`;
+    const earlier = text.includes(begin) ? text.slice(text.indexOf(begin), text.indexOf(end, text.indexOf(begin)) + end.length).split('\n').slice(1, -1) : [];
+    text = text.includes(begin) ? text.slice(0, text.indexOf(begin)) + text.slice(text.indexOf(end, text.indexOf(begin)) + end.length).replace(/^\n/, '') : text;
+    const lines = [...new Set([...earlier, ...requested.map(ignorePattern)])];
+    text = `${text}${text && !text.endsWith('\n') ? '\n' : ''}${begin}\n${lines.join('\n')}\n${end}\n`;
+    await writePlain(exclude, text);
+    results.push({ root: repo.root, excluded: requested, exclude_file: exclude });
+  }
+  if (input.paths && input.paths.some((file) => !results.some((repo) => repo.excluded.includes(file)))) fail('Only pre-existing, unchanged untracked files can be excluded.');
+  return { repos: results };
 }
 
 async function readTarget(root, state, relative) {
@@ -151,7 +208,9 @@ export async function checkReviewScope(root, statePath, { requireCurrent = true 
 }
 
 cli(import.meta.url, async (argv) => {
-  const o = args(argv, ['--root', '--state']);
-  if (!o.root || !o.state || !['prepare', 'check'].includes(o.command)) fail('Usage: review-scope.mjs prepare|check --root ROOT --state STATE');
+  const o = args(argv, ['--root', '--state', '--input']);
+  if (!o.root || !o.state || !['prepare', 'check', 'preexisting', 'exclude-preexisting'].includes(o.command)) fail('Usage: review-scope.mjs prepare|check|preexisting|exclude-preexisting --root ROOT --state STATE [--input JSON]');
+  if (o.command === 'preexisting') { const root = await realpath(o.root); return preexistingUntracked(root, await readState(root, o.state)); }
+  if (o.command === 'exclude-preexisting') return excludePreexisting(o.root, o.state, o.input ? await jsonInput(o.input) : {});
   return o.command === 'prepare' ? prepareReviewScope(o.root, o.state) : checkReviewScope(o.root, o.state);
 });
