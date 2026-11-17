@@ -118,3 +118,16 @@ New `assess-change` cases: `assessment-sensitive` (smoke), `assessment-inherited
 
 These repairs do not change suite membership or certify unrun cases. Maintainer:
 Erez Morabia; follow-up: attach focused reruns and the PR readiness smoke sequence.
+
+
+### PR #111 readiness smoke follow-up
+
+The initial 15-case smoke retained 11 passes and four failures. Two native cases
+failed authentication. Execute completed its work and gate but called the linked
+final-report guide optional and omitted the required fixed report. Keep that
+small fixed report in the entrypoint; its field definitions remain conditional.
+The unchanged feedback workflow also omitted the assistant questions from an
+otherwise supported repeated-permission finding. Clarify its existing sanitized
+evidence rule to retain the prior authorization and actual questions, rather
+than only the user's objections. Retry only unresolved cases through the saved
+PR smoke ledger; retain the original failures and per-case source commits.

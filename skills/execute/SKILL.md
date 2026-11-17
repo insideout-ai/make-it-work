@@ -285,7 +285,20 @@ The closing `Not run:` and `Unmapped scope (not run)` lines list suites and toke
 
 ## Phase 5 — Final report
 
-Only after the Phase 4 automated/mixed completion gate returns PASS, read this guide before presenting terminal success. All-manual plans use the separate report in [verification policy](references/verification-policy.md). A failing or missing gate result never enters Phase 5. Read and follow the complete [Final report guide](references/final-report.md).
+Phase 5 is reached only when Phase 4's automated completion gate reads `PASS` (`Gate result: PASS` for a single-repo run, or `Overall gate result: PASS` for a workspace or token run). Explicit all-manual plans finish with the separate report in `references/verification-policy.md`. For automated or mixed plans, print the fixed report block below and include a separate manual-evidence line when applicable.
+
+Print, verbatim in shape, filling in every bracketed field:
+
+```
+Plan: <resolved plan path>
+Mode: <Subagent-Driven | Inline>
+Steps completed: <M> of <M>
+Completion gate: <Full suite | Scoped + full (<repos>)> — <PASS>
+[Not run: <entries>]
+Changes are uncommitted in the working tree — review and commit when ready.
+```
+
+The fixed report above is mandatory. Before presenting it, read and follow the complete [field definitions and terminal-outcome rules](references/final-report.md); those details supplement this required shape. A failing or missing completion-gate result never enters Phase 5.
 
 ## When run by implement
 

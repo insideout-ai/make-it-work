@@ -4,19 +4,6 @@ Read this guide only at the loading point in [the skill entrypoint](../SKILL.md)
 
 ## Phase 5 — Final report
 
-Phase 5 is reached only when Phase 4's automated completion gate reads `PASS` (`Gate result: PASS` for a single-repo run, or `Overall gate result: PASS` for a workspace or token run). Explicit all-manual plans finish with the separate report in `references/verification-policy.md`. For automated or mixed plans, print the fixed report block below and include a separate manual-evidence line when applicable.
-
-Print, verbatim in shape, filling in every bracketed field:
-
-```
-Plan: <resolved plan path>
-Mode: <Subagent-Driven | Inline>
-Steps completed: <M> of <M>
-Completion gate: <Full suite | Scoped + full (<repos>)> — <PASS>
-[Not run: <entries>]
-Changes are uncommitted in the working tree — review and commit when ready.
-```
-
 - **`Plan:`** — the plan file path Phase 0 point 2 resolved (`make-it-work/<TICKET>/<TICKET>-plan.md`, or the explicit path argument), exactly as it was used throughout this run.
 - **`Mode:`** — the `Mode` Phase 0 point 3 resolved for this run, printed exactly as one of the two literal values `Subagent-Driven` or `Inline` (not the longer descriptive sentence recorded in the plan file's `## Execution Status → Mode` line — just the mode name).
 - **`Steps completed:`** — `<M> of <M>`, where `M` is the plan's own total step count, the same `M` that appears throughout `## Execution Status → Progress` ("Step N of M complete"). By the time this phase runs, Progress reads "Step M of M complete," so both numbers here are that same `M` — every step, not merely the ones this particular invocation itself executed (a resumed run that only executed the tail of the plan still reports the plan's true total here).
