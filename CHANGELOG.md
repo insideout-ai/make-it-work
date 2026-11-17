@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.12.1] — 2026-11-17
+
+### Changed
+
+- Refinement, planning, and execution load conditional delivery, resume, Autopilot, dispatch, reporting, and Implement integration guides only when their route needs them. Existing workflow policies, commands, approvals, handoffs, and legacy behavior remain unchanged.
+
 ## [5.12.0] — 2026-11-17
 
 ### Changed
