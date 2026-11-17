@@ -191,6 +191,26 @@ repo/base selection, and hashes the target/diff artifacts as evidence. Hashes
 establish scope/freshness, not proof of semantic inspection. No new human approval
 is introduced. Older saved runs without the marker retain legacy behavior.
 
+**Pre-existing untracked files.** Before the first review-scope `prepare` of a run,
+run `review-scope.mjs preexisting --root ROOT --state STATE`. It lists untracked
+files that existed, byte-identical, in the startup baseline and are still
+unchanged, so the run did not write them (helper scripts, backups, bytecode,
+local dotfiles); `sensitive` flags credential-like and hidden names. `prepare`
+also returns any that remain as `preexisting_untracked`. When the list is
+non-empty, show the count, the sensitive names and a short sample, then ask once
+in Guided and Autonomous whether to keep them out of review and delivery
+(recommended) or include them; Autopilot keeps them out without asking. To keep
+them out, run `review-scope.mjs exclude-preexisting --root ROOT --state STATE`
+(optionally `--input` with `{"paths": [...]}` for a subset). It adds a marked
+block to each repository's local `.git/info/exclude`, which is never committed,
+so review, the final package, change assessment and delivery all omit them
+consistently. Record the choice in the decision log and tell the user the block
+can be deleted after the run. Never pass a file the helper did not list, never
+print the contents of a sensitive file, and never let a reviewer read one.
+Markdown, `docs/` and `.claude/` files are not in the startup baseline, so the
+helper cannot list them; mention any obviously unrelated ones instead of
+guessing.
+
 ## Execution settings and unavailable supplemental checks
 
 Before the first per-step dispatch, apply `execution-mode` with `mode: subagent-driven|inline`, `source: user`, `via: chat|question`. Inline also needs `pause_mode: run-straight-through|stop-after-each-step`. Autonomous/Autopilot may select only the recommended `subagent-driven` default with `source: policy`, `via: policy`. The controller updates the plan's Mode/pause settings and persists the state fields and audit decision. Replaying repairs the checkpoint; conflicting mode changes are rejected. Do not use a generic decision checkpoint to set state fields. Existing plans with a chosen matching mode are supported.

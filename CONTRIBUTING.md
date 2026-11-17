@@ -79,7 +79,7 @@ waive failures as unrelated or rerun the whole suite to obtain one green report.
 Do not run paid smoke on every push, edit, or review iteration. During development,
 use deterministic checks and necessary focused cases (`full --case=NAME`).
 Releases additionally need critical and change-specific/dependent-skill evidence;
-reuse the release PR's smoke sequence. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/668a95b06fa1535d427f45cda6a8fcacab584e28/evals/README.md) for
+reuse the release PR's smoke sequence. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/1de7968b900955dd98db1ac3493f4f2c8d705aae/evals/README.md) for
 ledger behavior and [the release checklist](docs/eval-release-checklist.md).
 CI does not launch model evaluations.
 

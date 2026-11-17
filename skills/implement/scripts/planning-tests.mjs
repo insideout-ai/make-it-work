@@ -29,6 +29,9 @@ export async function dedicatedTestFile(repo, file, productRoots) {
 }
 export const draftPlanPath = (statePath, f) => artifactJoin(path.dirname(statePath), `${f.ticket}-plan${f.plan_version === '1' ? '' : `-v${f.plan_version}`}.md`);
 export function declaredTest(steps, step, file) { return steps.find((item) => item.number === step)?.tests?.includes(`\`${file}\``); }
+export const STUB_MARKER = 'plan-the-work stub — pending implementation';
+export const STUB_MAX_LINES = 120;
+export function declaredStub(steps, step, file) { return steps.find((item) => item.number === step)?.files?.includes(file) ?? false; }
 export const planningReceiptPath = (statePath) => statePath.replace(/-state\.md$/, '-planning-tests.json');
 export async function fileImage(root, file) {
   const absolute = artifactResolve(root, file);
@@ -62,7 +65,9 @@ export async function authorizePlanningTests(statePath, input) {
   if (!selected.some((item) => item.root === repo)) fail('Planning test repo is outside the approved scope.');
   const planPath = draftPlanPath(statePath, f);
   const steps = parseSteps(await readFile(await within(root, path.relative(root, planPath)), 'utf8'));
-  if (!declaredTest(steps, input.step, input.file)) fail('Draft the step and declare the exact test path in its Tests field before authorizing edits.');
+  if (input.kind === 'stub' ? !declaredStub(steps, input.step, input.file) : !declaredTest(steps, input.step, input.file)) {
+    fail(input.kind === 'stub' ? 'Draft the step and declare the exact stub path in its Files field before authorizing a stub.' : 'Draft the step and declare the exact test path in its Tests field before authorizing edits.');
+  }
   if (!input.reason?.trim()) fail('Planning test authorization needs its behavior/purpose.');
   const { image, bytes } = await fileImage(repo, input.file);
   let region = null;
@@ -73,6 +78,15 @@ export async function authorizePlanningTests(statePath, input) {
     if ((!prefix && !suffix) || !/(?:\b(?:test|describe|it|unittest|TestCase)\b|\btest_\w+|#\[test\]|>>>|@Test|\[(?:Fact|Theory|TestMethod)\])/.test(body)) fail('Embedded region must identify test code and retain protected source outside it.');
     if (!Buffer.from(prefix + body + suffix).equals(bytes)) fail('Embedded test regions require UTF-8 source.');
     region = { prefix: Buffer.from(prefix).toString('base64'), suffix: Buffer.from(suffix).toString('base64') };
+  } else if (input.kind === 'stub') {
+    // A New-symbol placeholder: one bounded insertion point in an existing file, or a new file.
+    if (image) {
+      const lines = bytes.toString('utf8').split(/(?<=\n)/);
+      if (!Number.isSafeInteger(input.insert_after_line) || input.insert_after_line < 0 || input.insert_after_line > lines.length) fail('Stub authorization in an existing file requires insert_after_line (0 to the file length).');
+      const prefix = lines.slice(0, input.insert_after_line).join(''), suffix = lines.slice(input.insert_after_line).join('');
+      if (!Buffer.from(prefix + suffix).equals(bytes)) fail('Stub insertion requires UTF-8 source.');
+      region = { prefix: Buffer.from(prefix).toString('base64'), suffix: Buffer.from(suffix).toString('base64') };
+    } else if (input.insert_after_line !== undefined) fail('A new stub file has no insertion point.');
   } else if (input.kind !== 'test-file' || !await dedicatedTestFile(repo, input.file, selected.map((entry) => entry.root))) {
     fail('Whole-file authorization requires a dedicated test path; use a bounded embedded region for mixed source/test files.');
   }
@@ -87,11 +101,11 @@ export async function authorizePlanningTests(statePath, input) {
     if (!Array.isArray(receipt.entries)) fail('Invalid planning test receipt.');
     const existing = receipt.entries.find((entry) => entry.repo === repo && entry.file === input.file);
     if (existing) {
-      if (existing.kind !== input.kind || existing.start_line !== input.start_line || existing.end_line !== input.end_line) fail('Cannot widen or replace an existing planning authorization.');
+      if (existing.kind !== input.kind || existing.start_line !== input.start_line || existing.end_line !== input.end_line || existing.insert_after_line !== input.insert_after_line) fail('Cannot widen or replace an existing planning authorization.');
       return { authorized: true, replayed: true, receipt: target };
     }
     const before = image ? { ...image, git_blob: execFileSync('git', ['-C', repo, 'hash-object', '--path', input.file, '--stdin'], { input: bytes }).toString().trim() } : null;
-    receipt.entries.push({ repo, file: input.file, step: input.step, kind: input.kind, reason: input.reason, before, region, ...(input.kind === 'embedded' ? { start_line: input.start_line, end_line: input.end_line } : {}) });
+    receipt.entries.push({ repo, file: input.file, step: input.step, kind: input.kind, reason: input.reason, before, region, ...(input.kind === 'embedded' ? { start_line: input.start_line, end_line: input.end_line } : {}), ...(input.kind === 'stub' && image ? { insert_after_line: input.insert_after_line } : {}) });
     await atomicWrite(target, JSON.stringify(receipt, null, 2) + '\n');
     return { authorized: true, receipt: target };
   });

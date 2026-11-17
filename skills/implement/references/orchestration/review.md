@@ -14,6 +14,13 @@ For `review_checks_version: 1`, also supply `review_requirements` using [review-
 
 New runs use `review_context_version: 2`. Their checkpoint also requires `test_map_maintenance`, one assessment per approved repo: `repo` (absolute root), `status` (`maintained`, `blocked`, or `not-applicable`), `affected_tests` (repo-relative paths), `reason`, and retained `evidence` paths relative to the artifact root. A current strategy with a Test Map cannot be marked not-applicable. Maintained maps must contain the declared affected tests and their generated report; incomplete baselines may remain incomplete with the uncertainty in `reason`. A blocked assessment requires evidence and the actual access/tool/evidence blocker, not advisory severity or a desire to save time. The helper records evidence hashes; reassess if those files or the registered strategy change. A blocker affecting prior validation still follows the existing stop rule. Final Sync reuses unchanged assessments, or supplies updated `test_map_maintenance` after new edits. Versions 1 and older keep their saved contracts.
 
+Before the first scope preparation of a run, check for pre-existing untracked
+files with `review-scope.mjs preexisting` and settle them once, as described in
+[the controller contract](../controller.md) under "Pre-existing untracked files".
+If a later `prepare` still returns `preexisting_untracked`, settle those before
+dispatching. Unrelated local files otherwise inflate the review target and would
+enter the package and delivery.
+
 For a run with `review_scope_version: 1`, prepare its delivery scope after that preparation, before every
 review dispatch (including re-reviews):
 

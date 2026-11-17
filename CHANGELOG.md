@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.13.0] — 2026-11-17
+
+### Added
+
+- `review-scope.mjs preexisting` lists untracked files that existed unchanged at run start, and flags credential-like and hidden names. `exclude-preexisting` keeps them out of review, the final package, change assessment and delivery through a marked local `.git/info/exclude` block. Implement settles them once before the first review dispatch: Guided and Autonomous ask, Autopilot excludes them.
+- Planning receipts accept `kind: "stub"` for New-symbol placeholders: a new file, or one bounded insertion in an existing file, declared in the step's Files field and carrying the exact `plan-the-work stub — pending implementation` marker. Progression tests for new members can now fail on a runtime assertion without tripping the premature-edit guard or relying on untyped casts.
+
+### Changed
+
+- plan-the-work requires each new method, branch and enumerated case to be run by a named test with its owning layer unstubbed, and adds a matching Step 5.5 behavior-reachability check. When a fix diagnosis names a test-design pattern, amend-mode sweeps cover every step and test in the change that uses it.
+- review-the-code treats every place in the delivery diff with the same shape as a sibling of a defect class, and requires coverage claims to name the tests measured or list the changed files left unmeasured.
+- execute documents how fix rounds update the cumulative saved report: earlier outcome lines are relabeled as history, leaving one current `Execute outcome:` line.
+
+### Fixed
+
+- The premature-edit guard no longer warns for test or stub files that are authorized but not yet written, and its warning names each changed path that no receipt covers.
+
 ## [5.12.1] — 2026-11-17
 
 ### Changed
