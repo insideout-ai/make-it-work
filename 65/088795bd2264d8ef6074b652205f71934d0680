@@ -1,0 +1,45 @@
+evals/planning-progress.test.mjs
+  s_0d8010b3d37033::t_ea521e88925d35 12-21
+evals/implement/implement-autopilot-full/graders/stage-order.md
+  s_0d8010b3d37033::t_7a30812a9587b6 24
+evals/implement/implement-autopilot-full/graders/test-preparation-stage.md
+  s_0d8010b3d37033::t_e988dc2989bfa0 1-7
+evals/implement/planning-progress/graders/activity-order.md
+  s_0d8010b3d37033::t_58fe399cb47a91 7,9
+evals/implement/planning-progress/graders/saved-history.md
+  s_0d8010b3d37033::t_1e56171512cfd7 7,9
+evals/implement/planning-progress/graders/tests-unchanged.md
+  s_0d8010b3d37033::t_2cc6d8aed657f7 1-6
+evals/implement/planning-progress/prompt.md
+  s_0d8010b3d37033::t_4aef1b83ba5d32 13
+evals/implement/readiness-order/fixture.sh
+  s_0d8010b3d37033::t_0193621a4d923f 13
+evals/implement/readiness-order/graders/preparation-order.md
+  s_0d8010b3d37033::t_f3ebc6c474cecd 1-7
+evals/implement/readiness-order/graders/preparation-report.md
+  s_0d8010b3d37033::t_52722c637e6861 1-6
+evals/implement/readiness-order/graders/saved-pause.md
+  s_0d8010b3d37033::t_334df57773536c 4
+evals/implement/readiness-order/prompt.md
+  s_0d8010b3d37033::t_a6f7f0ec0b53c7 11,18-20
+evals/plan-agent-wait.test.mjs
+  s_0d8010b3d37033::t_2c411c3acbcfb2 26
+evals/plan-the-work/embedded-tests/fixture.sh
+  s_0d8010b3d37033::t_69399f54e978ba 8-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "65088795bd2264d8ef6074b652205f71934d0680",
+  "prompts": {},
+  "sessions": {
+    "s_0d8010b3d37033": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9de-b50f-72c0-88ca-cd48709296e3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
