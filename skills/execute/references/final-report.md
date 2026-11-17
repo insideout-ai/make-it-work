@@ -33,4 +33,3 @@ This report is one of exactly three distinct, mutually exclusive ways a run of `
 3. **This Phase 5 report** — printed only when every step passed *and* the completion gate came back PASS. This is the sole successful, fully-terminal outcome of a run of `execute`.
 
 The explicit-policy manual terminal report is a fourth successful terminal path, with outcome `VERIFIED_MANUALLY`. Print only the applicable terminal report, never an automated PASS for an all-manual plan.
-

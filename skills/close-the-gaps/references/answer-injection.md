@@ -44,4 +44,3 @@ Resolve questions in two passes, since a conditional question can only be evalua
 After the answerable questions are processed, follow **Phase 5E**, using the answers gathered here (whether from the file or live) as if Phase 5A had produced them. Only **after** Phase 6 has saved `make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md`, update this file's status line to `**Status:** Answered — superseded by make-it-work/<TICKET-or-slug>/<TICKET-or-slug>-spec.md`. This marks the export superseded even when the user chose a spec with TBDs; the spec retains those unresolved items. If the session ends before Phase 6 finishes, leave the status as `Awaiting Answers` — a later run must not mistake an incomplete session for a finished one.
 
 ---
-

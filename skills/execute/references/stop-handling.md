@@ -66,4 +66,3 @@ Both cases above read `## Execution Status → Progress` to fill in one field �
 ### This is a terminal outcome for this run
 
 Once either report above has been delivered, this run of `execute` is finished — not paused mid-phase, finished. Phase 4 (the completion gate) is never reached following a Phase 3 report, no matter which step in the plan was flagged or stalled, and Phase 5's terminal success report is never printed in the same run as a Phase 3 report — the two are mutually exclusive, distinct terminal outcomes: a run either ends here, in Phase 3, or it ends later in Phase 5, never both.
-

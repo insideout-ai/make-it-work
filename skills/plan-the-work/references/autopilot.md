@@ -37,4 +37,3 @@ Only the Step 4.5 entries carry a `(Recommended)` label in this skill; the three
 At the end of an autopilot run, print a short human-readable summary of every auto-resolved decision — including which hard stop halted it, if any — and the log file's path, so someone can audit the run afterward.
 
 ---
-

@@ -84,4 +84,3 @@ Notes (optional):
 ```
 
 Tell the user: "Questions exported to `<path>`. Answer them there, then re-invoke `/make-it-work:close-the-gaps <path>` to continue." Stop here — do not proceed to Phase 6 in this session.
-
