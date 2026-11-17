@@ -1,0 +1,54 @@
+skills/close-the-gaps/SKILL.md
+  s_0a093dc898b003::t_da0333ebfe6f3f 21
+  s_0a093dc898b003::t_3dfd47752bc4b8 19-20,22-24,247,251,255,374
+skills/plan-the-work/SKILL.md
+  s_0a093dc898b003::t_da0333ebfe6f3f 23
+  s_0a093dc898b003::t_c11dae9f36b089 21-22,24-27,67,401
+skills/execute/SKILL.md
+  s_0a093dc898b003::t_da0333ebfe6f3f 17
+  s_0a093dc898b003::t_d0dd4a29e717ef 15-16,18-21,228,232,288,292
+.claude-plugin/plugin.json
+  s_0a093dc898b003::t_045672607efe35 6
+CHANGELOG.md
+  s_0a093dc898b003::t_747447048aeeb6 9-14
+skills/close-the-gaps/references/answer-injection.md
+  s_0a093dc898b003::t_a548b860c4934c 1-47
+skills/close-the-gaps/references/implement-integration.md
+  s_0a093dc898b003::t_ae0c98062bce7f 1-49
+skills/close-the-gaps/references/offline-export.md
+  s_0a093dc898b003::t_d3e9ffedd0cab5 1-87
+skills/close-the-gaps/references/slack-delivery.md
+  s_0a093dc898b003::t_be419a77347891 1-61
+skills/execute/references/dispatch.md
+  s_0a093dc898b003::t_91d41a17e9e8e7 1-23
+skills/execute/references/final-report.md
+  s_0a093dc898b003::t_18f0e5b8150c63 1-36
+skills/execute/references/implement-integration.md
+  s_0a093dc898b003::t_954a062000e847 1-60
+skills/execute/references/stop-handling.md
+  s_0a093dc898b003::t_a13dde86a3caef 1-69
+skills/implement/references/orchestration/stage-contract.md
+  s_0a093dc898b003::t_cb2032428ee89b 11
+skills/implement/references/refinement-worker-task.md
+  s_0a093dc898b003::t_eca761f86747dd 7
+skills/plan-the-work/references/autopilot.md
+  s_0a093dc898b003::t_115843dbeea5e5 1-40
+skills/plan-the-work/references/implement-integration.md
+  s_0a093dc898b003::t_0ce2fe806fbc5a 1-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "197701df7bd09f53faa9300b1c3b5f11518e7bdb",
+  "prompts": {},
+  "sessions": {
+    "s_0a093dc898b003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e889-1996-7210-8779-5602c5855e8d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
