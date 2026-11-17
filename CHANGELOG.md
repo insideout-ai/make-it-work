@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Planning declares coverage without writing tests or stubs. New Implement runs show Plan → Write Tests → Execute, require current preparation evidence before execution, and refresh it for replans and nonempty fix amendments. Legacy runs keep their existing routing; Lightweight skips preparation and manual-only plans record it as not applicable.
 - Extend controller handoffs, edit guards, dashboard activity/timing, documentation, CI and eval coverage for the separate preparation stage. Preserve the existing guard diagnostics, pending authorizations and legacy stub protections.
 
+### Fixed
+
+- New TDD planning checks that dashboard activity matches actual assistant chat and that discovery, drafting and validation updates precede their work. Missing updates return a repair instruction without advancing or pausing the workflow; legacy and other stages retain their existing behavior.
+
 ## [5.13.0] — 2026-11-17
 
 ### Added

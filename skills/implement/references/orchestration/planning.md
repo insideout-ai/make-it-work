@@ -6,17 +6,17 @@ Before Plan discovery/readiness inspection begins, narrate the upcoming investig
 
 **Live planning updates are main-session work, including while following the inline skill.** For each applicable boundary below, first send the activity sentence in assistant chat, then call the activity helper with that **same sentence**, then do the work. A helper call alone is not narration; a final summary cannot replace a missed live update. Keep the checkpoint separate from the commands that perform the work so the saved activity is visible before a long operation starts.
 
-- Before loading/tracing planning context: describe discovery of the affected code and tests.
-- Before drafting/amending the steps: describe drafting the plan and coverage.
-- Before `validate-plan.mjs normalize-risk` / `check` and semantic self-review: describe final validation. The later handoff/approval transition does not replace this update.
+- Before loading/tracing planning context: describe discovery of the affected code and tests; use `--planning-activity discovery`.
+- Before drafting/amending the steps: describe drafting the plan and coverage; use `--planning-activity drafting`.
+- Before `validate-plan.mjs normalize-risk` / `check` and semantic self-review: describe final validation; use `--planning-activity validation`. The later handoff/approval transition does not replace this update.
 
 Use the existing helper, never a manual state/HTML edit:
 
 ```sh
-node "<base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<sentence just sent in chat>"
+node "<base>/scripts/dashboard-checkpoint.mjs" activity --state "<exact-state-path>" --activity "<sentence just sent in chat>" --planning-activity <discovery|drafting|validation>
 ```
 
-These are major activities, not a tool-by-tool checklist. Repeat only on meaningful activity changes; omit work that does not apply. Retain the existing delegated-work ownership/wait rules and all failure/permission boundaries in the activity contract. Do not infer a successful test result from an activity description.
+New TDD runs check actual parent chat before accepting a planning checkpoint and require the corresponding boundary before reading project files, writing the plan or running validators. If chat has streamed before its transcript flushes, finish that response without more tools and continue on the normal active-stage hook; do not repeat the sentence or ask the user to continue. Keep the helper invocation separate from the work. These are major activities, not a tool-by-tool checklist. Repeat only on meaningful activity changes; omit work that does not apply. Retain the existing delegated-work ownership/wait rules and all failure/permission boundaries in the activity contract. Do not infer a successful test result from an activity description.
 
 For `acceptance_evidence_version: 1`, pass the marker to every initial, replan and amendment dispatch. Require the plan template’s clause-level AC traceability inventory, checked against every material clause in the accepted spec. Reused plans must satisfy this contract before execution; do not infer clause evidence from existing scenario names.
 

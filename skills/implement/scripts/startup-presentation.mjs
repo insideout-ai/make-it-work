@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
 import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { planningActivityHold } from './planning-activity.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
 import { feedbackEligible, feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
 import { runtimeObjects } from './runtime-output.mjs';
@@ -256,6 +257,12 @@ export async function startupHook(input) {
     : input.hook_event_name === 'PreToolUse'
       ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
       : advisory(input.hook_event_name, reminder(progress.initialized)), 'missing-dashboard-link');
+  if (input.hook_event_name === 'PreToolUse') {
+    let state;
+    try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing state-repair handling remains available. */ }
+    const reason = state && planningActivityHold(input, events, state, progress.initialized.state);
+    if (reason) return observeHook(input, progress, events, { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } }, 'active-stage');
+  }
   if (input.hook_event_name === 'PreToolUse' && readinessMutationCommand(input)) {
     let state;
     try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing continuation handling keeps repair tools available. */ }

@@ -110,6 +110,36 @@ async function freshRun(t, autonomy, offline = false) {
   return { root, result, events, transcript, saveEvents, check, apply };
 }
 
+test('new planning activity checks recover through real chat and persisted boundary checkpoints', async t => {
+  const run = await freshRun(t, 'guided');
+  const raw = await readFile(run.result.state, 'utf8');
+  await writeFile(run.result.state, raw.replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd')
+    .replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes'));
+  const plan = artifactJoin(path.dirname(run.result.state), 'DEMO-plan.md');
+  const before = await readFile(run.result.state, 'utf8');
+  assert.throws(() => execFileSync(process.execPath, [path.resolve('skills/implement/scripts/dashboard-checkpoint.mjs'), 'activity', '--state', run.result.state, '--activity', 'Invalid boundary', '--planning-activity', 'unknown'], { cwd: run.root, stdio: 'pipe' }), /Unknown planning activity/);
+  assert.equal(await readFile(run.result.state, 'utf8'), before);
+  const check = (tool_name, tool_input) => startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, cwd: run.root, tool_name, tool_input });
+  assert.match((await check('Write', { file_path: plan })).hookSpecificOutput.permissionDecisionReason, /--planning-activity discovery/);
+  const checkpoint = async boundary => {
+    const sentence = `I am doing planning ${boundary}.`;
+    run.events.push(assistant(text(sentence))); await run.saveEvents();
+    const args = [path.resolve('skills/implement/scripts/dashboard-checkpoint.mjs'), 'activity', '--state', run.result.state, '--activity', sentence, '--planning-activity', boundary, '--category', 'investigation/setup'];
+    assert.deepEqual(await check('Bash', { command: `node ${args.map(value => JSON.stringify(value)).join(' ')}` }), {});
+    execFileSync(process.execPath, args, { cwd: run.root });
+  };
+  await checkpoint('discovery');
+  assert.match((await check('Write', { file_path: plan })).hookSpecificOutput.permissionDecisionReason, /--planning-activity drafting/);
+  await checkpoint('drafting');
+  assert.deepEqual(await check('Write', { file_path: plan }), {});
+  const validation = { command: 'node /plugin/validate-plan.mjs check --plan plan.md' };
+  assert.match((await check('Bash', validation)).hookSpecificOutput.permissionDecisionReason, /--planning-activity validation/);
+  await checkpoint('validation');
+  assert.deepEqual(await check('Bash', validation), {});
+  const saved = parseState(await readFile(run.result.state, 'utf8'));
+  assert.deepEqual(saved.audit.filter(row => row.note?.id.startsWith('planning-')).map(row => row.note.id.split(':')[0]), ['planning-discovery', 'planning-drafting', 'planning-validation']);
+});
+
 async function sourceReview(run) {
   const summary = await inspectFeedback(run.result.state), packet = summary._packet;
   const timestamp = new Date(Date.now() + 1000).toISOString();
