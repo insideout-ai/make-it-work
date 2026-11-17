@@ -1,0 +1,22 @@
+skills/plan-the-work/SKILL.md
+  s_0d8010b3d37033::t_6d805fc90b23d4 155-156,263-264,305
+  s_0d8010b3d37033::t_7d453d65e41f0c 306
+skills/plan-the-work/references/implement-integration.md
+  s_0d8010b3d37033::t_6d805fc90b23d4 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e0e80438bab7f02708559a5ffdcdb434c2ae9a3",
+  "prompts": {},
+  "sessions": {
+    "s_0d8010b3d37033": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9de-b50f-72c0-88ca-cd48709296e3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
