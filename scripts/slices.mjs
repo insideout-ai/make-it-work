@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import { args, cell, cli, fail, jsonInput, requireText, slug, writeSet } from './lib/artifacts.mjs';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 export function renderApproachPreview(input) {
   requireText(input.title, 'Epic title');
@@ -104,8 +106,13 @@ export async function writeSlices(directory, input, { compact = false } = {}) {
   let rendered;
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 13);
   const result = await writeSet(directory, compact ? 'slicing-summary' : `slices-${slug(input.title)}-${stamp}`, (prefix) => { rendered = renderSlices(input, prefix, { compact }); return rendered.files; }, { versioned: compact });
+  for (const file of result.files) {
+    if (await readFile(file, 'utf8') !== rendered.files[path.basename(file)]) fail(`Saved slice artifact differs from its rendered graph: ${file}`);
+  }
+  const overviewLink = encodeURI(path.resolve(directory, rendered.overview)).replaceAll('#', '%23').replaceAll('?', '%3F');
   return { ...result, summary: rendered.summary, graph: rendered.graph, overview: rendered.overview, slice_files: rendered.slice_files,
-    chat_summary: `${rendered.summary}\n\nRecommended starting slice: ${rendered.graph.stages.flat()[0]}.` };
+    saved_files_verified: true,
+    chat_summary: `${rendered.summary}\n\nRecommended starting slice: ${rendered.graph.stages.flat()[0]}.\n\n[Saved overview](<${overviewLink}>)` };
 }
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--input', '--directory', '--prefix']);

@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Slice completion summaries include a clickable overview link and return only after all saved artifacts have been read back and checked against their rendered contents.
 - New TDD planning checks that dashboard activity matches actual assistant chat and that discovery, drafting and validation updates precede their work. Missing updates return a repair instruction without advancing or pausing the workflow; legacy and other stages retain their existing behavior.
 
 ## [5.13.0] — 2026-11-17

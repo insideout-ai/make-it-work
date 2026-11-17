@@ -9,14 +9,19 @@ import { parseGrader } from './grade-headless.mjs';
 
 const caseDir = path.resolve('evals/implement/planning-progress');
 
-test('embedded planning fixture leaves its accepted spec untracked for artifact writes', async (t) => {
-  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'embedded-plan-fixture-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  execFileSync('bash', [path.resolve('evals/plan-the-work/embedded-tests/fixture.sh')], { cwd: root });
-  const project = artifactJoin(root, 'embedded-tests');
-  assert.match(await readFile(artifactJoin(project, 'make-it-work/DEMO-EMBED/DEMO-EMBED-spec.md'), 'utf8'), /discount/i);
-  assert.equal(execFileSync('git', ['ls-files', '--', 'make-it-work'], { cwd: project, encoding: 'utf8' }), '');
-  assert.equal(spawnSync('git', ['check-ignore', '-q', 'make-it-work/DEMO-EMBED/DEMO-EMBED-plan.md'], { cwd: project }).status, 0);
+test('workflow fixtures leave accepted artifacts untracked so guarded writers can save evidence', async (t) => {
+  for (const [fixture, directory, spec] of [
+    ['evals/plan-the-work/embedded-tests/fixture.sh', 'embedded-tests', 'DEMO-EMBED/DEMO-EMBED-spec.md'],
+    ['evals/write-the-tests/standalone/fixture.sh', 'test-preparation', 'TEST-1/TEST-1-spec.md'],
+  ]) {
+    const root = await mkdtemp(artifactJoin(os.tmpdir(), 'workflow-artifact-fixture-'));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    execFileSync('bash', [path.resolve(fixture)], { cwd: root });
+    const project = artifactJoin(root, directory);
+    assert.match(await readFile(artifactJoin(project, 'make-it-work', spec), 'utf8'), /discount/i);
+    assert.equal(execFileSync('git', ['ls-files', '--', 'make-it-work'], { cwd: project, encoding: 'utf8' }), '');
+    assert.equal(spawnSync('git', ['check-ignore', '-q', 'make-it-work/probe.md'], { cwd: project }).status, 0);
+  }
 });
 
 test('planning progress fixture has a passing protected baseline and a real missing behavior', async (t) => {

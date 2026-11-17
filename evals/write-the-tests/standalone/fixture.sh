@@ -5,6 +5,7 @@ source "$SCRIPT_DIR/../../assert-disposable-cwd.sh"
 mkdir -p test-preparation/src test-preparation/tests test-preparation/make-it-work/TEST-1
 cd test-preparation
 git init -q -b TEST-1
+printf '/make-it-work/\n' > .gitignore
 cat > src/discount.py <<'PY'
 def discount(amount):
     return amount * 0.9
