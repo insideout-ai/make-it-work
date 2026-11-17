@@ -1,9 +1,9 @@
 ---
-name: assess-complexity
+name: assess-change
 description: Assess completed changes or an explicitly scoped PR for code complexity and production change risk, with revision-bound Markdown and JSON reports. Also runs before packaging new Implement deliveries.
 ---
 
-# Assess complexity and production change risk
+# Assess change complexity and risk
 
 This is an informational assessment. It never changes implementation routes, validation requirements, review verdicts, approvals, or CI/CD behavior. Use `<plugin-root>/scripts/change-assessment.mjs` for snapshot capture, rating aggregation and reports. Read [the evidence contract](../../docs/change-assessment.md) before producing evidence.
 
@@ -27,4 +27,4 @@ Write a scope JSON: `{ "label": "requested delivery description", "reference": "
 5. Run `... write --root <artifact-root> --ticket <identifier> --scope <scope.json> --input <evidence.json>`. This recaptures the snapshot and rejects stale evidence. If the snapshot changed, inspect the changed scope and retry with fresh evidence. The helper computes completeness and overall ratings; unsupported scope yields Unknown (`null`) delivery ratings while retaining assessed portions. Full relevant scope plus all applicable measurements is complete; useful assessment with missing scope/measurements is partial; no usable assessment is unavailable.
 6. On assessment failure run `... fail --root <artifact-root> --ticket <identifier> --scope <scope.json> --reason "actual failure"`. This replaces current presentation with Assessment unavailable and retains prior reports only as linked stale history. If saving also fails, disclose that limitation and let Implement continue with unavailable information. Never use previous ratings as current. Regenerate the Implement dashboard after writing, using its existing render-status command.
 
-Return both ratings, completeness, deciding rationale, limitations, exact revision/snapshot, and links using the helper's actual returned `reports.markdown` and `reports.json` paths. New outputs normally have the `miw-` prefix; logical filename examples do not override returned paths. Before reporting success, use `check` to confirm the reports match the current snapshot. A successful current `check` reads both saved files and verifies their agreement and snapshot; report that result accurately, while retaining the separate limits of source inspection. Standalone output is separate from existing workflow packages. Do not rewrite completed packages.
+Return both ratings, completeness, deciding rationale, limitations, exact revision/snapshot, and links using the helper's actual returned `reports.markdown` and `reports.json` paths. New reports use `<identifier>-change-assessment.md` and `.json`; existing assessments retain `-complexity` filenames. New outputs normally have the `miw-` prefix; logical filename examples do not override returned paths. Before reporting success, use `check` to confirm the reports match the current snapshot. A successful current `check` reads both saved files and verifies their agreement and snapshot; report that result accurately, while retaining the separate limits of source inspection. Standalone output is separate from existing workflow packages. Do not rewrite completed packages.
