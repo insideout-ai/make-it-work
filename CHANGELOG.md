@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.12.1] — 2026-11-17
+
+### Changed
+
+- Refinement, planning, and execution load conditional delivery, resume, Autopilot, dispatch, reporting, and Implement integration guides only when their route needs them. Existing workflow policies, commands, approvals, handoffs, and legacy behavior remain unchanged. Essential execution completion fields stay in the entrypoint.
+
+### Fixed
+
+- Session-feedback findings about repeated permission questions retain the prior authorization and the actual questions as supporting evidence. Standalone reports use the supplied artifact resolver directly without browsing installed helpers.
+
 ## [5.12.0] — 2026-11-17
 
 ### Changed
