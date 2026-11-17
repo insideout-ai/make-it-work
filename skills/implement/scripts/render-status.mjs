@@ -680,7 +680,7 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
   if (text.startsWith('Result: Change assessment — ')) {
     const split = text.lastIndexOf('; evidence: ');
     const reference = text.slice(split + '; evidence: '.length);
-    const files = ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-complexity.${extension}`, `miw-${state.fields.ticket}-complexity.${extension}`]);
+    const files = ['change-assessment', 'complexity'].flatMap(suffix => ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-${suffix}.${extension}`, `miw-${state.fields.ticket}-${suffix}.${extension}`]));
     if (split >= 0 && files.includes(reference)) {
       const label = text.slice(0, split);
       const rationale = assessment?.audit_id && auditId === assessment.audit_id && assessment.rationale &&

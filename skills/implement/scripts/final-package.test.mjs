@@ -484,7 +484,7 @@ test('approved historical packages retain their exact presentation and approval 
   assert.match(await readFile(built.package, 'utf8'), /Assurance: Limited/);
 });
 
-for (const mode of ['tdd', 'lightweight']) test(`change assessment is informational and consistent across ${mode} packaging/dashboard`, async t => {
+for (const suffix of ['change-assessment', 'complexity']) for (const mode of ['tdd', 'lightweight']) test(`change assessment (${suffix}) is informational and consistent across ${mode} packaging/dashboard`, async t => {
   const { captureScope, assess, saveAssessment, unavailable } = await import('../../../scripts/change-assessment.mjs');
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'assessment-package-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -511,6 +511,7 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
     dependencies:'All consumers checked', verification:'Existing validation retained', measurements:'missing', measurement_limitation:'No analyzer available',
     complexity_dimensions:[{dimension:'state',rating:'High',evidence:'Inherited state complexity in changed function'}], risk_dimensions:[{dimension:'impact',rating:'Low',evidence:'Local change'}]
   }] });
+  if (suffix === 'complexity') await writeFile(artifactJoin(dir, 'DEMO-complexity.json'), JSON.stringify(unavailable(snap, 'Previous assessment unavailable')));
   await saveAssessment(root,'DEMO',report);
   const afterSave = await readFile(state, 'utf8');
   assert.equal(parseState(afterSave).audit.filter(row => row.note?.id.startsWith('change-assessment:')).length, 1, 'Saving a final assessment must persist its audit entry immediately.');
@@ -533,7 +534,7 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   assert.match(header(rendered), /class="pill assessment-high"[^>]*>Production risk: High/);
   assert.match(header(rendered), /title="Completeness: partial\. src\/existing.txt:1 sensitive contract change"/);
   assert.doesNotMatch(rendered, /class="change-assessment"|<h2>Change assessment|CHANGE_ASSESSMENT/);
-  assert.match(rendered, /Result: Change assessment — Code complexity: High; Production risk: High; completeness: partial.*href="DEMO-complexity.md"/);
+  assert.match(rendered, new RegExp(`Result: Change assessment — Code complexity: High; Production risk: High; completeness: partial.*href="DEMO-${suffix}.md"`));
   const assessmentRows = async () => parseState(await readFile(state, 'utf8')).audit.filter(row => row.note?.id.startsWith('change-assessment:'));
   assert.equal((await assessmentRows()).length, 1);
   // Already persisted pre-rationale notes stay byte-identical and gain the
@@ -585,13 +586,13 @@ for (const mode of ['tdd', 'lightweight']) test(`change assessment is informatio
   assert.equal((await assessmentRows()).length, 4);
   assert.match(header(await readFile(html, 'utf8')), /Production risk: High/);
   await writeFile(state, completed.replace('status: Complete', 'status: In Progress').replace('phase: complete', 'phase: final-approval'));
-  await writeFile(artifactJoin(dir, 'DEMO-complexity.json'), '{broken report');
+  await writeFile(artifactJoin(dir, `DEMO-${suffix}.json`), '{broken report');
   await generateDashboard(state);
   assert.match(header(await readFile(html, 'utf8')), /Assessment: Unavailable/);
   assert.doesNotMatch(header(await readFile(html, 'utf8')), /Code complexity:|Production risk:/);
   assert.equal((await assessmentRows()).length, 5);
   await generateDashboard(state); assert.equal((await assessmentRows()).length, 5);
-  await rm(artifactJoin(dir, 'DEMO-complexity.json'));
+  await rm(artifactJoin(dir, `DEMO-${suffix}.json`));
   await generateDashboard(state);
   assert.match(header(await readFile(html, 'utf8')), /Assessment: Unavailable/);
   assert.match(header(await readFile(html, 'utf8')), /Recorded assessment evidence is missing/);

@@ -1,5 +1,0 @@
-schema_version: "1.1"
-name: assessment-docs
-tags: [assess-complexity]
-context:
-  scaffold_script: fixture.sh

@@ -42,7 +42,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 | Turn a spec into an implementation plan | [plan-the-work](skills/plan-the-work/SKILL.md) | Small steps, verification criteria, and acceptance traceability |
 | Carry out an agreed plan | [execute](skills/execute/SKILL.md) | Verified steps and the plan's completion-gate result |
 | Check for regressions | [run-regression](skills/run-regression/SKILL.md) | Full or scoped test results, with unavailable checks made explicit |
-| Assess completed change complexity and risk | [assess-complexity](skills/assess-complexity/SKILL.md) | Revision-bound ratings, evidence, completeness, and linked reports |
+| Assess completed change complexity and risk | [assess-change](skills/assess-change/SKILL.md) | Revision-bound ratings, evidence, completeness, and linked reports |
 | Review changes against project intent | [review-the-code](skills/review-the-code/SKILL.md) | A verdict and findings grounded in requirements, code, and project guidance |
 | Publish a completed implementation | [deliver](skills/deliver/SKILL.md) | An approved commit, push, and new or updated PR |
 | Review a session and provide workflow feedback | [feedback-on-session](skills/feedback-on-session/SKILL.md) | Evidence-backed findings and your perspective in a local, shareable report |
@@ -370,7 +370,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.11.1 through the publisher's marketplace:
+Install commercial version 5.12.0 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -557,4 +557,4 @@ Workspace artifacts stay together under `<workspace>/make-it-work/<TICKET>/`. Ea
 
 ### Assess completed change complexity and risk
 
-Use `/make-it-work:assess-complexity <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD, within Finalizing and its elapsed total. Only at final approval or completion, the dashboard header shows Code complexity and Production risk badges on a second row below the workflow settings, with completeness and rationale tooltips, or a neutral Assessment: Unavailable/Stale badge. The audit log shows the ratings, rationale and report link without repeating the result on refresh or resume; reassessments get a new entry. Detailed evidence remains in the reports and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. See [evidence contract](docs/change-assessment.md).
+Use `/make-it-work:assess-change <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD, within Finalizing and its elapsed total. Only at final approval or completion, the dashboard header shows Code complexity and Production risk badges on a second row below the workflow settings, with completeness and rationale tooltips, or a neutral Assessment: Unavailable/Stale badge. The audit log shows the ratings, rationale and report link without repeating the result on refresh or resume; reassessments get a new entry. Detailed evidence remains in the reports and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. The old `/make-it-work:assess-complexity` command remains a deprecated alias. See [evidence contract](docs/change-assessment.md).

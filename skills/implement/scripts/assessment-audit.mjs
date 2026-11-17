@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
-import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
-import { readAssessment } from '../../../scripts/change-assessment.mjs';
+import { assessmentPaths, readAssessment } from '../../../scripts/change-assessment.mjs';
 import path from 'node:path';
 import { assertRunState } from './artifact-layout.mjs';
 
@@ -13,7 +12,7 @@ export async function checkpointAssessment(statePath, state) {
   if (!assessmentPhase(state)) return null;
   const directory = path.dirname(statePath), root = path.dirname(path.dirname(directory));
   assertRunState(root, statePath, state.fields.ticket);
-  const json = artifactJoin(directory, `${state.fields.ticket}-complexity.json`);
+  const { json } = await assessmentPaths(root, state.fields.ticket);
   let raw, readFailure;
   try { raw = await readFile(json, 'utf8'); }
   catch (error) {

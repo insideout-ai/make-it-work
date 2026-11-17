@@ -426,18 +426,18 @@ test('assessment semantic grading receives actual prefixed reports together with
   await mkdir(dir, { recursive: true });
   const markdown = '# Persisted assessment\n\nCode complexity: Low; Production risk: High; partial\n';
   const json = JSON.stringify({ complexity: 'Low', risk: 'High', completeness: 'partial', rationale: 'Authorization guard removed' });
-  await writeFile(path.join(dir, 'miw-ASSESS-1-complexity.md'), markdown);
-  await writeFile(path.join(dir, 'miw-ASSESS-1-complexity.json'), json);
+  await writeFile(path.join(dir, 'miw-ASSESS-1-change-assessment.md'), markdown);
+  await writeFile(path.join(dir, 'miw-ASSESS-1-change-assessment.json'), json);
   const suites = JSON.parse(await readFile('evals/suites.json', 'utf8'));
   let calls = 0;
   const grade = await gradeHeadlessCase({
-    graderDir: path.resolve('evals/assess-complexity/assessment-sensitive/graders'),
+    graderDir: path.resolve('evals/assess-change/assessment-sensitive/graders'),
     fixtureDir: root, transcript, budgetUsd: 1,
     evidenceFiles: suites.graderEvidenceFiles['assessment-sensitive'],
     judge: async prompt => {
       calls++;
-      assert.ok(prompt.includes(`SAVED ARTIFACT: make-it-work/ASSESS-1/ASSESS-1-complexity.md\n${markdown}`));
-      assert.ok(prompt.includes(`SAVED ARTIFACT: make-it-work/ASSESS-1/ASSESS-1-complexity.json\n${json}`));
+      assert.ok(prompt.includes(`SAVED ARTIFACT: make-it-work/ASSESS-1/ASSESS-1-change-assessment.md\n${markdown}`));
+      assert.ok(prompt.includes(`SAVED ARTIFACT: make-it-work/ASSESS-1/ASSESS-1-change-assessment.json\n${json}`));
       assert.match(prompt, /TRANSCRIPT EVIDENCE:\n.*TOOL Bash:/s);
       return { stdout: JSON.stringify({ structured_output: { verdict: 'PASS', reason: 'Actual reports and trace are supplied.' } }) };
     },

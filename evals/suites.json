@@ -166,8 +166,8 @@
   "graderEvidenceFiles": {
     "assessment-sensitive": {
       "behavior.md": [
-        "make-it-work/ASSESS-1/ASSESS-1-complexity.md",
-        "make-it-work/ASSESS-1/ASSESS-1-complexity.json"
+        "make-it-work/ASSESS-1/ASSESS-1-change-assessment.md",
+        "make-it-work/ASSESS-1/ASSESS-1-change-assessment.json"
       ]
     },
     "feedback-collection-runtime-notes": {
@@ -292,7 +292,7 @@
       "Read",
       "Bash"
     ],
-    "assess-complexity": [
+    "assess-change": [
       "Read",
       "Bash"
     ]

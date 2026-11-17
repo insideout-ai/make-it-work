@@ -1,11 +1,11 @@
-import { artifactJoin } from './lib/artifact-path.mjs';
+import { artifactJoin, artifactOutputJoin } from './lib/artifact-path.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
-import { assess, captureScope, saveAssessment, readAssessment, unavailable, assessmentSummary } from './change-assessment.mjs';
+import { assess, captureScope, saveAssessment, readAssessment, unavailable, assessmentSummary, assessmentMarkdown } from './change-assessment.mjs';
 
 async function fixture(t) {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'assessment-'));
@@ -96,8 +96,71 @@ test('report drift is unavailable; a missing report cannot produce a Low rating'
   const { root,snapshot }=await fixture(t);
   assert.equal((await readAssessment(root,'DEMO')).reason,'Not assessed yet');
   await saveAssessment(root,'DEMO',assess(snapshot,evidence(snapshot)));
-  await writeFile(artifactJoin(root,'make-it-work/DEMO/DEMO-complexity.md'),'tampered');
+  await writeFile(artifactJoin(root,'make-it-work/DEMO/DEMO-change-assessment.md'),'tampered');
   assert.match((await readAssessment(root,'DEMO')).reason,/disagree/);
+});
+
+test('new reports and stale history use change-assessment filenames', async t => {
+  const { root, snapshot } = await fixture(t);
+  const saved = await saveAssessment(root, 'DEMO', assess(snapshot, evidence(snapshot)));
+  assert.match(saved.reports.json, /DEMO-change-assessment\.json$/);
+  assert.match(saved.reports.markdown, /DEMO-change-assessment\.md$/);
+  assert.match(await readFile(path.join(root, saved.reports.markdown), 'utf8'), new RegExp(saved.json_name.replaceAll('.', '\\.')));
+  const failed = await saveAssessment(root, 'DEMO', unavailable(snapshot, 'Analysis failed'));
+  assert.match(failed.stale_history, /DEMO-change-assessment-stale-/);
+  assert.match(await readFile(path.join(root, path.dirname(failed.reports.json), failed.stale_history), 'utf8'), /Stale history/);
+});
+
+async function legacyReport(root, snapshot, prefixed) {
+  const dir = path.join(root, 'make-it-work', 'DEMO');
+  await mkdir(dir, { recursive: true });
+  // Both established unprefixed workflows and newer miw-prefixed runs existed
+  // before the skill rename; neither layout may be migrated just by reading.
+  await writeFile(path.join(dir, prefixed ? 'miw-run.json' : 'state.json'), JSON.stringify(prefixed ? { artifact_naming_version: 1 } : {}));
+  const json = artifactOutputJoin(dir, 'DEMO-complexity.json');
+  const md = artifactOutputJoin(dir, 'DEMO-complexity.md');
+  const report = { ...assess(snapshot, evidence(snapshot)), json_name: path.basename(json) };
+  await writeFile(json, JSON.stringify(report, null, 2) + '\n');
+  await writeFile(md, assessmentMarkdown(report));
+  return { dir, json, md };
+}
+
+for (const prefixed of [false, true]) test(`legacy ${prefixed ? 'miw-prefixed' : 'unprefixed'} reports retain paths and history on resume`, async t => {
+  const { root, snapshot, repo } = await fixture(t);
+  const files = await legacyReport(root, snapshot, prefixed);
+  const bytes = await Promise.all([readFile(files.json, 'utf8'), readFile(files.md, 'utf8')]);
+  const report = await readAssessment(root, 'DEMO');
+  assert.equal(report.complexity, 'Low');
+  assert.equal(path.join(root, report.reports.json), files.json);
+  assert.equal(path.join(root, report.reports.markdown), files.md);
+  assert.deepEqual(await Promise.all([readFile(files.json, 'utf8'), readFile(files.md, 'utf8')]), bytes);
+  await writeFile(path.join(repo, 'code.py'), 'def run():\n    return 3\n');
+  assert.equal((await readAssessment(root, 'DEMO')).stale, true);
+  const failed = await saveAssessment(root, 'DEMO', unavailable(snapshot, 'Reassessment failed'));
+  assert.equal(path.join(root, failed.reports.json), files.json);
+  assert.match(failed.stale_history, /DEMO-complexity-stale-/);
+  const history = await readFile(path.join(files.dir, failed.stale_history), 'utf8');
+  assert.match(history, /Stale history/);
+  assert.match(history, /DEMO-complexity-stale-.*\.json/);
+  const again = await saveAssessment(root, 'DEMO', unavailable(snapshot, 'Still unavailable'));
+  assert.equal(again.stale_history, failed.stale_history);
+});
+
+test('a canonical report takes precedence over legacy ratings, even when failed, stale or malformed', async t => {
+  const { root, snapshot, repo } = await fixture(t);
+  const { dir } = await legacyReport(root, snapshot, false);
+  const json = path.join(dir, 'DEMO-change-assessment.json');
+  const md = path.join(dir, 'DEMO-change-assessment.md');
+  const failed = { ...unavailable(snapshot, 'Canonical analysis failed'), json_name: path.basename(json) };
+  await writeFile(json, JSON.stringify(failed)); await writeFile(md, assessmentMarkdown(failed));
+  assert.equal((await readAssessment(root, 'DEMO')).reason, 'Canonical analysis failed');
+  await saveAssessment(root, 'DEMO', assess(snapshot, evidence(snapshot)));
+  await writeFile(path.join(repo, 'code.py'), 'def run():\n    return 3\n');
+  assert.equal((await readAssessment(root, 'DEMO')).stale, true);
+  await writeFile(json, '{broken');
+  const broken = await readAssessment(root, 'DEMO');
+  assert.equal(broken.completeness, 'unavailable'); assert.equal(broken.risk, null);
+  await assert.rejects(saveAssessment(root, 'DEMO', failed), SyntaxError);
 });
 
 test('audit update failure preserves saved assessment evidence without changing workflow state', async t => {

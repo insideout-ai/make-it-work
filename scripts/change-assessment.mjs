@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { artifactOutputJoin, artifactResolve } from './lib/artifact-path.mjs';
-// Semantic evidence is supplied by assess-complexity; snapshot/rating policy is deterministic.
+// Semantic evidence is supplied by assess-change; snapshot/rating policy is deterministic.
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from './lib/artifact-io.mjs';
-import { rename } from 'node:fs/promises';
+import { access, rename } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { snapshotDeliveryRepo } from './lib/delivery-scope.mjs';
@@ -94,22 +94,33 @@ export function assessmentSummary(report) {
   if (report.completeness === 'unavailable') return `Assessment unavailable — ${report.reason ?? report.rationale}. Code complexity: Unknown · Production change risk: Unknown · unavailable`;
   return `Code complexity: ${report.complexity ?? 'Unknown'} · Production change risk: ${report.risk ?? 'Unknown'} · ${report.completeness}`;
 }
-function reportPaths(root, ticket) {
+export async function assessmentPaths(root, ticket) {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(ticket)) fail('Unsafe assessment identifier.');
   const dir = artifactOutputJoin(root, 'make-it-work', ticket);
-  return { dir, json: artifactOutputJoin(dir, `${ticket}-complexity.json`), md: artifactOutputJoin(dir, `${ticket}-complexity.md`) };
+  const paths = suffix => {
+    const stem = `${ticket}-${suffix}`;
+    return { dir, stem, json: artifactOutputJoin(dir, `${stem}.json`), md: artifactOutputJoin(dir, `${stem}.md`) };
+  };
+  const current = paths('change-assessment');
+  // Established assessments retain their names, keeping historical package links
+  // valid. Never mask stale, failed or malformed current reports with legacy data.
+  for (const candidate of [current, paths('complexity')]) {
+    try { await access(candidate.json); return candidate; }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  return current;
 }
 async function atomic(file, content) {
   const tmp = `${file}.${randomUUID()}.tmp`;
   await writeFile(tmp, content); await rename(tmp, file);
 }
 export async function saveAssessment(root, ticket, report) {
-  const files = reportPaths(root, ticket);
+  const files = await assessmentPaths(root, ticket);
   await mkdir(files.dir, { recursive: true });
   let previous;
   try { previous = JSON.parse(await readFile(files.json, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   if (previous && previous.completeness !== 'unavailable') {
-    const history = `${ticket}-complexity-stale-${hash(previous).slice(0, 16)}`;
+    const history = `${files.stem}-stale-${hash(previous).slice(0, 16)}`;
     await atomic(artifactOutputJoin(files.dir, `${history}.json`), JSON.stringify(previous, null, 2) + '\n');
     await atomic(artifactOutputJoin(files.dir, `${history}.md`), '# Stale history — not a current assessment\n\n' + assessmentMarkdown({ ...previous, json_name: path.basename(artifactOutputJoin(files.dir, `${history}.json`)) }));
     report.stale_history = path.basename(artifactOutputJoin(files.dir, `${history}.md`));
@@ -143,7 +154,7 @@ export async function saveAssessment(root, ticket, report) {
 }
 export async function readAssessment(root, ticket, snapshots = null) {
   try {
-    const files = reportPaths(root, ticket);
+    const files = await assessmentPaths(root, ticket);
     const report = JSON.parse(await readFile(files.json, 'utf8'));
     if (report.version !== 1 || report.rubric_version !== RUBRIC) fail('Unsupported assessment report.');
     const current = snapshots ? { ...report.scope, repos: snapshots.map(({ diff, diff_file, ...r }) => r).sort((a,b) => a.path.localeCompare(b.path)) } : await captureScope(report.scope);
