@@ -1,19 +1,23 @@
 // Shared presentation for the implement and drive-the-epic dashboards.
 export const escapeHtml = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 
-export function renderWorkflowHeader({ workflow, title, logoBase64, badges, pluginVersion = null, usageSnapshot = null }) {
+export function renderWorkflowHeader({ workflow, title, logoBase64, badges, assessmentBadges = '', pluginVersion = null, usageSnapshot = null }) {
   const usage = usageSnapshot;
-  const capacity = usage?.context_capacity ? new Intl.NumberFormat('en', { notation: 'compact' }).format(usage.context_capacity) : 'Unavailable';
-  const context = usage?.context_percent == null ? 'Unavailable' : `${usage.context_percent}% of ${capacity}`;
-  const cost = usage?.estimated_cost_usd == null ? 'Unavailable' : `~$${usage.estimated_cost_usd.toFixed(2)}`;
+  const metadata = [`<span class="plugin-version">${pluginVersion ? `Plugin v${escapeHtml(pluginVersion)}` : 'Plugin version: Unknown'}</span>`];
+  if (usage?.context_percent != null) {
+    const capacity = usage.context_capacity ? ` of ${new Intl.NumberFormat('en', { notation: 'compact' }).format(usage.context_capacity)}` : '';
+    metadata.push(`Context: ${escapeHtml(`${usage.context_percent}%${capacity}`)}`);
+  }
+  if (usage?.estimated_cost_usd != null) metadata.push(`Estimated session cost: ${escapeHtml(`~$${usage.estimated_cost_usd.toFixed(2)}`)}`);
+  if (metadata.length > 1 && usage?.captured_at) metadata.push(`Captured at ${escapeHtml(usage.captured_at)}`);
   return `<div class="header-row">
   <a href="https://insideoutai.io/make-it-work" target="_blank" rel="noopener noreferrer">
     <img src="data:image/png;base64,${escapeHtml(logoBase64)}" alt="InsideOut AI">
   </a>
   <h1>Make-It-Work: ${escapeHtml(workflow)}: <em>${escapeHtml(title)}</em></h1>
-  <div class="header-badges" aria-label="Workflow settings">${badges}</div>
+  <div class="header-badges" aria-label="Workflow settings">${badges}${assessmentBadges ? `<span class="assessment-badge-row" role="group" aria-label="Change assessment">${assessmentBadges}</span>` : ''}</div>
 </div>
-<p class="workflow-metadata"><span class="plugin-version">${pluginVersion ? `Plugin v${escapeHtml(pluginVersion)}` : 'Plugin version: Unknown'}</span> · Context: ${escapeHtml(context)} · Estimated session cost: ${escapeHtml(cost)}${usage?.captured_at ? ` · Captured at ${escapeHtml(usage.captured_at)}` : ''}</p>`;
+<p class="workflow-metadata">${metadata.join(' · ')}</p>`;
 }
 
 export const WORKFLOW_STYLES = `
@@ -45,8 +49,9 @@ export const WORKFLOW_STYLES = `
   .header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
   .header-row h1 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
-  .header-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin-left: auto; max-width: 100%; }
+  .header-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.4rem; margin-left: auto; max-width: 100%; }
   .header-badges .pill { margin-right: 0; white-space: nowrap; }
+  .assessment-badge-row { display: flex; flex-wrap: wrap; flex-basis: 100%; justify-content: flex-end; gap: 0.4rem; }
   .ticket-updates-allowed { color: #1e6231; background: #e6f4ea; }
   .ticket-updates-off { color: #596773; }
   .ticket-updates-unknown { color: #805400; background: #fff6e0; }

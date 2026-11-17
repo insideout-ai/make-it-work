@@ -23,6 +23,7 @@ test('new epic files have literal miw prefixes and saved version survives checkp
   await updateEpicRun({ root, run: run.run, event: { id: 'intake', type: 'intake' } });
   assert.equal((await inspectEpicRun({ root, run: run.run })).state.plugin_version, version);
   const html = await readFile(path.join(run.directory, 'miw-dashboard.html'), 'utf8'); assert.ok(html.includes(`Plugin v${version}`));
+  assert.doesNotMatch(html, /Context:|Estimated session cost:|Captured at/);
 });
 test('legacy artifact paths remain unchanged while marked nested handoffs are prefixed once', async t => {
   const root = await fixture(t), old = path.join(root, 'make-it-work', 'OLD'), fresh = path.join(root, 'make-it-work', 'NEW');

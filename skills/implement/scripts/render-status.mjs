@@ -380,10 +380,12 @@ function isAdaptive(state) {
   return state.fields.adaptive_version === '1';
 }
 
-function slotInfo(slot) {
+function slotInfo(slot, state = null) {
   if (slot.finalizing) return {
     label: slot.completed ? 'Complete' : 'Finalizing', skill: '',
-    tooltip: 'updates project documentation and prepares the completed work for final review.',
+    tooltip: state?.fields.change_assessment_version === '1'
+      ? 'updates project documentation, assesses code complexity and production risk, prepares final review, and collects session feedback. Its elapsed time includes the assessment.'
+      : 'updates project documentation and prepares the completed work for final review.',
   };
   return slot.lightweightFix ? LIGHTWEIGHT_FIX_INFO : PHASE_INFO[slot.phase];
 }
@@ -519,7 +521,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
 
   const steps = slots.map((slot, index) => {
     const finalizingFeedback = collectingFeedback && slot.finalizing && slot.completed;
-    const info = { ...slotInfo(slot), ...(finalizingFeedback ? { label: 'Finalizing' } : {}) };
+    const info = { ...slotInfo(slot, state), ...(finalizingFeedback ? { label: 'Finalizing' } : {}) };
     const dotState = finalizingFeedback ? 'current spinning' : slotState(slot, activeSlot, state.fields.status);
     const isActive = slot === activeSlot;
     const passed = dotState === 'passed';
@@ -553,7 +555,9 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     if (isActive && slot.finalizing && !slot.completed) {
       const awaiting = state.pendingInputs?.some((input) => input.kind === 'approval' && input.phase === 'final-approval');
       modeText = slot.phase === 'final-sync' ? 'Updating project docs'
-        : awaiting ? 'Awaiting final approval' : 'Preparing final review';
+        : awaiting ? 'Awaiting final approval'
+          : state.fields.change_assessment_version === '1' && state.fields.current_activity === 'Assessing code complexity and production risk'
+            ? 'Assessing code complexity and production risk' : 'Preparing final review';
     }
     if (slot.finalizing && slot.completed && feedback) {
       modeText = feedback.status === 'collecting' ? 'Collecting session feedback'
@@ -671,13 +675,19 @@ function displayOutcome(outcome) {
   return clean;
 }
 
-function renderAuditOutcome(state, outcome) {
+function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
   const text = displayOutcome(outcome);
   if (text.startsWith('Result: Change assessment — ')) {
     const split = text.lastIndexOf('; evidence: ');
     const reference = text.slice(split + '; evidence: '.length);
     const files = ['change-assessment', 'complexity'].flatMap(suffix => ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-${suffix}.${extension}`, `miw-${state.fields.ticket}-${suffix}.${extension}`]));
-    if (split >= 0 && files.includes(reference)) return `${escapeHtml(text.slice(0, split))} · <a href="${encodeURIComponent(reference)}">View assessment report</a>`;
+    if (split >= 0 && files.includes(reference)) {
+      const label = text.slice(0, split);
+      const rationale = assessment?.audit_id && auditId === assessment.audit_id && assessment.rationale &&
+        label.startsWith('Result: Change assessment — Code complexity:') && !label.includes('; rationale:')
+        ? `; rationale: ${assessment.rationale}` : '';
+      return `${escapeHtml(label + rationale)} · <a href="${encodeURIComponent(reference)}">View assessment report</a>`;
+    }
   }
   const breakdown = text.match(/^(Result: (?:Execute|Lightweight) time breakdown \(elapsed estimate\): .*); evidence: ((?:miw-)?time-breakdown-(?:execute|lightweight)-[1-9]\d*\.json)$/);
   if (breakdown) return `${escapeHtml(breakdown[1])} · <a href="${encodeURIComponent(breakdown[2])}">Timing details</a>`;
@@ -698,7 +708,7 @@ function renderAuditOutcome(state, outcome) {
   return escapeHtml(readable);
 }
 
-function renderAuditRows(state, invalidTimestampFrom) {
+function renderAuditRows(state, invalidTimestampFrom, assessment = null) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
     if (row.number === state.realRowsFrom) {
@@ -711,7 +721,7 @@ function renderAuditRows(state, invalidTimestampFrom) {
     }
     const warning = row.number === invalidTimestampFrom
       ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${renderAuditOutcome(state, row.outcome)}${warning}${duration}</td></tr>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
@@ -880,7 +890,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     WORKFLOW_HEADER: renderWorkflowHeader({
       workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot,
       badges: renderAutonomyBadge(state) +
-        renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderAssessmentBadges(state, assessment) + renderModePill(state),
+        renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
+      assessmentBadges: renderAssessmentBadges(state, assessment),
     }),
     TICKET: escapeHtml(state.fields.ticket),
     AUTO_REFRESH: feedback?.status === 'collecting' || state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
@@ -911,7 +922,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
-    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom),
+    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
     DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
