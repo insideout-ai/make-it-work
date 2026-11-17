@@ -4,7 +4,7 @@ You are the refinement worker, not the Implement orchestrator. Read the assignme
 JSON supplied by the parent. Its `task` contains the original requirements;
 `binding` identifies the exact run and approved single repository. Resolve the
 plugin from this file's location and read the complete
-[close-the-gaps skill](../../close-the-gaps/SKILL.md), including `When run by implement`,
+[close-the-gaps skill](../../close-the-gaps/SKILL.md), including its linked [Implement integration guide](../../close-the-gaps/references/implement-integration.md),
 [context discovery](context-discovery.md), and the matching repository's required
 rules/domain/use-case skills by its actual loading gate. Do not invoke go-deep or
 repair onboarding. Missing mandatory guidance is a blocked result, not permission

@@ -596,3 +596,28 @@ test('readable traces retain native background task lifecycle evidence', () => {
   const context = transcriptContext([notification, { type: 'result', result: 'Done' }].map(JSON.stringify).join('\n'), '/fixture');
   assert.ok(context.readableTrace.includes(`RUNTIME TASK EVENT: ${JSON.stringify(notification)}`));
 });
+
+
+test('planning test evidence accepts per-repo lines but cannot borrow evidence from later fields', async (t) => {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'plan-test-evidence-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = artifactJoin(root, 'make-it-work/DEMO-400/miw-DEMO-400-plan.md');
+  await mkdir(path.dirname(file), { recursive: true });
+  const rubric = await readFile(new URL('./plan-the-work/with-tests/graders/plan-tests-field-recorded.md', import.meta.url), 'utf8');
+  const grader = parseGrader(rubric, 'plan-tests-field-recorded.md');
+  const evidence = 'demo-tasks: src/tasks/createTask.test.js [unit], npm test, progression red — whitespace trim';
+  for (const content of [`**Tests:** ${evidence}`, `**Tests:**\n- ${evidence}\n- demo-tasks: existing.test.js, npm test, regression passing`]) {
+    await writeFile(file, `## Steps\n### Step 1 — Trim title\n${content}\n\n## Test Plan\n`);
+    assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, true);
+  }
+  for (const content of [
+    `**Tests:** none\n\n## Test Plan\n${evidence}`,
+    `**Tests:** none\n\n**Verify:** ${evidence}`,
+    `**Tests:** ${evidence.replace('src/tasks/createTask.test.js', 'unrelated.test.js')}`,
+    `**Tests:** ${evidence.replace('npm test', 'inspect manually')}`,
+    `**Tests:** ${evidence.replace('progression red', 'not executed')}`,
+  ]) {
+    await writeFile(file, `## Steps\n### Step 1 — Trim title\n${content}\n`);
+    assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false, content);
+  }
+});
