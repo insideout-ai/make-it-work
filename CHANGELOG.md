@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.12.0] — 2026-11-17
+
+### Changed
+
+- Rename `assess-complexity` to `assess-change` to reflect both code complexity and production change risk; retain the old command as a deprecated alias.
+- New assessment reports use `-change-assessment.md` and `.json`. Existing `-complexity` reports and stale-history links remain readable and keep their filenames on reassessment, preserving resumable runs and package bindings.
+
 ## [5.11.0] — 2026-11-16
 
 ### Added

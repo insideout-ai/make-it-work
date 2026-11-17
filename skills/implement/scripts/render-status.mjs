@@ -676,7 +676,7 @@ function renderAuditOutcome(state, outcome) {
   if (text.startsWith('Result: Change assessment — ')) {
     const split = text.lastIndexOf('; evidence: ');
     const reference = text.slice(split + '; evidence: '.length);
-    const files = ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-complexity.${extension}`, `miw-${state.fields.ticket}-complexity.${extension}`]);
+    const files = ['change-assessment', 'complexity'].flatMap(suffix => ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-${suffix}.${extension}`, `miw-${state.fields.ticket}-${suffix}.${extension}`]));
     if (split >= 0 && files.includes(reference)) return `${escapeHtml(text.slice(0, split))} · <a href="${encodeURIComponent(reference)}">View assessment report</a>`;
   }
   const breakdown = text.match(/^(Result: (?:Execute|Lightweight) time breakdown \(elapsed estimate\): .*); evidence: ((?:miw-)?time-breakdown-(?:execute|lightweight)-[1-9]\d*\.json)$/);
