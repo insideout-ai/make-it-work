@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source aadd96053162dca42cfbb711075c2df7e30d8b8f](https://github.com/insideout-ai/make-it-work/tree/aadd96053162dca42cfbb711075c2df7e30d8b8f). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source 9763d11dc7c0afe36ee17eca0bc370a86972a899](https://github.com/insideout-ai/make-it-work/tree/9763d11dc7c0afe36ee17eca0bc370a86972a899). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -372,7 +372,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ### InsideOut AI marketplace — commercial launch channel
 
-Install commercial version 5.11.0 through the publisher's marketplace:
+Install commercial version 5.11.1 through the publisher's marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -559,4 +559,4 @@ Workspace artifacts stay together under `<workspace>/make-it-work/<TICKET>/`. Ea
 
 ### Assess completed change complexity and risk
 
-Use `/make-it-work:assess-complexity <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD. Only at final approval or completion, the dashboard header shows Code complexity and Production risk badges with completeness and rationale tooltips, or a neutral Assessment: Unavailable/Stale badge. The persisted audit log links each result to its report without repeating it on refresh or resume; reassessments get a new entry. Detailed evidence remains in the reports and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. See [evidence contract](docs/change-assessment.md).
+Use `/make-it-work:assess-complexity <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD, within Finalizing and its elapsed total. Only at final approval or completion, the dashboard header shows Code complexity and Production risk badges on a second row below the workflow settings, with completeness and rationale tooltips, or a neutral Assessment: Unavailable/Stale badge. The audit log shows the ratings, rationale and report link without repeating the result on refresh or resume; reassessments get a new entry. Detailed evidence remains in the reports and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. See [evidence contract](docs/change-assessment.md).

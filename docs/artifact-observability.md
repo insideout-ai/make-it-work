@@ -18,7 +18,7 @@ Before writing artifacts, shared IO checks the containing Git worktree, rejects 
 
 ## Version and optional usage
 
-Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run.
+Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage and estimated session cost are shown independently only when available; missing values are omitted. A capture timestamp appears only when at least one usage value is shown.
 
 Claude Code's optional status-line integration supplies context percentage/capacity and estimated session cost. No token pricing table, network request or transcript collection is needed. Cost covers the Claude session, potentially including work outside this workflow; it is not a subscription charge or a per-ticket bill.
 
@@ -37,7 +37,7 @@ node /absolute/plugin/path/scripts/usage.mjs list --root /absolute/project/path
 node /absolute/plugin/path/scripts/usage.mjs bind --root /absolute/project/path --run /absolute/project/path/make-it-work/DEMO --session SESSION_ID
 ```
 
-Never guess among sessions. Rebind when resuming in a different Claude session. Binding takes effect at the next main workflow stage boundary or resume. Usage snapshots update only at those boundaries and session finalization, not on every response or dashboard refresh. Keep the capture timestamp visible. Missing/invalid telemetry is Unavailable and never blocks workflow progress. Unsupported hosts do not collect it.
+Never guess among sessions. Rebind when resuming in a different Claude session. Binding takes effect at the next main workflow stage boundary or resume. Usage snapshots update only at those boundaries and session finalization, not on every response or dashboard refresh. Keep the capture timestamp visible alongside available usage values. Missing/invalid telemetry is omitted from the dashboard and never blocks workflow progress. Unsupported hosts do not collect it.
 
 ## Finalization timing
 
