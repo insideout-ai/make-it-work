@@ -164,6 +164,12 @@
     "implement-repo-start-local": "connector-app"
   },
   "graderEvidenceFiles": {
+    "assessment-sensitive": {
+      "behavior.md": [
+        "make-it-work/ASSESS-1/ASSESS-1-complexity.md",
+        "make-it-work/ASSESS-1/ASSESS-1-complexity.json"
+      ]
+    },
     "feedback-collection-runtime-notes": {
       "collection-and-readback.md": [
         "make-it-work/DEMO/workflow-feedback.md",
