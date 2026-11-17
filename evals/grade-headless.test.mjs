@@ -384,8 +384,8 @@ test('plan tests field accepts required evidence in either order', async () => {
     'graders', 'plan-tests-field-recorded.md'), 'utf8');
   const { pattern } = parseGrader(markdown, 'plan-tests-field-recorded.md');
   const expression = new RegExp(pattern);
-  assert.match('**Tests:** src/tasks/createTask.test.js, npm test; red on whitespace and trim', expression);
-  assert.match('**Tests:** src/tasks/createTask.test.js, npm test; whitespace and trim confirmed red', expression);
+  assert.match('**Tests:** src/tasks/createTask.test.js, npm test; expected failure on whitespace and trim', expression);
+  assert.match('**Tests:** src/tasks/createTask.test.js, npm test; whitespace and trim should reject blank titles', expression);
   assert.doesNotMatch('**Tests:** src/tasks/createTask.test.js, npm test; whitespace and trim', expression);
 });
 
@@ -605,7 +605,7 @@ test('planning test evidence accepts per-repo lines but cannot borrow evidence f
   await mkdir(path.dirname(file), { recursive: true });
   const rubric = await readFile(new URL('./plan-the-work/with-tests/graders/plan-tests-field-recorded.md', import.meta.url), 'utf8');
   const grader = parseGrader(rubric, 'plan-tests-field-recorded.md');
-  const evidence = 'demo-tasks: src/tasks/createTask.test.js [unit], npm test, progression red — whitespace trim';
+  const evidence = 'demo-tasks: src/tasks/createTask.test.js [unit], npm test, expected failure — whitespace trim';
   for (const content of [`**Tests:** ${evidence}`, `**Tests:**\n- ${evidence}\n- demo-tasks: existing.test.js, npm test, regression passing`]) {
     await writeFile(file, `## Steps\n### Step 1 — Trim title\n${content}\n\n## Test Plan\n`);
     assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, true);
@@ -615,7 +615,7 @@ test('planning test evidence accepts per-repo lines but cannot borrow evidence f
     `**Tests:** none\n\n**Verify:** ${evidence}`,
     `**Tests:** ${evidence.replace('src/tasks/createTask.test.js', 'unrelated.test.js')}`,
     `**Tests:** ${evidence.replace('npm test', 'inspect manually')}`,
-    `**Tests:** ${evidence.replace('progression red', 'not executed')}`,
+    `**Tests:** ${evidence.replace('expected failure', 'not executed')}`,
   ]) {
     await writeFile(file, `## Steps\n### Step 1 — Trim title\n${content}\n`);
     assert.equal((await gradeHeadlessLocal(grader, { fixtureDir: root })).passed, false, content);

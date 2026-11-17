@@ -11,6 +11,9 @@ import { writeReview } from '../../../scripts/review-report.mjs';
 import { executionControl } from '../../execute/scripts/step-control.mjs';
 import { updatePlan } from '../../execute/scripts/plan-status.mjs';
 import { applyWorkflow, initializeWorkflow } from './workflow.mjs';
+import { recordPreparation, plannedScenarios } from '../../write-the-tests/scripts/preparation.mjs';
+import { planHash } from '../../../scripts/lib/plan.mjs';
+import { authorizePlanningTests } from './planning-tests.mjs';
 import { testingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { prepareReviewScope } from './review-scope.mjs';
@@ -110,6 +113,21 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
     assert.equal(planResult.fields.status, 'Paused');
     await apply('resolve-input', { pending_id: planResult.pending[0].id, answer: 'approve', source: 'user', via: 'question' });
   }
+  assert.equal(parseState(await readFile(statePath, 'utf8')).fields.phase, 'write-tests');
+  const scenarios = plannedScenarios(plan), entries = [];
+  for (const [index, cwd] of repos.entries()) {
+    await authorizePlanningTests(statePath, { repo: cwd, file: 'test.js', kind: 'test-file', step: 1, reason: 'Assert a formal greeting function exists before checking its output' });
+    await writeFile(artifactJoin(cwd, 'test.js'), (await readFile(artifactJoin(cwd, 'test.js'), 'utf8')).replace("assert.strictEqual(greetFormally", "assert.strictEqual(typeof greetFormally, 'function');\nassert.strictEqual(greetFormally"));
+    let red;
+    try { execFileSync(process.execPath, ['test.js'], { cwd, stdio: 'pipe' }); } catch (error) { red = error.stderr.toString(); }
+    assert.match(red, /AssertionError/);
+    execFileSync(process.execPath, ['-e', "require('node:assert/strict').equal(require('./src/greeting').greet('Ann'), 'Hello, Ann!')"], { cwd, stdio: 'pipe' });
+    for (const [n, row] of scenarios.entries()) entries.push({ scenario: row.Scenario, step: 1, repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, file: 'test.js', command: n === 0 ? 'node test.js' : "node -e \"require('node:assert/strict').equal(require('./src/greeting').greet('Ann'), 'Hello, Ann!')\"", kind: n === 0 ? 'progression' : 'regression', result: n === 0 ? 'expected-red' : 'pass', reason: n === 0 ? 'Missing formal greeting function assertion fails' : 'Existing greeting retains punctuation', evidence: 'Observed node assertion output in this integration test' });
+  }
+  const preparation = await recordPreparation(planPath, { version: 1, plan_hash: planHash(await readFile(planPath, 'utf8')), status: 'ready', entries });
+  await apply('preparation-saved', { preparation: path.relative(root, preparation.file) });
+  await apply('handoff', { handoff: await saveHandoff('tests', { outcome: 'TESTS_PREPARED', artifacts: { report: path.relative(root, preparation.report), preparation: path.relative(root, preparation.file) }, data: {} }) });
+  assert.equal(parseState(await readFile(statePath, 'utf8')).fields.phase, 'execute');
   if (workspace) {
     for (const run of [{ repo: 'unselected', cwd: sourceRoot }, { repo: 'api', cwd: secondRoot }]) {
       await assert.rejects(runRegression({ version: 1, mode: 'full', runs: [{ ...run, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } }] }, { statePath, auditId: 'reject-unapproved-scope' }), /outside the approved repository scope/);

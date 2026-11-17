@@ -1,6 +1,6 @@
 ### Plan
 
-Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Follow plan-the-work's Planning progress boundaries throughout initial planning, replanning and amendments; keep meaningful activity changes visible through the existing [activity contract](../activity.md), rather than leaving one generic planning description for the whole stage. Before a planner writes or extends tests, it must follow [planning-test authorization](../planning-tests.md); this scopes the startup guard exception to declared tests in the active Plan run. It never authorizes production implementation or ends an active stage.
+Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Follow plan-the-work's Planning progress boundaries throughout initial planning, replanning and amendments; keep meaningful activity changes visible through the existing [activity contract](../activity.md), rather than leaving one generic planning description for the whole stage. Planning defines coverage without editing tests; the separate Write Tests stage owns test preparation.
 
 Before Plan discovery/readiness inspection begins, narrate the upcoming investigation and checkpoint that exact sentence through the activity helper. When readiness returns, checkpoint the actual next planning activity before continuing; a single phase-start description must not cover the whole planning stage.
 
@@ -8,9 +8,6 @@ Before Plan discovery/readiness inspection begins, narrate the upcoming investig
 
 - Before loading/tracing planning context: describe discovery of the affected code and tests.
 - Before drafting/amending the steps: describe drafting the plan and coverage.
-- Before running the regression baseline: describe the existing-behavior checks being run.
-- Before writing/extending tests: describe the behavior whose tests are being authored. Switch activity after baseline execution; do not hide both behind "checking the baseline, then writing tests."
-- Before running progression tests: describe checking for the expected missing-behavior failure.
 - Before `validate-plan.mjs normalize-risk` / `check` and semantic self-review: describe final validation. The later handoff/approval transition does not replace this update.
 
 Use the existing helper, never a manual state/HTML edit:
@@ -43,5 +40,17 @@ Present the conflict and obtain explicit user guidance before resuming refinemen
 
 Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **Stop**. Record `plan_hash` at the moment of approval.
 
-On Approve, publish the accepted plan snapshot as an attachment or authorized fallback comment, before advancing to Execute. Use the publication journal to skip identical successful publications. Plan execution may later change its Progress section, so publish the frozen accepted snapshot.
+On Approve, publish the accepted plan snapshot as an attachment or authorized fallback comment, before advancing to Write Tests (Execute for legacy runs). Use the publication journal to skip identical successful publications. Plan execution may later change its Progress section, so publish the frozen accepted snapshot.
 
+
+### Write Tests (new runs)
+
+Runs with `test_writing_version: 1` enter `write-tests` after Plan approval (Guided) or a completed plan (Autonomous/Autopilot). Reused plans, replans and nonempty fix amendments follow the same route. Do not dispatch Execute until current preparation is accepted. Older saved runs retain existing routing and previously prepared tests; never backfill the marker merely on Resume.
+
+The coordinator reads [the test-worker integration guide](../../../write-the-tests/references/implement-integration.md); the fresh worker reads the complete write-the-tests entrypoint and its applicable authoring guides. Keep those detailed authoring procedures out of the coordinator dispatch context. Complete/check readiness, then follow [test-edit authorization](../planning-tests.md) for exact planned test files before dispatch. Record the actual dispatch activity in chat and the activity checkpoint, then use a **fresh worker without inherited conversation history**. Pass the compact inputs specified by that guide. The coordinator alone owns state, approval, authorizations, dashboard activity and publication. Retain its dispatch description while waiting; do not fabricate worker milestones or heartbeats.
+
+On handback, accept the native report through delegate-report.mjs. Validate `preparation.mjs check --plan <plan> --file <returned-json> --required 1`, then save the returned report paths through controller event `preparation-saved` (`preparation`: returned root-relative JSON path). This also accepts a validated blocked/partial report so the HTML links its evidence before the blocked handoff stops the run. Emit `tests`/`TESTS_PREPARED` with `report` and `preparation` artifacts only on success; otherwise return a blocked handoff and preserve the observed reason. The handoff routes to Execute only after validation. Baseline failures retain existing triage; a user-approved call-out must remain recorded as failed/unverified coverage, never a passing regression.
+
+For all-manual plans, record one exempt manual row per planned scenario and status `not-applicable`, without dispatching an authoring worker; still route through Write Tests to retain truthful history. Lightweight skips the stage entirely. Mixed plans prepare automated coverage and retain manual scenarios as exempt, not verified.
+
+A worker discovering new paths, unavailable required setup, a stub requirement or coverage/spec conflict returns before those edits. Resolve through the existing readiness/planning/refinement route; do not silently alter the approved plan. After changed approval inputs, redispatch with current references and retain earlier reports as history. No production stub edits are authorized by a test-file receipt.

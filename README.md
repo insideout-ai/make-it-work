@@ -27,7 +27,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 
 ## Skills
 
-15 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
+16 skills, from codebase onboarding to delivery. Invoke any skill as `/make-it-work:<skill-name>`; the links below open its full workflow.
 
 | What you need | Skill | What you get |
 | --- | --- | --- |
@@ -40,6 +40,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 | Locate the affected repositories | [find-the-repos](skills/find-the-repos/SKILL.md) | An evidence-backed repository and ownership assessment |
 | Resolve gaps before development | [close-the-gaps](skills/close-the-gaps/SKILL.md) | Clarified requirements and Gherkin acceptance criteria |
 | Turn a spec into an implementation plan | [plan-the-work](skills/plan-the-work/SKILL.md) | Small steps, verification criteria, and acceptance traceability |
+| Prepare an approved plan’s tests | [write-the-tests](skills/write-the-tests/SKILL.md) | Written/reused coverage and revision-bound preparation evidence |
 | Carry out an agreed plan | [execute](skills/execute/SKILL.md) | Verified steps and the plan's completion-gate result |
 | Check for regressions | [run-regression](skills/run-regression/SKILL.md) | Full or scoped test results, with unavailable checks made explicit |
 | Assess completed change complexity and risk | [assess-change](skills/assess-change/SKILL.md) | Revision-bound ratings, evidence, completeness, and linked reports |
@@ -125,9 +126,9 @@ The skills produced are also useful outside Claude Code. Product managers can re
 
 ### `/make-it-work:define-test-strategy`
 
-`define-test-strategy` is the onboarding step after `go-deep`: it builds one repo's test-strategy skill, `.claude/skills/test-strategy/SKILL.md`. The skill records where that repo's tests live — including in other repos, such as a separate QA automation repo — how to run each suite and what it needs (env vars, services, CI-only suites), and where new tests of each layer belong. It also builds `.claude/testing/test-map.json`, shared project metadata connecting repo-qualified use cases/domains to tests in any registered repo. Separate, embedded and documentation tests use evidence from assertions, documentation and traced behavior; no source/test files, comments or filenames are changed for mapping. It adds a single `/test-strategy` row to the `CLAUDE.md` Skills Reference and reports current mapped relationships, unresolved scope and confirmed gaps. Freshness checks reuse unchanged mappings and reassess changed tests, code evidence or documentation; unknown impact broadens discovery only where needed. Onboarding/planning/implementation save meaningful map updates; standalone regression/review and report-only requests refresh in memory. These mappings describe test relationships, not sufficient behavioral coverage or passing results. Re-run it and choose "Coverage report only" any time for a fresh view.
+`define-test-strategy` is the onboarding step after `go-deep`: it builds one repo's test-strategy skill, `.claude/skills/test-strategy/SKILL.md`. The skill records where that repo's tests live — including in other repos, such as a separate QA automation repo — how to run each suite and what it needs (env vars, services, CI-only suites), and where new tests of each layer belong. It also builds `.claude/testing/test-map.json`, shared project metadata connecting repo-qualified use cases/domains to tests in any registered repo. Separate, embedded and documentation tests use evidence from assertions, documentation and traced behavior; no source/test files, comments or filenames are changed for mapping. It adds a single `/test-strategy` row to the `CLAUDE.md` Skills Reference and reports current mapped relationships, unresolved scope and confirmed gaps. Freshness checks reuse unchanged mappings and reassess changed tests, code evidence or documentation; unknown impact broadens discovery only where needed. Onboarding/test preparation/implementation save meaningful map updates; standalone regression/review and report-only requests refresh in memory. These mappings describe test relationships, not sufficient behavioral coverage or passing results. Re-run it and choose "Coverage report only" any time for a fresh view.
 
-Each indexed test records its strategy layer (such as Component or Backend behavior; uncertain or older classifications appear as Unknown). Onboarding, planning and implementation also regenerate `.claude/testing/TEST-MAP.md` after saving the JSON. The developer report shows counts by layer, feature behaviors and test files, unresolved mappings, and an optional collapsed evidence catalog. It is a snapshot of saved metadata, not a test execution or freshness result. The portable `scripts/test-map-report.mjs` prints Markdown by default, writes the report only with `--write`, and checks for drift with `--check`; projects can install it with its `test-map.mjs` dependency and expose `npm run test:map`. Read-only coverage/regression/review requests leave these files unchanged.
+Each indexed test records its strategy layer (such as Component or Backend behavior; uncertain or older classifications appear as Unknown). Onboarding, test preparation and implementation also regenerate `.claude/testing/TEST-MAP.md` after saving the JSON. The developer report shows counts by layer, feature behaviors and test files, unresolved mappings, and an optional collapsed evidence catalog. It is a snapshot of saved metadata, not a test execution or freshness result. The portable `scripts/test-map-report.mjs` prints Markdown by default, writes the report only with `--write`, and checks for drift with `--check`; projects can install it with its `test-map.mjs` dependency and expose `npm run test:map`. Read-only coverage/regression/review requests leave these files unchanged.
 
 When no real tests exist, it discusses the testing strategy as part of onboarding, even if a runner is already configured. It distinguishes current coverage, recommended target coverage and a feasible first adoption phase, then discusses meaningful scope and environment choices before prioritizing individual tests. Every selected layer appears in Layers, Where New Tests Go and Coverage Decision Guidance with `configured`, `planned` or `deferred` status; intended directories can be recorded before they exist. Missing tooling becomes a prerequisite to discuss, with deferred risks and revisit conditions; proposed production refactoring is kept separate from test setup. Test Locations and runnable commands describe actual configuration, while setup commands remain proposals. Planning surfaces required missing layers for readiness, and regression runs configured suites only. Existing suites can receive a focused review when gaps justify it; `--autopilot` chooses and logs defaults, while coverage-report-only skips the discussion. This skill does not install tooling or create tests.
 
@@ -199,7 +200,7 @@ Use it when a ticket or epic feels too big and needs to become sprint-sized stor
 
 `find-the-repos` first checks whether the ticket's exact identifiers, endpoints, and UI labels already exist, leading the report with **verify and finish** when implementation is found. It then shortlists repos using docs, domain/use-case skills, and bounded code searches; specific code evidence can establish **Definite** even without docs. Workspace detection accepts catalog metadata, repo lists, and workspace configs as well as CLAUDE.md. It assesses **all repos by default**, even in a large sibling-repo workspace without grouping metadata; no repo-selection round is required. You can explicitly narrow the scope. Genuine workspace/scope choices use AskUserQuestion when available, without giant checkbox lists. One report, `<TICKET>-repos.md`, holds all assessment details, ownership sources/conflicts, and external routing; comments, revisions, and confirmation update that same file. The terminal shows only a compact **Definite repos / Owner(s) / Evidence** table, with supporting types `product.md`, `architecture.md`, `context skills`, and/or `code`, plus a report link and review prompt. Pasted tickets can use a provisional slug without borrowing related ticket keys.
 
-Unlike the fixed `close-the-gaps → plan-the-work → execute → review-the-code` pipeline, `find-the-repos` ships standalone: nothing else in this plugin calls it yet. Run it on its own, before that pipeline starts, whenever a ticket's home repo isn't already obvious.
+Unlike the fixed `close-the-gaps → plan-the-work → write-the-tests → execute → review-the-code` pipeline, `find-the-repos` ships standalone: nothing else in this plugin calls it yet. Run it on its own, before that pipeline starts, whenever a ticket's home repo isn't already obvious.
 
 ---
 
@@ -219,9 +220,19 @@ The cost of a vague ticket is paid in rework. `close-the-gaps` closes the gaps b
 
 ### `/make-it-work:plan-the-work`
 
-Turns an agreed spec or refined ticket into an execution-ready implementation plan before implementation logic is written. It loads the project's guidance and relevant skills, investigates the real code paths across one or more repositories, closes technical and scoping gaps with you, and writes an atomic, verifiable plan to `make-it-work/<TICKET>/miw-<TICKET>-plan.md`. When the target project has a test framework configured, it also writes and confirms each step's progression (red) and regression (currently-passing) tests — including minimal, clearly-marked stub signatures on a typed or dynamic stack where needed to reach a valid runtime red state — left uncommitted in the working tree; projects with no test framework configured are unaffected. With a test-strategy skill, new tests go where the strategy says and are registered in the product repo's map with evidence and runner identities/selectors, without mapping comments in source/tests. Planning may edit embedded test code in implementation files while leaving existing implementation logic unchanged. A QA repo that receives tests joins the plan as test scope. The plan also records the domains and use cases it touches for the regression gate.
+Turns an agreed spec or refined ticket into an execution-ready implementation plan. It loads relevant project guidance, investigates affected code across repositories, resolves technical/scoping gaps, and writes atomic steps with concrete coverage requirements, expected outcomes, test paths, commands and prerequisites. It defines progression/regression and manual scenarios without writing tests, stubs or production implementation. The plan records affected domains/use cases for the regression gate.
 
 Pass a ticket ID or a spec path, or let the skill derive the ticket from the current branch. Use it after `close-the-gaps` and before implementation so another engineer or agent can execute the work step by step without guessing.
+
+---
+
+### `/make-it-work:write-the-tests`
+
+Prepares the approved plan's coverage before execution: reuses adequate existing tests, writes missing tests, verifies regression baselines and expected progression failures, and saves numbered Test Preparation reports tied to the plan revision. Expected red confirms missing behavior; unavailable checks remain explicitly unverified. Test files stay uncommitted. Embedded tests and external QA repositories retain their declared placement and authorization boundaries.
+
+Pass a ticket ID or explicit plan path. In `implement`, this stage runs in a fresh worker after plan approval in Guided mode, and automatically after planning in Autonomous/Autopilot. The coordinator retains approvals and dashboard ownership. Standalone `execute` stops with guidance if required preparation is missing or stale; it never invokes test writing automatically. Manual-only plans record not-applicable preparation, while Lightweight skips the stage. Older saved runs keep their prior evidence and routing.
+
+The HTML dashboard shows **Plan → Write Tests → Execute**, separate preparation timing/activity, and a **Test Preparation** report with formatted preview and original-file access. Preparation does not advance implementation progress or establish completion. Replans and fix amendments repeat preparation only for affected coverage, preserving report history.
 
 ---
 
@@ -229,7 +240,7 @@ Pass a ticket ID or a spec path, or let the skill derive the ticket from the cur
 
 Implements a plan `plan-the-work` already wrote, step by step: it writes each step's code, re-runs that step's tests until they pass with a 5-attempt retry limit before asking for help, and halts the whole plan - rather than guessing - whenever a failing test looks like a real product-behavior question instead of a test bug. Once every step is green, it runs `run-regression` as a completion gate — the tests mapped to the plan's touched domains/use-cases across registered locations, plus the full suites required by its existing product-repo verification policy, or just the full suite when the plan records no tokens or none of their repos has a test strategy — and stops for your triage on a gate failure instead of trying to auto-fix it. It never commits on your behalf, leaving all finished work in the working tree for you to review.
 
-Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `plan-the-work` to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `execute` → `review-the-code` pipeline.
+Pass a ticket ID or a path to a plan file, or let the skill derive the ticket from the current branch. Use it after `write-the-tests` prepares the plan to turn an execution-ready plan into actual code, completing the `close-the-gaps` → `plan-the-work` → `write-the-tests` → `execute` → `review-the-code` pipeline.
 
 ---
 
@@ -249,7 +260,7 @@ Orchestrates the whole pipeline for one ticket: it inventories available project
 
 `implement` never runs `go-deep`, including through nested stages, in any autonomy mode. It keeps documentation updates scoped to the ticket and recommends a separate `go-deep` run at completion when broader documentation gaps remain. Absent or partial go-deep documentation uses existing repository guidance and ticket-scoped code/test discovery. Explicit mandatory loading requirements and unresolved essential facts still stop the workflow; material context limitations remain visible in the final package and completion summary.
 
-Once the refined spec is saved, new runs assess the ticket as Low, Medium or High risk by judgment over scope, dependencies, architectural impact, security and uncertainty, and record a one-line rationale. Low risk runs **Lightweight**: a fresh subagent implements the spec directly, with whatever checks it chooses and no plan, test-first steps or regression gate; the independent review is the verification, and review findings are fixed directly within the usual fix and review limits. Medium and High risk run **TDD**: today's full `plan-the-work` → `execute` pipeline with its regression gate and fix/replan loops. Every mode keeps the refined spec, the independent review and the final context sync. A Lightweight run escalates once to TDD when a fix breaks what an earlier fix touched, findings repeat in the same area, a finding needs a product decision or replanning, or the implementation reveals more risk; the code already written becomes the TDD plan's accepted baseline. `implement` never downgrades on its own. Force a mode with `--mode lightweight|tdd` or a chat request; the assessment is still recorded alongside the override. Older resumed runs keep the full TDD workflow without assessment.
+Once the refined spec is saved, new runs assess the ticket as Low, Medium or High risk by judgment over scope, dependencies, architectural impact, security and uncertainty, and record a one-line rationale. Low risk runs **Lightweight**: a fresh subagent implements the spec directly, with whatever checks it chooses and no plan, test-first steps or regression gate; the independent review is the verification, and review findings are fixed directly within the usual fix and review limits. Medium and High risk run **TDD**: the `plan-the-work` → `write-the-tests` → `execute` pipeline with its regression gate and fix/replan loops. Every mode keeps the refined spec, the independent review and the final context sync. A Lightweight run escalates once to TDD when a fix breaks what an earlier fix touched, findings repeat in the same area, a finding needs a product decision or replanning, or the implementation reveals more risk; the code already written becomes the TDD plan's accepted baseline. `implement` never downgrades on its own. Force a mode with `--mode lightweight|tdd` or a chat request; the assessment is still recorded alongside the override. Older resumed runs keep the full TDD workflow without assessment.
 
 Test-strategy repository IDs remain stable across renamed checkouts and Git worktrees. Existing strategy/map IDs are preserved; fresh linked worktrees use the main checkout’s identity rather than a temporary folder name. Regression lookup runs tests in the selected checkout, and conflicting IDs or ambiguous matches require explicit resolution.
 
@@ -261,7 +272,7 @@ flowchart TD
     Gaps --> Risk{"Risk assessment"}
     Risk -- "Low: Lightweight" --> Light["Lightweight implementation"]
     Risk -- "Medium / High: TDD" --> Plan["plan-the-work"]
-    Plan --> Execute["execute"]
+    Plan --> Tests["write-the-tests: fresh worker"] --> Execute["execute"]
 
     Light --> Review
     Review -- "changes requested (Lightweight)" --> Light
@@ -274,7 +285,7 @@ flowchart TD
     Complete -. "optional" .-> Deliver["deliver: commit, push, PR"]
     Review -- "changes requested" --> FixPlan
 
-    FixPlan -- "steps added" --> Execute
+    FixPlan -- "steps added" --> Tests
     FixPlan -- "plan needs rethinking" --> Replan["Replan"] --> Plan
 ```
 
@@ -346,6 +357,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 /make-it-work:close-the-gaps make-it-work/TICKET-123/TICKET-123-questions.md  # Resume and inject answers from that file
 /make-it-work:plan-the-work TICKET-123       # Turn a refined spec into an implementation plan
 /make-it-work:plan-the-work path/to/spec.md  # Plan from an explicit local spec
+/make-it-work:write-the-tests [TICKET-ID | path/to/plan.md]  # Prepare the planned coverage
 /make-it-work:execute [TICKET-ID | path/to/plan.md]  # Execute a plan step by step, then run the completion gate
 /make-it-work:review-the-code                  # Review code changes against the project's own skills and CLAUDE.md
 /make-it-work:implement TICKET-123           # Run the whole pipeline for a ticket, with saved state
@@ -359,7 +371,7 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated.
-- A project workspace, ideally a Git repository. `go-deep`, `define-test-strategy`, and `review-the-code` inspect the repository's code and documentation. `plan-the-work` does the same and, when a test framework is configured in the target project, also writes per-step progression and regression test files, left uncommitted in the working tree.
+- A project workspace, ideally a Git repository. `go-deep`, `define-test-strategy`, and `review-the-code` inspect the repository's code and documentation. `plan-the-work` inspects relevant context and defines coverage; `write-the-tests` writes and verifies the planned tests, left uncommitted in the working tree.
 - For ticket IDs such as `TICKET-123`, a separately installed and configured issue-tracker integration. You can always paste the ticket content instead.
 
 `review-the-code` is most effective after `go-deep` has created the project's `CLAUDE.md`, `.claude/rules` documentation, and domain/use-case skills.
@@ -446,6 +458,7 @@ Refine a ticket, then turn the agreed spec into an implementation plan:
 ```text
 /make-it-work:close-the-gaps TICKET-123
 /make-it-work:plan-the-work TICKET-123
+/make-it-work:write-the-tests TICKET-123
 /make-it-work:execute TICKET-123
 ```
 
@@ -475,13 +488,14 @@ With your explicit agreement to the disclosed scope, interactive `slice-the-epic
 
 `define-test-strategy` writes directly into the target project: it generates `.claude/skills/test-strategy/SKILL.md` and shared `.claude/testing/test-map.json`, generates `.claude/testing/TEST-MAP.md` from the saved map, leaves them uncommitted, and adds a `/test-strategy` row to the `CLAUDE.md` Other Skills table. Mapping never modifies source/test files, annotations or filenames, including tests in external repos. It never commits or cleans up old rule files, pointers or test scaffolds; obsolete metadata is left for manual cleanup.
 
-`plan-the-work` also writes directly into the target project itself when a test framework is configured there: it writes per-step progression and regression test files — including minimal, clearly-marked stub signatures where needed to reach a valid runtime red state — and leaves them uncommitted in the working tree, exactly like `execute`'s own changes. Projects with no test framework configured are unaffected; `plan-the-work` falls back to its prior behavior of only writing planning artifacts under `make-it-work/`.
+`plan-the-work` writes planning artifacts and factual context updates, without test or stub edits. `write-the-tests` prepares declared tests and leaves them uncommitted. Standalone test preparation may create explicitly planned minimal new stubs to reach runtime assertions; implement workers cannot create production stubs through test-file authorizations and return that prerequisite to the coordinator instead.
 
-`execute` goes further still: unlike `define-test-strategy` (which changes only make-it-work metadata) and `plan-the-work` above, which never write the production code itself, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — and, like `plan-the-work`, it never runs `git commit` on the user's behalf either; every change it makes is left uncommitted for you to review.
+
+`execute` goes further still: after planning and test preparation, `execute` writes the actual production code changes directly into the target project and runs its test commands via Bash by invoking `run-regression` — and, like `plan-the-work`, it never runs `git commit` on the user's behalf either; every change it makes is left uncommitted for you to review.
 
 Unlike skills that only read files in the current project, `find-the-repos` also reads `product.md` — and, for a purely technical ticket, `architecture.md` — from sibling repos elsewhere in the workspace. It writes only its own `make-it-work/<TICKET>/miw-<TICKET>-repos.md` artifact; it never modifies any repo's code or docs.
 
-`implement` changes the target project only through the stages it runs — `plan-the-work`'s uncommitted test files, `execute`'s uncommitted implementation, or, in Lightweight mode, the uncommitted code and tests written by its own implementation subagent — plus its own final context sync, which writes the project's skills and `.claude/rules` files directly. `close-the-gaps` and `plan-the-work` may also write those files directly at the end of a run, but only to record facts about the system as it already is, never the ticket's planned behavior.
+`implement` changes the target project only through the stages it runs — `write-the-tests`' uncommitted test files, `execute`'s uncommitted implementation, or, in Lightweight mode, the uncommitted code and tests written by its own implementation subagent — plus its own final context sync, which writes the project's skills and `.claude/rules` files directly. `close-the-gaps` and `plan-the-work` may also write those files directly at the end of a run, but only to record facts about the system as it already is, never the ticket's planned behavior.
 
 Issue-tracker access is not included in this plugin. Looking up a ticket by ID requires a separate integration that you install and authorize; pasting the ticket content requires no issue-tracker connection. Ticket publication additionally requires the relevant write capabilities and a saved opt-in for the specific ticket/run. Connector availability alone grants no permission.
 

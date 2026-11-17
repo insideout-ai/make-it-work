@@ -562,3 +562,45 @@ for (const context of ['absent', 'partial', 'complete', 'unreadable']) {
     }
   });
 }
+
+test('Guided plan approval starts preparation, never implementation or test edits', () => {
+  const result = transition(fields('plan-approval', { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none' }), { event: 'approve', source: 'user', via: 'chat' });
+  assert.equal(result.fields.phase, 'write-tests');
+  assert.equal(result.fields.execution, undefined);
+  assert.equal(transition(fields('plan-approval'), { event: 'approve', source: 'user', via: 'chat' }).fields.phase, 'execute');
+});
+
+test('actual controller accepts current preparation, renders its report, and enters execution once', async t => {
+  const { recordPreparation } = await import('../../write-the-tests/scripts/preparation.mjs');
+  const f = await fixture(t, { beforeInit: async root => {
+    await mkdir(artifactJoin(root, 'test'));
+    await writeFile(artifactJoin(root, 'test/change.test.js'), '// existing assertions\n');
+  } });
+  // This fixture isolates preparation routing from readiness and clause-ledger tests.
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace(/^testing_readiness(?:_version)?:.*\n/gm, '').replace(/^acceptance_evidence_version:.*\n/m, ''));
+  const directory = path.dirname(f.statePath), planPath = artifactJoin(directory, 'DEMO-plan.md');
+  const plan = '# Plan\n\n**Test preparation contract:** 1\n\n## Execution Status\n\n**Mode:** Subagent-Driven\n\n**Progress:** Step 0 of 1 complete\n\n## Steps\n\n### Step 1 — Change\n\n**Files:** `source.txt`\n\n**Depends on:** none\n\n**Can run in parallel with:** none\n\n**Verify:** tests pass\n\n**Tests:** app: `test/change.test.js`, node --test\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| New behavior | app | Unit | step 1 |\n';
+  await writeFile(planPath, plan);
+  const handoffs = artifactJoin(directory, 'DEMO-handoffs'); await mkdir(handoffs);
+  const planHandoff = artifactJoin(handoffs, 'plan-1.json');
+  await writeFile(planHandoff, JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'plan', status: 'done', plan_version: 1, outcome: 'PLAN_SAVED', artifacts: { plan: path.relative(await realpath(f.root), planPath) }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
+  assert.equal((await f.apply('handoff', { handoff: path.relative(await realpath(f.root), planHandoff) })).fields.phase, 'write-tests');
+  const saved = await recordPreparation(planPath, { version: 1, plan_hash: planHash(plan), status: 'ready', entries: [{ scenario: 'New behavior', step: 1, repo: 'app', cwd: f.root, file: 'test/change.test.js', command: 'node --test test/change.test.js', kind: 'progression', result: 'expected-red', reason: 'Missing behavior', evidence: 'Fixture assertion evidence' }] });
+  await f.apply('preparation-saved', { preparation: path.relative(await realpath(f.root), saved.file) });
+  const html = await readFile(f.result.dashboard, 'utf8');
+  assert.match(html, /Test Preparation/);
+  assert.match(html, /expected-red/);
+  assert.match(html, /tests-1.md.preview.html/);
+  const testsHandoff = artifactJoin(handoffs, 'tests-1.json');
+  await writeFile(testsHandoff, JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'tests', status: 'done', plan_version: 1, outcome: 'TESTS_PREPARED', artifacts: { preparation: path.relative(await realpath(f.root), saved.file), report: path.relative(await realpath(f.root), saved.report) }, data: {} }));
+  const input = { event: 'handoff', id: 'accept-tests', expected_hash: digest(await readFile(f.statePath, 'utf8')), repos: [f.root], handoff: path.relative(await realpath(f.root), testsHandoff) };
+  const result = await applyWorkflow({ root: f.root, statePath: f.statePath, input });
+  assert.equal(result.fields.phase, 'execute');
+  assert.equal(result.fields.execution, 'not-started');
+  assert.equal((await applyWorkflow({ root: f.root, statePath: f.statePath, input })).replayed, true);
+  assert.equal(await readFile(planPath, 'utf8'), plan);
+  await writeFile(planPath, plan + '\nCoverage changed outside the workflow checkpoint.\n');
+  const { generateDashboard } = await import('./render-status.mjs');
+  await generateDashboard(f.statePath);
+  assert.match(await readFile(f.result.dashboard, 'utf8'), /Superseded/);
+});

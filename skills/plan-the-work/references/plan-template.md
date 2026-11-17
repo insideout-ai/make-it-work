@@ -4,6 +4,8 @@ Template for `plan-the-work`'s `### Plan structure` step. Reproduce this exact s
 
 # Plan for <TICKET> — <feature-title>
 
+**Test preparation contract:** 1
+
 > **Spec:** `<resolved spec path>` · **Target branch:** `<branch>` · **For executors:** complete steps in order unless a step is marked **parallel**; do not proceed past a step until its **Verify** passes; do not edit files not listed in Affected Code; files under a `(test scope only)` section are editable test files only.
 
 ## What This Changes
@@ -98,7 +100,7 @@ A smaller, independently-shippable first phase that lowers residual risk (e.g. a
 
 ## Pre-flight
 
-The working-tree check applies before planning starts. Setup files supplied by `implement`'s testing readiness are an accepted baseline: name them here and in Affected Code. Test files and New-row stub signatures written during planning are also intentional uncommitted changes. Neither requires discarding work to obtain a clean tree.
+The working-tree check applies before planning starts. Setup files supplied by `implement`'s testing readiness are an accepted baseline: name them here and in Affected Code. Test preparation after plan approval leaves intentional uncommitted test changes; planning itself writes neither tests nor stubs. Neither requires discarding work to obtain a clean tree.
 
 Stop and flag if any fail before writing code.
 
@@ -119,7 +121,7 @@ Stop and flag if any fail before writing code.
 
 **Verify:** type-check/build passes with no new errors; _(specific observable check)_.
 
-**Tests:** one line per in-scope repo (including any `(test scope only)` repo the step writes tests in), since point 9 above requires each in-scope repo to get its own entry: `<repo>: <file path(s)> [<layer>], <exact command>, <confirmed state>`, where the confirmed state is one of `progression red — <reason>` / `regression passing` / `regression not runnable locally — <reason>` / `progression written — not runnable locally (<reason>)` — or, for an exempt step, `Exempt — <reason>`. With a test strategy, every new/changed test is registered in the product repo's maintained test map without source/test annotations. Append its test/module identity, evidence linking asserted behavior to UC/domain tokens, and supported runner selector. Include intended map metadata changes in Affected Code and step Files; preserve user decisions and unresolved candidates. Name any disclosed broader enclosing scope. An out-of-scope repo (no test-strategy location and no framework configured, per point 1) is simply omitted from this field, since its scenarios already live in that repo's own `## Test Plan` rows instead.
+**Tests:** planned coverage, one line per in-scope repo: `<repo>: <backticked repo-relative test paths> [<layer>], <supported command>, <working directory>, <progression/regression scenarios and expected outcomes>, <prerequisites>`. Reuse existing test identities/selectors where adequate. State `Exempt — <reason>` only for an actual exemption; manual scenarios remain in Test Plan. Declare intended test-map changes in Affected Code and Files. Do not claim tests were written or observed passing/red. write-the-tests records results separately.
 
 ### Step N — Verify manual scenarios
 
@@ -127,7 +129,7 @@ _Include for required manual-policy verification or runnable manual scenarios. F
 
 ## Test Plan
 
-For a repo where the per-step test-writing sub-phase applies (a test-strategy location or a test framework is configured there), this section is a derived summary aggregating what each step's `**Tests:**` field already recorded for that repo — not a place to author new tests for it — and each such scenario row should reference which step its test came from. For a repo with no test-strategy location and no framework configured, this section is instead the one place new test scenarios for that repo are authored directly, exactly as `plan-the-work` did before this sub-phase existed. A multi-repo plan may contain both kinds of row side by side.
+Define every planned automated and manual scenario here, including its expected result, originating step, intended test path, supported command and prerequisites. This is the coverage specification consumed by write-the-tests, not an observed test report.
 
 Use unique Scenario names. With an explicit verification policy, include the Repo column below. Manual repos use Type `Manual`, and File / command describes setup, actions, expected observations and the originating step. Without a policy, the older three-column `Scenario | Type | File / command` format remains valid.
 
@@ -156,7 +158,7 @@ None, or list each known unavailable supplemental scenario with its originating 
 - [ ] Test suite passes (no skipped/pending), or suites reported not run with reason
 - [ ] Type-check / build / lint pass
 - [ ] All **Verify** checkpoints green
-- [ ] For every automated repo, every step's **Tests:** field is resolved — progression red and regression passing at planning time, or confirmed green after execution. Manual/legacy no-framework repos have concrete Test Plan scenarios and the final manual verification step instead. Every manually selected repo has observed evidence for its scenarios; automated regression limitations remain explicit.
+- [ ] For every automated repo, every step's **Tests:** field is resolved — preparation evidence recorded by write-the-tests, and confirmed green or explicitly unavailable after execution. Manual/legacy no-framework repos have concrete Test Plan scenarios and the final manual verification step instead. Every manually selected repo has observed evidence for its scenarios; automated regression limitations remain explicit.
 - [ ] Open questions resolved or escalated (owner named)
 - [ ] Logging and error handling at the correct layers
 - [ ] Security and authorization reviewed

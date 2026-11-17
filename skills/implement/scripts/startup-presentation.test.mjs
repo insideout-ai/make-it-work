@@ -706,7 +706,7 @@ test('authorized Plan test edits remove only the premature-edit hold; active-sta
   const run = await freshRun(t, 'autopilot');
   const spec = 'make-it-work/DEMO/DEMO-spec.md';
   await writeFile(artifactJoin(run.root, spec), '# accepted spec\n');
-  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: caller change').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# accepted spec\n')}`));
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace(/^test_writing_version: 1\n/m, '').replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: caller change').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# accepted spec\n')}`));
   await mkdir(artifactJoin(run.root, 'test'));
   await writeFile(artifactJoin(run.root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n## Steps\n\n### Step 1 — Feature\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
   const readiness = await testingReadiness(run.result.state, 'begin');

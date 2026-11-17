@@ -98,7 +98,7 @@ export const WORKFLOW_STYLES = `
   .phase-status.status-paused, .phase-status.status-stopped { color: #e65100; }
   .phase-status.status-complete { color: #2e7d32; }
 
-  .artifact-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; max-width: 1100px; }
+  .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; max-width: 1100px; }
   .artifact-tile { background: #f7f7f8; border: 1px solid #e2e2e4; border-radius: 0.4rem; padding: 0.6rem 0.75rem; min-width: 0; }
   .artifact-tile .label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: 0.03em; }
   .artifact-tile a { font-size: 0.85rem; word-break: break-all; }

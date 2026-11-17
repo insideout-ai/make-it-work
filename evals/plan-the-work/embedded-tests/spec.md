@@ -17,5 +17,4 @@ then it returns 80 as before. Zero and 100 percent remain valid.
 
 All product and technical choices are resolved. New regression and progression
 unit tests belong inside src/account.py::DiscountTests; the production function
-already exists. Planning may edit embedded tests but must leave implementation
-logic unchanged. No external services or credentials are required.
+already exists. Planning declares embedded test coverage without editing source or tests; write-the-tests prepares it after approval. No external services or credentials are required.

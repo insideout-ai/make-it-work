@@ -26,7 +26,7 @@ async function planningFixture(t, { files = {}, dirty = false } = {}) {
   const spec = 'make-it-work/DEMO/DEMO-spec.md';
   await writeFile(artifactJoin(root, spec), '# Spec: return 2\n');
   const statePath = initialized.state;
-  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# Spec: return 2\n')}`));
+  await writeFile(statePath, (await readFile(statePath, 'utf8')).replace(/^test_writing_version: 1\n/m, '').replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes').replace('spec: none', `spec: ${spec}`).replace('spec_hash: none', `spec_hash: ${digest('# Spec: return 2\n')}`));
   const planPath = artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md');
   await writeFile(planPath, '# Plan\n\n## Steps\n\n### Step 1 — Change behavior\n\n**Tests:** app: `test/policy.test.js`, `app.py`, `app.js`, `test/new.test.js`, `test/other.test.js`, `test/linked.test.js`, `test/é space.test.js`, node --test, progression pending\n');
   const readiness = await testingReadiness(statePath, 'begin');
@@ -230,4 +230,19 @@ test('a marked stub for a declared New symbol is allowed; unmarked, unbounded or
   await assert.rejects(stub({ file: 'app.js', insert_after_line: 0 }), /Cannot widen or replace/);
   await rm(artifactJoin(f.root, 'app.js'));
   assert.match(await f.check(), /Application files changed/, 'deleting a stubbed file stays guarded');
+});
+
+test('new runs permit preauthorized tests only after approval in Write Tests', async t => {
+  const f = await planningFixture(t, { files: { 'test/policy.test.js': '// baseline\n' } });
+  const saved = (await readFile(f.statePath, 'utf8')).replace('phase: plan', 'phase: plan\ntest_writing_version: 1');
+  await writeFile(f.statePath, saved);
+  await assert.rejects(f.authorize(), /active TDD/);
+  await writeFile(f.statePath, saved.replace('phase: plan\n', 'phase: plan-approval\n'));
+  await assert.rejects(f.authorize(), /active TDD/);
+  await writeFile(f.statePath, saved.replace('phase: plan\n', 'phase: write-tests\n'));
+  assert.equal((await f.authorize()).authorized, true);
+  await writeFile(artifactJoin(f.root, 'test/policy.test.js'), '// authorized preparation\n');
+  assert.equal(await f.check(), null);
+  await writeFile(artifactJoin(f.root, 'app.js'), '// unauthorized production stub\n');
+  assert.match(await f.check(), /Application files changed/);
 });

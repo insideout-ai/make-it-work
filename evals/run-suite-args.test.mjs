@@ -10,7 +10,7 @@ import path from 'node:path';
 test('dry-run starts every selected smoke case concurrently and leaves full sequential', () => {
   const script = new URL('./run-suite.mjs', import.meta.url);
   for (const [args, expected] of [
-    [['smoke'], /15 cases; 15 concurrent;/],
+    [['smoke'], /16 cases; 16 concurrent;/],
     [['smoke', '--case=deliver-no-package', '--case=rr-full-pass'], /2 cases; 2 concurrent;/],
     [['full'], /\d+ cases; 1 concurrent;/],
   ]) {

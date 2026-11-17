@@ -167,7 +167,7 @@ async function continuationHold(initialized, toolCheck = false, agents = [], tas
   const enteredPhase = state.audit.findLast((row) => row.to === fields.phase && row.from !== row.to)?.epoch;
   // Yielding to a live child is not workflow completion. Preserve In Progress
   // and all completion gates; a child from an earlier phase cannot release Stop.
-  if (['close-the-gaps', 'plan', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
+  if (['close-the-gaps', 'plan', 'write-tests', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
       [...agents, ...tasks.filter(task => !task.needsMonitor)].some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
   if (tasks.some(task => task.needsMonitor && task.launchedAt >= enteredPhase)) return { decision: 'block', reason: 'This older single-shot headless runtime cannot resume a Bash-only background wait. Start a finite Monitor for the existing command/output, then yield. Do not rerun the tests, poll in the parent, repeat waiting messages or pause the workflow merely to wait.' };
   if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };

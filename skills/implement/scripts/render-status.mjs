@@ -18,6 +18,7 @@ import { pendingInputs } from './pending-input.mjs';
 import { renderWorkspacePanel } from './workspace-view.mjs';
 import { readScope } from './workspace-scope.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
+import { generateArtifactPreviews } from '../../../scripts/lib/artifact-preview.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
@@ -41,7 +42,7 @@ const STALE_AFTER_HOURS = 3;
 const STATUS_VALUES = new Set(['In Progress', 'Paused', 'Stopped', 'Complete']);
 const PHASE_VALUES = new Set([
   'context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval',
-  'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete',
+  'write-tests', 'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete',
   'lightweight',
 ]);
 const RISK_VALUES = new Set(['none', 'low', 'medium', 'high']);
@@ -58,7 +59,7 @@ const REVIEW_VALUES = new Set(['not-started', 'clean', 'fix-required', 'replan-r
 const FIX_DISPATCH_VALUES = new Set(['none', 'sequential', 'parallel']);
 const GATE_VALUES = new Set(['none', 'full-suite', 'scoped', 'scoped+full']);
 const CANONICAL_PHASES = new Set([
-  'context-check', 'close-the-gaps', 'plan', 'execute', 'review', 'fix-plan',
+  'context-check', 'close-the-gaps', 'plan', 'write-tests', 'execute', 'review', 'fix-plan',
   'final-sync', 'final-approval', 'complete',
 ]);
 const BASELINE_PHASES = [
@@ -82,10 +83,15 @@ const PHASE_INFO = {
     skill: 'plan-the-work',
     tooltip: 'turns the approved spec into a concrete, testable implementation plan, ending in a plan-approval checkpoint.',
   },
+  'write-tests': {
+    label: 'Write Tests',
+    skill: 'write-the-tests',
+    tooltip: 'prepares approved coverage in a fresh worker, checking regression baselines and expected progression failures before implementation.',
+  },
   execute: {
     label: 'Execute',
     skill: 'execute',
-    tooltip: 'implements the plan step by step, writing and passing each step\'s tests.',
+    tooltip: 'implements the plan step by step and verifies its prepared tests and acceptance evidence.',
   },
   review: {
     label: 'Review',
@@ -293,6 +299,14 @@ export function parseState(markdown, statePath = '') {
   if (fields.review_scope_version !== undefined && fields.review_scope_version !== '1') fail('Unsupported review_scope_version.');
   if (fields.final_package_version !== undefined && fields.final_package_version !== '1') fail(`Unsupported final_package_version: ${fields.final_package_version}`);
   if (fields.acceptance_evidence_version !== undefined && (fields.acceptance_evidence_version !== '1' || fields.verification_version !== '1')) fail('Clause evidence requires acceptance_evidence_version: 1 and verification_version: 1.');
+  if (fields.test_writing_version !== undefined && fields.test_writing_version !== '1') fail('Unsupported test_writing_version.');
+  if (fields.phase === 'write-tests' && fields.test_writing_version !== '1') fail('Write Tests requires test_writing_version: 1.');
+  if (fields.test_writing_version === '1') {
+    for (const name of ['test_preparation', 'test_preparation_report']) {
+      if (!fields[name]) fail(`Missing ${name}.`);
+      if (fields[name] !== 'none') runArtifactName(fields[name], fields.ticket, name);
+    }
+  }
   if (fields.testing_readiness_version !== undefined && fields.testing_readiness_version !== '1') fail('Unsupported testing_readiness_version.');
   if (fields.verification_version !== undefined && fields.verification_version !== '1') fail(`Unsupported verification_version: ${fields.verification_version}`);
   for (const name of ['review_checks_version', 'feedback_evidence_version']) if (fields[name] !== undefined && fields[name] !== '1') fail(`Unsupported ${name}: ${fields[name]}`);
@@ -396,10 +410,11 @@ export function buildTimeline(state) {
   let phases = state.fields.final_package_version === '1'
     ? [...BASELINE_PHASES.slice(0, -1), 'final-approval', 'complete']
     : BASELINE_PHASES;
+  if (state.fields.test_writing_version === '1') phases = phases.flatMap(phase => phase === 'execute' ? ['write-tests', phase] : [phase]);
   if (lightweightTimeline) phases = phases.flatMap((phase) => phase === 'review' ? ['lightweight', phase] : [phase]);
   const slots = phases.map((phase) => ({
     ...newSlot(phase),
-    ...(lightweightTimeline && (phase === 'plan' || phase === 'execute') ? { skipped: true } : {}),
+    ...(lightweightTimeline && ['plan', 'write-tests', 'execute'].includes(phase) ? { skipped: true } : {}),
   }));
   const activatedPhases = new Set();
   let activeSlot = null;
@@ -409,7 +424,7 @@ export function buildTimeline(state) {
     if (row.to === 'spec-approval' || row.to === 'plan-approval') continue;
 
     if (!CANONICAL_PHASES.has(row.to) && !(adaptive && row.to === 'lightweight')) continue;
-    if (activeSlot?.phase === 'fix-plan' && row.to === 'execute') continue;
+    if (state.fields.test_writing_version !== '1' && activeSlot?.phase === 'fix-plan' && row.to === 'execute') continue;
     if (activeSlot?.phase === row.to) continue;
 
     // Adaptive runs never activate a skipped or already-passed baseline slot; such rows insert after the active slot.
@@ -434,6 +449,9 @@ export function buildTimeline(state) {
     activeSlot = nextSlot;
   }
 
+  if (state.fields.test_writing_version === '1') {
+    for (const slot of slots.filter(item => item.phase === 'write-tests')) slot.preparationExempt = state.audit.find(row => row.number > (slot.activationRow?.number ?? Infinity) && row.from === 'write-tests' && row.to !== 'write-tests')?.outcome.includes('not-applicable') ?? false;
+  }
   return { slots, activeSlot };
 }
 
@@ -537,6 +555,9 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     pieces.push(`  <div class="phase-label${currentLabel}">${label}</div>`);
 
     let modeText = null;
+    if (isActive && slot.phase === 'write-tests') modeText = 'Preparing coverage · implementation has not advanced';
+    if (slot.phase === 'write-tests' && slot.preparationExempt) modeText = 'Not applicable — manual verification';
+    if (isActive && slot.phase === 'plan' && state.fields.phase === 'plan-approval') modeText = 'Awaiting plan approval';
     if (isActive && slot.phase === 'execute') {
       if (!planStatus) fail('An active Execute phase requires a readable plan Execution Status.');
       modeText = `${planStatus.mode} · Step ${planStatus.complete} of ${planStatus.total} complete`;
@@ -807,6 +828,17 @@ function renderTddArtifactTile(state, field, label) {
   return `  <div class="artifact-tile"><div class="label">${label}</div>${link}</div>`;
 }
 
+function renderPreparation(state, preparation) {
+  if (state.fields.test_writing_version !== '1' || state.fields.mode === 'lightweight') return '';
+  const label = 'Test Preparation';
+  const link = artifactLink(state.fields.test_preparation_report, 'test_preparation_report', state.fields.ticket);
+  if (!preparation) return `<section class="test-preparation"><h2>${label}</h2><p>Preparation pending. Implementation is unverified.</p></section>`;
+  const stale = preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash);
+  const status = stale ? 'Superseded — refresh preparation for the current plan' : preparation.status;
+  const rows = (Array.isArray(preparation.entries) ? preparation.entries : []).filter(entry => entry && typeof entry === 'object').map(entry => `<li>${escapeHtml(entry.scenario)}: <strong>${escapeHtml(entry.result)}</strong> — ${escapeHtml(entry.reason)}</li>`).join('');
+  return `<section class="test-preparation"><h2>${label}</h2><p>${escapeHtml(status)}</p><p>Expected red confirms missing behavior; it is successful preparation. Unavailable checks remain unverified. Preparation does not establish implementation completion.</p><ul>${rows}</ul><p>${link}</p></section>`;
+}
+
 function renderImplementationTile(state) {
   if (!isAdaptive(state) || state.fields.implementation_report === 'none') return '';
   const link = artifactLink(state.fields.implementation_report, 'implementation_report', state.fields.ticket);
@@ -874,7 +906,7 @@ function renderAssessmentBadges(state, report) {
   return [['Code complexity', report.complexity], ['Production risk', report.risk]].map(([label, rating]) => `<span class="pill assessment-${rating.toLowerCase()}" title="${title}">${label}: ${rating}</span>`).join('');
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null }) {
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -914,6 +946,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
+    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation') : '',
+    TEST_PREPARATION: renderPreparation(state, preparation),
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
     IMPLEMENTATION_TILE: renderImplementationTile(state),
@@ -1012,8 +1046,18 @@ export async function generateDashboard(statePath) {
   }
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
-  const html = renderStatus({ assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) });
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
+  let preparation = null;
+  if (state.fields.test_writing_version === '1' && state.fields.test_preparation !== 'none') {
+    try {
+      preparation = JSON.parse(await readFile(artifactResolve(path.dirname(path.dirname(path.dirname(absoluteStatePath))), state.fields.test_preparation), 'utf8'));
+      if (!preparation || !Array.isArray(preparation.entries)) throw new Error('Invalid preparation evidence.');
+      const currentPlan = resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket);
+      preparation.current_plan_hash = currentPlan ? planHash(await readFile(currentPlan, 'utf8')) : state.fields.plan_hash;
+    }
+    catch (error) { preparation = { plan_hash: 'unavailable', status: 'unavailable', entries: [{ scenario: 'Preparation evidence unavailable', result: 'not-run', reason: error.message }] }; }
+  }
+  const html = await generateArtifactPreviews(renderStatus({ preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporaryPath, html, { encoding: 'utf8', flag: 'wx' });

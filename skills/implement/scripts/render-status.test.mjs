@@ -129,6 +129,21 @@ async function renderFixture(t, state, plan = null) {
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
+test('generated dashboard opens its spec and audit links in readable previews', async t => {
+  const state = stateMarkdown({ fields: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, rows: [['2026-01-01T10:00:00Z', 'context-check', 'context-check', 'Checking context']] });
+  const f = await renderFixture(t, state);
+  const spec = artifactJoin(f.directory, 'DEMO-spec.md');
+  await writeFile(spec, '# Session payment details\n\n## Acceptance criteria\n\n```gherkin\nGiven a paid session\nThen show its payment date\n```\n');
+  await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
+  const html = await readFile(f.outputPath, 'utf8');
+  assert.match(html, /href="DEMO-spec.md.preview.html"[^>]*target="_blank" rel="noopener noreferrer"/);
+  const preview = await readFile(`${spec}.preview.html`, 'utf8');
+  assert.match(preview, /<h1 id="session-payment-details">/);
+  assert.match(preview, /<code class="language-gherkin">/);
+  assert.match(preview, /href="DEMO-status.html">Back to dashboard/);
+  assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
+});
+
 // Timing/history tests render a session whose feedback was already finalized.
 async function renderSettledFixture(t, state, plan = null) {
   const f = await renderFixture(t, state, plan), statePath = artifactJoin(f.directory, 'DEMO-state.md');
@@ -1479,4 +1494,48 @@ test('both modes name active assessment inside Finalizing without adding a stage
     assert.match(legacy, /Preparing final review/);
     assert.doesNotMatch(legacy, /assesses code complexity|Its elapsed time includes the assessment/);
   }
+});
+
+test('Write Tests has independent timing, evidence and truthful approval/progress labels', () => {
+  const fields = { test_writing_version: '1', test_preparation: 'make-it-work/DEMO/DEMO-plan-tests-1.json', test_preparation_report: 'make-it-work/DEMO/DEMO-plan-tests-1.md', plan_hash: 'revision', phase: 'write-tests', autonomy: 'guided' };
+  const rows = [
+    ['2026-01-01T10:00:00Z', 'start', 'plan', 'Draft coverage'],
+    ['2026-01-01T10:01:00Z', 'plan', 'plan-approval', 'Awaiting approval'],
+    ['2026-01-01T10:02:00Z', 'plan-approval', 'write-tests', 'Approved; dispatching fresh test worker'],
+  ];
+  const preparation = { plan_hash: 'revision', status: 'ready', entries: [{ scenario: '<new behavior>', result: 'expected-red', reason: 'Missing behavior <expected>' }] };
+  const template = '{{PHASE_TIMELINE}} {{TEST_PREPARATION}} {{PREPARATION_TILE}}';
+  const state = parseState(stateMarkdown({ fields, rows }));
+  const html = renderStatus({ state, preparation, template, logoBase64: '' });
+  assert.match(html, /Write Tests/);
+  assert.match(html, /write-the-tests/);
+  assert.match(html, /implementation has not advanced/);
+  assert.match(html, /expected-red/);
+  assert.match(html, /&lt;new behavior&gt;/);
+  assert.doesNotMatch(html, /<new behavior>|Step 0 of|phase-dot failed/);
+  assert.match(html, /DEMO-plan-tests-1.md/);
+  const stale = renderStatus({ state, preparation: { ...preparation, plan_hash: 'old' }, template, logoBase64: '' });
+  assert.match(stale, /Superseded/);
+  const approval = renderStatus({ state: parseState(stateMarkdown({ fields: { ...fields, phase: 'plan-approval' }, rows: rows.slice(0, 2) })), template, logoBase64: '' });
+  assert.match(approval, /Awaiting plan approval/);
+  const legacy = renderStatus({ state: parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: rows.slice(0, 1) })), template, logoBase64: '' });
+  assert.doesNotMatch(legacy, /Write Tests|Test Preparation/);
+});
+
+test('preparation reentries remain separate from fix execution and manual exemption is explicit', () => {
+  const rows = [
+    ['2026-01-01T10:00:00Z', 'start', 'plan', 'Plan'],
+    ['2026-01-01T10:01:00Z', 'plan', 'write-tests', 'Prepare tests'],
+    ['2026-01-01T10:02:00Z', 'write-tests', 'execute', 'Test preparation ready'],
+    ['2026-01-01T10:03:00Z', 'execute', 'review', 'Implemented'],
+    ['2026-01-01T10:04:00Z', 'review', 'fix-plan', 'Amend coverage'],
+    ['2026-01-01T10:05:00Z', 'fix-plan', 'write-tests', 'Prepare fix coverage'],
+    ['2026-01-01T10:06:00Z', 'write-tests', 'execute', 'Test preparation not-applicable'],
+  ];
+  const fields = { phase: 'execute', test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none' };
+  const state = parseState(stateMarkdown({ fields, rows }));
+  const html = renderStatus({ state, template: '{{PHASE_TIMELINE}}', logoBase64: '', planStatus: { mode: 'Inline', complete: 1, total: 2 } });
+  assert.equal((html.match(/class="phase-skill">\(write-the-tests\)/g) ?? []).length, 2);
+  assert.match(html, /Not applicable/);
+  assert.match(html, /Step 1 of 2 complete/);
 });
