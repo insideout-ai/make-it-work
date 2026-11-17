@@ -1,0 +1,162 @@
+skills/implement/scripts/pending-input.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 4
+skills/implement/scripts/implementation-guard.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 139
+  s_0d8010b3d37033::t_3b81763e12c7ea 76
+skills/implement/references/orchestration/transitions.md
+  s_0d8010b3d37033::t_8e975b6d762a46 1-4
+evals/suites.json
+  s_0d8010b3d37033::t_8e975b6d762a46 18-19,161-162
+skills/implement/references/orchestration/planning.md
+  s_0d8010b3d37033::t_8e975b6d762a46 3,43,45-56
+skills/implement/scripts/hook-feedback.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 11
+scripts/epic-workflow.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 13,206-208
+evals/run-suite-args.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 13
+evals/plan-the-work/embedded-tests/spec.md
+  s_0d8010b3d37033::t_8e975b6d762a46 20
+scripts/epic-workflow.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 224-228
+skills/implement/references/orchestration/refinement.md
+  s_0d8010b3d37033::t_8e975b6d762a46 5
+evals/plan-the-work/embedded-tests/prompt.md
+  s_0d8010b3d37033::t_8e975b6d762a46 10
+skills/implement/scripts/final-package.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 148,537
+evals/drive-the-epic/autopilot/graders/html-view.md
+  s_0d8010b3d37033::t_8e975b6d762a46 4,7
+docs/artifact-observability.md
+  s_0d8010b3d37033::t_8e975b6d762a46 19-31
+skills/plan-the-work/references/implement-integration.md
+  s_0d8010b3d37033::t_8e975b6d762a46 10,18,24,29-30,42,49,51,62,64-65
+skills/plan-the-work/SKILL.md
+  s_0d8010b3d37033::t_8e975b6d762a46 3,13,15,44,58,147,149,273,277,279,373
+  s_0d8010b3d37033::t_3b81763e12c7ea 275
+skills/implement/assets/workflow-defaults.json
+  s_0d8010b3d37033::t_8e975b6d762a46 55-58
+skills/implement/scripts/workflow.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 565-606
+skills/implement/references/orchestration/stage-contract.md
+  s_0d8010b3d37033::t_8e975b6d762a46 7,12,20
+evals/plan-the-work/with-tests/graders/progression-test-added.md
+  s_0d8010b3d37033::t_8e975b6d762a46 2-3,6-7
+skills/implement/scripts/planning-tests.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 29,235-247
+  s_0d8010b3d37033::t_3b81763e12c7ea 234
+  s_0d8010b3d37033::t_68e84d18a5d52d 248
+CONTRIBUTING.md
+  s_0d8010b3d37033::t_8e975b6d762a46 51
+skills/execute/scripts/step-control.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 2,192
+skills/execute/SKILL.md
+  s_0d8010b3d37033::t_8e975b6d762a46 98-99,217
+skills/implement/references/feedback.md
+  s_0d8010b3d37033::t_8e975b6d762a46 194
+skills/implement/scripts/workflow.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 17,114-117,157-162,266,325,517-526,560-569
+skills/write-the-tests/references/authoring.md
+  s_0d8010b3d37033::t_3b81763e12c7ea 1-35
+.github/workflows/validate-plugin.yml
+  s_0d8010b3d37033::t_8e975b6d762a46 30
+evals/drive-the-epic/scoped-resume/graders/html-view.md
+  s_0d8010b3d37033::t_8e975b6d762a46 4,7
+scripts/lib/workflow-dashboard.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 101
+skills/implement/scripts/startup-presentation.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 709
+README.md
+  s_0d8010b3d37033::t_8e975b6d762a46 30,43,129,131,203,223,229-238,243,263,275,288,360,374,461,491-492,494,498
+skills/implement/scripts/handoff.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 13,19,68,84,87-90,150,158-163,216,268-269,271,277,281
+evals/plan-the-work/with-tests/graders/test-commit-made.md
+  s_0d8010b3d37033::t_8e975b6d762a46 10
+skills/implement/references/handoffs.md
+  s_0d8010b3d37033::t_8e975b6d762a46 13,22,31,83-86
+skills/implement/scripts/planning-tests.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 57,61,66
+skills/implement/references/orchestration/startup.md
+  s_0d8010b3d37033::t_8e975b6d762a46 6,246-247
+skills/implement/scripts/render-status.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 21,45,62,86-90,94,302-309,413,417,427,452-454,558-560,831-841,909,949-950,1050-1060
+skills/review-the-code/SKILL.md
+  s_0d8010b3d37033::t_8e975b6d762a46 147
+evals/grade-headless.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 387-388,608,618
+skills/implement/references/controller.md
+  s_0d8010b3d37033::t_8e975b6d762a46 53,229-234
+evals/plan-the-work/with-tests/graders/plan-tests-field-recorded.md
+  s_0d8010b3d37033::t_8e975b6d762a46 4,9
+skills/implement/scripts/handoff.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 355-372
+skills/implement/scripts/workflow-integration.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 14-16,116-130
+skills/implement/assets/status-template.html
+  s_0d8010b3d37033::t_8e975b6d762a46 24,32
+skills/implement/references/planning-tests.md
+  s_0d8010b3d37033::t_3b81763e12c7ea 52-54
+  s_0d8010b3d37033::t_8e975b6d762a46 1,3-4,12,14-15
+skills/plan-the-work/references/plan-template.md
+  s_0d8010b3d37033::t_8e975b6d762a46 7-8,103,124,132,161
+skills/implement/SKILL.md
+  s_0d8010b3d37033::t_8e975b6d762a46 3,72,80
+skills/implement/scripts/testing-readiness.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 16,27,93,102,116,129
+skills/implement/scripts/startup-presentation.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 170
+skills/implement/scripts/write-feedback.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 37
+skills/implement/scripts/render-status.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 132-146,1498-1541
+skills/implement/references/orchestration/state-and-progress.md
+  s_0d8010b3d37033::t_8e975b6d762a46 15-17,23,141-144
+skills/implement/references/orchestration/fixes.md
+  s_0d8010b3d37033::t_8e975b6d762a46 9,25
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_0d8010b3d37033::t_8e975b6d762a46 205
+evals/plan-the-work/embedded-tests/graders/embedded-red-without-implementation.md
+  s_0d8010b3d37033::t_8e975b6d762a46 7,9
+evals/write-the-tests/standalone/case.yaml
+  s_0d8010b3d37033::t_959a91dc1885b4 1-5
+evals/write-the-tests/standalone/fixture.sh
+  s_0d8010b3d37033::t_fb17ff5467a5ab 1-70
+evals/write-the-tests/standalone/graders/preparation.md
+  s_0d8010b3d37033::t_b6ecebbf409ca9 1-7
+evals/write-the-tests/standalone/prompt.md
+  s_0d8010b3d37033::t_47cf8405c276de 1-9
+scripts/artifact-preview.test.mjs
+  s_0d8010b3d37033::t_8d35026a915066 1-134
+scripts/lib/artifact-preview.mjs
+  s_0d8010b3d37033::t_3b29f71590bbd8 1-131
+scripts/vendor/marked/LICENSE.md
+  s_0d8010b3d37033::t_672829342b9cf2 1-44
+scripts/vendor/marked/README.md
+  s_0d8010b3d37033::t_4f1f13e2e84116 1-10
+scripts/vendor/marked/marked.mjs
+  s_0d8010b3d37033::t_6cdb20b942151a 1-73
+skills/write-the-tests/SKILL.md
+  s_0d8010b3d37033::t_aacf6c2858b315 1-61
+skills/write-the-tests/references/implement-integration.md
+  s_0d8010b3d37033::t_55a9f62c287d44 1-13
+skills/write-the-tests/scripts/preparation.mjs
+  s_0d8010b3d37033::t_3aca7e27b9232f 1-115
+skills/write-the-tests/scripts/preparation.test.mjs
+  s_0d8010b3d37033::t_f5dc5ba8a831c4 1-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4cbb639ad0d01b519a49e9aef2a9c1032d8ae5aa",
+  "prompts": {},
+  "sessions": {
+    "s_0d8010b3d37033": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9de-b50f-72c0-88ca-cd48709296e3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
