@@ -1,0 +1,30 @@
+evals/close-the-gaps/close-the-gaps-offline-injection/graders/decision-log-content.md
+  s_0a093dc898b003::t_bdc57a0875397f 18
+evals/AUDIT.md
+  s_0a093dc898b003::t_bdc57a0875397f 107-117
+  s_0a093dc898b003::t_e8a77d636dbcef 93-106,118-120
+evals/close-the-gaps/close-the-gaps-slack-send-fallback/graders/send-unavailable.md
+  s_0a093dc898b003::t_128448a3ed514e 10,12
+evals/close-the-gaps/close-the-gaps-slack-send-resume/graders/resume-without-resending.md
+  s_0a093dc898b003::t_50417c5d3da38c 12
+evals/grade-headless.test.mjs
+  s_0a093dc898b003::t_9d719a81e9e0dd 599-623
+evals/plan-the-work/with-tests/graders/plan-tests-field-recorded.md
+  s_0a093dc898b003::t_a29d67668dc03f 4-5,11-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b938132702d225316780101b3cb925ab448dad2e",
+  "prompts": {},
+  "sessions": {
+    "s_0a093dc898b003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e889-1996-7210-8779-5602c5855e8d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
