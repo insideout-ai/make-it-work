@@ -1,0 +1,22 @@
+skills/assess-complexity/SKILL.md
+  s_d5b4799db8ec84::t_2e0a504be4b08c 23
+  s_d5b4799db8ec84::t_20525a40cd5735 24
+CHANGELOG.md
+  s_d5b4799db8ec84::t_2e0a504be4b08c 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "95fdc6903d2be7ded8d0afeed69332615f462fc7",
+  "prompts": {},
+  "sessions": {
+    "s_d5b4799db8ec84": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e3c3-3789-7730-a0ac-abab585e7ee0",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
