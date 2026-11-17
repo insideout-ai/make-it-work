@@ -1,0 +1,51 @@
+skills/implement/scripts/render-status.test.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 249,260-267,271,1430-1441,1443-1444,1448-1449,1456-1457,1463-1481
+  s_e8e19af3f2496a::t_7b9aef147afadb 1482
+docs/change-assessment.md
+  s_e8e19af3f2496a::t_c1883ae102aa99 35
+  s_e8e19af3f2496a::t_cd52c5e4f28940 37-39
+skills/implement/references/orchestration/final-package.md
+  s_e8e19af3f2496a::t_c1883ae102aa99 16-17,19
+skills/implement/scripts/render-status.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 383,386-388,524,558-560,678,684-690,711,724,893-894,925
+skills/implement/scripts/assessment-audit.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 31-32,34,36-40
+CHANGELOG.md
+  s_e8e19af3f2496a::t_cd52c5e4f28940 23
+  s_e8e19af3f2496a::t_c1883ae102aa99 16-22
+README.md
+  s_e8e19af3f2496a::t_bce7f7c1b04aaa 560
+scripts/artifact-observability.test.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 26
+docs/artifact-observability.md
+  s_e8e19af3f2496a::t_c1883ae102aa99 21,40
+evals/suites.json
+  s_e8e19af3f2496a::t_c1883ae102aa99 167-172
+scripts/lib/workflow-dashboard.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 4,6-12,18,20,52,54
+skills/assess-change/SKILL.md
+  s_e8e19af3f2496a::t_c1883ae102aa99 23-24
+  s_e8e19af3f2496a::t_cd52c5e4f28940 30
+skills/implement/scripts/final-package.test.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 518,540-546
+  s_e8e19af3f2496a::t_eac4477b4fbb3e 547
+evals/grade-headless.test.mjs
+  s_e8e19af3f2496a::t_c1883ae102aa99 422-433,435-448
+  s_e8e19af3f2496a::t_670bef3e51d5b5 434
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9fedf7ae15cf2bddd1348e9b83c2f61e990bee35",
+  "prompts": {},
+  "sessions": {
+    "s_e8e19af3f2496a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e850-2a21-7363-9870-86cb5a15fd83",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
