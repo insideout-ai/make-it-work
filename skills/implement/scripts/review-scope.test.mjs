@@ -7,7 +7,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { writeReview } from '../../../scripts/review-report.mjs';
-import { prepareReviewScope, checkReviewScope, deliverySnapshots } from './review-scope.mjs';
+import { prepareReviewScope, checkReviewScope, deliverySnapshots, excludePreexisting } from './review-scope.mjs';
+import { implementationBaseline } from './implementation-guard.mjs';
 import { applyWorkflow, transition } from './workflow.mjs';
 import { parseState } from './render-status.mjs';
 
@@ -219,4 +220,35 @@ test('frozen review context preserves policy provenance and unverified criteria 
   assert.equal(target.verification_context.policy_source.path, readiness);
   await writeFile(artifactJoin(f.root, readiness), (await readFile(artifactJoin(f.root, readiness), 'utf8')).replace('no behavior observed', 'criteria still unverified'));
   await assert.rejects(writeReview(f.root, { ...f.input(), review_target: prepared.review_target, review_target_sha256: prepared.sha256 }), /Verification context changed/);
+});
+
+test('pre-existing untracked files are listed before review and can be kept out of every delivery snapshot', async (t) => {
+  const f = await fixture(t);
+  await mkdir(artifactJoin(f.root, 'scripts-local'));
+  await writeFile(artifactJoin(f.root, 'scripts-local/helper.py'), 'print(1)\n');
+  await writeFile(artifactJoin(f.root, '.env.local'), 'TOKEN=secret\n');
+  await writeFile(artifactJoin(f.root, 'odd [name].txt'), 'kept\n');
+  await writeFile(artifactJoin(f.root, 'notes [a]*?.txt'), 'local notes\n');
+  await writeFile(artifactJoin(f.root, 'notes a.txt'), 'written by the run later\n');
+  const baseline = await implementationBaseline([f.root]);
+  const text = await readFile(f.statePath, 'utf8');
+  await writeFile(f.statePath, text.replace('real_rows_from: 1', `real_rows_from: 1\nimplementation_baseline: ${JSON.stringify({ version: 1, runId: '2026-01-01T10:00:00Z', repos: baseline })}`));
+  await writeFile(artifactJoin(f.root, 'src/added.js'), 'export const added = true;\n');
+  await writeFile(artifactJoin(f.root, 'odd [name].txt'), 'changed by the run\n');
+  await writeFile(artifactJoin(f.root, 'notes a.txt'), 'changed by the run too\n');
+  const first = await prepareReviewScope(f.root, f.statePath);
+  assert.deepEqual(first.preexisting_untracked, [{ root: f.root, paths: ['.env.local', 'notes [a]*?.txt', 'scripts-local/helper.py'], sensitive: ['.env.local'] }], 'only unchanged pre-existing files are candidates');
+  assert.ok(first.repos[0].paths.includes('.env.local'));
+  await assert.rejects(excludePreexisting(f.root, f.statePath, { paths: ['src/added.js'] }), /Only pre-existing/);
+  const result = await excludePreexisting(f.root, f.statePath);
+  assert.deepEqual(result.repos[0].excluded, ['.env.local', 'notes [a]*?.txt', 'scripts-local/helper.py']);
+  assert.deepEqual(await excludePreexisting(f.root, f.statePath), { repos: [] }, 'nothing left to exclude');
+  const exclude = await readFile(artifactJoin(f.root, '.git/info/exclude'), 'utf8');
+  assert.equal(exclude.match(/# make-it-work DEMO:/g).length, 1);
+  const second = await prepareReviewScope(f.root, f.statePath);
+  assert.equal(second.preexisting_untracked, undefined);
+  assert.deepEqual(second.repos[0].paths, ['notes a.txt', 'odd [name].txt', 'src/added.js', 'src/code.js'], 'run-written and run-changed files stay in scope');
+  const [snapshot] = await deliverySnapshots(f.root, await (async () => parseState(await readFile(f.statePath, 'utf8'), f.statePath))());
+  assert.ok(!snapshot.diff.toString().includes('TOKEN=secret'));
+  assert.equal(git(f.root, 'status', '--porcelain', '--', '.env.local'), '', 'the local exclude is honored by Git itself');
 });

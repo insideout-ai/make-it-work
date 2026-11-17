@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import { lstat, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { declaredTest, dedicatedTestFile, draftPlanPath, fileImage, planningReceiptPath } from './planning-tests.mjs';
+import { declaredStub, declaredTest, dedicatedTestFile, draftPlanPath, fileImage, planningReceiptPath, STUB_MARKER, STUB_MAX_LINES } from './planning-tests.mjs';
 import { parseSteps } from '../../../scripts/lib/plan.mjs';
 import { digest, fail, within } from '../../../scripts/lib/artifacts.mjs';
 
@@ -70,36 +70,70 @@ async function originalImage(repo, file) {
   const mode = parseInt(record.split(' ')[0], 8) & 0o111;
   return { mode, git_blob: record.split(' ')[2].split('\t')[0] };
 }
-async function authorizedPlanningChanges(initialized, state, baseline, current) {
+// Returns the receipt-authorized paths per repo, or null when no valid receipt applies.
+async function authorizedPlanningPaths(initialized, state, baseline) {
   const f = state.fields;
-  if (!initialized.state || (f.adaptive_version === '1' && f.mode !== 'tdd') || !['plan', 'plan-approval'].includes(f.phase) || baseline.some((repo) => !Array.isArray(repo.changes))) return false;
+  if (!initialized.state || (f.adaptive_version === '1' && f.mode !== 'tdd') || !['plan', 'plan-approval'].includes(f.phase) || baseline.some((repo) => !Array.isArray(repo.changes))) return null;
   try {
     const info = await lstat(planningReceiptPath(initialized.state));
-    if (!info.isFile()) return false;
+    if (!info.isFile()) return null;
     const receipt = JSON.parse(await readFile(planningReceiptPath(initialized.state), 'utf8'));
-    if (receipt.version !== 1 || receipt.ticket !== f.ticket || receipt.start_time !== f.start_time || receipt.plan_version !== f.plan_version || receipt.spec_hash !== f.spec_hash || !Array.isArray(receipt.entries) || !receipt.entries.length) return false;
+    if (receipt.version !== 1 || receipt.ticket !== f.ticket || receipt.start_time !== f.start_time || receipt.plan_version !== f.plan_version || receipt.spec_hash !== f.spec_hash || !Array.isArray(receipt.entries) || !receipt.entries.length) return null;
     const artifactRoot = path.dirname(path.dirname(path.dirname(initialized.state)));
     const plan = await within(artifactRoot, path.relative(artifactRoot, draftPlanPath(initialized.state, f)));
-    if (digest(await readFile(await within(artifactRoot, f.spec))) !== f.spec_hash) return false;
+    if (digest(await readFile(await within(artifactRoot, f.spec))) !== f.spec_hash) return null;
     const steps = parseSteps(await readFile(plan, 'utf8'));
     const excluded = new Map(baseline.map((repo) => [repo.root, new Set()]));
     for (const entry of receipt.entries) {
       const repo = baseline.find((repo) => repo.root === entry.repo);
-      if (!repo || !Number.isSafeInteger(entry.step) || entry.step < 1 || !entry.reason?.trim() || !declaredTest(steps, entry.step, entry.file)) return false;
+      if (!repo || !Number.isSafeInteger(entry.step) || entry.step < 1 || !entry.reason?.trim()) return null;
+      if (entry.kind === 'stub' ? !declaredStub(steps, entry.step, entry.file) : !declaredTest(steps, entry.step, entry.file)) return null;
       const { image, bytes } = await fileImage(repo.root, entry.file);
       const original = await originalImage(repo, entry.file);
       const matchesBefore = original === null ? entry.before === null : entry.before && original.mode === entry.before.mode && (original.sha256 ? original.sha256 === entry.before.sha256 : original.git_blob === entry.before.git_blob);
-      if (!image || !matchesBefore) return false;
-      if (entry.before && image.mode !== entry.before.mode) return false;
-      if (entry.kind === 'embedded') {
-        if (!entry.before || !entry.region || typeof entry.region.prefix !== 'string' || typeof entry.region.suffix !== 'string') return false;
+      if (!matchesBefore) return null;
+      if (!image) {
+        // Authorized up front but not written yet: nothing changed at this path.
+        if (entry.before !== null || !['test-file', 'stub'].includes(entry.kind)) return null;
+        excluded.get(repo.root).add(entry.file);
+        continue;
+      }
+      if (entry.before && image.mode !== entry.before.mode) return null;
+      const region = () => {
+        if (!entry.before || !entry.region || typeof entry.region.prefix !== 'string' || typeof entry.region.suffix !== 'string') return null;
         const prefix = Buffer.from(entry.region.prefix, 'base64'), suffix = Buffer.from(entry.region.suffix, 'base64');
-        if ((!prefix.length && !suffix.length) || bytes.length < prefix.length + suffix.length || !bytes.subarray(0, prefix.length).equals(prefix) || !bytes.subarray(bytes.length - suffix.length).equals(suffix)) return false;
-      } else if (entry.kind !== 'test-file' || !await dedicatedTestFile(repo.root, entry.file, baseline.map((item) => item.root))) return false;
+        if (bytes.length < prefix.length + suffix.length || !bytes.subarray(0, prefix.length).equals(prefix) || !bytes.subarray(bytes.length - suffix.length).equals(suffix)) return null;
+        return { prefix, suffix, body: bytes.subarray(prefix.length, bytes.length - suffix.length) };
+      };
+      if (entry.kind === 'embedded') {
+        const bounded = region();
+        if (!bounded || (!bounded.prefix.length && !bounded.suffix.length)) return null;
+      } else if (entry.kind === 'stub') {
+        // Only a marked, bounded placeholder; production bytes outside it stay unchanged.
+        const body = entry.before ? region()?.body : bytes;
+        if (!body || !body.toString('utf8').includes(STUB_MARKER) || body.toString('utf8').split('\n').length > STUB_MAX_LINES) return null;
+      } else if (entry.kind !== 'test-file' || !await dedicatedTestFile(repo.root, entry.file, baseline.map((item) => item.root))) return null;
       excluded.get(repo.root).add(entry.file);
     }
-    return current.every((repo, index) => repo.head === baseline[index].head && JSON.stringify(repo.changes.filter((entry) => !excluded.get(repo.root).has(entry.file))) === JSON.stringify(baseline[index].changes.filter((entry) => !excluded.get(repo.root).has(entry.file))));
-  } catch { return false; } // Missing, malformed or stale evidence never releases the guard.
+    return excluded;
+  } catch { return null; } // Missing, malformed or stale evidence never releases the guard.
+}
+
+// Paths whose state differs from the startup baseline, minus receipt-authorized ones.
+function changedPaths(baseline, current, excluded) {
+  const changed = [];
+  for (const [index, repo] of current.entries()) {
+    const prior = baseline[index];
+    const skip = excluded?.get(repo.root) ?? new Set();
+    if (repo.head !== prior.head) changed.push(`${repo.root}: new commit ${repo.head.slice(0, 12)}`);
+    if (!Array.isArray(repo.changes) || !Array.isArray(prior.changes)) continue;
+    const before = new Map(prior.changes.map((entry) => [entry.file, entry.signature]));
+    const after = new Map(repo.changes.map((entry) => [entry.file, entry.signature]));
+    for (const file of new Set([...before.keys(), ...after.keys()])) {
+      if (!skip.has(file) && before.get(file) !== after.get(file)) changed.push(path.join(repo.root, file));
+    }
+  }
+  return changed.sort();
 }
 
 const PRE_IMPLEMENTATION = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval']);
@@ -119,6 +153,9 @@ export async function prematureImplementation(initialized, state) {
   }
   const current = await implementationBaseline(baseline.map((repo) => repo.root));
   if (current.every((repo, i) => repo.head === baseline[i].head && repo.fingerprint === baseline[i].fingerprint)) return null;
-  if (await authorizedPlanningChanges(initialized, state, baseline, current)) return null;
-  return `Application files changed before an authorized implementation stage (saved phase: ${fields.phase}). Preserve the local edits; do not commit, discard them, or claim completion. Continue the required refinement, risk assessment, approved implementation route and independent review. Recording Stopped because stages were bypassed does not complete recovery. If an external blocker prevents recovery, report the violation explicitly and ask the user how to proceed.`;
+  const authorized = await authorizedPlanningPaths(initialized, state, baseline);
+  const changed = changedPaths(baseline, current, authorized);
+  if (authorized && !changed.length) return null;
+  const shown = changed.slice(0, 10).join(', ') + (changed.length > 10 ? `, and ${changed.length - 10} more` : '');
+  return `Application files changed before an authorized implementation stage (saved phase: ${fields.phase})${changed.length ? `: ${shown}` : ''}. Preserve the local edits; do not commit, discard them, or claim completion. Continue the required refinement, risk assessment, approved implementation route and independent review. Recording Stopped because stages were bypassed does not complete recovery. If an external blocker prevents recovery, report the violation explicitly and ask the user how to proceed.`;
 }

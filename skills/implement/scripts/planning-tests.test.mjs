@@ -193,3 +193,41 @@ test('legacy states without controller baseline metadata keep their original pla
   assert.equal((await f.authorize()).required, false);
   await assert.rejects(readFile(planningReceiptPath(f.statePath)), /ENOENT/);
 });
+
+test('authorized test files not written yet do not trip the guard, and warnings name the changed paths', async (t) => {
+  const f = await planningFixture(t);
+  await f.authorize({ file: 'test/new.test.js' });
+  await f.authorize({ file: 'test/other.test.js' });
+  await writeFile(artifactJoin(f.root, 'test/new.test.js'), '// first planned assertion\n');
+  assert.equal(await f.check(), null, 'the second authorized file is pending, not a violation');
+  await writeFile(artifactJoin(f.root, 'scratch.pyc'), 'regenerated outside the workflow');
+  const warning = await f.check();
+  assert.match(warning, /Application files changed/);
+  assert.ok(warning.includes(artifactJoin(f.root, 'scratch.pyc')), 'the unexplained path is named');
+  assert.ok(!warning.includes('new.test.js'), 'authorized paths are not named');
+});
+
+test('a marked stub for a declared New symbol is allowed; unmarked, unbounded or undeclared stubs stay guarded', async (t) => {
+  const f = await planningFixture(t);
+  await writeFile(f.planPath, '# Plan\n\n## Steps\n\n### Step 1 — Add permission lookup\n\n- **Files:** `app.js`, `lib/permission.js`\n\n**Tests:** app: `test/policy.test.js`, node --test, progression pending\n');
+  const stub = (extra) => f.authorize({ kind: 'stub', reason: 'Placeholder for the new lookup', ...extra });
+  await assert.rejects(stub({ file: 'app.js' }), /insert_after_line/);
+  await assert.rejects(stub({ file: 'other.js', insert_after_line: 0 }), /Files field/);
+  await stub({ file: 'app.js', insert_after_line: 1 });
+  await mkdir(artifactJoin(f.root, 'lib'));
+  await stub({ file: 'lib/permission.js' });
+  assert.equal(await f.check(), null, 'authorized stubs not written yet are pending');
+  const marker = '// plan-the-work stub — pending implementation';
+  await writeFile(artifactJoin(f.root, 'app.js'), `module.exports = 1;\nmodule.exports.lookup = () => { throw new Error('not implemented'); }; ${marker}\n`);
+  await writeFile(artifactJoin(f.root, 'lib/permission.js'), `module.exports = () => { throw new Error('not implemented'); }; ${marker}\n`);
+  assert.equal(await f.check(), null);
+  await writeFile(artifactJoin(f.root, 'app.js'), `module.exports = 2;\nmodule.exports.lookup = () => { throw new Error('not implemented'); }; ${marker}\n`);
+  assert.match(await f.check(), /Application files changed.*app\.js/, 'production bytes outside the insertion stay guarded');
+  await writeFile(artifactJoin(f.root, 'app.js'), 'module.exports = 1;\nmodule.exports.lookup = () => 2;\n');
+  assert.match(await f.check(), /Application files changed/, 'an unmarked insertion is real implementation');
+  await writeFile(artifactJoin(f.root, 'app.js'), `module.exports = 1;\n${'// filler\n'.repeat(130)}${marker}\n`);
+  assert.match(await f.check(), /Application files changed/, 'an oversized insertion is not a stub');
+  await assert.rejects(stub({ file: 'app.js', insert_after_line: 0 }), /Cannot widen or replace/);
+  await rm(artifactJoin(f.root, 'app.js'));
+  assert.match(await f.check(), /Application files changed/, 'deleting a stubbed file stays guarded');
+});
