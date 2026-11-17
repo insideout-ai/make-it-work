@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.11.1] — 2026-11-16
+
+### Fixed
+
+- Hide unavailable context usage and estimated session cost independently in both dashboard headers, while retaining the plugin version and valid zero values.
+- Put assessment badges on a second header row with both badge rows right-aligned, include the rationale in assessment audit results, and identify assessment activity inside Finalizing while preserving its inclusive elapsed total.
+- Preserve actual caller-search outcomes and tool identity in assessment evidence; quote search globs, retain real command statuses, and use verified helper-returned report paths.
+
 ## [5.11.0] — 2026-11-16
 
 ### Added

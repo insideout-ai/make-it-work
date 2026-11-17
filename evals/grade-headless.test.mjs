@@ -419,6 +419,33 @@ test('runner-owned artifact evidence supplies saved files and explicit missing m
   assert.equal(await readFile(artifactJoin(root, 'report.md'), 'utf8'), 'Refresh: npm run test:map\n');
 });
 
+test('assessment semantic grading receives actual prefixed reports together with the trace', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-assessment-grader-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'make-it-work', 'ASSESS-1');
+  await mkdir(dir, { recursive: true });
+  const markdown = '# Persisted assessment\n\nCode complexity: Low; Production risk: High; partial\n';
+  const json = JSON.stringify({ complexity: 'Low', risk: 'High', completeness: 'partial', rationale: 'Authorization guard removed' });
+  await writeFile(path.join(dir, 'miw-ASSESS-1-complexity.md'), markdown);
+  await writeFile(path.join(dir, 'miw-ASSESS-1-complexity.json'), json);
+  const suites = JSON.parse(await readFile('evals/suites.json', 'utf8'));
+  let calls = 0;
+  const grade = await gradeHeadlessCase({
+    graderDir: path.resolve('evals/assess-complexity/assessment-sensitive/graders'),
+    fixtureDir: root, transcript, budgetUsd: 1,
+    evidenceFiles: suites.graderEvidenceFiles['assessment-sensitive'],
+    judge: async prompt => {
+      calls++;
+      assert.ok(prompt.includes(`SAVED ARTIFACT: make-it-work/ASSESS-1/ASSESS-1-complexity.md\n${markdown}`));
+      assert.ok(prompt.includes(`SAVED ARTIFACT: make-it-work/ASSESS-1/ASSESS-1-complexity.json\n${json}`));
+      assert.match(prompt, /TRANSCRIPT EVIDENCE:\n.*TOOL Bash:/s);
+      return { stdout: JSON.stringify({ structured_output: { verdict: 'PASS', reason: 'Actual reports and trace are supplied.' } }) };
+    },
+  });
+  assert.equal(grade.passed, true);
+  assert.equal(calls, 2);
+});
+
 test('supplemental evidence rejects traversal, globs, directories and symlink escapes before judging', async (t) => {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'miw-grader-artifact-safety-'));
   t.after(() => rm(root, { recursive: true, force: true }));
