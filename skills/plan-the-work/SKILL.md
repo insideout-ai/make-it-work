@@ -152,6 +152,8 @@ Read whatever orientation docs and skills each affected repo actually has — it
 
 ## Step 4 — Investigate the codebase
 
+**Under Implement:** Announce this investigation in chat, then copy that sentence unchanged into the activity helper in its own Bash call. Start code/guidance reads only after that call succeeds. Reusing a completed readiness baseline does not cover the later planning discovery activity.
+
 **Investigation discipline (read first):**
 
 - **grep before read.** To locate a symbol, `grep -n` for it and Read only the matching window — never read a large file top-to-bottom hunting for a definition.
@@ -258,6 +260,8 @@ If no gap rises to this bar, say "No open planning questions — proceeding to d
 
 ## Step 5 — Draft the plan
 
+**Under Implement:** Announce drafting now and checkpoint the identical sentence in a separate Bash call before resolving or writing the plan. Narrating that you are reading this skill does not announce the later drafting work.
+
 **Progress:** narrate drafting or amendment before fleshing out the steps and coverage, following Planning progress above.
 
 Fill in the skeleton you wrote in Step 4 at `make-it-work/<TICKET>/<TICKET>-plan.md` (the folder and any overwrite/`-v2`/abort decision were already handled there). Flesh every section out to full detail.
@@ -297,6 +301,8 @@ Run `set-total` as its own Bash tool call after the plan file has been saved; do
 ---
 
 ## Step 5.5 — Self-review the plan
+
+**Under Implement:** Before normalization, structural checks or semantic self-review, announce validation and checkpoint that identical sentence in its own Bash call. Run the validation commands afterward; do not bundle them with the activity checkpoint or suppress its output.
 
 **Progress:** narrate final validation before the structural checks and semantic coverage review.
 
