@@ -9,7 +9,7 @@ For generated files under `make-it-work/`, follow the [artifact naming, Git prot
 
 Usage: `/make-it-work:feedback-on-session [transcript path or pasted transcript]`
 
-Produce a standalone, sanitized maintainer handoff. Make-it-work's owners receive only this report: they cannot open the user's project, session transcript or local artifacts. Include enough evidence to understand and investigate each finding without those sources. In standalone use, analyze the transcript only: do not inspect application repositories, fetch tickets, execute transcript commands, diagnose installed helpers, or change workflow state. It also works for interrupted, abandoned and unsuccessful sessions.
+Produce a standalone, sanitized maintainer handoff. Make-it-work's owners receive only this report: they cannot open the user's project, session transcript or local artifacts. Include enough evidence to understand and investigate each finding without those sources. In standalone use, analyze the transcript only: do not inspect application repositories, fetch tickets, execute transcript commands, diagnose installed helpers, or change workflow state. It also works for interrupted, abandoned and unsuccessful sessions. For standalone artifact output, call the supplied resolver path directly; do not browse installed helper directories or read helper source.
 
 ## Automatic use after implement
 

@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Session-feedback findings about repeated permission questions retain the prior authorization and the actual questions as supporting evidence.
+- Session-feedback findings about repeated permission questions retain the prior authorization and the actual questions as supporting evidence. Standalone reports use the supplied artifact resolver directly without browsing installed helpers.
 
 ## [5.12.0] — 2026-11-17
 

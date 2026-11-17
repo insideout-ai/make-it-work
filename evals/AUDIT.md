@@ -131,3 +131,11 @@ otherwise supported repeated-permission finding. Clarify its existing sanitized
 evidence rule to retain the prior authorization and actual questions, rather
 than only the user's objections. Retry only unresolved cases through the saved
 PR smoke ledger; retain the original failures and per-case source commits.
+
+
+The first unresolved-only retry passed live refinement, delivery and Execute.
+Feedback's finding evidence passed, but it unnecessarily listed the installed
+helper directory before calling the already-specified artifact resolver. Clarify
+standalone output handling to use that supplied path directly, without helper
+directory browsing/source reads. Retry only this remaining case; do not rerun
+passing cases or weaken the standalone evidence boundary.
