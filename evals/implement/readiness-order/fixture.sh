@@ -10,5 +10,5 @@ cat > make-it-work/DEMO-READY/DEMO-READY-spec.md <<'SPEC'
 # Accepted spec — DEMO-READY
 
 Allow administrators to proceed; members remain allowed and guests remain denied.
-For this focused run, pause in Plan after readiness is completed and an authorized administrator progression test is confirmed red. Do not implement the behavior or enter Execute.
+For this focused run, pause in Write Tests after readiness, completed planning and an authorized administrator progression test confirmed red with saved preparation evidence. Do not implement the behavior or enter Execute.
 SPEC

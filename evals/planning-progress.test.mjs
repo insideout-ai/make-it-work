@@ -9,6 +9,16 @@ import { parseGrader } from './grade-headless.mjs';
 
 const caseDir = path.resolve('evals/implement/planning-progress');
 
+test('embedded planning fixture leaves its accepted spec untracked for artifact writes', async (t) => {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'embedded-plan-fixture-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  execFileSync('bash', [path.resolve('evals/plan-the-work/embedded-tests/fixture.sh')], { cwd: root });
+  const project = artifactJoin(root, 'embedded-tests');
+  assert.match(await readFile(artifactJoin(project, 'make-it-work/DEMO-EMBED/DEMO-EMBED-spec.md'), 'utf8'), /discount/i);
+  assert.equal(execFileSync('git', ['ls-files', '--', 'make-it-work'], { cwd: project, encoding: 'utf8' }), '');
+  assert.equal(spawnSync('git', ['check-ignore', '-q', 'make-it-work/DEMO-EMBED/DEMO-EMBED-plan.md'], { cwd: project }).status, 0);
+});
+
 test('planning progress fixture has a passing protected baseline and a real missing behavior', async (t) => {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'planning-progress-'));
   t.after(() => rm(root, { recursive: true, force: true }));
