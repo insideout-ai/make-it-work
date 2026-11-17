@@ -1,0 +1,34 @@
+scripts/slices.mjs
+  s_0d8010b3d37033::t_bae732853d1a08 3-4,109-112,114-115
+scripts/slices.test.mjs
+  s_0d8010b3d37033::t_bae732853d1a08 39-43
+  s_0d8010b3d37033::t_f0cf82967d449b 37-38,44
+evals/write-the-tests/standalone/fixture.sh
+  s_0d8010b3d37033::t_bae732853d1a08 8
+evals/write-the-tests/standalone/prompt.md
+  s_0d8010b3d37033::t_bae732853d1a08 10-11
+CHANGELOG.md
+  s_0d8010b3d37033::t_00307124d8bf6c 23
+docs/deterministic-artifacts.md
+  s_0d8010b3d37033::t_386db345e27ee5 64
+evals/planning-progress.test.mjs
+  s_0d8010b3d37033::t_7a6cae9a0784de 12-24
+skills/slice-the-epic/SKILL.md
+  s_0d8010b3d37033::t_074587bc008533 168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "14e5f41f40765bd4e6a40cb623e59931b0f88bb6",
+  "prompts": {},
+  "sessions": {
+    "s_0d8010b3d37033": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e9de-b50f-72c0-88ca-cd48709296e3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
