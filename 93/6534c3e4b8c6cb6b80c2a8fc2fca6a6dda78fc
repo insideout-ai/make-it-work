@@ -1,0 +1,126 @@
+evals/assess-change/assessment-pr-snapshot/graders/report-json.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+CHANGELOG.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 9-15
+evals/assess-change/assessment-inaccessible-pr/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-8
+evals/assess-change/assessment-sensitive/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-18
+evals/assess-change/assessment-partial-multi/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-9
+evals/assess-change/assessment-ambiguous/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-8
+evals/assess-change/assessment-docs/graders/report-md.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-inaccessible-pr/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-sensitive/graders/report-json.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-partial-multi/graders/report-md.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+skills/implement/references/orchestration/final-package.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 14
+evals/assess-change/assessment-pr-snapshot/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-partial-multi/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+commands/assess-complexity.md
+  s_e8e19af3f2496a::t_9fc0e28e0adca5 1-11
+skills/implement/scripts/assessment-audit.mjs
+  s_e8e19af3f2496a::t_3eff8230a96df1 3,15
+evals/assess-change/assessment-inherited/graders/report-json.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-pr-snapshot/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-9
+docs/change-assessment.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 3,38-41
+evals/assess-change/assessment-docs/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-13
+evals/assess-change/assessment-docs/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-sensitive/graders/report-md.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/AUDIT.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 92
+evals/assess-change/assessment-sensitive/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-docs/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-8
+  s_e8e19af3f2496a::t_01b3b925b3b305 9
+evals/assess-change/assessment-pr-snapshot/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-7
+evals/assess-change/assessment-inherited/graders/report-md.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-ambiguous/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-17
+evals/assess-change/assessment-inherited/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-pr-snapshot/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-28
+evals/assess-change/assessment-pr-snapshot/graders/report-md.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-inherited/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-9
+skills/assess-change/SKILL.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-28
+evals/assess-change/assessment-ambiguous/case.yaml
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+skills/implement/scripts/render-status.mjs
+  s_e8e19af3f2496a::t_01b3b925b3b305 679
+evals/assess-change/assessment-sensitive/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-8
+scripts/change-assessment.mjs
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 3
+  s_e8e19af3f2496a::t_9fc0e28e0adca5 6,100-111,123
+  s_e8e19af3f2496a::t_3eff8230a96df1 97,118,157
+evals/suites.json
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 289
+evals/assess-change/assessment-inherited/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-65
+evals/assess-change/assessment-sensitive/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-9
+evals/assess-change/assessment-docs/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-8
+.claude-plugin/plugin.json
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 6
+evals/assess-change/assessment-docs/graders/report-json.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-ambiguous/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-9
+evals/assess-change/assessment-inaccessible-pr/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-17
+evals/assess-change/assessment-partial-multi/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-7
+evals/assess-change/assessment-inaccessible-pr/prompt.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-9
+scripts/change-assessment.test.mjs
+  s_e8e19af3f2496a::t_1cbb9e54c9235b 1,8,103-164
+  s_e8e19af3f2496a::t_01b3b925b3b305 99
+  s_e8e19af3f2496a::t_be7a43fefb1a6c 165
+evals/assess-change/assessment-partial-multi/graders/report-json.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-5
+evals/assess-change/assessment-inherited/graders/behavior.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-8
+evals/assess-change/assessment-partial-multi/fixture.sh
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 1-18
+README.md
+  s_e8e19af3f2496a::t_a5a9fb49e5f5ed 45,373,560
+skills/implement/scripts/final-package.test.mjs
+  s_e8e19af3f2496a::t_ae8b0a4c8ea15e 487,514,536,580,586
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "936534c3e4b8c6cb6b80c2a8fc2fca6a6dda78fc",
+  "prompts": {},
+  "sessions": {
+    "s_e8e19af3f2496a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e850-2a21-7363-9870-86cb5a15fd83",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
