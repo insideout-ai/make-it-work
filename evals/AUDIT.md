@@ -90,3 +90,31 @@ recovery qualification; it must not be presented as an original runner summary.
 ## Change assessment coverage
 
 New `assess-change` cases: `assessment-sensitive` (smoke), `assessment-inherited`, `assessment-docs`, `assessment-ambiguous`, `assessment-inaccessible-pr`, `assessment-pr-snapshot`, `assessment-partial-multi` (extended). They exercise real standalone skill behavior and durable reports. Deterministic tests in `scripts/change-assessment.test.mjs` cover bands, inherited minimum risk, analyzer availability, multi-repository gaps, unsupported generated/binary scope, snapshot reuse/invalidation, and stale failure history. Final-package integration tests cover both implementation modes and preservation of historical packages and approvals. Inventory does not imply passing behavioral evidence; record run reports before readiness.
+
+
+## Context-loading refactor checks — 2026-11-17
+
+- `close-the-gaps-slack-send-fallback` and `close-the-gaps-slack-send-resume`:
+  both PR #110's baseline and the refactor failed because their semantic rubrics
+  required unprefixed new artifact names, contrary to the artifact resolver.
+  Repair the rubric filenames to the helper-returned `miw-` paths; preserve all
+  recipient, consent, no-resend, answer-provenance and metadata requirements.
+- `plan-the-work-with-tests`: the saved plan correctly recorded the test file,
+  command and confirmed red state in per-repo lines under `**Tests:**`, but the
+  regex required the entire entry on the label's line. Accept both layouts while
+  bounding evidence to that field. Deterministic positive and negative examples
+  cover multiline entries, missing evidence and unrelated later sections.
+- `close-the-gaps-offline-injection`: the retained diagnostic preserved Q1,
+  resolved Q2 with its Autopilot marker and excluded Q3 correctly. Its sole
+  semantic failure was a separate User Story benefit marked TBD, as the current
+  skill requires when the source does not establish it. Restrict the rubric's
+  no-unresolved-items requirement to the exported questions; retain all answer,
+  provenance and conditional-exclusion assertions.
+- The initial standalone live-refinement sample failed to create the expected
+  spec. The native runner discarded that failing transcript, so its cause stays
+  unclassified. The retained live-refinement diagnostic and second matched
+  sample passed unchanged runtime instructions. Retain the initial failed verdict;
+  further readiness evidence belongs in the PR.
+
+These repairs do not change suite membership or certify unrun cases. Maintainer:
+Erez Morabia; follow-up: attach focused reruns and the PR readiness smoke sequence.

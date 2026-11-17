@@ -15,6 +15,6 @@ Judge whether this refined ticket's `## Decision Log` table satisfies ALL of the
 1. It includes a row for Q1 whose Answer is "Truncate to the first 100 and warn" (the human's actual recorded choice) — NOT "Paginate automatically" and NOT marked `_(autopilot)_`, since a human already answered this one before the run.
 2. It includes a row for Q2 whose Answer is "CSV-only for now" (the Recommended option) AND is marked with `_(autopilot)_` somewhere in that cell — since this question was blank and autopilot had to resolve it.
 3. It does NOT include a row for Q3 at all — Q3's gating condition was not met, so per the skill's own rules it was never actually asked and must be excluded from the Decision Log entirely.
-4. There is no `## TBD — Unresolved Items` section (nothing was left skipped).
+4. No exported question remains unanswered or skipped in `## TBD — Unresolved Items`. The current skill also requires a User Story and preserves genuinely unspecified actor/capability/benefit as TBD; such a separately identified story gap is allowed and must not be mistaken for an unresolved exported question.
 
 PASS only if all of 1-4 hold. Quote the relevant Decision Log row(s) and explain any failure.
