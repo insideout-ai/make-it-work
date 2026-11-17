@@ -1,0 +1,25 @@
+CHANGELOG.md
+  s_0a093dc898b003::t_8dd13f93e1bef0 13-17
+skills/execute/SKILL.md
+  s_0a093dc898b003::t_8125372a4b14ee 288-301
+evals/AUDIT.md
+  s_0a093dc898b003::t_8dd13f93e1bef0 121-133
+skills/feedback-on-session/SKILL.md
+  s_0a093dc898b003::t_8dd13f93e1bef0 91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9aa8420ea427781fad95a3ec16d5cf69b3371c56",
+  "prompts": {},
+  "sessions": {
+    "s_0a093dc898b003": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1e889-1996-7210-8779-5602c5855e8d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
