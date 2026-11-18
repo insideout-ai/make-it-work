@@ -52,7 +52,7 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 | [WF-004](#wf-004--question-options-mixed-scope-decisions-and-the-custom-answer-was-rejected) | Minor: refinement friction | 1 | Improve option/dependency guidance before considering schema changes | Medium: agent questioning behavior | Investigate | Defer |
 | [WF-005](#wf-005--delegate-report-path-base-was-unclear-at-the-call-site) | Minor: helper retry | 2 (A, B) | Document absolute helper-returned paths | Low: documentation; keep resolver semantics | Fix | Fix — implemented; checks below |
 | [WF-006](#wf-006--saved-feedback-narrative-conflicted-with-its-collection-notes) | Minor: report accuracy | 1 | Apply existing bounded closing check to visible failures | Low for narrow guidance; enforcement design unassessed | Investigate | Investigated — consistency case passed; see R002 |
-| [WF-007](#wf-007--sanitization-rejected-generic-workflow-vocabulary) | Minor: validator retry | 2 (A, B) — flagged for renewed consideration | Assess narrow public-vocabulary exception | Medium: privacy protection must remain effective | Investigate | Investigate — false positives reproduced; privacy behavior retained, see D003 |
+| [WF-007](#wf-007--sanitization-rejected-generic-workflow-vocabulary) | Minor: validator retry | 2 (A, B) — flagged for renewed consideration | Assess narrow public-vocabulary exception | Medium: privacy protection must remain effective | Investigate | Fix — exact public-vocabulary exception implemented; see D004 |
 | [WF-008](#wf-008--approval-narration-paraphrased-the-proposed-pr-body) | Minor: approval reviewability | 1 synthetic eval | Copy complete built-package text into approval | Low: guidance only | Fix | Implemented — focused retry passed; see D002 |
 | [WF-009](#wf-009--publication-helper-rejected-the-miw--journal-filename-after-consent) | Major: consented ticket updates unavailable for the whole run | 1 (session B) | Make the journal-name check accept the saved `miw-` form while keeping run binding | Medium: external-write path and legacy-name compatibility | Fix | Fix — implemented; deterministic regression checks passed, see D003 |
 | [WF-010](#wf-010--run-began-on-another-tickets-feature-branch-without-a-question-and-was-restarted) | Minor: startup friction (user-reported expectation) | 1 (session B) | Detect a branch naming a different ticket; alert and ask continue vs new branch | Medium: startup/branch gating | Investigate (user's expectation raises confidence) | Fix — implemented; startup probe passed, see D003 |
@@ -413,3 +413,41 @@ and was not rerun for these development edits.
   production-code change was needed after this run.
 - GitHub CI validation passed on `ffa5a1d` (run `44303052674`). This evidence-only
   ledger update does not change the tested helpers, instructions or fixtures.
+
+
+### D004 — Keep WF-007 in PR #114, 2026-11-18
+
+After the recommendation to handle WF-007 separately, the maintainer requested
+all selected work in the same PR. This selects the narrow sanitizer remedy for
+PR #114. D001/D003's earlier deferral and reproduction-only decisions above remain
+historical. WF-011's successful investigation remains in this PR without a new
+gate; WF-004/012 remain deferred as previously recommended.
+
+- **Implementation:** extend the existing exact public-vocabulary set with
+  `pending-input`, `approval-time`, `cycle-3`, `future-dated`, `full-suite`,
+  `fix-round` and `workflow-event`. Retain the compound-copy heuristic and all
+  other share-safe checks. No prefix, substring, numbered wildcard or general
+  hyphenated-word exception is introduced; unlisted terms still need paraphrasing.
+- **Regression evidence:** replace the prior reproduction characterization with
+  successful real writer/save checks for all seven terms and uppercase rendering.
+  The success checks failed before the allowlist change and pass after it. Both
+  saved reports contain the accepted wording without paraphrasing.
+- **Privacy boundaries:** private compounds containing allowed words, representative
+  proprietary terms, an audit-derived synthetic credential compound, private paths,
+  a credential-bearing URL, an email and the current ticket ID remain rejected.
+  Each rejected write preserves both previously saved reports. A separate check
+  rejects the current ticket ID even when it equals an allowlisted term. These
+  checks preserve existing safeguards; they do not establish a general secret
+  detector or automatic anonymization of arbitrary prose.
+- **Validation:** all 32 feedback-writer tests pass. Strict plugin, skills and
+  marketplace validation, the 178-case eval inventory and diff checks pass;
+  the existing missing-icon warning remains. The full deterministic workflow
+  suite passed **715 tests**, including all **39 publication tests** for WF-009;
+  **104 eval-harness/packaging tests** passed. All had zero failures/skips.
+  No additional model run or repeated PR smoke was needed for this deterministic
+  vocabulary change; the earlier four behavioral results retain their source
+  commit and documented limits.
+- **Compatibility/rollback:** no schema, saved-state, routing or feedback lifecycle
+  change. Revert only the seven vocabulary literals and corresponding regression
+  assertions to restore the previous behavior. Fix risk remains Medium because
+  the exception changes a privacy-related heuristic.

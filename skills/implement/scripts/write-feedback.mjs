@@ -38,6 +38,10 @@ const WORKFLOW_TERMS = new Set([
   'slice-the-epic', 'fix-plan', 'final-sync', 'final-approval', 'lightweight',
   'feedback-on-session', 'execution-mode', 'waive-manual-verification', 'waive-manual',
   'manual-walkthrough', 'accept-workspace', 'subagent-driven',
+  // Exact public literals only: private compounds containing these words must
+  // still be paraphrased. Do not generalize to prefixes or numbered wildcards.
+  'pending-input', 'approval-time', 'cycle-3', 'future-dated', 'full-suite',
+  'fix-round', 'workflow-event',
 ]);
 const ADAPTIVE_MODES = new Set(['none', 'lightweight', 'tdd']);
 const ADAPTIVE_RISKS = new Set(['none', 'low', 'medium', 'high']);

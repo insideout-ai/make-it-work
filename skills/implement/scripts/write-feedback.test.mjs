@@ -450,17 +450,52 @@ test('workflow skill names in Audit prose remain valid feedback terms', async (t
   assert.match(await readFile(feedbackPath, 'utf8'), /run-regression verify coverage/);
 });
 
-test('WF-007 reproduction: reported generic compounds still require paraphrasing', async () => {
+test('WF-007: exact public vocabulary is saved without paraphrasing', async t => {
   const terms = ['pending-input', 'approval-time', 'cycle-3', 'future-dated', 'full-suite', 'fix-round', 'workflow-event'];
   for (const term of terms) {
     const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z')
       .replace('Initial execution and gate passed', `Initial execution and gate passed; ${term}`);
     const summary = inspectState(state);
-    assert.ok(summary.sourceCompounds.includes(term), term);
+    assert.ok(!summary.sourceCompounds.includes(term), term);
     const analysis = diagnosis(summary);
     analysis.recommendations = [`Inspect the ${term} behavior before choosing a change`];
-    assert.throws(() => renderBlock(summary, analysis), /project terminology/, term);
+    const f = await workspace(t, state);
+    const saved = await writeFeedback(f.statePath, { analysis });
+    assert.ok((await readFile(f.feedbackPath, 'utf8')).includes(analysis.recommendations[0]), term);
+    assert.equal(await readFile(saved.sessionOutputPath, 'utf8'), await readFile(f.feedbackPath, 'utf8'));
+    analysis.recommendations = [`Inspect ${term.toUpperCase()} behavior before choosing a change`];
+    assert.ok(renderBlock(summary, analysis).includes(analysis.recommendations[0]), term);
   }
+});
+
+test('public vocabulary exceptions retain private compounds and reject unsafe mixed feedback without replacing saved reports', async t => {
+  const privateTerms = ['customer-payroll-window', 'pending-input-customer', 'customer-full-suite', 'cycle-3-secret', 'sk-private-test-credential', 'future-dated-client'];
+  const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z')
+    .replace('Initial execution and gate passed', `Initial execution and gate passed; pending-input full-suite cycle-3 ${privateTerms.join(' ')}`);
+  const summary = inspectState(state);
+  for (const term of privateTerms) assert.ok(summary.sourceCompounds.includes(term), term);
+  const analysis = diagnosis(summary);
+  analysis.recommendations = ['Inspect pending-input and full-suite behavior before choosing a change'];
+  const f = await workspace(t, state);
+  const saved = await writeFeedback(f.statePath, { analysis });
+  const before = await readFile(f.feedbackPath, 'utf8');
+  const privateValues = [...privateTerms, '/private/full-suite/secrets.json',
+    'https://user:password@internal.example/pending-input', 'owner@example.test', 'DEMO'];
+  for (const value of privateValues) {
+    analysis.recommendations = [`Inspect pending-input with ${value}`];
+    await assert.rejects(writeFeedback(f.statePath, { analysis }), /share-safe|project terminology/, value);
+    assert.equal(await readFile(f.feedbackPath, 'utf8'), before);
+    assert.equal(await readFile(saved.sessionOutputPath, 'utf8'), before);
+  }
+});
+
+test('an allowlisted workflow term still cannot expose the current ticket ID', async () => {
+  const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z')
+    .replace(/^ticket: DEMO$/m, 'ticket: pending-input');
+  const summary = inspectState(state);
+  const analysis = diagnosis(summary);
+  analysis.recommendations = ['Inspect pending-input behavior'];
+  assert.throws(() => renderBlock(summary, analysis), /ticket ID/);
 });
 
 test('explicit limit stop is accepted with matching terminal evidence', async (t) => {
