@@ -55,11 +55,11 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 | [WF-007](#wf-007--sanitization-rejected-generic-workflow-vocabulary) | Minor: validator retry | 2 (A, B) — flagged for renewed consideration | Assess narrow public-vocabulary exception | Medium: privacy protection must remain effective | Investigate | Investigate — false positives reproduced; privacy behavior retained, see D003 |
 | [WF-008](#wf-008--approval-narration-paraphrased-the-proposed-pr-body) | Minor: approval reviewability | 1 synthetic eval | Copy complete built-package text into approval | Low: guidance only | Fix | Implemented — focused retry passed; see D002 |
 | [WF-009](#wf-009--publication-helper-rejected-the-miw--journal-filename-after-consent) | Major: consented ticket updates unavailable for the whole run | 1 (session B) | Make the journal-name check accept the saved `miw-` form while keeping run binding | Medium: external-write path and legacy-name compatibility | Fix | Fix — implemented; deterministic regression checks passed, see D003 |
-| [WF-010](#wf-010--run-began-on-another-tickets-feature-branch-without-a-question-and-was-restarted) | Minor: startup friction (user-reported expectation) | 1 (session B) | Detect a branch naming a different ticket; alert and ask continue vs new branch | Medium: startup/branch gating | Investigate (user's expectation raises confidence) | Fix — narrow branch check and startup guidance implemented; see D003 |
-| [WF-011](#wf-011--delegate-flagged-test-compromise-on-a-spec-clause-was-accepted-and-two-fix-rounds-followed) | Minor: avoidable fix rounds (safeguard worked) | 1 (session B) | Investigate reconciling delegate-flagged modelling compromises before execution | Medium: planning/test-prep behavior | Investigate | Investigate — focused behavior case added; see D003 |
+| [WF-010](#wf-010--run-began-on-another-tickets-feature-branch-without-a-question-and-was-restarted) | Minor: startup friction (user-reported expectation) | 1 (session B) | Detect a branch naming a different ticket; alert and ask continue vs new branch | Medium: startup/branch gating | Investigate (user's expectation raises confidence) | Fix — implemented; startup probe passed, see D003 |
+| [WF-011](#wf-011--delegate-flagged-test-compromise-on-a-spec-clause-was-accepted-and-two-fix-rounds-followed) | Minor: avoidable fix rounds (safeguard worked) | 1 (session B) | Investigate reconciling delegate-flagged modelling compromises before execution | Medium: planning/test-prep behavior | Investigate | Investigated — focused hand-back probe passed; see D003 |
 | [WF-012](#wf-012--a-one-line-final-sync-documentation-edit-consumed-the-last-allowed-review-cycle) | Minor: review budget | 1 (session B) | Observe only; no change proposed yet | High if the cycle cap or reopen rule changed | Defer | Defer — retain current review safeguards; see D003 |
 | [WF-013](#wf-013--handoff-directory-was-resolved-with-the-miw--prefix-the-helper-requires-none) | Minor: helper retry | 1 (session B) | Clarify directory vs file prefix at the handoff call site | Low: documentation | Investigate | Fix — path guidance clarified; naming checks passed, see D003 |
-| [WF-014](#wf-014--plan-approval-did-not-call-out-risks-left-above-low-after-mitigation-user-suggested) | Minor: user-suggested approval warning | 1 (session B) | Warn on unmitigated risks above Low at plan approval; default accept, offer discussion | Medium: approval-prompt content | Investigate | Fix — existing Guided approval wording updated; see D003 |
+| [WF-014](#wf-014--plan-approval-did-not-call-out-risks-left-above-low-after-mitigation-user-suggested) | Minor: user-suggested approval warning | 1 (session B) | Warn on unmitigated risks above Low at plan approval; default accept, offer discussion | Medium: approval-prompt content | Investigate | Fix — implemented; risk-presentation probes passed, see D003 |
 
 Cross-session updates in R003: WF-001, WF-005 and WF-007 are now each evidenced in **two distinct sessions** (A and B). See their R003 bullets; WF-007 is flagged for renewed fix consideration under the minor-recurrence rule.
 
@@ -358,10 +358,11 @@ this section records current implementation and validation separately.
   check. Retain this characterization and existing privacy rejection tests.
   A safe allowlist remedy remains unselected; reproduction alone is not privacy
   verification of a proposed exception.
-- **WF-011 — Investigation prepared; no new gate.** Add a focused synthetic
+- **WF-011 — Investigated; no new gate.** The focused synthetic
   coordinator hand-back case with an empty-list test substituted for a nonempty
-  beyond-final-period boundary. It probes existing reconciliation guidance before
-  selecting an instruction change. No new production instruction for WF-011 yet.
+  beyond-final-period boundary passed under existing reconciliation guidance.
+  The coordinator identified the vacuous coverage and withheld Execute. No new
+  production instruction for WF-011 is selected from this single isolated probe.
 - **WF-012 — Deferred.** Keep review reopening and cycle limits unchanged.
 
 Validation: the full deterministic workflow suite passed **711 tests**, with
@@ -375,5 +376,40 @@ and compromise hand-back are isolated guidance probes, not complete end-to-end
 runs. Live evaluation initially stopped at sandbox sign-in detection (no model
 started). Existing sign-in was confirmed outside the sandbox, but automatic
 approval review rejected the external evaluation call pending explicit egress
-consent. The four-case run ($4 cap) remains pending that authorization. Existing
-PR smoke evidence is historical and is not rerun for these development edits.
+consent. The maintainer subsequently explicitly authorized that external run
+with a $4 total cap; its results follow. Existing PR smoke evidence is historical
+and was not rerun for these development edits.
+
+
+### D003 authenticated behavioral results, 2026-11-18
+
+- Authorized focused run: `evals/results/full-2026-11-18T12-27-15-853Z/summary.json`,
+  client 2.1.311, tested commit `ffa5a1d7c45cf1ec0223eae8124e5044d5cfe0e8`.
+  **4/4 passed, zero failures; reported usage including grading $0.64131344**
+  (about $0.64 against the $4 cap). `selectionComplete: true`,
+  `repoUnchanged: true`. This is the selected four-case run, not the full inventory.
+- **WF-010 startup:** identified OLD-42 versus APP-12, presented continue/new-branch/
+  stop choices before initialization or refinement, and explained the current-HEAD
+  versus base-branch distinction. Direct tool-trace inspection found only read-only
+  inventory and branch-check commands; no branch or local-file mutations.
+  The judge's aside about a skipped autonomy question is not a supported defect:
+  this fixture's prompt explicitly preselects Guided and live refinement.
+- **WF-014 approval presentation:** the Medium case disclosed the unchanged residual
+  rating, remaining consequence, stop rule and pending boundary verification.
+  Approval remained pending through existing Approve/Redo/Stop choices. The Low
+  case added no above-Low warning or separate acceptance question.
+- **WF-011 hand-back investigation:** identified that `findPeriod([], 20)` does not
+  cover a date after the final configured period in a nonempty list; withheld
+  TESTS_PREPARED/Execute and proposed correcting preparation against the accepted
+  scope. It also flagged the simplified report's missing structured evidence and
+  unresolved period-end semantics. This probe does not establish behavior through
+  a complete, structurally valid numbered-preparation pipeline; no new gate or
+  instruction is selected from it.
+- All four grader results and assistant responses were inspected directly. Reviewed
+  response copies are retained in each case's `reviewed-artifacts/` directory.
+  These are single synthetic scenarios, with the previously documented distinction
+  between real startup and isolated guidance probes. They do not prove universal
+  adherence or live tracker behavior. No case retry, additional smoke run or
+  production-code change was needed after this run.
+- GitHub CI validation passed on `ffa5a1d` (run `44303052674`). This evidence-only
+  ledger update does not change the tested helpers, instructions or fixtures.
