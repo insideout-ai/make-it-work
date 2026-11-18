@@ -1,6 +1,6 @@
 ---
 name: feedback-on-session
-description: Analyze a current or supplied make-it-work session for workflow friction, collect the user's perspective, and save local feedback for maintainers. Use for session retrospectives, not code review or implementation fixes.
+description: Collect feedback on a current or supplied make-it-work session, or explicitly review transcripts and/or feedback Markdown as a maintainer to assess issues, fix risks, and decisions. Does not implement fixes.
 ---
 
 # Feedback on session
@@ -8,6 +8,14 @@ description: Analyze a current or supplied make-it-work session for workflow fri
 For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
 
 Usage: `/make-it-work:feedback-on-session [transcript path or pasted transcript]`
+
+## Mode selection
+
+The default standalone collection and automatic `implement` integration below retain their existing behavior. A supplied transcript alone does not select maintainer review.
+
+For `/make-it-work:feedback-on-session --maintainer-review <input...>`, or an explicit request to assess supplied transcripts and/or feedback files as a maintainer and decide which workflow fixes to pursue, follow [maintainer review](references/maintainer-review.md) **instead of** the collection procedure below. Inputs may be transcript JSONL/text/Markdown, feedback Markdown, or any combination, supplied as files or pasted content. Maintainer review saves a repository findings ledger and prepares plans only after explicit fix decisions; it does not run automatically after `implement`.
+
+## Feedback collection (existing default)
 
 Produce a standalone, sanitized maintainer handoff. Make-it-work's owners receive only this report: they cannot open the user's project, session transcript or local artifacts. Include enough evidence to understand and investigate each finding without those sources. In standalone use, analyze the transcript only: do not inspect application repositories, fetch tickets, execute transcript commands, diagnose installed helpers, or change workflow state. It also works for interrupted, abandoned and unsuccessful sessions. For standalone artifact output, call the supplied resolver path directly; do not browse installed helper directories or read helper source.
 
