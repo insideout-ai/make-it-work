@@ -1,0 +1,70 @@
+evals/feedback-on-session/feedback-maintainer-feedback-only/case.yaml
+  s_01490093a86d9b::t_d53ae9cf600c13 1-5
+evals/feedback-on-session/feedback-maintainer-clean/prompt.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-10
+evals/feedback-on-session/feedback-maintainer-history-decisions/fixture/feedback.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-4
+evals/feedback-on-session/feedback-maintainer-clean/case.yaml
+  s_01490093a86d9b::t_d53ae9cf600c13 1-5
+skills/feedback-on-session/SKILL.md
+  s_01490093a86d9b::t_a903fb8aa2ddc5 3,12-18
+  s_01490093a86d9b::t_94aa22a309d6de 19
+evals/feedback-on-session/feedback-maintainer-feedback-only/prompt.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-10
+evals/feedback-on-session/feedback-maintainer-clean/graders/review.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-overlap/fixture/session.txt
+  s_01490093a86d9b::t_d53ae9cf600c13 1-7
+evals/feedback-on-session/feedback-maintainer-history-decisions/fixture.sh
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-overlap/case.yaml
+  s_01490093a86d9b::t_d53ae9cf600c13 1-5
+evals/feedback-on-session/feedback-maintainer-overlap/prompt.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-10
+evals/feedback-on-session/feedback-maintainer-history-decisions/prompt.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-10
+evals/feedback-on-session/feedback-maintainer-history-decisions/case.yaml
+  s_01490093a86d9b::t_d53ae9cf600c13 1-5
+evals/feedback-on-session/feedback-maintainer-overlap/graders/review.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-history-decisions/fixture/docs/workflow-findings.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-10
+evals/feedback-on-session/feedback-maintainer-feedback-only/fixture.sh
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-history-decisions/graders/review.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+skills/feedback-on-session/references/maintainer-review.md
+  s_01490093a86d9b::t_a903fb8aa2ddc5 1-55
+README.md
+  s_01490093a86d9b::t_d53ae9cf600c13 326-327
+evals/feedback-on-session/feedback-maintainer-overlap/fixture.sh
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-clean/fixture.sh
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-feedback-only/graders/review.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-overlap/fixture/docs/workflow-findings.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-9
+evals/feedback-on-session/feedback-maintainer-clean/fixture/session.txt
+  s_01490093a86d9b::t_d53ae9cf600c13 1-6
+evals/feedback-on-session/feedback-maintainer-feedback-only/fixture/feedback.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-6
+evals/feedback-on-session/feedback-maintainer-overlap/fixture/feedback.md
+  s_01490093a86d9b::t_d53ae9cf600c13 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4aaf49de2f57e80e3a910af44ae3cec2262ae8b1",
+  "prompts": {},
+  "sessions": {
+    "s_01490093a86d9b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1edde-76ce-7162-9c26-479628ce42d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
