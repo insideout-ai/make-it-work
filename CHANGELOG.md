@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.15.0] — 2026-11-18
+
+### Added
+
+- Explicit maintainer-review mode for session feedback, with sanitized findings, recurrence tracking, fix-risk assessments and plans for selected decisions. Existing standalone collection and automatic feedback retain their behavior.
+
+### Fixed
+
+- Check repository-specific GitHub PR access for every delivery target before staging, committing or pushing any repository. Preserve late-failure recovery and explicit retries.
+- Clarify absolute delegate-report paths and their relative resolution base while retaining containment checks.
+- Show the complete proposed commit message, PR title and PR description verbatim when requesting final-package approval.
+
 ## [5.14.0] — 2026-11-17
 
 ### Added

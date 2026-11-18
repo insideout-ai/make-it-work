@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-residual-risk-low
+tags: [implement, workflow-followups]
+context:
+  scaffold_script: fixture.sh

@@ -25,9 +25,18 @@ let state = await readFile(statePath, 'utf8');
 state = state.replace('ticket: DEMO', 'ticket: DEMO\nfinal_package_version: 1')
   .replace(/^phase: .*$/m, 'phase: final-approval').replace(/^autonomy: .*$/m, 'autonomy: autopilot');
 await writeFile(statePath, state);
+// Synthetic retained evidence: these fixture claims are not test execution by setup.
+await writeFile('make-it-work/DEMO/DEMO-evidence.md', `# Retained implementation and review evidence
+The implementation delegate reported eight unit tests passing. The coordinator and
+independent reviewer did not rerun them. Integration tests required unavailable
+Docker services and were not run; the user accepted this limitation.
+A browser permission/display issue is only a hypothesis for the administrator
+symptom, inferred from backend policy behavior. No browser or network observation
+establishes the cause. The accepted scope is the policy change only.
+`);
 const draft = path.join(root, 'make-it-work/DEMO/DEMO-final-draft.json');
 await writeFile(draft, JSON.stringify({ commit_message: 'DEMO: Allow administrators',
-  pr_title: 'DEMO: Allow administrators', pr_description: 'Allow administrators while preserving member access and guest denial.' }));
+  pr_title: 'DEMO: Allow administrators', pr_description: 'Allow administrators while preserving member access and guest denial. The implementation delegate reported eight unit tests passing; the coordinator and reviewer did not rerun them. Docker-dependent integration tests were not run. A browser display issue remains an unverified hypothesis; browser and network behavior were not observed.' }));
 command('final-package.mjs', 'build', '--draft', draft, '--repo', root);
 state = state.replace(/^phase: .*$/m, 'phase: complete').replace(/^status: .*$/m, 'status: Complete');
 state += '| 7 | 2026-01-01T10:06:00Z | final-sync | final-approval | Context synced; package built |\n';

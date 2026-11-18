@@ -7,5 +7,9 @@ approval, live running snapshots, commit-hook stops, PR failures, multi-repo
 partial completion, legacy journal resume, and final delivery links. They verify
 that implementation state and package approval remain unchanged, rendering
 failure stops further publication, and runs without HTML are not backfilled.
+Repository-specific GitHub PR access is checked before any repository's staging,
+commit or push. SSO failure cases assert unchanged index, HEAD, remote refs and
+working status, including failure in a later target repository. Later PR-write
+failures still exercise partial delivery and explicit resume without duplicates.
 
 Run `node evals/run-suite.mjs full --case=deliver-no-package` after signing in to Claude Code, or `node evals/validate.mjs` for the credential-free inventory check.

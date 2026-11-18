@@ -4,6 +4,8 @@ This contract applies only inside `/make-it-work:implement` runs whose state fil
 
 The Markdown spec, plan, execute report, and review report remain the human-readable record. After a stage finishes or reaches a hard stop, create `make-it-work/<TICKET>/<TICKET>-handoffs/` if needed and write one small JSON handoff there. Name files `<stage>-<N>.json`, where `N` is one higher than the greatest existing number for that stage, starting at 1. Never overwrite a handoff: a redo or fix cycle gets a new file. The state file remains the source of truth for the current phase and loop counters. A handoff records the stage's result, not a second copy of workflow state.
 
+The directory is always `<TICKET>-handoffs`, **without** a `miw-` prefix. Only the JSON filename follows artifact naming: e.g. a new run writes `make-it-work/DEMO-1/DEMO-1-handoffs/miw-gaps-1.json`; a legacy run retains `make-it-work/DEMO-1/DEMO-1-handoffs/gaps-1.json`. Resolve the filename inside that directory with the shared artifact helper; do not prefix the directory or guess a replacement for a helper-returned path.
+
 All handoffs have:
 
 ```json

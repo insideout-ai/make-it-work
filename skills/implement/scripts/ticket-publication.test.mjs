@@ -385,15 +385,16 @@ test('superseded prepared content cannot be dispatched, and capability loss stop
   assert.throws(() => updatePublication(tampered, 'begin', { operation_id: second.result.operation.id, capabilities }), /hash does not match/);
 });
 
-async function fixture(t, { initialize = true } = {}) {
+async function fixture(t, { initialize = true, naming = 0 } = {}) {
   const temp = await mkdtemp(artifactJoin(os.tmpdir(), 'ticket-publication-'));
   t.after(() => rm(temp, { recursive: true, force: true }));
   const root = await realpath(temp);
   const directory = artifactJoin(root, 'make-it-work/DEMO');
   await mkdir(directory, { recursive: true });
+  if (naming === 1) await writeFile(path.join(directory, 'miw-run.json'), JSON.stringify({ artifact_naming_version: 1 }));
   const state = artifactJoin(directory, 'DEMO-state.md');
   const original = await readFile(new URL('../../../evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', import.meta.url), 'utf8');
-  await writeFile(state, original.replace(/^start_time: .*$/m, `start_time: ${source.workflow_start}`));
+  await writeFile(state, original.replace(/^start_time: .*$/m, `start_time: ${source.workflow_start}${naming === 1 ? '\nartifact_naming_version: 1' : ''}`));
   const input = artifactJoin(directory, 'publication-input.json');
   const options = { '--root': root, '--state': state, '--input': input };
   async function command(action, value) {
@@ -403,6 +404,54 @@ async function fixture(t, { initialize = true } = {}) {
   if (!initialize) return { root, state, input, command };
   const init = await command('init', { target, original_description: 'Original requirements', mode: 'updates', decision });
   return { root, state, input, init, command };
+}
+
+for (const naming of [0, 1]) {
+  test(`journal naming v${naming}: init, consent, CLI resume and dispatch retain consent and run binding`, async t => {
+    const f = await fixture(t, { initialize: false, naming });
+    const initInput = { target, original_description: 'Original requirements', mode: 'local' };
+    const init = await f.command('init', initInput);
+    assert.match(path.basename(init.journal), naming === 1 ? /^miw-DEMO-ticket-publication-/ : /^DEMO-ticket-publication-/);
+    const journalPath = path.join(f.root, init.journal);
+    const statusCLI = () => JSON.parse(execFileSync(process.execPath,
+      [new URL('./ticket-publication.mjs', import.meta.url).pathname, 'status', '--root', f.root, '--state', f.state], { encoding: 'utf8' }));
+    assert.equal(statusCLI().mode, 'local');
+    const dashboard = await generateDashboard(f.state);
+    await assert.rejects(f.command('prepare', request()), /outside saved consent/);
+    await assert.rejects(f.command('consent', { mode: 'updates', decision: { source: 'default', text: 'Autopilot' } }), /explicit user consent/);
+    await f.command('consent', { mode: 'updates', decision });
+    assert.match(await readFile(dashboard, 'utf8'), /Ticket updates: Allowed/);
+    assert.equal((await f.command('init', initInput)).replayed, true);
+    assert.equal(statusCLI().mode, 'updates');
+    const ready = await f.command('prepare', request());
+    assert.equal((await f.command('begin', { operation_id: ready.operation.id, capabilities })).operation.status, 'in-flight');
+    await f.command('record', { operation_id: ready.operation.id, status: 'succeeded', receipt: { id: 'comment-1' }, evidence: 'Disposable connector receipt' });
+    assert.equal((await f.command('prepare', request())).action, 'skip');
+    const next = await f.command('prepare', request('comment', { key: 'next', content: 'Another comment' }));
+    await f.command('consent', { mode: 'local', decision });
+    await assert.rejects(f.command('begin', { operation_id: next.operation.id, capabilities }), /outside saved consent/);
+    assert.equal(statusCLI().mode, 'local');
+    assert.match(await readFile(dashboard, 'utf8'), /Ticket updates: Off/);
+
+    const saved = await readFile(journalPath, 'utf8');
+    for (const change of [{ ticket: 'OTHER' }, { workflow_start: '2026-10-23T10:00:00Z' }, { run_id: 'a'.repeat(32) }]) {
+      await writeFile(journalPath, JSON.stringify({ ...JSON.parse(saved), ...change }));
+      await assert.rejects(f.command('status'), /does not belong to this run/);
+    }
+    await writeFile(journalPath, saved);
+    const original = await readFile(f.state, 'utf8');
+    for (const pointer of ['make-it-work/DEMO/../outside.json', 'make-it-work/OTHER/journal.json', 'make-it-work/DEMO/not-a-journal.json']) {
+      await writeFile(f.state, original.replace(/^ticket_publication: .*$/m, `ticket_publication: ${pointer}`));
+      await assert.rejects(f.command('status'), /direct child|must be under|Invalid publication journal filename/);
+    }
+    await writeFile(f.state, original);
+    const outside = path.join(f.root, 'outside.json');
+    await writeFile(outside, saved);
+    await rm(journalPath);
+    await symlink(outside, journalPath);
+    await assert.rejects(f.command('consent', { mode: 'updates', decision }), /symlink/);
+    assert.equal(await readFile(outside, 'utf8'), saved);
+  });
 }
 test('CLI hostname initialization persists the canonical target through resume and failed init leaves no journal', async (t) => {
   const f = await fixture(t, { initialize: false });

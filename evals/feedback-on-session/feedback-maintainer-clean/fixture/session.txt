@@ -1,0 +1,6 @@
+Session: clean-A; plugin version: unknown
+Turn 1 user: Implement the agreed local change and verify it.
+Turn 2 assistant: I will inspect the code and run the focused tests.
+Turn 3 tool: Focused tests: 3 passed, 0 failed.
+Turn 4 assistant: Local implementation is complete; focused tests passed. Browser behavior was not checked.
+Turn 5 user: This was a good session. The browser limitation is acceptable.

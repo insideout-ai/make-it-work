@@ -131,6 +131,7 @@
     "implement-publication-guided-approval",
     "implement-publication-resume",
     "implement-delivery-prepare",
+    "implement-final-approval-evidence",
     "implement-delivery-decline",
     "implement-delivery-stale",
     "execute-diagnosis-first",
@@ -159,13 +160,29 @@
     "assessment-docs",
     "assessment-pr-snapshot",
     "assessment-partial-multi",
-    "write-the-tests-standalone"
+    "write-the-tests-standalone",
+    "implement-branch-ticket-mismatch",
+    "implement-residual-risk-presentation",
+    "implement-residual-risk-low",
+    "implement-delegate-test-compromise"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
     "implement-repo-start-local": "connector-app"
   },
   "graderEvidenceFiles": {
+    "implement-final-approval-evidence": {
+      "evidence.md": [
+        "make-it-work/DEMO/DEMO-evidence.md",
+        "make-it-work/DEMO/DEMO-final-draft.json",
+        "make-it-work/DEMO/DEMO-final-package.md"
+      ]
+    },
+    "implement-delivery-prepare": {
+      "evidence-qualifications.md": [
+        "make-it-work/DEMO/DEMO-delivery-plan.md"
+      ]
+    },
     "assessment-sensitive": {
       "behavior.md": [
         "make-it-work/ASSESS-1/ASSESS-1-change-assessment.md",
