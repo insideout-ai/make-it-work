@@ -1,0 +1,103 @@
+skills/implement/references/orchestration/startup.md
+  s_4c0c127241a697::t_be945b70d1743c 150
+evals/implement/delegate-test-compromise/graders/behavior.md
+  s_4c0c127241a697::t_a26753abfe6329 1-7
+evals/implement/delegate-test-compromise/prompt.md
+  s_4c0c127241a697::t_a26753abfe6329 1-9
+skills/implement/scripts/branch-ticket.mjs
+  s_4c0c127241a697::t_be945b70d1743c 1-23
+evals/implement/branch-ticket-mismatch/fixture.sh
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+skills/implement/references/workspace.md
+  s_4c0c127241a697::t_87d64a20109192 67-70
+skills/implement/references/orchestration/planning.md
+  s_4c0c127241a697::t_be945b70d1743c 43-44
+skills/implement/scripts/branch-ticket.test.mjs
+  s_4c0c127241a697::t_be945b70d1743c 1-45
+evals/suites.json
+  s_4c0c127241a697::t_a26753abfe6329 163-167
+evals/implement/residual-risk-low/prompt.md
+  s_4c0c127241a697::t_a26753abfe6329 1-9
+evals/implement/residual-risk-presentation/prompt.md
+  s_4c0c127241a697::t_a26753abfe6329 1-9
+skills/implement/scripts/ticket-publication.test.mjs
+  s_4c0c127241a697::t_c5c6e5a24228ba 388,394,408-418,420-422,424-433,435-454
+  s_4c0c127241a697::t_378546639536b4 397
+  s_4c0c127241a697::t_f53397aabf7dcb 419,423,434
+  s_4c0c127241a697::t_c579d721ac2d5c 455
+skills/implement/scripts/ticket-publication.mjs
+  s_4c0c127241a697::t_55ce1621e50e6f 311-314
+skills/implement/references/handoffs.md
+  s_4c0c127241a697::t_be945b70d1743c 7-8
+evals/implement/residual-risk-low/case.yaml
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+skills/implement/scripts/write-feedback.test.mjs
+  s_4c0c127241a697::t_f53397aabf7dcb 453-465
+evals/implement/branch-ticket-mismatch/prompt.md
+  s_4c0c127241a697::t_a26753abfe6329 1-11
+evals/implement/branch-ticket-mismatch/graders/behavior.md
+  s_4c0c127241a697::t_a26753abfe6329 1-7
+evals/implement/delegate-test-compromise/fixture.sh
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+evals/implement/branch-ticket-mismatch/case.yaml
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+evals/implement/residual-risk-presentation/fixture.sh
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+evals/implement/residual-risk-low/fixture.sh
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+evals/implement/delegate-test-compromise/case.yaml
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+evals/implement/residual-risk-presentation/case.yaml
+  s_4c0c127241a697::t_a26753abfe6329 1-5
+evals/implement/residual-risk-presentation/graders/behavior.md
+  s_4c0c127241a697::t_a26753abfe6329 1-7
+evals/implement/workflow-followups-fixture.sh
+  s_4c0c127241a697::t_957bee39d355a8 1-65
+skills/implement/scripts/handoff.test.mjs
+  s_4c0c127241a697::t_50df4a1a792867 50-68
+evals/implement/residual-risk-low/graders/behavior.md
+  s_4c0c127241a697::t_a26753abfe6329 1-7
+docs/workflow-findings.md
+  s_606b95b7154b80::t_b3bf95c2a8a978 141-144,147-170
+  s_606b95b7154b80::t_6460633a4a04c6 49
+  s_606b95b7154b80::t_ed8a110977ee48 63-64
+  s_606b95b7154b80::t_1f4979cf98d569 53
+  s_606b95b7154b80::t_7938ad81726e60 213-214
+  s_606b95b7154b80::t_915916e5dbc28f 76
+  s_606b95b7154b80::t_d405287b0dbe85 68-75,77-78
+  s_606b95b7154b80::t_db47891edcbe77 220
+  s_606b95b7154b80::t_572df5998aaba2 88
+  s_606b95b7154b80::t_6c04e3157c9e3e 124
+  s_4c0c127241a697::t_37d55a5e049cc7 367-373
+  s_606b95b7154b80::t_ee3e5d9d9ed33b 221
+  s_606b95b7154b80::t_71e2650ca388b6 172-178
+  s_606b95b7154b80::t_1b3ccd34e5b28e 41-42
+  s_4c0c127241a697::t_76cf618c3c9b0c 55,57-62,322-366,374-379
+  s_606b95b7154b80::t_90fd8e66b717d6 145-146
+  s_606b95b7154b80::t_dd21e4d06cd664 34-40,43-44
+  s_4c0c127241a697::t_282e6644cfb67c 171
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ffa5a1d7c45cf1ec0223eae8124e5044d5cfe0e8",
+  "prompts": {},
+  "sessions": {
+    "s_4c0c127241a697": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ee8e-448b-7ac1-8fac-6a528a28ea58",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_606b95b7154b80": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e12ae02f-8404-4148-98f7-8c69f359b81e",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
