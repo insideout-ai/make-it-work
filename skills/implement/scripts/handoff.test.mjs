@@ -47,6 +47,25 @@ test('validates real artifact files within the run root', async (t) => {
   assert.throws(() => decideNext(state('execute', 'guided', { verification_version: '1' }), execute('PASSED')), /require a verification artifact/);
 });
 
+for (const naming of [0, 1]) {
+  test(`WF-013: documented handoff location validates first try for naming v${naming}`, async t => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'handoff-naming-'));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const directory = path.join(root, 'make-it-work/DEMO-1');
+    const handoffs = path.join(directory, 'DEMO-1-handoffs');
+    await mkdir(handoffs, { recursive: true });
+    if (naming === 1) await writeFile(path.join(directory, 'miw-run.json'), '{"artifact_naming_version":1}');
+    await writeFile(artifactJoin(directory, 'DEMO-1-spec.md'), '# Accepted spec');
+    const file = artifactJoin(handoffs, 'gaps-1.json');
+    assert.equal(path.basename(file), naming === 1 ? 'miw-gaps-1.json' : 'gaps-1.json');
+    await writeFile(file, JSON.stringify(gaps()));
+    const result = JSON.parse(execFileSync(process.execPath,
+      [path.resolve('skills/implement/scripts/handoff.mjs'), 'validate', '--handoff', file, '--root', root], { encoding: 'utf8' }));
+    assert.equal(result.valid, true);
+    assert.equal(result.outcome, 'SPEC_SAVED');
+  });
+}
+
 test('routes refinement and planning through the correct autonomy gates', () => {
   assert.deepEqual(decideNext(state('close-the-gaps'), gaps()), { action: 'phase', reason: 'Spec is ready.', phase: 'spec-approval' });
   assert.equal(decideNext(state('close-the-gaps', 'autonomous'), gaps()).phase, 'plan');

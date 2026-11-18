@@ -450,6 +450,19 @@ test('workflow skill names in Audit prose remain valid feedback terms', async (t
   assert.match(await readFile(feedbackPath, 'utf8'), /run-regression verify coverage/);
 });
 
+test('WF-007 reproduction: reported generic compounds still require paraphrasing', async () => {
+  const terms = ['pending-input', 'approval-time', 'cycle-3', 'future-dated', 'full-suite', 'fix-round', 'workflow-event'];
+  for (const term of terms) {
+    const state = finish(await fixture('feedback-nonminimal'), '2026-01-02T10:13:00Z')
+      .replace('Initial execution and gate passed', `Initial execution and gate passed; ${term}`);
+    const summary = inspectState(state);
+    assert.ok(summary.sourceCompounds.includes(term), term);
+    const analysis = diagnosis(summary);
+    analysis.recommendations = [`Inspect the ${term} behavior before choosing a change`];
+    assert.throws(() => renderBlock(summary, analysis), /project terminology/, term);
+  }
+});
+
 test('explicit limit stop is accepted with matching terminal evidence', async (t) => {
   let state = finish(await fixture('feedback-clean'), '2026-01-01T10:06:00Z');
   state = state.replace('status: Complete', 'status: Stopped').replace('phase: complete', 'phase: review')

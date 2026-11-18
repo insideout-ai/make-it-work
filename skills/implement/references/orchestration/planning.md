@@ -40,6 +40,8 @@ Present the conflict and obtain explicit user guidance before resuming refinemen
 
 Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **Stop**. Record `plan_hash` at the moment of approval.
 
+In this same approval presentation, call out each risk whose **Residual severity** is Medium/Med or High: name the remaining consequence, the mitigation and its evidence/verification limits, and the residual rating. Say explicitly when a mitigation leaves the rating unchanged. Make clear that **Approve** accepts these disclosed residual risks; **Redo this phase** can be used to discuss alternatives. Recommend acceptance only when the evidence supports it; never downgrade a risk to make approval easier. If all residual risks are Low (or there are no risks), omit this warning. This adds no separate question or choice ID and changes neither risk arithmetic, approval hashing nor routing. Autonomous/Autopilot retain their existing behavior without a new approval gate.
+
 On Approve, publish the accepted plan snapshot as an attachment or authorized fallback comment, before advancing to Write Tests (Execute for legacy runs). Use the publication journal to skip identical successful publications. Plan execution may later change its Progress section, so publish the frozen accepted snapshot.
 
 

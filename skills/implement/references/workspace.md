@@ -64,6 +64,10 @@ still refuse base-branch delivery.
 Run `node <implement>/scripts/workspace-scope.mjs prepare --root <artifact-root>
 --input <preview-input.json>`. Share the returned HTML link and the full proposed
 table: repository, evidence, role, current branch, base, proposed action/branch.
+For each selected repository, run the read-only `branch-ticket.mjs check` from
+the startup Branch guard with that repository's root, ticket and base. Include
+any explicit different-ticket mismatch in this same preview so approval covers
+the choice to keep it or select a new branch; do not ask a second branch question.
 Ask the user to approve this exact selection, change repositories/branches,
 reassess, or stop. Save the displayed hash. **Wait for an explicit answer in all
 autonomy modes, including Autopilot.** Existing workflow autonomy never supplies

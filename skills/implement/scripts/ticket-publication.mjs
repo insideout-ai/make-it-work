@@ -308,7 +308,10 @@ async function journalPathFor(root, fields) {
   const directory = runDirectory(root, fields.ticket);
   if (await realpath(directory) !== directory) fail('Publication directory must not be a symlink.');
   const name = runArtifactName(fields.ticket_publication, fields.ticket, 'ticket_publication');
-  if (!name.startsWith(`${fields.ticket}-ticket-publication-`) || !name.endsWith('.json')) fail('Invalid publication journal filename.');
+  // New runs prefix artifact filenames; legacy runs retain their saved names.
+  // readBoundJournal still requires the exact run ID, ticket and start time.
+  const stem = `${fields.ticket}-ticket-publication-`;
+  if (!(name.startsWith(stem) || name.startsWith(`miw-${stem}`)) || !name.endsWith('.json')) fail('Invalid publication journal filename.');
   const journalPath = artifactJoin(directory, name);
   if (await realpath(journalPath) !== journalPath) fail('Publication journal must not be a symlink.');
   return journalPath;

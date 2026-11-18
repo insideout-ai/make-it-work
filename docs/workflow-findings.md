@@ -31,21 +31,50 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 - Exact reviewed artifacts were copied from disposable runs into each case's
   `reviewed-artifacts/` results directory. The original failure is retained.
 
+### R003 — Second transcript review (session B), 2026-11-18
+
+- Source S003: one supplied archive containing a main-session JSONL (3,831 records; SHA-256 `1f68ce9cc8a2afc9e251999f5c19793f8f4123a4bdb00b3d5ccb2a71f8c05e20`) and 19 sub-agent JSONL/meta files. Anonymous session B; different user, machine and SHA from S001, so it is a **distinct session**. Locators are physical main-session JSONL line numbers.
+- Captured versions: plugin 5.14.0 (from the skill base path); client 2.1.311. Guided autonomy, assessed medium risk, TDD mode. Inspected maintainer checkout: `95e1365` (plugin 5.15.0), clean tree at review start; it already contains the WF-001/WF-005 fixes that session B predates.
+- Coverage: main session surveyed through narration, question results, errors and targeted tool records (1–3831). Sub-agent files checked only for dispatch descriptions (all 19 match the main session's Agent calls), four reviewer prompts and one delegate hand-back; full sub-agent executions, test code, application source and the rendered dashboard were **not** reviewed. The session's own claim of 25 sub-agent transcripts does not match the 19 supplied files (unexplained). User-gated waits of 7–50 minutes are not treated as overhead.
+- Intended result: refine, plan, implement, review and optionally deliver a payroll cost-plan fix. Observed result: package approved (assurance Limited; 5 of 6 acceptance criteria verified; 20 disclosed environment-dependent suite failures accepted); commit and push succeeded; PR creation failed on organization SSO and the agent stopped without retrying (3770–3783).
+- What worked: the publication failure was recorded and disclosed; independent review found two real Major defects and a fix-introduced regression, all fixed; the parent re-ran tests after each delegate step; the agent admitted the limits of its own risk reasoning when challenged (1281–1289); the delivery plan was shown in full and approved before mutations.
+- User perspective: no overall assessment in the transcript. The user interrupted a question set (512), asked to restart on the base branch (514; reason not stated in the transcript), challenged a risk downgrade (1188, 1277), and ended the session (3792).
+- User-supplied input after review (reported by the user, not visible in the transcript; attributed as reported): (1) the run began on a branch unrelated to the ticket being implemented, and the user expected `implement` to detect that the branch carries a different ticket number, alert them, and ask whether to continue on it or move to a new branch (see WF-010); (2) there were Jira access issues, with terminal warnings about the Jira CLI connection (see WF-009 note; relation unverified); (3) in planning, when a risk mitigation does not reduce a risk, the user suggests warning that risks above Low remain unmitigated and asking whether that is acceptable (suggested default, recommended) or whether to discuss alternatives (see WF-014).
+- Recurrence baseline: two distinct sessions (A, B).
+
 ## Decision summary
 
 | ID | Issue impact | Distinct sessions | Proposed action | Fix risk | Recommendation | Maintainer decision |
 | --- | --- | --- | --- | --- | --- | --- |
-| [WF-001](#wf-001--repository-access-failed-after-commit-and-push) | Major: delivery | 1 | Repository-specific read-only preflight | Low, bounded prerequisite check; later writes can still fail | Fix | Fix — implemented; checks below |
+| [WF-001](#wf-001--repository-access-failed-after-commit-and-push) | Major: delivery | 2 (A, B) | Repository-specific read-only preflight | Low, bounded prerequisite check; later writes can still fail | Fix | Fix — implemented; checks below |
 | [WF-002](#wf-002--delegate-test-attribution-was-omitted-from-proposed-publication-text) | Major: evidence trust | 1; repeated presentations | Inspect existing qualification-to-summary path | Unknown until enforcement approach is chosen | Investigate | Investigated — qualifications preserved; see R002 |
 | [WF-003](#wf-003--frontend-cause-was-stated-more-definitively-than-the-investigation-supported) | Minor: diagnostic wording | 1 | Preserve hypothesis wording in handoffs | Low for a narrow guidance correction | Investigate | Investigated — hypothesis preserved; see R002 |
 | [WF-004](#wf-004--question-options-mixed-scope-decisions-and-the-custom-answer-was-rejected) | Minor: refinement friction | 1 | Improve option/dependency guidance before considering schema changes | Medium: agent questioning behavior | Investigate | Defer |
-| [WF-005](#wf-005--delegate-report-path-base-was-unclear-at-the-call-site) | Minor: helper retry | 1 | Document absolute helper-returned paths | Low: documentation; keep resolver semantics | Fix | Fix — implemented; checks below |
+| [WF-005](#wf-005--delegate-report-path-base-was-unclear-at-the-call-site) | Minor: helper retry | 2 (A, B) | Document absolute helper-returned paths | Low: documentation; keep resolver semantics | Fix | Fix — implemented; checks below |
 | [WF-006](#wf-006--saved-feedback-narrative-conflicted-with-its-collection-notes) | Minor: report accuracy | 1 | Apply existing bounded closing check to visible failures | Low for narrow guidance; enforcement design unassessed | Investigate | Investigated — consistency case passed; see R002 |
-| [WF-007](#wf-007--sanitization-rejected-generic-workflow-vocabulary) | Minor: validator retry | 1 | Assess narrow public-vocabulary exception | Medium: privacy protection must remain effective | Investigate | Defer |
-
+| [WF-007](#wf-007--sanitization-rejected-generic-workflow-vocabulary) | Minor: validator retry | 2 (A, B) — flagged for renewed consideration | Assess narrow public-vocabulary exception | Medium: privacy protection must remain effective | Investigate | Investigate — false positives reproduced; privacy behavior retained, see D003 |
 | [WF-008](#wf-008--approval-narration-paraphrased-the-proposed-pr-body) | Minor: approval reviewability | 1 synthetic eval | Copy complete built-package text into approval | Low: guidance only | Fix | Implemented — focused retry passed; see D002 |
+| [WF-009](#wf-009--publication-helper-rejected-the-miw--journal-filename-after-consent) | Major: consented ticket updates unavailable for the whole run | 1 (session B) | Make the journal-name check accept the saved `miw-` form while keeping run binding | Medium: external-write path and legacy-name compatibility | Fix | Fix — implemented; deterministic regression checks passed, see D003 |
+| [WF-010](#wf-010--run-began-on-another-tickets-feature-branch-without-a-question-and-was-restarted) | Minor: startup friction (user-reported expectation) | 1 (session B) | Detect a branch naming a different ticket; alert and ask continue vs new branch | Medium: startup/branch gating | Investigate (user's expectation raises confidence) | Fix — narrow branch check and startup guidance implemented; see D003 |
+| [WF-011](#wf-011--delegate-flagged-test-compromise-on-a-spec-clause-was-accepted-and-two-fix-rounds-followed) | Minor: avoidable fix rounds (safeguard worked) | 1 (session B) | Investigate reconciling delegate-flagged modelling compromises before execution | Medium: planning/test-prep behavior | Investigate | Investigate — focused behavior case added; see D003 |
+| [WF-012](#wf-012--a-one-line-final-sync-documentation-edit-consumed-the-last-allowed-review-cycle) | Minor: review budget | 1 (session B) | Observe only; no change proposed yet | High if the cycle cap or reopen rule changed | Defer | Defer — retain current review safeguards; see D003 |
+| [WF-013](#wf-013--handoff-directory-was-resolved-with-the-miw--prefix-the-helper-requires-none) | Minor: helper retry | 1 (session B) | Clarify directory vs file prefix at the handoff call site | Low: documentation | Investigate | Fix — path guidance clarified; naming checks passed, see D003 |
+| [WF-014](#wf-014--plan-approval-did-not-call-out-risks-left-above-low-after-mitigation-user-suggested) | Minor: user-suggested approval warning | 1 (session B) | Warn on unmitigated risks above Low at plan approval; default accept, offer discussion | Medium: approval-prompt content | Investigate | Fix — existing Guided approval wording updated; see D003 |
+
+Cross-session updates in R003: WF-001, WF-005 and WF-007 are now each evidenced in **two distinct sessions** (A and B). See their R003 bullets; WF-007 is flagged for renewed fix consideration under the minor-recurrence rule.
 
 ## Major findings
+
+### WF-009 — Publication helper rejected the `miw-` journal filename after consent
+
+- Category/status: defect; historical and, by static inspection, current. First/last R003; one session (B), affecting the whole run. Observation confidence High; cause confidence High for the mismatch seen in source (not executed); recommendation confidence High.
+- Expected vs observed: after the user chose "allow updates", saving that consent should record it and enable the scoped ticket writes. Instead `ticket-publication.mjs consent` failed with "Invalid publication journal filename" (267), and a status call failed identically (281). The state file held a `miw-`-prefixed journal name created by the run's own `init` (281). The agent located the check (298), disclosed it and left ticket writes off for the run (459, 630, 919, 3783).
+- Impact: a consented capability (spec/plan comments, description refinement, completion comments) was unavailable for the entire run; the agent fell back to local-only artifacts. No unauthorized write occurred.
+- R003 inspection: `skills/implement/scripts/ticket-publication.mjs:311` requires the name to start with `<ticket>-ticket-publication-`, while the expected-name comparison near line 319 is built with `artifactJoin` and so follows the saved naming convention. Existing publication tests inspected (`render-status.test.mjs:642,667`) use unprefixed fixture names; whether any test exercises a `miw-` journal through `init` then `consent` was not established.
+- Smallest remedy/owner: implement/ticket-publication helper; accept the saved prefixed form at the filename check while keeping the run-identity binding at line 319 and the containment checks. Do not loosen binding.
+- Fix risk **Medium**: guards an external-write path; legacy unprefixed runs must still resume; enabling it makes Jira writes reachable for `miw-` runs that were previously blocked.
+- User-reported, unverified: the user also reported Jira access issues, with terminal warnings about the Jira CLI connection. The transcript shows the read-only ticket lookup succeeding (146) and no Jira CLI warnings in the records reviewed, so this may be a separate connectivity problem or the same failure seen differently. It is **not** merged into WF-009 and no cause is assumed; the user could supply the warning text or a screenshot if it matters.
+- Proposed verification — untested: in a disposable run created by `init` with `miw-` naming, run consent then a prepare step and assert success; repeat for a legacy-named fixture; assert a journal from another run is still rejected. Rollback: revert the check and its tests. Recommendation **Fix**; decision **Undecided**.
 
 ### WF-001 — Repository access failed after commit and push
 
@@ -56,6 +85,7 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 - Fix risk **Low**: bounded earlier read, no schema or approval changes; mocks/query counts and error ordering need updates. An unavailable API may now block before mutation, which is intended for an all-steps delivery request.
 - Proposed verification — untested: mock general auth success with SSO failure on the repository query; assert unchanged index, local HEAD and remote refs. Include later-repo failure before any mutations, successful delivery, and post-push PR failure/resume without duplicates using existing delivery fixtures.
 - Rollback: revert only the added preflight and its tests; existing journal/recovery remains. Recommendation **Fix**; decision **Fix; implemented locally, see D001**.
+- R003 recurrence (session B, plugin 5.14.0): partial delivery repeated: approval of the exact plan (3755), SAML/SSO error from the PR step after commit and push succeeded (3770), no retry, partial delivery explained with both recovery options (3783). **Distinct sessions: 2.** The inspected checkout already contains the preflight (commit "Check repository access before delivery"); session B predates it, so there is no post-fix observation. Not a new defect; keep the fix and watch for recurrence on 5.15.0+.
 
 ### WF-002 — Delegate-test attribution was omitted from proposed publication text
 
@@ -91,6 +121,7 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 - R001 inspection: `delegate-report.mjs` resolves relative report arguments against the state directory and checks containment. `references/orchestration/stage-contract.md` shows `--report <report-path>` without naming that relative base.
 - Smallest remedy/owner: stage-contract documentation; specify absolute helper-returned report paths and retain current resolver/containment behavior. Do not add guessed path-base fallbacks.
 - Fix risk **Low**: documentation only, though callers need accurate examples. Proposed verification — untested: a disposable run with nested state accepts an absolute in-run report, records duplicates idempotently, and continues to reject outside/symlink escapes. Rollback the instruction edit. Recommendation **Fix**; decision **Fix; implemented locally, see D001**.
+- R003 recurrence (session B, plugin 5.14.0): accepting a delegate report with a repository-relative path failed with ENOENT showing the run directory duplicated (1414, 1417); retry with a run-relative path succeeded (1425, 1432). **Distinct sessions: 2.** The checkout's `stage-contract.md:38` now specifies absolute helper-returned paths; session B predates it. No post-fix observation.
 
 ### WF-006 — Saved feedback narrative conflicted with its collection notes
 
@@ -107,6 +138,44 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 - R001 inspection: `write-feedback.mjs` derives distinctive hyphenated terms from audit prose and excludes an existing workflow-vocabulary set. The feedback skill explicitly permits useful public controller vocabulary. Do not weaken customer-identifier protections based only on this one event.
 - Smallest action/owner: investigate a narrow known-public-vocabulary exception in the feedback sanitizer, using its existing mechanism rather than removing the heuristic.
 - Fix risk **Medium**: privacy enforcement is affected even by a small allowlist change. Proposed verification — untested: public workflow vocabulary passes while project names, private paths/URLs, credentials and representative proprietary terms remain rejected. Rollback the narrow exception. Recommendation **Investigate**; decision **Defer, see D001**.
+- R003 recurrence (session B): the share-safe check rejected generic hyphenated workflow phrases ("approval-time", "cycle-3", "future-dated", "full-suite", "fix-round", "workflow-event") as copied project terminology; three failed checks (3559, 3591, 3644) and paraphrasing preceded the successful write (3672). Related validator messages: an owner field rejected as not a share-safe line, and a dashboard observation lacking an inspected source line. **Distinct sessions: 2 — flagged for renewed fix consideration** (cumulative cost: repeated pre-save repair loops; no data loss or privacy failure). Severity stays Minor; the Medium privacy risk of any exception is unchanged. Decision remains **Defer** until the maintainer revisits.
+
+### WF-010 — Run began on another ticket's feature branch without a question and was restarted
+
+- Category/status: user-reported issue with observed startup friction; the observed behavior is contract-compliant. First/last R003; one session (B). Observation confidence High; cause confidence **Medium** (the user later reported the expectation below; the transcript itself never states why they restarted); recommendation confidence **Medium** (raised from Low by the user's input).
+- User-reported expectation (not in the transcript): `implement` should detect that the current branch names a different ticket than the one being implemented, alert the user, and ask whether to continue on that branch or move to a new one. This matches the observed restart and the missing prompt.
+- Evidence (paraphrased): the user was on a feature branch for a different ticket with uncommitted edits. The initial branch-guard outcome recorded "proceeding on existing feature branch (not base)" with those edits as baseline (204). No branch question was asked; a code survey ran (459). The user interrupted the first question set (512) and asked to start over on the main branch (514). The agent stopped the run, archived it, switched to the base branch and created a new run (532–598); the user then typed "continue" because the restarted run ended its turn after the dashboard link (598; Stop hooks present at 595–596).
+- Expected vs basis: `startup.md:137-150` continues without a prompt for any non-base branch, so the observed behavior matches the contract. The friction is the contract's silence about a branch evidently tied to a different ticket.
+- Impact: about 14 minutes of discarded refinement work and one extra user turn. Recovery was clean; the user's own edits were not lost (they had been committed during the session).
+- Smallest action/owner: investigate whether a branch name or uncommitted baseline unrelated to the ticket should produce a one-line confirmation. Fix risk **Medium**: startup/branch gating and baseline accounting; not a documentation-only change. Proposed verification — untested: a disposable repo on an unrelated feature branch with local edits; expect one confirmation, no extra prompt on matching branches or the base branch. Recommendation **Investigate**; decision **Undecided**.
+
+### WF-011 — Delegate-flagged test compromise on a spec clause was accepted and two fix rounds followed
+
+- Category/status: observed friction; independent review worked as designed. First/last R003; one session (B). Observation confidence High; cause confidence Medium; recommendation confidence Medium.
+- Evidence (paraphrased): the test-writing worker's hand-back said it modelled "beyond the last configured period" as an empty period list because the lookup only had a lower bound, and that the re-send test tolerated a repeated close because the plan left that open (1402–1404). The orchestrator verified file scope and evidence and accepted it (1413–1447). Review cycle 1 returned two Major findings including that clause (2301); the agent later said it had accepted the flag without checking the code (2449). Fix round 1 introduced a regression in the same function, found in cycle 2 (2839) and traced to loose test wording in the plan itself. Cycles 3–4 were clean.
+- Impact: two fix rounds and four review cycles for a medium-risk change; no defect reached the approved package. Delegate disclosure was present; the gap was in acting on it before execution. An existing instruction to verify delegate claims was followed for scope and evidence but not for this modelling compromise.
+- Smallest action/owner: investigate whether test preparation or execute should treat a delegate-stated compromise on a spec clause as a gap to resolve before execute. Fix risk **Medium**: planning/test-prep behavior and gates. No new gate or schema recommended without more sessions. Proposed verification — untested: a synthetic case where a worker discloses an untestable clause; expect it to be raised or planned before execution. Recommendation **Investigate**; decision **Undecided**.
+
+### WF-012 — A one-line final-sync documentation edit consumed the last allowed review cycle
+
+- Category/status: observed design friction; compliant with the controller. First/last R003; one session (B). Observation confidence High; cause confidence High (controller reopens review when a frozen-target file changes); recommendation confidence Low.
+- Evidence (paraphrased): after a clean review cycle 3, a documentation edit during final sync was rejected with "Workspace changed since checkpoint" (3139) and sent the run back to Review for cycle 4, described as the last cycle the cap allows (3165, 3203). The delta was one bullet in a documentation file; cycle 4 was clean (3218). `workflow.mjs:66` caps review cycles at 4.
+- Impact: one extra review (about 2–3 minutes). Risk: had that review found a defect, no cycle would remain. Not observed.
+- Action: observe; cycle cap and reopen semantics are structural. Fix risk **High** for changing them (phase transitions, saved state, legacy resumes). Recommendation **Defer**; decision **Undecided**.
+
+### WF-013 — Handoff directory was resolved with the `miw-` prefix the helper requires none
+
+- Category/status: helper/caller friction; one retry. First/last R003; one session (B). Observation confidence High; cause confidence Unknown; recommendation confidence Medium.
+- Evidence (paraphrased): the agent resolved the output directory as a `miw-`-prefixed handoffs directory (772–774); validation failed with "Handoff path must be …/<ticket>-handoffs/<stage>-<N>.json" (794). It re-resolved with the unprefixed directory, removed the misplaced file and succeeded (807–827). The helper accepts a `miw-` prefix on the file name only (`handoff.mjs:408-410`); the integration doc names the unprefixed directory.
+- Impact: one failed call and a cleanup. Smallest action: clarify directory vs filename prefix at the call site. Fix risk **Low** (documentation). Proposed verification — untested: a fresh run writes and validates a gaps handoff first try. Recommendation **Investigate**; decision **Undecided**.
+
+### WF-014 — Plan approval did not call out risks left above Low after mitigation (user-suggested)
+
+- Category/status: user-reported improvement suggestion with partial transcript support; not a confirmed defect. First/last R003; one session (B). Observation confidence Medium; cause confidence Unknown; recommendation confidence Low–Medium.
+- Evidence: the plan's risk table kept a Medium residual for approval-time date recalculation, so the overall plan risk was Medium (1134, plan text at 1235). The approval question stated "medium risk" in its title (1181) but did not single out the unmitigated item. The user then asked the agent to investigate and lower the risk (1188), questioned how Low was reached (1277), and the agent re-presented the evidence limits and offered keep-Low-with-stop-rule, keep-Low, or back-to-Medium (1289–1290). The plan template already records a residual column, a phased-delivery alternative (`plan-template.md:99`) and escalates three or more Medium residuals (`plan-template.md:91`); a grep-level check found no explicit prompt for a single unmitigated risk above Low.
+- User-reported suggestion (not independently corroborated): when a mitigation does not reduce a risk, warn that risks above Low remain and ask whether that is acceptable (default, recommended) or whether to discuss alternatives.
+- Impact: observed — one extra user round-trip and a downgrade on code-reading evidence that the agent later qualified. Not shown — that the user would have approved sooner or that risk handling was wrong.
+- Smallest action/owner: `plan-the-work` approval wording; surface unmitigated residual risks above Low in the plan-approval question with an accept-as-is default and a discuss option. Do not change risk computation or the approval schema. Fix risk **Medium**: it changes approval-prompt content and could add a question in many Guided runs; Autonomous/Autopilot behavior would need to stay unchanged. Proposed verification — untested: a synthetic plan with one Medium residual shows the warning and default once; a plan with all-Low residuals shows none; approval hashing and routing are unchanged. Rollback: revert the wording. Recommendation **Investigate**; decision **Undecided**.
 
 ### WF-008 — Approval narration paraphrased the proposed PR body
 
@@ -141,11 +210,14 @@ Maintainer review ledger. Recommendations are proposals; they do not authorize c
 - **Workflow housekeeping:** the workflow-generated ignore rule was disclosed in both approval presentations and included in the approved path set (842, 1082, 1086). No unauthorized scope expansion is established. Excluding it by default would be a separate design choice.
 - **Overhead:** numerous contract reads/checkpoints are visible, but raw counts and the reported elapsed time do not establish unnecessary overhead or user dissatisfaction. The user assessed the session positively. Defer consolidation/redesign absent stronger evidence of material impact.
 - **Feedback boundaries:** automatic feedback finishes before optional delivery by design. Failure to include a later delivery outcome is not, by itself, a collection defect. This maintainer review can assess the full supplied historical session without changing that lifecycle.
-- No cross-session recurrence is established yet. None of the optional observations above is a maintainer-selected no-change decision; they are this review's recommendations and corrections.
+- **R003 observations, not findings:** the plan's overall risk was lowered from Medium to Low on code reading before the supporting test existed; the agent disclosed the limits when challenged and added a stop rule (1189–1311). A first full-suite gate used a fail-fast command and was re-run correctly (2000). The user deleted two unrelated untracked notes after a scope question (2232, 2256); harm and intent unknown. Reviewer prompts supplied prior findings and said to judge independently; no verdict steering seen, and any effect of telling the last reviewer it was the final cycle is unknown. Free-text answers to approval questions were accepted and handled (1188, 1277, 1311), so WF-004 did not recur.
+- Cross-session recurrence is now established only for WF-001, WF-005 and WF-007 (sessions A and B). None of the optional observations above is a maintainer-selected no-change decision; they are this review's recommendations and corrections.
 
 ## Maintainer decisions
 
 R001 (historical): all WF-001 through WF-007 were **Undecided**. The maintainer requested conservative review, retention of minor findings, and explicit decisions before fix planning. Selecting this skill extension did not select a delivery, controller, sanitizer, feedback-lifecycle, or instruction fix.
+
+R003 (historical): WF-009 through WF-014 are **Undecided**. The user's three added inputs are recorded as reported input; they describe expectations and suggestions, not fix selections. The earlier decisions on WF-001 through WF-008 are unchanged; the recurrence evidence for WF-001, WF-005 and WF-007 is recorded but does not alter them. No fixes are selected by this review.
 
 ## Selected fix plans
 
@@ -247,3 +319,61 @@ work below. It does not authorize delivery or broader workflow redesign.
   production changes for WF-002/003/006 are selected from these results.
   WF-004/007 remain deferred. Changes remain uncommitted; release smoke and actual
   post-delivery-summary behavior were not exercised by this investigation.
+
+### D003 — PR #114 follow-ups selected, 2026-11-18
+
+The maintainer agreed to the prioritized recommendation and requested the fixes
+on PR #114, with testing especially for WF-009. This authorizes the narrow
+WF-009/010/013/014 fixes, investigation of WF-007/011 and continued deferral of
+WF-012. Earlier source observations and D001/D002 results remain historical;
+this section records current implementation and validation separately.
+
+- **WF-009 — Implemented.** Accept both saved journal filename forms at the
+  preliminary check. Exact run ID/ticket/start binding, containment, symlink
+  rejection and explicit consent remain required. The new regression first
+  reproduced the prefixed-run failure while the legacy case passed. Both cases
+  now pass init, consent, CLI status/resume, idempotent init, prepare/begin/receipt,
+  duplicate suppression, dashboard permission refresh and revocation. Negative
+  checks reject default-sourced consent, cross-run/ticket identity changes,
+  malformed/outside pointers and journal symlinks. All 39 publication tests pass.
+  These are disposable local journal tests; no live Jira write was performed.
+- **WF-010 — Implemented.** A read-only helper recognizes explicit different-ticket
+  branch names; matching, generic, base and detached branches retain their existing
+  paths. Guided/Autonomous ask once on mismatch; unresolved Autopilot mismatches
+  stop without branch mutation. Workspace previews include mismatches in their
+  existing combined approval. Explicit prior branch choices and saved Resume
+  checks are preserved. Dirty-repository CLI testing confirms HEAD, index, branch,
+  staged/unstaged edits and untracked notes are unchanged by detection. New branch
+  creation is explicitly distinguished from restarting from the base branch.
+- **WF-013 — Implemented.** Document the unprefixed handoff directory and
+  layout-dependent JSON filename with exact examples. Both documented layouts
+  validate through the real handoff CLI on the first attempt (21 handoff tests pass).
+- **WF-014 — Implemented.** Surface above-Low residual consequences, mitigation,
+  unchanged ratings and verification limits inside the existing Guided Plan
+  approval. Approve accepts the disclosed risks; Redo permits alternatives.
+  Acceptance recommendations require evidence. No new question, choice ID,
+  risk arithmetic, approval hash, controller route or Autonomous/Autopilot gate.
+- **WF-007 — Investigated; no sanitizer change.** A deterministic reproduction
+  confirms all seven reported public compounds still trigger the project-term
+  check. Retain this characterization and existing privacy rejection tests.
+  A safe allowlist remedy remains unselected; reproduction alone is not privacy
+  verification of a proposed exception.
+- **WF-011 — Investigation prepared; no new gate.** Add a focused synthetic
+  coordinator hand-back case with an empty-list test substituted for a nonempty
+  beyond-final-period boundary. It probes existing reconciliation guidance before
+  selecting an instruction change. No new production instruction for WF-011 yet.
+- **WF-012 — Deferred.** Keep review reopening and cycle limits unchanged.
+
+Validation: the full deterministic workflow suite passed **711 tests**, with
+zero failures/skips. After adding two handoff naming cases, the focused handoff
+suite passed **21 tests** (the full suite was not repeated for those additions).
+All **99 eval-harness tests** and **5 packaging/publication tests** passed. Strict
+plugin, skills and marketplace validation and `git diff --check` passed; the
+pre-existing missing-icon warning remains. Inventory validates **178 cases**.
+Four new fixtures seed successfully. The branch case exercises actual startup; the two risk presentations
+and compromise hand-back are isolated guidance probes, not complete end-to-end
+runs. Live evaluation initially stopped at sandbox sign-in detection (no model
+started). Existing sign-in was confirmed outside the sandbox, but automatic
+approval review rejected the external evaluation call pending explicit egress
+consent. The four-case run ($4 cap) remains pending that authorization. Existing
+PR smoke evidence is historical and is not rerun for these development edits.

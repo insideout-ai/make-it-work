@@ -160,7 +160,11 @@
     "assessment-docs",
     "assessment-pr-snapshot",
     "assessment-partial-multi",
-    "write-the-tests-standalone"
+    "write-the-tests-standalone",
+    "implement-branch-ticket-mismatch",
+    "implement-residual-risk-presentation",
+    "implement-residual-risk-low",
+    "implement-delegate-test-compromise"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
