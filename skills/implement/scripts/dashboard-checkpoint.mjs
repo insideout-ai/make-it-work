@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { generateDashboard, parseState } from './render-status.mjs';
 import { decisionCell, decisionText, lastWorkRow, validateDecision } from './workflow-decisions.mjs';
 import { appendAuditCell, noteCell, parseNoteCell } from './audit-notes.mjs';
+import { planningActivities } from './planning-activity.mjs';
 
 function fail(message) { throw new Error(message); }
 
@@ -44,7 +45,7 @@ function replaceActivity(markdown, activity, time) {
 }
 
 /** Persist activity history before rendering; a retry repairs the snapshot. */
-export async function checkpointDashboard(statePath, { activity, category = 'unclassified' } = {}) {
+export async function checkpointDashboard(statePath, { activity, category = 'unclassified', planningActivity } = {}) {
   const absoluteStatePath = artifactResolve(statePath);
   const info = await lstat(absoluteStatePath);
   if (!info.isFile() || info.isSymbolicLink()) fail('Workflow state must be a regular file.');
@@ -53,16 +54,18 @@ export async function checkpointDashboard(statePath, { activity, category = 'unc
   if (activity === undefined) return generateDashboard(absoluteStatePath);
 
   validateCategory(category);
+  if (planningActivity !== undefined && !planningActivities.has(planningActivity)) fail('Unknown planning activity boundary.');
   const time = new Date().toISOString();
   let updated = replaceActivity(original, activity, time);
   await recordActivityTiming(absoluteStatePath, state, category, time);
   if (activity.trim() !== 'none') {
     const last = state.audit.findLast((row) => row.note?.kind === 'activity');
     if (state.fields.current_activity === activity.trim() && last?.to === state.fields.phase &&
-        last.time === state.fields.current_activity_updated_at && last.outcome === `Activity: ${activity.trim()}`) {
+        last.time === state.fields.current_activity_updated_at && last.outcome === `Activity: ${activity.trim()}` &&
+        (!planningActivity || last.note.id.startsWith(`planning-${planningActivity}:`))) {
       return generateDashboard(absoluteStatePath);
     }
-    updated = appendAuditCell(updated, state, noteCell({ kind: 'activity', id: randomUUID(), text: activity.trim() }), time);
+    updated = appendAuditCell(updated, state, noteCell({ kind: 'activity', id: `${planningActivity ? `planning-${planningActivity}:` : ''}${randomUUID()}`, text: activity.trim() }), time);
   }
   parseState(updated, absoluteStatePath);
   await replaceAtomically(absoluteStatePath, updated);
@@ -166,14 +169,18 @@ export async function recordLostReview(statePath, lost) {
   });
 }
 
-const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> [--category <category>] | decision --state <state.md> --input <decision.json>';
+const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> [--category <category>] [--planning-activity discovery|drafting|validation] | decision --state <state.md> --input <decision.json>';
 
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === '--help') return { help: true };
   if (argv[0] === 'render' && argv.length === 3 && argv[1] === '--state' && argv[2]) return { statePath: argv[2] };
-  if (argv[0] === 'activity' && [5, 7].includes(argv.length) && argv[1] === '--state' && argv[2] && argv[3] === '--activity' && argv[4]) {
-    if (argv.length === 7 && argv[5] !== '--category') fail(USAGE);
-    return { statePath: argv[2], activity: argv[4], category: argv[6] };
+  if (argv[0] === 'activity' && [5, 7, 9].includes(argv.length) && argv[1] === '--state' && argv[2] && argv[3] === '--activity' && argv[4]) {
+    const result = { statePath: argv[2], activity: argv[4] }, seen = new Set();
+    for (let i = 5; i < argv.length; i += 2) {
+      if (!['--category', '--planning-activity'].includes(argv[i]) || seen.has(argv[i]) || !argv[i + 1]) fail(USAGE);
+      seen.add(argv[i]); result[argv[i] === '--category' ? 'category' : 'planningActivity'] = argv[i + 1];
+    }
+    return result;
   }
   if (argv[0] === 'decision' && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--input' && argv[4]) {
     return { statePath: argv[2], input: argv[4] };
@@ -200,7 +207,7 @@ async function main() {
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  const output = await checkpointDashboard(args.statePath, args.activity === undefined ? {} : { activity: args.activity, category: args.category });
+  const output = await checkpointDashboard(args.statePath, args.activity === undefined ? {} : { activity: args.activity, category: args.category, planningActivity: args.planningActivity });
   process.stdout.write(`${output}\n`);
 }
 

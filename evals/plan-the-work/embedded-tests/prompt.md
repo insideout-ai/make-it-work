@@ -7,5 +7,4 @@ runs: 1
 ---
 
 Work in embedded-tests and follow /make-it-work:plan-the-work DEMO-EMBED --autopilot.
-Use make-it-work/DEMO-EMBED/DEMO-EMBED-spec.md. Do the planning stage, including
-its regression/progression tests; do not implement the behavior change yet.
+Use make-it-work/DEMO-EMBED/DEMO-EMBED-spec.md. Do the planning stage, including concrete regression/progression coverage requirements; do not write tests, stubs or implementation logic.

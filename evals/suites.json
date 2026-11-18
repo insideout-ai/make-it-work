@@ -15,7 +15,8 @@
     "rr-full-pass",
     "shape-the-epic-rich-input-autopilot",
     "slice-the-epic-well-specified-epic-autopilot",
-    "assessment-sensitive"
+    "assessment-sensitive",
+    "write-the-tests-standalone"
   ],
   "headless": [
     "implement-planning-progress",
@@ -157,7 +158,8 @@
     "assessment-inaccessible-pr",
     "assessment-docs",
     "assessment-pr-snapshot",
-    "assessment-partial-multi"
+    "assessment-partial-multi",
+    "write-the-tests-standalone"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",

@@ -221,7 +221,11 @@ test('fresh runs grow only with deliverables, not decisions or a duplicate journ
     assert.deepEqual((await readdir(f.directory)).sort(), ['miw-dashboard.html', 'miw-run.json', 'miw-state.json']);
   }
   await f.apply({ type: 'epic', input: epic() }); await f.apply({ type: 'slices', input: backlog() });
-  assert.equal((await readdir(f.directory)).length, 5 + backlog().slices.length);
+  const files = await readdir(f.directory);
+  assert.equal(files.filter((file) => !file.endsWith('.md.preview.html')).length, 5 + backlog().slices.length);
+  assert.equal(files.filter((file) => file.endsWith('.md.preview.html')).length, 2);
+  const html = await readFile(artifactJoin(f.directory, 'dashboard.html'), 'utf8');
+  assert.equal((html.match(/\.md\.preview\.html"[^>]*target="_blank"/g) ?? []).length, 2);
   assert.equal((await f.show()).state.decisions.length, 6);
 });
 test('invalid scratch events are retained unchanged, and unrelated custom input files are never consumed', async (t) => {

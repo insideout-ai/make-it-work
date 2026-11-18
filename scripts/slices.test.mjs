@@ -34,9 +34,14 @@ test('summary, diagram, dependency table and per-slice links derive from the sam
 });
 test('writing a second set uses one collision-free prefix and preserves every earlier file', async (t) => {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'slices-write-')); t.after(() => rm(root, { recursive: true, force: true }));
-  const first = await writeSlices(root, data()); const bytes = await readFile(first.files[0], 'utf8');
-  assert.equal(first.chat_summary, `${first.summary}\n\nRecommended starting slice: S-1.`);
-  const second = await writeSlices(root, data()); assert.notEqual(first.prefix, second.prefix); assert.equal(second.files.length, 4);
+  const directory = path.join(root, 'Reader #check');
+  const first = await writeSlices(directory, data()); const bytes = await readFile(first.files[0], 'utf8');
+  assert.ok(first.chat_summary.startsWith(first.summary + '\n\nRecommended starting slice: S-1.'));
+  const overviewLink = first.chat_summary.match(/\[Saved overview\]\(<([^>]+)>\)/)?.[1];
+  assert.ok(overviewLink, 'the complete chat summary includes a clickable overview');
+  assert.equal(await readFile(decodeURIComponent(overviewLink), 'utf8'), bytes);
+  assert.equal(first.saved_files_verified, true);
+  const second = await writeSlices(directory, data()); assert.notEqual(first.prefix, second.prefix); assert.equal(second.files.length, 4);
   assert.equal(await readFile(first.files[0], 'utf8'), bytes);
   for (const file of second.files) assert.match(path.basename(file), new RegExp(`^${second.prefix}`));
 });

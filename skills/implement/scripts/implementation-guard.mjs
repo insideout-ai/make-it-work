@@ -73,7 +73,7 @@ async function originalImage(repo, file) {
 // Returns the receipt-authorized paths per repo, or null when no valid receipt applies.
 async function authorizedPlanningPaths(initialized, state, baseline) {
   const f = state.fields;
-  if (!initialized.state || (f.adaptive_version === '1' && f.mode !== 'tdd') || !['plan', 'plan-approval'].includes(f.phase) || baseline.some((repo) => !Array.isArray(repo.changes))) return null;
+  if (!initialized.state || (f.adaptive_version === '1' && f.mode !== 'tdd') || !(f.test_writing_version === '1' ? ['write-tests'] : ['plan', 'plan-approval']).includes(f.phase) || baseline.some((repo) => !Array.isArray(repo.changes))) return null;
   try {
     const info = await lstat(planningReceiptPath(initialized.state));
     if (!info.isFile()) return null;
@@ -136,7 +136,7 @@ function changedPaths(baseline, current, excluded) {
   return changed.sort();
 }
 
-const PRE_IMPLEMENTATION = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval']);
+const PRE_IMPLEMENTATION = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval', 'write-tests']);
 export async function prematureImplementation(initialized, state) {
   const fields = state.fields;
   if (state.audit.some((row) => ['execute', 'lightweight'].includes(row.to))) return null;

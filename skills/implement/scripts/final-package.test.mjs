@@ -145,7 +145,7 @@ test('delivery scope distinguishes reviewed changes from earlier commits in the 
   const dashboard = await generateDashboard(state);
   const dashboardHtml = await readFile(dashboard, 'utf8');
   assert.doesNotMatch(dashboardHtml, /assurance-summary|Assurance:|Browser verification: pending|Recorded verification limits/);
-  assert.match(dashboardHtml, /href="DEMO-final-package\.md"/);
+  assert.match(dashboardHtml, /href="DEMO-final-package\.md\.preview\.html"/);
   const markdown = await readFile(built.package, 'utf8');
   assert.match(markdown, /\*\*Assurance: Limited — .*delivery review partial.*browser verification pending/);
   assert.ok(markdown.indexOf('Assurance: Limited') < markdown.indexOf('## Changes'));
@@ -534,7 +534,7 @@ for (const suffix of ['change-assessment', 'complexity']) for (const mode of ['t
   assert.match(header(rendered), /class="pill assessment-high"[^>]*>Production risk: High/);
   assert.match(header(rendered), /title="Completeness: partial\. src\/existing.txt:1 sensitive contract change"/);
   assert.doesNotMatch(rendered, /class="change-assessment"|<h2>Change assessment|CHANGE_ASSESSMENT/);
-  assert.match(rendered, new RegExp(`Result: Change assessment — Code complexity: High; Production risk: High; completeness: partial.*href="DEMO-${suffix}.md"`));
+  assert.match(rendered, new RegExp(`Result: Change assessment — Code complexity: High; Production risk: High; completeness: partial.*href="DEMO-${suffix}.md.preview.html"`));
   const assessmentRows = async () => parseState(await readFile(state, 'utf8')).audit.filter(row => row.note?.id.startsWith('change-assessment:'));
   assert.equal((await assessmentRows()).length, 1);
   // Already persisted pre-rationale notes stay byte-identical and gain the

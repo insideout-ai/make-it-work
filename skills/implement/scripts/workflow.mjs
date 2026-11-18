@@ -14,6 +14,7 @@ import { decideNext, validateArtifacts } from './handoff.mjs';
 import { approve as approveFinalPackage, checkFinalPackage } from './final-package.mjs';
 import { contextInventory } from '../../../scripts/context-inventory.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
+import { checkPreparation, validatePreparation } from '../../write-the-tests/scripts/preparation.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { collectTestingSummary } from './testing-summary.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
@@ -110,6 +111,10 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
           if (count) { if (Number(f.fix_cycle) >= 3) fail('Fix round limit reached.'); f.fix_cycle = String(Number(f.fix_cycle) + 1); }
         }
       }
+      if (handoff.stage === 'tests') {
+        f.test_preparation = handoff.artifacts.preparation;
+        f.test_preparation_report = handoff.artifacts.report;
+      }
       if (handoff.stage === 'execute') {
         f.execution = { PASSED: 'passed', VERIFIED_MANUALLY: 'verified-manually', GUARDRAIL: 'guardrail', RETRY_LIMIT: 'retry-limit', GATE_FAILED: 'gate-failed', GATE_NO_RESULT: 'gate-no-result', EXECUTE_STOPPED: 'stopped' }[handoff.outcome];
         f.gate = handoff.data.gate;
@@ -149,7 +154,12 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (input.event === 'skip-approval') { if (f.autonomy === 'guided' || f.spec_revision_pending === 'true') fail('Required spec/plan approval cannot be skipped.'); }
     else explicit(input);
     if (f.phase === 'spec-approval' && input.event === 'approve' && f.spec_revision_pending === 'true') f.spec_revision_pending = 'false';
-    f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : 'execute');
+    f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : f.test_writing_version === '1' ? 'write-tests' : 'execute');
+  } else if (input.event === 'preparation-saved') {
+    if (f.phase !== 'write-tests' || f.test_writing_version !== '1' || f.status !== 'In Progress') fail('Preparation evidence requires active Write Tests.');
+    f.test_preparation = requireText(input.preparation, 'Preparation artifact');
+    f.test_preparation_report = requireText(input.report, 'Preparation report');
+    reason = `Test preparation ${input.preparation_status}: ${input.report}`;
   } else if (input.event === 'review-context') {
     if (f.phase !== 'review' || f.status !== 'In Progress') fail('Review context preparation requires active Review.');
     if (!Array.isArray(input.context_updated)) fail('context_updated must be an array of paths.');
@@ -253,7 +263,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (['Paused', 'Stopped'].includes(f.status) && input.blocker_resolved !== true) fail('Resolve the saved blocker before resuming.');
     f.status = 'In Progress'; f.pause_reason = 'none';
   } else if (input.event === 'spec-conflict') {
-    if (!['plan', 'plan-approval', 'fix-plan', 'execute', 'lightweight', 'review', 'final-sync', 'final-approval'].includes(f.phase) || f.status !== 'In Progress') fail('Spec conflicts require active dependent work.');
+    if (!['plan', 'plan-approval', 'write-tests', 'fix-plan', 'execute', 'lightweight', 'review', 'final-sync', 'final-approval'].includes(f.phase) || f.status !== 'In Progress') fail('Spec conflicts require active dependent work.');
     if (pendingInputs(f).some((record) => record.blocking)) fail('Resolve the pending input before returning to refinement.');
     reason = `Spec conflict: ${oneLine(input.reason, 'Spec conflict evidence and decision')}`;
     const previousPlan = f.plan && f.plan !== 'none' ? f.plan : 'none';
@@ -312,6 +322,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (Number(f.review_cycle) >= 4) fail('Review limit reached.');
     f.review_cycle = String(Number(f.review_cycle) + 1);
   }
+  if (f.test_writing_version === '1' && f.phase !== before.phase && ['plan', 'fix-plan', 'write-tests'].includes(f.phase)) Object.assign(f, { test_preparation: 'none', test_preparation_report: 'none' });
   if (f.phase === 'fix-plan' && before.phase !== 'fix-plan') Object.assign(f, { fix_plan_round_steps: 'none', fix_plan_dispatch: 'none' });
   if (f.phase !== before.phase || f.status !== before.status || f.status !== 'In Progress') {
     f.current_activity = 'none';
@@ -503,6 +514,16 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
           || policy.some((row) => !workspaceContract.repos.some((repo) => repo.id === row.Repo)))) fail('Verification policy must cover approved product repos and cannot add unapproved repos.');
     }
+    if (effective.event === 'preparation-saved') {
+      const file = await within(root, effective.preparation);
+      const planPath = await within(root, state.fields.plan);
+      if (path.dirname(file) !== path.dirname(planPath)) fail('Preparation must be in the plan directory.');
+      const data = validatePreparation(JSON.parse(await readFile(file, 'utf8')), await readFile(planPath, 'utf8'));
+      const { latestPreparation } = await import('../../write-the-tests/scripts/preparation.mjs');
+      if (file !== await latestPreparation(planPath)) fail('Preparation artifact is stale.');
+      const report = await within(path.dirname(planPath), data.report);
+      effective = { ...effective, report: path.relative(root, report), preparation_status: data.status };
+    }
     let previousReview = effective.previous_review ? JSON.parse(await readFile(await within(root, effective.previous_review), 'utf8')) : null;
     if (handoff?.stage === 'review' && handoff.review_cycle > 1) {
       const directory = artifactJoin(root, 'make-it-work', state.fields.ticket, `${state.fields.ticket}-handoffs`);
@@ -536,7 +557,16 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       f.branch = accepted.repos[0].branch;
       next.reason += `; Branch baseline accepted: ${accepted.repos.map(repo => `${repo.branch}@${repo.head}`).join(', ')}`;
     }
-    if (f.testing_readiness_version === '1' && f.phase === 'execute' && state.fields.phase !== 'execute') await checkTestingReadiness(root, { ...state, fields: f }, { plan: await readFile(await within(root, f.plan), 'utf8') });
+    if (handoff?.stage === 'tests' && handoff.status === 'done') {
+      const evidence = JSON.parse(await readFile(await within(root, handoff.artifacts.preparation), 'utf8'));
+      next.reason = `Test preparation ${evidence.status}; ${handoff.artifacts.report}. Implementation remains unverified.`;
+    }
+    if (f.test_writing_version === '1' && f.phase === 'execute' && state.fields.phase !== 'execute') {
+      const preparation = await checkPreparation(await within(root, f.plan), { file: f.test_preparation === 'none' ? undefined : await within(root, f.test_preparation), required: true });
+      f.test_preparation = path.relative(root, preparation.file);
+      f.test_preparation_report = path.relative(root, preparation.reportPath);
+    }
+    if (f.testing_readiness_version === '1' && ['write-tests', 'execute'].includes(f.phase) && state.fields.phase !== f.phase) await checkTestingReadiness(root, { ...state, fields: f }, { plan: await readFile(await within(root, f.plan), 'utf8') });
     if (input.event === 'scope-update') {
       f.workspace_contract = JSON.stringify(workspaceContract);
       f.branch = workspaceContract.repos[0].branch;

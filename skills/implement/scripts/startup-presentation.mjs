@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
 import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { planningActivityHold } from './planning-activity.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
 import { feedbackEligible, feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
 import { runtimeObjects } from './runtime-output.mjs';
@@ -167,7 +168,7 @@ async function continuationHold(initialized, toolCheck = false, agents = [], tas
   const enteredPhase = state.audit.findLast((row) => row.to === fields.phase && row.from !== row.to)?.epoch;
   // Yielding to a live child is not workflow completion. Preserve In Progress
   // and all completion gates; a child from an earlier phase cannot release Stop.
-  if (['close-the-gaps', 'plan', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
+  if (['close-the-gaps', 'plan', 'write-tests', 'execute', 'lightweight', 'review', 'fix-plan'].includes(fields.phase) &&
       [...agents, ...tasks.filter(task => !task.needsMonitor)].some((agent) => Number.isFinite(agent.launchedAt) && agent.launchedAt >= enteredPhase)) return {};
   if (tasks.some(task => task.needsMonitor && task.launchedAt >= enteredPhase)) return { decision: 'block', reason: 'This older single-shot headless runtime cannot resume a Bash-only background wait. Start a finite Monitor for the existing command/output, then yield. Do not rerun the tests, poll in the parent, repeat waiting messages or pause the workflow merely to wait.' };
   if (fields.phase !== 'context-check') return { decision: 'block', reason: `The workflow is still In Progress at ${fields.phase}. Continue its documented stage through independent review and the final package. If a genuine question or external blocker prevents continuation, save the documented pause or stop. Do not end an active run as completed or stop merely because its stages were skipped.` };
@@ -256,6 +257,12 @@ export async function startupHook(input) {
     : input.hook_event_name === 'PreToolUse'
       ? { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reminder(progress.initialized) } }
       : advisory(input.hook_event_name, reminder(progress.initialized)), 'missing-dashboard-link');
+  if (input.hook_event_name === 'PreToolUse') {
+    let state;
+    try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing state-repair handling remains available. */ }
+    const reason = state && planningActivityHold(input, events, state, progress.initialized.state);
+    if (reason) return observeHook(input, progress, events, { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } }, 'active-stage');
+  }
   if (input.hook_event_name === 'PreToolUse' && readinessMutationCommand(input)) {
     let state;
     try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing continuation handling keeps repair tools available. */ }

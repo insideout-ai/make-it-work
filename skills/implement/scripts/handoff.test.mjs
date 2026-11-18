@@ -352,3 +352,21 @@ test('CLI routes a Lightweight implement handoff and passes --escalate', async (
   await writeFile(misnamed, JSON.stringify(implement()));
   assert.throws(() => execFileSync(process.execPath, [cli, 'validate', '--handoff', misnamed, '--root', root], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), /implement-<N>\.json/);
 });
+
+test('new test-writing runs route approval and nonempty amendments through preparation', () => {
+  const plan = { ...base, stage: 'plan', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO-1/DEMO-1-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } };
+  for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
+    const current = state('plan', autonomy);
+    current.fields.test_writing_version = '1';
+    assert.equal(decideNext(current, plan).phase, autonomy === 'guided' ? 'plan-approval' : 'write-tests');
+  }
+  const current = state('fix-plan'); current.fields.test_writing_version = '1';
+  const amend = { ...plan, outcome: 'FIX_PLAN_READY', data: { ...plan.data, mode: 'amend', steps_added: 1 } };
+  assert.equal(decideNext(current, amend).phase, 'write-tests');
+  assert.equal(decideNext(current, { ...amend, data: { ...amend.data, steps_added: 0 } }).phase, 'review');
+  const tests = { ...base, stage: 'tests', outcome: 'TESTS_PREPARED', artifacts: { report: 'make-it-work/DEMO-1/DEMO-1-plan-tests-1.md', preparation: 'make-it-work/DEMO-1/DEMO-1-plan-tests-1.json' }, data: {} };
+  validateHandoff(tests);
+  const preparing = state('write-tests'); preparing.fields.test_writing_version = '1';
+  assert.equal(decideNext(preparing, tests).phase, 'execute');
+  assert.throws(() => validateHandoff({ ...tests, artifacts: { report: tests.artifacts.report } }), /preparation/);
+});

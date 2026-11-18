@@ -202,7 +202,7 @@ test('feedback lifecycle notes survive retries without changing workflow evidenc
   assert.equal(parseState(saved).audit.filter(row => row.note?.id.startsWith('feedback-saved:')).length, 1);
   assert.equal(withoutFeedbackNotes(saved), f.markdown);
   assert.equal((await inspectFeedback(f.statePath)).analysisRequired, summary.analysisRequired);
-  assert.match(await readFile(dashboard, 'utf8'), /Session feedback saved\. <a href="workflow-feedback.md">Read feedback<\/a>/);
+  assert.match(await readFile(dashboard, 'utf8'), /Session feedback saved\. <a href="workflow-feedback.md.preview.html" target="_blank" rel="noopener noreferrer">Read feedback<\/a>/);
   assert.equal(spawnSync(process.execPath, args, { encoding: 'utf8' }).status, 0);
   assert.equal(await readFile(f.statePath, 'utf8'), saved);
 });

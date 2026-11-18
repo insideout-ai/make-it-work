@@ -10,11 +10,13 @@ import { parseState } from './render-status.mjs';
 import { readVerification, traceability } from './verification.mjs';
 import { runArtifactName, runDirectory } from './artifact-layout.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
+import { checkPreparation } from '../../write-the-tests/scripts/preparation.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 
 const STAGES = {
   gaps: ['SPEC_SAVED', 'QUESTIONS_SENT'],
   plan: ['PLAN_SAVED', 'FIX_PLAN_READY'],
+  tests: ['TESTS_PREPARED'],
   implement: ['IMPLEMENTED'],
   execute: ['PASSED', 'VERIFIED_MANUALLY', 'GUARDRAIL', 'RETRY_LIMIT', 'GATE_FAILED', 'GATE_NO_RESULT', 'EXECUTE_STOPPED'],
   review: ['CLEAN', 'FIX_REQUIRED', 'REPLAN_REQUIRED', 'HUMAN_DECISION'],
@@ -63,7 +65,7 @@ export function validateHandoff(input) {
     if (h.status === 'blocked') {
       string(h.reason, 'handoff.reason');
       if (h.code !== undefined && h.code !== 'PRE_EXISTING_REGRESSION') fail('Unknown blocker code.');
-      if (h.code === 'PRE_EXISTING_REGRESSION' && h.stage !== 'plan') fail('Baseline blocker is only valid for planning.');
+      if (h.code === 'PRE_EXISTING_REGRESSION' && !['plan', 'tests'].includes(h.stage)) fail('Baseline blocker is only valid for planning/test preparation.');
     }
     if (h.status === 'needs_input') {
       if (!Array.isArray(h.questions) || h.questions.length === 0) fail('needs_input requires questions.');
@@ -79,10 +81,13 @@ export function validateHandoff(input) {
   const data = object(h.data, 'handoff.data');
   const questionsSent = h.stage === 'gaps' && h.outcome === 'QUESTIONS_SENT';
   const expectedArtifact = questionsSent ? 'questions' : h.stage === 'gaps' ? 'spec' : h.stage === 'plan' ? 'plan' : 'report';
-  keys(artifacts, h.stage === 'execute' ? [expectedArtifact, 'verification'] : [expectedArtifact], 'handoff.artifacts');
+  keys(artifacts, h.stage === 'tests' ? ['report', 'preparation'] : h.stage === 'execute' ? [expectedArtifact, 'verification'] : [expectedArtifact], 'handoff.artifacts');
   string(artifacts[expectedArtifact], `handoff.artifacts.${expectedArtifact}`);
   if (artifacts.verification !== undefined) string(artifacts.verification, 'handoff.artifacts.verification');
-  if (questionsSent) {
+  if (h.stage === 'tests') {
+    string(artifacts.preparation, 'handoff.artifacts.preparation');
+    keys(data, [], 'handoff.data');
+  } else if (questionsSent) {
     keys(data, [], 'handoff.data');
   } else if (h.stage === 'gaps') {
     keys(data, ['tbd_items', 'context_updated'], 'handoff.data');
@@ -142,6 +147,7 @@ export async function validateArtifacts(handoff, root, { requireClauses = false 
   const expectedNames = {
     gaps: [h.outcome === 'QUESTIONS_SENT' ? `${h.ticket}-questions.md` : `${h.ticket}-spec.md`],
     plan: [`${h.ticket}-plan.md`, `${h.ticket}-plan-v${h.plan_version}.md`],
+    tests: [],
     implement: [`${h.ticket}-lightweight.md`],
     execute: [`${h.ticket}-execute.md`],
     review: [`${h.ticket}-review.md`],
@@ -149,6 +155,12 @@ export async function validateArtifacts(handoff, root, { requireClauses = false 
   for (const [kind, artifact] of Object.entries(h.artifacts)) {
     if (path.isAbsolute(artifact)) fail(`Artifact path must be relative: ${artifact}`);
     runArtifactName(artifact, h.ticket, kind);
+    if (h.stage === 'tests') {
+      const planName = h.plan_version === 1 ? `${h.ticket}-plan.md` : `${h.ticket}-plan-v${h.plan_version}.md`;
+      const evidence = await checkPreparation(artifactJoin(directory, planName), { file: artifactResolve(rootPath, h.artifacts.preparation), required: true });
+      if (artifactResolve(rootPath, h.artifacts.report) !== evidence.reportPath) fail('Preparation report does not match its evidence.');
+      continue;
+    }
     if (kind === 'verification') {
       const expected = `${h.ticket}-verification-v${h.plan_version}.json`;
       if (logicalArtifactName(artifactResolve(rootPath, artifact)) !== expected) fail(`Verification artifact does not match ticket and plan version: ${artifact}`);
@@ -201,7 +213,7 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   if (h.ticket !== fields.ticket) fail('Handoff ticket does not match state.');
   if (h.plan_version !== Number(fields.plan_version)) fail('Handoff plan_version does not match state.');
   if (h.stage === 'review' && h.review_cycle !== Number(fields.review_cycle)) fail('Handoff review_cycle does not match state.');
-  const expectedStage = fields.phase === 'close-the-gaps' ? 'gaps' : fields.phase === 'fix-plan' ? 'plan' : fields.phase === 'lightweight' ? 'implement' : fields.phase;
+  const expectedStage = fields.phase === 'write-tests' ? 'tests' : fields.phase === 'close-the-gaps' ? 'gaps' : fields.phase === 'fix-plan' ? 'plan' : fields.phase === 'lightweight' ? 'implement' : fields.phase;
   if (h.stage !== expectedStage) fail(`Handoff stage ${h.stage} does not match state phase ${fields.phase}.`);
   if (h.stage === 'plan' && h.status === 'done' && ((fields.phase === 'fix-plan') !== (h.data.mode === 'amend'))) fail('Plan mode does not match state phase.');
   if (!['guided', 'autonomous', 'autopilot'].includes(fields.autonomy)) fail('Choose autonomy before routing a handoff.');
@@ -253,18 +265,20 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
     }
     return outcome('phase', `Lightweight implementation finished.${h.data.risk_reassessment ? ` Risk reassessment: ${h.data.risk_reassessment}` : ''}`, { phase: 'review' });
   }
+  const preparedNext = fields.test_writing_version === '1' ? 'write-tests' : 'execute';
+  if (h.stage === 'tests') return outcome('phase', 'Test preparation finished; implementation remains unverified.', { phase: 'execute' });
   if (h.stage === 'plan' && fields.phase === 'plan') {
-    return outcome('phase', 'Plan is ready.', { phase: nextGuided ? 'plan-approval' : 'execute' });
+    return outcome('phase', 'Plan is ready.', { phase: nextGuided ? 'plan-approval' : preparedNext });
   }
   if (h.stage === 'plan') {
     if (h.data.recommend_replan && replans < 2) return guided
       ? ask(h.data.recommend_replan, {
         replan: outcome('phase', h.data.recommend_replan, { phase: 'plan', operation: 'replan' }),
-        continue: outcome('phase', 'Continue with fix plan.', { phase: h.data.steps_added > 0 ? 'execute' : 'review' }),
+        continue: outcome('phase', 'Continue with fix plan.', { phase: h.data.steps_added > 0 ? preparedNext : 'review' }),
         stop: outcome('stop', 'Developer stopped after replan recommendation.'),
       })
       : outcome('phase', h.data.recommend_replan, { phase: 'plan', operation: 'replan' });
-    return outcome('phase', 'Fix planning finished.', { phase: h.data.steps_added > 0 ? 'execute' : 'review' });
+    return outcome('phase', 'Fix planning finished.', { phase: h.data.steps_added > 0 ? preparedNext : 'review' });
   }
   if (h.stage === 'execute') {
     if (fields.verification_version === '1' && !h.artifacts.verification) fail('New Execute runs require a verification artifact.');

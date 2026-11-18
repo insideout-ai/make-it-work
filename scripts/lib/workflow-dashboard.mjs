@@ -46,10 +46,10 @@ export const WORKFLOW_STYLES = `
   .delivery-updated, .delivery-records { font-size: 0.85rem; color: #596773; }
 
   .workflow-metadata { color: #596773; font-size: 0.8rem; overflow-wrap: anywhere; margin: 0.3rem 0 0.8rem; }
-  .header-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
-  .header-row h1 { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .header-row { display: grid; grid-template-columns: auto minmax(0, 1fr) fit-content(40%); align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .header-row h1 { min-width: 0; overflow-wrap: anywhere; }
   .header-row img { height: 56px; width: auto; flex-shrink: 0; display: block; }
-  .header-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.4rem; margin-left: auto; max-width: 100%; }
+  .header-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.4rem; min-width: 0; max-width: 100%; }
   .header-badges .pill { margin-right: 0; white-space: nowrap; }
   .assessment-badge-row { display: flex; flex-wrap: wrap; flex-basis: 100%; justify-content: flex-end; gap: 0.4rem; }
   .ticket-updates-allowed { color: #1e6231; background: #e6f4ea; }
@@ -98,7 +98,7 @@ export const WORKFLOW_STYLES = `
   .phase-status.status-paused, .phase-status.status-stopped { color: #e65100; }
   .phase-status.status-complete { color: #2e7d32; }
 
-  .artifact-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; max-width: 1100px; }
+  .artifact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.6rem; max-width: 1100px; }
   .artifact-tile { background: #f7f7f8; border: 1px solid #e2e2e4; border-radius: 0.4rem; padding: 0.6rem 0.75rem; min-width: 0; }
   .artifact-tile .label { font-size: 0.75rem; color: #777; text-transform: uppercase; letter-spacing: 0.03em; }
   .artifact-tile a { font-size: 0.85rem; word-break: break-all; }
@@ -106,6 +106,9 @@ export const WORKFLOW_STYLES = `
   .feedback-note { margin: 0.75rem 0 0; font-size: 0.9rem; line-height: 1.45; color: #46535d; }
 
   @media (max-width: 900px) {
+    .header-row { grid-template-columns: auto minmax(0, 1fr); }
+    .header-badges { grid-column: 1 / -1; justify-content: flex-start; }
+    .assessment-badge-row { justify-content: flex-start; }
     .phase-timeline { overflow-x: scroll; }
     .phase-step { min-width: 80px; }
     .artifact-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 100%; }
@@ -113,6 +116,7 @@ export const WORKFLOW_STYLES = `
   }
   @media (max-width: 540px) {
     body { padding: 1rem 0.75rem; }
+    .header-badges .pill { white-space: normal; overflow-wrap: anywhere; }
     .artifact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 `;
