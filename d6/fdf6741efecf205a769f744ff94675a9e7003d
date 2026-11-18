@@ -1,0 +1,70 @@
+skills/implement/scripts/deliver.test.mjs
+  s_074c3c6d242749::t_d10a8854554675 186
+  s_074c3c6d242749::t_23ae405b4a2029 185,187-194,196-197,199-203
+  s_074c3c6d242749::t_0ccb673b5d0b34 195,198,358,362-367
+  s_074c3c6d242749::t_2faa593088c402 180,211
+evals/implement/README.md
+  s_074c3c6d242749::t_01e73bb8adf551 3-11
+evals/deliver/README.md
+  s_074c3c6d242749::t_01e73bb8adf551 10-13
+evals/implement/final-approval-evidence/case.yaml
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 1-5
+evals/feedback-on-session/feedback-collection-runtime-notes/graders/collection-and-readback.md
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 10-11
+evals/implement/delivery-prepare/graders/evidence-qualifications.md
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 1-7
+skills/implement/scripts/deliver.mjs
+  s_074c3c6d242749::t_57d57b7aa77fcc 226-229,233,297
+skills/implement/references/orchestration/stage-contract.md
+  s_074c3c6d242749::t_57d57b7aa77fcc 38-39
+docs/workflow-findings.md
+  s_01490093a86d9b::t_ca08da1e21c097 1-2,4-16,34-37,47-51,53,55-57,59-64,66-67,69-76,78-82,84,86-88,90,92,94-100,102-106,108,110,136-147,149-151
+  s_074c3c6d242749::t_34262a8e9984db 198-202
+  s_074c3c6d242749::t_56ed82a49a61b6 52,54,65,83,89,91,107,196-197,210-213
+  s_074c3c6d242749::t_f9797f35ba0d71 3,46,234-249
+  s_074c3c6d242749::t_8ba6453f6cdd8f 17-33,39-40,43,45,68,77,101,111-135,214-233
+  s_074c3c6d242749::t_ecbf7ab8bbbb80 38,41-42,44,148,152-195,203-209
+  s_074c3c6d242749::t_d10a8854554675 58,85,93,109
+evals/implement/final-approval-evidence/prompt.md
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 1-11
+evals/implement/final-approval-evidence/fixture.sh
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 1-7,9-10,14-16,19-24
+  s_074c3c6d242749::t_adb7a9e54ad880 8,11-13,17-18
+evals/implement/final-approval-evidence/graders/evidence.md
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 1-7
+skills/implement/scripts/startup-presentation.test.mjs
+  s_074c3c6d242749::t_4581c28ac61699 3,222-224
+skills/implement/references/orchestration/final-package.md
+  s_074c3c6d242749::t_e65567a74cc6bc 22-23
+evals/suites.json
+  s_074c3c6d242749::t_8fb05943570272 170-181
+  s_074c3c6d242749::t_4581c28ac61699 134
+evals/implement/seed-delivery-fixture.sh
+  s_074c3c6d242749::t_3ab1e78b9b8bb1 28-36,39
+evals/feedback-on-session/README.md
+  s_074c3c6d242749::t_01e73bb8adf551 54-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d6fdf6741efecf205a769f744ff94675a9e7003d",
+  "prompts": {},
+  "sessions": {
+    "s_01490093a86d9b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1edde-76ce-7162-9c26-479628ce42d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_074c3c6d242749": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ee28-2835-7d43-99b7-1d5d74fabc28",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
