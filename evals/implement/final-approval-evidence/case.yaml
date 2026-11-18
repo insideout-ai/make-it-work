@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-final-approval-evidence
+tags: [implement, evidence, approval]
+context:
+  scaffold_script: fixture.sh

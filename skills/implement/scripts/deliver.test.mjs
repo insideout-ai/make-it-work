@@ -177,9 +177,28 @@ test('delivery commits, pushes, creates a PR, and resumes without duplication', 
   assert.equal(git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/DEMO'), git(repo, 'rev-parse', 'HEAD'));
   const repeated = cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env);
   assert.equal(repeated.repos.service.commit, result.repos.service.commit);
-  assert.equal((await readFile(ghLog, 'utf8')).match(/^pr (?:list|create) /gm).length, 2);
+  assert.equal((await readFile(ghLog, 'utf8')).match(/^pr (?:list|create) /gm).length, 3);
   assert.equal(JSON.parse(await readFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json'), 'utf8')).repos.service.pushed, result.repos.service.commit);
   assert.equal(cli(deliveryCli, 'status', root, state).status, 'delivered');
+});
+
+test('repository SSO failure stops delivery before staging, committing or pushing', async (t) => {
+  const { root, repo, state } = await fixture(t);
+  const bin = artifactJoin(root, 'bin');
+  await mkdir(bin);
+  const gh = artifactJoin(bin, 'gh');
+  await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then exit 0; fi\necho "organization SAML SSO authorization required" >&2\nexit 1\n');
+  await chmod(gh, 0o755);
+  const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+  const prepared = cli(deliveryCli, 'prepare', root, state, [], env);
+  const before = { head: git(repo, 'rev-parse', 'HEAD'), index: git(repo, 'write-tree'),
+    refs: git(repo, 'ls-remote', '--heads', 'origin'), status: git(repo, 'status', '--porcelain') };
+  assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env), /SAML SSO/);
+  assert.deepEqual({ head: git(repo, 'rev-parse', 'HEAD'), index: git(repo, 'write-tree'),
+    refs: git(repo, 'ls-remote', '--heads', 'origin'), status: git(repo, 'status', '--porcelain') }, before);
+  const progress = cli(deliveryCli, 'status', root, state);
+  assert.equal(progress.status, 'failed');
+  assert.deepEqual(progress.repos, {});
 });
 
 test('a hook-rewritten tree stops delivery before push', async (t) => {
@@ -189,7 +208,7 @@ test('a hook-rewritten tree stops delivery before push', async (t) => {
   const bin = artifactJoin(root, 'bin');
   await mkdir(bin);
   const gh = artifactJoin(bin, 'gh');
-  await writeFile(gh, '#!/bin/sh\nexit 0\n');
+  await writeFile(gh, '#!/bin/sh\nif [ "$2" = "list" ]; then echo "[]"; fi\nexit 0\n');
   await chmod(gh, 0o755);
   const hook = artifactJoin(repo, '.git', 'hooks', 'pre-commit');
   await writeFile(hook, '#!/bin/sh\nprintf "hook changed\\n" > code.txt\ngit add code.txt\n');
@@ -336,10 +355,16 @@ test('multi-repo partial delivery shows each actual result and resumes without d
   const bin = artifactJoin(root, 'bin');
   await mkdir(bin);
   const gh = artifactJoin(bin, 'gh');
-  await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then exit 0; fi\nif [ "$2" = "list" ]; then echo "[]"; exit 0; fi\nif [ "$4" = "example/service-two" ] && [ "$FAIL_SECOND" = "1" ]; then echo "second repository PR failed" >&2; exit 1; fi\necho "https://github.com/$4/pull/7"\n');
+  await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then exit 0; fi\nif [ "$2" = "list" ]; then\n  if [ "$4" = "example/service-two" ] && [ "$FAIL_PREFLIGHT" = "1" ]; then echo "second repository SSO required" >&2; exit 1; fi\n  echo "[]"; exit 0; fi\nif [ "$4" = "example/service-two" ] && [ "$FAIL_SECOND" = "1" ]; then echo "second repository PR failed" >&2; exit 1; fi\necho "https://github.com/$4/pull/7"\n');
   await chmod(gh, 0o755);
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
   const prepared = cli(deliveryCli, 'prepare', root, state, [], env);
+  const snapshot = target => ({ head: git(target, 'rev-parse', 'HEAD'), index: git(target, 'write-tree'),
+    refs: git(target, 'ls-remote', '--heads', 'origin'), status: git(target, 'status', '--porcelain') });
+  const before = [snapshot(repo), snapshot(second)];
+  assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], { ...env, FAIL_PREFLIGHT: '1' }), /second repository SSO required/);
+  assert.deepEqual([snapshot(repo), snapshot(second)], before);
+  assert.deepEqual(cli(deliveryCli, 'status', root, state).repos, {});
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], { ...env, FAIL_SECOND: '1' }), /second repository PR failed/);
   const progress = cli(deliveryCli, 'status', root, state);
   assert.equal(progress.status, 'partial');

@@ -223,10 +223,14 @@ async function bitbucketRequest(method, url, body) {
   return response.json();
 }
 
+function githubPullRequests(repo) {
+  return JSON.parse(command('gh', ['pr', 'list', '--repo', `${repo.owner}/${repo.repo}`, '--head', repo.branch, '--base', repo.base, '--state', 'open', '--json', 'number,url']).stdout);
+}
+
 export async function pullRequest(repo, draft) {
   if (repo.provider === 'github') {
     const slug = `${repo.owner}/${repo.repo}`;
-    const found = JSON.parse(command('gh', ['pr', 'list', '--repo', slug, '--head', repo.branch, '--base', repo.base, '--state', 'open', '--json', 'number,url']).stdout);
+    const found = githubPullRequests(repo);
     if (found.length > 1) fail(`Multiple open PRs match ${repo.name}.`);
     if (found.length === 1) {
       command('gh', ['pr', 'edit', String(found[0].number), '--repo', slug, '--title', draft.pr_title, '--body', draft.pr_description]);
@@ -290,6 +294,7 @@ async function run(context, expectedHash) {
         if (repo.provider === 'github') {
           command('gh', ['--version']);
           command('gh', ['auth', 'status']);
+          githubPullRequests(repo);
         } else token();
       }
     }

@@ -51,6 +51,10 @@ rejected earlier draft and a corrected save. Its trace grader receives the saved
 report as supplemental evidence and requires both writer-derived collection
 notes and an actual full readback. A separate trace grader now checks readback in
 `feedback-on-session-collection-gaps`; artifact presence cannot satisfy it.
+The runtime-notes grader also requires the saved narrative to agree with the
+observed failed check and recovery in Collection notes. A later chat correction
+cannot repair contradictory saved prose; reconcile during the necessary save,
+without adding a save-review-save loop.
 
 `feedback-on-session-attribution` covers explicit behavior knowingly missed by
 implementation, a misleading model-generated refinement diagnosis, ordinary waits

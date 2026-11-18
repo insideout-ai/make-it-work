@@ -1,6 +1,6 @@
 import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -219,6 +219,9 @@ test('delegate reports deduplicate by native task and revision without changing 
   assert.equal(revised.duplicate, false); assert.equal(revised.revised, true);
   assert.equal((await acceptDelegateReport({ ...options, task: 'task-2' })).duplicate, false);
   await assert.rejects(acceptDelegateReport({ ...options, report: path.join(run.root, 'CLAUDE.md') }), /inside this run/);
+  const escaped = path.join(path.dirname(report), 'outside-report.md');
+  await symlink(path.join(run.root, 'CLAUDE.md'), escaped);
+  await assert.rejects(acceptDelegateReport({ ...options, report: escaped }), /inside this run/);
   assert.equal(await readFile(run.result.state, 'utf8'), state);
 });
 

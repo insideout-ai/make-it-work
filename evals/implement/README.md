@@ -1,5 +1,14 @@
 # Implement feedback evals
 
+`implement-final-approval-evidence` starts at Guided final approval with synthetic
+delegate-only unit-test evidence, accepted skipped integration tests and an
+unverified browser hypothesis. It checks draft authorship and approval narration.
+`implement-delivery-prepare` carries the same qualifications through the delivery
+preview and accompanying narration. Neither pending-approval case establishes
+post-delivery summary behavior. Run those two cases with the focused full-suite
+runner after signing in; fixture/inventory checks alone do not establish model
+compliance. No new production gate or evidence schema is introduced.
+
 ## Workspace implementation cases
 
 - `implement-workspace-approval`: fresh Autopilot at a root with no `.git` or
