@@ -1,0 +1,20 @@
+docs/workflow-findings.md
+  s_4c0c127241a697::t_23d845cfc4f4ae 58-59,62,361,363-365,379-394,397-415
+  s_4c0c127241a697::t_a6d2532b462c96 395-396
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9c56edd2942623761cd86f37c44259bf9f30324b",
+  "prompts": {},
+  "sessions": {
+    "s_4c0c127241a697": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ee8e-448b-7ac1-8fac-6a528a28ea58",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
