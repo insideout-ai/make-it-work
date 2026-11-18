@@ -10,7 +10,7 @@ All handoffs have:
 {
   "version": 1,
   "ticket": "DEMO-1",
-  "stage": "gaps | plan | implement | execute | review",
+  "stage": "gaps | plan | tests | implement | execute | review",
   "plan_version": 1,
   "status": "done | blocked | needs_input",
   "outcome": "stage-specific outcome",
@@ -19,7 +19,7 @@ All handoffs have:
 }
 ```
 
-For Review only, also include `"review_cycle": <current review_cycle from the state file>`. For `blocked`, omit `outcome`, `artifacts`, and `data`, and include `"reason": "…"`. Planning may also include `"code": "PRE_EXISTING_REGRESSION"` for the documented baseline-test blocker. For `needs_input`, omit `outcome`, `artifacts`, and `data`, and include `"questions": ["…"]`. Use no secrets or raw test output in JSON.
+For Review only, also include `"review_cycle": <current review_cycle from the state file>`. For `blocked`, omit `outcome`, `artifacts`, and `data`, and include `"reason": "…"`. Planning or test preparation may also include `"code": "PRE_EXISTING_REGRESSION"` for the documented baseline-test blocker. For `needs_input`, omit `outcome`, `artifacts`, and `data`, and include `"questions": ["…"]`. Use no secrets or raw test output in JSON.
 
 Stage-specific `done` fields:
 
@@ -28,6 +28,7 @@ Stage-specific `done` fields:
 | gaps | `SPEC_SAVED` | `tbd_items` (integer), `context_updated` (path strings) |
 | gaps | `QUESTIONS_SENT` (Slack draft/send, unconfirmed delivery, or offline-file fallback; the name does not prove a send) | `{}` — the artifact is `questions: make-it-work/<TICKET>/<TICKET>-questions.md` instead of `spec`; its Slack metadata records actual delivery |
 | plan | `PLAN_SAVED` for initial/replan; `FIX_PLAN_READY` for amend | `mode` (`initial`, `replan`, `amend`), `steps_added` (integer for amend, otherwise `null`), `recommend_replan` (reason string or `null`), `context_updated` (path strings) |
+| tests | `TESTS_PREPARED` | `{}`; artifacts `report` (Markdown) and `preparation` (JSON) from write-the-tests, validated against the current plan and prepared files |
 | implement (Lightweight phase; file `implement-<N>.json`) | `IMPLEMENTED` (failures use `blocked`) | `changed_paths`, `checks` (checks run and results), `discoveries` (strings), `risk_signal` (why the change looks riskier than Low, or `null`); artifact `report: make-it-work/<TICKET>/<TICKET>-lightweight.md` |
 | execute | `PASSED`, `VERIFIED_MANUALLY`, `GUARDRAIL`, `RETRY_LIMIT`, `GATE_FAILED`, `GATE_NO_RESULT`, `EXECUTE_STOPPED` | `discoveries` (strings), `failing_tests` (test names/paths, required and nonempty for `GATE_FAILED`), `gate` (`none`, `full-suite`, `scoped`, `scoped+full`) |
 | review | `CLEAN`, `FIX_REQUIRED`, `REPLAN_REQUIRED`, `HUMAN_DECISION` | `findings` (see below), `context_gaps` (strings) |
@@ -79,3 +80,7 @@ The current accepted refined spec is the requirements authority; a plan is imple
 ## Implementation risk reassessment
 
 An implementation handoff may add `data.risk_reassessment`, a nonempty single-line rationale written by the parent for retaining Lightweight after a reported risk signal. For a non-null `risk_signal` other than `none`, routing requires that rationale or `--escalate REASON`. The saved transition includes the rationale; null/none risk signals and existing handoff fields retain their behavior. No automatic TDD conversion or additional user approval is introduced.
+
+## Test preparation compatibility
+
+New states have `test_writing_version: 1`, `test_preparation` and `test_preparation_report`. Completed plans route to plan approval in Guided, otherwise Write Tests; approval and nonempty accepted fix amendments route to Write Tests. The `tests` handoff routes to Execute. Manual-only preparation returns not-applicable evidence; Lightweight skips this stage. Legacy states keep prior routing and evidence without marker backfill. Preparation results never edit the approved plan or establish acceptance/implementation completion.

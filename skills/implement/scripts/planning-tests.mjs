@@ -54,16 +54,16 @@ export async function authorizePlanningTests(statePath, input) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath), f = state.fields;
   const root = await realpath(path.dirname(path.dirname(path.dirname(statePath))));
   assertRunState(root, statePath, f.ticket);
-  if (f.status !== 'In Progress' || !['plan', 'fix-plan'].includes(f.phase)) fail('Authorize test edits only in active TDD Plan.');
+  if (f.status !== 'In Progress' || !(f.test_writing_version === '1' ? ['write-tests'] : ['plan', 'fix-plan']).includes(f.phase)) fail('Authorize test edits only in active TDD Plan (legacy) or Write Tests (new runs).');
   if (f.controller_version !== '1' || !f.workspace_snapshot) return { required: false, reason: 'Legacy run has no controller startup baseline scope.' };
   await checkTestingReadiness(root, state);
   if (state.audit.some((row) => ['execute', 'lightweight'].includes(row.to))) return { required: false, reason: 'Implementation was already authorized; the startup edit guard is released.' };
-  if (f.phase !== 'plan' || (f.adaptive_version === '1' && f.mode !== 'tdd')) fail('Authorize test edits only in active TDD Plan.');
+  if (f.phase !== (f.test_writing_version === '1' ? 'write-tests' : 'plan') || (f.adaptive_version === '1' && f.mode !== 'tdd')) fail('Authorize test edits only in active TDD Plan (legacy) or Write Tests (new runs).');
   if (f.spec === 'none' || f.spec_hash !== digest(await readFile(await within(root, f.spec)))) fail('Planning tests require the unchanged accepted spec.');
   const repo = await realpath(input.repo);
   const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos : JSON.parse(f.workspace_snapshot);
   if (!selected.some((item) => item.root === repo)) fail('Planning test repo is outside the approved scope.');
-  const planPath = draftPlanPath(statePath, f);
+  const planPath = f.plan && f.plan !== 'none' ? await within(root, f.plan) : draftPlanPath(statePath, f);
   const steps = parseSteps(await readFile(await within(root, path.relative(root, planPath)), 'utf8'));
   if (input.kind === 'stub' ? !declaredStub(steps, input.step, input.file) : !declaredTest(steps, input.step, input.file)) {
     fail(input.kind === 'stub' ? 'Draft the step and declare the exact stub path in its Files field before authorizing a stub.' : 'Draft the step and declare the exact test path in its Tests field before authorizing edits.');

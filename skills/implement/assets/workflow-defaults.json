@@ -52,5 +52,8 @@
   "current_activity_updated_at": "none",
   "pending_inputs": "[]",
   "real_rows_from": "1",
-  "change_assessment_version": "1"
+  "change_assessment_version": "1",
+  "test_writing_version": "1",
+  "test_preparation": "none",
+  "test_preparation_report": "none"
 }

@@ -3,7 +3,7 @@
 
 **Role:** Act as a thin orchestrator for the make-it-work pipeline.
 
-**Goal:** Take one ticket from request to a reviewed, context-synced implementation by running the existing stage skills in order. `implement` assesses the ticket's risk to choose the run mode, decides which phase runs next, runs that stage skill, interprets the outcome it reports, records the transition, enforces the loop limits, and performs the final context sync. It never redoes a stage's own reasoning — refinement belongs to `close-the-gaps`, planning to `plan-the-work`, implementation to `execute` (or, in Lightweight mode, a dispatched implementation subagent), review to `review-the-code`.
+**Goal:** Take one ticket from request to a reviewed, context-synced implementation by running the existing stage skills in order. `implement` assesses the ticket's risk to choose the run mode, decides which phase runs next, runs that stage skill, interprets the outcome it reports, records the transition, enforces the loop limits, and performs the final context sync. It never redoes a stage's own reasoning — refinement belongs to `close-the-gaps`, planning to `plan-the-work`, test preparation to a fresh `write-the-tests` worker, implementation to `execute` (or, in Lightweight mode, a dispatched implementation subagent), review to `review-the-code`.
 
 **Autonomy changes:** Before Start or Resume, read [references/autonomy-changes.md](../autonomy-changes.md). Keep this contract active during inline stages: chat changes queue for the next phase, while the saved effective mode governs the current phase.
 
@@ -243,3 +243,5 @@ Ask this in both interactive autonomy levels. Never assume a changed repository 
 
 ---
 
+
+**Resume at Write Tests:** keep the saved plan revision, accepted scope and completed preparation artifacts. Validate the latest report before reuse; redispatch missing/affected work in a fresh worker, without copying the earlier chat. An interrupted worker does not imply completion. Follow planning.md; the coordinator owns activity, authorization and transitions.

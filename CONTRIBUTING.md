@@ -48,7 +48,7 @@ Do not bump the plugin version as part of an ordinary contribution. Maintainers 
 Run the same strict checks used by CI:
 
 ```sh
-node --test skills/implement/scripts/*.test.mjs skills/execute/scripts/*.test.mjs scripts/*.test.mjs
+node --test skills/write-the-tests/scripts/*.test.mjs skills/implement/scripts/*.test.mjs skills/execute/scripts/*.test.mjs scripts/*.test.mjs
 claude plugin validate .claude-plugin/plugin.json --strict
 claude plugin validate skills --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
@@ -79,7 +79,7 @@ waive failures as unrelated or rerun the whole suite to obtain one green report.
 Do not run paid smoke on every push, edit, or review iteration. During development,
 use deterministic checks and necessary focused cases (`full --case=NAME`).
 Releases additionally need critical and change-specific/dependent-skill evidence;
-reuse the release PR's smoke sequence. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/1de7968b900955dd98db1ac3493f4f2c8d705aae/evals/README.md) for
+reuse the release PR's smoke sequence. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/7602dae37b6d5b151d81d17ff20132a67748e332/evals/README.md) for
 ledger behavior and [the release checklist](docs/eval-release-checklist.md).
 CI does not launch model evaluations.
 

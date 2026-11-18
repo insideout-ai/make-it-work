@@ -1,3 +1,7 @@
+## Test-writing route override
+
+For `test_writing_version: 1`, replace routes from approved Plan/nonempty Fix directly to Execute with Write Tests → Execute. Guided plan approval precedes test edits. The controller and validated tests handoff own this transition; follow [planning and test preparation](planning.md). All-manual preparation is not applicable; Lightweight skips it. Legacy states keep the table below without a marker backfill.
+
 ## Transition table
 
 Every transition is listed here. `—` means the outcome cannot occur at that level. In Lightweight mode, the `review (Lightweight)` rows replace the `FIX_REQUIRED`, `REPLAN_REQUIRED`, and `HUMAN_DECISION` review rows; the review limit and `CLEAN` rows apply to both modes. Escalation is never asked, at any level.

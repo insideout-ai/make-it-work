@@ -50,7 +50,7 @@ obligation, preserving Resume behavior; synthetic hook feedback and diagnostic
 request replays do not clear it.
 
 An active background-agent wait is the exception to continuing in the same
-turn: runtime launch evidence for an agent in the current Plan, Execute, Lightweight,
+turn: runtime launch evidence for an agent in the current Plan, Write Tests, Execute, Lightweight,
 Review or Fix phase permits yielding until its completion notification. Keep
 the saved workflow In Progress; do not manufacture a pause or completion. Do
 not use shell sleeps, file watches or repeated polls to avoid Stop. The hook
@@ -226,3 +226,9 @@ Resolve `<plugin-root>` once from the loaded skill directory; shared helpers suc
 A fresh run may explicitly retain prior verification decisions using `source: user`, `via: chat|question`, and `retained_verification: [{"decision":"<accepted limitation>","reference":"<prior user decision>","unverified":["<unobserved criterion>"]}]` on `init`. Omit this input unless the user explicitly chose retention. It preserves context only: it never transfers tracker consent, marks scenarios verified, or changes the new run's verification policy. Frozen review targets carry these decisions alongside the current policy and its source hash in `verification_context`; changing that context requires a new target and review. Older targets without this optional context retain their existing behavior.
 
 Keep controller stdout intact for runtime discovery. Do not pipe it through `head`, truncate it, or rename its keys. To reduce output during feedback inspection, use the supported `write-feedback.mjs inspect --compact` command rather than a shell projection.
+
+## Test preparation (new runs)
+
+`test_writing_version: 1` adds phase `write-tests` after accepted Plan and nonempty fix amendments, before Execute. Guided Plan approval precedes this phase. Readiness is checked before entering it. The coordinator preauthorizes exact tests and dispatches a fresh write-the-tests worker without inherited conversation history.
+
+After a real handback, apply `preparation-saved` with `preparation: <root-relative JSON path>` and the normal event ID/hash/repos. This validates current plan binding and newest evidence and derives its readable report link, including a blocked partial report. It does not advance the stage or implementation Progress. Then apply the validated `tests` handoff to enter Execute; ready/not-applicable evidence is required, and stale or changed prepared files block transition. Earlier numbered reports remain historical. Legacy states retain prior routing without marker backfill.

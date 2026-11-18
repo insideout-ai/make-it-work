@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { checkPreparation } from '../../write-the-tests/scripts/preparation.mjs';
 import { logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
@@ -188,6 +189,7 @@ export async function executionControl(planPath, event, { ledgerPath, ticket, pl
       delete journal.amendment_pending;
       await atomicWrite(journalPath, JSON.stringify(journal, null, 2) + '\n');
     }
+    if (event.action === 'start') await checkPreparation(planPath, { checkFiles: status.completed === 0 && !journal.active_steps?.length });
     if (['inspect', 'start'].includes(event.action)) {
       if (status.completed) {
         if (!ledgerPath || !ticket) fail('Resume requires the verification ledger.');

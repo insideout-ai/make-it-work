@@ -10,6 +10,7 @@ import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, slug, wit
 import { renderEpic, writeEpic } from './epic.mjs';
 import { sliceGraph, writeSlices } from './slices.mjs';
 import { renderEpicDashboard } from './epic-dashboard.mjs';
+import { generateArtifactPreviews } from './lib/artifact-preview.mjs';
 import { normalizeEntry } from './decision-log.mjs';
 
 const prose = (value, name) => { if (typeof value !== 'string' || !value.trim() || value.includes('\0')) fail(`${name} must be nonempty text.`); return value; };
@@ -202,7 +203,9 @@ async function checkpoint(dir, state) {
   await atomicWrite(artifactJoin(dir, 'state.json'), JSON.stringify(state, null, 2) + '\n');
   // Existing runs retain their export; new runs keep the same decisions in state only.
   if (legacyDecisions) await atomicWrite(artifactJoin(dir, 'decisions.jsonl'), state.decisions.map((entry) => JSON.stringify(entry)).join('\n') + (state.decisions.length ? '\n' : ''));
-  await atomicWrite(artifactJoin(dir, 'dashboard.html'), renderEpicDashboard(state, { usageSnapshot: await readUsage(dir) }));
+  const dashboardPath = artifactJoin(dir, 'dashboard.html');
+  const dashboard = await generateArtifactPreviews(renderEpicDashboard(state, { usageSnapshot: await readUsage(dir) }), { dashboardPath });
+  await atomicWrite(dashboardPath, dashboard);
 }
 export async function initEpicRun({ root, input }) {
   requireText(input.title, 'Title'); requireText(input.goal, 'Goal');

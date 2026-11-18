@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → risk assessment → Lightweight implementation (low risk) or plan-the-work → execute (TDD) → review-the-code → final context sync — with saved, resumable workflow state, Guided, Autonomous, and unattended --autopilot modes, Lightweight → TDD escalation, capped fix/replan loops, and local end-of-run workflow feedback. Never commits implementation changes, pushes, opens a PR, or uploads feedback. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
+description: "Orchestrates the make-it-work pipeline for one ticket — context check → close-the-gaps → risk assessment → Lightweight implementation (low risk) or plan-the-work → write-the-tests (fresh worker) → execute (TDD) → review-the-code → final context sync — with saved, resumable workflow state, Guided, Autonomous, and unattended --autopilot modes, Lightweight → TDD escalation, capped fix/replan loops, and local end-of-run workflow feedback. Never commits implementation changes, pushes, opens a PR, or uploads feedback. Use when taking a ticket from request to a reviewed, context-synced implementation in one run."
 disable-model-invocation: true
 hooks:
   PostToolUse:
@@ -69,7 +69,7 @@ do not load the legacy template on an ordinary new run.
 
 Read the complete guide for the current phase when it begins. Load another guide
 only when taking its documented route. The guides retain the existing phase
-procedures; this relocation does not change inline/delegated execution placement. For an explicitly enabled `refinement_worker_version: 1` initial local Autopilot run, follow [the refinement worker route](references/refinement-worker.md) instead of reading the full close-the-gaps skill in the parent. All other stages and runs keep their existing placement.
+procedures; this relocation does not change inline/delegated execution placement. For an explicitly enabled `refinement_worker_version: 1` initial local Autopilot run, follow [the refinement worker route](references/refinement-worker.md) instead of reading the full close-the-gaps skill in the parent. New runs dispatch write-the-tests in a fresh worker; other stage placements remain unchanged.
 
 | Saved phase or operation | Required guide |
 | --- | --- |
@@ -77,6 +77,7 @@ procedures; this relocation does not change inline/delegated execution placement
 | Refinement, risk assessment, spec approval | [Refinement](references/orchestration/refinement.md) |
 | Lightweight implementation/fix | [Lightweight](references/orchestration/lightweight.md) |
 | Plan, readiness, plan approval, requirements conflict | [Planning](references/orchestration/planning.md) |
+| Write Tests (`write-tests`), preparation resume/blockers | [Planning and preparation](references/orchestration/planning.md), then the worker integration contract |
 | Execute, completion-gate triage | [Execution](references/orchestration/execution.md) |
 | Independent review and review preparation | [Review](references/orchestration/review.md) |
 | Fix planning, escalation, loop-limit handling | [Fixes](references/orchestration/fixes.md), then the relevant planning/execution guide |

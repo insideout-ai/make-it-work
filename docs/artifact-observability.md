@@ -16,6 +16,19 @@ Always use paths returned by helpers and preserve actual saved references. Do no
 
 Before writing artifacts, shared IO checks the containing Git worktree, rejects staged/tracked artifacts, adds the artifact directory's anchored rule to `.gitignore` when needed, and verifies effective exclusion. Preserve that `.gitignore` edit for ordinary review. Fix reported tracked paths deliberately; the plugin never unstages, deletes or rewrites history automatically. Delivery also checks outgoing commits, including artifacts removed by later commits. `.gitignore` cannot prevent manual force-adds or external pushes. Non-Git workspaces can keep local artifacts.
 
+## Readable artifact previews
+
+Implementation and epic dashboards open existing local Markdown artifacts in a
+formatted reader page in a new tab. Each preview includes **Back to dashboard**
+and **Open original** links. Headings, tables, lists, and code blocks render
+offline, including when the dashboard is opened directly through `file://`.
+
+Dashboard generation refreshes these derived `<original>.md.preview.html` files
+alongside the source documents; the original contents and state references stay
+unchanged. Existing dashboards gain previews on their next regeneration. Missing
+artifacts and other file types retain their original links. Raw HTML is displayed
+as text, executable links are disabled, and remote images are not loaded.
+
 ## Version and optional usage
 
 Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage and estimated session cost are shown independently only when available; missing values are omitted. A capture timestamp appears only when at least one usage value is shown.

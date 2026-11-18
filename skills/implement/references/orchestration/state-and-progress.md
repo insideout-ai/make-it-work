@@ -12,12 +12,15 @@ For a new run, create the real directory `make-it-work/<TICKET>/` under the arti
 ```
 ticket: <TICKET>
 handoff_version: 1
+test_writing_version: 1
+test_preparation: none
+test_preparation_report: none
 review_scope_version: 1       # full delivery diff required for clean review and packaging             # new runs use validated JSON handoffs; absent on older runs
 review_context_version: 2     # prepare known context and evidenced test-map assessment; new runs only
 review_checks_version: 1      # required skill/rule and mapping assessment evidence; new runs only
 feedback_evidence_version: 1  # numbered source packet and inspection coverage; new runs only
 status: In Progress            # In Progress | Paused | Stopped | Complete
-phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | execute | lightweight | review | fix-plan | final-sync | final-approval | complete
+phase: context-check           # context-check | close-the-gaps | spec-approval | plan | plan-approval | write-tests | execute | lightweight | review | fix-plan | final-sync | final-approval | complete
 change_assessment_version: 1   # informational assessment after final sync; new runs only
 final_package_version: 1       # new runs build a content-bound final package; absent on older runs
 acceptance_evidence_version: 1 # new TDD runs map requirement clauses to assertions/observations
@@ -135,3 +138,7 @@ Before each substantial work chunk, say one high-level sentence in chat and chec
 
 ---
 
+
+### Write Tests in HTML
+
+For test_writing_version: 1, show a distinct Write Tests stage between Plan/approval and Execute, including repeated preparation after replans/fix amendments. Use controller state and audit timing, never implementation Progress, to show its activity. Expected red is successful preparation; not-run remains unverified. Show the numbered Test Preparation report through the existing formatted reader and original-file link. Old reports are historical; changed-plan evidence is superseded. Manual-only preparation is not applicable, Lightweight skips it, and legacy history gains no invented stages. The coordinator owns all HTML updates, including worker wait/interruption states.

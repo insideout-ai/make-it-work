@@ -1,9 +1,7 @@
-# Test edits during Plan
+# Preauthorized test edits
 
-`plan-the-work` writes progression/regression tests while production implementation
-remains deferred to Execute. A fresh Implement startup baseline now records
-per-path changes so its guard can exempt exact, preauthorized test edits in Plan
-and Plan approval without rebasing the rest of the worktree.
+`write-the-tests` writes progression/regression tests after plan approval while production implementation remains deferred to Execute. For new runs (`test_writing_version: 1`), the helper accepts only active `write-tests`; planning and plan approval never authorize test edits. The coordinator performs authorization before dispatching the fresh worker. Legacy saved runs without this marker retain their prior Plan/approval receipt rules. A fresh Implement startup baseline now records
+per-path changes so its guard can exempt exact, preauthorized test edits during Write Tests (Plan/approval for legacy runs) without rebasing the rest of the worktree.
 
 Legacy saved states without controller startup-baseline metadata skip this new checkpoint and retain their prior planning path.
 
@@ -11,12 +9,10 @@ After a run has entered Execute or Lightweight, its startup edit guard is alread
 
 Markdown and files under `docs/` or `.claude/` are already outside the startup implementation baseline; retain their existing documentation/metadata write path without this checkpoint.
 
-The parent passes its exact state path and the resolved Implement skill directory
-to planning. For checkpoint-enabled runs, complete and check testing readiness first. A pending/stale readiness proof blocks authorization, including a reused test-file authorization. Then, before the first edit to each test file:
+The parent uses its exact state path and resolved Implement directory for pre-edit authorization. For checkpoint-enabled runs, complete and check testing readiness first. A pending/stale readiness proof blocks authorization, including a reused test-file authorization. Then, before the first edit to each test file:
 
-1. Save the draft plan at its normal ticket/version path. Its numbered step must
-   declare the exact repo-relative test path in backticks in `**Tests:**`. The rest
-   of the plan may still be under construction. Name the repo/command as usual.
+1. Save and approve the plan at its normal ticket/version path. Its numbered step must
+   declare the exact repo-relative test path in backticks in `**Tests:**`. New runs require a completed plan; legacy drafting behavior remains unchanged. Name the repo/command as usual.
 2. Create the parent test directory if needed, then write a local input artifact
    under the run directory. For a dedicated test file:
 
@@ -53,7 +49,9 @@ original test declaration or changing the spec/version invalidates the exception
 Symlinks, deletions, unrelated paths and new commits remain guarded. Existing local
 edits are preserved; no helper resets or discards work.
 
-## New-symbol stubs
+## New-symbol stubs (legacy runs)
+
+This receipt path is retained for legacy runs without `test_writing_version: 1`. New Write Tests workers cannot create production stubs; return a blocker for an accepted setup or execution/refinement decision instead.
 
 `plan-the-work` writes a minimal "not implemented" stub for each **New** symbol
 so a progression test fails on a runtime assertion instead of a missing member.
