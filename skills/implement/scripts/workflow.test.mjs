@@ -238,6 +238,41 @@ test('offline init CLI preserves its genuine answer wait instead of starting Con
   assert.match(result.startup_message, /Open implementation dashboard/);
   assert.equal(parseState(await readFile(result.state, 'utf8')).fields.status, 'Paused');
 });
+test('an incomplete draft pauses refinement, survives resume, and advances only after its requirements are resolved', async t => {
+  const { root, statePath, apply } = await fixture(t);
+  await apply('context-ready');
+  const dir = artifactJoin(root, 'make-it-work/DEMO');
+  await mkdir(artifactJoin(dir, 'DEMO-handoffs'));
+  const spec = 'make-it-work/DEMO/DEMO-spec.md';
+  await writeFile(artifactJoin(root, spec), '# Spec\nPayment date only.\nTBD: Sessions table or dashboard?\n');
+  const result = n => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec }, data: { tbd_items: n, context_updated: [] } });
+  const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
+  await writeFile(artifactJoin(root, handoff), JSON.stringify(result(1)));
+  const paused = await apply('handoff', { handoff });
+  assert.equal(paused.fields.status, 'Paused');
+  assert.equal(paused.fields.phase, 'close-the-gaps');
+  assert.equal(paused.fields.spec, spec);
+  assert.notEqual(paused.fields.spec_hash, 'none');
+  assert.equal(paused.fields.current_activity, 'none');
+  assert.equal(paused.fields.plan, 'none');
+  assert.equal(paused.fields.execution, 'not-started');
+  assert.match(await readFile(paused.dashboard, 'utf8'), /Draft saved/);
+  await assert.rejects(apply('approve', { source: 'user', via: 'chat' }), /Resume/);
+  await apply('resume', { blocker_resolved: true });
+  await assert.rejects(apply('handoff', { handoff, choice: 'proceed', source: 'user', via: 'chat' }), /not valid/);
+  const repeated = await apply('handoff', { handoff });
+  assert.equal(repeated.fields.phase, 'close-the-gaps');
+  assert.equal(repeated.fields.status, 'Paused');
+  await apply('resume', { blocker_resolved: true });
+  assert.match(await readFile(artifactJoin(root, spec), 'utf8'), /Payment date only/);
+  await writeFile(artifactJoin(root, spec), '# Spec\nPayment date only in the Sessions table.\n');
+  const resolved = 'make-it-work/DEMO/DEMO-handoffs/gaps-2.json';
+  await writeFile(artifactJoin(root, resolved), JSON.stringify(result(0)));
+  await apply('mode', { risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'Defined display-only scope.' });
+  const next = await apply('handoff', { handoff: resolved });
+  assert.equal(next.fields.phase, 'lightweight');
+  assert.equal(next.fields.status, 'In Progress');
+});
 test('checkpoint clears activity, increments review once, and preserves unrelated state', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   const ready = await apply('context-ready');
@@ -296,7 +331,7 @@ test('a queued Guided mode controls the next approval gate but cannot remove the
   const next = transition(start, { event: 'handoff' }, gaps);
   assert.equal(next.fields.phase, 'spec-approval'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.queued_autonomy, 'none');
   const unresolved = transition(fields('close-the-gaps', { autonomy: 'guided', queued_autonomy: 'autopilot' }), { event: 'handoff' }, { ...gaps, data: { ...gaps.data, tbd_items: 1 } });
-  assert.equal(unresolved.pending.action, 'ask'); assert.equal(unresolved.fields.autonomy, 'guided'); assert.equal(unresolved.fields.queued_autonomy, 'autopilot');
+  assert.equal(unresolved.fields.status, 'Paused'); assert.equal(unresolved.fields.phase, 'close-the-gaps'); assert.equal(unresolved.fields.autonomy, 'guided'); assert.equal(unresolved.fields.queued_autonomy, 'autopilot');
 });
 test('completion drops a queued change without relabeling the mode that validated the final package', () => {
   const result = transition(fields('final-approval', { autonomy: 'autopilot', queued_autonomy: 'guided', review: 'clean' }), { event: 'complete' });

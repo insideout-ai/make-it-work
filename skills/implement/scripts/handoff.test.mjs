@@ -69,9 +69,9 @@ for (const naming of [0, 1]) {
 test('routes refinement and planning through the correct autonomy gates', () => {
   assert.deepEqual(decideNext(state('close-the-gaps'), gaps()), { action: 'phase', reason: 'Spec is ready.', phase: 'spec-approval' });
   assert.equal(decideNext(state('close-the-gaps', 'autonomous'), gaps()).phase, 'plan');
-  assert.equal(decideNext(state('close-the-gaps', 'autopilot'), gaps(1)).action, 'stop');
-  assert.equal(decideNext(state('close-the-gaps'), gaps(1), { choice: 'resolve' }).phase, 'close-the-gaps');
-  assert.equal(decideNext(state('close-the-gaps'), gaps(1), { choice: 'proceed' }).phase, 'spec-approval');
+  assert.equal(decideNext(state('close-the-gaps', 'autopilot'), gaps(1)).action, 'pause');
+  assert.equal(decideNext(state('close-the-gaps'), gaps(1)).pause_reason, 'Refinement decisions pending');
+  assert.throws(() => decideNext(state('close-the-gaps'), gaps(1), { choice: 'proceed' }), /not valid/);
   assert.equal(decideNext(state('plan'), plan()).phase, 'plan-approval');
   assert.equal(decideNext(state('plan', 'autonomous'), plan()).phase, 'execute');
   assert.equal(decideNext(state('fix-plan', 'autonomous'), plan('amend', 0)).phase, 'review');
@@ -242,7 +242,7 @@ test('validates the Lightweight implement handoff and its report artifact', asyn
 
 test('routes adaptive refinement by assessed mode and requires an assessment', () => {
   assert.throws(() => decideNext(adaptive('close-the-gaps', 'autonomous', { risk: 'none', mode: 'none', mode_source: 'none' }), gaps()), /Risk assessment required before routing/);
-  assert.throws(() => decideNext(adaptive('close-the-gaps', 'guided', { risk: 'none', mode: 'none', mode_source: 'none' }), gaps(1)), /Risk assessment required/);
+  assert.equal(decideNext(adaptive('close-the-gaps', 'guided', { risk: 'none', mode: 'none', mode_source: 'none' }), gaps(1)).action, 'pause');
   assert.equal(decideNext(adaptive('close-the-gaps', 'autonomous', { risk: 'none', mode: 'none', mode_source: 'none' }), questionsSent()).action, 'pause');
   assert.equal(decideNext(adaptive('close-the-gaps', 'guided'), gaps()).phase, 'spec-approval');
   assert.equal(decideNext(adaptive('close-the-gaps', 'guided', { mode: 'tdd', risk: 'high' }), gaps()).phase, 'spec-approval');
@@ -250,10 +250,16 @@ test('routes adaptive refinement by assessed mode and requires an assessment', (
     assert.equal(decideNext(adaptive('close-the-gaps', autonomy), gaps()).phase, 'lightweight');
     assert.equal(decideNext(adaptive('close-the-gaps', autonomy, { mode: 'tdd', risk: 'medium' }), gaps()).phase, 'plan');
   }
-  assert.equal(decideNext(adaptive('close-the-gaps', 'autonomous'), gaps(1), { choice: 'proceed' }).phase, 'lightweight');
-  assert.equal(decideNext(adaptive('close-the-gaps', 'autonomous', { mode: 'tdd', risk: 'high' }), gaps(1), { choice: 'proceed' }).phase, 'plan');
-  assert.equal(decideNext(adaptive('close-the-gaps', 'guided'), gaps(1), { choice: 'proceed' }).phase, 'spec-approval');
-  assert.equal(decideNext(adaptive('close-the-gaps', 'autopilot'), gaps(1)).action, 'stop');
+  for (const autonomy of ['guided', 'autonomous', 'autopilot']) {
+    for (const mode of ['none', 'lightweight', 'tdd']) {
+      const current = adaptive('close-the-gaps', autonomy, { mode });
+      const paused = decideNext(current, gaps(1));
+      assert.equal(paused.action, 'pause');
+      assert.equal(paused.spec, gaps(1).artifacts.spec);
+      assert.throws(() => decideNext(current, gaps(1), { choice: 'proceed' }), /not valid/);
+    }
+  }
+  assert.equal(decideNext(adaptive('close-the-gaps', 'autonomous'), gaps(1), { escalate: 'Still undecided' }).action, 'pause');
   assert.throws(() => decideNext(adaptive('close-the-gaps', 'autonomous', { adaptive_version: '2' }), gaps()), /Unsupported adaptive_version/);
 });
 

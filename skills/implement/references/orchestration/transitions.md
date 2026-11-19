@@ -6,14 +6,15 @@ For `test_writing_version: 1`, replace routes from approved Plan/nonempty Fix di
 
 Every transition is listed here. `—` means the outcome cannot occur at that level. In Lightweight mode, the `review (Lightweight)` rows replace the `FIX_REQUIRED`, `REPLAN_REQUIRED`, and `HUMAN_DECISION` review rows; the review limit and `CLEAN` rows apply to both modes. Escalation is never asked, at any level.
 
-For `autopilot`, use the Autonomous column only where it requires no human decision. The Autopilot mode policy overrides all rows that say to ask, pause, accept a manual walkthrough, or record a `Route: human` decision: checkpoint a `Stopped` state instead. Clear outcomes that already route automatically in Autonomous (execution pass, related/unrelated gate classification, fix/replan loops, and clean review) continue unattended.
+For `autopilot`, use the Autonomous column only where it requires no human decision. Exception: a saved draft with in-scope TBDs stays Paused in refinement in every mode. Otherwise the Autopilot mode policy overrides all rows that say to ask, pause, accept a manual walkthrough, or record a `Route: human` decision: checkpoint a `Stopped` state instead. Clear outcomes that already route automatically in Autonomous (execution pass, related/unrelated gate classification, fix/replan loops, and clean review) continue unattended.
 
 | Phase | Outcome | Guided | Autonomous |
 | --- | --- | --- | --- |
 | context-check | complete | resolve existing spec/plan artifacts, then start the selected phase | resolve existing spec/plan artifacts, then start the selected phase |
 | context-check | absent or partial go-deep context | ticket-scoped discovery, then continue | ticket-scoped discovery, then continue |
 | context-check | mandatory context unavailable or essential fact unresolved | stop with concrete blocker | stop with concrete blocker |
-| close-the-gaps | spec saved | spec-approval (adaptive runs: after Risk assessment) | plan, or lightweight when `mode: lightweight` |
+| close-the-gaps | draft saved with in-scope TBDs | pause in close-the-gaps; preserve draft and answers | same as Guided (also Autopilot) |
+| close-the-gaps | spec saved with zero in-scope TBDs | spec-approval (adaptive runs: after Risk assessment) | plan, or lightweight when `mode: lightweight` |
 | close-the-gaps | questions prepared for the PM (draft, sent, unconfirmed, or offline fallback) | pause (Slack refinement pending) | pause (Slack refinement pending) |
 | spec-approval / plan-approval | approve | next phase (from spec-approval: lightweight or plan by `mode`) | — |
 | spec-approval | approve with the other mode (adaptive runs) | lightweight or plan by the switched `mode` | — |
