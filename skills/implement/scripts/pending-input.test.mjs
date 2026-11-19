@@ -107,10 +107,20 @@ test('stage needs_input resumes the same stage with its answer rather than askin
   assert.equal(result.fields.phase, 'close-the-gaps'); assert.equal(result.fields.status, 'In Progress'); assert.equal(result.continuation, 'resume-stage');
 });
 test('stale bound approvals cannot resolve and must be reissued with a fresh pending identity', async (t) => {
-  const { root, apply, state } = await fixture(t);
+  const { root, apply, state, html } = await fixture(t);
   const artifact = 'make-it-work/DEMO/DEMO-preview.md'; await writeFile(artifactJoin(root, artifact), 'Shown version');
   const pending = question({ kind: 'approval', binding: { kind: 'artifact', path: artifact, strict: true } });
   await apply('await-input', { pending });
+  const bound = (await state()).pendingInputs[0].binding;
+  assert.equal(bound.sha256, digest('Shown version'));
+  const page = await html();
+  assert.match(page, /href="miw-DEMO-preview.md.preview.html"[^>]*>Review document<\/a>/);
+  assert.match(page, /Waiting for your approval · <span data-wait-since=/);
+  assert.doesNotMatch(page, new RegExp(bound.sha256));
+  assert.doesNotMatch(page, /SHA-256|Pending since|make-it-work\/DEMO\/DEMO-preview.md/);
+  const preview = await readFile(artifactJoin(root, `${artifact}.preview.html`), 'utf8');
+  assert.match(preview, /Shown version/);
+  assert.match(preview, /Open original/);
   await writeFile(artifactJoin(root, artifact), 'Changed version'); const before = await state();
   await assert.rejects(apply('resolve-input', { pending_id: 'question-1', answer: 'continue', source: 'user', via: 'chat' }), /stale/);
   assert.equal((await state()).audit.length, before.audit.length);

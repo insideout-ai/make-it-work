@@ -154,7 +154,7 @@ export const WORKFLOW_TIMESTAMPS = `<script>
         var seconds = Math.floor(delta / 1000);
         var minutes = Math.floor(seconds / 60);
         var hours = Math.floor(minutes / 60);
-        cell.textContent = (hours ? hours + 'h ' + minutes % 60 + 'm' : minutes ? minutes + 'm ' + seconds % 60 + 's' : seconds + 's') + ' waiting';
+        cell.textContent = (hours ? hours + 'h ' + minutes % 60 + 'm' : minutes ? minutes + 'm ' + seconds % 60 + 's' : seconds + 's');
       });
     }
     updateWaitingTimes();

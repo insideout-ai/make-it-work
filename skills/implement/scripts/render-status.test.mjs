@@ -19,6 +19,7 @@ import { finalizeFeedback } from './feedback-finalization.mjs';
 import { feedbackReadback } from './feedback-readback.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
 import { noteCell } from './audit-notes.mjs';
+import { createPendingInput } from './pending-input.mjs';
 
 async function reportReadEvents(reportPath) {
   const timestamp = new Date(Date.now() + 1000).toISOString();
@@ -1563,4 +1564,24 @@ test('preparation reentries remain separate from fix execution and manual exempt
   assert.equal((html.match(/class="phase-skill">\(write-the-tests\)/g) ?? []).length, 2);
   assert.match(html, /Not applicable/);
   assert.match(html, /Step 1 of 2 complete/);
+});
+
+test('approval cards show readable review links without document hashes or raw paths', () => {
+  const hash = 'a'.repeat(64);
+  for (const [phase, binding, label, filename] of [
+    ['spec-approval', { kind: 'artifact', path: 'make-it-work/DEMO/DEMO-spec.md', sha256: hash, strict: true }, 'Review specification', 'DEMO-spec.md'],
+    ['plan-approval', { kind: 'artifact', path: 'make-it-work/DEMO/DEMO-plan.md', sha256: hash, strict: true }, 'Review plan', 'DEMO-plan.md'],
+    ['final-approval', { kind: 'package', sha256: hash, strict: true }, 'Review final package', 'DEMO-final-package.md'],
+  ]) {
+    const pending = createPendingInput({ id: 'approval', kind: 'approval', question: 'Approve this document?', choices: [{ id: 'approve', label: 'Approve' }, { id: 'redo', label: 'Request changes' }, { id: 'stop', label: 'Stop' }], binding }, phase, '2026-01-01T10:00:00Z');
+    const state = parseState(stateMarkdown({ fields: { phase, status: 'Paused', final_package_version: '1', pending_inputs: JSON.stringify([pending]) }, rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Awaiting approval']] }));
+    const html = renderStatus({ state, template: '{{STATUS_BANNER}}', logoBase64: '' });
+    assert.ok(html.includes(`href="${filename}">${label}</a>`));
+    assert.match(html, /Workflow paused/);
+    assert.match(html, /<li>Approve<\/li><li>Request changes<\/li><li>Stop<\/li>/);
+    assert.match(html, /Waiting for your approval · <span data-wait-since="2026-01-01T10:00:00Z">/);
+    assert.doesNotMatch(html, /SHA-256|Pending since|make-it-work\//);
+    assert.ok(!html.includes(hash));
+    assert.equal(state.pendingInputs[0].binding.sha256, hash);
+  }
 });

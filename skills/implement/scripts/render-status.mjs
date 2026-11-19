@@ -766,6 +766,22 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
 }
 
+function pendingReviewLink(state, record) {
+  const binding = record.binding;
+  if (!binding || binding.kind === 'handoff') return '';
+  const reference = binding.kind === 'package'
+    ? runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version)
+    : binding.path;
+  let filename;
+  try { filename = validateArtifactPath(reference, 'pending approval', state.fields.ticket); }
+  catch { return ''; }
+  if (!filename || !filename.endsWith('.md')) return '';
+  const label = binding.kind === 'package' ? 'Review final package'
+    : record.phase === 'spec-approval' ? 'Review specification'
+      : record.phase === 'plan-approval' ? 'Review plan' : 'Review document';
+  return `<p class="pending-reference"><a href="${escapeHtml(filename)}">${label}</a></p>`;
+}
+
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
   const pending = state.pendingInputs ?? pendingInputs(state.fields);
   if (pending.length) {
@@ -774,10 +790,11 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
       const qualifier = record.blocking ? state.fields.status === 'Stopped' ? 'Workflow stopped' : 'Workflow paused' : state.fields.status === 'Complete' ? 'Implementation remains complete' : 'Does not block the workflow';
       const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
       const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
-      const reference = record.binding ? `<p class="pending-reference">${record.binding.path ? escapeHtml(record.binding.path) + ' · ' : ''}SHA-256: <code>${escapeHtml(record.binding.sha256)}</code></p>` : '';
+      const reference = pendingReviewLink(state, record);
       const queued = record.blocking && state.fields.queued_autonomy && state.fields.queued_autonomy !== 'none'
         ? `<p class="pending-qualifier">${escapeHtml(state.fields.queued_autonomy)} starts with the next phase. This question still needs an answer under ${escapeHtml(state.fields.autonomy)}.</p>` : '';
-      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+      const waiting = record.waiting_for === 'pm' ? 'Waiting for the Product Manager' : record.kind === 'approval' ? 'Waiting for your approval' : 'Waiting for your input';
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">${waiting} · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
     const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);

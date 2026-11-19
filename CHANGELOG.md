@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Simplify dashboard approval panels with readable document-preview links and a local waiting timer. Keep exact document hashes and binding paths in internal approval records instead of displaying them in the panel.
+
 - Pause incomplete refinement drafts before spec approval or implementation in every mode. Preserve answered questions on resume, remove generic TBD acceptance, and require recorded decisions or accepted reduced scope before advancing.
 
 - Keep Test Preparation details in the existing artifact reader and link preparation outcomes from the audit log. Remove the duplicate standalone dashboard section while retaining Write Tests timing and activity.
