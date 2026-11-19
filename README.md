@@ -266,8 +266,9 @@ Fresh interactive Implement runs offer isolated worktrees or an explicit branch
 action in the current checkout. `--worktree` selects isolation; `--continue-here`
 selects the current checkout. Single-repo worktrees live under
 `<repo>/.claude/worktrees/<session>/`, with private reports under
-`<repo>/.claude/miw-sessions/<session>/`. Multi-repo sessions group selected
-checkouts and private reports under `<workspace>/.claude/worktrees/<session>/`.
+`<repo>/.claude/miw-sessions/<session>/`. Multi-repo sessions create each selected
+checkout under its source repo’s `.claude/worktrees/<session>/`, with shared
+reports at `<workspace>/.claude/miw-sessions/<session>/`.
 Creation uses the existing exact repository/branch approval. Autopilot keeps the
 current checkout unless isolation is explicit; existing runs retain saved paths.
 See [session worktrees](skills/implement/references/session-worktrees.md).

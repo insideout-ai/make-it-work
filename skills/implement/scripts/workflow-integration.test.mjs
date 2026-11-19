@@ -47,7 +47,7 @@ for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { a
     await cp(artifactJoin(sourceRoot, 'make-it-work/DEMO-2'), artifactJoin(root, 'make-it-work/DEMO-2'), { recursive: true });
     originalRepos = [...repos];
     if (worktree) {
-      const session = await allocateSession(root, { ticket: 'DEMO-2', directory: path.join(root, 'sessions') });
+      const session = await allocateSession(root, { ticket: 'DEMO-2' });
       await cp(artifactJoin(root, 'make-it-work/DEMO-2'), path.join(session.artifact_root, 'make-it-work/DEMO-2'), { recursive: true });
       root = session.artifact_root;
     }
@@ -57,7 +57,7 @@ for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { a
     await approveScope(root, 'DEMO-2', preview.hash, { source: 'user', via: 'chat' });
     await runScope(root, 'DEMO-2', preview.hash);
     if (worktree) {
-      sourceRoot = path.join(root, 'repos', 'api'); secondRoot = path.join(root, 'repos', 'web'); repos = [sourceRoot, secondRoot];
+      sourceRoot = preview.plan.repos.find(repo => repo.id === 'api').root; secondRoot = preview.plan.repos.find(repo => repo.id === 'web').root; repos = [sourceRoot, secondRoot];
       for (const original of originalRepos) assert.equal(execFileSync('git', ['-C', original, 'status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'original checkout is unchanged');
     }
   } else git('switch', '-c', 'DEMO-2');
@@ -191,9 +191,13 @@ for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { a
   assert.ok(scopedPackage.evidence.review_target);
   if (workspace) {
     const pkg = scopedPackage;
+    assert.deepEqual(pkg.repos.map(repo => repo.name), ['api', 'web']);
     assert.deepEqual(pkg.repos.map((repo) => repo.base), ['main', 'develop']);
     assert.throws(() => execFileSync(process.execPath, [helper, 'build', '--root', root, '--state', statePath, '--draft', draft, '--repo', sourceRoot], { stdio: 'pipe' }), /every approved repository/);
-    assert.match(await readFile(initialized.dashboard, 'utf8'), /Full suite: pass/);
+    assert.deepEqual(pkg.validation, { mode: 'full-suite', result: 'pass' });
+    const packagedVerification = JSON.parse(await readFile(path.join(root, pkg.evidence.verification.path), 'utf8'));
+    assert.deepEqual(packagedVerification.gate.full_suites.map(({ repo, result }) => ({ repo, result })),
+      [{ repo: 'api', result: 'pass' }, { repo: 'web', result: 'pass' }]);
   }
   let completed;
   if (autonomy === 'guided') {

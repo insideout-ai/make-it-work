@@ -1,44 +1,19 @@
 #!/usr/bin/env node
 // Allocate only private preflight storage. Worktrees use the existing scope approval.
-import { appendFile, lstat, mkdir, mkdtemp, readdir, realpath, writeFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
+import { lstat, mkdir, mkdtemp, readdir, realpath, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { args, cli, fail } from './lib/artifacts.mjs';
-import { readSessionWorkspace, sessionRepositoryRoot, SESSION_MARKER } from './lib/session-workspace.mjs';
+import { readSessionWorkspace, sessionRepositoryRoot, localDirectory, ignorePrivateSession, SESSION_MARKER } from './lib/session-workspace.mjs';
 import { gitRoot, resolveWorkspace } from './workspace.mjs';
 
 const legacyDirectory = () => path.join(os.homedir(), '.make-it-work', 'sessions');
-const sessionsDirectory = (source, directory) => path.resolve(directory ?? path.join(source.root, '.claude', source.layout === 'single-repo' ? 'miw-sessions' : 'worktrees'));
+const sessionsDirectory = (source, directory) => path.resolve(directory ?? path.join(source.root, '.claude', 'miw-sessions'));
 async function sourceWorkspace(cwd, workspaceRoot) {
   let source = await resolveWorkspace(cwd, { workspaceRoot });
   const existing = await readSessionWorkspace(source.root);
   if (existing) source = await resolveWorkspace(existing.source_root, { workspaceRoot: existing.source_root });
   return source;
-}
-async function localDirectory(root, directory) {
-  let current = root;
-  for (const part of path.relative(root, directory).split(path.sep)) {
-    current = path.join(current, part);
-    try { await mkdir(current); } catch (error) { if (error.code !== 'EEXIST') throw error; }
-    const info = await lstat(current);
-    if (!info.isDirectory() || info.isSymbolicLink()) fail('Managed session parents must be real directories, not symlinks.');
-  }
-}
-async function ignorePrivateSession(source, directories) {
-  const git = argv => execFileSync('git', ['-C', source, ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-  const exclude = git(['rev-parse', '--path-format=absolute', '--git-path', 'info/exclude']);
-  const parent = path.dirname(exclude);
-  if (await realpath(parent) !== parent) fail('Git exclude directory must not be redirected.');
-  try { const info = await lstat(exclude); if (!info.isFile() || info.isSymbolicLink()) fail('Git exclude file must be a regular file.'); }
-  catch (error) { if (error.code !== 'ENOENT') throw error; }
-  const rules = directories.map(directory => '/' + path.relative(source, directory).split(path.sep).join('/').replace(/[\\*?\[\]#! ]/g, '\\$&') + '/');
-  // One append preserves concurrent sessions' distinct rules and the user's .gitignore.
-  await appendFile(exclude, '\n# Make It Work private session\n' + rules.join('\n') + '\n');
-  for (const directory of directories) {
-    try { git(['check-ignore', '--no-index', '-q', '--', path.join(directory, 'miw-ignore-probe')]); }
-    catch { fail('Existing ignore rules expose the private session. Resolve them or choose a custom sessions directory outside Git; the current checkout remains available.'); }
-  }
 }
 export async function allocateSession(cwd, { ticket, directory, checkout = 'worktree', workspaceRoot } = {}) {
   if (!['worktree', 'current'].includes(checkout)) fail('Choose worktree or current checkout.');
@@ -54,11 +29,13 @@ export async function allocateSession(cwd, { ticket, directory, checkout = 'work
     if (await gitRoot(parent)) fail('Choose a custom sessions directory outside Git working trees; the current checkout remains available.');
   } else await localDirectory(source.root, parent);
   const root = await realpath(await mkdtemp(path.join(parent, `${ticket}-`)));
-  const version = directory === undefined && source.layout === 'single-repo' ? 2 : 1;
+  const version = directory !== undefined ? 1 : source.layout === 'single-repo' ? 2 : 3;
   const binding = { version, artifact_root: root, source_root: source.root };
   if (version === 1) await mkdir(path.join(root, 'repos'));
-  else await localDirectory(source.root, path.join(source.root, '.claude', 'worktrees'));
-  const repositories = source.repositories.filter(repo => !repo.unavailable).map(repo => ({ id: repo.id, source_root: repo.root, root: sessionRepositoryRoot(binding, repo.id) }));
+  else if (version === 2) await localDirectory(source.root, path.join(source.root, '.claude', 'worktrees'));
+  const repositories = source.repositories.filter(repo => !repo.unavailable).map(repo => ({ id: repo.id, source_root: repo.root }));
+  binding.repositories = repositories;
+  for (const repo of repositories) repo.root = sessionRepositoryRoot(binding, repo.id);
   if (version === 2) {
     try { await lstat(repositories[0].root); fail('Worktree destination already exists; preserve it and select a fresh session.'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -75,7 +52,7 @@ export async function allocateSession(cwd, { ticket, directory, checkout = 'work
 export async function listSessions(cwd, { ticket, directory, workspaceRoot } = {}) {
   const source = await sourceWorkspace(cwd, workspaceRoot);
   const found = [];
-  const parents = new Set([sessionsDirectory(source, directory), ...(directory === undefined ? [legacyDirectory()] : [])]);
+  const parents = new Set([sessionsDirectory(source, directory), ...(directory === undefined ? [...(source.layout === 'workspace' ? [path.join(source.root, '.claude', 'worktrees')] : []), legacyDirectory()] : [])]);
   for (const parent of parents) {
     let names;
     try { names = await readdir(parent, { withFileTypes: true }); }

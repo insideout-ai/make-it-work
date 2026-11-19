@@ -17,3 +17,8 @@ worktrees and the normal default location; I have not supplied a custom sessions
 directory. Prepare the repository/branch creation preview, then leave its exact
 approval unanswered. No repository/branch creation is approved. Do not create
 worktrees, initialize the workflow, implement, commit, push or publish.
+
+Preparing private shared session files, selected-repo parent directories and
+exact local Git exclusions for this session is authorized. Preserve existing
+source file contents, .gitignore files, index, HEAD and branch in every repo;
+leave unrelated untouched. Creation approval must remain unanswered.

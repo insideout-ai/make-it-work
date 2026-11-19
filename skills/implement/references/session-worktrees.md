@@ -48,9 +48,9 @@ Single repo:
     make-it-work/<TICKET>/                          # state/reports/dashboard
 
 Multi-repo workspace:
-  <workspace>/.claude/worktrees/<session>/            # private preflight root
-    repos/<repo-id>/                                # selected Git checkouts
-    make-it-work/<TICKET>/                          # state/reports/dashboard
+  <workspace>/<repo-id>/.claude/worktrees/<session>/  # one checkout per selected repo
+  <workspace>/.claude/miw-sessions/<session>/         # shared private preflight root
+    make-it-work/<TICKET>/                          # shared state/reports/dashboard
 ```
 
 The session name is unique even for the same ticket. Single-repo preflight is
@@ -58,6 +58,15 @@ separate so approval can be prepared while the future checkout path stays empty.
 Local Git exclusions cover only that new session's paths without rewriting the
 source `.gitignore` or hiding unrelated local files. Allocation creates private
 storage and `miw-session.json`, never branches, worktrees or workflow state.
+For multi-repo runs, allocation touches only the shared workspace storage;
+preparing the selected preview creates parent directories and exact local
+exclusions in those selected repos only. Shared records bind each repo-local
+checkout to the same workflow root. Resume from either worktree uses that saved
+binding, not a fresh guess at which repositories belong together. All repo-local
+checkout folders share the session name; use the saved repository ID for review,
+diff and package names, never the checkout directory's basename. New multi-repo
+contracts record this naming rule; existing packages and saved runs keep their
+previous names.
 Describe this as preserving existing source files, index and current branch;
 preflight itself creates the selected private directories and local exclusion
 entries. Do not promise that no filesystem/Git-metadata writes occur. If the
@@ -67,9 +76,10 @@ allocation and honor the restriction through the existing startup choice.
 An explicit `--directory <sessions-parent>` keeps the existing external container
 layout (`<session>/repos/<repo-id>` plus `<session>/make-it-work/<TICKET>`); choose
 a durable directory outside Git checkouts. Existing saved sessions retain their
-paths, including `~/.make-it-work/sessions`. Default discovery checks both the
-new local parent and the old home parent; use `--directory` for other saved custom
-parents. Do not relocate a saved session or reinterpret its marker format.
+paths, including `~/.make-it-work/sessions` and older workspace-grouped
+`.claude/worktrees/<session>/repos/` sessions. Default discovery checks the new
+local parent, the former grouped workspace parent, and the old home parent;
+use `--directory` for other saved custom parents. Do not relocate a saved session or reinterpret its marker format.
 
 A setup failure retains the current-checkout route as an option. Honor an
 explicit isolation requirement rather than silently falling back or changing

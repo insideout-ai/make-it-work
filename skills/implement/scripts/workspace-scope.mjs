@@ -9,7 +9,7 @@ import { snapshot } from '../../../scripts/lib/repo-state.mjs';
 import { resolveWorkspace } from '../../../scripts/workspace.mjs';
 import { runArtifact, runDirectory } from './artifact-layout.mjs';
 import { renderScopePreview } from './workspace-view.mjs';
-import { readSessionWorkspace, checkSessionRepositories, SESSION_MARKER } from '../../../scripts/lib/session-workspace.mjs';
+import { readSessionWorkspace, checkSessionRepositories, sessionRepositoryRoot, prepareSessionRepository, SESSION_MARKER } from '../../../scripts/lib/session-workspace.mjs';
 
 const git = (root, argv) => execFileSync('git', ['-C', root, ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const hasRef = (root, ref) => { try { git(root, ['rev-parse', '--verify', '--quiet', ref]); return true; } catch { return false; } };
@@ -95,11 +95,14 @@ export async function prepareScope(root, input) {
       if (session && !destination) {
         if (session.version === 2) fail('Single-repo session source binding changed; preserve the saved checkout.');
         if (session.repositories.some(item => item.id === repo.id) || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(repo.id)) fail('Session source repository binding changed.');
-        destination = path.join(root, 'repos', repo.id);
-        session.repositories.push({ id: repo.id, source_root: repo.root, root: destination });
+        const binding = { id: repo.id, source_root: repo.root };
+        session.repositories.push(binding);
+        destination = sessionRepositoryRoot(session, repo.id);
+        binding.root = destination;
         await atomicWrite(path.join(root, SESSION_MARKER), JSON.stringify(session, null, 2) + '\n');
       }
       const retained = session && (activeContract?.repos ?? (previous?.status === 'applied' ? previous.plan.repos : [])).find(item => item.id === repo.id);
+      if (session?.version === 3 && !retained) await prepareSessionRepository(session, session.repositories.find(entry => entry.id === repo.id));
       const checkoutRoot = retained?.root ?? repo.root;
       const baseline = session && !retained ? sourceOverview(repo.root) : (await snapshot([checkoutRoot]))[0];
       let base = selection.base;
@@ -152,7 +155,8 @@ export async function prepareScope(root, input) {
     }
     selected.sort((a, b) => a.id.localeCompare(b.id));
     const plan = { ticket, artifact_root: root, layout: 'workspace', report, repos: selected,
-      ...(session ? { checkout: 'worktree', source_root: session.source_root } : {}) };
+      ...(session ? { checkout: 'worktree', source_root: session.source_root } : {}),
+      ...(session?.version === 3 ? { repo_naming_version: 1 } : {}) };
     const history = [...(previous?.history ?? []), ...(previous ? [{ hash: previous.hash, status: previous.status, approval: previous.approval, repos: previous.plan.repos.map(({ id, branch, base }) => ({ id, branch, base })), time: new Date().toISOString() }] : [])];
     return save(root, { version: 1, plan, hash: digest(JSON.stringify(plan)), status: 'awaiting-approval', approval: null, progress: {}, history });
   });
@@ -253,6 +257,7 @@ export async function approvedScope(root, ticket, roots) {
   if (!same(current, Object.values(journal.progress).map((entry) => entry.snapshot).sort((a, b) => a.root.localeCompare(b.root)))) fail('Workspace changed after branch selection.');
   const contract = { version: 1, layout: 'workspace', artifact_root: await realpath(root), approval_hash: journal.hash,
     ...(journal.plan.checkout ? { checkout: journal.plan.checkout, source_root: journal.plan.source_root } : {}),
+    ...(journal.plan.repo_naming_version === 1 ? { repo_naming_version: 1 } : {}),
     repos: journal.plan.repos.map(({ id, root, role, base, branch, reason, source_root, git_common_dir }) => ({ id, root, role, base, branch, reason,
       ...(source_root ? { source_root, git_common_dir } : {}) })) };
   await checkSessionRepositories(contract);

@@ -2133,3 +2133,41 @@ unchanged source checkout. The passing multi-repo case was not repeated. Runtime
 from `b604a61` built, integrity-verified and clean-installed (16 skills / 201
 files). The retry commit changes only prompt/guidance. Detailed source and scope
 qualifications are retained in evals/AUDIT.md.
+
+
+### D026 — Per-repository worktrees with workspace-level shared state, 2026-11-19
+
+The maintainer approved following Claude Code's per-repo location convention
+for fresh multi-repo sessions. Selected checkouts now use
+<workspace>/<repo>/.claude/worktrees/<session>; shared preflight/state/reports
+use <workspace>/.claude/miw-sessions/<session>/make-it-work/<TICKET>. Single-repo
+version-2 layout and explicit external containers retain their behavior.
+Version-1 workspace-grouped and home sessions remain discoverable at saved paths.
+
+A version-3 session marker binds repo-local targets to the explicit workspace.
+Discovery inside a worktree checks only known layout locations and requires a
+matching saved target; it does not widen fresh-run scope from an assumed parent.
+Conflicting matching bindings require an explicit saved root. Allocation touches
+only shared storage. Preparing a selected preview creates parents/exclusions
+only in selected repos, preserving existing source contents, .gitignore, index
+and branches. Occupied targets are rejected before exclusions could hide them.
+No migration, cleanup, reset or new routine approval is introduced.
+
+End-to-end testing reproduced Duplicate delivery repo name because both local
+checkout folders use the same session name. Fresh version-3 plans/contracts now
+opt into repo-ID snapshot names for review and final packaging. Older contracts
+retain basename naming and existing approval hashes. A second integration check
+found an older assertion for a dashboard Full suite label removed by the other
+session's UI simplification; it now verifies actual passing package/per-repo
+verification evidence instead. The isolated red/green workflow then completed
+through regression, review and final packaging with api/web names.
+
+Validation: 76 affected routing/review/package helper tests passed; the full
+isolated red/green integration passed after those corrections; eval-harness and
+packaging/publication checks passed 113 tests. An initial new test report fixture
+missed its required Assessment Evidence heading; the fixture was corrected and
+the helper selection passed. Strict skills validation, whitespace and the
+189-case inventory pass. The existing multi-repo live case now checks per-repo
+paths, shared state, selected-only bookkeeping and unchanged sources; focused
+live evidence follows the committed candidate. Earlier passing evidence retains
+its original source/scope qualifications; no full smoke was repeated.

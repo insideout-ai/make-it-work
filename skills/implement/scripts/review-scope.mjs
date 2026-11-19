@@ -42,11 +42,12 @@ async function readState(root, statePath) {
 }
 export async function deliverySnapshots(root, state) {
   const f = state.fields;
-  const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos
+  const contract = f.workspace_version === '1' ? JSON.parse(f.workspace_contract) : null;
+  const selected = contract ? contract.repos
     : (f.workspace_snapshot ? JSON.parse(f.workspace_snapshot) : [{ root, branch: f.branch }]).map((repo) => ({ ...repo, base: f.base }));
   const repos = [];
   for (const repo of selected) {
-    const snapshot = await snapshotDeliveryRepo(repo.root, repo.base);
+    const snapshot = await snapshotDeliveryRepo(repo.root, repo.base, contract?.repo_naming_version === 1 ? { name: repo.id } : {});
     if (snapshot.branch !== repo.branch) fail('Review branch differs from the saved delivery branch.');
     if (repos.some((item) => item.name === snapshot.name)) fail(`Duplicate delivery repo name: ${snapshot.name}`);
     repos.push(snapshot);

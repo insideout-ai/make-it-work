@@ -205,12 +205,15 @@ async function lightweightPackage(root, state, repoInputs, baseInputs, draftArti
 
 async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draft, evidence, validation, extra, assuranceVersion) {
   const f = state.fields;
+  const contract = f.workspace_version === '1' ? JSON.parse(f.workspace_contract) : null;
   const reviewReport = await readFile(artifactResolve(root, evidence.review.path), 'utf8');
   const openNits = [...reviewReport.matchAll(/^\d+\.\s+\*\*\[Minor\]\*\*\s+(.+)$/gm)].map((match) => match[1].trim());
   const repos = [];
   const seen = new Set();
   for (let i = 0; i < repoInputs.length; i += 1) {
-    const snap = await snapshotDeliveryRepo(repoInputs[i], baseInputs[i] ?? f.base);
+    const canonical = await realpath(repoInputs[i]);
+    const selected = contract?.repo_naming_version === 1 ? contract.repos.find(repo => repo.root === canonical) : null;
+    const snap = await snapshotDeliveryRepo(repoInputs[i], baseInputs[i] ?? f.base, selected ? { name: selected.id } : {});
     if (seen.has(snap.name)) fail(`Duplicate repo name: ${snap.name}`);
     seen.add(snap.name);
     snap.diff_file = path.basename(artifactJoin(runDirectory(root, f.ticket), textFileName(f.ticket, `${snap.name}.diff`)));

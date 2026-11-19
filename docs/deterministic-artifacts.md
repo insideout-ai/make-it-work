@@ -161,17 +161,21 @@ approval binding. See the [verification contract](../skills/implement/references
 private preflight storage. Fresh single-repo worktrees are created at
 `<repo>/.claude/worktrees/<session>`, with separate preflight/artifacts at
 `<repo>/.claude/miw-sessions/<session>/make-it-work/<TICKET>`. Fresh multi-repo
-sessions live at `<workspace>/.claude/worktrees/<session>`, with `repos/<repo-id>`
-checkouts beside `make-it-work/<TICKET>`. Defaults use the resolved boundary,
+sessions put each checkout at `<workspace>/<repo-id>/.claude/worktrees/<session>`
+and shared state/reports at `<workspace>/.claude/miw-sessions/<session>/make-it-work/<TICKET>`. Defaults use the resolved boundary,
 never a guessed common ancestor. Local Git exclusions protect only new private
 paths without rewriting source `.gitignore` files.
 
 `--checkout current` retains the existing checkout/artifact root. Explicit
 `--directory` overrides retain the external container layout and must be outside
 Git checkouts. Existing markers/paths are never migrated: version 1 retains its
-container bindings; version 2 binds the new single-repo sibling paths. Default
-listing checks the new local parent and legacy `~/.make-it-work/sessions`; other
-custom parents remain available with `--directory`. Resume and repository lookup
+container bindings; version 2 binds single-repo sibling paths, and version 3
+binds repo-local multi-repo checkouts to shared workspace state. Fresh version-3
+contracts also opt into repo-ID review/package naming, keeping same-named
+checkout directories distinct without relabeling saved older packages. Only selected
+repo parents/exclusions are prepared. Default listing checks the new local
+parent, former workspace-grouped parent and legacy `~/.make-it-work/sessions`;
+other custom parents remain available with `--directory`. Resume and repository lookup
 use saved targets, including when the artifact root is inside the source repo.
 
 Linked worktrees are created only through the existing

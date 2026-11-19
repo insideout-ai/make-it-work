@@ -98,7 +98,7 @@ test('an explicit multi-repo workspace inside another Git checkout keeps its bou
   const original = git(f.root, 'status', '--porcelain');
   const { session, plan } = await preview(f, f.source, { workspaceRoot: f.source });
   assert.equal(session.source_root, f.source);
-  assert.equal(path.dirname(session.artifact_root), path.join(f.source, '.claude', 'worktrees'));
+  assert.equal(path.dirname(session.artifact_root), path.join(f.source, '.claude', 'miw-sessions'));
   assert.deepEqual(plan.plan.repos.map(repo => repo.id), ['api', 'web']);
   await approveScope(session.artifact_root, 'DEMO', plan.hash, user); await runScope(session.artifact_root, 'DEMO', plan.hash);
   assert.equal((await resolveRepository({ root: session.artifact_root, repo: 'api' })).root, plan.plan.repos[0].root);
@@ -106,22 +106,66 @@ test('an explicit multi-repo workspace inside another Git checkout keeps its bou
   await assert.rejects(lstat(path.join(f.root, '.gitignore')), { code: 'ENOENT' });
 });
 
-test('default multi-repo sessions are workspace-local, distinct and discoverable alongside legacy sessions', async t => {
+test('default multi-repo checkouts are repo-local with shared state, bound resume and legacy discovery', async t => {
   const f = await fixture(t);
   t.mock.method(os, 'homedir', () => f.root);
   const old = await allocateSession(f.source, { ticket: 'DEMO', directory: path.join(f.root, '.make-it-work', 'sessions') });
+  const grouped = await allocateSession(f.source, { ticket: 'DEMO', directory: path.join(f.source, '.claude', 'worktrees') });
   const pair = await Promise.all([preview(f, f.source, {}), preview(f, f.source, {})]);
   assert.notEqual(pair[0].session.artifact_root, pair[1].session.artifact_root);
+  git(path.join(f.source, 'api'), 'switch', '-c', 'other-source-session');
   for (const { session, plan } of pair) {
-    assert.equal(path.dirname(session.artifact_root), path.join(f.source, '.claude', 'worktrees'));
-    assert.equal(session.version, 1);
-    for (const repo of plan.plan.repos) assert.equal(repo.root, path.join(session.artifact_root, 'repos', repo.id));
+    assert.equal(path.dirname(session.artifact_root), path.join(f.source, '.claude', 'miw-sessions'));
+    assert.equal(session.version, 3);
+    for (const repo of plan.plan.repos) assert.equal(repo.root, path.join(f.source, repo.id, '.claude', 'worktrees', path.basename(session.artifact_root)));
     await approveScope(session.artifact_root, 'DEMO', plan.hash, user); await runScope(session.artifact_root, 'DEMO', plan.hash);
-    assert.equal((await resolveWorkspace(plan.plan.repos[0].root)).artifact_root, session.artifact_root);
+    for (const repo of plan.plan.repos) {
+      await mkdir(path.join(repo.root, 'nested'));
+      assert.equal((await resolveWorkspace(path.join(repo.root, 'nested'))).artifact_root, session.artifact_root);
+      assert.equal((await resolveRepository({ root: session.artifact_root, repo: repo.id })).root, repo.root);
+      assert.equal(git(repo.source_root, 'status', '--porcelain'), 'M  code.txt\n?? local.txt');
+    }
+    const roots = plan.plan.repos.map(repo => repo.root);
+    const initialized = await initializeWorkflow(session.artifact_root, { ticket: 'DEMO', autonomy: 'guided', repos: roots, branch_guard: 'Approved repo-local worktrees' });
+    await applyWorkflow({ root: session.artifact_root, statePath: initialized.state, input: { event: 'pause', id: 'pause', expected_hash: digest(await readFile(initialized.state, 'utf8')), repos: roots, reason: 'User pause' } });
+    await applyWorkflow({ root: session.artifact_root, statePath: initialized.state, input: { event: 'resume', id: 'resume', expected_hash: digest(await readFile(initialized.state, 'utf8')), repos: roots, blocker_resolved: true } });
   }
   const sessions = await listSessions(f.source, { ticket: 'DEMO' });
-  assert.deepEqual(new Set(sessions.map(entry => entry.artifact_root)), new Set([old.artifact_root, ...pair.map(entry => entry.session.artifact_root)]));
+  assert.deepEqual(new Set(sessions.map(entry => entry.artifact_root)), new Set([old.artifact_root, grouped.artifact_root, ...pair.map(entry => entry.session.artifact_root)]));
   assert.equal((await resolveWorkspace(old.artifact_root)).artifact_root, old.artifact_root);
+  assert.equal((await resolveWorkspace(grouped.artifact_root)).artifact_root, grouped.artifact_root);
+});
+
+test('multi-repo preflight only prepares selected source parents and rejects occupied targets without hiding them', async t => {
+  const f = await fixture(t), session = await allocateSession(f.source, { ticket: 'DEMO' });
+  for (const repo of session.repositories) await assert.rejects(lstat(path.join(repo.source_root, '.claude')), { code: 'ENOENT' });
+  const report = await writeAssessmentReport(f.source, { ticket: 'DEMO', markdown: '# Assessment\n\n## Assessment Evidence\n', assessments: session.repositories.map(repo => ({ id: repo.id, status: 'Definite', search: 'code.txt:1' })) }, { artifactRoot: session.artifact_root });
+  const input = { ticket: 'DEMO', report: path.relative(session.artifact_root, report.file), repos: [{ id: 'api', base: 'main', reason: 'code.txt:1' }] };
+  await prepareScope(session.artifact_root, input);
+  await assert.rejects(lstat(path.join(f.source, 'web', '.claude')), { code: 'ENOENT' });
+  const web = session.repositories.find(repo => repo.id === 'web');
+  await mkdir(web.root, { recursive: true }); await writeFile(path.join(web.root, 'user.txt'), 'Existing user files');
+  await assert.rejects(prepareScope(session.artifact_root, { ...input, repos: [{ id: 'web', base: 'main', reason: 'code.txt:1' }] }), /occupied/);
+  assert.equal(await readFile(path.join(web.root, 'user.txt'), 'utf8'), 'Existing user files');
+  assert.throws(() => git(web.source_root, 'check-ignore', '-q', '--', path.join(web.root, 'user.txt')));
+});
+
+test('repo-local multi-repo markers reject source redirects and require explicit resolution for conflicting bindings', async t => {
+  const f = await fixture(t), { session, plan } = await preview(f, f.source, {});
+  const marker = path.join(session.artifact_root, 'miw-session.json');
+  const bad = JSON.parse(await readFile(marker, 'utf8'));
+  bad.repositories[0].source_root = path.join(f.root, 'outside');
+  bad.repositories[0].root = path.join(f.root, 'outside', '.claude', 'worktrees', path.basename(session.artifact_root));
+  await writeFile(marker, JSON.stringify(bad));
+  await assert.rejects(resolveWorkspace(session.artifact_root), /source binding/);
+  await writeFile(marker, JSON.stringify({ ...session, checkout: undefined, instruction: undefined }));
+  await approveScope(session.artifact_root, 'DEMO', plan.hash, user); await runScope(session.artifact_root, 'DEMO', plan.hash);
+  const repo = plan.plan.repos[0], conflicting = path.join(repo.source_root, '.claude', 'miw-sessions', path.basename(session.artifact_root));
+  await mkdir(conflicting, { recursive: true });
+  await writeFile(path.join(conflicting, 'miw-session.json'), JSON.stringify({ version: 2, ticket: 'DEMO', artifact_root: conflicting, source_root: repo.source_root,
+    repositories: [{ id: repo.id, source_root: repo.source_root, root: repo.root }] }));
+  await assert.rejects(resolveWorkspace(repo.root), /Ambiguous managed session/);
+  assert.equal((await resolveWorkspace(repo.root, { savedRoot: session.artifact_root })).artifact_root, session.artifact_root);
 });
 
 test('recorded identity independent of the source folder still resolves the bound single-repo worktree', async t => {

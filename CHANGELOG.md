@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Create fresh single-repo worktrees under the repository’s `.claude/worktrees/` and multi-repo sessions under the workspace’s `.claude/worktrees/`. Keep single-repo reports separate, preserve source ignore files and local edits, and retain existing session paths and discovery.
+- Create fresh worktrees under each selected repository’s `.claude/worktrees/`, including multi-repo runs. Keep shared multi-repo reports at workspace `.claude/miw-sessions/`, preserve source ignore files and local edits, and retain existing session paths and discovery.
 
 - Show worktree creation details as readable chat fields with a clickable preview link, followed by a brief plain-text confirmation dialog. Preserve branch naming, exact approval and source-status disclosures.
 

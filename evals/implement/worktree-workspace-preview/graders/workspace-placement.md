@@ -6,9 +6,12 @@ weight: 3
 
 Require real workspace assessment and an actual awaiting-approval workspace-scope
 plan for api and web, with unrelated assessed but not selected. The new session
-must be under <invocation-workspace>/.claude/worktrees/<session>, with separate
-repo worktrees proposed at <session>/repos/api and <session>/repos/web and private
-reports under <session>/make-it-work/DEMO-201. A home-directory default or an
+must keep shared preflight/reports under
+<invocation-workspace>/.claude/miw-sessions/<session>/make-it-work/DEMO-201,
+with worktrees proposed at <workspace>/api/.claude/worktrees/<session> and
+<workspace>/web/.claude/worktrees/<session>. A workspace-grouped repos/api or
+repos/web checkout path fails. Private parent directories and exact local
+exclusions may be prepared only in selected api/web, never unrelated. A home-directory default or an
 unrequested custom sessions directory fails. The workspace needs no root Git
 repository or CLAUDE.md. The roots must match successful helper output.
 

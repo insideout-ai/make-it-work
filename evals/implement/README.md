@@ -286,8 +286,9 @@ native UI rendering.
 
 The preview case now exercises single-repo default placement with no --directory
 override. `implement-worktree-workspace-preview` adds the corresponding multi-repo
-default, assessing api/web/unrelated and preparing only api/web under the workspace
-.claude/worktrees session. Both leave exact creation approval unanswered, preserve
+default, assessing api/web/unrelated and proposing repo-local api/web worktrees
+with shared state under workspace .claude/miw-sessions. Only selected api/web
+receive private parent/exclusion preparation; unrelated stays untouched. Both leave exact creation approval unanswered, preserve
 source bytes and check the readable naming/approval presentation. They remain
 extended/full cases; neither is added to smoke/critical. Existing custom/legacy
 layouts and actual creation/resume are covered by helper integration tests.
