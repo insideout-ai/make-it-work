@@ -18,4 +18,7 @@ sessions directory.
 Prepare the normal repository/branch creation preview and stop at its unanswered
 approval. I have not supplied a branch name or approved any creation. Do not
 choose the approval for me, create a branch/worktree, initialize the workflow,
-or start refinement. Leave this checkout and its existing local edits unchanged.
+or start refinement. Preserve all existing tracked/untracked file contents,
+the index, HEAD and current branch. Creating the new private preflight directory
+and adding local Git exclusions for only this session's generated paths are
+authorized as part of preparing this preview; do not rewrite .gitignore.

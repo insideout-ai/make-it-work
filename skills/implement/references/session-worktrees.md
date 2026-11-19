@@ -58,6 +58,11 @@ separate so approval can be prepared while the future checkout path stays empty.
 Local Git exclusions cover only that new session's paths without rewriting the
 source `.gitignore` or hiding unrelated local files. Allocation creates private
 storage and `miw-session.json`, never branches, worktrees or workflow state.
+Describe this as preserving existing source files, index and current branch;
+preflight itself creates the selected private directories and local exclusion
+entries. Do not promise that no filesystem/Git-metadata writes occur. If the
+user explicitly prohibits even that bookkeeping, explain the conflict before
+allocation and honor the restriction through the existing startup choice.
 
 An explicit `--directory <sessions-parent>` keeps the existing external container
 layout (`<session>/repos/<repo-id>` plus `<session>/make-it-work/<TICKET>`); choose
