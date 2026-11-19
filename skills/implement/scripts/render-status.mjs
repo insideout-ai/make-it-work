@@ -698,6 +698,15 @@ function displayOutcome(outcome) {
 
 function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
   const text = displayOutcome(outcome);
+  const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(\. Implementation remains unverified\.)?$/);
+  if (preparation) {
+    try {
+      const report = validateArtifactPath(preparation[2], 'test_preparation_report', state.fields.ticket);
+      if (report && /-plan-tests-[1-9]\d*\.md$/.test(report)) {
+        return `Test preparation ${escapeHtml(preparation[1])} · <a href="${escapeHtml(report)}">View preparation report</a>${preparation[3] ?? ''}`;
+      }
+    } catch { /* Preserve unrecognized historical entries as plain text. */ }
+  }
   if (text.startsWith('Result: Change assessment — ')) {
     const split = text.lastIndexOf('; evidence: ');
     const reference = text.slice(split + '; evidence: '.length);
@@ -822,21 +831,10 @@ function renderModePill(state) {
   return `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</span>`;
 }
 
-function renderTddArtifactTile(state, field, label) {
+function renderTddArtifactTile(state, field, label, note = '') {
   if (isAdaptive(state) && state.fields.mode === 'lightweight') return '';
   const link = artifactLink(state.fields[field], field, state.fields.ticket);
-  return `  <div class="artifact-tile"><div class="label">${label}</div>${link}</div>`;
-}
-
-function renderPreparation(state, preparation) {
-  if (state.fields.test_writing_version !== '1' || state.fields.mode === 'lightweight') return '';
-  const label = 'Test Preparation';
-  const link = artifactLink(state.fields.test_preparation_report, 'test_preparation_report', state.fields.ticket);
-  if (!preparation) return `<section class="test-preparation"><h2>${label}</h2><p>Preparation pending. Implementation is unverified.</p></section>`;
-  const stale = preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash);
-  const status = stale ? 'Superseded — refresh preparation for the current plan' : preparation.status;
-  const rows = (Array.isArray(preparation.entries) ? preparation.entries : []).filter(entry => entry && typeof entry === 'object').map(entry => `<li>${escapeHtml(entry.scenario)}: <strong>${escapeHtml(entry.result)}</strong> — ${escapeHtml(entry.reason)}</li>`).join('');
-  return `<section class="test-preparation"><h2>${label}</h2><p>${escapeHtml(status)}</p><p>Expected red confirms missing behavior; it is successful preparation. Unavailable checks remain unverified. Preparation does not establish implementation completion.</p><ul>${rows}</ul><p>${link}</p></section>`;
+  return `  <div class="artifact-tile"><div class="label">${label}</div>${link}${note ? `<p class="artifact-note">${escapeHtml(note)}</p>` : ''}</div>`;
 }
 
 function renderImplementationTile(state) {
@@ -907,6 +905,9 @@ function renderAssessmentBadges(state, report) {
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null }) {
+  const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
+    : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
+      ? 'Superseded — refresh preparation for the current plan' : '';
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -946,8 +947,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation') : '',
-    TEST_PREPARATION: renderPreparation(state, preparation),
+    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) : '',
+    TEST_PREPARATION: '', // Compatibility with older templates; details live in artifacts.
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
     IMPLEMENTATION_TILE: renderImplementationTile(state),

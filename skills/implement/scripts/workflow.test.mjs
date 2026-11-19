@@ -618,7 +618,11 @@ test('actual controller accepts current preparation, renders its report, and ent
   await f.apply('preparation-saved', { preparation: path.relative(await realpath(f.root), saved.file) });
   const html = await readFile(f.result.dashboard, 'utf8');
   assert.match(html, /Test Preparation/);
-  assert.match(html, /expected-red/);
+  assert.doesNotMatch(html, /class="test-preparation"|expected-red/);
+  assert.match(html, /Test preparation ready · <a[^>]+>View preparation report<\/a>/);
+  const preview = await readFile(`${saved.report}.preview.html`, 'utf8');
+  assert.match(preview, /expected-red/);
+  assert.match(preview, /Open original/);
   assert.match(html, /tests-1.md.preview.html/);
   const testsHandoff = artifactJoin(handoffs, 'tests-1.json');
   await writeFile(testsHandoff, JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'tests', status: 'done', plan_version: 1, outcome: 'TESTS_PREPARED', artifacts: { preparation: path.relative(await realpath(f.root), saved.file), report: path.relative(await realpath(f.root), saved.report) }, data: {} }));

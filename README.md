@@ -232,7 +232,7 @@ Prepares the approved plan's coverage before execution: reuses adequate existing
 
 Pass a ticket ID or explicit plan path. In `implement`, this stage runs in a fresh worker after plan approval in Guided mode, and automatically after planning in Autonomous/Autopilot. The coordinator retains approvals and dashboard ownership. Standalone `execute` stops with guidance if required preparation is missing or stale; it never invokes test writing automatically. Manual-only plans record not-applicable preparation, while Lightweight skips the stage. Older saved runs keep their prior evidence and routing.
 
-The HTML dashboard shows **Plan → Write Tests → Execute**, separate preparation timing/activity, and a **Test Preparation** report with formatted preview and original-file access. Preparation does not advance implementation progress or establish completion. Replans and fix amendments repeat preparation only for affected coverage, preserving report history.
+The HTML dashboard shows **Plan → Write Tests → Execute**, separate preparation timing/activity, and a **Test Preparation** report in Artifacts with formatted preview and original-file access. Preparation outcomes appear in the audit log with a link to the report. Preparation does not advance implementation progress or establish completion. Replans and fix amendments repeat preparation only for affected coverage, preserving report history.
 
 ---
 

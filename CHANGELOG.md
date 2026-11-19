@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep Test Preparation details in the existing artifact reader and link preparation outcomes from the audit log. Remove the duplicate standalone dashboard section while retaining Write Tests timing and activity.
+
 ## [5.16.0] — 2026-11-19
 
 ### Fixed

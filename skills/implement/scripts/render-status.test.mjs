@@ -1496,30 +1496,55 @@ test('both modes name active assessment inside Finalizing without adding a stage
   }
 });
 
-test('Write Tests has independent timing, evidence and truthful approval/progress labels', () => {
+test('Write Tests keeps timing and audit evidence with its report in artifacts', () => {
   const fields = { test_writing_version: '1', test_preparation: 'make-it-work/DEMO/DEMO-plan-tests-1.json', test_preparation_report: 'make-it-work/DEMO/DEMO-plan-tests-1.md', plan_hash: 'revision', phase: 'write-tests', autonomy: 'guided' };
   const rows = [
     ['2026-01-01T10:00:00Z', 'start', 'plan', 'Draft coverage'],
     ['2026-01-01T10:01:00Z', 'plan', 'plan-approval', 'Awaiting approval'],
     ['2026-01-01T10:02:00Z', 'plan-approval', 'write-tests', 'Approved; dispatching fresh test worker'],
   ];
-  const preparation = { plan_hash: 'revision', status: 'ready', entries: [{ scenario: '<new behavior>', result: 'expected-red', reason: 'Missing behavior <expected>' }] };
-  const template = '{{PHASE_TIMELINE}} {{TEST_PREPARATION}} {{PREPARATION_TILE}}';
+  rows.push(['2026-01-01T10:02:30Z', 'write-tests', 'write-tests', `Test preparation ready: ${fields.test_preparation_report}`]);
+  const template = '{{PHASE_TIMELINE}} {{TEST_PREPARATION}} {{PREPARATION_TILE}} {{AUDIT_ROWS}}';
   const state = parseState(stateMarkdown({ fields, rows }));
-  const html = renderStatus({ state, preparation, template, logoBase64: '' });
+  const html = renderStatus({ state, template, logoBase64: '' });
   assert.match(html, /Write Tests/);
   assert.match(html, /write-the-tests/);
   assert.match(html, /implementation has not advanced/);
-  assert.match(html, /expected-red/);
-  assert.match(html, /&lt;new behavior&gt;/);
-  assert.doesNotMatch(html, /<new behavior>|Step 0 of|phase-dot failed/);
+  assert.match(html, /Test preparation ready · <a href="DEMO-plan-tests-1.md">View preparation report<\/a>/);
+  assert.equal((html.match(/class="artifact-tile"/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /class="test-preparation"|Preparation pending|Expected red confirms/);
+  assert.doesNotMatch(html, /Step 0 of|phase-dot failed/);
   assert.match(html, /DEMO-plan-tests-1.md/);
-  const stale = renderStatus({ state, preparation: { ...preparation, plan_hash: 'old' }, template, logoBase64: '' });
-  assert.match(stale, /Superseded/);
+  for (const [preparation, note] of [
+    [{ plan_hash: 'old', status: 'ready' }, 'Superseded'],
+    [{ plan_hash: 'unavailable', status: 'unavailable' }, 'Preparation evidence unavailable'],
+  ]) {
+    const changed = renderStatus({ state, preparation, template, logoBase64: '' });
+    assert.match(changed, new RegExp(`class="artifact-note">${note}`));
+    assert.doesNotMatch(changed, /class="test-preparation"/);
+  }
   const approval = renderStatus({ state: parseState(stateMarkdown({ fields: { ...fields, phase: 'plan-approval' }, rows: rows.slice(0, 2) })), template, logoBase64: '' });
   assert.match(approval, /Awaiting plan approval/);
   const legacy = renderStatus({ state: parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: rows.slice(0, 1) })), template, logoBase64: '' });
   assert.doesNotMatch(legacy, /Write Tests|Test Preparation/);
+});
+
+test('preparation audit links preserve historical reports and leave unsafe references as text', () => {
+  const outcomes = [
+    'Test preparation blocked: make-it-work/DEMO/DEMO-plan-tests-1.md',
+    'Test preparation not-applicable; make-it-work/DEMO/miw-DEMO-plan-tests-2.md. Implementation remains unverified.',
+    'Test preparation ready: https://example.com/DEMO-plan-tests-1.md',
+    'Test preparation ready: make-it-work/DEMO/../OTHER-plan-tests-1.md',
+    'Test preparation ready: <invalid>',
+  ];
+  const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none', phase: 'write-tests' }, rows: outcomes.map((outcome, index) =>
+    [`2026-01-01T10:0${index}:00Z`, 'write-tests', 'write-tests', outcome]) }));
+  const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  assert.equal((html.match(/View preparation report/g) ?? []).length, 2);
+  assert.match(html, /href="DEMO-plan-tests-1.md"/);
+  assert.match(html, /href="miw-DEMO-plan-tests-2.md"[^>]*>View preparation report<\/a>\. Implementation remains unverified\./);
+  assert.doesNotMatch(html, /href="https:|href="[^"]*\.\.\//);
+  assert.match(html, /&lt;invalid&gt;/);
 });
 
 test('preparation reentries remain separate from fix execution and manual exemption is explicit', () => {
