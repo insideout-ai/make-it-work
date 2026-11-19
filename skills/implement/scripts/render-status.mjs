@@ -874,12 +874,15 @@ function renderModePill(state) {
   if (!isAdaptive(state)) return '';
   const { mode, mode_source: source, risk, risk_rationale: rationale } = state.fields;
   if (mode === 'none') {
-    return '<span class="pill mode-pill" title="Risk and mode are assessed after Refinement.">Mode: Not yet assessed</span>';
+    return '<span class="pill mode-pill" title="The development approach and risk are assessed after Refinement.">Approach: Not yet assessed</span>';
   }
-  const riskText = risk === 'none' ? '' : ` · ${risk[0].toUpperCase()}${risk.slice(1)} risk`;
-  const text = `Mode: ${MODE_LABELS[mode]}${source === 'user' ? ' (user)' : ''}${riskText}`;
-  const tooltip = rationale === 'none' ? 'No risk rationale recorded.' : rationale;
-  return `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</span>`;
+  const explanation = mode === 'tdd'
+    ? 'Plans the work, prepares tests, then implements and verifies each step.'
+    : 'Implements a low-risk change directly from the refined spec, with tests and independent review.';
+  const tooltip = `${explanation}${source === 'user' ? ' Selected by you.' : ''}`;
+  const approach = `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">Approach: ${escapeHtml(MODE_LABELS[mode])}</span>`;
+  const riskBadge = risk === 'none' ? '' : `<span class="pill risk-pill" title="${escapeHtml(rationale === 'none' ? 'No risk rationale recorded.' : rationale)}">Risk: ${escapeHtml(risk[0].toUpperCase() + risk.slice(1))}</span>`;
+  return approach + riskBadge;
 }
 
 function renderTddArtifactTile(state, field, label, note = '') {
@@ -932,7 +935,7 @@ function renderAutonomyBadge(state) {
   const pending = queued && queued !== 'none';
   const title = pending ? 'The queued mode starts at the next phase boundary. The current phase and any open question keep their existing mode.'
     : autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP;
-  return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
+  return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Control: ${escapeHtml(autonomy[0].toUpperCase() + autonomy.slice(1))}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
 }
 
 function renderFeedbackProgress(feedback) {

@@ -687,7 +687,7 @@ test('accepts and describes fully autonomous autopilot runs', async (t) => {
   });
   const { html } = await renderFixture(t, state);
 
-  assert.match(html, /Autonomy: autopilot/);
+  assert.match(html, /Control: Autopilot/);
   assert.match(html, /resolves every documented safe default without prompting/);
 });
 test('queued autonomy is optional for older runs and rejects invalid or completed-run queues', () => {
@@ -715,7 +715,7 @@ test('ticket permission badge is independent of autonomy and shows scoped consen
   for (const autonomy of ['autopilot', 'guided']) {
     await writeFile(statePath, stateMarkdown({ fields: { ...fields, autonomy }, rows }));
     const html = await readFile(await generateDashboard(statePath), 'utf8');
-    assert.ok(html.includes(`Autonomy: ${autonomy}</span>`));
+    assert.ok(html.includes(`Control: ${autonomy[0].toUpperCase() + autonomy.slice(1)}</span>`));
     assert.match(html, /ticket-updates-allowed[^>]*>Ticket updates: Allowed<\/span>/);
     assert.match(html, /at https:\/\/tracker.example.test: comments\./);
     assert.match(html, /Artifact comments are allowed/);
@@ -726,7 +726,7 @@ test('ticket permission badge is independent of autonomy and shows scoped consen
   await writeFile(journalPath, JSON.stringify(journal));
   const revoked = await readFile(await generateDashboard(statePath), 'utf8');
   assert.match(revoked, /ticket-updates-off[^>]*>Ticket updates: Off<\/span>/);
-  assert.match(revoked, /Autonomy: guided<\/span>/);
+  assert.match(revoked, /Control: Guided<\/span>/);
 });
 
 test('unverifiable referenced permission shows Unknown without preventing dashboard rendering', async (t) => {
@@ -1319,7 +1319,7 @@ test('escalation from review inserts Plan and Execute after the active slot in o
   const durations = [...timeline.matchAll(/phase-duration">([^<]+)</g)].map((match) => match[1]);
   assert.deepEqual(durations, ['1m', '1m', '2m', '1m', '3m', '4m']);
   assert.match(timeline, /phase-dot current spinning[^>]+review:/);
-  assert.match(html, /Mode: TDD · Low risk/);
+  assert.match(html, /Approach: TDD<\/span>.*Risk: Low/);
   assert.doesNotMatch(html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
   assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
   assert.match(html, /<div class="label">Plan<\/div><a href="DEMO-plan\.md"/);
@@ -1342,20 +1342,22 @@ test('escalation from a stopped lightweight phase keeps baseline Review after th
 test('mode pill appears only for adaptive runs and cycle counters stay out of the dashboard', async (t) => {
   const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
   const legacy = await renderFixture(t, stateMarkdown({ rows }));
-  assert.doesNotMatch(legacy.html, /mode-pill|Mode: |Escalations|phase-dot skipped|Lightweight report/);
+  assert.doesNotMatch(legacy.html, /mode-pill|Approach: |Escalations|phase-dot skipped|Lightweight report/);
   assert.match(legacy.html, /<div class="label">Plan<\/div><span class="none">Not yet created<\/span>/);
   assert.match(legacy.html, /<div class="label">Execute<\/div><span class="none">Not yet created<\/span>/);
   assert.deepEqual(timelineLabels(legacy.html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Review', 'Finalizing']);
 
   const pending = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'none', mode: 'none', mode_source: 'none', risk_rationale: 'none' }, rows }));
-  assert.match(pending.html, /Mode: Not yet assessed/);
+  assert.match(pending.html, /Approach: Not yet assessed/);
   assert.doesNotMatch(pending.html, /phase-dot skipped/);
 
   const lightweight = await renderFixture(t, stateMarkdown({ fields: ADAPTIVE_FIELDS, rows }));
-  assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="Single-file &lt;copy&gt; change">Mode: Lightweight · Low risk<\/span>/);
+  assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="[^"]+">Approach: Lightweight<\/span>/);
 
   const forced = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'high', mode: 'tdd', mode_source: 'user' }, rows }));
-  assert.match(forced.html, />Mode: TDD \(user\) · High risk<\/span>/);
+  assert.match(forced.html, />Approach: TDD<\/span>.*Risk: High<\/span>/);
+  assert.match(forced.html, /Selected by you/);
+  assert.match(lightweight.html, /class="pill risk-pill" title="Single-file &lt;copy&gt; change">Risk: Low/);
   assert.doesNotMatch(forced.html, /phase-dot skipped|Skipped \(Lightweight\)/);
   for (const fixture of [legacy, pending, lightweight, forced]) {
     assert.doesNotMatch(fixture.html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);

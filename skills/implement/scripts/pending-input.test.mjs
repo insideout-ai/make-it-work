@@ -180,7 +180,7 @@ test('a Guided refinement wave keeps all human answers and activates queued Auto
   assert.equal(queued.fields.autonomy, 'guided'); assert.equal(queued.fields.queued_autonomy, 'autopilot');
   assert.deepEqual(queued.pendingInputs, before.pendingInputs);
   assert.equal(queued.fields.workspace_snapshot, before.fields.workspace_snapshot);
-  assert.match(await html(), /Autonomy: guided · autopilot queued/);
+  assert.match(await html(), /Control: Guided · autopilot queued/);
   assert.match(await html(), /This question still needs an answer under guided/);
   assert.equal((await apply('resume', { blocker_resolved: true })).fields.status, 'Paused');
   await assert.rejects(apply('resolve-input', { pending_id: pending.id, source: 'autopilot', via: 'policy' }), /explicit answer/);
