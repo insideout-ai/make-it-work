@@ -1,0 +1,33 @@
+skills/implement/references/orchestration/startup.md
+  s_c133004d4f803f::t_d7bd0eed924721 147-152
+skills/implement/references/session-worktrees.md
+  s_c133004d4f803f::t_d7bd0eed924721 3-6
+skills/implement/SKILL.md
+  s_c133004d4f803f::t_d7bd0eed924721 49-51
+CHANGELOG.md
+  s_c133004d4f803f::t_d7bd0eed924721 13
+evals/implement/worktree-offer/graders/checkout-choice.md
+  s_c133004d4f803f::t_d7bd0eed924721 18-22
+evals/implement/worktree-offer/graders/ignore-unchanged.md
+  s_c133004d4f803f::t_b0213432b6ea78 1-6
+evals/implement/README.md
+  s_c133004d4f803f::t_b0213432b6ea78 266-270
+evals/implement/worktree-offer/fixture.sh
+  s_c133004d4f803f::t_b0213432b6ea78 6-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44f31be71ff3823c221ab4cef0b060e03dbc3aa0",
+  "prompts": {},
+  "sessions": {
+    "s_c133004d4f803f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f296-8e2a-7401-9ca6-848716651ca8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
