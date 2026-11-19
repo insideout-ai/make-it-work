@@ -1,0 +1,23 @@
+skills/implement/scripts/workflow.mjs
+  s_7848aef2278486::t_650e81861a7bba 190
+skills/implement/scripts/review-scope.mjs
+  s_7848aef2278486::t_650e81861a7bba 65-66
+skills/implement/scripts/review-scope.test.mjs
+  s_7848aef2278486::t_650e81861a7bba 91,94-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "728a97d499ebe2fea946fd1f3738a1ff40658d58",
+  "prompts": {},
+  "sessions": {
+    "s_7848aef2278486": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f56f-4e37-7c90-9aad-4c0f8708959d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
