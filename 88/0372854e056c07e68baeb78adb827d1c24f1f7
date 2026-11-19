@@ -1,0 +1,656 @@
+skills/implement/scripts/workspace-scope.test.mjs
+  s_c133004d4f803f::t_bc2126ee7f3d73 91-111
+  s_c133004d4f803f::t_ec0e81161bda84 163-165,189-191,204
+  s_c133004d4f803f::t_ed06f4aff40288 83-87
+  s_c133004d4f803f::t_11a219147cf5d7 62-82,88-90
+evals/feedback-on-session/feedback-maintainer-followup-reported/case.yaml
+  s_574472768edb94::t_ff6761500f6d2e 1-5
+evals/feedback-on-session/feedback-maintainer-followup-gaps/case.yaml
+  s_574472768edb94::t_ff6761500f6d2e 1-5
+docs/regression-runner.md
+  s_c133004d4f803f::t_504203ef3f8cee 71-74
+  s_c133004d4f803f::t_fe60815e21bd02 17-44
+  s_c133004d4f803f::t_346066b3694813 47-63,67-70,75-90
+  s_c133004d4f803f::t_52c96940e9be3d 45-46,64-66
+skills/implement/references/verification.md
+  s_5b0b3cad353121::t_014fb2737682c9 3-4
+  s_c133004d4f803f::t_5f8991f71f50d4 123-146
+  s_c133004d4f803f::t_fe60815e21bd02 67
+evals/plan-the-work/visual-simple/case.yaml
+  s_5b0b3cad353121::t_f6d116c278948f 1-5
+skills/implement/scripts/testing-policy.mjs
+  s_5b0b3cad353121::t_2dc4efdb3b9b52 5,30-31,45-46,51,91
+evals/plan-the-work/visual-amend/graders/handoff.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-7
+evals/feedback-on-session/feedback-maintainer-followup-answered/graders/input-unchanged.md
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+evals/plan-the-work/visual-amend/graders/visual.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-11
+docs/workflow-findings.md
+  s_bceb6e9c36297a::t_7946434ab4a0f7 303
+  s_c133004d4f803f::t_fe8e6da66d6342 1325-1385,1393-1400,1402-1408
+  s_c133004d4f803f::t_1e2caf55fd430c 802-807
+  s_cc7d74c817ec45::t_6be29bb4d4b12e 78
+  s_c133004d4f803f::t_3c9f5066aacf2e 652,667,729-741
+  s_c133004d4f803f::t_38b9955921a710 1298-1303
+  s_c133004d4f803f::t_e16cb0efedb7c4 318-319
+  s_c133004d4f803f::t_13ad351cbcff9a 795-796,819-825
+  s_c133004d4f803f::t_839dcf0f9ed4eb 1209-1211,1234-1240
+  s_c133004d4f803f::t_f940e8464f6d3a 171-213
+  s_c133004d4f803f::t_3728c399a6f061 982-1054,1066-1071
+  s_c133004d4f803f::t_0598aea2165cf8 1120-1121
+  s_c133004d4f803f::t_b6f8ea210e32e6 76,101,634-644,651,653-666,668-728,742-745
+  s_c133004d4f803f::t_51cb7bf5dd38da 1386-1392,1401,1409-1417
+  s_c133004d4f803f::t_2b3292c5bdaafb 1116-1119
+  s_c133004d4f803f::t_cfd3575e4cbc62 1418-1508,1514-1518
+  s_c133004d4f803f::t_c242e425b69c11 893-902
+  s_c133004d4f803f::t_7f3ab110f2769a 92,1181-1186
+  s_bceb6e9c36297a::t_f37d6d6aaa52e6 389
+  s_c133004d4f803f::t_656781155868da 919-968,978-980
+  s_c133004d4f803f::t_e4d7a30e2f2110 1097-1099
+  s_bceb6e9c36297a::t_ad87bc59717d21 102
+  s_c133004d4f803f::t_4d7959f0910cde 1875-1916
+  s_bceb6e9c36297a::t_f98f3de5630dfc 258
+  s_c133004d4f803f::t_77a088e67e289c 1617-1696
+  s_c133004d4f803f::t_2b93b8c50e4b10 87,1194-1208,1212-1233,1241-1246
+  s_c133004d4f803f::t_de35db00cf37e0 95,1748-1757,1764-1772
+  s_bceb6e9c36297a::t_8d1f6d87da123f 333-345,348-353
+  s_cc7d74c817ec45::t_85abd817bf91b2 99
+  s_c133004d4f803f::t_56b38d740b6161 94,1247-1297,1304-1324
+  s_bceb6e9c36297a::t_4e93b9adc5993b 400-401
+  s_c133004d4f803f::t_6a2dc3937819ff 1519-1583,1595,1602-1607
+  s_c133004d4f803f::t_8b61525d38a31c 916-918
+  s_c133004d4f803f::t_b7e88a6c894eec 1055-1065
+  s_c133004d4f803f::t_595ed950654c60 89,1584-1594,1608-1616
+  s_bceb6e9c36297a::t_7d0bfb42323f1a 143
+  s_cc7d74c817ec45::t_0008904c5c757b 388
+  s_cc7d74c817ec45::t_fd1ad24ab8eca3 115
+  s_c133004d4f803f::t_0e5cae57ac8d3f 1509-1513
+  s_c133004d4f803f::t_4580b459e2433c 84,969-977,981
+  s_c133004d4f803f::t_a44695ee26ab5d 801,808-818,826-829
+  s_c133004d4f803f::t_4991d6a6f6cc3a 746-794,797-800,830-834
+  s_c133004d4f803f::t_90f5401a78c383 835-892,903-907
+  s_bceb6e9c36297a::t_c29e221ee5ad09 390
+  s_cc7d74c817ec45::t_151d9f145d0c5b 398-399
+  s_c133004d4f803f::t_c8d4df32e8957a 88,90-91,1072-1096,1100-1115,1122-1131
+  s_bceb6e9c36297a::t_0d8f8910c9c430 138-142,144-167,169-170,215
+  s_c133004d4f803f::t_0b63aa9c5edef1 85
+  s_bceb6e9c36297a::t_a6dace21febd71 55-65
+  s_cc7d74c817ec45::t_08f3b8b109e3ce 45-54
+  s_cc7d74c817ec45::t_6791a6d600f95a 297-302,304-311,321-332
+  s_c133004d4f803f::t_ebe887dbf728f3 86,645-650
+  s_bceb6e9c36297a::t_a5be6696867398 168
+  s_c133004d4f803f::t_db0323cf7bcbc0 346-347,1132-1160,1164-1180,1187-1193
+  s_c133004d4f803f::t_2322ff9e925d88 1596-1601
+  s_c133004d4f803f::t_07fff5345cd2e9 214,1697-1747,1758-1763
+  s_bceb6e9c36297a::t_fb31bf0c1579e3 93
+  s_c133004d4f803f::t_1aa6f03d0b6af8 312-317,320,1773-1874
+  s_c133004d4f803f::t_21077290cbf384 1161-1163
+  s_c133004d4f803f::t_c831c8cd10aec9 908-910,913-915
+  s_c133004d4f803f::t_7924bb7e8a99c3 100,911-912
+evals/plan-the-work/visual-simple/graders/spec-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+evals/implement/delivery-prepare/graders/preview-and-approval.md
+  s_c133004d4f803f::t_311b63f6cba7e8 6
+evals/implement/repo-impact-scope/graders/readiness-status.md
+  s_5b0b3cad353121::t_47c4d487aee9e6 4
+  s_5b0b3cad353121::t_78be1fb8c1ed4f 1-3,5-6
+skills/execute/SKILL.md
+  s_c133004d4f803f::t_2e3116de0309dc 275-280
+skills/deliver/SKILL.md
+  s_c133004d4f803f::t_78f238f072d489 26-28
+  s_c133004d4f803f::t_1cbe3ba118c5bc 17,21-22
+evals/feedback-on-session/feedback-maintainer-followup-answered/fixture/session.txt
+  s_574472768edb94::t_ff6761500f6d2e 1-9
+skills/implement/scripts/review-baseline.mjs
+  s_c133004d4f803f::t_4606b78e9c105d 32-41
+  s_c133004d4f803f::t_c2e4891cbab203 49-52
+  s_c133004d4f803f::t_e08c25053008da 25,58
+  s_c133004d4f803f::t_a501e24d8939d0 19
+  s_c133004d4f803f::t_d03b0f21b631d7 60-62
+  s_c133004d4f803f::t_71199a5769795d 1-18,20-24,26-31,42-48,53-57,59,63-67
+skills/implement/scripts/review-baseline.test.mjs
+  s_c133004d4f803f::t_c2e4891cbab203 55-64
+  s_c133004d4f803f::t_7a94c63b63e5ae 1-2,4-6,8-47,65-74,86-87
+  s_c133004d4f803f::t_c6fc42f9a1a213 3
+  s_c133004d4f803f::t_694837d2195297 7,75-85
+  s_c133004d4f803f::t_d03b0f21b631d7 48-54
+evals/plan-the-work/visual-flow/case.yaml
+  s_5b0b3cad353121::t_f6d116c278948f 1-5
+skills/implement/scripts/workspace-scope.mjs
+  s_c133004d4f803f::t_e43f1aa3c3d053 53,59,161,185,190
+  s_c133004d4f803f::t_3433b0d0583b3c 112-113
+  s_c133004d4f803f::t_1c792e685d15d4 176,202-205,229-232
+  s_c133004d4f803f::t_a29d460ae332ea 21-26
+  s_c133004d4f803f::t_efffdb2856310d 16-20,27,140-141,145-146,184
+  s_c133004d4f803f::t_4f50e14395c067 30-34,103
+  s_c133004d4f803f::t_ea23711095aa68 12,94-100
+  s_c133004d4f803f::t_1e8ec7e9a6f633 82-84,101-102,105,110-111,114-130,144,153-154,165,167-175,177-180,191-201,223,225-228,233,254-256
+  s_c133004d4f803f::t_4dd189f7dd387d 166
+  s_c133004d4f803f::t_0112b009982480 253,257-258
+skills/implement/references/orchestration/stage-contract.md
+  s_5b0b3cad353121::t_014fb2737682c9 3-4
+  s_c133004d4f803f::t_839dcf0f9ed4eb 24
+evals/implement/repo-impact-missing/prompt.md
+  s_5b0b3cad353121::t_457de523cbc375 1-8,11
+  s_5b0b3cad353121::t_5b146e6427d206 9-10
+  s_5b0b3cad353121::t_e4009872ebb296 12-13
+CHANGELOG.md
+  s_c133004d4f803f::t_2e3116de0309dc 9-10,27-28
+  s_c133004d4f803f::t_504203ef3f8cee 22,24,26
+  s_c133004d4f803f::t_046491b1b0285b 25
+  s_c133004d4f803f::t_78f238f072d489 15-16
+  s_c133004d4f803f::t_b5a103c2154534 23
+  s_5b0b3cad353121::t_02a0605a13fe91 11-12
+  s_5b0b3cad353121::t_3ac6bc3f0510ae 17-18,30,36-38
+  s_bceb6e9c36297a::t_dbdb2524109d55 29,39,41-42
+  s_c133004d4f803f::t_6918c163be5192 19
+  s_c133004d4f803f::t_5f8991f71f50d4 20-21
+  s_c133004d4f803f::t_311b63f6cba7e8 34-35
+  s_574472768edb94::t_a8f45013f35976 40
+  s_c133004d4f803f::t_e3b865488c5f9a 13-14
+  s_5b0b3cad353121::t_014fb2737682c9 31-33
+evals/feedback-on-session/feedback-maintainer-followup-answered/prompt.md
+  s_574472768edb94::t_ff6761500f6d2e 1-10
+evals/implement/repo-impact-missing/fixture.sh
+  s_5b0b3cad353121::t_457de523cbc375 1-5
+skills/plan-the-work/SKILL.md
+  s_c133004d4f803f::t_e3b865488c5f9a 321,324
+  s_5b0b3cad353121::t_3ac6bc3f0510ae 289-290,326,370
+  s_5b0b3cad353121::t_3db3adf916bfe3 371
+evals/plan-the-work/visual-flow/graders/source-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+skills/implement/scripts/workflow.test.mjs
+  s_c133004d4f803f::t_7a94c63b63e5ae 13,44-59
+  s_c133004d4f803f::t_97ac8bcd781998 61-71
+  s_c133004d4f803f::t_9896938996b087 60
+evals/implement/repo-impact-scope/graders/spec-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+skills/implement/scripts/review-checks.mjs
+  s_5b0b3cad353121::t_031d125c764807 9,19,21
+evals/feedback-on-session/feedback-maintainer-followup-gaps/prompt.md
+  s_574472768edb94::t_ff6761500f6d2e 1-10
+skills/implement/scripts/deliver.mjs
+  s_c133004d4f803f::t_a5c578152a911f 143,171,173-174,176-178,191,199,201-202,217-219,224-232,236,238-239,242,280-285,288-295,468,472,474
+  s_c133004d4f803f::t_817f4a2b5153b4 155
+  s_c133004d4f803f::t_1cbe3ba118c5bc 77,89
+  s_c133004d4f803f::t_6aefc3104b1acd 167,169-170,175,179-190,350-353,476-477
+  s_c133004d4f803f::t_741a7f594a0cf0 172,194,286-287
+  s_c133004d4f803f::t_286054c23ac78a 20,237
+  s_c133004d4f803f::t_e7ea01ded7aab6 21,144,146,151-154,156,162-166,203-205,220-223,240,266-279
+  s_c133004d4f803f::t_0699baf98206cc 168
+evals/feedback-on-session/feedback-maintainer-followup-answered/fixture/docs/workflow-findings.md
+  s_574472768edb94::t_ff6761500f6d2e 1-3
+evals/repo-impact-fixtures.test.mjs
+  s_5b0b3cad353121::t_f0ef6a6efb6e06 1-31,40-41
+  s_5b0b3cad353121::t_2d5c862ab3887f 32-39
+evals/implement/repo-impact-missing/graders/qa-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+evals/implement/repo-impact-scope/graders/impact.md
+  s_5b0b3cad353121::t_457de523cbc375 1-11
+  s_5b0b3cad353121::t_c2734bd23789a4 12-13
+evals/feedback-on-session/feedback-maintainer-followup-reported/fixture/docs/workflow-findings.md
+  s_574472768edb94::t_ff6761500f6d2e 1-21
+skills/implement/scripts/workspace-view.mjs
+  s_c133004d4f803f::t_efffdb2856310d 3-4,7-8,10,26
+  s_c133004d4f803f::t_3433b0d0583b3c 5-6
+  s_5b0b3cad353121::t_031d125c764807 18,21
+  s_5b0b3cad353121::t_946c19d8be52da 22,24
+evals/feedback-on-session/feedback-maintainer-followup-reported/graders/source-unchanged.md
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+skills/implement/references/controller.md
+  s_c133004d4f803f::t_328f98a328b717 259-261,277
+  s_c133004d4f803f::t_046491b1b0285b 262,264-265,280-288,290-295
+  s_c133004d4f803f::t_e4d7a30e2f2110 255-257
+  s_c133004d4f803f::t_e08c25053008da 263
+  s_c133004d4f803f::t_e7f0b38c35c25b 191-210,228-237
+  s_c133004d4f803f::t_504203ef3f8cee 211-227,238-254,278-279,289,296-299
+  s_c133004d4f803f::t_797ff480eec060 258
+skills/plan-the-work/references/implement-integration.md
+  s_5b0b3cad353121::t_014fb2737682c9 63-65
+  s_5b0b3cad353121::t_3ac6bc3f0510ae 66
+  s_c133004d4f803f::t_898c05abfdc386 38-39
+skills/implement/scripts/planning-activity.mjs
+  s_c133004d4f803f::t_df8eaa69fcfa09 51
+  s_c133004d4f803f::t_c38667006ed6ce 31,34-36,39,44,49,52-53,72,74-76
+  s_c133004d4f803f::t_c58b05dcba17a2 32-33,42
+evals/implement/repo-impact-missing/graders/spec-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+scripts/regression-progress.test.mjs
+  s_c133004d4f803f::t_f175332c02f625 120,126-145
+  s_c133004d4f803f::t_1a4f3689d06d33 1-54,56,58-59,64-91
+  s_c133004d4f803f::t_bfa74799c0342e 92,94-98,101-119,125,146
+  s_c133004d4f803f::t_ed06f4aff40288 55,57,60-63,93,99-100,121-124
+skills/find-the-repos/SKILL.md
+  s_c133004d4f803f::t_069a1a61796b89 245
+evals/plan-the-work/visual-amend/graders/spec-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+evals/plan-the-work/visual-flow/graders/readme-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+evals/plan-the-work/visual-simple/graders/source-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+evals/feedback-on-session/feedback-maintainer-followup-answered/graders/ledger-and-boundaries.md
+  s_574472768edb94::t_ff6761500f6d2e 1-9
+skills/implement/scripts/verification.test.mjs
+  s_c133004d4f803f::t_58bebe2b415253 173
+  s_c133004d4f803f::t_d84ff77f5b7265 3,163-172,174-194,203,209
+  s_c133004d4f803f::t_fe60815e21bd02 74-83,195,225,245,261
+  s_c133004d4f803f::t_f33e85ff02c2da 4,10-11,196-202,204-208,210-224,226-244,246-260
+skills/implement/scripts/context-maintenance.mjs
+  s_5b0b3cad353121::t_031d125c764807 64-65
+  s_5b0b3cad353121::t_bae2ee31dc13c5 6,10-12,23-28,60,66-67
+skills/implement/scripts/delivery-selection.mjs
+  s_c133004d4f803f::t_aa8b0f83d50828 1-41,44-47,49-74,82-102
+  s_c133004d4f803f::t_286054c23ac78a 42-43,48,75-81
+evals/implement/repo-impact-fixture.mjs
+  s_5b0b3cad353121::t_457de523cbc375 1-27,29-42
+  s_5b0b3cad353121::t_5b146e6427d206 28
+evals/implement/repo-impact-missing/case.yaml
+  s_5b0b3cad353121::t_457de523cbc375 1-5
+skills/implement/scripts/delivery-full-tree.mjs
+  s_c133004d4f803f::t_e7ea01ded7aab6 1-20,22-26,28-33,47-48,51-52,54-65,68-69
+  s_c133004d4f803f::t_817f4a2b5153b4 35-43,49
+  s_c133004d4f803f::t_c123e394477615 27,34,44-46,50,53
+  s_c133004d4f803f::t_d0fea95daa7285 21,66-67
+skills/implement/scripts/repo-impact.mjs
+  s_5b0b3cad353121::t_a6087897c74226 1-41,45-54,68-120,122-135,137-141,147-150,153,157-160,162-166,168-169,172,177,186-187,191-193,195-197,201
+  s_5b0b3cad353121::t_5285fcbfcb5be4 121,142-146
+  s_5b0b3cad353121::t_2dc4efdb3b9b52 43-44,151-152,167
+  s_5b0b3cad353121::t_3aab3060099077 155-156
+  s_5b0b3cad353121::t_e03a2a8c5ff8eb 55-67
+  s_5b0b3cad353121::t_9b696ce9422204 42,136,154,161,170-171,173-176,178-185,188-190,194,198-200
+scripts/regression.mjs
+  s_5b0b3cad353121::t_3aab3060099077 146
+  s_c133004d4f803f::t_346066b3694813 213-215
+  s_c133004d4f803f::t_521658a421e429 57-61,63,66,68-83,85,89-92,94-95,103-105,107,114,122-128,149,176-177,180,182-183,216-217,228,240
+  s_5b0b3cad353121::t_e03a2a8c5ff8eb 186
+  s_c133004d4f803f::t_e43f1aa3c3d053 187,224,238,251
+  s_c133004d4f803f::t_32c47feb090216 84
+  s_c133004d4f803f::t_bfa74799c0342e 218,235-237,242-245
+  s_5b0b3cad353121::t_f994e3d163868b 10,62,64,121,134,139,154-155,157,159,241
+evals/suites.json
+  s_5b0b3cad353121::t_457de523cbc375 22-23
+  s_5b0b3cad353121::t_f6d116c278948f 101-103
+  s_574472768edb94::t_ff6761500f6d2e 172-175,278-295
+  s_5b0b3cad353121::t_fcce152281d163 182-188
+docs/deterministic-artifacts.md
+  s_5b0b3cad353121::t_c57f2861f0cc26 205-208
+  s_c133004d4f803f::t_4b7c1c49375ca8 156-179,192-204
+  s_c133004d4f803f::t_78f238f072d489 180-191
+evals/plan-the-work/visual-simple/graders/readme-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+skills/plan-the-work/references/plan-template.md
+  s_5b0b3cad353121::t_014fb2737682c9 84-86
+  s_5b0b3cad353121::t_3ac6bc3f0510ae 15-20
+evals/implement/repo-impact-scope/graders/api-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+skills/implement/scripts/testing-readiness.mjs
+  s_5b0b3cad353121::t_2dc4efdb3b9b52 11,23,53-57,75,93
+skills/implement/references/orchestration/planning.md
+  s_5b0b3cad353121::t_3ac6bc3f0510ae 46-47
+  s_5b0b3cad353121::t_014fb2737682c9 3-5
+evals/plan-the-work/visual-amend/fixture.sh
+  s_5b0b3cad353121::t_f6d116c278948f 1-5
+evals/feedback-on-session/feedback-maintainer-followup-gaps/fixture/docs/workflow-findings.md
+  s_574472768edb94::t_ff6761500f6d2e 1-3
+evals/feedback-on-session/feedback-maintainer-followup-reported/graders/questions.md
+  s_574472768edb94::t_ff6761500f6d2e 1-7
+evals/feedback-on-session/feedback-maintainer-followup-gaps/fixture/session.txt
+  s_574472768edb94::t_ff6761500f6d2e 1-12
+skills/implement/scripts/workflow.mjs
+  s_c133004d4f803f::t_5d78e9416b1a10 591,599,773
+  s_c133004d4f803f::t_e43f1aa3c3d053 31,621,624-626,774-776
+  s_c133004d4f803f::t_e1aa626711c2b3 489
+  s_c133004d4f803f::t_71199a5769795d 622-623,627,772
+  s_c133004d4f803f::t_95c5c03c515449 592-598
+  s_c133004d4f803f::t_0112b009982480 24
+  s_5b0b3cad353121::t_bae2ee31dc13c5 145-151,153-159,495-498,503-505,528,533,545-546,582-590,777
+  s_5b0b3cad353121::t_031d125c764807 600
+  s_5b0b3cad353121::t_5285fcbfcb5be4 36,499-502,507
+  s_5b0b3cad353121::t_29b2375ef67993 152
+skills/implement/scripts/final-package.mjs
+  s_5b0b3cad353121::t_031d125c764807 13,223
+  s_c133004d4f803f::t_0112b009982480 21,136
+  s_5b0b3cad353121::t_5285fcbfcb5be4 222
+  s_5b0b3cad353121::t_e3f85c91884666 80,244
+evals/plan-the-work/visual-simple/prompt.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-11
+evals/feedback-on-session/feedback-maintainer-followup-gaps/graders/sanitized-ledger.md
+  s_574472768edb94::t_ff6761500f6d2e 1-7
+skills/execute/references/verification-policy.md
+  s_5b0b3cad353121::t_014fb2737682c9 3-5
+evals/feedback-on-session/feedback-maintainer-followup-answered/graders/sanitized-ledger.md
+  s_574472768edb94::t_ff6761500f6d2e 1-7
+evals/feedback-on-session/feedback-maintainer-followup-gaps/graders/ledger-and-boundaries.md
+  s_574472768edb94::t_ff6761500f6d2e 1-9
+skills/implement/references/testing-readiness.md
+  s_5b0b3cad353121::t_014fb2737682c9 3-5
+skills/implement/scripts/deliver.test.mjs
+  s_c133004d4f803f::t_9563f5197101a3 36,58,560,567-568
+  s_c133004d4f803f::t_311b63f6cba7e8 481,496-497,597-614
+  s_c133004d4f803f::t_3a0b1861a8247f 666-694,698-745
+  s_c133004d4f803f::t_a06bc14ebe7674 436-443
+  s_c133004d4f803f::t_6aefc3104b1acd 4,103-104
+  s_c133004d4f803f::t_817f4a2b5153b4 695-697
+  s_c133004d4f803f::t_7bf5d19111c6d8 479-480,482-495,498-559,561-566,569-588,592-596,615-665
+  s_c133004d4f803f::t_803315e6db335d 589-591
+  s_c133004d4f803f::t_b8b1b607cf331b 22,24,63,81
+  s_c133004d4f803f::t_66fcdca7cd0eb5 107,109-142,300
+  s_c133004d4f803f::t_c80bfa07fa88ae 47-48,78-79,88-102,105-106
+  s_5b0b3cad353121::t_526ddc989fd13e 108
+skills/implement/scripts/testing-summary.mjs
+  s_5b0b3cad353121::t_031d125c764807 4,28,41,44
+skills/deliver/references/selected-delivery.md
+  s_c133004d4f803f::t_1cbe3ba118c5bc 1-73
+evals/implement/repo-impact-missing/graders/context-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+skills/implement/scripts/render-status.mjs
+  s_5b0b3cad353121::t_bae2ee31dc13c5 296
+evals/plan-the-work/visual-flow/graders/visual.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-11
+evals/plan-the-work/visual-simple/graders/handoff.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-7
+skills/implement/scripts/verification.mjs
+  s_c133004d4f803f::t_554af2aa3b7f12 5,203-205,221,225-232,234-235
+  s_5b0b3cad353121::t_2dc4efdb3b9b52 12,94,114-118,161-164
+evals/implement/repo-impact-scope/fixture.sh
+  s_5b0b3cad353121::t_457de523cbc375 1-5
+evals/feedback-on-session/feedback-maintainer-followup-gaps/fixture.sh
+  s_574472768edb94::t_ff6761500f6d2e 1-11
+evals/feedback-on-session/feedback-maintainer-followup-reported/fixture.sh
+  s_574472768edb94::t_ff6761500f6d2e 1-11
+evals/feedback-on-session/feedback-maintainer-followup-reported/graders/sanitized-ledger.md
+  s_574472768edb94::t_ff6761500f6d2e 1-7
+skills/implement/scripts/planning-activity.test.mjs
+  s_c133004d4f803f::t_c58b05dcba17a2 3,45-46
+  s_c133004d4f803f::t_32dc577737eafa 39-43,47-48
+  s_c133004d4f803f::t_df8eaa69fcfa09 44
+  s_c133004d4f803f::t_b5a103c2154534 66
+evals/feedback-on-session/feedback-maintainer-followup-gaps/graders/source-unchanged.md
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+skills/implement/scripts/dashboard-checkpoint.mjs
+  s_c133004d4f803f::t_554af2aa3b7f12 172,185-186,206-207
+evals/plan-the-work/visual-fixture.mjs
+  s_5b0b3cad353121::t_8aa91aa0863ad1 1-37,39-65
+  s_5b0b3cad353121::t_62f4dea3ba1877 38
+evals/implement/repo-impact-scope/case.yaml
+  s_5b0b3cad353121::t_457de523cbc375 1-5
+skills/feedback-on-session/SKILL.md
+  s_bceb6e9c36297a::t_60adb3ebafe36f 16
+evals/plan-the-work/visual-flow/graders/handoff.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-7
+evals/implement/repo-impact-scope/graders/context-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+evals/plan-the-work/visual-amend/graders/source-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+skills/implement/references/orchestration/review.md
+  s_5b0b3cad353121::t_014fb2737682c9 3-5
+  s_c133004d4f803f::t_504203ef3f8cee 23-25,42-48
+  s_c133004d4f803f::t_e7f0b38c35c25b 20-22,26-33
+  s_5b0b3cad353121::t_51e2a221a54b84 49
+skills/run-regression/SKILL.md
+  s_c133004d4f803f::t_504203ef3f8cee 151
+  s_5b0b3cad353121::t_014fb2737682c9 12-14
+skills/implement/references/workflow-decisions.md
+  s_c133004d4f803f::t_1cbe3ba118c5bc 62
+evals/plan-the-work/visual-flow/graders/spec-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+skills/implement/references/repository-impact.md
+  s_5b0b3cad353121::t_7cfadaca89a76a 1-43,45,47-71,73-82
+  s_5b0b3cad353121::t_0f345b902154be 44,46,72
+skills/implement/scripts/write-feedback.mjs
+  s_c133004d4f803f::t_e8aa1d0b4d9073 585-600,692
+  s_c133004d4f803f::t_39b9ff6b5647fe 632
+evals/feedback-on-session/README.md
+  s_574472768edb94::t_3e09604111be26 100-125
+evals/implement/repo-impact-missing/graders/api-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+evals/feedback-on-session/feedback-maintainer-followup-answered/graders/source-unchanged.md
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+evals/plan-the-work/visual-amend/graders/readme-unchanged.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-6
+evals/plan-visual-fixtures.test.mjs
+  s_5b0b3cad353121::t_62f4dea3ba1877 1-39
+skills/implement/references/workspace.md
+  s_c133004d4f803f::t_13cdd96bfa3959 127-128
+  s_c133004d4f803f::t_efffdb2856310d 72-79
+  s_c133004d4f803f::t_504203ef3f8cee 102-104
+  s_5b0b3cad353121::t_014fb2737682c9 149-151
+  s_c133004d4f803f::t_069a1a61796b89 8-12
+  s_c133004d4f803f::t_6918c163be5192 126,129
+evals/feedback-on-session/feedback-maintainer-followup-answered/case.yaml
+  s_574472768edb94::t_ff6761500f6d2e 1-5
+skills/write-the-tests/scripts/preparation.mjs
+  s_5b0b3cad353121::t_031d125c764807 8,23,26
+evals/implement/repo-impact-missing/graders/web-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+skills/implement/references/orchestration/final-sync.md
+  s_5b0b3cad353121::t_014fb2737682c9 3-5
+  s_c133004d4f803f::t_6918c163be5192 30-42
+evals/plan-the-work/visual-flow/prompt.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-11
+evals/implement/repo-impact-missing/graders/impact.md
+  s_5b0b3cad353121::t_457de523cbc375 1-11
+  s_5b0b3cad353121::t_37028b56f88df4 12-13
+skills/implement/references/activity.md
+  s_c133004d4f803f::t_656781155868da 28-29
+  s_c133004d4f803f::t_21077290cbf384 39
+  s_c133004d4f803f::t_b5a103c2154534 19-27,30
+scripts/lib/session-workspace.mjs
+  s_c133004d4f803f::t_812a10b4c55a25 1-3,5-13,15-18,20-22,33
+  s_c133004d4f803f::t_ea23711095aa68 14
+  s_c133004d4f803f::t_0112b009982480 4,23-29,31-32
+  s_c133004d4f803f::t_0239b067b2f999 19,30
+scripts/repo-assessment.mjs
+  s_c133004d4f803f::t_3433b0d0583b3c 9,166,168-169,186-188,193,197
+  s_c133004d4f803f::t_0239b067b2f999 33-34,36
+skills/implement/scripts/review-reconciliation.test.mjs
+  s_c133004d4f803f::t_97ac8bcd781998 229-259
+  s_c133004d4f803f::t_4f09538f16f909 217-228
+  s_c133004d4f803f::t_282a3e31151060 1-9,11-29,31-43,45,47-65,67-73,80-105,110-111,113-118,128-132,150-151,153,156-162,167,205
+  s_c133004d4f803f::t_c1ce6e3b177bd1 30,44,46
+  s_c133004d4f803f::t_ed06f4aff40288 66,74-79,106-109,112,119-120,125-126,135,148,152,154-155,163,166,168-169,195-199,214
+  s_c133004d4f803f::t_694837d2195297 170-176
+  s_c133004d4f803f::t_328f98a328b717 10,121-124,127,133-134,136-144,149
+  s_c133004d4f803f::t_4eff0ba0a498a1 145-147,164-165
+  s_c133004d4f803f::t_8cec31c5f809e6 177-194,200-204
+  s_c133004d4f803f::t_e7f0b38c35c25b 206-213,215-216
+scripts/session-workspace.test.mjs
+  s_c133004d4f803f::t_9762f038c1c0e1 2-163
+  s_c133004d4f803f::t_051a9e1b335e66 1,164-192
+evals/feedback-on-session/feedback-maintainer-followup-gaps/graders/input-unchanged.md
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+evals/implement/repo-impact-scope/graders/qa-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+evals/plan-the-work/README.md
+  s_5b0b3cad353121::t_001636e2eb26c0 515
+  s_5b0b3cad353121::t_307bc048a3197d 516-529
+  s_5b0b3cad353121::t_fcce152281d163 530
+evals/implement/README.md
+  s_5b0b3cad353121::t_c57f2861f0cc26 238-243
+  s_5b0b3cad353121::t_02a0605a13fe91 244-249
+skills/implement/scripts/review-scope.test.mjs
+  s_c133004d4f803f::t_bc2126ee7f3d73 10
+  s_c133004d4f803f::t_352bb5368a671d 256,258-274,377
+  s_c133004d4f803f::t_d01bc46451c48a 311
+  s_c133004d4f803f::t_af6af3468ca1a8 309
+  s_c133004d4f803f::t_e08c25053008da 4,361,363-364,369
+  s_c133004d4f803f::t_8e2fcff33d3e76 317-360
+  s_c133004d4f803f::t_c6fc42f9a1a213 312,315-316,362,365-368,370-372
+  s_c133004d4f803f::t_ed06f4aff40288 373-376
+  s_c133004d4f803f::t_ec0e81161bda84 12,257,275-308,310,313-314
+scripts/regression.test.mjs
+  s_c133004d4f803f::t_f820402c52ad51 3,65-91
+  s_c133004d4f803f::t_fe60815e21bd02 4,54-64
+skills/implement/scripts/feedback-handoff.mjs
+  s_c133004d4f803f::t_e8aa1d0b4d9073 125
+evals/feedback-on-session/feedback-maintainer-followup-reported/graders/input-unchanged.md
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+evals/implement/repo-impact-missing/graders/readiness-status.md
+  s_5b0b3cad353121::t_47c4d487aee9e6 4
+  s_5b0b3cad353121::t_21ae1a451a2fac 1-3,5-6
+skills/feedback-on-session/references/maintainer-review.md
+  s_bceb6e9c36297a::t_c75d22305cee3c 15
+  s_bceb6e9c36297a::t_002675224e1aff 35-41,45-47
+  s_574472768edb94::t_7fc866beb5f844 42
+  s_bceb6e9c36297a::t_88bb89b5062d7c 64
+  s_574472768edb94::t_e8378d26d2bda0 43-44
+evals/feedback-on-session/feedback-maintainer-followup-reported/fixture/session.txt
+  s_574472768edb94::t_ff6761500f6d2e 1-7
+skills/implement/scripts/planning-tests.mjs
+  s_5b0b3cad353121::t_e03a2a8c5ff8eb 12,60-61,64-65
+  s_5b0b3cad353121::t_d0f80b0f0f5dac 62-63
+scripts/workspace.mjs
+  s_c133004d4f803f::t_812a10b4c55a25 7,21-22,24-28,31,33
+  s_c133004d4f803f::t_0239b067b2f999 23
+skills/implement/scripts/repo-impact.test.mjs
+  s_5b0b3cad353121::t_e03a2a8c5ff8eb 132,157
+  s_5b0b3cad353121::t_4db910398cc460 1-14,17-79,81-131,133-156,158-183,191,197,200,207
+  s_5b0b3cad353121::t_3aab3060099077 15
+  s_5b0b3cad353121::t_a78fdb5bff7ea8 16,80,184-190,192-196,198-199,201-206
+evals/implement/repo-impact-scope/graders/web-unchanged.md
+  s_5b0b3cad353121::t_457de523cbc375 1-6
+skills/implement/scripts/startup-presentation.test.mjs
+  s_c133004d4f803f::t_32dc577737eafa 3,156-179,183-186
+  s_c133004d4f803f::t_ee73b6d7428554 145-146
+  s_c133004d4f803f::t_d3f25de382e005 153
+  s_c133004d4f803f::t_c58b05dcba17a2 189-220
+  s_c133004d4f803f::t_b5a103c2154534 180-182
+  s_c133004d4f803f::t_352bb5368a671d 143-144,147-152,154-155,187-188
+evals/plan-the-work/visual-amend/prompt.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-8,12-13
+  s_5b0b3cad353121::t_fcce152281d163 9-11
+evals/implement/repo-impact-scope/prompt.md
+  s_5b0b3cad353121::t_457de523cbc375 1-8,11
+  s_5b0b3cad353121::t_5b146e6427d206 9-10
+  s_5b0b3cad353121::t_0753be782d28ec 12-13
+skills/implement/scripts/review-scope.mjs
+  s_c133004d4f803f::t_71199a5769795d 117-121,123,127,129,166
+  s_c133004d4f803f::t_1240b7fcfc100e 98-99
+  s_c133004d4f803f::t_4f503e3e07b24c 156
+  s_c133004d4f803f::t_5d78e9416b1a10 72,100-102,104-107,109-110,261-263
+  s_c133004d4f803f::t_4828a902305252 18,91,108,157,165
+  s_c133004d4f803f::t_da5130cb13f981 111-112
+  s_c133004d4f803f::t_4606b78e9c105d 17,115-116,124,162-164
+  s_5b0b3cad353121::t_031d125c764807 13
+  s_c133004d4f803f::t_95c5c03c515449 255-256
+  s_c133004d4f803f::t_e4d7a30e2f2110 158-161
+  s_c133004d4f803f::t_a29d460ae332ea 74,97
+  s_c133004d4f803f::t_769057cee8905a 92,94,103
+  s_c133004d4f803f::t_977dd52e3cc831 155
+  s_c133004d4f803f::t_e08c25053008da 137
+  s_c133004d4f803f::t_4eff0ba0a498a1 81-88,90,153,182
+  s_5b0b3cad353121::t_5e49bad6fe6f9c 21,69
+scripts/repo-identity.mjs
+  s_c133004d4f803f::t_0239b067b2f999 6,67-69,71
+evals/plan-the-work/visual-flow/fixture.sh
+  s_5b0b3cad353121::t_f6d116c278948f 1-5
+evals/plan-the-work/visual-simple/fixture.sh
+  s_5b0b3cad353121::t_f6d116c278948f 1-5
+evals/feedback-on-session/feedback-maintainer-followup-answered/graders/questions.md
+  s_574472768edb94::t_ff6761500f6d2e 1-7
+evals/feedback-on-session/feedback-maintainer-followup-reported/graders/ledger-and-boundaries.md
+  s_574472768edb94::t_ff6761500f6d2e 1-9
+scripts/validate-plan.test.mjs
+  s_5b0b3cad353121::t_62f4dea3ba1877 11-19
+skills/implement/scripts/review-reconciliation.mjs
+  s_c133004d4f803f::t_4828a902305252 34-35,172-174,189,201,203,206
+  s_c133004d4f803f::t_95c5c03c515449 117-121
+  s_c133004d4f803f::t_1240b7fcfc100e 50
+  s_c133004d4f803f::t_977dd52e3cc831 103
+  s_c133004d4f803f::t_4606b78e9c105d 109-116,122-128,178-179,196
+  s_c133004d4f803f::t_8cec31c5f809e6 45,79
+  s_c133004d4f803f::t_5d78e9416b1a10 18,156-159
+  s_c133004d4f803f::t_4f09538f16f909 104
+  s_c133004d4f803f::t_c1ce6e3b177bd1 48-49,51-54,57-59
+  s_c133004d4f803f::t_769057cee8905a 11,160,163,180-186
+  s_c133004d4f803f::t_2662f4877c10db 1-10,12-17,19-33,36-44,46-47,55-56,60-78,80-102,105-108,129-155,161-162,164-171,175-177,187-188,190-195,197-200,202,204-205,207-210
+skills/implement/references/session-worktrees.md
+  s_c133004d4f803f::t_069a1a61796b89 1-84
+evals/plan-the-work/visual-amend/case.yaml
+  s_5b0b3cad353121::t_f6d116c278948f 1-5
+skills/implement/scripts/workflow-integration.test.mjs
+  s_5b0b3cad353121::t_5285fcbfcb5be4 17,60-62,118-124,126,160,166
+  s_c133004d4f803f::t_97ac8bcd781998 20,175
+  s_c133004d4f803f::t_c1ce6e3b177bd1 174
+  s_c133004d4f803f::t_ed3851afd081e9 26,28-35,48-53,56,59,211
+evals/feedback-on-session/feedback-maintainer-followup-reported/prompt.md
+  s_574472768edb94::t_ff6761500f6d2e 1-10
+skills/implement/scripts/startup-presentation.mjs
+  s_c133004d4f803f::t_c38667006ed6ce 214-215,234-240,242-252
+  s_c133004d4f803f::t_c58b05dcba17a2 11,241
+evals/plan-the-work/visual-simple/graders/visual.md
+  s_5b0b3cad353121::t_f6d116c278948f 1-11
+evals/feedback-on-session/feedback-maintainer-followup-gaps/graders/questions.md
+  s_574472768edb94::t_a8f45013f35976 7
+  s_574472768edb94::t_e8378d26d2bda0 8-9
+  s_574472768edb94::t_ff6761500f6d2e 1-6
+skills/implement/references/orchestration/startup.md
+  s_c133004d4f803f::t_069a1a61796b89 126-132
+  s_5b0b3cad353121::t_014fb2737682c9 173-175
+evals/feedback-followup-fixtures.test.mjs
+  s_574472768edb94::t_3e09604111be26 1-41
+evals/feedback-on-session/feedback-maintainer-followup-answered/fixture.sh
+  s_574472768edb94::t_ff6761500f6d2e 1-11
+scripts/session-workspace.mjs
+  s_c133004d4f803f::t_0239b067b2f999 22-23
+  s_c133004d4f803f::t_812a10b4c55a25 1-13,15,18-21,24-35,37,41-56
+  s_c133004d4f803f::t_ee7a1546c5a089 36,38-40
+  s_c133004d4f803f::t_ea23711095aa68 14,16-17
+skills/implement/references/feedback.md
+  s_c133004d4f803f::t_252c28a01ba23e 9,133,371
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_c133004d4f803f::t_491728c5b62209 69
+skills/implement/scripts/write-feedback.test.mjs
+  s_c133004d4f803f::t_8e82c4f0bb775f 9,210-216,529-538,646-672
+skills/write-the-tests/SKILL.md
+  s_5b0b3cad353121::t_443e5566d8a9d8 8-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "880372854e056c07e68baeb78adb827d1c24f1f7",
+  "prompts": {},
+  "sessions": {
+    "s_574472768edb94": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f299-7ef3-7e91-b899-5fbdb8a74df8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_5b0b3cad353121": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f393-b1ce-7683-b778-da40b9146e05",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_bceb6e9c36297a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f041bd0e-63d3-45fb-8923-1ff42f21e7be",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_c133004d4f803f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f296-8e2a-7401-9ca6-848716651ca8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_cc7d74c817ec45": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e240cec6-9a0b-49e6-adb8-a9f33f766dd8",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
