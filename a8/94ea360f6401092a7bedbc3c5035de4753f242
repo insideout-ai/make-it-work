@@ -1,0 +1,21 @@
+evals/implement/worktree-branch-preview/prompt.md
+  s_c133004d4f803f::t_05d2b5b1525066 21-24
+skills/implement/references/session-worktrees.md
+  s_c133004d4f803f::t_05d2b5b1525066 61-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a894ea360f6401092a7bedbc3c5035de4753f242",
+  "prompts": {},
+  "sessions": {
+    "s_c133004d4f803f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f296-8e2a-7401-9ca6-848716651ca8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
