@@ -139,3 +139,28 @@ helper directory before calling the already-specified artifact resolver. Clarify
 standalone output handling to use that supplied path directly, without helper
 directory browsing/source reads. Retry only this remaining case; do not rerun
 passing cases or weaken the standalone evidence boundary.
+
+### PR #115 readiness smoke follow-up
+
+The initial complete 16-case smoke on `8803728` retained 14 passes and two
+failures, with `selectionComplete: true`, `repoUnchanged: true` and reported usage
+**$5.33503424**. Report:
+`evals/results/smoke-2026-11-19T14-39-10-252Z/summary.json`.
+
+- `drive-the-epic-autopilot`: direct inspection of the saved first slice confirms
+  that it fixes amounts/dates to their stored representation, although the epic
+  leaves date format/timezone unresolved and that slice omits the question. Both
+  semantic votes failed. Clarify the existing uncertainty-preservation rule for
+  prose/examples and values emitted by an earlier slice; raw/stored/default
+  representations are still choices. No new gate or question is added.
+- `close-the-gaps-live-autopilot`: the native harness could not find the required
+  spec and discarded its temporary trace/fixture. Preserve that failed verdict
+  and leave its cause unclassified. Move the same case to the existing headless
+  path so the retry retains the transcript/artifacts; prompt, graders, required
+  tools and suite membership remain unchanged. A headless pass will not prove
+  the native failure's cause or certify native execution.
+
+All 108 eval-harness tests, strict skill validation, 186-case inventory and diff
+checks passed after these changes. Retry only these unresolved cases through
+PR #115's existing ledger; preserve the 14 passes and initial reports. The
+requested total budget remains $12, including the initial run and grading.

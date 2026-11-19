@@ -19,6 +19,7 @@
     "write-the-tests-standalone"
   ],
   "headless": [
+    "close-the-gaps-live-autopilot",
     "implement-repo-impact-scope",
     "implement-repo-impact-missing",
     "implement-planning-progress",

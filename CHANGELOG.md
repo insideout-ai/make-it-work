@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Preserve unresolved value representations in every epic slice that emits them, including prose describing "raw" or "stored" values. Retain live-refinement smoke traces and artifacts through the existing headless runner without changing its prompt or graders.
+
 - Missing required verification in unchanged affected repos can be recorded as unavailable without inventing a runner. Readiness completion and passing gates reject the gap; model evals now enforce actual pending/complete readiness receipts instead of accepting caveats on ready rows.
 
 - Clarify planning self-review for changed contracts and their real callers, and reconcile test-support destinations with existing edit eligibility before approval. Keep authorization and amendment rules unchanged.
