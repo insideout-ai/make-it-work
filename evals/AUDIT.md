@@ -476,3 +476,19 @@ The first preview generation rejected the source fixture's unresolved plugin
 version; substituting 5.16.0 fixed the synthetic preview. This is browser QA of
 the synthetic readiness row, not a new live Implement lifecycle/model eval.
 No paid evaluation or full smoke was repeated for this display-only change.
+
+## PR #115 — Compact Execute timeline, 2026-11-19
+
+D028 shortens the visible active Execute label to its actual step position and
+moves execution mode/verified counts to a tooltip. The duplicate skill name is
+removed. Parallel dispatch retains multiple positions; when no step is running,
+only actual completion progress is shown. Execution journals, verified counts,
+current activity and approval/gate behavior are unchanged.
+
+The render-status, plan-status and step-control selection passed all 113 tests,
+zero failures/skips (`/tmp/pr115-execute-label-tests.log`). Existing dispatch
+and parallel integration checks additionally assert compact visible labels and
+retained tooltip detail. Chrome inspection of the synthetic preview at
+`/tmp/pr115-execute-preview/dashboard.html` confirmed the three-line active
+Execute display. No model evaluation or complete smoke was repeated. The other
+session's badge-label commit 9911aa3 was present during validation and preserved.

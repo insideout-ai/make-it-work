@@ -2216,3 +2216,23 @@ dashboard was inspected in Chrome: collapsed summary, expanded original evidence
 and report-reader navigation worked. A preview fixture initially retained its
 plugin-version placeholder; replacing it with 5.16.0 allowed rendering. No live
 user files were changed and no model evaluation or complete smoke was repeated.
+
+### D028 — Compact Execute timeline progress, 2026-11-19
+
+The maintainer's live screenshot repeated Execute as a skill name and combined
+execution mode, running-step position and verified completion counts beneath one
+timeline dot. The approved display is Execute / Step 1 of 3 / In Progress.
+
+The duplicate (execute) label is removed. Active Execute shows its actual saved
+step position, or multiple positions for parallel dispatch. Execution mode and
+verified completion counts remain in a tooltip. Without an active running step,
+the label retains completion-only progress rather than inferring the next step.
+The current-activity panel, plan, execution report and execution checks retain
+their existing detail and behavior.
+
+Validation: 113 render-status, plan-status and step-control tests passed (zero
+failures/skips), including real dispatch, completion, parallel batches, failure
+and resume checks. Existing integration assertions now also verify compact
+visible text and detailed tooltips. A synthetic active-step dashboard was
+visually checked in Chrome. No paid eval or full smoke was repeated. The other
+session's committed badge-label change (9911aa3) is preserved.

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Shorten the Execute timeline to the active step position. Remove the duplicate skill label and keep execution mode and verified completion counts in the tooltip; preserve parallel-step positions and completion-only progress when no step is running.
+
 - Show testing readiness as a readable baseline summary with a report link. Keep raw evidence paths and hashes in expandable technical details, retain per-repo failures and unrun/manual baselines, and show unchanged audit phases once.
 
 - Simplify dashboard approval panels with readable document-preview links and a local waiting timer. Keep exact document hashes and binding paths in internal approval records instead of displaying them in the panel.

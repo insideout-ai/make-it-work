@@ -545,7 +545,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     const passed = dotState === 'passed';
     const symbol = passed ? '✓' : dotState === 'failed' ? '✗' : '';
     const lineClass = passed || dotState.startsWith('current') ? ' line-green' : '';
-    const label = escapeHtml(info.label) + (info.skill ? `<span class="phase-skill">(${escapeHtml(info.skill)})</span>` : '');
+    const label = escapeHtml(info.label) + (info.skill && info.skill !== 'execute' ? `<span class="phase-skill">(${escapeHtml(info.skill)})</span>` : '');
     const currentLabel = isActive && state.fields.status === 'In Progress' ? ' current-label' : '';
     const pieces = ['<div class="phase-step">'];
     if (index > 0) pieces.push(`  <div class="line${lineClass}"></div>`);
@@ -555,15 +555,18 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     pieces.push(`  <div class="phase-label${currentLabel}">${label}</div>`);
 
     let modeText = null;
+    let modeDetails = null;
     if (isActive && slot.phase === 'write-tests') modeText = 'Preparing coverage · implementation has not advanced';
     if (slot.phase === 'write-tests' && slot.preparationExempt) modeText = 'Not applicable — manual verification';
     if (isActive && slot.phase === 'plan' && state.fields.phase === 'plan-approval') modeText = 'Awaiting plan approval';
     if (isActive && slot.phase === 'execute') {
       if (!planStatus) fail('An active Execute phase requires a readable plan Execution Status.');
-      modeText = `${planStatus.mode} · Step ${planStatus.complete} of ${planStatus.total} complete`;
+      modeText = `Step ${planStatus.complete} of ${planStatus.total} complete`;
+      modeDetails = `${planStatus.mode} · ${modeText}`;
       if (state.fields.status === 'In Progress' && planStatus.activeSteps?.length) {
         const ids = planStatus.activeSteps.map((step) => step.number);
-        modeText = `${planStatus.mode} · Running ${ids.length === 1 ? 'step' : 'steps'} ${ids.join(', ')} of ${planStatus.total} · ${planStatus.complete} of ${planStatus.total} verified complete`;
+        modeText = `${ids.length === 1 ? 'Step' : 'Steps'} ${ids.join(', ')} of ${planStatus.total}`;
+        modeDetails = `${planStatus.mode} · Running ${ids.length === 1 ? 'step' : 'steps'} ${ids.join(', ')} of ${planStatus.total} · ${planStatus.complete} of ${planStatus.total} verified complete`;
       }
     } else if (isActive && slot.phase === 'fix-plan' && state.fixPlanRoundSteps !== null) {
       if (!planStatus) fail('An active Fix phase with sized steps requires a readable plan Execution Status.');
@@ -586,7 +589,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     }
     if (dotState === 'skipped') modeText = 'Skipped';
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
-    if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
+    if (modeText) pieces.push(`  <div class="phase-mode"${modeDetails ? ` title="${escapeHtml(modeDetails)}"` : ''}>${escapeHtml(modeText)}</div>`);
 
     if ((passed || finalizingFeedback) && (slot.phase !== 'complete' || slot.finalizing)) {
       const activatedIndex = activated.indexOf(slot);
