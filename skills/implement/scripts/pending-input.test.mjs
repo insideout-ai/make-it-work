@@ -9,6 +9,7 @@ import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { createPendingInput, pendingInputs } from './pending-input.mjs';
 import { applyWorkflow, initializeWorkflow } from './workflow.mjs';
 import { parseState } from './render-status.mjs';
+import { changePlan, inspectPlan } from '../../execute/scripts/plan-status.mjs';
 
 async function fixture(t, autonomy = 'autonomous') {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'pending-input-'));
@@ -50,6 +51,52 @@ test('a blocking question is persisted and rendered before returning, and only a
   assert.equal(resumed.fields.status, 'In Progress'); assert.deepEqual(resumed.pending, []);
   assert.equal(resumed.fields.current_activity_updated_at, 'none');
   assert.match((await state()).audit.at(-1).outcome, /resolved: Continue; source: user/);
+  assert.doesNotMatch(await html(), /aria-label="Pending input"/);
+});
+for (const pauseMode of [null, 'run-straight-through', 'stop-after-each-step']) test(`Guided Execute mode choice pauses the dashboard and resumes without advancing steps (${pauseMode ?? 'subagent-driven'})`, async (t) => {
+  const { root, apply, state, html, seed } = await fixture(t, 'guided');
+  const plan = 'make-it-work/DEMO/DEMO-plan.md';
+  const original = changePlan(await readFile(new URL('../../plan-the-work/references/plan-template.md', import.meta.url), 'utf8'), 'set-total', { total: 3 });
+  await writeFile(artifactJoin(root, plan), original);
+  await seed({ phase: 'execute', plan, execution: 'not-started' });
+  const mode = pauseMode ? 'inline' : 'subagent-driven';
+  const modeQuestion = {
+    id: 'execution-mode-1', kind: 'question', question: 'How should the 3 plan steps be executed?',
+    choices: [{ id: 'subagent-driven', label: 'Subagent-Driven (Recommended)' }, { id: 'inline', label: 'Inline Execution' }],
+  };
+  await apply('await-input', { pending: modeQuestion });
+  const waiting = await state();
+  assert.equal(waiting.fields.phase, 'execute'); assert.equal(waiting.fields.status, 'Paused');
+  assert.equal(waiting.fields.execution_mode, 'none');
+  const page = await html();
+  assert.match(page, /Waiting for your input/); assert.match(page, /Workflow paused/);
+  assert.match(page, /How should the 3 plan steps be executed\?/); assert.match(page, /Inline Execution/);
+  assert.doesNotMatch(page, /Execute in progress|current spinning/);
+  assert.equal(await readFile(artifactJoin(root, plan), 'utf8'), original);
+  const resumed = await apply('resume', { blocker_resolved: true });
+  assert.equal(resumed.fields.status, 'Paused');
+  assert.equal(resumed.pending[0].requested_at, waiting.pendingInputs[0].requested_at);
+  await apply('resolve-input', { pending_id: modeQuestion.id, answer: mode, source: 'user', via: 'question' });
+  if (pauseMode) {
+    await apply('await-input', { pending: {
+      id: 'inline-pause-1', kind: 'question', question: 'Inline mode: stop after each step for review, or run straight through?',
+      choices: [{ id: 'run-straight-through', label: 'Run straight through (Recommended)' }, { id: 'stop-after-each-step', label: 'Stop after each step' }],
+    } });
+    assert.equal((await state()).fields.status, 'Paused');
+    const followUp = await html();
+    assert.match(followUp, /Waiting for your input/); assert.match(followUp, /Inline mode: stop after each step/);
+    assert.equal(await readFile(artifactJoin(root, plan), 'utf8'), original);
+    await apply('resolve-input', { pending_id: 'inline-pause-1', answer: pauseMode, source: 'user', via: 'question' });
+  }
+  const selected = await apply('execution-mode', { mode, ...(pauseMode ? { pause_mode: pauseMode } : {}), source: 'user', via: 'question' });
+  assert.equal(selected.fields.status, 'In Progress'); assert.equal(selected.fields.phase, 'execute');
+  assert.equal(selected.fields.execution_mode, mode); assert.equal(selected.fields.inline_pause_mode, pauseMode ?? 'none');
+  assert.deepEqual(selected.pending, []);
+  const planPauseMode = { 'run-straight-through': 'straight-through', 'stop-after-each-step': 'after-each-step' }[pauseMode] ?? null;
+  assert.deepEqual(inspectPlan(await readFile(artifactJoin(root, plan), 'utf8')), {
+    mode, pauseMode: planPauseMode,
+    completed: 0, total: 3,
+  });
   assert.doesNotMatch(await html(), /aria-label="Pending input"/);
 });
 test('Resume redisplays the same pending request without treating silence as an answer or adding audit rows', async (t) => {
