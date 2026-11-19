@@ -1,0 +1,60 @@
+skills/implement/scripts/workflow-integration.test.mjs
+  s_c133004d4f803f::t_d0989a09d29d7d 197-200
+  s_c133004d4f803f::t_024a27b8117dfa 50,60
+  s_c133004d4f803f::t_6609e12175a608 194
+evals/implement/README.md
+  s_c133004d4f803f::t_7168b45efd7d45 289-291
+README.md
+  s_c133004d4f803f::t_7168b45efd7d45 269-271
+skills/implement/references/session-worktrees.md
+  s_c133004d4f803f::t_7168b45efd7d45 51-53,61-64,79-82
+  s_c133004d4f803f::t_a068cfa1864553 65-69
+docs/deterministic-artifacts.md
+  s_c133004d4f803f::t_a068cfa1864553 173-175
+  s_c133004d4f803f::t_7168b45efd7d45 164-165,172,176-178
+scripts/lib/delivery-scope.mjs
+  s_c133004d4f803f::t_6609e12175a608 23,26-27
+docs/workflow-findings.md
+  s_c133004d4f803f::t_a068cfa1864553 2136-2173
+evals/implement/worktree-workspace-preview/prompt.md
+  s_c133004d4f803f::t_7168b45efd7d45 20-24
+CHANGELOG.md
+  s_c133004d4f803f::t_7168b45efd7d45 21
+scripts/lib/session-workspace.mjs
+  s_c133004d4f803f::t_5c7e4165cb99a7 1,8-12,24,29-30,35,49-51,82-96,98-113,116-118
+  s_c133004d4f803f::t_024a27b8117dfa 114-115
+  s_c133004d4f803f::t_3a044d4fea38eb 62,97
+  s_c133004d4f803f::t_585bc2e6d43bcb 44,64,66-67
+scripts/session-workspace.test.mjs
+  s_c133004d4f803f::t_024a27b8117dfa 101,109,113,118-120,122-131,134,136-141,143-150
+  s_c133004d4f803f::t_3a044d4fea38eb 116
+  s_c133004d4f803f::t_585bc2e6d43bcb 142,151-168
+evals/implement/worktree-workspace-preview/graders/workspace-placement.md
+  s_c133004d4f803f::t_7168b45efd7d45 9-14
+skills/implement/scripts/workspace-scope.mjs
+  s_c133004d4f803f::t_5c7e4165cb99a7 12,98-101,105
+  s_c133004d4f803f::t_6609e12175a608 158-159,260
+scripts/session-workspace.mjs
+  s_c133004d4f803f::t_5c7e4165cb99a7 3,7,11,32,35-38,55
+skills/implement/scripts/review-scope.mjs
+  s_c133004d4f803f::t_6609e12175a608 45-46,50
+skills/implement/scripts/final-package.mjs
+  s_c133004d4f803f::t_a628826b915d48 214-215
+  s_c133004d4f803f::t_6609e12175a608 208,216
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ce2b3e8d1e400236d1fb020abacc107ac3be1ef0",
+  "prompts": {},
+  "sessions": {
+    "s_c133004d4f803f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f296-8e2a-7401-9ca6-848716651ca8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
