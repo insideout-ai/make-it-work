@@ -255,3 +255,47 @@ control. This is a focused development check, not an archive-wide suite pass.
 Strict skills validation, inventory (187 cases / 16 smoke skills) and whitespace
 checks passed. No JavaScript source or harness code changed; the existing 108
 harness and 802 workflow test results retain their earlier source qualifications.
+
+
+## PR #115 — Explicit checkout actions and worktree branch naming, 2026-11-19
+
+The approved wording replaces Continue here with an actual branch action: Create
+branch in current checkout on base, or Use current branch: <branch> on a suitable
+feature branch. The worktree route remains first and recommended, with suggested
+branch naming and optional rename in the existing creation approval. Changing a
+name uses target_branch and a fresh preview/hash in the same private session;
+accepting the default adds no mandatory name-entry question. No runtime code,
+state field or approval stage changed. See D023.
+
+Report `evals/results/full-2026-11-19T17-19-49-588Z/summary.json`, source
+`b7a1fef74a032a85005a8f9aebab440c54cbb4f0`: **2/2 selected cases passed**,
+`selectionComplete: true`, `repoUnchanged: true`, reported usage **$0.68108172**:
+
+- `implement-worktree-offer`: **$0.24892089**. Direct trace review confirmed
+  precheck before the question, isolated worktree first and uniquely recommended,
+  Create branch in current checkout with the exact proposed name and current
+  HEAD, Stop, and optional different naming for either route. It left the choice
+  pending and preserved both source and the local tracked .gitignore edit.
+- `implement-worktree-branch-preview`: **$0.43216083**. Explicit --worktree skipped
+  the checkout question. Actual allocation and workspace-scope prepare used the
+  fixture's external disposable sessions parent. The user-facing preview linked
+  the returned HTML and showed the suggested branch, starting main commit, source,
+  destination and hash, plus Create worktree and branch / Use a different branch
+  name / Back. Approval remained unanswered; no approve/run or initialization
+  occurred. Source remained on main with only its original worktree, and both
+  exact-byte unchanged checks passed.
+
+The existing 21 tests in scripts/session-workspace.test.mjs and
+skills/implement/scripts/workspace-scope.test.mjs passed on this source. Strict
+skills validation, 188-case inventory (16 smoke skills), runtime build/integrity
+and strict exported-skills validation passed. No full smoke or broad workflow
+suite was repeated for this guidance-only change. Both cases remain outside
+smoke/critical.
+
+These cases test pending choices in the headless driver, permitting equivalent
+chat questions when interactive replies cannot be collected. They do not certify
+native terminal UI, the feature-branch label, an actual rename response, Back
+execution or a complete worktree lifecycle. The separate existing helper tests
+cover revisions, exact approval and worktree execution. The case used a synthetic
+policy repository explicitly chosen by the prompt; payment/session behavior was
+not implemented or validated.

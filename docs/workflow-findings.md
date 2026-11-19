@@ -2014,3 +2014,16 @@ isolation, prepares an actual preview and leaves approval unanswered, checking
 the suggested name and change-name action without branch/worktree creation.
 Strict skills validation, 188-case inventory (16 smoke skills), diff whitespace
 and focused selection dry-run pass. Live evidence follows the committed probe.
+
+D023 validation: report
+`evals/results/full-2026-11-19T17-19-49-588Z/summary.json` on
+`b7a1fef74a032a85005a8f9aebab440c54cbb4f0` passed both selected live cases,
+reported usage **$0.68108172**, with complete selection and unchanged source.
+The offer used the explicit branch-creation label and optional naming note; the
+actual prepared worktree preview showed its suggested branch and rename/back
+actions without approval or creation. All 21 existing session-workspace and
+workspace-scope helper tests passed. Runtime build, integrity and strict exported
+skills validation passed on the same source. Actual rename input, Back execution
+and native terminal UI interaction were not exercised by these unanswered-choice
+cases; no guarantee of future model adherence is claimed. Detailed evidence is
+retained in evals/AUDIT.md.

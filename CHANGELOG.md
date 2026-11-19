@@ -41,7 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Implementation plans include a compact Mermaid visual when it clarifies the change, with a justified omission for simple work. Planning handoffs link to the Markdown plan; replans and amendments keep the visual current without image generation or rendering dependencies.
 
-- Add optional private session workspaces with approved linked-worktree creation, unique per-session branches and isolated workflow artifacts. Preserve Continue here and existing-run paths, support interrupted setup recovery, and bind resume/packaging to the saved checkout roots and Git metadata.
+- Add optional private session workspaces with approved linked-worktree creation, unique per-session branches and isolated workflow artifacts. Preserve current-checkout and existing-run paths, support interrupted setup recovery, and bind resume/packaging to the saved checkout roots and Git metadata.
 
 - Added three focused maintainer-review evals for follow-up questions, answered gaps and later reported answers, with deterministic fixture, redaction and unchanged-input checks.
 - Maintainer-review mode now prepares plain-language follow-up questions for the session's user (phase, what was noticed, question) for gaps the evidence cannot close. Questions are shown in chat for the maintainer to send; the mode never sends them, and the ledger records only the user's later answers as reported input.
