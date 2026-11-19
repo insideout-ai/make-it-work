@@ -186,7 +186,9 @@ test('audited CLI completes when the existing final dashboard imports verificati
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(run.stdout).valid, true);
   assert.doesNotMatch(run.stderr, /unsettled top-level await/i);
-  assert.match(await readFile(f.dashboard, 'utf8'), /Acceptance verification/);
+  const html = await readFile(f.dashboard, 'utf8');
+  assert.match(html, /Acceptance checks:/);
+  assert.match(html, /Verification checked for PASSED\.[^<]+<a href="DEMO-acceptance-v1.md.preview.html"[^>]*>View verification report<\/a>/);
   const saved = await readFile(f.statePath, 'utf8');
   assert.match(parseState(saved).audit.at(-1).outcome, /Verification ledger validated/);
   const retry = spawnSync(process.execPath, f.argv, { encoding: 'utf8', timeout: 15000 });

@@ -300,8 +300,8 @@ test('partial unknown overall ratings use a neutral badge without borrowing indi
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
   const rows = [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']];
   const current = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows }));
-  assert.match(current.html, /Acceptance verification: Not recorded/);
-  assert.doesNotMatch(current.html, /Acceptance verification: Verified/);
+  assert.match(current.html, /Acceptance checks:<\/strong> Not recorded/);
+  assert.doesNotMatch(current.html, /of \d+ verified|View verification report/);
   const legacy = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows }));
   assert.doesNotMatch(legacy.html, /class="acceptance-summary"/);
 });

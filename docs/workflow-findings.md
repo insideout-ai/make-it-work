@@ -2252,3 +2252,29 @@ collapsed location controls for both checkout modes in a synthetic preview.
 Expanded layout was not manually certified; user browser activity interrupted
 that check. No paid eval or full smoke was repeated. Unrelated edits from the
 other session were left outside this change.
+
+### D030 — Acceptance details in artifacts and audit links, 2026-11-19
+
+The maintainer approved replacing the standalone acceptance-detail table with
+a compact notice: Acceptance checks: 3 of 5 verified · 2 pending, followed by
+View verification report. A new Acceptance checks artifact opens the readable
+report through the existing document reader. Recognized verification audit
+results link the same report; original audit records remain unchanged.
+
+The per-plan `<TICKET>-acceptance-v<N>.md` report (prefixed with miw- for new
+naming) presents every saved criterion/clause/scenario, status and evidence note,
+and links the original verification JSON. It is derived after existing ledger
+validation at final approval/completion and rewritten only when content changes.
+Missing evidence remains Not recorded; unverified scenarios stay pending and a
+criterion counts as verified only when all its scenarios are verified. Gates,
+ledger bytes, final-package contents, approved hashes and legacy eligibility
+are unchanged. No checks are rerun to produce this report.
+
+Validation: 111 acceptance-summary, renderer, verification and final-package
+tests passed, zero failures/skips; 20 artifact/preview checks passed. The first
+selection had one stale assertion expecting clause text in the main HTML;
+it now checks the derived report and retains pending-clause validation. Final
+checks verify report-reader links, escaped evidence, unchanged ledger bytes,
+current package identity and idempotent audit retries. A synthetic 3-of-5 preview
+was generated locally; this follow-up has no new native browser certification,
+model eval or full smoke rerun. The other session's 4fad415 changes are preserved.

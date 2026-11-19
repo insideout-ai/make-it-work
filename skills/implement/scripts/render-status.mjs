@@ -21,7 +21,8 @@ import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../.
 import { generateArtifactPreviews } from '../../../scripts/lib/artifact-preview.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
-import { summarizeAcceptance } from './acceptance-summary.mjs';
+import { summarizeAcceptance, acceptanceMarkdown } from './acceptance-summary.mjs';
+import { atomicWrite } from '../../../scripts/lib/artifacts.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -728,8 +729,12 @@ function renderReadinessResult(state, text) {
   return `<div class="readiness-result"><strong>${title}</strong>${summary}<p>${limited ? 'Review baseline limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View readiness report</a></p><details><summary>Technical details</summary><p><a href="${escapeHtml(receipt)}">Open readiness record (JSON)</a></p><p>${escapeHtml(text)}</p></details></div>`;
 }
 
-function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
+function renderAuditOutcome(state, outcome, assessment = null, auditId = null, acceptance = null) {
   const text = displayOutcome(outcome);
+  const verification = text.match(/^(Result: Verification ledger validated(?: for [A-Z_]+| \(partial check\))\. Gate: .+; acceptance: \d+\/\d+ verified\.); evidence: (.+); sha256:[a-f0-9]{64}$/);
+  if (verification && acceptance?.report && verification[2] === acceptance.source) {
+    return `${escapeHtml(verification[1].replace('Result: Verification ledger validated', 'Verification checked'))} · <a href="${escapeHtml(acceptance.report)}">View verification report</a>`;
+  }
   const readiness = renderReadinessResult(state, text);
   if (readiness) return readiness;
   const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(\. Implementation remains unverified\.)?$/);
@@ -772,7 +777,7 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
   return escapeHtml(readable);
 }
 
-function renderAuditRows(state, invalidTimestampFrom, assessment = null) {
+function renderAuditRows(state, invalidTimestampFrom, assessment = null, acceptance = null) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
     if (row.number === state.realRowsFrom) {
@@ -788,7 +793,7 @@ function renderAuditRows(state, invalidTimestampFrom, assessment = null) {
     const phases = row.from === row.to
       ? `<td colspan="2" title="Phase unchanged">${escapeHtml(PHASE_INFO[row.to]?.label ?? row.to)}</td>`
       : `<td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td>`;
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td>${phases}<td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id)}${warning}${duration}</td></tr>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td>${phases}<td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id, acceptance)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
@@ -925,12 +930,18 @@ function renderPublicationBadge(permission) {
   return `<span class="pill ticket-updates-pill ticket-updates-${status}" title="${escapeHtml(tooltip)}">Ticket updates: ${label}</span>`;
 }
 
-function renderAcceptance(state, verification) {
-  if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return '';
+function acceptancePresentation(state, verification) {
+  if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return null;
   const summary = summarizeAcceptance(verification?.acceptance);
-  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: Not recorded</h2></section>';
-  const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(clause ? `${clause} — ${scenario}` : scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
-  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}${summary.pendingRows ? ` · ${summary.pendingRows} unverified requirement/scenario ${summary.pendingRows === 1 ? 'row' : 'rows'} below` : ''}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Requirement clause / scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
+  return { summary,
+    report: summary ? runArtifactName(runArtifact(state.fields.ticket, `${state.fields.ticket}-acceptance-v${state.fields.plan_version}.md`, state.fields.artifact_naming_version), state.fields.ticket) : null,
+    source: runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`, state.fields.artifact_naming_version) };
+}
+
+function renderAcceptance(acceptance) {
+  if (!acceptance) return '';
+  const summary = acceptance.summary;
+  return `<p class="acceptance-summary" aria-label="Acceptance verification"><strong>Acceptance checks:</strong> ${summary ? `${summary.verified} of ${summary.total} verified${summary.pending ? ` · ${summary.pending} pending` : ''} · <a href="${escapeHtml(acceptance.report)}">View verification report</a>` : 'Not recorded'}</p>`;
 }
 
 function renderAutonomyBadge(state) {
@@ -962,6 +973,7 @@ function renderAssessmentBadges(state, report) {
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null }) {
+  const acceptance = acceptancePresentation(state, verification);
   const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
     : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
       ? 'Superseded — refresh preparation for the current plan' : '';
@@ -1000,7 +1012,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     // Older templates may still contain this placeholder. Details live in artifacts.
     ASSURANCE_SUMMARY: '',
     CHANGE_ASSESSMENT: '', // Compatibility with older templates; no standalone section.
-    ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
+    ACCEPTANCE_SUMMARY: renderAcceptance(acceptance),
+    VERIFICATION_TILE: acceptance?.report ? `  <div class="artifact-tile"><div class="label">Acceptance checks</div><a href="${escapeHtml(acceptance.report)}">View verification report</a></div>` : '',
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
@@ -1014,7 +1027,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
-    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment),
+    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment, acceptance),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
     DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
@@ -1103,6 +1116,14 @@ export async function generateDashboard(statePath) {
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
+  const acceptance = acceptancePresentation(state, verification);
+  if (acceptance?.report) {
+    const report = artifactJoin(path.dirname(absoluteStatePath), acceptance.report);
+    const markdown = acceptanceMarkdown(verification, runArtifactName(acceptance.source, state.fields.ticket));
+    let previous = null;
+    try { previous = await readFile(report, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (previous !== markdown) await atomicWrite(report, markdown);
+  }
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   let preparation = null;

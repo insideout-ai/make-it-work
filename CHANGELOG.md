@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Keep acceptance-check status compact on the dashboard. Move criterion, scenario and evidence details into a readable verification report linked from Artifacts and recorded verification results; preserve pending checks and the original verification record.
+
 - Simplify the approved repository table to repository, working branch and base. Put the checkout/worktree path in a collapsed location disclosure under the repository name; keep selection rationale in the saved assessment and approval records.
 
 - Shorten the Execute timeline to the active step position. Remove the duplicate skill label and keep execution mode and verified completion counts in the tooltip; preserve parallel-step positions and completion-only progress when no step is running.

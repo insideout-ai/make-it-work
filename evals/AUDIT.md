@@ -504,3 +504,23 @@ inspection confirmed collapsed controls and three-column tables in the synthetic
 `/tmp/pr115-repository-location-preview/dashboard.html`; user browser activity
 interrupted the expansion check, so expanded rendering is not certified.
 No paid eval or full smoke was repeated for this presentation-only follow-up.
+
+## PR #115 — Acceptance verification report, 2026-11-19
+
+D030 replaces the main dashboard's detailed acceptance table with a compact
+verified/pending count and report link. A per-plan readable companion to the
+validated ledger is available in Artifacts and linked by recognized verification
+audit results. Original JSON/audit bytes, package approvals and gates are retained.
+
+The initial four-file selection passed 110/111 tests; its remaining assertion
+expected pending-clause text in the main HTML. That check now verifies the new
+report while retaining clause/evidence safeguards. The final selection passed
+111/111 tests, zero failures/skips (`/tmp/pr115-acceptance-report-final-tests.log`),
+including report/preview links, pending/manual distinctions, preserved ledger
+bytes, package identity after report generation and audit retry idempotence.
+Artifact/preview checks passed 20/20 (`/tmp/pr115-acceptance-report-artifacts.log`).
+
+A synthetic 3-of-5 dashboard/report was generated at
+`/tmp/pr115-acceptance-preview/dashboard.html`. This is generated-artifact QA,
+without a new native browser check or live model lifecycle. No paid eval or full
+smoke was repeated. Existing passing evidence retains its source qualifications.
