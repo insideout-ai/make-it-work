@@ -331,3 +331,73 @@ validation, the 188-case inventory and whitespace checks passed. No JavaScript
 source or harness code changed; existing helper tests retain their earlier
 source qualifications. No smoke or broad helper suite was repeated for this
 presentation-only follow-up.
+
+
+## PR #115 — Repo/workspace-local defaults, 2026-11-19
+
+D025 moves fresh single-repo checkouts to <repo>/.claude/worktrees/<session>, with
+private preflight/reports at <repo>/.claude/miw-sessions/<session>. Multi-repo
+sessions use <workspace>/.claude/worktrees/<session>/repos/<repo-id> with sibling
+private reports. Existing saved paths and explicit external custom containers
+retain their bindings. Source files/index/branch are preserved; exact new private
+paths receive local Git exclusions rather than source .gitignore edits.
+
+Deterministic evidence:
+
+- Broad workflow run: 807 passed, zero failures/skips, before the final recorded-ID
+  edge correction and its two added tests. That full run is not attributed to
+  every byte of the final candidate. A focused recorded-ID regression then
+  reproduced Repository not found, and passed after binding lookup also recognized
+  the saved inventory ID rather than relying only on a folder or strategy ID.
+- Final affected routing/regression/workflow-integration selection: 53 passed,
+  zero failures/skips on the JavaScript committed as b604a61. It includes both
+  local layouts, actual Git worktree creation, custom-name/old-hash rejection,
+  legacy discovery, concurrent exclusions, source-byte preservation, managed
+  target resolution, subdirectory/saved-root resume, source identity drift and
+  real red-to-green workflow integrations. The new sibling layout's own dedicated
+  test initializes and pauses/resumes; the full isolated red-to-green fixture
+  retains its pre-existing custom-container setup.
+- Final eval-harness plus packaging/publication run: 113 passed, zero failures/
+  skips. Initial inventory and four catalog/dry-run tests failed because the new
+  multi-repo fixture lacked its explicit disposable-cwd guard. The guard was
+  added; inventory and the complete combined selection then passed. No failure
+  was waived. Current inventory: 189 cases / 16 smoke skills.
+- Strict skills validation and whitespace checks passed. Runtime from b604a61
+  built, passed integrity and strict exported-manifest/skills validation, and
+  clean-installed 16 skills / 201 files as 5.16.0. Source labels a894ea3 only change
+  the live prompt/guidance, not JavaScript. No full smoke was repeated.
+
+Live initial report:
+`evals/results/full-2026-11-19T18-07-59-299Z/summary.json`, source
+`b604a61de358563b9031d7e429af88e13b1b75fd`, total **$0.86788070**:
+
+- implement-worktree-workspace-preview passed (**$0.52830643**). Actual allocation
+  and prepare used the workspace-local default, selected api/web, assessed but
+  excluded unrelated, and presented their main/develop starting commits plus
+  exact paths in a readable pending creation preview. Source byte checks passed.
+- implement-worktree-branch-preview failed (**$0.33957427**). Claude Code's auto
+  permission classifier denied allocate before execution as Destructive or
+  Unwanted Actions. No preview or creation was fabricated. The prompt also
+  prohibited any checkout changes despite requesting repo-local preflight.
+  This is a permission-blocked attempt, not passing placement evidence; the
+  runner's unclassified failure is retained. The prompt conflict explains the
+  correction without claiming access to the classifier's internal reasoning.
+
+Only the blocked case was retried after a894ea3 explicitly authorized new private
+preflight paths and scoped local exclusions while protecting existing file
+contents, index, HEAD, branch and the creation gate. Product guidance also
+clarifies these bookkeeping side effects and honors explicit user prohibitions.
+No permission mode/allowlist change, denied-command disguise or grader weakening
+was used. Retry report:
+`evals/results/full-2026-11-19T18-10-58-497Z/summary.json`, source
+`a894ea360f6401092a7bedbc3c5035de4753f242`: 1/1 passed, **$0.49496416**.
+Direct inspection confirmed actual .claude/worktrees and .claude/miw-sessions
+sibling paths, pending exact preview, unchanged source branch/index/HEAD and
+source/.gitignore byte checks; only preflight files and exact exclusions changed.
+
+Combined reported usage including the blocked attempt: **$1.36284486**. Both
+reports have selectionComplete and repoUnchanged true. Coverage is cumulative
+across the two source commits, not a full archive run or a claim both cases ran
+on the final commit. The cases use headless chat confirmation, so they do not
+certify native question rendering, branch creation after a live human answer,
+setup/dependencies in a real project, or a complete live Implement lifecycle.

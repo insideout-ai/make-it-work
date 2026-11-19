@@ -2109,3 +2109,27 @@ Strict skills validation, whitespace and the 189-case inventory pass. No paid
 smoke was repeated; the existing preview case now tests the single-repo default
 and a new extended/full case checks the multi-repo default. Live results follow
 the committed candidate.
+
+D025 live evidence: the multi-repo preview passed on `b604a61`, proposing the
+workspace-local session with api/main and web/develop worktrees and excluding
+unrelated. The initial single-repo allocation was denied by Claude Code's auto
+mode classifier before execution. Its prompt prohibited any checkout change,
+which conflicted with the requested repo-local bookkeeping. The denial itself
+reported Destructive or Unwanted Actions; the prompt conflict is the diagnosed
+authorization issue, not proof of the classifier's internal reasoning.
+
+`a894ea3` clarifies the test's permission for new private directories and exact
+local exclusions while preserving existing files, index, HEAD, branch and
+creation approval. Guidance now states those side effects accurately and honors
+an explicit user prohibition rather than promising zero metadata writes. No
+permission mode, tool allowlist, grader or creation approval was relaxed. The
+single-repo retry passed with actual local paths and only scoped bookkeeping.
+Both previews remain unanswered; no model-run branch/worktree creation occurred.
+Initial report: `evals/results/full-2026-11-19T18-07-59-299Z/summary.json`
+(**$0.86788070**, 1/2 passed); single-case retry:
+`evals/results/full-2026-11-19T18-10-58-497Z/summary.json`
+(**$0.49496416**, 1/1 passed). Combined **$1.36284486**, complete selected reports,
+unchanged source checkout. The passing multi-repo case was not repeated. Runtime
+from `b604a61` built, integrity-verified and clean-installed (16 skills / 201
+files). The retry commit changes only prompt/guidance. Detailed source and scope
+qualifications are retained in evals/AUDIT.md.
