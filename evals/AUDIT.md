@@ -299,3 +299,35 @@ execution or a complete worktree lifecycle. The separate existing helper tests
 cover revisions, exact approval and worktree execution. The case used a synthetic
 policy repository explicitly chosen by the prompt; payment/session behavior was
 not implemented or validated.
+
+
+## PR #115 — Readable worktree approval presentation, 2026-11-19
+
+A reported native approval dialog displayed a raw Markdown link and wide table
+with long local paths. The create/rename/back choices were correct, but the
+layout was hard to scan. Guidance now presents the complete exact preview in
+ordinary chat before confirmation, using compact per-repo fields and separate
+path lines. The dialog is a short plain-text question naming branch and starting
+ref/short SHA and referring to those chat details. Source state, inherited
+history and local/remote-base comparisons remain disclosed; no approval stage
+or fetch/reset behavior changed. See D024.
+
+`evals/results/full-2026-11-19T17-33-59-278Z/summary.json`, source
+`027f10fa65802c235c7aedd084737e236a5c868e`: **1/1 selected case passed**,
+reported usage **$0.42478654**, `selectionComplete: true`, `repoUnchanged: true`.
+The original source and tracked local .gitignore edit passed exact-byte checks.
+Direct trace review confirmed actual allocation/prepare, the returned HTML link,
+field lists with paths on their own lines, correct branch/start/source/destination
+and preview hash, and a clearly separate compact create/rename/back confirmation.
+Only preflight files/HTML and scratch inputs were written; branch/worktree
+creation and workflow initialization remained unapproved and unexecuted.
+
+The model used the permitted headless chat fallback and made no AskUserQuestion
+call. This validates the generated chat presentation, not native widget rendering
+or a complete interactive lifecycle. The grader rejects raw tables/links/long
+paths in a question payload when that tool is used. The changed shared workspace
+format was not separately exercised in a multi-repo live case. Strict skills
+validation, the 188-case inventory and whitespace checks passed. No JavaScript
+source or harness code changed; existing helper tests retain their earlier
+source qualifications. No smoke or broad helper suite was repeated for this
+presentation-only follow-up.

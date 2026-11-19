@@ -2053,3 +2053,17 @@ also accepts an explicitly separate compact chat confirmation when a headless
 harness cannot collect native replies; that fallback does not certify terminal
 rendering. Strict skills validation, 188-case inventory and whitespace checks
 pass. Focused live evidence follows the committed candidate.
+
+D024 focused evidence: report
+`evals/results/full-2026-11-19T17-33-59-278Z/summary.json`, source
+`027f10fa65802c235c7aedd084737e236a5c868e`, passed the strengthened preview
+case, reported usage **$0.42478654**, complete selection and unchanged source.
+Direct inspection confirmed a real prepared plan, chat field lists with paths
+on separate lines, linked HTML, preserved source/starting-point disclosures,
+and a separate compact confirmation with the same create/rename/back choices.
+No AskUserQuestion call occurred: the model used the allowed headless chat
+fallback. This supports generated presentation compliance only; it does not
+certify the native terminal question widget. Source and .gitignore exact-byte
+checks passed; creation stayed unapproved and unexecuted. No runtime/helper code
+changed, so existing source-qualified helper results are retained. Details are
+recorded in evals/AUDIT.md.
