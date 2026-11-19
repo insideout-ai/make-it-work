@@ -164,3 +164,21 @@ All 108 eval-harness tests, strict skill validation, 186-case inventory and diff
 checks passed after these changes. Retry only these unresolved cases through
 PR #115's existing ledger; preserve the 14 passes and initial reports. The
 requested total budget remains $12, including the initial run and grading.
+
+The unresolved-only retry on `577e860` passed both cases, with
+`selectionComplete: true` and `repoUnchanged: true`. Report:
+`evals/results/smoke-2026-11-19T14-47-46-418Z/summary.json`.
+Reported retry usage including grading was **$0.81488298**, bringing the combined
+total to **$6.14991722 of the $12 cap**. PR #115's ledger records cumulative PASS
+for all 16 cases: 14 retained from `8803728`, two from `577e860`. They were not all
+rerun on the final commit.
+
+Direct saved-artifact and grading inspection confirms the first export slice now
+keeps value representations open instead of selecting a stored form. Refinement
+created the required spec, retained the missing-admin-role decision and passed
+all unchanged checks. Both semantic checks received PASS/PASS votes. The native
+refinement failure's cause remains unknown; the passing retry establishes the
+headless path only. Initial failures and per-case source commits remain retained.
+The corrected runtime package also built and passed integrity verification. This
+evidence-only follow-up changes no tested runtime/skill/fixture content; no second
+full smoke run is needed.
