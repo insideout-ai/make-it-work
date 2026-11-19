@@ -1914,3 +1914,39 @@ guidance and unrelated edits. This selected slice is complete locally. All work
 remains uncommitted; no external write, commit, push, PR or subsequent fix is
 authorized. The remaining WF-025 attribution question benefits from observing a
 fresh real session before proposing further context reductions.
+
+
+### D021 — Fresh interactive startup omitted the worktree offer, 2026-11-19
+
+A maintainer-reported live session started a fresh local Implement request with
+no checkout flag and selected Guided mode. Its branch menu offered a new branch,
+proceeding on main, or Stop, then switched branches and initialized in the source
+checkout. It never offered isolated worktrees or Continue here. The user approved
+a branch action without being shown the required isolation choice. The sanitized
+evidence comes from transcript lines 5 (invocation), 97 (Guided answer), 100–102
+(branch menu/answer), and 105–107 (source checkout switch and initialization).
+No raw transcript or customer project content is copied into this repository.
+
+The loaded skill came from the current local plugin, and the startup read
+included the new worktree routing paragraph. No read of session-worktrees.md
+occurred. This rules out an older installed skill as the explanation for this
+observation; the linked policy and later branch-only menu were an instruction
+integration weakness. This does not establish that the worktree helpers fail.
+
+The maintainer approved the narrow startup correction. The entrypoint now states
+the interactive checkout offer; Start names both choices directly before the
+current-checkout guard, describes the actual branch action, and routes isolation
+through the existing private-session preview approval. Explicit checkout choices
+are reused. Autopilot defaults and saved Resume roots are preserved. An already
+approved exact branch action is not asked again; custom branches and unresolved
+ticket mismatches keep their existing handling. No new hook, state field,
+runtime blocker, approval stage or automatic migration is added.
+
+A new focused behavioral eval reproduces the unanswered fresh Guided startup
+choice; source bytes must remain unchanged. Five existing downstream startup
+probes now explicitly select Continue here. The new case stays outside smoke
+and critical. Strict skills validation, inventory (187 cases / 16 smoke skills),
+108 eval-harness tests and diff whitespace checks pass. Generic skill-creator
+quick validation remains unavailable because PyYAML is absent; the plugin's
+strict skills validation is the completed platform check. Focused live evidence
+is recorded separately after the committed candidate is exercised.

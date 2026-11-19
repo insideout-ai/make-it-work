@@ -247,3 +247,18 @@ Live validation on 2026-11-19 exposed a readiness overclaim: the initial agent s
 Required checks now support explicit `availability: unavailable` and a concrete blocker, including a null command when no supported runner exists. Impact can be recorded, but readiness completion, execution manifests and passing verification reject that gap. Receipt regex graders independently require pending status for the missing-tooling case and complete status for the configured case; the LLM rubric also rejects partial QA coverage relabeled as consumer readiness.
 
 Both corrected cases passed against a frozen working-tree copy, with its Git state unchanged and all source/spec comparison graders passing. The missing-tooling case kept its receipt pending and rejected completion; the configured case completed begin/report/complete/check and excluded context from policy/results. Retained corrected report: `evals/results/full-2026-11-19T12-46-22-895Z/summary.json`. Combined reported usage for initial and corrected runs was **$1.88910565 of the approved $3 cap**. The nine core impact tests, readiness regressions and all 108 eval-harness tests also passed. These live cases cover Plan/readiness, not the full downstream execution/review/delivery workflow.
+
+## Interactive checkout selection
+
+`implement-worktree-offer` starts a fresh Guided request on main with autonomy
+and refinement destination already supplied, but no checkout choice. It must
+offer recommended isolated worktrees and Continue here, explain the latter's
+branch action, and leave the unanswered choice pending without changing Git
+state or initializing the workflow. The source file also has an exact-byte
+unchanged check. A branch-only menu fails. This case checks presentation before
+selection; it does not establish successful worktree creation or Resume behavior.
+
+Existing branch-mismatch, dashboard-startup, repository-start and planning-progress
+probes explicitly select `--continue-here` so they reach their intended contracts.
+The new case is extended/full only; smoke membership and existing approvals stay
+unchanged.

@@ -6,7 +6,7 @@ timeout_seconds: 900
 runs: 1
 ---
 
-/make-it-work:implement make-it-work/START-401/START-401-spec.md --mode tdd
+/make-it-work:implement make-it-work/START-401/START-401-spec.md --mode tdd --continue-here
 
 Reuse the already accepted spec at the supplied path; this reuse and TDD choice are explicit, so skip rerefinement and do not ask whether to reuse it. Use the pasted ticket summary below and local project evidence only; do not fetch a tracker ticket. Use Autonomous mode, answer refinement questions here, and keep the existing startup-eval branch. Those startup choices are explicit; don't ask them again. I have supplied no workspace flag or repository selection beyond the repository where this session starts. No expanded repository write scope or sibling branch changes have been approved.
 

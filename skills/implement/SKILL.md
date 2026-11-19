@@ -45,7 +45,10 @@ Before any startup action, read and follow the complete
 [standing rules](references/orchestration/rules.md).
 These preserve usage/flags, early context precheck, workspace/branch consent,
 autonomy selection, publication consent, existing-run detection, resume hashes,
-and legacy handling. Apply the existing [autonomy-change](references/autonomy-changes.md),
+and legacy handling. Fresh Guided/Autonomous runs offer isolated worktrees
+(recommended) or Continue here with startup branch selection unless checkout
+choice is explicit; Autopilot defaults to the current checkout and Resume keeps
+saved roots. Apply the existing [autonomy-change](references/autonomy-changes.md),
 [workflow-decision](references/workflow-decisions.md),
 [activity](references/activity.md), [workspace](references/workspace.md), and
 [ticket-scoped context discovery](references/context-discovery.md) contracts at

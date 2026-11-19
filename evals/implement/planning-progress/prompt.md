@@ -6,7 +6,7 @@ timeout_seconds: 1800
 runs: 1
 ---
 
-/make-it-work:implement make-it-work/DEMO-PROGRESS/DEMO-PROGRESS-spec.md --mode tdd
+/make-it-work:implement make-it-work/DEMO-PROGRESS/DEMO-PROGRESS-spec.md --mode tdd --continue-here
 
 I select Guided mode and approve creating/switching to the ticket-named branch from main. Reuse the accepted local spec as-is; that reuse and its spec approval are explicitly authorized. Complete normal startup, testing readiness and initial planning. The configured Node test runner is sufficient for this small policy change; do not install tooling or create a test-strategy skill or test map. Keep all workflow artifacts under the invocation repository.
 

@@ -6,7 +6,7 @@ timeout_seconds: 900
 runs: 1
 ---
 
-/make-it-work:implement START-402
+/make-it-work:implement START-402 --continue-here
 
 Use the pasted ticket below and local project evidence only; do not fetch a tracker ticket. Use Autonomous mode, answer refinement questions here, and keep the existing startup-eval branch. Those startup choices are explicit; don't ask them again. I have supplied no workspace flag or repository selection beyond the repository where this session starts.
 
