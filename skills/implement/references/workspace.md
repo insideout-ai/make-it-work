@@ -67,8 +67,19 @@ target branches are explicitly shown as switches. Continuing on base requires
 still refuse base-branch delivery.
 
 Run `node <implement>/scripts/workspace-scope.mjs prepare --root <artifact-root>
---input <preview-input.json>`. Share the returned HTML link and the full proposed
-table: repository, evidence, role, current branch, base, proposed action/branch.
+--input <preview-input.json>`. Before asking for approval, present the returned
+clickable HTML link and full proposed selection in ordinary assistant chat:
+repository, evidence, role, source checkout/current branch, base and proposed
+action/branch. Use a compact labeled field list per repository, with paths on
+their own lines, rather than a wide table. Keep comparison/status notes below
+the fields. The full selection stays visible for the same approval.
+
+`AskUserQuestion`'s question body is plain text: do not paste the preview table,
+Markdown links, code fences, hash or long absolute paths into it. Use a short
+confirmation referring to the preview just shown, with branch and starting
+ref/short SHA for a single repository; for several, refer to the displayed
+repository count/selection. Send the chat preview before calling the question
+tool; no acknowledgment or extra approval is needed between them.
 Copy each returned `start_point` SHA and ahead/behind counts into that approval,
 along with `remote_base`'s local-base comparison (or unavailable/freshness unknown).
 For `create`, say **create at current HEAD**, never "from base": the helper does

@@ -277,3 +277,10 @@ require a separate naming question. The fixture's external sessions parent and
 source checkout are disposable. This case does not answer the rename question
 or establish post-approval worktree creation; the existing helper tests cover
 plan revisions and execution. It remains outside smoke and critical.
+
+The worktree preview case also checks presentation: full labeled fields and the
+clickable HTML link belong in assistant chat before the confirmation. The dialog
+contains only a short plain-text question with branch/start details and the
+existing choices; wide tables, Markdown links and long paths there fail. The
+headless fallback still checks generated text/payloads rather than certifying
+native UI rendering.

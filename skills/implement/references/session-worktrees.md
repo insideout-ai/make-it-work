@@ -68,7 +68,31 @@ not copied, stashed or moved.
 
 In the existing creation approval, show each actual proposed branch name,
 starting ref/commit and worktree location, plus the source checkout that stays
-unchanged. Offer **Create worktree and branch**, **Use a different branch name**,
+unchanged. Present the full preview and clickable HTML link in assistant chat
+before calling `AskUserQuestion`. For one repo, use labeled Branch, Start,
+Source checkout and Worktree fields, putting full paths on their own lines.
+Keep source-status notes, evidence/role, inherited-history/base comparisons and
+the saved preview hash with those chat details. For multiple repos, use one
+compact field list per repo. Do not put a Markdown table or link in the dialog.
+
+Keep the dialog's question plain and brief, for example:
+
+```text
+Create this worktree and branch?
+
+Branch: PAY-123-a7f2
+Start: local main at abc1234
+
+Your current checkout stays unchanged. Full details are in the preview above.
+```
+
+Use the actual prepared branch/ref/SHA in that summary. For multiple repos,
+refer to the displayed selection rather than duplicating all its paths. The
+full preview still discloses local-base lag, unavailable remote freshness,
+inherited commits and local edits before approval; compact presentation does
+not change the selected starting point or authorize a fetch/reset. No extra
+user reply is needed between the chat preview and its confirmation dialog.
+Offer **Create worktree and branch**, **Use a different branch name**,
 and **Back**. Accepting the preview approves the suggested names without another
 naming question. On a rename request, ask only for the desired name (and repo if
 ambiguous), set that selection's `target_branch`, and prepare again using the

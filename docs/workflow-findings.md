@@ -2027,3 +2027,29 @@ skills validation passed on the same source. Actual rename input, Back execution
 and native terminal UI interaction were not exercised by these unanswered-choice
 cases; no guarantee of future model adherence is claimed. Detailed evidence is
 retained in evals/AUDIT.md.
+
+
+### D024 — Worktree approval dialog displayed raw wide Markdown, 2026-11-19
+
+A reported native question screenshot showed the correct create/rename/back
+choices, but its question body contained a Markdown link with a long local path
+and a wide repository table. The raw syntax, wrapping and long source/destination
+paths obscured the branch decision. Functional choices matched D023; this was
+a presentation failure. The screenshot's local-base lag and uncopied .gitignore
+edit were useful disclosures that should remain visible before approval.
+
+Full creation details and the clickable preview link now go in ordinary
+assistant chat before the question. Compact labeled fields per repo replace
+the wide table; long paths have their own lines. The dialog asks a short plain
+confirmation with the actual branch and starting ref/short SHA, referring to
+that preview. The same create/rename/back choices and exact preview hash bind
+the approval. No additional acknowledgment, approval, fetch/reset, branch-name
+change, workflow state field or runtime gate is added. Both the shared workspace
+guide and private-worktree guide describe the same chat/dialog presentation.
+
+The existing preview grader now rejects raw tables, Markdown links, hashes and
+long paths in a dialog question, and requires chat details before asking. It
+also accepts an explicitly separate compact chat confirmation when a headless
+harness cannot collect native replies; that fallback does not certify terminal
+rendering. Strict skills validation, 188-case inventory and whitespace checks
+pass. Focused live evidence follows the committed candidate.
