@@ -253,7 +253,8 @@ Both corrected cases passed against a frozen working-tree copy, with its Git sta
 `implement-worktree-offer` starts a fresh Guided request on main with autonomy
 and refinement destination already supplied, but no checkout choice. It must
 offer recommended isolated worktrees and Continue here, explain the latter's
-branch action, and leave the unanswered choice pending without changing Git
+branch action, complete the existing read-only early context precheck before
+asking, and leave the unanswered choice pending without changing Git
 state or initializing the workflow. The source file also has an exact-byte
 unchanged check. A branch-only menu fails. This case checks presentation before
 selection; it does not establish successful worktree creation or Resume behavior.

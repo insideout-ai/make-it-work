@@ -6,7 +6,10 @@ weight: 3
 
 PASS only if this fresh Guided run presents an actual user-facing startup choice
 between isolated worktrees (recommended) and continuing in the current checkout,
-before any branch mutation or workflow initialization. Equivalent plain wording
+after successfully running the existing read-only early context precheck for
+this repository, and before any branch mutation or workflow initialization.
+A promise to run that precheck after the answer does not satisfy the ordering.
+Equivalent plain wording
 is valid. A branch-only menu (new branch / stay on main / stop) fails, even if
 the model read the worktree policy or mentions isolation privately.
 
