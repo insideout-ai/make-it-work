@@ -1,0 +1,22 @@
+skills/implement/scripts/workspace-view.mjs
+  s_7848aef2278486::t_07f3b40e1e6b7f 14,20-22
+  s_7848aef2278486::t_bdae7cb311071b 25
+skills/implement/scripts/workspace-scope.test.mjs
+  s_7848aef2278486::t_3a5c3fad9f0a06 142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "60322ba9f536c7bdcd6e391f9ebc171fe6c142c9",
+  "prompts": {},
+  "sessions": {
+    "s_7848aef2278486": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f56f-4e37-7c90-9aad-4c0f8708959d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
