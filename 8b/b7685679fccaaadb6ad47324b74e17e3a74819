@@ -1,0 +1,19 @@
+skills/implement/scripts/workspace-view.mjs
+  s_7848aef2278486::t_f0eb19260a77b7 25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8bb7685679fccaaadb6ad47324b74e17e3a74819",
+  "prompts": {},
+  "sessions": {
+    "s_7848aef2278486": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f56f-4e37-7c90-9aad-4c0f8708959d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
