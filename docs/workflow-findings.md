@@ -2171,3 +2171,20 @@ the helper selection passed. Strict skills validation, whitespace and the
 paths, shared state, selected-only bookkeeping and unchanged sources; focused
 live evidence follows the committed candidate. Earlier passing evidence retains
 its original source/scope qualifications; no full smoke was repeated.
+
+D026 live/runtime evidence: report
+`evals/results/full-2026-11-19T21-08-03-530Z/summary.json`, source
+`ce2b3e8d1e400236d1fb020abacc107ac3be1ef0`, passed the changed multi-repo
+preview case, reported usage **$0.57108957**, selectionComplete/repoUnchanged
+true. Direct inspection confirmed api/web repo-local paths, one shared workspace
+.claude/miw-sessions root, actual pending approval and no creation. All three
+source byte checks passed; api remained on main, web on develop, unrelated on
+main, all with clean working trees. Unrelated had no private worktree directory.
+The model used headless chat confirmation, not a native terminal widget.
+
+The committed runtime built, integrity-verified, passed strict exported plugin/
+skills checks and clean-installed 16 skills / 201 files as 5.16.0. Source is the
+same ce2b3e8 candidate as the live preview. Full details, initial failures and
+testing limits are retained in evals/AUDIT.md. No existing live user session was
+relocated. The single-repo artifact-location proposal discussed earlier remains
+a separate lifecycle change; this approved slice changes multi-repo defaults.

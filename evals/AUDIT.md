@@ -401,3 +401,56 @@ across the two source commits, not a full archive run or a claim both cases ran
 on the final commit. The cases use headless chat confirmation, so they do not
 certify native question rendering, branch creation after a live human answer,
 setup/dependencies in a real project, or a complete live Implement lifecycle.
+
+## PR #115 — Repo-local multi-repo checkouts, 2026-11-19
+
+D026 changes fresh multi-repo defaults to
+`<workspace>/<repo>/.claude/worktrees/<session>` for each selected repo, with
+shared state/reports at
+`<workspace>/.claude/miw-sessions/<session>/make-it-work/<TICKET>`.
+Version-3 markers bind these paths;
+version-1 grouped/external and version-2 single-repo paths remain supported.
+Source-wide private changes are limited to selected repo parents/exclusions,
+with no source .gitignore rewrite, new approval stage or automatic migration.
+
+Failure/fix evidence retained locally:
+
+- A new test fixture initially lacked the required Assessment Evidence section.
+  The fixture was repaired; the test then exercised its selected-only metadata
+  and occupied-path preservation assertions successfully.
+- The actual red-to-green isolated workflow exposed Duplicate delivery repo name:
+  both physical checkout folders are named after the session. Fresh version-3
+  plans/contracts now opt into repo-ID names for review/final-package snapshots,
+  preserving earlier contracts' saved naming. The new package names are api/web.
+- The next integration attempt reached final packaging but failed on an old
+  dashboard literal, Full suite: pass, removed by the already committed dashboard
+  simplification. That assertion now checks the package's passing validation and
+  per-repo full-suite verification evidence instead of obsolete UI wording.
+
+Final deterministic checks (runtime JavaScript committed as ce2b3e8):
+
+- 76 affected routing, identity, scope, review and final-package tests passed,
+  zero failures/skips. Source redirect and ambiguous-binding tests, selected-only
+  preparation, legacy discovery, custom-name/hash behavior and resume are covered.
+- The focused real red-to-green isolated-worktree integration passed through
+  regression, reviewed-scope binding, final package and completion using the new
+  default paths. Git worktrees and Node assertions are real; the clean review
+  artifact/handoffs are synthetic, not live independent-review quality evidence.
+- Eval-harness and packaging/publication checks passed 113 tests, zero failures/
+  skips. Strict skills validation, whitespace and 189-case inventory passed.
+- The committed runtime built and passed integrity, strict exported manifest/
+  skills validation and clean installation (16 skills / 201 files, version 5.16.0).
+  The broad workflow suite was not rerun for this bounded follow-up; prior broad
+  results keep their earlier source qualifications. No complete smoke was rerun.
+
+Live report `evals/results/full-2026-11-19T21-08-03-530Z/summary.json`, source
+`ce2b3e8d1e400236d1fb020abacc107ac3be1ef0`: 1/1 selected case passed,
+reported usage **$0.57108957**, selectionComplete and repoUnchanged true. Direct
+inspection confirmed actual allocation/prepare with repo-local api/web targets
+and one shared workspace state root, source main/develop starting points, exact
+branch names, readable field lists/link, and an unanswered compact creation
+confirmation. All three source byte graders passed. Read-only postchecks found
+api/main, web/develop and unrelated/main clean; unrelated/.claude/worktrees did
+not exist. No approve/run, source edit or branch/worktree creation was performed
+by the model. Headless chat confirmation does not certify native terminal UI or
+a completed conversational multi-repo run. Existing sessions remain at saved paths.
