@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- Present isolated worktrees first as the only recommended checkout option in fresh interactive Implement startup, alongside Continue here, including when local edits exist. Reuse explicit checkout/branch choices, retain Autopilot and Resume defaults, and avoid duplicate approval of the same branch action.
+- Present isolated worktrees first as the only recommended checkout option in fresh interactive Implement startup, alongside an explicit current-checkout branch action, including when local edits exist. Show suggested branch names and offer optional renaming in the existing worktree approval preview. Reuse explicit checkout/branch choices, retain Autopilot and Resume defaults, and avoid duplicate approval of the same branch action.
 
 - Preserve unresolved value representations in every epic slice that emits them, including prose describing "raw" or "stored" values. Retain live-refinement smoke traces and artifacts through the existing headless runner without changing its prompt or graders.
 

@@ -252,7 +252,7 @@ Both corrected cases passed against a frozen working-tree copy, with its Git sta
 
 `implement-worktree-offer` starts a fresh Guided request on main with autonomy
 and refinement destination already supplied, but no checkout choice. It must
-offer recommended isolated worktrees and Continue here, explain the latter's
+offer recommended isolated worktrees and an explicit current-checkout branch action, explain the latter's
 branch action, complete the existing read-only early context precheck before
 asking, and leave the unanswered choice pending without changing Git
 state or initializing the workflow. The source file also has an exact-byte
@@ -266,5 +266,14 @@ unchanged.
 
 The fixture includes an uncommitted tracked `.gitignore` change, matching a
 subsequent reported recommendation reversal. Worktrees must be the first and
-only recommended checkout option; Continue here remains available. Both source
-and the local ignore-file edit must retain their exact fixture bytes.
+only recommended checkout option; an explicit current-checkout branch action
+remains available. Both source and the local ignore-file edit must retain their exact fixture bytes.
+
+`implement-worktree-branch-preview` explicitly selects worktree isolation and
+leaves its existing creation approval unanswered. It checks a real prepared plan
+and linked preview, suggested branch/starting commit/location, and optional
+worktree-branch naming before any creation. Accepting the default name must not
+require a separate naming question. The fixture's external sessions parent and
+source checkout are disposable. This case does not answer the rename question
+or establish post-approval worktree creation; the existing helper tests cover
+plan revisions and execution. It remains outside smoke and critical.

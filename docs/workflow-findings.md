@@ -1988,3 +1988,29 @@ and early precheck before the pending question. Strict skills validation and
 by the semantic grader (FAIL/FAIL). Full report paths, control limitations and
 reported usage are retained in evals/AUDIT.md. This is observed focused
 adherence, not a guarantee that every future model run follows the guidance.
+
+
+### D023 — Name checkout actions and offer optional worktree branch naming, 2026-11-19
+
+The maintainer approved replacing the ambiguous Continue here label: on main it
+could sound like staying on main rather than creating a feature branch. The
+startup option now names its actual action, Create branch in current checkout,
+with the suggested name and starting commit. A suitable feature branch uses
+Use current branch: <branch>. Isolation remains first and uniquely recommended;
+existing mismatch/base guards and --continue-here behavior are preserved.
+
+Both routes expose optional custom naming without a mandatory name-entry step.
+The existing worktree creation approval shows the actual suggested name, source,
+starting ref/commit and destination, and offers Create worktree and branch, Use a
+different branch name, or Back. Naming changes reuse the same private session,
+set the existing target_branch selection and prepare a refreshed preview/hash
+for approval before creation. Back leaves preflight storage without creating
+branches or worktrees. Existing exact approval and no-force/no-reset rules stay.
+No new runtime code, state schema, gate or approval stage is introduced.
+
+The existing offer eval now rejects a bare Continue here label on base and
+requires the optional naming path. A new extended/full-only preview case chooses
+isolation, prepares an actual preview and leaves approval unanswered, checking
+the suggested name and change-name action without branch/worktree creation.
+Strict skills validation, 188-case inventory (16 smoke skills), diff whitespace
+and focused selection dry-run pass. Live evidence follows the committed probe.

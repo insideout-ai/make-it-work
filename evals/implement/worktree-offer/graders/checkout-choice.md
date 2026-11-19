@@ -15,8 +15,16 @@ the model read the worktree policy or mentions isolation privately.
 
 The current-checkout option must explain its proposed branch action. A new
 branch in the same checkout must not be described as an isolated worktree.
+On this base-branch fixture, label it "Create branch in current checkout" or an
+equally explicit branch-creation action. A bare "Continue here" label fails,
+even with a more precise description. Show the proposed branch name and say
+this directory will switch to it. Allow an optional different branch name for
+either route without requiring a separate naming question before accepting
+the suggested name. A short note that the user can request a different name
+is sufficient at this initial checkout question; the worktree creation preview
+is tested separately. Include a way to stop.
 The isolated-worktree option must be listed first and be the only recommended
-checkout option. FAIL if Continue here is recommended or listed first, even if
+checkout option. FAIL if the current-checkout option is recommended or listed first, even if
 isolation is also offered. The local .gitignore change does not justify reversing
 the recommendation. Recommendation of chat as the refinement destination is
 independent and allowed.

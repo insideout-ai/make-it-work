@@ -1,11 +1,12 @@
 # Private workspaces for concurrent sessions
 
-For a fresh run, offer **Use isolated worktrees (Recommended)** first and **Continue
-here** second with the existing startup/branch selection. Only the worktree
-checkout option is recommended; a base branch or local edits do not reverse it.
-`--worktree` selects the
-isolated route; `--continue-here` selects current checkout behavior. Strip these
-flags before resolving the ticket or invoking stages. Reuse an explicit choice.
+For a fresh run, offer **Use isolated worktree (Recommended)** first. The second
+option names the actual current-checkout action: **Create branch in current
+checkout** on base, or **Use current branch: <branch>** on a suitable feature
+branch. Do not label it "Continue here"; preserve any unresolved ticket-mismatch
+choice. Only isolation is recommended; a base branch or local edits do not
+reverse it. `--worktree` selects isolation; `--continue-here` keeps its existing
+current-checkout meaning. Strip these flags before resolving the ticket or invoking stages. Reuse an explicit choice.
 In Autopilot, retain current checkout behavior unless isolation was explicitly
 selected; never add a checkout question solely for this feature. The existing
 exact repository/branch approval still applies to worktree creation in every
@@ -40,8 +41,7 @@ For an explicitly resolved multi-repo boundary also pass `--workspace <source-ro
 `--directory <sessions-parent>` overrides the default
 `~/.make-it-work/sessions`; choose a durable directory outside Git working trees.
 Allocation creates only private preflight storage and `miw-session.json`; no
-branch, worktree or workflow state is created. A setup failure retains Continue
-here as an option. Honor an explicit requirement for isolation rather than
+branch, worktree or workflow state is created. A setup failure retains the current-checkout route as an option. Honor an explicit requirement for isolation rather than
 silently falling back. Each allocation has a unique suffix, even for the same
 ticket. The layout is:
 
@@ -64,8 +64,22 @@ New branch names default to the unique session name; existing branch names are
 never forced or reset. The start defaults to the resolved base commit; an
 explicit `start_ref` selects another commit. Show the actual returned SHA and
 any inherited history in the same preview before approval. Source dirty work is
-not copied, stashed or moved. Include the current-checkout alternative's actual
-branch action in the startup choice; Continue here follows its existing guard.
+not copied, stashed or moved.
+
+In the existing creation approval, show each actual proposed branch name,
+starting ref/commit and worktree location, plus the source checkout that stays
+unchanged. Offer **Create worktree and branch**, **Use a different branch name**,
+and **Back**. Accepting the preview approves the suggested names without another
+naming question. On a rename request, ask only for the desired name (and repo if
+ambiguous), set that selection's `target_branch`, and prepare again using the
+same allocated session. Show the refreshed name, location, starting commit and
+returned hash/link for approval before creation; the prior hash cannot approve
+the changed branch. If the name is invalid or taken, show that actual error and
+let the user choose another; never force/reset a branch or silently guess a name.
+Back returns to checkout selection with no branch/worktree creation; retain the
+preflight artifacts without automatic cleanup. Custom naming does not require
+renaming or reallocating the private session directory. Include the
+current-checkout alternative's actual branch action in the startup choice; that route follows its existing guard.
 
 After applying, initialize with the private root and exactly the selected target
 roots from the plan. This saves the normal workspace contract, even with one
