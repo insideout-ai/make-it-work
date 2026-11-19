@@ -1,0 +1,46 @@
+CHANGELOG.md
+  s_7848aef2278486::t_f686cbb90b5a3a 11
+  s_7848aef2278486::t_f4b7eecb2c4541 10
+skills/close-the-gaps/references/answer-injection.md
+  s_7848aef2278486::t_f686cbb90b5a3a 44
+evals/close-the-gaps/README.md
+  s_7848aef2278486::t_f686cbb90b5a3a 94-96,98
+skills/implement/references/handoffs.md
+  s_7848aef2278486::t_f686cbb90b5a3a 62
+skills/implement/references/orchestration/refinement.md
+  s_7848aef2278486::t_fe3cba3d915aa5 15
+  s_7848aef2278486::t_f686cbb90b5a3a 17-21
+skills/implement/references/orchestration/startup.md
+  s_7848aef2278486::t_f686cbb90b5a3a 113
+skills/close-the-gaps/SKILL.md
+  s_7848aef2278486::t_f686cbb90b5a3a 36,68,89-90,236-240,242-244,248
+  s_7848aef2278486::t_6cc326bffce202 246
+skills/implement/references/refinement-worker.md
+  s_7848aef2278486::t_f686cbb90b5a3a 50
+skills/implement/references/orchestration/transitions.md
+  s_7848aef2278486::t_f686cbb90b5a3a 9,16-17
+skills/close-the-gaps/references/implement-integration.md
+  s_7848aef2278486::t_f686cbb90b5a3a 30
+skills/implement/scripts/handoff.mjs
+  s_7848aef2278486::t_7da423c4dd7f12 221-227
+skills/implement/scripts/handoff.test.mjs
+  s_7848aef2278486::t_7b961dbeb48b53 72-74,245,253-262
+skills/implement/scripts/workflow.test.mjs
+  s_7848aef2278486::t_30c0d5b1142f1a 241-275,334
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "00ea9306980939b84ecba4ed93c5add64906db06",
+  "prompts": {},
+  "sessions": {
+    "s_7848aef2278486": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f56f-4e37-7c90-9aad-4c0f8708959d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
