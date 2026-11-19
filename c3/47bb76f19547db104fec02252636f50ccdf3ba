@@ -1,0 +1,28 @@
+skills/implement/scripts/render-status.mjs
+  s_4541153febab01::t_b8f11e2cad3c1f 769-784,793,796-797
+skills/implement/scripts/render-status.test.mjs
+  s_4541153febab01::t_1e794011a804b7 1577
+  s_4541153febab01::t_553dfdf2e8af96 22,1568-1576,1578-1587
+CHANGELOG.md
+  s_4541153febab01::t_b8f11e2cad3c1f 11-12
+scripts/lib/workflow-dashboard.mjs
+  s_4541153febab01::t_b8f11e2cad3c1f 157
+skills/implement/scripts/pending-input.test.mjs
+  s_4541153febab01::t_a560f3b3374202 110,114-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c347bb76f19547db104fec02252636f50ccdf3ba",
+  "prompts": {},
+  "sessions": {
+    "s_4541153febab01": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f51a-04c7-7083-8a44-5d83092b8761",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
