@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.16.0] — 2026-11-19
+
 ### Fixed
 
 - Preserve unresolved value representations in every epic slice that emits them, including prose describing "raw" or "stored" values. Retain live-refinement smoke traces and artifacts through the existing headless runner without changing its prompt or graders.
