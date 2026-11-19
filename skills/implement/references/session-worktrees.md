@@ -1,7 +1,9 @@
 # Private workspaces for concurrent sessions
 
-For a fresh run, offer **Use isolated worktrees (recommended)** and **Continue
-here** with the existing startup/branch selection. `--worktree` selects the
+For a fresh run, offer **Use isolated worktrees (Recommended)** first and **Continue
+here** second with the existing startup/branch selection. Only the worktree
+checkout option is recommended; a base branch or local edits do not reverse it.
+`--worktree` selects the
 isolated route; `--continue-here` selects current checkout behavior. Strip these
 flags before resolving the ticket or invoking stages. Reuse an explicit choice.
 In Autopilot, retain current checkout behavior unless isolation was explicitly

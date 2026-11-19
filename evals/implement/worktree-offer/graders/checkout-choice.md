@@ -15,6 +15,11 @@ the model read the worktree policy or mentions isolation privately.
 
 The current-checkout option must explain its proposed branch action. A new
 branch in the same checkout must not be described as an isolated worktree.
+The isolated-worktree option must be listed first and be the only recommended
+checkout option. FAIL if Continue here is recommended or listed first, even if
+isolation is also offered. The local .gitignore change does not justify reversing
+the recommendation. Recommendation of chat as the refinement destination is
+independent and allowed.
 Do not re-ask the already selected autonomy or refinement destination.
 
 The offer may be an AskUserQuestion payload or a direct assistant chat question

@@ -263,3 +263,8 @@ Existing branch-mismatch, dashboard-startup, repository-start and planning-progr
 probes explicitly select `--continue-here` so they reach their intended contracts.
 The new case is extended/full only; smoke membership and existing approvals stay
 unchanged.
+
+The fixture includes an uncommitted tracked `.gitignore` change, matching a
+subsequent reported recommendation reversal. Worktrees must be the first and
+only recommended checkout option; Continue here remains available. Both source
+and the local ignore-file edit must retain their exact fixture bytes.
