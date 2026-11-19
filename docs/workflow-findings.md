@@ -2236,3 +2236,19 @@ and resume checks. Existing integration assertions now also verify compact
 visible text and detailed tooltips. A synthetic active-step dashboard was
 visually checked in Chrome. No paid eval or full smoke was repeated. The other
 session's committed badge-label change (9911aa3) is preserved.
+
+### D029 — Repository locations without a generic Details column, 2026-11-19
+
+The maintainer approved reducing the repository table to repository, working
+branch and base. Each repository now has a collapsed Worktree location disclosure
+(Checkout location for current-checkout runs), with wrapping for long paths.
+Selection rationale remains in saved assessment/approval records; the approved
+table no longer repeats it. Proposed changes, branch-mismatch warnings and
+selection history are unchanged. No state or approval contract changes.
+
+All 97 existing workspace-scope, render-status and epic-dashboard tests passed,
+zero failures/skips. Chrome inspection confirmed three-column tables and
+collapsed location controls for both checkout modes in a synthetic preview.
+Expanded layout was not manually certified; user browser activity interrupted
+that check. No paid eval or full smoke was repeated. Unrelated edits from the
+other session were left outside this change.

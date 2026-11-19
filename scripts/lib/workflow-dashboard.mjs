@@ -33,6 +33,9 @@ export const WORKFLOW_STYLES = `
   .readiness-result p, .readiness-result ul { margin: 0.3rem 0; }
   .readiness-result details { margin-top: 0.4rem; font-size: 0.85em; overflow-wrap: anywhere; }
   .readiness-result summary { cursor: pointer; color: #596773; }
+  .repository-location { margin-top: 0.35rem; font-size: 0.85em; }
+  .repository-location summary { cursor: pointer; }
+  .repository-location p { margin: 0.4rem 0; max-width: 48ch; overflow-wrap: anywhere; }
   .timestamp-warning { color: #b54708; font-size: 0.8em; font-style: italic; white-space: nowrap; }
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .pending-input { margin: 0.75rem 0; overflow-wrap: anywhere; }

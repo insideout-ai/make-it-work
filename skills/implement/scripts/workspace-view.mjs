@@ -15,12 +15,13 @@ export function renderWorkspacePanel(state, scope = null) {
   if (state.fields.workspace_version !== '1') return '';
   const contract = JSON.parse(state.fields.workspace_contract);
   const snapshots = JSON.parse(state.fields.workspace_snapshot);
+  const locationLabel = contract.checkout === 'worktree' ? 'Worktree location' : 'Checkout location';
   const rows = contract.repos.map((repo) => {
     const current = snapshots.find((entry) => entry.root === repo.root);
     const mismatch = current?.branch && current.branch !== repo.branch
       ? ` <strong>⚠ Branch differs from approved: ${escape(repo.branch)}</strong>` : '';
-    return `<tr><td><strong>${escape(repo.id)}</strong></td><td>${escape(current?.branch ?? 'Unknown')}${mismatch}</td><td>${escape(repo.base)}</td><td><details><summary>Details</summary><p>Path: ${escape(repo.root)}</p><p>Selection rationale: ${escape(repo.reason)}</p></details></td></tr>`;
+    return `<tr><td><strong>${escape(repo.id)}</strong><details class="repository-location"><summary>${locationLabel}</summary><p>${escape(repo.root)}</p></details></td><td>${escape(current?.branch ?? 'Unknown')}${mismatch}</td><td>${escape(repo.base)}</td></tr>`;
   }).join('');
   const proposed = scope && scope.hash !== contract.approval_hash ? `<h3>Proposed scope change — ${escape(scope.status)}</h3><p>The workflow still uses the approved scope below until the revised selection is approved, applied and registered.</p><ul>${scope.plan.repos.map((repo) => `<li>${escape(repo.id)}: ${escape(repo.action)} → ${escape(repo.branch)} (base ${escape(repo.base)}) · ${escape(repo.reason)}<br>${startPoint(repo)}</li>`).join('')}</ul>` : '';
-  return `<section class="panel" aria-label="Repositories">${proposed}<div style="overflow-x:auto"><table><thead><tr><th>Repository</th><th>Working branch</th><th>Base</th><th>Details</th></tr></thead><tbody>${rows}</tbody></table></div>${scope?.history?.length ? `<details><summary>Selection history</summary><ul>${scope.history.map((item) => `<li>${escape(item.time)} · ${escape(item.status)} · ${escape(item.repos.map((repo) => repo.id).join(', '))}</li>`).join('')}</ul></details>` : ''}</section>`;
+  return `<section class="panel" aria-label="Repositories">${proposed}<div style="overflow-x:auto"><table><thead><tr><th>Repository</th><th>Working branch</th><th>Base</th></tr></thead><tbody>${rows}</tbody></table></div>${scope?.history?.length ? `<details><summary>Selection history</summary><ul>${scope.history.map((item) => `<li>${escape(item.time)} · ${escape(item.status)} · ${escape(item.repos.map((repo) => repo.id).join(', '))}</li>`).join('')}</ul></details>` : ''}</section>`;
 }

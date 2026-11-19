@@ -492,3 +492,15 @@ retained tooltip detail. Chrome inspection of the synthetic preview at
 `/tmp/pr115-execute-preview/dashboard.html` confirmed the three-line active
 Execute display. No model evaluation or complete smoke was repeated. The other
 session's badge-label commit 9911aa3 was present during validation and preserved.
+
+## PR #115 — Repository location disclosure, 2026-11-19
+
+D029 removes the generic Details column from the approved repository table and
+places a collapsed Worktree/Checkout location beneath each repository name.
+Saved scope, assessment evidence, approval preview, mismatch warnings and history
+are retained. All 97 existing workspace-scope/render-status/epic-dashboard tests
+passed, zero failures/skips (`/tmp/pr115-repository-location-tests.log`). Chrome
+inspection confirmed collapsed controls and three-column tables in the synthetic
+`/tmp/pr115-repository-location-preview/dashboard.html`; user browser activity
+interrupted the expansion check, so expanded rendering is not certified.
+No paid eval or full smoke was repeated for this presentation-only follow-up.
