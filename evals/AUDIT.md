@@ -182,3 +182,40 @@ headless path only. Initial failures and per-case source commits remain retained
 The corrected runtime package also built and passed integrity verification. This
 evidence-only follow-up changes no tested runtime/skill/fixture content; no second
 full smoke run is needed.
+
+
+## PR #115 — Interactive worktree-offer follow-up, 2026-11-19
+
+The reported fresh Guided session omitted the existing isolated-worktree choice.
+Startup guidance now presents both checkout routes directly. No runtime gate or
+automatic migration was added; Continue here, explicit choices, Autopilot and
+saved Resume roots retain their contracts. Findings and scope are in D021.
+
+Focused report `evals/results/full-2026-11-19T15-37-24-209Z/summary.json`,
+source `c4e171e91b167dc1486a98661f3c447e27d3ec71`: 3/3 selected cases passed
+(`implement-worktree-offer`, `implement-dashboard-autonomous-start`,
+`implement-branch-ticket-mismatch`), reported usage **$0.83981963**. Direct trace
+review found that the offer case deferred the early context precheck; its
+original grader checked the checkout offer but did not require that ordering.
+That pass is scoped to its original rubric, not complete startup compliance.
+
+The entrypoint reminder and offer grader were tightened to preserve the existing
+precheck-before-question rule. Report
+`evals/results/full-2026-11-19T15-39-46-308Z/summary.json`, source
+`3153300ce9ccadc39a4a02927dfddaeba887a0d9`: the strengthened offer case passed,
+reported usage **$0.25057248**. The actual trace ran context-inventory inspection
+successfully before the checkout question, offered recommended isolation and
+current-checkout branch actions, reused Guided/chat choices, and left the answer
+pending. The exact-byte source check passed. This rerun was justified by the
+observed ordering gap and changed guidance/grader; the other two focused cases
+were not repeated. Combined follow-up usage **$1.09039211**. Both reports have
+`selectionComplete: true` and `repoUnchanged: true`. These are focused selections
+using the full-tier runner, not an archive-wide full pass.
+
+Strict skills validation, 187-case inventory and 108 eval-harness tests passed;
+the tests ran before the final prose/grader-only ordering clarification. The
+final runtime from `3153300` built, passed integrity verification and strict
+exported-skills validation. Existing broad workflow and PR smoke evidence is
+retained with its original source commits. No complete smoke was rerun. The
+new case remains outside smoke/critical; creation, Continue here execution after
+an answer, and Resume are not established by the unanswered-choice case.

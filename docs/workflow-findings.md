@@ -1950,3 +1950,15 @@ and critical. Strict skills validation, inventory (187 cases / 16 smoke skills),
 quick validation remains unavailable because PyYAML is absent; the plugin's
 strict skills validation is the completed platform check. Focused live evidence
 is recorded separately after the committed candidate is exercised.
+
+D021 live validation: three scoped startup cases passed on `c4e171e`; direct
+review then exposed an early-precheck ordering gap outside the original offer
+rubric. A one-clause entrypoint clarification and strengthened grader passed
+the focused offer rerun on `3153300`, including successful precheck before the
+question. Combined reported usage **$1.09039211**. Both reports are complete for
+their selected cases with an unchanged source checkout. Exact report paths,
+per-commit scope and limitations are recorded in `evals/AUDIT.md` under the
+PR #115 interactive worktree-offer follow-up. Runtime build/integrity and strict
+exported-skills validation also passed on `3153300`. The fix is guidance only;
+it improves the observed startup choice without claiming guaranteed model
+adherence or a complete new worktree lifecycle test.
