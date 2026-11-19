@@ -7,7 +7,7 @@ Never add the version field to a legacy run on resume.
 
 Fresh isolated sessions follow [session worktrees](session-worktrees.md). A private
 session is a workspace contract even with one selected repository; its artifacts
-stay outside its `repos/` worktrees. The current-checkout route retains the existing paths and
+stay outside its selected worktree(s), including the sibling single-repo layout. The current-checkout route retains the existing paths and
 guard. Resolve existing sessions before allocating a new one.
 
 ## Resolve before Git startup checks

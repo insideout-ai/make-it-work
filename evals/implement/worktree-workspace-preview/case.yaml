@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: implement-worktree-workspace-preview
+tags: [implement, worktree, workspace, approval]
+context:
+  scaffold_script: fixture.sh

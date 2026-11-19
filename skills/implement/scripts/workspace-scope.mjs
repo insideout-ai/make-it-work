@@ -80,7 +80,7 @@ export async function prepareScope(root, input) {
     try { previous = await readScope(root, ticket); } catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (previous?.status === 'partial') fail('Reconcile the partially applied selection before preparing another plan.');
     const session = await readSessionWorkspace(root);
-    const workspace = await resolveWorkspace(session?.source_root ?? root);
+    const workspace = await resolveWorkspace(session?.source_root ?? root, session ? { workspaceRoot: session.source_root } : {});
     if (workspace.layout !== 'workspace' && !session) fail('Workspace selection is for workspace runs; retain the single-repo branch guard.');
     if (!Array.isArray(input.repos) || !input.repos.length) fail('Select at least one repository from find-the-repos.');
     const reportPath = requireText(input.report, 'find-the-repos report');
@@ -93,6 +93,7 @@ export async function prepareScope(root, input) {
       seen.add(repo.id);
       let destination = session?.repositories.find(item => item.id === repo.id && item.source_root === repo.root)?.root;
       if (session && !destination) {
+        if (session.version === 2) fail('Single-repo session source binding changed; preserve the saved checkout.');
         if (session.repositories.some(item => item.id === repo.id) || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(repo.id)) fail('Session source repository binding changed.');
         destination = path.join(root, 'repos', repo.id);
         session.repositories.push({ id: repo.id, source_root: repo.root, root: destination });

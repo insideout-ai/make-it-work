@@ -2067,3 +2067,45 @@ certify the native terminal question widget. Source and .gitignore exact-byte
 checks passed; creation stayed unapproved and unexecuted. No runtime/helper code
 changed, so existing source-qualified helper results are retained. Details are
 recorded in evals/AUDIT.md.
+
+
+### D025 — Repo/workspace-local worktree defaults, 2026-11-19
+
+The maintainer approved moving fresh single-repo worktrees to the repository's
+.claude/worktrees/<session> and grouping multi-repo sessions under the already
+resolved workspace's .claude/worktrees/<session>/repos/<repo-id>. This replaces
+the surprising home-directory default for fresh sessions only. Single-repo
+preflight/reports live separately under .claude/miw-sessions/<session>, so approval
+can be prepared without occupying the checkout path. Multi-repo reports remain
+beside repos in the private session root. No common ancestor is guessed.
+
+Version-1 marker/container bindings and explicit external --directory overrides
+are preserved. Default discovery includes the new local parent and the legacy
+~/.make-it-work/sessions parent; custom saved parents remain available explicitly.
+A version-2 marker binds the single-repo sibling paths. Resume, scope and repo
+lookup follow those saved targets even though private artifacts now sit inside
+the source Git checkout. Recorded repository identities may differ from folder
+names; both inventory IDs and recorded IDs resolve only the bound checkout.
+
+Exact new session paths are locally excluded through Git metadata, preserving
+the source .gitignore, tracked/untracked changes, branch and index. Private
+artifact writes reuse that exclusion rather than rewriting source ignore files.
+Conflicting explicit unignore rules return an actionable error/custom-location
+option; no automatic fallback, cleanup, reset or migration is authorized.
+Symlinked managed parents, occupied targets and identity drift retain their
+existing rejection/recovery behavior. Optional current checkout, Autopilot
+defaults and exact creation approval are unchanged.
+
+New integration coverage exercises both defaults, custom naming/hash revisions,
+source preservation, concurrent local exclusions, source-vs-target lookup,
+recorded IDs unlike folder names, saved-root/subdirectory resume, legacy discovery
+and an explicit workspace nested under another Git checkout. The broad 807-test
+workflow run passed before the final recorded-ID lookup correction; its new
+regression first reproduced Repository not found, then passed with the bounded
+lookup fix. The final affected routing/regression/workflow-integration selection
+passed 53 tests. Eval harness and packaging tests passed 113 tests after fixing
+a missing disposable-fixture guard caught by initial inventory/catalog checks.
+Strict skills validation, whitespace and the 189-case inventory pass. No paid
+smoke was repeated; the existing preview case now tests the single-repo default
+and a new extended/full case checks the multi-repo default. Live results follow
+the committed candidate.

@@ -273,8 +273,7 @@ remains available. Both source and the local ignore-file edit must retain their 
 leaves its existing creation approval unanswered. It checks a real prepared plan
 and linked preview, suggested branch/starting commit/location, and optional
 worktree-branch naming before any creation. Accepting the default name must not
-require a separate naming question. The fixture's external sessions parent and
-source checkout are disposable. This case does not answer the rename question
+require a separate naming question. The fixture's source checkout and its repo-local session paths are disposable. This case does not answer the rename question
 or establish post-approval worktree creation; the existing helper tests cover
 plan revisions and execution. It remains outside smoke and critical.
 
@@ -284,3 +283,11 @@ contains only a short plain-text question with branch/start details and the
 existing choices; wide tables, Markdown links and long paths there fail. The
 headless fallback still checks generated text/payloads rather than certifying
 native UI rendering.
+
+The preview case now exercises single-repo default placement with no --directory
+override. `implement-worktree-workspace-preview` adds the corresponding multi-repo
+default, assessing api/web/unrelated and preparing only api/web under the workspace
+.claude/worktrees session. Both leave exact creation approval unanswered, preserve
+source bytes and check the readable naming/approval presentation. They remain
+extended/full cases; neither is added to smoke/critical. Existing custom/legacy
+layouts and actual creation/resume are covered by helper integration tests.

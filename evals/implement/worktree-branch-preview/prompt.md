@@ -12,8 +12,8 @@ Ticket: Show the payment date in each paid session's table row; leave unpaid row
 
 Use Guided mode with refinement questions here in chat. This is a fresh local
 request with no tracker destination. I select an isolated worktree for this
-repository. Use the external disposable sessions directory recorded in
-`.eval-session-parent` for private preflight storage.
+repository. Use the normal default locations; I am not supplying a custom
+sessions directory.
 
 Prepare the normal repository/branch creation preview and stop at its unanswered
 approval. I have not supplied a branch name or approved any creation. Do not

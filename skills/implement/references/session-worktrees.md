@@ -38,17 +38,38 @@ node <plugin>/scripts/session-workspace.mjs allocate --cwd <source-root> --ticke
 ```
 
 For an explicitly resolved multi-repo boundary also pass `--workspace <source-root>`.
-`--directory <sessions-parent>` overrides the default
-`~/.make-it-work/sessions`; choose a durable directory outside Git working trees.
-Allocation creates only private preflight storage and `miw-session.json`; no
-branch, worktree or workflow state is created. A setup failure retains the current-checkout route as an option. Honor an explicit requirement for isolation rather than
-silently falling back. Each allocation has a unique suffix, even for the same
-ticket. The layout is:
+Use the returned artifact root and repository paths; do not reconstruct them.
+Fresh defaults are:
 
 ```text
-<session-root>/repos/<repo-id>/          # selected Git worktrees
-<session-root>/make-it-work/<TICKET>/   # private state, reports and dashboard
+Single repo:
+  <repo>/.claude/worktrees/<session>/                 # actual Git checkout
+  <repo>/.claude/miw-sessions/<session>/              # private preflight root
+    make-it-work/<TICKET>/                          # state/reports/dashboard
+
+Multi-repo workspace:
+  <workspace>/.claude/worktrees/<session>/            # private preflight root
+    repos/<repo-id>/                                # selected Git checkouts
+    make-it-work/<TICKET>/                          # state/reports/dashboard
 ```
+
+The session name is unique even for the same ticket. Single-repo preflight is
+separate so approval can be prepared while the future checkout path stays empty.
+Local Git exclusions cover only that new session's paths without rewriting the
+source `.gitignore` or hiding unrelated local files. Allocation creates private
+storage and `miw-session.json`, never branches, worktrees or workflow state.
+
+An explicit `--directory <sessions-parent>` keeps the existing external container
+layout (`<session>/repos/<repo-id>` plus `<session>/make-it-work/<TICKET>`); choose
+a durable directory outside Git checkouts. Existing saved sessions retain their
+paths, including `~/.make-it-work/sessions`. Default discovery checks both the
+new local parent and the old home parent; use `--directory` for other saved custom
+parents. Do not relocate a saved session or reinterpret its marker format.
+
+A setup failure retains the current-checkout route as an option. Honor an
+explicit isolation requirement rather than silently falling back or changing
+its location. Conflicting explicit unignore rules need resolution or an explicit
+custom location; never modify tracked ignore files to force the local default.
 
 Assess source repositories read-only. Workspace runs retain find-the-repos;
 single-repo runs use the explicitly selected repository without inventing a

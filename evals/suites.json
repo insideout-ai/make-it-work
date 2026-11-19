@@ -19,6 +19,7 @@
     "write-the-tests-standalone"
   ],
   "headless": [
+    "implement-worktree-workspace-preview",
     "implement-worktree-branch-preview",
     "implement-worktree-offer",
     "close-the-gaps-live-autopilot",

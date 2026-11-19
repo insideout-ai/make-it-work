@@ -157,17 +157,30 @@ approval binding. See the [verification contract](../skills/implement/references
 
 ## Private session workspaces
 
-`session-workspace.mjs allocate|list --cwd SOURCE --ticket TICKET` manages only
-bounded private preflight roots under `~/.make-it-work/sessions` (override with
-`--directory`). `--checkout current` leaves the existing checkout/artifact root
-unchanged. Linked worktrees are created only through the existing
+`session-workspace.mjs allocate|list --cwd SOURCE --ticket TICKET` manages bounded
+private preflight storage. Fresh single-repo worktrees are created at
+`<repo>/.claude/worktrees/<session>`, with separate preflight/artifacts at
+`<repo>/.claude/miw-sessions/<session>/make-it-work/<TICKET>`. Fresh multi-repo
+sessions live at `<workspace>/.claude/worktrees/<session>`, with `repos/<repo-id>`
+checkouts beside `make-it-work/<TICKET>`. Defaults use the resolved boundary,
+never a guessed common ancestor. Local Git exclusions protect only new private
+paths without rewriting source `.gitignore` files.
+
+`--checkout current` retains the existing checkout/artifact root. Explicit
+`--directory` overrides retain the external container layout and must be outside
+Git checkouts. Existing markers/paths are never migrated: version 1 retains its
+container bindings; version 2 binds the new single-repo sibling paths. Default
+listing checks the new local parent and legacy `~/.make-it-work/sessions`; other
+custom parents remain available with `--directory`. Resume and repository lookup
+use saved targets, including when the artifact root is inside the source repo.
+
+Linked worktrees are created only through the existing
 `workspace-scope.mjs prepare|approve|run` protocol. See
 [session worktrees](../skills/implement/references/session-worktrees.md) for
 startup, source assessment, explicit approval, root binding and recovery.
 `repo-assessment.mjs report --root SOURCE --artifact-root SESSION --input JSON`
 reads the source inventory and writes the existing report into its bound session;
-standalone report behavior is unchanged. Session roots contain `repos/<repo-id>`
-checkouts and a separate `make-it-work/<TICKET>` artifact tree.
+standalone report behavior is unchanged.
 
 ## Optional delivery selection
 

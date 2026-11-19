@@ -31,17 +31,16 @@ async function metadataRepos(root) {
 export async function repositoryInventory(root, { namedRepos = [] } = {}) {
   root = await realpath(root);
   const session = await readSessionWorkspace(root);
-  const checkoutDirectory = session ? path.join(root, 'repos') : root;
   const single = await exists(artifactOutputJoin(root, '.git'));
-  const candidates = single ? [root] : (await readdir(checkoutDirectory, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => artifactOutputJoin(checkoutDirectory, entry.name));
+  const candidates = session ? session.repositories.map(repo => repo.root) : single ? [root] : (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => artifactOutputJoin(root, entry.name));
   const repos = [];
   for (const directory of candidates) {
     const info = await exists(artifactOutputJoin(directory, '.git'));
     if (!info || !info.isDirectory() && !info.isFile()) continue;
     try {
       const top = execFileSync('git', ['-C', directory, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-      if (await realpath(top) === await realpath(directory)) repos.push({ id: path.basename(directory), root: directory, git_kind: info.isFile() ? 'file' : 'directory' });
-    } catch (error) { repos.push({ id: path.basename(directory), root: directory, unavailable: error.message }); }
+      if (await realpath(top) === await realpath(directory)) repos.push({ id: session?.repositories.find(repo => repo.root === directory)?.id ?? path.basename(directory), root: directory, git_kind: info.isFile() ? 'file' : 'directory' });
+    } catch (error) { repos.push({ id: session?.repositories.find(repo => repo.root === directory)?.id ?? path.basename(directory), root: directory, unavailable: error.message }); }
   }
   for (const entry of [...(single ? [] : await metadataRepos(root)), ...namedRepos.map((id) => ({ id }))]) {
     if (typeof entry.id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(entry.id)) fail('Named repo must be a basename.');

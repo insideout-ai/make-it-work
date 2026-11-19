@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, cli, fail, section } from './lib/artifacts.mjs';
-import { readSessionWorkspace } from './lib/session-workspace.mjs';
+import { readSessionWorkspace, findSessionWorkspace } from './lib/session-workspace.mjs';
 
 const validId = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
 function git(root, ...argv) {
@@ -58,17 +58,18 @@ export async function resolveRepository({ root, repo, workspaceRoot } = {}) {
   const invocation = await realpath(root);
   let current = null;
   try { current = git(invocation, 'rev-parse', '--show-toplevel'); } catch { /* workspace root */ }
-  if (current) {
+  const managed = await findSessionWorkspace(invocation, current) ?? (workspaceRoot ? await readSessionWorkspace(workspaceRoot) : null);
+  if (current && (!managed || managed.repositories.some(entry => entry.root === current))) {
     const identity = await resolveRepoIdentity(current);
-    if (identity.repoId === repo || path.basename(identity.root) === repo) return { ...identity, requestedRepo: repo };
+    if (identity.repoId === repo || path.basename(identity.root) === repo ||
+        managed?.repositories.some(entry => entry.id === repo && entry.root === identity.root)) return { ...identity, requestedRepo: repo };
   }
   const candidates = new Set();
-  for (const boundary of new Set([invocation, ...(workspaceRoot ? [await realpath(workspaceRoot)] : [])])) {
+  for (const boundary of new Set(managed ? [managed.artifact_root] : [invocation, ...(workspaceRoot ? [await realpath(workspaceRoot)] : [])])) {
     const session = await readSessionWorkspace(boundary);
-    const directory = session ? path.join(boundary, 'repos') : boundary;
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const candidate = path.join(directory, entry.name);
+    const directories = session ? session.repositories.map(entry => entry.root) :
+      (await readdir(boundary, { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => path.join(boundary, entry.name));
+    for (const candidate of directories) {
       let top;
       try { top = await realpath(git(candidate, 'rev-parse', '--show-toplevel')); } catch { continue; }
       if (top === await realpath(candidate)) candidates.add(top);
@@ -77,7 +78,8 @@ export async function resolveRepository({ root, repo, workspaceRoot } = {}) {
   const matches = [];
   for (const candidate of candidates) {
     const identity = await resolveRepoIdentity(candidate);
-    if (identity.repoId === repo || path.basename(identity.root) === repo) matches.push(identity);
+    if (identity.repoId === repo || path.basename(identity.root) === repo ||
+        managed?.repositories.some(entry => entry.id === repo && entry.root === identity.root)) matches.push(identity);
   }
   if (!matches.length) fail(`Repository not found in the selected checkout or supplied workspace: ${repo}`);
   if (matches.length > 1) fail(`Ambiguous repository ID ${repo}; select the intended checkout explicitly.`);

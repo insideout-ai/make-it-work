@@ -28,6 +28,12 @@ export async function ensureArtifactIgnored(directory) {
   const tracked = git(root, ['ls-files', '-z', '--', `:(literal)${relative}`]);
   if (tracked.status !== 0) throw new Error(tracked.stderr);
   if (tracked.stdout) throw new Error(`Workflow artifacts are already staged or tracked: ${tracked.stdout.split('\0').filter(Boolean).join(', ')}. Remove them from the index with git rm --cached (preserving local files), then retry. Already committed artifacts also require reviewing outgoing history.`);
+  // Repo/workspace-local sessions are private storage, already covered by
+  // their exact session exclusion; never append to the source .gitignore.
+  if (/(?:^|\/)\.claude\/(?:miw-sessions|worktrees)\/[^/]+\/make-it-work$/.test(relative)) {
+    if (git(root, ['check-ignore', '--no-index', '-q', '--', `${relative}/miw-ignore-probe`]).status !== 0) throw new Error('Private session artifacts are no longer ignored; repair their local exclusion before writing.');
+    return { applicable: true, root, relative };
+  }
   const ignore = path.join(root, '.gitignore');
   let text = '';
   try { if (!(await lstat(ignore)).isFile() || (await lstat(ignore)).isSymbolicLink()) throw new Error('.gitignore must be a regular file.'); text = await readFile(ignore, 'utf8'); }

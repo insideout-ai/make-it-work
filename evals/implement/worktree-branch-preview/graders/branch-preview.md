@@ -6,8 +6,12 @@ weight: 3
 
 Require the actual prepared private-session repository/branch preview for the
 explicitly chosen isolated worktree, not a hypothetical example. It must use
-the recorded external sessions parent and prepare the existing workspace-scope
-plan, with no branch/worktree creation, workflow initialization or refinement.
+the single-repo defaults: actual checkout at <source>/.claude/worktrees/<session>
+and separate private artifact root at <source>/.claude/miw-sessions/<session>.
+Prepare the existing workspace-scope plan, with no branch/worktree creation,
+workflow initialization or refinement. A home-directory default or an unrequested
+custom --directory fails. Exact local Git exclusions for new session paths are
+allowed; source .gitignore contents and existing local edits must stay unchanged.
 
 The assistant's user-facing approval shows the suggested exact nonempty branch
 name, actual starting main commit, source checkout and separate worktree path,

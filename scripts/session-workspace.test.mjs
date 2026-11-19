@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import test from 'node:test';
 import { allocateSession, listSessions } from './session-workspace.mjs';
 import { resolveWorkspace } from './workspace.mjs';
-import { resolveRepository } from './repo-identity.mjs';
+import { resolveRepository, resolveRepoIdentity } from './repo-identity.mjs';
 import { writeAssessmentReport } from './repo-assessment.mjs';
 import { prepareScope, approveScope, runScope, readScope } from '../skills/implement/scripts/workspace-scope.mjs';
 import { initializeWorkflow, applyWorkflow } from '../skills/implement/scripts/workflow.mjs';
@@ -27,8 +27,8 @@ async function fixture(t, count = 2) {
   }
   return { root, source, directory: path.join(root, 'sessions') };
 }
-async function preview(f, source = f.source) {
-  const session = await allocateSession(source, { ticket: 'DEMO', directory: f.directory });
+async function preview(f, source = f.source, options = { directory: f.directory }) {
+  const session = await allocateSession(source, { ticket: 'DEMO', ...options });
   const report = await writeAssessmentReport(source, { ticket: 'DEMO', markdown: '# Repositories\n\n## Assessment Evidence\n',
     assessments: session.repositories.map(repo => ({ id: repo.id, status: 'Definite', search: 'code.txt:1' })) }, { artifactRoot: session.artifact_root });
   const plan = await prepareScope(session.artifact_root, { ticket: 'DEMO', report: path.relative(session.artifact_root, report.file),
@@ -41,6 +41,130 @@ test('current checkout is an unchanged, allocation-free option', async t => {
   const selected = await allocateSession(f.source, { ticket: 'DEMO', checkout: 'current', directory: f.directory });
   assert.equal(selected.artifact_root, f.source); assert.equal(selected.checkout, 'current');
   assert.deepEqual(await listSessions(f.source, { directory: f.directory }), []);
+});
+
+test('default single-repo checkout uses .claude/worktrees with separate private state and correct resume/lookup', async t => {
+  const f = await fixture(t, 1), source = path.join(f.source, 'api');
+  await writeFile(path.join(source, '.gitignore'), 'node_modules/\n');
+  git(source, 'add', '.gitignore'); git(source, 'commit', '-qm', 'Ignore dependencies', '--only', '--', '.gitignore');
+  await writeFile(path.join(source, '.gitignore'), 'node_modules/\n# User local edit\n.local-cache/\n');
+  const original = git(source, 'status', '--porcelain'), ignore = await readFile(path.join(source, '.gitignore'), 'utf8');
+  const { session, plan } = await preview(f, source, {});
+  const name = path.basename(session.artifact_root), target = path.join(source, '.claude', 'worktrees', name);
+  assert.equal(session.version, 2);
+  assert.equal(session.artifact_root, path.join(source, '.claude', 'miw-sessions', name));
+  assert.equal(plan.plan.repos[0].root, target);
+  await assert.rejects(lstat(target), { code: 'ENOENT' });
+  assert.equal(git(source, 'status', '--porcelain'), original);
+  const revised = await prepareScope(session.artifact_root, { ticket: 'DEMO', report: plan.plan.report.path,
+    repos: [{ id: 'api', base: 'main', target_branch: 'custom-worktree-name', reason: 'code.txt:1' }] });
+  assert.equal(revised.plan.repos[0].root, target);
+  await assert.rejects(approveScope(session.artifact_root, 'DEMO', plan.hash, user), /exact pending/);
+  await approveScope(session.artifact_root, 'DEMO', revised.hash, user);
+  await runScope(session.artifact_root, 'DEMO', revised.hash);
+  assert.equal(git(target, 'branch', '--show-current'), 'custom-worktree-name');
+  assert.equal(git(source, 'branch', '--show-current'), 'main');
+  assert.equal(await readFile(path.join(target, 'code.txt'), 'utf8'), 'baseline');
+  assert.equal((await resolveWorkspace(target)).artifact_root, session.artifact_root);
+  assert.equal((await resolveWorkspace(source, { savedRoot: session.artifact_root })).artifact_root, session.artifact_root);
+  await mkdir(path.join(target, 'nested'));
+  assert.equal((await resolveWorkspace(path.join(target, 'nested'))).artifact_root, session.artifact_root);
+  assert.equal((await resolveRepository({ root: session.artifact_root, repo: 'api' })).root, target);
+  assert.equal((await resolveRepository({ root: session.artifact_root, workspaceRoot: f.source, repo: 'api' })).root, target);
+  assert.equal((await resolveRepository({ root: source, workspaceRoot: session.artifact_root, repo: 'api' })).root, target);
+  assert.equal((await allocateSession(target, { ticket: 'OTHER', checkout: 'current' })).artifact_root, session.artifact_root);
+  const initialized = await initializeWorkflow(session.artifact_root, { ticket: 'DEMO', autonomy: 'guided', repos: [target], branch_guard: 'Approved local worktree' });
+  const state = { root: session.artifact_root, statePath: initialized.state };
+  await applyWorkflow({ ...state, input: { id: 'pause', event: 'pause', repos: [target], expected_hash: digest(await readFile(initialized.state, 'utf8')), reason: 'User pause' } });
+  await applyWorkflow({ ...state, input: { id: 'resume', event: 'resume', repos: [target], expected_hash: digest(await readFile(initialized.state, 'utf8')), blocker_resolved: true } });
+  assert.equal(git(source, 'status', '--porcelain'), original);
+  assert.equal(await readFile(path.join(source, '.gitignore'), 'utf8'), ignore);
+  assert.equal(await readFile(path.join(target, '.gitignore'), 'utf8'), 'node_modules/\n');
+});
+
+test('conflicting ignore rules do not rewrite the source .gitignore or authorize a fallback location', async t => {
+  const f = await fixture(t, 1), source = path.join(f.source, 'api');
+  const contents = '!.claude/miw-sessions/**\n!.claude/worktrees/**\n';
+  await writeFile(path.join(source, '.gitignore'), contents);
+  await assert.rejects(allocateSession(source, { ticket: 'DEMO' }), /ignore rules expose/);
+  assert.equal(await readFile(path.join(source, '.gitignore'), 'utf8'), contents);
+  assert.equal(git(source, 'worktree', 'list', '--porcelain').split('\n').filter(line => line.startsWith('worktree ')).length, 1);
+});
+
+test('an explicit multi-repo workspace inside another Git checkout keeps its boundary and local artifact exclusions', async t => {
+  const f = await fixture(t);
+  git(f.root, 'init', '-qb', 'main'); git(f.root, 'config', 'user.name', 'Test'); git(f.root, 'config', 'user.email', 'test@example.invalid');
+  await writeFile(path.join(f.root, 'wrapper.txt'), 'Workspace wrapper'); git(f.root, 'add', 'wrapper.txt'); git(f.root, 'commit', '-qm', 'Wrapper');
+  const original = git(f.root, 'status', '--porcelain');
+  const { session, plan } = await preview(f, f.source, { workspaceRoot: f.source });
+  assert.equal(session.source_root, f.source);
+  assert.equal(path.dirname(session.artifact_root), path.join(f.source, '.claude', 'worktrees'));
+  assert.deepEqual(plan.plan.repos.map(repo => repo.id), ['api', 'web']);
+  await approveScope(session.artifact_root, 'DEMO', plan.hash, user); await runScope(session.artifact_root, 'DEMO', plan.hash);
+  assert.equal((await resolveRepository({ root: session.artifact_root, repo: 'api' })).root, plan.plan.repos[0].root);
+  assert.equal(git(f.root, 'status', '--porcelain'), original);
+  await assert.rejects(lstat(path.join(f.root, '.gitignore')), { code: 'ENOENT' });
+});
+
+test('default multi-repo sessions are workspace-local, distinct and discoverable alongside legacy sessions', async t => {
+  const f = await fixture(t);
+  t.mock.method(os, 'homedir', () => f.root);
+  const old = await allocateSession(f.source, { ticket: 'DEMO', directory: path.join(f.root, '.make-it-work', 'sessions') });
+  const pair = await Promise.all([preview(f, f.source, {}), preview(f, f.source, {})]);
+  assert.notEqual(pair[0].session.artifact_root, pair[1].session.artifact_root);
+  for (const { session, plan } of pair) {
+    assert.equal(path.dirname(session.artifact_root), path.join(f.source, '.claude', 'worktrees'));
+    assert.equal(session.version, 1);
+    for (const repo of plan.plan.repos) assert.equal(repo.root, path.join(session.artifact_root, 'repos', repo.id));
+    await approveScope(session.artifact_root, 'DEMO', plan.hash, user); await runScope(session.artifact_root, 'DEMO', plan.hash);
+    assert.equal((await resolveWorkspace(plan.plan.repos[0].root)).artifact_root, session.artifact_root);
+  }
+  const sessions = await listSessions(f.source, { ticket: 'DEMO' });
+  assert.deepEqual(new Set(sessions.map(entry => entry.artifact_root)), new Set([old.artifact_root, ...pair.map(entry => entry.session.artifact_root)]));
+  assert.equal((await resolveWorkspace(old.artifact_root)).artifact_root, old.artifact_root);
+});
+
+test('recorded identity independent of the source folder still resolves the bound single-repo worktree', async t => {
+  const f = await fixture(t, 1), source = path.join(f.source, 'api');
+  const strategy = '.claude/skills/test-strategy/SKILL.md';
+  await mkdir(path.dirname(path.join(source, strategy)), { recursive: true });
+  await writeFile(path.join(source, strategy), '# Strategy\n\n## Repo ID\n\n`domain-api`\n');
+  git(source, 'add', strategy); git(source, 'commit', '-qm', 'Record identity', '--only', '--', strategy);
+  const { session, plan } = await preview(f, source, {});
+  await approveScope(session.artifact_root, 'DEMO', plan.hash, user); await runScope(session.artifact_root, 'DEMO', plan.hash);
+  const target = plan.plan.repos[0].root;
+  assert.equal((await resolveRepoIdentity(target)).repoId, 'domain-api');
+  assert.equal((await resolveRepository({ root: session.artifact_root, repo: 'api' })).root, target);
+  assert.equal((await resolveRepository({ root: target, repo: 'api' })).root, target);
+  assert.equal((await resolveRepository({ root: session.artifact_root, repo: 'domain-api' })).root, target);
+});
+
+test('concurrent local single-repo allocations retain both sessions exclusions and source status', async t => {
+  const f = await fixture(t, 1), source = path.join(f.source, 'api');
+  const original = git(source, 'status', '--porcelain');
+  const pair = await Promise.all([allocateSession(source, { ticket: 'DEMO' }), allocateSession(source, { ticket: 'DEMO' })]);
+  assert.notEqual(pair[0].artifact_root, pair[1].artifact_root);
+  for (const session of pair) {
+    assert.match(git(source, 'check-ignore', '--', path.join(session.artifact_root, 'miw-session.json')), /miw-session.json$/);
+    assert.match(git(source, 'check-ignore', '--no-index', '--', path.join(session.repositories[0].root, 'probe')), /probe$/);
+  }
+  assert.equal(git(source, 'status', '--porcelain'), original);
+});
+
+test('default single-repo discovery retains legacy sessions and rejects redirected parents or marker destinations', async t => {
+  const f = await fixture(t, 1), source = path.join(f.source, 'api');
+  t.mock.method(os, 'homedir', () => f.root);
+  const old = await allocateSession(source, { ticket: 'DEMO', directory: path.join(f.root, '.make-it-work', 'sessions') });
+  const fresh = await allocateSession(source, { ticket: 'DEMO' });
+  assert.deepEqual(new Set((await listSessions(source, { ticket: 'DEMO' })).map(entry => entry.artifact_root)), new Set([old.artifact_root, fresh.artifact_root]));
+  const marker = path.join(fresh.artifact_root, 'miw-session.json');
+  const altered = JSON.parse(await readFile(marker, 'utf8')); altered.repositories[0].root = source;
+  await writeFile(marker, JSON.stringify(altered));
+  await assert.rejects(resolveWorkspace(fresh.artifact_root), /binding/);
+  const g = await fixture(t, 1), other = path.join(g.source, 'api'), redirected = path.join(g.root, 'redirected');
+  await mkdir(redirected); await symlink(redirected, path.join(other, '.claude'));
+  await assert.rejects(allocateSession(other, { ticket: 'DEMO' }), /real directories/);
+  assert.deepEqual(await readdir(redirected), []);
 });
 
 test('two same-ticket sessions prepare concurrently and apply isolated branches, files, indexes and artifacts', async t => {
