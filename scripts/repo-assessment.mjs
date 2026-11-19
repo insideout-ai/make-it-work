@@ -6,6 +6,7 @@ import { mkdir, readFile } from './lib/artifact-io.mjs';
 import { access, lstat, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cell, cli, fail, jsonInput, within } from './lib/artifacts.mjs';
+import { readSessionWorkspace } from './lib/session-workspace.mjs';
 
 async function exists(file) {
   try { return await lstat(file); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
@@ -29,8 +30,10 @@ async function metadataRepos(root) {
 }
 export async function repositoryInventory(root, { namedRepos = [] } = {}) {
   root = await realpath(root);
+  const session = await readSessionWorkspace(root);
+  const checkoutDirectory = session ? path.join(root, 'repos') : root;
   const single = await exists(artifactOutputJoin(root, '.git'));
-  const candidates = single ? [root] : (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => artifactOutputJoin(root, entry.name));
+  const candidates = single ? [root] : (await readdir(checkoutDirectory, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.')).map((entry) => artifactOutputJoin(checkoutDirectory, entry.name));
   const repos = [];
   for (const directory of candidates) {
     const info = await exists(artifactOutputJoin(directory, '.git'));
@@ -160,8 +163,10 @@ export function renderAssessmentTable(inventory, assessments = []) {
   return lines.join('\n');
 }
 
-export async function writeAssessmentReport(root, input) {
+export async function writeAssessmentReport(root, input, { artifactRoot = root } = {}) {
   root = await realpath(root);
+  artifactRoot = await realpath(artifactRoot);
+  if (artifactRoot !== root && (await readSessionWorkspace(artifactRoot))?.source_root !== root) fail('Assessment output must use its source workspace or its bound private session.');
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(input.ticket ?? '')) fail('Report needs a safe ticket identity.');
   if (typeof input.markdown !== 'string') fail('Report needs complete Markdown.');
   const headings = [...input.markdown.matchAll(/^## Assessment Evidence[ \t]*$/gm)];
@@ -178,17 +183,17 @@ export async function writeAssessmentReport(root, input) {
   const markdown = input.markdown.slice(0, start) + `\n\n${table}\n\n` + (after < 0 ? '' : input.markdown.slice(start + after));
   const relative = input.report_path ?? `make-it-work/${input.ticket}/${input.ticket}-repos.md`;
   if (typeof relative !== 'string' || path.isAbsolute(relative) || relative.split(/[\\/]/).includes('..') || !relative.startsWith('make-it-work/')) fail('Report path must be inside make-it-work.');
-  await mkdir(path.dirname(artifactOutputJoin(root, relative)), { recursive: true });
-  const output = artifactOutputJoin(root, relative);
-  const file = await within(root, path.relative(root, output), { existing: false });
+  await mkdir(path.dirname(artifactOutputJoin(artifactRoot, relative)), { recursive: true });
+  const output = artifactOutputJoin(artifactRoot, relative);
+  const file = await within(artifactRoot, path.relative(artifactRoot, output), { existing: false });
   await atomicWrite(file, markdown);
   return { file, repositories: inventory.map((repo) => repo.id) };
 }
 cli(import.meta.url, async (argv) => {
-  const o = args(argv, ['--root', '--input']);
+  const o = args(argv, ['--root', '--input', '--artifact-root']);
   if (!o.root) fail('--root is required.');
   if (o.command === 'inventory') return repositoryInventory(o.root);
   if (o.command === 'collect') return collectAssessments(o.root, await jsonInput(o.input));
-  if (o.command === 'report') return writeAssessmentReport(o.root, await jsonInput(o.input));
+  if (o.command === 'report') return writeAssessmentReport(o.root, await jsonInput(o.input), { artifactRoot: o['artifact-root'] ?? o.root });
   fail('Usage: repo-assessment.mjs inventory|collect|report --root WORKSPACE [--input INPUT.json]');
 });

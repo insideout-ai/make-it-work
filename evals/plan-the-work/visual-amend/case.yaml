@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-visual-amend
+tags: [plan-the-work, visuals]
+context:
+  scaffold_script: fixture.sh

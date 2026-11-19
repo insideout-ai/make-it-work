@@ -1,5 +1,8 @@
 ### Final context sync
 
+For `repo_impact_version: 1`, apply [repository impact](../repository-impact.md): check the current assessment; reuse justified no-maintenance records for unchanged repos, and skip context-only documentation/map work. Keep those repos visible in packaging and report tests as not required, not passed.
+
+
 See Final context sync below.
 
 #For `review_scope_version: 1`, `sync-complete` checks the final tree against the
@@ -23,6 +26,19 @@ behavior; do not retrofit the marker to a historical run.
 The Final Sync phase runs after review comes back `CLEAN`; the same bounded maintenance procedure is also used during Review preparation. In Review preparation, record `review-context` and continue to target preparation; do not emit `sync-complete` or advance the phase. After CLEAN, address only newly discovered gaps and confirm existing context is current. On a repeated final-sync pass, retain
 already-correct context and test-map artifacts; do not rewrite or regenerate them
 without a real content change. Its job is to make the project's knowledge base describe the system as it now is — reusable knowledge for future work, not a record of this ticket.
+
+When delegating documentation/test-map maintenance, assign separate evidence
+files before dispatch, following [Stage skills](stage-contract.md). For example,
+two workers in a new marked run might receive
+`make-it-work/DEMO/miw-DEMO-api-docs-w1.md` and
+`make-it-work/DEMO/miw-DEMO-web-test-map-w2.md`; honor the saved run's naming
+convention. Workers in the same repo also get distinct filenames. Use a fresh
+name for another worker/attempt or an occupied path, without a user question.
+Collect each exact returned path into the appropriate repo's maintenance
+`evidence` list. Each actual documentation/map file has one assigned writer;
+other workers return contributions separately. The parent owns any consolidated
+report and the existing `review-context`/`sync-complete` checkpoint. Parallel
+workers do not append to or replace one shared evidence file.
 
 **Inputs:**
 

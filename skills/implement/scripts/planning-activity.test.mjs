@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { planningActivityHold } from './planning-activity.mjs';
+import { planningActivityCheck, planningActivityHold } from './planning-activity.mjs';
 
 const statePath = '/tmp/planning-activity-fixture/make-it-work/DEMO/DEMO-state.md';
 const root = '/tmp/planning-activity-fixture';
@@ -36,6 +36,16 @@ test('requires a standalone checkpoint while allowing shell assignments and punc
   assert.match(hold('Bash', { command: 'node /plugin/artifact-output.mjs resolve; ' + command }, state(), [chat(sentence)]), /own Bash call/);
 });
 
+test('invalid activity requests are rejected for their actual defect even before chat persists', () => {
+  const command = checkpoint('I am checking the existing tests.');
+  assert.match(hold('Bash', { command: command + ' | head -c 500' }), /own Bash call/);
+  assert.match(hold('Bash', { command: command.replace('discovery', 'unknown') }), /discovery, drafting or validation/);
+  assert.match(hold('Bash', { command: 'node /plugin/dashboard-checkpoint.mjs activity --planning-activity discovery' }), /nonempty single-line --activity/);
+  for (const invalid of [command + ' | head', command.replace('discovery', 'unknown'), command.replace('discovery', '""'), command.replace('I am checking the existing tests.', '')]) {
+    assert.equal(planningActivityCheck({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: invalid } }, [], state(), statePath).pendingChat, false);
+  }
+});
+
 test('protects investigation, drafting and validation at their actual work boundaries', () => {
   assert.match(hold('Read', { file_path: root + '/src/policy.js' }), /--planning-activity discovery/);
   assert.equal(hold('Read', { file_path: root + '/src/policy.js' }, state(['discovery'])), null);
@@ -53,6 +63,7 @@ test('retains legacy and other-stage behavior and does not reuse a prior plannin
   for (const fields of [{ test_writing_version: undefined }, { mode: 'lightweight' }, { phase: 'write-tests' }, { phase: 'execute' }, { status: 'Paused' }]) {
     const saved = state(); Object.assign(saved.fields, fields);
     assert.equal(hold('Write', { file_path: root + '/make-it-work/DEMO/DEMO-plan.md' }, saved), null);
+    assert.equal(planningActivityCheck({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: checkpoint('I am checking tests.') } }, [], saved, statePath).pendingChat, false);
   }
   const saved = state(['discovery', 'drafting']);
   saved.audit.push({ number: 4, from: 'plan-approval', to: 'plan' });

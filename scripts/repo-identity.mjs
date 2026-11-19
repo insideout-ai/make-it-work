@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile, readdir, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { args, cli, fail, section } from './lib/artifacts.mjs';
+import { readSessionWorkspace } from './lib/session-workspace.mjs';
 
 const validId = (value) => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value);
 function git(root, ...argv) {
@@ -63,9 +64,11 @@ export async function resolveRepository({ root, repo, workspaceRoot } = {}) {
   }
   const candidates = new Set();
   for (const boundary of new Set([invocation, ...(workspaceRoot ? [await realpath(workspaceRoot)] : [])])) {
-    for (const entry of await readdir(boundary, { withFileTypes: true })) {
+    const session = await readSessionWorkspace(boundary);
+    const directory = session ? path.join(boundary, 'repos') : boundary;
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
-      const candidate = path.join(boundary, entry.name);
+      const candidate = path.join(directory, entry.name);
       let top;
       try { top = await realpath(git(candidate, 'rev-parse', '--show-toplevel')); } catch { continue; }
       if (top === await realpath(candidate)) candidates.add(top);

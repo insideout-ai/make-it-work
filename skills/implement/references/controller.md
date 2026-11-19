@@ -188,14 +188,81 @@ The review renderer binds report evidence to this target. A clean review handoff
 must match both that snapshot and the current delivered paths; narrower or stale
 evidence cannot advance the controller. The package rechecks coverage and exact
 repo/base selection, and hashes the target/diff artifacts as evidence. Hashes
-establish scope/freshness, not proof of semantic inspection. No new human approval
-is introduced. Older saved runs without the marker retain legacy behavior.
+establish scope/freshness, not proof of semantic inspection. Review grants no
+delivery permission. Older saved runs without the marker retain legacy behavior.
 
-**Pre-existing untracked files.** Before the first review-scope `prepare` of a run,
-run `review-scope.mjs preexisting --root ROOT --state STATE`. It lists untracked
-files that existed, byte-identical, in the startup baseline and are still
-unchanged, so the run did not write them (helper scripts, backups, bytecode,
-local dotfiles); `sensitive` flags credential-like and hidden names. `prepare`
+### Scope reconciliation before review
+
+Fresh runs additionally carry `review_reconciliation_version: 1`. After the
+existing review-context maintenance, run:
+
+```sh
+node <implement>/scripts/review-scope.mjs inspect --root ROOT --state STATE
+```
+
+This read-only report compares the original review baseline, current full
+delivery diff, literal per-repo Affected Code entries and maintained context.
+Lightweight uses controller-retained changed-path hints bound to its accepted
+implementation report/spec instead of inventing a plan. None proves authorship.
+Files with starting local edits remain ambiguous even when planned. Inherited
+commits are separate items; a specifically approved workspace starting SHA/base
+can cover those original commits, never newly exposed history or later changes.
+
+Treat this report as advisory. Show paths, provenance, inherited commit counts
+and sensitive names without their contents. In Guided and Autonomous, consolidate
+material ambiguity into one optional consultation with **Continue with the full
+scope** and **Adjust scope** choices. Continuing requires no per-item receipt and
+must remain available when analysis is incomplete. Use the existing nonblocking
+input mechanism if retaining an asynchronous question; never create a blocking
+request solely for these advisories. Reuse earlier specific answers while the
+facts remain the same. Do not ask again merely because another review cycle began.
+
+In Autopilot, continue under existing authorization with the full delivery scope
+and disclose unresolved provenance and the assumptions used. Advisory uncertainty
+alone does not require a question or stop. An actual conflicting instruction or
+operation outside existing authorization still follows its existing approval path.
+No mode may silently discard tracked/mixed work or inherited commits, invent user
+consent, or treat relevance hints as proof of authorship or correctness.
+
+Optional user decisions can be recorded with
+`review-scope.mjs reconcile --root ROOT --state STATE --input decisions.json`:
+
+```json
+{
+  "source": "user", "via": "question", "fingerprint": "<current inspect fingerprint>",
+  "decisions": [{ "id": "<listed item id>", "action": "include",
+    "reason": "Why this complete item belongs in delivery", "reference": "Actual user answer or prior decision locator" }]
+}
+```
+
+This helper validates its explicit input and writes a run-bound local journal in
+active Review preparation. It is never a prerequisite for `prepare`, review or
+packaging. Repeated choices are reused for the same facts; `action: "revoke"`
+optionally records a changed answer without editing the checkout. Defaults
+preserve recorded inclusions. A later explicit `exclude-preexisting` path choice
+can supersede inclusion directly, without a separate revocation step, for files
+still proven unchanged and untracked. Tracked/history separation still requires
+separately authorized checkout handling; no automatic stash, reset, rebase,
+deletion or path narrowing is added.
+
+`prepare` creates the full target even with unresolved advisories or unavailable
+analysis. Its `scope_reconciliation` freezes the available advisory context for
+the reviewer; missing/malformed provenance or decision journals produce warnings
+and unknown provenance, never fabricated history. Advisory changes alone do not
+invalidate review or packaging. Actual delivery-diff changes, incomplete review
+coverage, correctness findings and existing operation approvals retain their
+checks. Older saved runs keep their existing target/package contract.
+Preparing again with the same delivery scope and required review context retains
+the frozen target bytes; the returned advisory summary can still reflect later
+choices. Refreshing advisory metadata alone never requires another review.
+
+**Pre-existing untracked files.** New runs use the consolidated discussion above;
+do not ask again for resolved items. Older contracts discover eligible files with
+`review-scope.mjs preexisting --root ROOT --state STATE`. It lists untracked
+files that were untracked in the saved review baseline and remain untracked with
+the same file type, bytes/link text and executable mode (helper scripts, notes, skills,
+docs, backups and local dotfiles); `sensitive` flags credential-like and hidden
+names. This establishes unchanged starting content, not authorship. `prepare`
 also returns any that remain as `preexisting_untracked`. When the list is
 non-empty, show the count, the sensitive names and a short sample, then ask once
 in Guided and Autonomous whether to keep them out of review and delivery
@@ -207,9 +274,29 @@ so review, the final package, change assessment and delivery all omit them
 consistently. Record the choice in the decision log and tell the user the block
 can be deleted after the run. Never pass a file the helper did not list, never
 print the contents of a sensitive file, and never let a reviewer read one.
-Markdown, `docs/` and `.claude/` files are not in the startup baseline, so the
-helper cannot list them; mention any obviously unrelated ones instead of
-guessing.
+On new runs, default exclusion preserves recorded inclusions. To exclude a
+previously included file after a later user instruction, pass its explicit path
+directly; no separate revocation or second question is needed.
+New runs have `review_baseline_version: 1` and an independent `review_baseline`
+bound to the ticket/start time. It captures Git-visible changed tracked and
+untracked paths, file hashes/modes and repository HEAD/branch at initialization,
+including Markdown, `docs/` and `.claude/`; ignored files and `make-it-work/` are
+not inventoried. No file contents are saved. Resume, replans and branch-baseline
+acceptance retain this provenance. Scope updates capture only newly selected
+roots; retained (or reselected) roots keep their original evidence, and removed
+roots are not exclusion targets. Do not reset this baseline to repair a mismatch.
+Tracked changes, modified starting files and files first appearing after capture
+are not automatically excluded. Disclose unexpected paths before dispatch;
+the plan's Affected Code is a signal, not an exclusion allowlist.
+
+Older saved runs without the marker retain their implementation-baseline
+fallback, which omitted Markdown, `docs/` and `.claude/`. Explain that limitation
+when relevant; absence from their list does not establish a file was created
+during the run. Never manufacture a starting baseline at resume. A missing,
+malformed or cross-run baseline on a version-1 run is an advisory warning with
+unknown provenance. Continue full-scope review without falling back to a legacy
+list or automatically excluding files. Capture failures likewise do not prevent
+initialization or scope updates; never recapture old roots to invent evidence.
 
 ## Execution settings and unavailable supplemental checks
 

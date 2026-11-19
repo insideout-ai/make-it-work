@@ -123,6 +123,13 @@ Follow the mandatory [autonomy-change contract](../autonomy-changes.md) for chat
 
 **Workspace routing comes first:** read [references/workspace.md](../workspace.md) before resolving a current branch or running the checks below. Resolve layout and artifact root with the shared helper. A workspace needs no root `CLAUDE.md` or `.git`. For workspace runs, run `find-the-repos` inline, preview the exact repositories and branch actions, and obtain explicit user approval in **every** autonomy mode before creating or switching branches. Present the prepared preview dashboard as a clickable Markdown link, `[Review repository and branch selection](<returned HTML path>)`, alongside the exact selection; a path in backticks does not satisfy sharing the HTML link. Run the early context precheck on the selected repositories before applying those branch actions. Then use the per-repository branch helper instead of the single-repo branch guard below. An existing workspace run resumes its saved contract before any new discovery or branch changes.
 
+For a fresh run, follow [session worktrees](../session-worktrees.md) for checkout
+selection and `--worktree`/`--continue-here`. Check managed session discovery
+before creating another run. An isolated candidate keeps preflight artifacts in
+its private root while assessment reads the sources; its exact worktree actions
+use the existing repository/branch approval. Continue here keeps this guide's
+current-checkout flow. Existing private runs resume their bound roots directly.
+
 Resolve the ticket, current branch, base branch, and any existing state file before these checks. Work through them in order. A new run chooses autonomy before creating a branch; an existing run keeps its saved autonomy and goes through Resume before any branch change.
 
 If this message explicitly requests a mode change, apply **Change autonomy during a run** before any saved-Autopilot or flag-mismatch shortcut below. Keep all branch/workspace comparisons and existing-run checks; a mode change does not approve Resume anyway, Redo, or Start over.
@@ -162,6 +169,9 @@ If this message explicitly requests a mode change, apply **Change autonomy durin
 ---
 
 ## Context check
+
+For fresh multi-repo runs, apply [repository impact](../repository-impact.md): initial discovery is bounded/read-only, and provisional context-only repos require no setup or onboarding repair. Finalize the impact assessment against the accepted spec before readiness or implementation. Existing repository/branch approvals and older-run behavior remain unchanged.
+
 
 For `workspace_version: 1`, apply this check independently to each approved repository from `workspace_contract`; no root workspace context is required, and unselected siblings are excluded. Pass the explicit repo root to each inventory call. The controller inventories the same repositories at `context-ready` and records missing context in Context discoveries.
 

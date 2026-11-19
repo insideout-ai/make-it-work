@@ -14,21 +14,25 @@ import { applyWorkflow, initializeWorkflow } from './workflow.mjs';
 import { recordPreparation, plannedScenarios } from '../../write-the-tests/scripts/preparation.mjs';
 import { planHash } from '../../../scripts/lib/plan.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
+import { impactRegressionManifest } from './repo-impact.mjs';
 import { testingReadiness } from './testing-readiness.mjs';
 import { testingPolicy } from './testing-policy.mjs';
-import { prepareReviewScope } from './review-scope.mjs';
+import { inspectReviewScope, prepareReviewScope } from './review-scope.mjs';
 import { startupHook } from './startup-presentation.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
 import { parseState } from './render-status.mjs';
 import { prepareScope, approveScope, runScope } from './workspace-scope.mjs';
 import { realpath } from 'node:fs/promises';
+import { allocateSession } from '../../../scripts/session-workspace.mjs';
 
-for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: 'guided' }, { autonomy: 'autonomous', workspace: true }]) test(`a real red-to-green ${autonomy} ${workspace ? 'multi-repo' : 'single-repo'} implementation completes through regression, review and exact final package`, async (t) => {
-  const root = await realpath(await mkdtemp(artifactJoin(os.tmpdir(), 'workflow-integration-')));
-  const sourceRoot = workspace ? artifactJoin(root, 'api') : root;
-  const secondRoot = artifactJoin(root, 'web');
-  const repos = workspace ? [sourceRoot, secondRoot] : [root];
-  t.after(() => rm(root, { recursive: true, force: true }));
+for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { autonomy: 'guided' }, { autonomy: 'autonomous', workspace: true }, { autonomy: 'autonomous', workspace: true, worktree: true }]) test(`a real red-to-green ${autonomy} ${worktree ? 'isolated worktree' : workspace ? 'multi-repo' : 'single-repo'} implementation completes through regression, review and exact final package`, async (t) => {
+  let root = await realpath(await mkdtemp(artifactJoin(os.tmpdir(), 'workflow-integration-')));
+  const fixtureRoot = root;
+  let sourceRoot = workspace ? artifactJoin(root, 'api') : root;
+  let secondRoot = artifactJoin(root, 'web');
+  let repos = workspace ? [sourceRoot, secondRoot] : [root];
+  let originalRepos = [];
+  t.after(() => rm(fixtureRoot, { recursive: true, force: true }));
   await cp('evals/execute/execute-full-pass/fixture', sourceRoot, { recursive: true });
   await cp('evals/implement/fixture-base/.claude', artifactJoin(sourceRoot, '.claude'), { recursive: true });
   await cp('evals/implement/fixture-base/CLAUDE.md', artifactJoin(sourceRoot, 'CLAUDE.md'));
@@ -41,11 +45,21 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
     execFileSync('git', ['-C', secondRoot, 'branch', '-m', 'develop'], { stdio: 'pipe' });
     await mkdir(artifactJoin(root, 'make-it-work/DEMO-2'), { recursive: true });
     await cp(artifactJoin(sourceRoot, 'make-it-work/DEMO-2'), artifactJoin(root, 'make-it-work/DEMO-2'), { recursive: true });
+    originalRepos = [...repos];
+    if (worktree) {
+      const session = await allocateSession(root, { ticket: 'DEMO-2', directory: path.join(root, 'sessions') });
+      await cp(artifactJoin(root, 'make-it-work/DEMO-2'), path.join(session.artifact_root, 'make-it-work/DEMO-2'), { recursive: true });
+      root = session.artifact_root;
+    }
     const report = 'make-it-work/DEMO-2/DEMO-2-repos.md';
     await writeFile(artifactJoin(root, report), '# Definite: api and web — greeting exports\n');
-    const preview = await prepareScope(root, { ticket: 'DEMO-2', report, repos: [{ id: 'api', reason: 'src/greeting.js:1', base: 'main' }, { id: 'web', reason: 'src/greeting.js:1', base: 'develop' }] });
+    const preview = await prepareScope(root, { ticket: 'DEMO-2', report, repos: [{ id: 'api', reason: 'src/greeting.js:1', base: 'main', ...(worktree ? { target_branch: 'DEMO-2' } : {}) }, { id: 'web', reason: 'src/greeting.js:1', base: 'develop', ...(worktree ? { target_branch: 'DEMO-2' } : {}) }] });
     await approveScope(root, 'DEMO-2', preview.hash, { source: 'user', via: 'chat' });
     await runScope(root, 'DEMO-2', preview.hash);
+    if (worktree) {
+      sourceRoot = path.join(root, 'repos', 'api'); secondRoot = path.join(root, 'repos', 'web'); repos = [sourceRoot, secondRoot];
+      for (const original of originalRepos) assert.equal(execFileSync('git', ['-C', original, 'status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'original checkout is unchanged');
+    }
   } else git('switch', '-c', 'DEMO-2');
   let initialHead = git('rev-parse', 'HEAD').toString().trim();
   const initialized = await initializeWorkflow(root, { ticket: 'DEMO-2', autonomy, base: 'main', repos, branch_guard: 'Existing feature branch' });
@@ -101,8 +115,15 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
     .replace('| Happy path row above |', '| Formal output includes the supplied name and ends in a period | Happy path row above |')
     .replace('| Regression row above |', '| Existing greeting retains its name and punctuation | Regression row above |');
   if (workspace) plan = plan.replaceAll('tiny-greeter-full', 'api').replace('## Verification Policy', '### `web`\n\n| File | Change | Summary |\n| --- | --- | --- |\n| `src/greeting.js` | Modify | Add the formal greeting in the second service. |\n\n## Verification Policy').replace('| api | automated | configured | Actual test script |', '| api | automated | configured | Actual test script |\n| web | automated | configured | Actual test script |');
+  let impact = null;
+  if (workspace) {
+    impact = { version: 1, repos: ['api', 'web'].map(repo => ({ repo, role: 'product', classification: 'change', planned_paths: ['src/greeting.js', 'test.js'], reason: 'Formal greeting is required in this service.', evidence: [{ repo, path: 'package.json' }] })),
+      checks: ['api', 'web'].map(repo => ({ id: `${repo}-full`, repos: [repo], run_repo: repo, scope: 'full', command: { bin: 'node', args: ['test.js'] }, scenario: `${repo} greeting regression`, expected: 'New and existing greetings pass.', prerequisites: 'Existing Node runtime.', source: 'configured', reason: 'Changed product service keeps full verification.' })) };
+    await apply('repo-impact', { assessment: impact });
+    plan = plan.replace('# Plan for', '**Repository impact contract:** 1\n\n# Plan for').replace('## Verification Policy', `## Repository Impact\n\n\`\`\`json\n${JSON.stringify(impact)}\n\`\`\`\n\n## Verification Policy`);
+  }
   await writeFile(planPath, plan); await updatePlan(planPath, 'set-total', { total: 1 }); await updatePlan(planPath, 'set-mode', { mode: 'inline' });
-  const regression = () => runRegression({ version: 1, mode: 'full', workspace: Boolean(workspace), runs: repos.map((cwd, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } })) });
+  const regression = async (audited = false) => runRegression(impact && audited ? impactRegressionManifest(impact, parseState(await readFile(statePath, 'utf8')).fields) : { version: 1, mode: 'full', workspace: Boolean(workspace), runs: repos.map((cwd, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } })) }, impact && audited ? { statePath, auditId: 'final-impact-gate' } : {});
   assert.equal((await regression()).overall, 'fail');
   const begun = await testingReadiness(statePath, 'begin');
   const policy = testingPolicy(plan, { required: true });
@@ -136,13 +157,13 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   await executionControl(planPath, { action: 'start', id: 'formal-greeting-step-1', steps: [1] }, { dashboardState: statePath });
   await executionControl(planPath, { action: 'begin-attempt', id: 'formal-greeting-fix-1', step: 1, diagnosis: { failure: 'The formal greeting assertion fails.', evidence: 'node test.js output; src/greeting.js lacks greetFormally.', cause: 'The required formal greeting function is missing.', next_change: 'Implement and export greetFormally.', expected_result: 'Formal greeting and existing greeting assertions pass.' } });
   for (const repo of repos) await writeFile(artifactJoin(repo, 'src/greeting.js'), 'function greet(name) { return `Hello, ${name}!`; }\nfunction greetFormally(name) { return `Good day, ${name}.`; }\nmodule.exports = { greet, greetFormally };\n');
-  const result = await regression(); assert.equal(result.overall, 'pass');
+  const result = await regression(true); assert.equal(result.overall, 'pass');
   const ledgerPath = artifactJoin(directory, 'DEMO-2-verification-v1.json');
   const checks = ['Happy path row above', 'Regression row above'].map((subject) => ({ type: 'automated', subject, command: 'node test.js', result: 'pass', note: 'Executed actual greeting assertions.', assertions: [{ clause: subject === 'Happy path row above' ? 'Formal output includes the supplied name and ends in a period' : 'Existing greeting retains its name and punctuation', expected: subject === 'Happy path row above' ? 'Good day, Ann.' : 'Hello, Ann!', observed: subject === 'Happy path row above' ? 'Good day, Ann.' : 'Hello, Ann!', source: `${workspace ? 'api/' : ''}test.js:${subject === 'Happy path row above' ? 6 : 5} strictEqual` }] }));
   await executionControl(planPath, { action: 'complete', steps: [{ number: 1, checks }] }, { ledgerPath, ticket: 'DEMO-2', dashboardState: statePath });
   const ledger = JSON.parse(await readFile(ledgerPath, 'utf8'));
   ledger.acceptance = ledger.acceptance.map((row) => ({ ...row, status: 'automated', step: 1, note: 'Exact output assertion passed.' }));
-  ledger.gate = { mode: 'full-suite', result: result.overall, note: 'Actual regression command result.', full_suites: repos.map((repo, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', command: 'node test.js', result: 'pass', note: 'Exited 0.' })) };
+  ledger.gate = { ...(impact ? { checks: impact.checks.map(c => ({ id: c.id, run_repo: c.run_repo, scope: c.scope, command: c.command, result: 'pass', note: 'Actual regression exited 0.' })) } : {}), mode: 'full-suite', result: result.overall, note: 'Actual regression command result.', full_suites: repos.map((repo, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', command: 'node test.js', result: 'pass', note: 'Exited 0.' })) };
   await writeFile(ledgerPath, JSON.stringify(ledger));
   await writeFile(artifactJoin(directory, 'DEMO-2-execute.md'), 'Execute outcome: PASSED\n');
   const execution = await apply('handoff', { handoff: await saveHandoff('execute', { outcome: 'PASSED', artifacts: { report: 'make-it-work/DEMO-2/DEMO-2-execute.md', verification: 'make-it-work/DEMO-2/DEMO-2-verification-v1.json' }, data: { discoveries: [], failing_tests: [], gate: 'full-suite' } }) });
@@ -150,6 +171,8 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   // This test supplies a clean review artifact; semantic independence is exercised by the separate forward-test rehearsal.
   const roots = workspace ? { api: sourceRoot, web: secondRoot } : { 'tiny-greeter-full': root };
   await apply('review-context', { context_updated: [], test_map_maintenance: repos.map(repo => ({ repo, status: 'not-applicable', affected_tests: [], reason: 'Fixture has no current test-map strategy.' })), review_requirements: repos.map(repo => ({ repo, skills: [{ name: 'domain-demo', method: 'Read' }], reason: 'Formal greeting belongs to the fixture demo domain.' })) });
+  const scope = await inspectReviewScope(root, statePath);
+  assert.equal(scope.ready, true, 'scope advisories require no synthetic user receipt');
   const target = await prepareReviewScope(root, statePath);
   const required = JSON.parse(await readFile(artifactJoin(root, target.review_target), 'utf8')).review_requirements;
   const reviewChecks = required.map(r => ({ repo: r.repo, skills: r.skills.map(s => ({ name: s.name, method: s.method, sha256: s.sha256, rules: [{ line: 1, rule: 'Preserve existing demo behavior', observation: 'Formal greeting assertions and existing greeting regression pass', result: 'satisfied' }] })), test_map: { status: 'not-applicable', note: 'Fixture has no current mapping strategy.', tests: [] } }));
@@ -185,4 +208,5 @@ for (const { autonomy, workspace } of [{ autonomy: 'autonomous' }, { autonomy: '
   } else completed = await apply('complete');
   assert.equal(completed.fields.status, 'Complete'); assert.equal(completed.fields.phase, 'complete');
   assert.equal(git('rev-parse', 'HEAD').toString().trim(), initialHead);
+  if (worktree) for (const original of originalRepos) assert.equal(execFileSync('git', ['-C', original, 'status', '--porcelain'], { encoding: 'utf8' }).trim(), '', 'completed work stays in the isolated checkout');
 });

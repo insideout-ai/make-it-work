@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { checkFeedback, inspectFeedback, inspectState, renderBlock, upsertBlock, writeFeedback } from './write-feedback.mjs';
+import { checkFeedback, inspectFeedback, inspectState, renderBlock, upsertBlock, writeFeedback, feedbackWriteReceipt } from './write-feedback.mjs';
 import { noteCell } from './audit-notes.mjs';
 import { createHash } from 'node:crypto';
 
@@ -207,6 +207,13 @@ test('CLI accepts session review separately from artifact analysis', async (t) =
   const saved = JSON.parse(result.stdout);
   assert.equal(saved.pluginVersion, '4.6.0');
   assert.match(await readFile(saved.sessionOutputPath, 'utf8'), /A supplied preference/);
+  const body = await readFile(saved.sessionOutputPath, 'utf8');
+  const compact = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', f.statePath, '--session-review', input, '--compact'], { encoding: 'utf8' });
+  assert.equal(compact.status, 0, compact.stderr);
+  const receipt = JSON.parse(compact.stdout);
+  assert.equal(receipt.feedbackReport, 'combined'); assert.deepEqual(receipt.readback, saved.readback);
+  assert.equal(receipt.runId, saved.runId); assert.equal(receipt.stateHash, saved.stateHash);
+  assert.equal(await readFile(saved.sessionOutputPath, 'utf8'), body);
   const rejected = spawnSync(process.execPath, [SCRIPT_PATH, 'inspect', '--state', f.statePath, '--session-review', input], { encoding: 'utf8' });
   assert.equal(rejected.status, 1);
   const missing = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', f.statePath, '--session-review'], { encoding: 'utf8' });
@@ -519,6 +526,16 @@ test('CLI inspect records collection and CLI write emits the summary', async (t)
   assert.equal(write.status, 0, write.stderr);
   assert.equal(JSON.parse(write.stdout).outputPath, feedbackPath);
   assert.match(await readFile(feedbackPath, 'utf8'), /Minimal path: Yes/);
+  assert.equal(JSON.parse(write.stdout).compact, undefined, 'default output retains compatibility');
+  const before = await readFile(feedbackPath, 'utf8'), savedState = await readFile(statePath, 'utf8');
+  const compact = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', statePath, '--compact'], { encoding: 'utf8' });
+  assert.equal(compact.status, 0, compact.stderr);
+  const receipt = JSON.parse(compact.stdout);
+  assert.equal(receipt.compact, true); assert.equal(receipt.outputPath, feedbackPath);
+  assert.equal(receipt.stateHash, JSON.parse(write.stdout).stateHash);
+  assert.equal(receipt.hookAnalysis, undefined); assert.equal(receipt.omitted_detail_counts.hookAnalysis, 0);
+  assert.equal(await readFile(feedbackPath, 'utf8'), before);
+  assert.equal(await readFile(statePath, 'utf8'), savedState);
 });
 
 function adaptiveState(rows, { status = 'Complete', phase = 'complete', mode = 'lightweight', risk = 'low', source = 'assessed', escalations = 0, pause = 'none' } = {}) {
@@ -625,4 +642,31 @@ test('CLI inspect includes the journal and a corrupt journal cannot silently pro
   await writeFile(journal, '{broken');
   await assert.rejects(writeFeedback(w.statePath));
   await assert.rejects(readFile(w.feedbackPath), { code: 'ENOENT' });
+});
+
+
+test('compact save receipts preserve readback, warnings and bindings without repeating inspected source arrays', () => {
+  const detail = { phase: 'plan', occurrences: 3, source: 'observed source detail '.repeat(150) };
+  const result = { ticket: 'PRIVATE', runId: 'run-1', stateHash: 'state-hash', outcome: 'Complete', minimal: false,
+    feedbackReport: 'combined', readback: { tool: 'Read', file_path: '/run/workflow-feedback.md', instruction: 'Read the full saved Markdown.' },
+    warning: 'A prior malformed marker was preserved', dashboardUpdated: false, reason: 'No existing dashboard',
+    outputPath: '/run/implement-feedback.md', sessionOutputPath: '/run/workflow-feedback.md',
+    collectionNotes: { validationFailures: 2 }, events: [{ kind: 'Fix', row: 4 }], guardrails: [{ row: 5 }],
+    hookInterventions: [detail], agentWaits: [detail], hookAnalysis: [detail, detail], sourceCompounds: [detail] };
+  const before = JSON.stringify(result), full = feedbackWriteReceipt(result), compact = feedbackWriteReceipt(result, { compact: true });
+  assert.equal(JSON.stringify(result), before, 'presentation never mutates source evidence');
+  assert.equal(full.hookAnalysis.length, 2); assert.equal(full.ticket, undefined);
+  for (const key of ['runId', 'stateHash', 'outcome', 'minimal', 'feedbackReport', 'readback', 'warning', 'dashboardUpdated', 'reason', 'outputPath', 'sessionOutputPath', 'collectionNotes', 'events', 'guardrails']) assert.deepEqual(compact[key], full[key]);
+  assert.deepEqual(compact.omitted_detail_counts, { hookInterventions: 1, agentWaits: 1, hookAnalysis: 2, sourceCompounds: 1 });
+  assert.equal(compact.hookAnalysis, undefined); assert.equal(compact.ticket, undefined);
+  assert.ok(JSON.stringify(compact).length < JSON.stringify(full).length / 4);
+});
+
+test('compact write cannot turn missing required diagnosis into a successful save', async t => {
+  const f = await workspace(t, finish(await fixture('feedback-nonminimal')));
+  const before = await readFile(f.statePath, 'utf8');
+  const result = spawnSync(process.execPath, [SCRIPT_PATH, 'write', '--state', f.statePath, '--compact'], { encoding: 'utf8' });
+  assert.equal(result.status, 1); assert.equal(result.stdout, ''); assert.ok(result.stderr.trim());
+  await assert.rejects(readFile(f.feedbackPath), { code: 'ENOENT' });
+  assert.equal(await readFile(f.statePath, 'utf8'), before);
 });

@@ -293,7 +293,7 @@ export function parseState(markdown, statePath = '') {
       fail(`State filename must match its ticket field: expected ${expected}.`);
     }
   }
-  for (const field of ['artifact_naming_version', 'activity_timing_version']) if (fields[field] !== undefined && fields[field] !== '1') fail(`Unsupported ${field}.`);
+  for (const field of ['artifact_naming_version', 'activity_timing_version', 'repo_impact_version']) if (fields[field] !== undefined && fields[field] !== '1') fail(`Unsupported ${field}.`);
   if (!STATUS_VALUES.has(fields.status)) fail(`Unsupported status: ${fields.status}`);
   if (fields.handoff_version !== undefined && fields.handoff_version !== '1') fail(`Unsupported handoff_version: ${fields.handoff_version}`);
   if (fields.review_scope_version !== undefined && fields.review_scope_version !== '1') fail('Unsupported review_scope_version.');

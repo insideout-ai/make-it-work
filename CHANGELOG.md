@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Missing required verification in unchanged affected repos can be recorded as unavailable without inventing a runner. Readiness completion and passing gates reject the gap; model evals now enforce actual pending/complete readiness receipts instead of accepting caveats on ready rows.
+
+- Clarify planning self-review for changed contracts and their real callers, and reconcile test-support destinations with existing edit eligibility before approval. Keep authorization and amendment rules unchanged.
+
+- Make newly prepared full-delivery commits match the saved reviewed result, including local reversals hidden by the branch-to-base path list. Show actual commit changes in the existing approval preview; preserve selected delivery and saved/partial plans.
+
+- Reduce routine feedback-save output with a supported compact receipt. Preserve complete reports, validation, warnings, runtime bindings and required full-report readback; generated write commands select the compact receipt.
+
+- Give parallel documentation/test-map workers distinct repo/task/worker evidence filenames before dispatch, and collect their exact returned paths. Preserve the shared artifact directory and existing checkpoint ownership; filename selection adds no user question or workflow gate.
+- Fix verification CLI exit 13 when an audit-triggered dashboard refresh imports verification again. Preserve valid verification results when informational reporting fails, with an idempotent reporting-only retry; invalid evidence and state bindings still fail.
+
+- Surface ambiguous local work and inherited commits as scope advisories. Non-Autopilot modes can consult with a clear Continue option; Autopilot proceeds within existing authorization and discloses assumptions. Missing provenance or inclusion receipts do not block full review or packaging. Reuse specific choices and allow later explicit untracked exclusions without a separate revocation.
+- Planning activity checks briefly wait for delayed transcript persistence, avoiding duplicate narration when the original sentence arrives within the bounded window. Exact chat matching and prerequisite/standalone-command enforcement remain required.
+- Completion gates now emit bounded progress events on stderr while keeping final results on stdout. Results retain timing, timeout and partial-output diagnostics; progress failures return warnings and preserve actual test outcomes without blocking, automatic retries or idle termination.
+- Capture independent review provenance for new runs so unchanged pre-existing notes, docs and skills can be kept out of review, packaging and delivery. Preserve application-edit enforcement and older-run compatibility; changed files remain review candidates.
+- Workspace branch previews now show the actual starting commit, its ahead/behind relationship to the local base, and local-base freshness against available remote-tracking refs. Approval binds the local operation; remote-tracking-only drift warns without reapproval. Branch creation still starts at current HEAD and historical saved selections keep their original contract.
+- Clarified structured prerequisite commands, per-repository gate evidence, and buffered regression output so empty result files are not mistaken for silent suites.
+
+### Added
+
+- Fresh multi-repo Implement runs classify repositories by change, verification-only or context-only impact. Shared evidence controls readiness, targeted checks and maintenance, with explicit skip reasons and no automatic tooling setup in unchanged repos. Older runs and standalone verification retain their behavior.
+
+
+- Add optional selected-file delivery with a fresh approval preview, exact candidate diffs, retained local changes and explicit inherited-history/test-evidence qualifications. Preserve full delivery and the existing access, hook and partial-retry checks.
+
+- Implementation plans include a compact Mermaid visual when it clarifies the change, with a justified omission for simple work. Planning handoffs link to the Markdown plan; replans and amendments keep the visual current without image generation or rendering dependencies.
+
+- Add optional private session workspaces with approved linked-worktree creation, unique per-session branches and isolated workflow artifacts. Preserve Continue here and existing-run paths, support interrupted setup recovery, and bind resume/packaging to the saved checkout roots and Git metadata.
+
+- Added three focused maintainer-review evals for follow-up questions, answered gaps and later reported answers, with deterministic fixture, redaction and unchanged-input checks.
+- Maintainer-review mode now prepares plain-language follow-up questions for the session's user (phase, what was noticed, question) for gaps the evidence cannot close. Questions are shown in chat for the maintainer to send; the mode never sends them, and the ledger records only the user's later answers as reported input.
+
 ## [5.15.0] — 2026-11-18
 
 ### Added

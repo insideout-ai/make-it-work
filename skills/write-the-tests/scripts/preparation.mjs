@@ -5,6 +5,7 @@ import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import { readdir, realpath } from 'node:fs/promises';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import { args, atomicWrite, cli, digest, fail, jsonInput, section, table, within, withLock } from '../../../scripts/lib/artifacts.mjs';
+import { planImpact } from '../../implement/scripts/repo-impact.mjs';
 import { planHash, parseSteps } from '../../../scripts/lib/plan.mjs';
 
 export const requiresPreparation = plan => /^\*\*Test preparation contract:\*\* 1\s*$/m.test(plan);
@@ -19,8 +20,10 @@ const text = (value, label) => {
 export function validatePreparation(data, plan) {
   if (data?.version !== 1 || data.plan_hash !== planHash(plan)) fail('Test preparation belongs to a different plan revision. Run write-the-tests.');
   if (!['ready', 'not-applicable', 'blocked'].includes(data.status) || !Array.isArray(data.entries)) fail('Invalid preparation status/entries.');
+  const impact = planImpact(plan);
   const steps = parseSteps(plan), scenarios = plannedScenarios(plan), seen = new Set();
   for (const entry of data.entries) {
+    if (impact && (!impact.repos.some(r => r.repo === entry.repo && r.classification !== 'context'))) fail('Test preparation cannot include context-only or unapproved repositories.');
     text(entry.scenario, 'Scenario');
     const identity = JSON.stringify([entry.repo ?? '', entry.scenario]);
     if (seen.has(identity)) fail('Duplicate preparation scenario.');

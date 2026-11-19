@@ -512,3 +512,19 @@ was needed. Local summary:
 These results support retaining existing fact handling for the tested planning
 paths; they do not establish initial-refinement extraction or complete workflow
 behavior and do not justify introducing a dedicated ledger on their own.
+
+## Visual plan overviews
+
+Three focused headless cases cover Mermaid kept directly in the plan Markdown:
+
+- `plan-visual-flow`: reminder suppression has meaningful decision branches; expect a useful diagram, plain-language explanation and clickable plan link.
+- `plan-visual-simple`: a README heading edit needs only a justified visual omission.
+- `plan-visual-amend`: a standalone amendment appends a missing owner-muting fix and refreshes a stale diagram while retaining the completed step and execution mode.
+
+The fixtures reuse the small task service without adding a test runner. Exact
+comparison graders protect the accepted spec, runtime source and README.
+`node --test evals/plan-visual-fixtures.test.mjs` checks fixture isolation,
+comparison inputs, the actual missing mute behavior and the valid seeded plan.
+The amendment case exercises standalone editing, not the full Implement controller.
+
+Run focused model evaluations with `node evals/run-suite.mjs full --case=plan-visual-flow --case=plan-visual-simple --case=plan-visual-amend --max-cost-usd=3` under the repository's normal evaluation budget/process. Preparing the cases and passing deterministic checks do not establish their model outcomes. No image renderer or preview change is involved.

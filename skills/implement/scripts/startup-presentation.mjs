@@ -8,7 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { parseState } from './render-status.mjs';
 import { readinessMutationCommand } from './testing-readiness.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
-import { planningActivityHold } from './planning-activity.mjs';
+import { isPlanningActivityCall, planningActivityCheck, planningActivityHold } from './planning-activity.mjs';
 import { recordHookEvent } from './hook-feedback.mjs';
 import { feedbackEligible, feedbackHold, feedbackTerminalRow } from './feedback-handoff.mjs';
 import { runtimeObjects } from './runtime-output.mjs';
@@ -211,8 +211,8 @@ export async function startupHook(input) {
   // Chat may precede its buffered JSONL record. Allow a longer bounded flush
   // before enforcing a missing announcement, without accepting tool-only links.
   const attempts = input.hook_event_name === 'PostToolUse' ? 0 : 40;
-  for (let attempt = 0; attempt <= attempts; attempt += 1) {
-    if (attempt) await delay(100);
+  let startupRetries = 0, planningDeadline = null;
+  while (true) {
     const lines = (await readFile(input.transcript_path, 'utf8')).split('\n');
     events = [];
     for (let index = 0; index < lines.length; index += 1) {
@@ -231,7 +231,25 @@ export async function startupHook(input) {
       }
       if (runtimeLink || confirmation) progress.announced = true;
     }
-    if (!progress.initialized || progress.announced) break;
+    if (!progress.initialized) break;
+    if (!progress.announced) {
+      if (startupRetries >= attempts || planningDeadline !== null) break;
+      startupRetries += 1;
+      await delay(100);
+      continue;
+    }
+    if (input.hook_event_name === 'PreToolUse' && isPlanningActivityCall(input)) {
+      let state;
+      try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Preserve existing state-repair handling below. */ }
+      if (state && planningActivityCheck(input, events, state, progress.initialized.state).pendingChat) {
+        // Only a valid activity call with missing chat gets a short local wait.
+        // Re-read events AND state each time; never release from a stale snapshot.
+        planningDeadline ??= performance.now() + 1000;
+        const remaining = planningDeadline - performance.now();
+        if (remaining > 0) { await delay(Math.min(100, remaining)); continue; }
+      }
+    }
+    break;
   }
   const feedbackState = progress.feedbackRun?.state;
   const deliveryOffer = input.tool_name === 'Bash' && /\bdeliver\.mjs["']?\s+offer\b/.test(input.tool_input?.command ?? '');

@@ -153,3 +153,56 @@ open review nits and known unrelated regressions prevent the qualified
 completion, Guided approval and release readiness. Existing package hashes and
 legacy Markdown are preserved on check; a rebuild uses the new format and normal
 approval binding. See the [verification contract](../skills/implement/references/verification.md).
+
+
+## Private session workspaces
+
+`session-workspace.mjs allocate|list --cwd SOURCE --ticket TICKET` manages only
+bounded private preflight roots under `~/.make-it-work/sessions` (override with
+`--directory`). `--checkout current` leaves the existing checkout/artifact root
+unchanged. Linked worktrees are created only through the existing
+`workspace-scope.mjs prepare|approve|run` protocol. See
+[session worktrees](../skills/implement/references/session-worktrees.md) for
+startup, source assessment, explicit approval, root binding and recovery.
+`repo-assessment.mjs report --root SOURCE --artifact-root SESSION --input JSON`
+reads the source inventory and writes the existing report into its bound session;
+standalone report behavior is unchanged. Session roots contain `repos/<repo-id>`
+checkouts and a separate `make-it-work/<TICKET>` artifact tree.
+
+## Optional delivery selection
+
+Default `deliver.mjs prepare --root ROOT --state STATE` retains full-package
+delivery. For a user-requested whole-file adjustment, add `--selection JSON` as
+described in [selected delivery](../skills/deliver/references/selected-delivery.md).
+The version-1 input names exact package repositories/paths and supplies the full
+scope-accurate draft. The source package and its approval remain immutable.
+
+Newly prepared full-delivery plans carry `full_delivery_version: 1`. A disposable
+index reconstructs each saved binary diff against its pinned merge base; the
+helper calculates the HEAD-to-result commit changes separately from the source
+package path list. Required reversals appear in the existing preview/hash.
+Execution and retry bind that result while preserving the HEAD workflow-artifact
+subtree and excluded untracked work. The real index is untouched during preview.
+Packages and saved plans are not migrated: older plans without the marker retain
+their exact tree/approval and recovery behavior. Explicitly preparing again before
+any action creates a fresh plan requiring the existing exact-plan approval.
+Selected plans retain their existing contract. No history rewrite, routine
+consultation or mandatory test rerun is added.
+
+Selected plans bind candidate trees, pinned base/merge point, commit and branch
+diff hashes, omitted work and inherited commits into a new approval hash.
+`<delivery-plan-prefix>-candidate-N.diff` files retain the run's naming convention
+and are verified before execution/retry. Source review and test evidence is
+explicitly qualified: it does not prove the reduced candidate passed. Preparation
+does not stage into the real index or mutate source files. Existing Git objects
+may be added by the temporary-index tree construction, as in full preparation.
+
+Preparation, offer/decline and run share the existing delivery lock. Corrected
+selection or full preparation is allowed after a pre-action failure; once repo
+actions have receipts, resume that saved plan. Existing approval, access,
+literal staging, hook/tree, remote and journal checks still apply. No automatic
+test rerun, history rewrite, model call or advisory approval gate is added.
+
+## Multi-repo impact
+
+Fresh multi-repo Implement runs use `skills/implement/scripts/repo-impact.mjs` and the controller's `repo-impact` event. See [repository impact](../skills/implement/references/repository-impact.md) for the exact definition, state binding, evidence and verification contracts. `inspect` derives branch-to-base observations; the controller saves the assessed definition and hashed evidence; `check` rejects stale scope/spec/dependency facts and edits in skipped repos. `manifest` supplies only required commands to the existing regression runner. Context-only repos remain in review/package scope without readiness, suites, setup or maintenance. Existing runs without the marker retain their behavior.

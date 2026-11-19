@@ -1,0 +1,12 @@
+Session export, plugin 0.2; physical lines are source locators.
+L1 USER: Implement the approved change for ORBIT-742 in orbit-service.
+L2 AGENT: The current branch names a different ticket. Continue here or create the ticket branch?
+L3 USER: Continue here. I deliberately use this shared branch for this work.
+L4 AGENT: The plan is approved. Starting execution.
+L5 TOOL: Execution tests pass.
+L6 AGENT: Starting the final automated checks at 10:00.
+L7 USER at 10:38: "is it stuck?"
+L8 TOOL at 10:42: Checks pass.
+L9 AGENT: Review is clean. Final package approved and delivered.
+L10 USER: The context meter looked about 85% full, but I did not capture it.
+L11 EXPORT END. No estimate, acceptable wait, explanation of the context figure or overall assessment is recorded.

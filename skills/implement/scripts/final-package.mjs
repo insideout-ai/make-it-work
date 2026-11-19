@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { parseState } from './render-status.mjs';
 import { EXECUTION_OUTCOMES, acceptedUnrelatedGate, readVerification } from './verification.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
+import { checkRepoImpact, impactSummary } from './repo-impact.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { collectTestingSummary, parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
@@ -17,6 +18,7 @@ import { checkpointResult } from './dashboard-checkpoint.mjs';
 import { summarizeAcceptance } from './acceptance-summary.mjs';
 import { summarizeAssurance } from './assurance-summary.mjs';
 import { checkReviewScope } from './review-scope.mjs';
+import { checkSessionRepositories } from '../../../scripts/lib/session-workspace.mjs';
 import { snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { checkContextMaintenance } from './context-maintenance.mjs';
 import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../scripts/lib/review-evidence.mjs';
@@ -75,6 +77,7 @@ function markdown(pkg) {
     lines.push(`Diff: [${repo.diff_file}](${repo.diff_file})`, '');
     lines.push(repo.paths.length ? repo.paths.map((p) => `- \`${p}\``).join('\n') : '- No changed paths', '');
   }
+  for (const row of pkg.repo_impact ?? []) lines.push(`Repository impact — ${row.repo}: ${row.classification}; ${row.reason}; checks: ${row.checks.map(c => `${c.id}: ${c.result}`).join(', ') || 'not required (context only)'}`, '');
   for (const note of testingSummaryNotes(pkg.testing_summary ?? [])) lines.push(`Testing: ${note}`, '');
   lines.push('## Evidence', '');
   if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification, pkg.validation_notes), '');
@@ -130,6 +133,7 @@ async function packageFromState(root, statePath, repoInputs, baseInputs, draftPa
   if (baseInputs.length && baseInputs.length !== repoInputs.length) fail('Pass one --base for each --repo.');
   if (f.workspace_version === '1') {
     const contract = JSON.parse(f.workspace_contract);
+    await checkSessionRepositories(contract);
     const actual = (await Promise.all(repoInputs.map((repo) => realpath(repo)))).sort();
     if (JSON.stringify(actual) !== JSON.stringify(contract.repos.map((repo) => repo.root).sort())) fail('Final package must include every approved repository exactly once.');
     for (let i = 0; i < repoInputs.length; i++) {
@@ -215,6 +219,8 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   repos.sort((a, b) => a.name.localeCompare(b.name));
   let reviewEvidence = null;
   const reviewEvidencePath = runArtifact(f.ticket, `${f.ticket}-review-evidence.json`, f.artifact_naming_version);
+  const repoImpact = await checkRepoImpact(root, f, { requireChecks: f.mode === 'lightweight' });
+  if (repoImpact) evidence.repo_impact = await artifact(root, f.repo_impact);
   const maintenance = await checkContextMaintenance(root, f);
   try {
     reviewEvidence = JSON.parse(await readFile(artifactResolve(root, reviewEvidencePath), 'utf8'));
@@ -235,6 +241,7 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   const pkg = {
     ...(changeAssessment ? { change_assessment: changeAssessment } : {}),
     ...(testingSummary !== null ? { testing_summary: testingSummary } : {}),
+    ...(repoImpact ? { repo_impact: impactSummary(repoImpact, evidence.verification ? JSON.parse(await readFile(artifactResolve(root, evidence.verification.path), 'utf8')).gate : repoImpact.verification) } : {}),
     version: 1, ...(assuranceVersion === 1 ? { assurance_version: 1 } : {}), ...(f.review_context_version === '2' ? { test_map_maintenance: maintenance } : {}), ticket: f.ticket, draft_path: draftArtifact.path, draft_sha256: draftArtifact.sha256,
     draft, evidence, validation,
     ...(f.adaptive_version === '1' ? { adaptive: { mode: f.mode, risk: f.risk, mode_source: f.mode_source, escalations: Number(f.escalations) } } : {}),

@@ -19,6 +19,8 @@
     "write-the-tests-standalone"
   ],
   "headless": [
+    "implement-repo-impact-scope",
+    "implement-repo-impact-missing",
     "implement-planning-progress",
     "feedback-session-admitted-skips",
     "feedback-dashboard-html-clean",
@@ -96,6 +98,9 @@
     "implement-workspace-complete",
     "implement-workspace-single-impact",
     "implement-escalation",
+    "plan-visual-flow",
+    "plan-visual-simple",
+    "plan-visual-amend",
     "plan-the-work-happy-path",
     "plan-the-work-plan-collision",
     "plan-the-work-with-tests",
@@ -164,13 +169,23 @@
     "implement-branch-ticket-mismatch",
     "implement-residual-risk-presentation",
     "implement-residual-risk-low",
-    "implement-delegate-test-compromise"
+    "implement-delegate-test-compromise",
+    "feedback-maintainer-followup-gaps",
+    "feedback-maintainer-followup-answered",
+    "feedback-maintainer-followup-reported"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
     "implement-repo-start-local": "connector-app"
   },
   "graderEvidenceFiles": {
+    "plan-visual-amend": {
+      "visual.md": [
+        ".eval-original-plan.md",
+        "make-it-work/VIS-1/VIS-1-spec.md",
+        "docs/review.md"
+      ]
+    },
     "implement-final-approval-evidence": {
       "evidence.md": [
         "make-it-work/DEMO/DEMO-evidence.md",
@@ -259,6 +274,24 @@
     "implement-existing-automation-no-strategy": {
       "completion.md": [
         "make-it-work/DEMO-103/DEMO-103-status.html"
+      ]
+    },
+    "feedback-maintainer-followup-gaps": {
+      "ledger-and-boundaries.md": [
+        "docs/workflow-findings.md",
+        "session.txt"
+      ]
+    },
+    "feedback-maintainer-followup-answered": {
+      "ledger-and-boundaries.md": [
+        "docs/workflow-findings.md",
+        "session.txt"
+      ]
+    },
+    "feedback-maintainer-followup-reported": {
+      "ledger-and-boundaries.md": [
+        "docs/workflow-findings.md",
+        "session.txt"
       ]
     }
   },

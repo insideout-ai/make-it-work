@@ -10,6 +10,7 @@ import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { readReviewBaseline } from './review-baseline.mjs';
 import { updateLog } from '../../../scripts/decision-log.mjs';
 
 async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false, beforeInit = async () => {} } = {}) {
@@ -39,6 +40,34 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = 
 }
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
+
+test('initialization saves independent review provenance and resume never recaptures later notes', async t => {
+  const f = await fixture(t, { dirty: true });
+  const state = parseState(await readFile(f.statePath, 'utf8'));
+  const baseline = readReviewBaseline(state.fields);
+  const skill = '.claude/skills/domain-demo/SKILL.md';
+  assert.ok(baseline.repos[0].changes.some(entry => entry.file === skill && !entry.tracked));
+  const enforcement = JSON.parse(state.fields.implementation_baseline);
+  assert.ok(!enforcement.repos[0].changes.some(entry => entry.file === skill));
+  await writeFile(artifactJoin(f.root, 'later.md'), 'created after the run started');
+  await f.apply('pause', { reason: 'Inspect local scope' });
+  const resumed = await f.apply('resume', { blocker_resolved: true });
+  assert.equal(resumed.fields.review_baseline, state.fields.review_baseline);
+  assert.equal(resumed.fields.implementation_baseline, state.fields.implementation_baseline);
+  assert.ok(!resumed.fields.review_baseline.includes('later.md'));
+  assert.equal(await prematureImplementation(f.result, parseState(await readFile(f.statePath, 'utf8'))), null, 'notes remain exempt from the application guard');
+});
+
+test('corrupt advisory baseline does not block state rendering or pause and resume', async t => {
+  const f = await fixture(t);
+  const original = await readFile(f.statePath, 'utf8');
+  await writeFile(f.statePath, original.replace(/^review_baseline: .*$/m, 'review_baseline: {bad'));
+  const saved = parseState(await readFile(f.statePath, 'utf8'));
+  assert.equal(saved.fields.review_baseline, '{bad');
+  await f.apply('pause', { reason: 'Ordinary user pause' });
+  const resumed = await f.apply('resume', { blocker_resolved: true });
+  assert.equal(resumed.fields.review_baseline, '{bad', 'do not recapture unknown starting history');
+});
 
 test('Autopilot initialization records its verified branch guard without losing prior decisions', async t => {
   const entry = { phase: 'Start', site: 'autonomy-selection', kind: 'checkpoint', chosen: 'autopilot', rationale: 'Selected through the explicit flag.' };

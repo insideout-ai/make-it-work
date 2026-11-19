@@ -272,6 +272,12 @@ This call requires `skills/run-regression/SKILL.md` to not carry a `disable-mode
 
 For a regression invocation using [the structured runner](../../docs/regression-runner.md), consume its `overall` and actual per-run evidence directly instead of parsing chat labels: `pass` → the existing success path, `fail` → gate failure, `null` → no result. Preserve policy requirements for every automated product repo and manual evidence. The prose parsing below remains compatibility behavior only.
 
+Use the runner contract's structured prerequisite example for service checks
+(`command: {bin, args}`, never a shell string). For a plan with a concrete
+verification policy, write the [complete gate object](../implement/references/verification.md),
+including `full_suites` for every automated product repo and a `note` on each
+suite, from the retained results. A gate-level note does not replace suite evidence.
+
 `run-regression`'s Phase 5 report takes one of these shapes, and which one applies is a property of the report itself — not of how many repos this plan's own `## Affected Code` table lists (a single-repo plan can still resolve, inside `run-regression`, to a detected multi-repo workspace, since `run-regression` does its own independent repo/workspace detection whenever it's given `full`):
 
 - **No leading `Workspace:` line** — a single-repo bare `full` run. Read that one block's own `Gate result:` field.

@@ -235,3 +235,15 @@ It starts in extended coverage; no smoke/critical membership changes. A passing
 initial-plan case does not establish every replan/amendment or unavailable-test
 branch. Existing dashboard helper tests cover persistence, retries, timestamps,
 clearing and legacy compatibility.
+
+## Repository impact
+
+`implement-repo-impact-scope` starts at Plan with an accepted synthetic API spec and four approved repos: changed API, unchanged consumer, independent context repo and shared QA. It checks that saved impact controls readiness and targeted selection without context setup or edits. `implement-repo-impact-missing` removes the consumer tooling and requires an explicit verification gap, without installation or automatic manual consent. The QA baseline in that variant checks only API total and cannot establish consumer rendering.
+
+Run `node --test evals/repo-impact-fixtures.test.mjs` for local fixture isolation, real baseline assertions, approved-scope and unchanged-input checks. Model evaluations are separate: use `node evals/run-suite.mjs full --case=implement-repo-impact-scope --case=implement-repo-impact-missing --max-cost-usd=3` under the repository's normal approval/budget process. Preparing these cases does not establish their model outcomes.
+
+Live validation on 2026-11-19 exposed a readiness overclaim: the initial agent sealed a consumer as ready while admitting that QA never exercised its renderer. The initial LLM grader accepted that caveat, and the other case omitted the readiness barrier. The original report is retained at `evals/results/full-2026-11-19T12-38-26-361Z/summary.json`; its checkout-drift flag also prevents using it as certification.
+
+Required checks now support explicit `availability: unavailable` and a concrete blocker, including a null command when no supported runner exists. Impact can be recorded, but readiness completion, execution manifests and passing verification reject that gap. Receipt regex graders independently require pending status for the missing-tooling case and complete status for the configured case; the LLM rubric also rejects partial QA coverage relabeled as consumer readiness.
+
+Both corrected cases passed against a frozen working-tree copy, with its Git state unchanged and all source/spec comparison graders passing. The missing-tooling case kept its receipt pending and rejected completion; the configured case completed begin/report/complete/check and excluded context from policy/results. Retained corrected report: `evals/results/full-2026-11-19T12-46-22-895Z/summary.json`. Combined reported usage for initial and corrected runs was **$1.88910565 of the approved $3 cap**. The nine core impact tests, readiness regressions and all 108 eval-harness tests also passed. These live cases cover Plan/readiness, not the full downstream execution/review/delivery workflow.

@@ -66,6 +66,7 @@ test('controller and inspection supply runnable parent commands and separate JSO
   assert.equal(inspected.status, 0, inspected.stderr);
   const summary = JSON.parse(inspected.stdout), commands = summary.commands;
   await writeFile(commands.input_paths.sessionReview, JSON.stringify({ version: 2, status: 'pending', context: ['Available conversation reviewed'], findings: [], userInput: [], limitations: ['Browser behavior unverified'] }));
+  assert.match(commands.write, /--compact(?: |$)/);
   for (const command of [commands.check, commands.write]) {
     const result = spawnSync(command, { shell: true, encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
