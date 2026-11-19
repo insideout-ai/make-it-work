@@ -696,8 +696,39 @@ function displayOutcome(outcome) {
   return clean;
 }
 
+function renderReadinessResult(state, text) {
+  const match = text.match(/^Result: Testing readiness completed before planning\. Baselines: (.+)\.; evidence: (.+); (.+); sha256:([a-f0-9]{64})$/);
+  if (!match) return null;
+  const [, baselines, receiptPath, reportPath] = match;
+  let receipt, report;
+  try {
+    receipt = validateArtifactPath(receiptPath, 'readiness receipt', state.fields.ticket);
+    report = validateArtifactPath(reportPath, 'readiness report', state.fields.ticket);
+  } catch { return null; }
+  const version = receipt?.match(/-readiness-v([1-9]\d*)\.json$/)?.[1];
+  const names = (suffix) => [`${state.fields.ticket}-${suffix}`, `miw-${state.fields.ticket}-${suffix}`];
+  if (!version || !names(`readiness-v${version}.json`).includes(receipt) ||
+      !names(`testing-readiness${version === '1' ? '' : `-v${version}`}.md`).includes(report)) return null;
+  const rows = baselines.split(', ').map(value => value.match(/^(.+)=(pass|fail|not-run|not-applicable)$/));
+  if (rows.some(row => !row)) return null;
+  const passed = rows.every(row => row[2] === 'pass');
+  const limited = rows.some(row => ['fail', 'not-run'].includes(row[2]));
+  const title = passed ? 'Testing readiness passed' : limited ? 'Testing readiness completed with baseline limitations' : 'Testing readiness completed';
+  const summaries = rows.map(([, repo, baseline]) => {
+    const name = escapeHtml(repo);
+    return baseline === 'pass' ? `Baseline tests passed for ${name}.` :
+      baseline === 'fail' ? `Baseline tests failed for ${name}.` :
+      baseline === 'not-run' ? `Baseline tests were not run for ${name}.` :
+      `Manual verification selected for ${name}; no automated baseline was run.`;
+  });
+  const summary = rows.length === 1 ? `<p>${summaries[0]}</p>` : `<ul>${summaries.map(value => `<li>${value}</li>`).join('')}</ul>`;
+  return `<div class="readiness-result"><strong>${title}</strong>${summary}<p>${limited ? 'Review baseline limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View readiness report</a></p><details><summary>Technical details</summary><p><a href="${escapeHtml(receipt)}">Open readiness record (JSON)</a></p><p>${escapeHtml(text)}</p></details></div>`;
+}
+
 function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
   const text = displayOutcome(outcome);
+  const readiness = renderReadinessResult(state, text);
+  if (readiness) return readiness;
   const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(\. Implementation remains unverified\.)?$/);
   if (preparation) {
     try {
@@ -751,7 +782,10 @@ function renderAuditRows(state, invalidTimestampFrom, assessment = null) {
     }
     const warning = row.number === invalidTimestampFrom
       ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id)}${warning}${duration}</td></tr>`;
+    const phases = row.from === row.to
+      ? `<td colspan="2" title="Phase unchanged">${escapeHtml(PHASE_INFO[row.to]?.label ?? row.to)}</td>`
+      : `<td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td>${phases}<td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 

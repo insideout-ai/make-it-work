@@ -30,6 +30,9 @@ export const WORKFLOW_STYLES = `
   table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
   th, td { text-align: left; border-bottom: 1px solid #ddd; padding: 0.3rem 0.5rem; font-size: 0.9rem; }
   .step-duration { color: #999; font-size: 0.8em; font-style: italic; white-space: nowrap; }
+  .readiness-result p, .readiness-result ul { margin: 0.3rem 0; }
+  .readiness-result details { margin-top: 0.4rem; font-size: 0.85em; overflow-wrap: anywhere; }
+  .readiness-result summary { cursor: pointer; color: #596773; }
   .timestamp-warning { color: #b54708; font-size: 0.8em; font-style: italic; white-space: nowrap; }
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .pending-input { margin: 0.75rem 0; overflow-wrap: anywhere; }

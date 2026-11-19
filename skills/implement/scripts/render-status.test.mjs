@@ -543,6 +543,73 @@ test('audit results hide evidence hashes while retaining results, references and
   assert.doesNotMatch(html, /manifest sha256|result sha256|SHA-256:/);
 });
 
+test('readiness results summarize the baseline and open reports without changing saved audit evidence', async t => {
+  for (const prefix of ['', 'miw-']) {
+    const report = `make-it-work/DEMO/${prefix}DEMO-testing-readiness.md`;
+    const receipt = `make-it-work/DEMO/${prefix}DEMO-readiness-v1.json`;
+    const hash = createHash('sha256').update('readiness evidence').digest('hex');
+    const outcome = `Result: Testing readiness completed before planning. Baselines: app=pass.; evidence: ${receipt}; ${report}; sha256:${hash}`;
+    const state = stateMarkdown({ fields: { phase: 'plan' }, rows: [
+      ['2026-01-01T10:00:00Z', 'close-the-gaps', 'plan', 'Planning started'],
+      ['2026-01-01T10:00:30Z', 'plan', 'plan', outcome],
+    ] });
+    const f = await renderFixture(t, state);
+    await writeFile(artifactJoin(f.directory, `${prefix}DEMO-testing-readiness.md`), '# Testing readiness\n\nBaseline passed.\n');
+    await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
+    const html = await readFile(f.outputPath, 'utf8');
+    assert.match(html, /<strong>Testing readiness passed<\/strong>/);
+    assert.match(html, /Baseline tests passed for app\./);
+    assert.match(html, /Ready to create the implementation plan\./);
+    assert.ok(html.includes(`href="${prefix}DEMO-testing-readiness.md.preview.html"`));
+    assert.match(html, /<td colspan="2" title="Phase unchanged">Plan<\/td>/);
+    assert.match(html, /<td>close-the-gaps<\/td><td>plan<\/td>/);
+    const details = html.match(/<details><summary>Technical details<\/summary>([\s\S]*?)<\/details>/)[1];
+    assert.ok(details.includes(`href="${prefix}DEMO-readiness-v1.json"`));
+    assert.ok(details.includes(hash));
+    const visible = html.replace(/<details>[\s\S]*?<\/details>/g, '');
+    assert.doesNotMatch(visible, /Baselines:|; evidence:|make-it-work\/DEMO\/|readiness-v1\.json|sha256:/);
+    assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
+  }
+});
+
+test('readiness summaries retain each repo failure, unrun baseline and manual policy in historical results', () => {
+  const hash = 'a'.repeat(64);
+  for (const baselines of ['api=pass, web=fail, jobs=not-run, docs=not-applicable', 'docs=not-applicable']) {
+    const outcome = `Result: Testing readiness completed before planning. Baselines: ${baselines}.; evidence: make-it-work/DEMO/DEMO-readiness-v2.json; make-it-work/DEMO/DEMO-testing-readiness-v2.md; sha256:${hash}`;
+    const state = parseState(stateMarkdown({ fields: { phase: 'plan', plan_version: '3' }, rows: [
+      ['2026-01-01T10:00:00Z', 'plan', 'plan', outcome],
+    ] }));
+    const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+    assert.match(html, /href="DEMO-testing-readiness-v2.md">View readiness report/);
+    assert.match(html, /Manual verification selected for docs; no automated baseline was run\./);
+    assert.doesNotMatch(html, /<strong>Testing readiness passed<\/strong>/);
+    if (baselines.includes('fail')) {
+      assert.match(html, /<li>Baseline tests passed for api\.<\/li>/);
+      assert.match(html, /<li>Baseline tests failed for web\.<\/li>/);
+      assert.match(html, /<li>Baseline tests were not run for jobs\.<\/li>/);
+      assert.match(html, /Review baseline limitations before planning\./);
+      assert.doesNotMatch(html, /Ready to create the implementation plan\./);
+    }
+  }
+});
+
+test('readiness rendering escapes repo names and leaves unknown or unsafe evidence as plain text', () => {
+  const hash = 'a'.repeat(64);
+  const outcome = (baseline, report = 'make-it-work/DEMO/DEMO-testing-readiness.md') =>
+    `Result: Testing readiness completed before planning. Baselines: ${baseline}.; evidence: make-it-work/DEMO/DEMO-readiness-v1.json; ${report}; sha256:${hash}`;
+  const outcomes = [outcome('<img src=x>=pass'), outcome('app=unknown'),
+    outcome('app=pass', 'https://example.com/report.md'),
+    outcome('app=pass', 'make-it-work/DEMO/../OTHER/report.md'),
+    outcome('app=pass', 'make-it-work/DEMO/DEMO-testing-readiness-v2.md')];
+  const state = parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: outcomes.map((text, i) =>
+    [`2026-01-01T10:0${i}:00Z`, 'plan', 'plan', text]) }));
+  const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  assert.match(html, /Baseline tests passed for &lt;img src=x&gt;\./);
+  assert.doesNotMatch(html, /<img|href="https:|href="[^\"]*\.\.\//);
+  assert.equal((html.match(/View readiness report/g) ?? []).length, 1);
+  assert.match(html, /app=unknown/);
+});
+
 test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {
   const { directory } = await renderFixture(t, stateMarkdown({
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },

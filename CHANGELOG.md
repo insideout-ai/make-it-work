@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Show testing readiness as a readable baseline summary with a report link. Keep raw evidence paths and hashes in expandable technical details, retain per-repo failures and unrun/manual baselines, and show unchanged audit phases once.
+
 - Simplify dashboard approval panels with readable document-preview links and a local waiting timer. Keep exact document hashes and binding paths in internal approval records instead of displaying them in the panel.
 
 - Pause incomplete refinement drafts before spec approval or implementation in every mode. Preserve answered questions on resume, remove generic TBD acceptance, and require recorded decisions or accepted reduced scope before advancing.

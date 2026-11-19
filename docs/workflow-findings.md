@@ -2188,3 +2188,31 @@ same ce2b3e8 candidate as the live preview. Full details, initial failures and
 testing limits are retained in evals/AUDIT.md. No existing live user session was
 relocated. The single-repo artifact-location proposal discussed earlier remains
 a separate lifecycle change; this approved slice changes multi-repo defaults.
+
+### D027 — Readable testing-readiness audit results, 2026-11-19
+
+The maintainer's live dashboard showed a readiness completion as internal
+serialization: repeated ticket paths, a JSON receipt, raw baseline tokens and
+duplicate plan/plan columns. The useful result was difficult to scan.
+
+The dashboard now presents a baseline summary and View readiness report link.
+Only all-passing automated baselines receive Testing readiness passed. Failed
+and unrun baselines stay visible as limitations; manual verification explicitly
+states that no automated baseline ran. Multi-repo results have one item per repo.
+Expandable Technical details retains the original record, paths and digest,
+with a JSON receipt link. Unchanged audit phases occupy one combined cell;
+actual transitions keep both endpoints. Existing document previews handle the
+report link. Historical versioned reports retain their own links.
+
+This is presentation only: readiness receipts, state/audit bytes, hashes,
+completion checks, approvals and retry behavior are unchanged. Recognized
+receipt/report paths must match the ticket and same plan version; unknown or
+unsafe historical entries remain escaped text rather than guessed summaries.
+
+Validation: 102 renderer, readiness, document-preview and epic-dashboard tests
+passed, including preserved state bytes, legacy/prefixed filenames, historical
+versions, mixed baseline results, escaping and unsafe-link fallback. A synthetic
+dashboard was inspected in Chrome: collapsed summary, expanded original evidence
+and report-reader navigation worked. A preview fixture initially retained its
+plugin-version placeholder; replacing it with 5.16.0 allowed rendering. No live
+user files were changed and no model evaluation or complete smoke was repeated.

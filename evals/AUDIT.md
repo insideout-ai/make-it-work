@@ -454,3 +454,25 @@ api/main, web/develop and unrelated/main clean; unrelated/.claude/worktrees did
 not exist. No approve/run, source edit or branch/worktree creation was performed
 by the model. Headless chat confirmation does not certify native terminal UI or
 a completed conversational multi-repo run. Existing sessions remain at saved paths.
+
+## PR #115 — Readiness dashboard readability, 2026-11-19
+
+D027 is a renderer-only follow-up to parent b65d809. The saved readiness result
+is summarized for display, while the original evidence stays in collapsed
+Technical details and the readiness report uses the existing document reader.
+Unchanged phases display once; readiness completion and state mutation do not
+change. Unknown evidence formats retain the existing escaped-text fallback.
+
+All 102 tests passed in the combined render-status, testing-readiness,
+artifact-preview and epic-dashboard selection (zero failures/skips), recorded
+locally at `/tmp/pr115-readiness-dashboard-tests.log`. New cases cover original
+state preservation, plain/prefixed report and JSON links, historical versions,
+per-repo pass/fail/not-run/manual display, escaping and rejected link targets.
+
+The synthetic preview at `/tmp/pr115-readiness-preview/dashboard.html` was
+visually inspected in Chrome. The collapsed result hid raw paths/hashes,
+expansion exposed the original evidence and the report link opened the reader.
+The first preview generation rejected the source fixture's unresolved plugin
+version; substituting 5.16.0 fixed the synthetic preview. This is browser QA of
+the synthetic readiness row, not a new live Implement lifecycle/model eval.
+No paid evaluation or full smoke was repeated for this display-only change.
