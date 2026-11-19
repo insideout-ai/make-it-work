@@ -139,7 +139,7 @@ test('workspace initialization enforces approval and checkpoints cannot silently
   assert.equal(result.fields.workspace_version, '1');
   const stateBeforeResume = digest(await readFile(result.state, 'utf8'));
   await applyWorkflow({ root, statePath: result.state, input: { event: 'resume', id: 'matching-resume', expected_hash: stateBeforeResume, repos, blocker_resolved: true } });
-  assert.match(await readFile(result.dashboard, 'utf8'), /Scope approved by user/);
+  assert.match(await readFile(result.dashboard, 'utf8'), /<th>Working branch<\/th>/);
   assert.match(await readFile(result.dashboard, 'utf8'), /develop/);
   const apply = async (extra) => applyWorkflow({ root, statePath: result.state, input: { id: 'change', event: 'pause', reason: 'Check scope', repos,
     expected_hash: digest(await readFile(result.state, 'utf8')), ...extra } });
