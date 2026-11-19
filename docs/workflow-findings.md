@@ -2278,3 +2278,23 @@ checks verify report-reader links, escaped evidence, unchanged ledger bytes,
 current package identity and idempotent audit retries. A synthetic 3-of-5 preview
 was generated locally; this follow-up has no new native browser certification,
 model eval or full smoke rerun. The other session's 4fad415 changes are preserved.
+
+### D031 — CI assertions lagged dashboard changes, 2026-11-20
+
+GitHub Actions run 44623667682 at c822341 passed 818 of 820 helper tests. Two
+integration assertions still expected presentation removed by earlier dashboard
+changes: context-only verification prose in the repository table and the old
+Autonomy badge label. The latest focused acceptance/report selection did not
+include either file, so its passing result did not establish full helper-suite
+coverage. The separate GitHub Actions Node-20 deprecation warning was not the
+test failure. No action-runtime upgrade was included in this repair.
+
+Both cases reproduced locally. The impact test now verifies the persisted
+context-only classification and absence of required checks for that repo;
+the queued-autonomy test expects Control: Autonomous while retaining its queue,
+replay and phase-boundary assertions. No runtime behavior or checks were removed.
+The focused pair passed, then the exact CI helper command passed all 820 tests
+with zero failures/skips. Eval-harness/package checks passed 113 tests; strict
+manifest, skills, marketplace and the 189-case inventory checks passed too.
+No paid eval or full smoke was repeated. Local logs are retained under
+`/tmp/pr115-ci-*`; hosted validation follows the repair commit.

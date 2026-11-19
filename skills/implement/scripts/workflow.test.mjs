@@ -410,7 +410,7 @@ test('queued requests survive render failure and replay, then apply once at a re
   const replay = await applyWorkflow({ root, statePath, input: request });
   assert.equal(replay.replayed, true);
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, saved.audit.length);
-  assert.match(await readFile(replay.dashboard, 'utf8'), /Autonomy: autonomous · guided queued/);
+  assert.match(await readFile(replay.dashboard, 'utf8'), /Control: Autonomous · guided queued/);
   const next = await apply('context-ready');
   assert.equal(next.fields.phase, 'close-the-gaps'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.queued_autonomy, 'none');
   assert.match(parseState(await readFile(statePath, 'utf8')).audit.at(-1).outcome, /Autonomy applied at phase boundary/);

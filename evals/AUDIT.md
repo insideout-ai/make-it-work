@@ -524,3 +524,19 @@ A synthetic 3-of-5 dashboard/report was generated at
 `/tmp/pr115-acceptance-preview/dashboard.html`. This is generated-artifact QA,
 without a new native browser check or live model lifecycle. No paid eval or full
 smoke was repeated. Existing passing evidence retains its source qualifications.
+
+## PR #115 — Repair stale CI assertions, 2026-11-20
+
+Hosted run 44623667682, source c822341, failed two of 820 helper tests:
+repo-impact expected removed context-only table prose and workflow replay
+expected the old Autonomy badge. Both reproduced in a focused local selection.
+The repair asserts saved context-only scope/no required checks and the current
+Control label, preserving queue/replay/boundary behavior. It changes tests only.
+
+The focused pair passed. The exact CI helper command then passed 820/820 tests,
+zero failures/skips (`/tmp/pr115-ci-helper-full-final.log`). Eval-harness and
+packaging/publication tests passed 113/113; strict manifest, skills, marketplace
+and 189-case inventory checks passed. No paid eval or full smoke rerun. The
+Node-20 warning concerns action runtimes and was separate from the two assertion
+failures. Hosted revalidation is pending the repair push; earlier focused-only
+evidence remains qualified to its original selection rather than the full suite.

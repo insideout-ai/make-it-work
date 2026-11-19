@@ -133,7 +133,9 @@ test('controller seals impact, readiness excludes context repos and rejects setu
   await assert.rejects(testingReadiness(f.statePath, 'begin'), /impact assessment is required/);
   const assessed = await apply(definition(), 'impact');
   assert.equal(assessed.fields.repo_impact_version, '1');
-  assert.match(await readFile(assessed.dashboard, 'utf8'), /Not required \(context only\)/);
+  const impact = await checkRepoImpact(f.root, parseState(await readFile(f.statePath, 'utf8')).fields);
+  assert.equal(impact.repos.find(repo => repo.repo === 'docs').classification, 'context');
+  assert.ok(impact.checks.every(check => check.run_repo !== 'docs' && !check.repos.includes('docs')));
   const beforePreparation = await readFile(f.statePath, 'utf8');
   await writeFile(f.statePath, beforePreparation.replace('phase: plan', 'phase: write-tests'));
   await assert.rejects(authorizePlanningTests(f.statePath, { repo: f.repos[1].root, file: 'new.test.js', kind: 'test-file', step: 1, reason: 'Unexpected test edit' }), /reassessing this repository/);
