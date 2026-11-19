@@ -1,0 +1,23 @@
+docs/workflow-findings.md
+  s_c133004d4f803f::t_049733c73b3979 2017-2029
+evals/AUDIT.md
+  s_c133004d4f803f::t_049733c73b3979 258-301
+CHANGELOG.md
+  s_c133004d4f803f::t_049733c73b3979 44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5e847b55d3b031303be944e5c198166eb8a91818",
+  "prompts": {},
+  "sessions": {
+    "s_c133004d4f803f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f296-8e2a-7401-9ca6-848716651ca8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
