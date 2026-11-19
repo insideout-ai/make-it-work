@@ -88,8 +88,12 @@ test('known context is included before review so unchanged final sync needs no a
   const prepared = await f.apply('review-context', { context_updated: ['README.md'] });
   assert.equal(prepared.fields.phase, 'review'); assert.equal(prepared.fields.review_cycle, '1');
   assert.equal(prepared.fields.context_updated, 'README.md');
+  assert.match(await readFile(f.statePath, 'utf8'), /Context ready for code review — round 1\./);
   const target = await prepareReviewScope(f.root, f.statePath);
   assert.ok(target.repos[0].paths.includes('README.md'));
+  // Saved checkpoints from earlier versions still satisfy the preparation gate.
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('Context ready for code review — round 1.', 'Review context prepared for cycle 1.'));
+  await prepareReviewScope(f.root, f.statePath);
   const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
   input.review_scope[0].paths = target.repos[0].paths;
   const reviewed = await writeReview(f.root, input);

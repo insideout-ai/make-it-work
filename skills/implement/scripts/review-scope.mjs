@@ -62,7 +62,8 @@ export async function prepareReviewScope(root, statePath) {
   if (['1', '2'].includes(f.review_context_version)) {
     const entry = state.audit.findLast(row => row.to === 'review' && row.from !== 'review');
     if (!state.audit.some(row => row.number > (entry?.number ?? 0) && row.from === 'review' && row.to === 'review' &&
-        row.outcome.startsWith(`Review context prepared for cycle ${f.review_cycle}.`) && row.outcome.includes('[workflow-event:'))) {
+        (row.outcome.startsWith(`Context ready for code review — round ${f.review_cycle}.`) ||
+          row.outcome.startsWith(`Review context prepared for cycle ${f.review_cycle}.`)) && row.outcome.includes('[workflow-event:'))) {
       fail('Prepare bounded documentation/test-map context before freezing review scope; checkpoint review-context with context_updated (or []).');
     }
   }

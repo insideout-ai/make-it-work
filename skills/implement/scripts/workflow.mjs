@@ -187,7 +187,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     f.context_updated = [...new Set([...previous, ...paths])].join(', ') || 'none';
     if (f.review_context_version === '2') f.test_map_maintenance = JSON.stringify(input.test_map_maintenance);
     if (f.review_checks_version === '1') f.review_requirements = JSON.stringify(input.review_requirements);
-    reason = `Review context prepared for cycle ${f.review_cycle}.`;
+    reason = `Context ready for code review — round ${f.review_cycle}.`;
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
     if (input.context_updated !== undefined) {
