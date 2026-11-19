@@ -1962,3 +1962,29 @@ PR #115 interactive worktree-offer follow-up. Runtime build/integrity and strict
 exported-skills validation also passed on `3153300`. The fix is guidance only;
 it improves the observed startup choice without claiming guaranteed model
 adherence or a complete new worktree lifecycle test.
+
+
+### D022 — Worktree checkout recommendation reversed, 2026-11-19
+
+A fresh reported Guided run did offer both checkout routes, but placed Continue
+here first and marked it Recommended. The loaded startup text already named
+isolation as recommended (sanitized transcript line 40); the actual question
+reversed it at line 115. The screenshot shows a local .gitignore edit. This is
+a recommendation failure, not a stale-install explanation or worktree-helper
+failure. The reason for the model's reversal is not established.
+
+The entrypoint and startup menu now explicitly put isolated worktrees first as
+the only recommended checkout option. The current-checkout guard's recommended
+branch action applies only after choosing Continue here. Base-branch status
+and local edits do not reverse the checkout recommendation. Existing explicit
+choices, Autopilot defaults, Resume roots and approvals retain their behavior;
+no runtime gate or new question was added.
+
+The focused fixture now contains a tracked, uncommitted .gitignore edit and
+checks exact preservation of that edit as well as source bytes. On `44f31be`,
+the strengthened live case passed with the correct option order/recommendation
+and early precheck before the pending question. Strict skills validation and
+187-case inventory passed. A deliberately wrong recommendation was rejected
+by the semantic grader (FAIL/FAIL). Full report paths, control limitations and
+reported usage are retained in evals/AUDIT.md. This is observed focused
+adherence, not a guarantee that every future model run follows the guidance.

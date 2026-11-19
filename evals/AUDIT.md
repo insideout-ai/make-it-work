@@ -219,3 +219,39 @@ exported-skills validation. Existing broad workflow and PR smoke evidence is
 retained with its original source commits. No complete smoke was rerun. The
 new case remains outside smoke/critical; creation, Continue here execution after
 an answer, and Resume are not established by the unanswered-choice case.
+
+
+## PR #115 — Checkout recommendation follow-up, 2026-11-19
+
+A subsequent actual fresh Guided run offered isolation but recommended Continue
+here. Its loaded startup text was current. See D022; no raw customer transcript
+or screenshot was copied into the eval fixtures. The correction explicitly
+orders isolated worktrees first and makes it the only recommended checkout
+option. Local edits and the current-checkout guard's branch recommendation do
+not reverse that policy.
+
+`evals/results/full-2026-11-19T15-45-41-110Z/summary.json`, source
+`44f31be71ff3823c221ab4cef0b060e03dbc3aa0`: **1/1 selected case passed**,
+reported usage **$0.27411057**, `selectionComplete: true`, `repoUnchanged: true`.
+The fixture adds an actual tracked dirty .gitignore; both it and the source file
+passed exact-byte preservation checks. Direct trace review confirms successful
+early precheck, isolated worktrees first and Recommended, Continue here second
+without that label, and an unanswered choice with no branch/state mutations.
+The grader accepts a direct chat question when the headless harness cannot
+collect an interactive answer; this is not proof of native terminal UI behavior.
+
+Negative control: the final passing trace was copied outside the repository and
+only its checkout recommendation was deliberately changed to Continue here, in
+both assistant text and the duplicated terminal result. The semantic grader
+rejected this consistent control **FAIL/FAIL**, with unchanged-file checks still
+passing; reported grading usage **$0.00975677**. Local control report:
+`/tmp/pr115-worktree-recommend-negative.json`. A preliminary control mistakenly
+retained the correct duplicated terminal result and was not a valid negative
+control; its contradictory evidence cost **$0.01204935** and was corrected,
+not counted as rejection evidence. Total follow-up usage including both control
+trials **$0.29591669**. No implementation model or full smoke was rerun for the
+control. This is a focused development check, not an archive-wide suite pass.
+
+Strict skills validation, inventory (187 cases / 16 smoke skills) and whitespace
+checks passed. No JavaScript source or harness code changed; the existing 108
+harness and 802 workflow test results retain their earlier source qualifications.
