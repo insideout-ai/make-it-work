@@ -1,0 +1,21 @@
+docs/workflow-findings.md
+  s_c133004d4f803f::t_d0ed294abd5444 1965-1990
+evals/AUDIT.md
+  s_c133004d4f803f::t_d0ed294abd5444 222-257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "78d5ed1780cb828f6e7c1a1d30875fee646cf1e0",
+  "prompts": {},
+  "sessions": {
+    "s_c133004d4f803f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f296-8e2a-7401-9ca6-848716651ca8",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
