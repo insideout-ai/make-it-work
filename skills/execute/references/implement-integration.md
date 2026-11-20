@@ -27,6 +27,16 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 A Mode line that already records a mode is used as-is, in both levels.
 
+### Blocking questions
+
+For `controller_version: 1`, use [implement's pending-input lifecycle](../../implement/references/controller.md#pending-input-lifecycle) for every blocking question, including Mode, Inline pause follow-up/backfill, per-step review and verification questions. Opening `AskUserQuestion` alone does not update workflow state or HTML.
+
+1. Inspect the supplied workflow state. Before displaying the question, apply `await-input` with a fresh pending ID, `kind: question` (`step` for per-step review), and the actual question, choice IDs, labels and descriptions. Wait for the checkpoint/render to succeed; it preserves Execute and Progress, sets Paused and shows “Waiting for your input.” If it fails, repair/retry the same event before showing the question.
+2. Show the saved question. After the actual user answer, apply `resolve-input` with its `pending_id`, the selected choice ID, `source: user` and `via: question|chat` before dependent work. On resume, reuse an existing pending request rather than creating a duplicate or treating silence as an answer.
+3. For Mode selection, resolve the Mode request first. If Inline was selected, save and resolve a separate pending request for the pause policy before applying `execution-mode` with both `mode: inline` and `pause_mode`. For Subagent-Driven, apply `execution-mode` after resolving its one request. These controller events replace Phase 0's standalone `set-mode`/`set-pause` commands; the `execution-mode` event does not replace `resolve-input`.
+
+Autonomous/Autopilot policy defaults retain their existing behavior and do not create interactive waits. Standalone and legacy runs retain their existing question handling.
+
 **Completion gate questions** — Guided and Autonomous handle `run-regression`'s own stop-and-ask for a full-suite command as usual. Under Autopilot it remains a hard stop, returned as `GATE_NO_RESULT` for `implement` to checkpoint without a prompt.
 
 **Discoveries under Subagent-Driven mode** — add one item to every per-step dispatch prompt: "End your report with a `Discoveries:` line listing reusable facts about the existing system you noticed (an undocumented caller, an invariant the code enforces), or `none`." Collect those lines from each step's report for the final `Discoveries:` line below.

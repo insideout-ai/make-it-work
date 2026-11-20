@@ -122,7 +122,7 @@ export function feedbackCommands(statePath, { analysisRequired, limitStop = fals
     const sessionReview = artifactJoin(directory, 'feedback-session.json'), analysis = artifactJoin(directory, 'feedback-analysis.json');
     const inputs = [...(analysisRequired ? ['--analysis', quote(analysis)] : []), '--session-review', quote(sessionReview)];
     Object.assign(result, { input_paths: { sessionReview, ...(analysisRequired ? { analysis } : {}) },
-      check: [...command('check'), ...inputs].join(' '), write: [...command('write'), ...inputs].join(' ') });
+      check: [...command('check'), ...inputs].join(' '), write: [...command('write'), ...inputs, '--compact'].join(' ') });
   }
   return result;
 }

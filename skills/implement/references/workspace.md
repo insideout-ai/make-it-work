@@ -5,6 +5,11 @@ and overrides standalone stage root-detection rules. Single-repo runs retain
 their existing branch guard, autonomy, artifact paths and context requirements.
 Never add the version field to a legacy run on resume.
 
+Fresh isolated sessions follow [session worktrees](session-worktrees.md). A private
+session is a workspace contract even with one selected repository; its artifacts
+stay outside its selected worktree(s), including the sibling single-repo layout. The current-checkout route retains the existing paths and
+guard. Resolve existing sessions before allocating a new one.
+
 ## Resolve before Git startup checks
 
 Run `node <plugin>/scripts/workspace.mjs resolve --cwd <invocation-dir>`.
@@ -62,8 +67,27 @@ target branches are explicitly shown as switches. Continuing on base requires
 still refuse base-branch delivery.
 
 Run `node <implement>/scripts/workspace-scope.mjs prepare --root <artifact-root>
---input <preview-input.json>`. Share the returned HTML link and the full proposed
-table: repository, evidence, role, current branch, base, proposed action/branch.
+--input <preview-input.json>`. Before asking for approval, present the returned
+clickable HTML link and full proposed selection in ordinary assistant chat:
+repository, evidence, role, source checkout/current branch, base and proposed
+action/branch. Use a compact labeled field list per repository, with paths on
+their own lines, rather than a wide table. Keep comparison/status notes below
+the fields. The full selection stays visible for the same approval.
+
+`AskUserQuestion`'s question body is plain text: do not paste the preview table,
+Markdown links, code fences, hash or long absolute paths into it. Use a short
+confirmation referring to the preview just shown, with branch and starting
+ref/short SHA for a single repository; for several, refer to the displayed
+repository count/selection. Send the chat preview before calling the question
+tool; no acknowledgment or extra approval is needed between them.
+Copy each returned `start_point` SHA and ahead/behind counts into that approval,
+along with `remote_base`'s local-base comparison (or unavailable/freshness unknown).
+For `create`, say **create at current HEAD**, never "from base": the helper does
+not reset, rebase, fetch or start the branch at the base. If the starting SHA
+differs from `base_sha`, explicitly say that approval includes that starting
+point and any inherited commits. Offer changing the selection or stopping in the
+same existing question; do not infer consent from a ticket-named target branch.
+Remote comparisons describe saved local tracking refs, not a fresh remote query.
 For each selected repository, run the read-only `branch-ticket.mjs check` from
 the startup Branch guard with that repository's root, ticket and base. Include
 any explicit different-ticket mismatch in this same preview so approval covers
@@ -86,7 +110,9 @@ node <implement>/scripts/workspace-scope.mjs run --root <root> --ticket <ticket>
 ```
 
 The helper rechecks all selected repositories, assessment hash, bases and target
-refs before mutation. Any change needs a refreshed preview and approval. It
+refs before mutation. A change to the actual operation needs a refreshed preview
+and approval. Remote-tracking-only drift is reported as a warning and reuses the
+existing approval when the local operation is unchanged. It
 records partial success without undoing branches. On failure report the actual
 repository/result and journal; reconcile the cause and retry the same approved
 plan only if still current. Never guess another branch name after approval.
@@ -108,6 +134,10 @@ the authoritative allowed write scope; inventory is not write scope.
 
 - Artifact paths are relative to artifact root; shared specs/plans/reports,
   ledgers, handoffs and logs stay in its `make-it-work/<TICKET>/` directory.
+  Auxiliary worker evidence uses distinct filenames assigned before dispatch,
+  using `miw-<TICKET>-<repo-id>-<task>-w<N>.md` in marked runs, under
+  [Stage skills](orchestration/stage-contract.md).
+  Repository cwd does not provide a separate namespace for these shared outputs.
 - Product/test paths are relative to the named repository root. Resolve all
   repository tokens by contract ID, never by whichever cwd happens to be active.
 - Run every Git, build, test and documentation command from its explicit repo
@@ -126,6 +156,9 @@ the authoritative allowed write scope; inventory is not write scope.
   checks cross-repo contracts. Final sync evaluates documentation per affected repo.
 
 ## Scope changes and resume
+
+**Impact-enabled runs:** before setup or implementation, follow [repository impact](repository-impact.md). It overrides blanket per-product readiness/full-suite and per-repo maintenance requirements for `repo_impact_version: 1`; approved scope and branch approvals remain unchanged.
+
 
 Every controller checkpoint enforces the approved repo set and branches. Ordinary
 resume also checks each saved HEAD/worktree and the spec/plan hashes. Legacy

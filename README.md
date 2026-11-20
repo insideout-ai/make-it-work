@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source 39b4dc41a3aef306a9638ab9445f923bf150a6fa](https://github.com/insideout-ai/make-it-work/tree/39b4dc41a3aef306a9638ab9445f923bf150a6fa). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source d6160f8eed4c2f763cfcdab605349b15987fd99c](https://github.com/insideout-ai/make-it-work/tree/d6160f8eed4c2f763cfcdab605349b15987fd99c). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -234,7 +234,7 @@ Prepares the approved plan's coverage before execution: reuses adequate existing
 
 Pass a ticket ID or explicit plan path. In `implement`, this stage runs in a fresh worker after plan approval in Guided mode, and automatically after planning in Autonomous/Autopilot. The coordinator retains approvals and dashboard ownership. Standalone `execute` stops with guidance if required preparation is missing or stale; it never invokes test writing automatically. Manual-only plans record not-applicable preparation, while Lightweight skips the stage. Older saved runs keep their prior evidence and routing.
 
-The HTML dashboard shows **Plan → Write Tests → Execute**, separate preparation timing/activity, and a **Test Preparation** report with formatted preview and original-file access. Preparation does not advance implementation progress or establish completion. Replans and fix amendments repeat preparation only for affected coverage, preserving report history.
+The HTML dashboard shows **Plan → Write Tests → Execute**, separate preparation timing/activity, and a **Test Preparation** report in Artifacts with formatted preview and original-file access. Preparation outcomes appear in the audit log with a link to the report. Preparation does not advance implementation progress or establish completion. Replans and fix amendments repeat preparation only for affected coverage, preserving report history.
 
 ---
 
@@ -263,6 +263,17 @@ Orchestrates the whole pipeline for one ticket: it inventories available project
 `implement` never runs `go-deep`, including through nested stages, in any autonomy mode. It keeps documentation updates scoped to the ticket and recommends a separate `go-deep` run at completion when broader documentation gaps remain. Absent or partial go-deep documentation uses existing repository guidance and ticket-scoped code/test discovery. Explicit mandatory loading requirements and unresolved essential facts still stop the workflow; material context limitations remain visible in the final package and completion summary.
 
 Once the refined spec is saved, new runs assess the ticket as Low, Medium or High risk by judgment over scope, dependencies, architectural impact, security and uncertainty, and record a one-line rationale. Low risk runs **Lightweight**: a fresh subagent implements the spec directly, with whatever checks it chooses and no plan, test-first steps or regression gate; the independent review is the verification, and review findings are fixed directly within the usual fix and review limits. Medium and High risk run **TDD**: the `plan-the-work` → `write-the-tests` → `execute` pipeline with its regression gate and fix/replan loops. Every mode keeps the refined spec, the independent review and the final context sync. A Lightweight run escalates once to TDD when a fix breaks what an earlier fix touched, findings repeat in the same area, a finding needs a product decision or replanning, or the implementation reveals more risk; the code already written becomes the TDD plan's accepted baseline. `implement` never downgrades on its own. Force a mode with `--mode lightweight|tdd` or a chat request; the assessment is still recorded alongside the override. Older resumed runs keep the full TDD workflow without assessment.
+
+Fresh interactive Implement runs offer isolated worktrees or an explicit branch
+action in the current checkout. `--worktree` selects isolation; `--continue-here`
+selects the current checkout. Single-repo worktrees live under
+`<repo>/.claude/worktrees/<session>/`, with private reports under
+`<repo>/.claude/miw-sessions/<session>/`. Multi-repo sessions create each selected
+checkout under its source repo’s `.claude/worktrees/<session>/`, with shared
+reports at `<workspace>/.claude/miw-sessions/<session>/`.
+Creation uses the existing exact repository/branch approval. Autopilot keeps the
+current checkout unless isolation is explicit; existing runs retain saved paths.
+See [session worktrees](skills/implement/references/session-worktrees.md).
 
 Test-strategy repository IDs remain stable across renamed checkouts and Git worktrees. Existing strategy/map IDs are preserved; fresh linked worktrees use the main checkout’s identity rather than a temporary folder name. Regression lookup runs tests in the selected checkout, and conflicting IDs or ambiguous matches require explicit resolution.
 

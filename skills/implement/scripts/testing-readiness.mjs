@@ -8,6 +8,7 @@ import { args, atomicWrite, cli, digest, fail, section, table, within, withLock 
 import { parseState } from './render-status.mjs';
 import { assertRunState, runArtifact } from './artifact-layout.mjs';
 import { testingPolicy } from './testing-policy.mjs';
+import { checkRepoImpact, impactEnabled, validateImpactPolicy } from './repo-impact.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
 
 export const readinessMutationCommand = (input) => input.tool_name === 'Bash' && /testing-readiness\.mjs["']?\s+(?:begin|complete)\b/.test(input.tool_input?.command ?? '');
@@ -19,6 +20,7 @@ export const readinessPaths = (f) => ({
 function binding(f) {
   const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos : JSON.parse(f.workspace_snapshot);
   return { version: 1, ticket: f.ticket, start_time: f.start_time, plan_version: f.plan_version, spec_hash: f.spec_hash,
+    ...(impactEnabled(f) ? { impact_definition_hash: f.repo_impact_definition_hash } : {}),
     scope: selected.map((repo) => ({ root: repo.root, id: repo.id ?? null, role: repo.role ?? 'product', branch: repo.branch, base: repo.base ?? f.base })).sort((a, b) => a.root.localeCompare(b.root)) };
 }
 const matches = (receipt, expected) => Object.keys(expected).every((key) => JSON.stringify(receipt[key]) === JSON.stringify(expected[key]));
@@ -48,7 +50,11 @@ async function reportEvidence(root, state, { newSelection = false } = {}) {
     }
   }
   if (results.length !== policy.length || new Set(results.map((row) => row.Repo)).size !== results.length || results.some((row) => !policy.some((item) => item.Repo === row.Repo))) fail('Readiness results must cover every verification-policy repo exactly once.');
-  if (f.workspace_version === '1') {
+  const impact = await checkRepoImpact(root, f);
+  if (impact) {
+    validateImpactPolicy(impact, policy);
+    for (const row of results) if (impact.repos.find(r => r.repo === row.Repo).classification === 'verify' && row.Setup === 'established') fail('Verification-only repos cannot establish new testing setup.');
+  } else if (f.workspace_version === '1') {
     if (expected.scope.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id)) || policy.some((row) => !expected.scope.some((repo) => repo.id === row.Repo))) fail('Readiness must cover approved product repos and cannot add unapproved repos.');
   } else if (policy.length !== 1) fail('Single-repo readiness requires exactly one verification-policy repo.');
   for (const row of results) {
@@ -66,6 +72,7 @@ async function reportEvidence(root, state, { newSelection = false } = {}) {
 function normalizedPolicy(rows) { return [...rows].sort((a, b) => a.Repo.localeCompare(b.Repo)); }
 export async function checkTestingReadiness(root, state, { plan = null } = {}) {
   const f = state.fields;
+  await checkRepoImpact(root, f, { plan });
   if (!enabled(f)) return { required: false, ready: true };
   const receipt = await readReceipt(root, f);
   if (!matches(receipt, binding(f)) || receipt.status !== 'complete') fail('Testing readiness is pending or stale. Wait for delegates, reconcile their reports, and complete readiness before planning.');
@@ -83,6 +90,7 @@ export async function testingReadiness(statePath, action, { restart = false } = 
     if (!enabled(f)) return { required: false, ready: true };
     if (action === 'check') return checkTestingReadiness(root, state);
     if (!['begin', 'complete'].includes(action) || f.status !== 'In Progress' || !['plan', 'fix-plan'].includes(f.phase)) fail('Readiness changes require active Plan or fix planning.');
+    await checkRepoImpact(root, f);
     const expected = binding(f), names = readinessPaths(f);
     if (f.spec === 'none' || digest(await readFile(await within(root, f.spec))) !== f.spec_hash) fail('Readiness requires the unchanged accepted spec.');
     if (action === 'begin') {

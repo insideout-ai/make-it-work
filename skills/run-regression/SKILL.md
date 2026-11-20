@@ -9,6 +9,9 @@ For generated files under `make-it-work/`, follow the [artifact naming, Git prot
 
 ## Usage
 
+**Implement impact scope:** when supplied a state with `repo_impact_version: 1`, follow [repository impact](../implement/references/repository-impact.md) and use its exact manifest with the existing deterministic runner. Do not expand it to every selected repo or infer full-suite coverage from a scoped run. Without that marker retain ordinary standalone/full/scoped behavior.
+
+
 ```
 /make-it-work:run-regression [full | full:<repo> | <repo>:UC-<id> | <repo>:domain-<name> ...] [--autopilot]
 ```
@@ -145,7 +148,7 @@ A not-run location produces no gate result of its own and never counts as FAIL.
 
 ### Running the command
 
-Once a command is found for this repo (from any source above, or supplied by the user after a stop-and-ask) and its prerequisites pass, run it via Bash from its `Run from` directory (the repo root when it came from discovery), capturing its full output. Full suites can run long — use a generous Bash timeout (up to the maximum available) or run the command in the background and wait for completion, rather than letting a long suite get cut off mid-run. Do not parse or summarize that output here — the raw captured output is handed to Phase 4, which parses pass/fail/skip counts from it.
+Once a command is found for this repo (from any source above, or supplied by the user after a stop-and-ask) and its prerequisites pass, run it via Bash from its `Run from` directory (the repo root when it came from discovery), capturing its full output. Full suites can run long — choose a timeout from known suite-duration evidence, or disclose an unknown duration and the selected timeout bound; do not present the bound as an estimated finish time. The structured runner emits start/heartbeat/finish progress on stderr while preserving the final result on stdout. Capture both streams; use those measured repo/command, elapsed and last-output fields for progress replies, without treating stderr progress as failure or silence as proof of a stall. For a background run, use its completion notification rather than repeated polling. Follow [the runner contract](../../docs/regression-runner.md) for incomplete timeout results and retained evidence after audit failures. Progress-reporting failures are advisory warnings and do not change observed test outcomes or block continuation; do not automatically retry a suite for reporting. Do not parse or summarize test output here — the raw captured output is handed to Phase 4, which parses pass/fail/skip counts from it.
 
 ## Phase 2 — Resolve and validate scope
 

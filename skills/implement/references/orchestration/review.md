@@ -1,5 +1,8 @@
 ### Review
 
+For `repo_impact_version: 1`, first check [repository impact](../repository-impact.md). Preserve all approved review scope and cross-repo contract checks, while allowing impact-bound no-maintenance assessments for unchanged repos. Never launch unrelated suites, setup or map repair just to populate review evidence.
+
+
 Controller runs increment `review_cycle` when entering Review; do not increment it again. Older runs retain their existing counter checkpoint. Then follow Review dispatch.
 
 ## Review dispatch
@@ -14,12 +17,20 @@ For `review_checks_version: 1`, also supply `review_requirements` using [review-
 
 New runs use `review_context_version: 2`. Their checkpoint also requires `test_map_maintenance`, one assessment per approved repo: `repo` (absolute root), `status` (`maintained`, `blocked`, or `not-applicable`), `affected_tests` (repo-relative paths), `reason`, and retained `evidence` paths relative to the artifact root. A current strategy with a Test Map cannot be marked not-applicable. Maintained maps must contain the declared affected tests and their generated report; incomplete baselines may remain incomplete with the uncertainty in `reason`. A blocked assessment requires evidence and the actual access/tool/evidence blocker, not advisory severity or a desire to save time. The helper records evidence hashes; reassess if those files or the registered strategy change. A blocker affecting prior validation still follows the existing stop rule. Final Sync reuses unchanged assessments, or supplies updated `test_map_maintenance` after new edits. Versions 1 and older keep their saved contracts.
 
-Before the first scope preparation of a run, check for pre-existing untracked
-files with `review-scope.mjs preexisting` and settle them once, as described in
-[the controller contract](../controller.md) under "Pre-existing untracked files".
-If a later `prepare` still returns `preexisting_untracked`, settle those before
-dispatching. Unrelated local files otherwise inflate the review target and would
-enter the package and delivery.
+After context maintenance and before scope preparation, new runs with
+`review_reconciliation_version: 1` run `review-scope.mjs inspect --root ROOT
+--state STATE`. Follow [scope reconciliation](../controller.md#scope-reconciliation-before-review)
+for advisory findings and one optional consultation with a clear Continue option
+in non-Autopilot modes. Autopilot proceeds within existing authorization and
+discloses assumptions. Unresolved advisory findings never block preparation. It covers pre-existing/mixed
+local work, unexpected paths and inherited history. Reuse actual earlier explicit
+inclusions with their references; do not treat carrying local edits across a
+branch switch as permission to deliver them. Planned/generated paths are relevance
+hints; they never waive older work in those files.
+
+Older saved runs retain their existing `preexisting`/`exclude-preexisting` flow;
+if `prepare` returns `preexisting_untracked`, settle it before dispatch. Their
+starting coverage may be incomplete; never recreate an initial baseline at resume.
 
 For a run with `review_scope_version: 1`, prepare its delivery scope after that preparation, before every
 review dispatch (including re-reviews):
@@ -27,6 +38,14 @@ review dispatch (including re-reviews):
 ```sh
 node <base>/scripts/review-scope.mjs prepare --root <artifact-root> --state <state-path>
 ```
+
+New targets include advisory provenance and optional inclusion reasons in
+`scope_reconciliation`. Forward that context and any warnings to the reviewer.
+`prepare` creates a full target even when scope advisories remain unresolved or
+analysis is unavailable; no per-item decision receipt is required. Continuing
+accepts no correctness waiver. Earlier work still needs independent inspection
+and disclosed requirement-provenance limitations. Changes to advisory receipts
+alone do not invalidate a completed full-scope review or its package.
 
 The helper freezes the same full branch-to-base diff used by final packaging,
 including earlier unmerged commits, staged/unstaged changes, untracked files and

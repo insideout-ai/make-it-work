@@ -6,7 +6,7 @@ import { digest, fail, requireText } from '../../../scripts/lib/artifacts.mjs';
 
 // Bind the parent's minimum context to a review target. Selection and semantic
 // assessment remain model work; a hash is not proof that a rule was understood.
-export async function reviewRequirements(repoRoots, records, maintenance = []) {
+export async function reviewRequirements(repoRoots, records, maintenance = [], { impact = null, contract = null } = {}) {
   const roots = await Promise.all(repoRoots.map(root => realpath(root)));
   if (!Array.isArray(records) || records.length !== roots.length) fail('review_requirements must contain one context selection per approved repository.');
   const seen = new Set(), result = [];
@@ -16,8 +16,9 @@ export async function reviewRequirements(repoRoots, records, maintenance = []) {
     seen.add(repo); requireText(entry.reason, 'Required review context rationale');
     if (!Array.isArray(entry.skills)) fail('Review requirements need selected skill names and loading methods.');
     const selected = [...entry.skills];
+    const contextOnly = impact?.repos.find(r => r.repo === contract?.repos.find(s => s.root === repo)?.id)?.classification === 'context';
     let strategy = '';
-    try { strategy = await readFile(artifactJoin(repo, '.claude/skills/test-strategy/SKILL.md'), 'utf8'); }
+    try { if (!contextOnly) strategy = await readFile(artifactJoin(repo, '.claude/skills/test-strategy/SKILL.md'), 'utf8'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (strategy && !selected.some(s => s.name === 'test-strategy')) selected.push({ name: 'test-strategy', method: 'Read' });
     const skills = [];

@@ -1,5 +1,8 @@
 # Testing readiness before planning
 
+**Repository impact:** when `repo_impact_version: 1`, first read [repository impact](repository-impact.md) and complete its assessment before begin/setup. It overrides the all-approved-product policy requirement: include change/verify product repos only. Context repos skip readiness entirely; verify repos reuse existing tooling or report a gap, without automatic setup, strategy generation or a manual autonomy-default.
+
+
 Record the user's testing setup, strategy scope and automated/manual verification choices under [workflow-decisions.md](workflow-decisions.md), including the affected repos and selected policy, before setup or dependent planning begins. Automatic Autonomous/Autopilot defaults keep their actual source; unavailable tooling or unanswered prompts never imply manual-verification consent. The only automatic manual choice is the missing-strategy/absent-tooling branch below, resolved before planning; it is never a fallback after an automated failure.
 
 Run inside `implement`'s Plan phase, before invoking `plan-the-work`, and before entering Execute with a reused standalone plan. A Lightweight run never enters Plan and skips readiness; an escalation into Plan runs it as usual. The branch guard, workflow state, dashboard and spec already exist. Read the spec to identify affected product repos; inspect only relevant test locations. This is setup owned by the orchestrator, outside planning's read-only investigation. Keep the dashboard in Plan while doing it.

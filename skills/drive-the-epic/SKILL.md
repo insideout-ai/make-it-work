@@ -56,6 +56,11 @@ inline in epic content rather than only in its Open Items list. Put each relevan
 unknown in the affected slice's existing `open_items`; keeping it only at epic
 or overview level, or showing Needs refinement, does not qualify a firm criterion.
 
+Apply this check to prose and examples too. A slice that emits a value owns its
+unresolved representation even when a later slice adds filtering or friendly
+formatting; calling it "raw", "stored" or "default" still makes a choice and does
+not resolve the question.
+
 Do not settle an unknown by inference. For example, if the epic leaves logged-out
 handling unspecified, do not add an unconditional “Then I am asked to log in.”
 Keep the login behavior as an open question; an optional suggested answer belongs

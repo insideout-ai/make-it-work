@@ -218,6 +218,13 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   if (h.stage === 'plan' && h.status === 'done' && ((fields.phase === 'fix-plan') !== (h.data.mode === 'amend'))) fail('Plan mode does not match state phase.');
   if (!['guided', 'autonomous', 'autopilot'].includes(fields.autonomy)) fail('Choose autonomy before routing a handoff.');
   const mode = adaptiveMode(fields);
+  // Saving an incomplete spec is useful; it cannot authorize downstream work.
+  // Check before assessment/escalation so every mode can preserve a draft and pause.
+  if (h.stage === 'gaps' && h.status === 'done' && h.outcome === 'SPEC_SAVED' && h.data.tbd_items > 0) {
+    return outcome('pause', `Draft saved — implementation is waiting on ${h.data.tbd_items} unresolved ${h.data.tbd_items === 1 ? 'decision' : 'decisions'}. Your other answers are preserved.`, {
+      pause_reason: 'Refinement decisions pending', spec: h.artifacts.spec,
+    });
+  }
   if (escalate !== undefined) {
     string(escalate, 'escalate reason');
     if (!canEscalate(fields)) fail('Escalation requires adaptive_version: 1, mode: lightweight and escalations: 0.');
@@ -250,13 +257,6 @@ function decideCore(state, handoff, { relatedFailures = null, previousReview = n
   if (h.stage === 'gaps') {
     if (mode === 'none') fail('Risk assessment required before routing: set risk and mode first.');
     const ready = nextGuided ? 'spec-approval' : mode === 'lightweight' ? 'lightweight' : 'plan';
-    if (h.data.tbd_items > 0) return autopilot
-      ? outcome('stop', 'Refined spec still has unresolved TBD items.')
-      : ask('Resolve or explicitly accept unresolved TBD items.', {
-        resolve: outcome('phase', 'Refine unresolved items.', { phase: 'close-the-gaps' }),
-        proceed: outcome('phase', 'Developer accepted unresolved items.', { phase: ready }),
-        stop: outcome('stop', 'Developer stopped at unresolved items.'),
-      });
     return outcome('phase', 'Spec is ready.', { phase: ready });
   }
   if (h.stage === 'implement') {

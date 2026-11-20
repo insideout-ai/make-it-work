@@ -21,16 +21,19 @@ import { createPendingInput, pendingAnswer, pendingInputs } from './pending-inpu
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
 import { planHash } from '../../../scripts/lib/plan.mjs';
 import { approvedScope, readScope } from './workspace-scope.mjs';
+import { checkSessionRepositories } from '../../../scripts/lib/session-workspace.mjs';
 import { inspectLightweightFix } from './lightweight-fix.mjs';
 export { planHash } from '../../../scripts/lib/plan.mjs';
 
 import { snapshot } from '../../../scripts/lib/repo-state.mjs';
 import { checkReviewScope } from './review-scope.mjs';
 import { implementationBaseline, acceptBranchBaseline } from './implementation-guard.mjs';
+import { captureReviewRepos, reviewBaselineEvidence } from './review-baseline.mjs';
 import { checkRefinementWorkerHandoff } from './refinement-worker.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { reviewRequirements } from './review-checks.mjs';
+import { assessRepoImpact, checkRepoImpact, impactEnabled, impactDefinition, impactSummary, validateImpactPolicy, validateImpactGate } from './repo-impact.mjs';
 import { manualWaiver } from './manual-waiver.mjs';
 import { updatePlan } from '../../execute/scripts/plan-status.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
@@ -139,6 +142,21 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (handoff.stage === 'gaps' && handoff.outcome === 'SPEC_SAVED' && f.spec_revision_pending === 'true' && action.action === 'phase') f.phase = 'spec-approval';
     if (action.action === 'stop') { f.status = 'Stopped'; f.pause_reason = reason; }
     if (action.action === 'pause') { f.status = 'Paused'; f.pause_reason = action.pause_reason; }
+  } else if (input.event === 'repo-impact') {
+    if (!impactEnabled(f) || f.status !== 'In Progress' || !['plan', 'fix-plan', 'lightweight', 'review', 'final-sync', 'spec-approval'].includes(f.phase) || !input.validated_impact) fail('Impact assessment requires active planning/reconciliation and controller validation.');
+    if (input.impact_definition_changed && f.plan !== 'none') {
+      if (Number(f.replans_used) >= 2) fail('Replan limit reached while revising repository impact.');
+      f.impact_previous_plan = f.plan; f.impact_change_reason = 'Repository impact or required verification changed.';
+      f.replans_used = String(Number(f.replans_used) + 1);
+      f.plan_version = String(Number(f.plan_version) + 1);
+      Object.assign(f, { phase: 'plan', execution_mode: 'none', inline_pause_mode: 'none', plan: 'none', plan_hash: 'none', testing_readiness: 'none', execution: 'not-started', review: 'not-started', review_cycle: '0', fix_cycle: '0', test_preparation: 'none', test_preparation_report: 'none' });
+    }
+    if (input.impact_definition_changed && f.mode === 'lightweight' && ['review', 'final-sync'].includes(f.phase)) {
+      if (Number(f.review_cycle) >= 4) fail('Review limit reached while revising repository impact.');
+      if (f.phase === 'review') f.review_cycle = String(Number(f.review_cycle) + 1);
+      f.phase = 'review'; f.review = 'not-started';
+    }
+    reason = 'Repository impact assessed; context-only repos require no setup or verification.';
   } else if (input.event === 'context-ready') {
     if (f.phase !== 'context-check' || f.status !== 'In Progress') fail('Context check is not active.');
     f.phase = input.reuse_spec ? 'plan' : 'close-the-gaps';
@@ -169,7 +187,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     f.context_updated = [...new Set([...previous, ...paths])].join(', ') || 'none';
     if (f.review_context_version === '2') f.test_map_maintenance = JSON.stringify(input.test_map_maintenance);
     if (f.review_checks_version === '1') f.review_requirements = JSON.stringify(input.review_requirements);
-    reason = `Review context prepared for cycle ${f.review_cycle}.`;
+    reason = `Context ready for code review — round ${f.review_cycle}.`;
   } else if (input.event === 'sync-complete') {
     if (f.phase !== 'final-sync' || f.review !== 'clean') fail('Final sync requires a clean review.');
     if (input.context_updated !== undefined) {
@@ -468,12 +486,25 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       if (scope.hash !== workspaceContract.approval_hash || scope.status !== 'applied' || scope.approval?.hash !== scope.hash) fail('Repository selection is pending; approve, apply and register the scope update first.');
     }
     if (workspaceContract && reposInput) {
+      if (!['stop', 'pause', 'autonomy'].includes(input.event)) await checkSessionRepositories(workspaceContract);
       const actual = (await Promise.all(reposInput.map((repo) => realpath(repo)))).sort();
       if (JSON.stringify(actual) !== JSON.stringify(workspaceContract.repos.map((repo) => repo.root).sort())) fail('Repository scope changed without explicit selection approval.');
       const current = await snapshot(actual);
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
+    if (input.validated_impact !== undefined || input.impact_definition_changed !== undefined) fail('Impact validation flags are controller-owned.');
+    let assessedImpact = null;
+    if (effective.event === 'repo-impact') {
+      assessedImpact = await assessRepoImpact(root, state.fields, effective.assessment);
+      if (effective.verification !== undefined) {
+        validateImpactGate(assessedImpact, effective.verification, { passing: true });
+        assessedImpact.verification = effective.verification;
+      }
+      effective = { ...effective, validated_impact: true, impact_definition_changed: state.fields.repo_impact_definition_hash !== 'none' && state.fields.repo_impact_definition_hash !== digest(JSON.stringify(impactDefinition(assessedImpact))) };
+    }
+    if (impactEnabled(state.fields) && ['review-context', 'sync-complete', 'preparation-saved', 'complete'].includes(effective.event)) await checkRepoImpact(root, state.fields);
     const handoff = await loadHandoff(root, workingState, effective);
+    if (handoff?.status === 'done' && handoff.stage !== 'gaps' && impactEnabled(state.fields)) await checkRepoImpact(root, state.fields, { requireChecks: handoff.stage === 'implement', plan: ['plan', 'tests', 'execute'].includes(handoff.stage) && (handoff.artifacts.plan ?? state.fields.plan) !== 'none' ? await readFile(await within(root, handoff.artifacts.plan ?? state.fields.plan), 'utf8') : null });
     if (handoff?.stage === 'gaps') await checkRefinementWorkerHandoff(root, statePath, effective.handoff);
     if (input.validated_waiver !== undefined) fail('validated_waiver is controller-owned.');
     if (effective.event === 'waive-manual-verification') {
@@ -494,12 +525,12 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     }
     if (state.fields.review_context_version === '2') {
       if (effective.event === 'review-context' || effective.event === 'sync-complete' && effective.test_map_maintenance !== undefined) {
-        effective = { ...effective, test_map_maintenance: await assessContextMaintenance(root, reposInput ?? [root], effective.test_map_maintenance) };
+        effective = { ...effective, test_map_maintenance: await assessContextMaintenance(root, reposInput ?? [root], effective.test_map_maintenance, { fields: state.fields }) };
         if (effective.event === 'sync-complete') workingState = { ...workingState, fields: { ...workingState.fields, test_map_maintenance: JSON.stringify(effective.test_map_maintenance) } };
       } else if (effective.event === 'sync-complete') await checkContextMaintenance(root, state.fields);
     }
     if (state.fields.review_checks_version === '1' && effective.event === 'review-context') {
-      effective = { ...effective, review_requirements: await reviewRequirements(reposInput ?? [root], effective.review_requirements, effective.test_map_maintenance) };
+      effective = { ...effective, review_requirements: await reviewRequirements(reposInput ?? [root], effective.review_requirements, effective.test_map_maintenance, { impact: await checkRepoImpact(root, state.fields), contract: workspaceContract }) };
     }
     if (state.fields.review_scope_version === '1') {
       if (handoff?.stage === 'review' && handoff.status === 'done' && handoff.outcome === 'CLEAN') await checkReviewScope(root, statePath);
@@ -511,7 +542,8 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (handoff?.stage === 'plan' && handoff.status === 'done' && Object.hasOwn(state.fields, 'testing_readiness')) {
       const policy = testingPolicy(await readFile(await within(root, handoff.artifacts.plan), 'utf8'), { required: true });
       await checkTestingReadiness(root, state, { plan: await readFile(await within(root, handoff.artifacts.plan), 'utf8') });
-      if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
+      if (impactEnabled(state.fields)) validateImpactPolicy(await checkRepoImpact(root, state.fields), policy);
+      else if (workspaceContract && (workspaceContract.repos.filter((repo) => repo.role === 'product').some((repo) => !policy.some((row) => row.Repo === repo.id))
           || policy.some((row) => !workspaceContract.repos.some((repo) => repo.id === row.Repo)))) fail('Verification policy must cover approved product repos and cannot add unapproved repos.');
     }
     if (effective.event === 'preparation-saved') {
@@ -547,7 +579,25 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
     if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
-    if (['context-ready', 'sync-complete'].includes(effective.event) && f.testing_summary !== undefined) {
+    if (assessedImpact) {
+      assessedImpact.binding.plan_version = f.plan_version;
+      const bytes = JSON.stringify(assessedImpact, null, 2) + '\n';
+      const file = artifactJoin(root, 'make-it-work', f.ticket, `${f.ticket}-impact-v${f.plan_version}-${digest(bytes).slice(0, 16)}.json`);
+      await atomicWrite(file, bytes);
+      f.repo_impact = path.relative(root, file); f.repo_impact_hash = digest(bytes);
+      f.repo_impact_definition_hash = digest(JSON.stringify(impactDefinition(assessedImpact)));
+      f.repo_impact_summary = JSON.stringify(impactSummary(assessedImpact));
+    }
+    if (f.review_reconciliation_version === '1' && handoff?.stage === 'implement' && handoff.status === 'done') {
+      try {
+        const prior = JSON.parse(f.scope_implementation_paths ?? 'null');
+        const paths = prior?.spec_hash === f.spec_hash && prior.plan_version === f.plan_version ? prior.paths : [];
+        f.scope_implementation_paths = JSON.stringify({ spec_hash: f.spec_hash, plan_version: f.plan_version,
+          report: handoff.artifacts.report, report_sha256: digest(await readFile(await within(root, handoff.artifacts.report))),
+          paths: [...new Set([...paths, ...handoff.data.changed_paths])] });
+      } catch (error) { f.scope_analysis_warning = JSON.stringify(`Implementation scope hints unavailable: ${error.message}`); }
+    }
+    if (['context-ready', 'sync-complete', 'repo-impact'].includes(effective.event) && f.testing_summary !== undefined) {
       f.testing_summary = JSON.stringify(await collectTestingSummary(root, f, { final: effective.event === 'sync-complete' }));
     }
     if (input.branch_baseline !== undefined) {
@@ -568,6 +618,13 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     }
     if (f.testing_readiness_version === '1' && ['write-tests', 'execute'].includes(f.phase) && state.fields.phase !== f.phase) await checkTestingReadiness(root, { ...state, fields: f }, { plan: await readFile(await within(root, f.plan), 'utf8') });
     if (input.event === 'scope-update') {
+      const reviewBaseline = reviewBaselineEvidence(state.fields).baseline;
+      if (reviewBaseline) {
+        const added = workspaceContract.repos.filter(repo => !reviewBaseline.repos.some(prior => prior.root === repo.root));
+        try {
+          f.review_baseline = JSON.stringify({ ...reviewBaseline, repos: [...reviewBaseline.repos, ...await captureReviewRepos(added.map(repo => repo.root))].sort((a, b) => a.root.localeCompare(b.root)) });
+        } catch (error) { f.review_baseline_warning = JSON.stringify(`Additional review provenance could not be captured: ${error.message}`); }
+      }
       f.workspace_contract = JSON.stringify(workspaceContract);
       f.branch = workspaceContract.repos[0].branch;
       f.base = workspaceContract.repos[0].base;
@@ -712,7 +769,12 @@ export async function initializeWorkflow(root, input) {
     worktree_fingerprint: digest(JSON.stringify(repos)), workspace_snapshot: JSON.stringify(repos) });
   if (input.refinement_worker) fields.refinement_worker_version = '1';
   fields.implementation_baseline = JSON.stringify({ version: 1, runId: time, origin_hash: digest(JSON.stringify(baseline)), repos: baseline });
-  if (workspace) Object.assign(fields, { workspace_version: '1', workspace_contract: JSON.stringify(workspace) });
+  fields.review_baseline_version = '1';
+  fields.review_reconciliation_version = '1';
+  try {
+    fields.review_baseline = JSON.stringify({ version: 1, ticket: input.ticket, runId: time, repos: await captureReviewRepos(repos.map(repo => repo.root), time) });
+  } catch (error) { fields.review_baseline_warning = JSON.stringify(`Starting review provenance could not be captured: ${error.message}`); }
+  if (workspace) Object.assign(fields, { workspace_version: '1', workspace_contract: JSON.stringify(workspace), ...(workspace.repos.length > 1 ? { repo_impact_version: '1', repo_impact: 'none', repo_impact_hash: 'none', repo_impact_definition_hash: 'none', repo_impact_summary: '[]' } : {}) });
   if (!['here', 'slack-draft', 'slack-send'].includes(fields.refinement_destination)) fail('Invalid refinement destination.');
   if (input.offline_pending) {
     Object.assign(fields, { phase: 'close-the-gaps', status: 'Paused', pause_reason: 'offline refinement pending' });

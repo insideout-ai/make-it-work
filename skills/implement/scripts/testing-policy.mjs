@@ -2,6 +2,7 @@ import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { planImpact, validateImpactPolicy } from './repo-impact.mjs';
 
 const fail = (message) => { throw new Error(message); };
 const plain = (value) => value.replaceAll('`', '').trim();
@@ -26,6 +27,8 @@ function table(body, headers) {
 export function testingPolicy(plan, { required = false } = {}) {
   const body = section(plan, 'Verification Policy');
   if (body === null || /^None(?:\s|$)/.test(body.trim())) {
+    const impact = planImpact(plan);
+    if (impact) { validateImpactPolicy(impact, []); return []; }
     if (required) fail('Testing readiness requires a Verification Policy table.');
     return null;
   }
@@ -39,11 +42,13 @@ export function testingPolicy(plan, { required = false } = {}) {
     if (!['configured', 'user', 'project-policy', 'autonomy-default'].includes(row.Decision)) fail('Invalid verification decision source.');
     if (row.Mode === 'manual' && !['user', 'project-policy', 'autonomy-default'].includes(row.Decision)) fail('Manual verification requires a user, project-policy or recorded autonomy-default decision.');
   }
+  const impact = planImpact(plan);
+  if (impact) validateImpactPolicy(impact, rows);
   const affected = section(plan, 'Affected Code');
   if (affected !== null) {
     const products = [...affected.matchAll(/^### `([^`]+)`[ \t]*([^\n]*)/gm)]
       .filter((match) => !match[2].replace(/<!--.*?-->/g, '').trim().startsWith('(test scope only)')).map((match) => match[1]);
-    if (!products.length || products.length !== names.size || products.some((repo) => !names.has(repo))) {
+    if (impact ? products.some(repo => !names.has(repo) || impact.repos.find(r => r.repo === repo)?.classification !== 'change') : !products.length || products.length !== names.size || products.some((repo) => !names.has(repo))) {
       fail('Verification Policy must cover exactly the affected product repos.');
     }
   }
@@ -83,6 +88,7 @@ export function testingScope(plan, options) {
     legacy: false,
     automated: policy.filter((row) => row.Mode === 'automated').map((row) => row.Repo),
     manual: policy.filter((row) => row.Mode === 'manual').map((row) => row.Repo),
+    ...(planImpact(plan) ? { impact: planImpact(plan) } : {}),
   };
 }
 

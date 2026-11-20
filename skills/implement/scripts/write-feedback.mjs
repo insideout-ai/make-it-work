@@ -582,6 +582,22 @@ export async function finalizeSavedFeedback(statePath, { transcriptPath, limitSt
   return { feedbackFinalization: progress.status, runId: fields.start_time, ...progress };
 }
 
+// Saving has already validated and retained the report. A compact acknowledgement
+// need not repeat the source details used before that save or its required readback.
+export function feedbackWriteReceipt(result, { compact = false } = {}) {
+  const { ticket: _ticket, outputPath, ...receipt } = result;
+  if (compact) {
+    const omitted_detail_counts = {};
+    for (const key of ['hookInterventions', 'agentWaits', 'hookAnalysis', 'sourceCompounds']) {
+      if (!Array.isArray(receipt[key])) continue;
+      omitted_detail_counts[key] = receipt[key].length;
+      delete receipt[key];
+    }
+    return { ...receipt, compact: true, omitted_detail_counts, outputPath };
+  }
+  return { ...receipt, outputPath };
+}
+
 let failureContext;
 async function main() {
   const [mode, ...args] = process.argv.slice(2);
@@ -613,7 +629,7 @@ async function main() {
   if (!statePath || (!['write', 'check'].includes(mode) && (analysisPath || sessionReviewPath))) fail('Provide --state; --analysis and --session-review are for check or write only.');
   failureContext = { mode, statePath };
   if (mode !== 'unavailable' && [reason, failureId].some(value => value !== undefined) || transcriptPath && !['unavailable', 'write', 'inspect', 'finalize'].includes(mode)) fail('--transcript is for inspect, write, finalize or unavailable; --reason and --failure-id are only for unavailable.');
-  if (compact && mode !== 'inspect') fail('--compact is only for inspect.');
+  if (compact && !['inspect', 'write'].includes(mode)) fail('--compact is only for inspect or write.');
   if (evidenceOutputPath && mode !== 'evidence') fail('--output is only for evidence.');
   if (mode === 'finalize') {
     process.stdout.write(`${JSON.stringify(await finalizeSavedFeedback(statePath, { transcriptPath, limitStop }))}\n`);
@@ -673,8 +689,7 @@ async function main() {
   const summary = await inspectFeedback(statePath, { limitStop });
   if (sessionReview && (summary.evidenceRequired || summary.analysisRequired) && !transcriptPath) fail('Combined feedback write requires --transcript to verify source/dispatch prerequisites before saving.');
   const result = await writeFeedback(statePath, { analysis, sessionReview, limitStop, transcriptPath });
-  const { ticket: _ticket, outputPath, ...shareSafe } = result;
-  process.stdout.write(`${JSON.stringify({ ...shareSafe, outputPath })}\n`);
+  process.stdout.write(`${JSON.stringify(feedbackWriteReceipt(result, { compact }))}\n`);
 }
 
 if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

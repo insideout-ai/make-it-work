@@ -13,7 +13,7 @@ Usage: `/make-it-work:feedback-on-session [transcript path or pasted transcript]
 
 The default standalone collection and automatic `implement` integration below retain their existing behavior. A supplied transcript alone does not select maintainer review.
 
-For `/make-it-work:feedback-on-session --maintainer-review <input...>`, or an explicit request to assess supplied transcripts and/or feedback files as a maintainer and decide which workflow fixes to pursue, follow [maintainer review](references/maintainer-review.md) **instead of** the collection procedure below. Inputs may be transcript JSONL/text/Markdown, feedback Markdown, or any combination, supplied as files or pasted content. Maintainer review saves a repository findings ledger and prepares plans only after explicit fix decisions; it does not run automatically after `implement`.
+For `/make-it-work:feedback-on-session --maintainer-review <input...>`, or an explicit request to assess supplied transcripts and/or feedback files as a maintainer and decide which workflow fixes to pursue, follow [maintainer review](references/maintainer-review.md) **instead of** the collection procedure below. Inputs may be transcript JSONL/text/Markdown, feedback Markdown, or any combination, supplied as files or pasted content. Maintainer review saves a repository findings ledger, prepares plain-language follow-up questions for the session's user when material gaps remain (it never sends them), and prepares plans only after explicit fix decisions; it does not run automatically after `implement`.
 
 ## Feedback collection (existing default)
 

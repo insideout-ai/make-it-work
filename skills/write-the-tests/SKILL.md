@@ -5,6 +5,8 @@ description: "Prepares the automated coverage specified by an implementation pla
 
 # Test Preparation
 
+For impact-enabled Implement runs, read [repository impact](../implement/references/repository-impact.md). Check the saved assessment before preparation. Reuse required tests in verify repos without editing them, skip context repos, and return undeclared test edits for reassessment/replanning. Do not establish missing tooling in a verify repo.
+
 Prepare the approved plan's tests. Keep production behavior unchanged and leave all edits uncommitted. The plan defines coverage; this skill supplies observed evidence. Never treat an import/type/setup error alone as valid progression red.
 
 ## Input and context

@@ -17,6 +17,8 @@ import { reviewDisclosure } from '../../../scripts/lib/review-evidence.mjs';
 import { SENSITIVE_PATH } from '../../../scripts/lib/delivery-scope.mjs';
 import { readFeedbackProgress } from './feedback-progress.mjs';
 import { feedbackCommands } from './feedback-handoff.mjs';
+import { candidateScope, omittedLocalPaths, parseSelection, selectionDisclosure, selectionPreview } from './delivery-selection.mjs';
+import { assertFullDeliveryTree, fullDeliveryScope } from './delivery-full-tree.mjs';
 
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -72,7 +74,7 @@ async function lifecycle(context, action) {
     if (feedback?.status === 'collecting') fail(`Finish session feedback, including saved-report readback, before offering optional delivery. ${feedback.reportSaved ? 'The reports are saved, but verified finalization is missing or stale.' : 'Both current reports have not been saved.'} Run ${feedbackCommands(context.statePath, { limitStop: context.state.fields.status === 'Stopped' }).finalize} (replace <session-jsonl> with the current transcript path). This validates existing evidence without repeating collection or changing implementation approval.`);
   }
   if (action === 'offer' && prior) { await refreshDashboard(context); return prior; }
-  if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {
+  if (prior && (!['offered', 'awaiting-approval', 'declined', 'failed'].includes(prior.status) || Object.keys(prior.repos).length)) {
     fail('Delivery already started; inspect its progress instead of changing its offer.');
   }
   const progress = { version: 1, repos: {}, ...prior, status: action === 'offer' ? 'offered' : 'declined', activity: null, error: null };
@@ -84,7 +86,7 @@ async function lifecycle(context, action) {
 
 async function recordFailure(context, error, onlyUnstarted = false) {
   const progress = await loadProgress(context) ?? { version: 1, repos: {} };
-  if (onlyUnstarted && (!['offered', 'awaiting-approval', 'declined', undefined].includes(progress.status) || Object.keys(progress.repos).length)) return;
+  if (onlyUnstarted && (!['offered', 'awaiting-approval', 'declined', 'failed', undefined].includes(progress.status) || Object.keys(progress.repos).length)) return;
   const partial = Object.values(progress.repos).some((repo) => repo.commit || repo.pushed || repo.pr);
   progress.status = partial ? 'partial' : 'failed';
   progress.error = error.message;
@@ -138,28 +140,69 @@ async function readContext(rootInput, stateInput) {
 function preview(plan) {
   const lines = [`# Optional delivery — ${plan.ticket}`, '', `Approved package SHA-256: \`${plan.package_sha256}\``, '',
     'This is a separate request to commit, push to origin, and create or update pull requests. It does not merge or post to Jira.', ''];
+  if (plan.selection_version === 1) lines.push(selectionPreview(plan), '');
+  if (plan.full_delivery_version === 1) lines.push('Full delivery includes the commit changes needed to reproduce the saved package result, including reversals of earlier branch changes.', '');
   for (const repo of plan.repos) {
+    const fullScope = repo.full_result;
     lines.push(`## ${repo.name}`, '', `Repository: \`${repo.path}\``, `Origin: \`${repo.remote}\``, `Push transport: \`${repo.push_url}\``,
       `Branch: \`${repo.branch}\` → base \`${repo.base}\``, `Provider: ${repo.provider}`, '',
       `Commit message: ${plan.draft.commit_message}`, `PR title: ${plan.draft.pr_title}`, '',
       plan.draft.pr_description, '', 'Paths:', '', ...repo.paths.map((item) => `- \`${item}\``), '');
+    if (plan.full_delivery_version === 1) {
+      const list = items => items.length ? items.map(item => `- ${JSON.stringify(item)}`) : ['- None'];
+      lines.push('Reviewed branch-to-base paths:', ...list(fullScope.source_paths), '',
+        'Actual new-commit changes:', ...list(fullScope.commit_paths), '',
+        'Required reversals outside the source-package path list:', ...list(fullScope.reversal_paths), '');
+    }
   }
   lines.push('Approval is for this exact delivery plan. Hooks may run during commit; if they change the approved tree, delivery stops before push.', '');
   return lines.join('\n');
 }
 
-async function prepare(context) {
+async function savedFullScope(context, repo) {
+  if (typeof repo.diff_file !== 'string' || path.basename(repo.diff_file) !== repo.diff_file) fail('Invalid saved package diff path.');
+  const file = artifactJoin(runDirectory(context.root, context.state.fields.ticket), repo.diff_file);
+  if (await realpath(file) !== file) fail('Saved package diff leaves the run directory.');
+  return fullDeliveryScope(repo, await readFile(file));
+}
+
+async function withDeliveryLock(context, operation) {
+  // Scope changes and execution share one lock, including failure reporting.
+  const lock = await open(context.files.lock, 'wx').catch((error) => {
+    if (error.code === 'EEXIST') throw Object.assign(new Error(`Delivery already running or interrupted; inspect ${context.files.lock} before retrying.`), { code: 'EDELIVERYLOCKED' });
+    throw error;
+  });
+  try { return await operation(); }
+  finally { await lock.close(); await unlink(context.files.lock); }
+}
+
+async function prepare(context, selectionFile) {
+  return withDeliveryLock(context, async () => {
+    try {
+      const input = selectionFile ? JSON.parse(await readFile(artifactResolve(selectionFile), 'utf8')) : undefined;
+      return await prepareLocked(context, input);
+    } catch (error) {
+      await recordFailure(context, error, true).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
+      throw error;
+    }
+  });
+}
+
+async function prepareLocked(context, selectionInput) {
   const { root, statePath, state, files } = context;
   const prior = await loadProgress(context);
-  if (prior && (!['offered', 'awaiting-approval', 'declined'].includes(prior.status) || Object.keys(prior.repos).length)) {
+  if (prior && (!['offered', 'awaiting-approval', 'declined', 'failed'].includes(prior.status) || Object.keys(prior.repos).length)) {
     fail('Delivery already started; use status or run to resume.');
   }
   const check = await checkFinalPackage(root, statePath, state.fields.autonomy === 'guided');
   const pkg = JSON.parse(await readFile(artifactJoin(runDirectory(root, state.fields.ticket), `${state.fields.ticket}-final-package.json`), 'utf8'));
+  const selection = selectionInput === undefined ? null : parseSelection(selectionInput, pkg);
   const repos = [];
-  for (const original of pkg.repos) {
-    if (original.paths.length === 0) continue; // Supporting repos remain bound by the package, but need no delivery.
-    const repo = { ...original };
+  const candidateDiffs = [];
+  for (const original of selection?.repos ?? pkg.repos) {
+    const full = selection ? null : await savedFullScope(context, original);
+    const repo = { ...original, paths: full?.paths ?? original.paths };
+    if (repo.paths.length === 0) continue; // Supporting repos stay bound; canceled inherited work may still need a commit.
     await ensureArtifactIgnored(artifactJoin(repo.path, 'make-it-work'));
     assertNoOutgoingArtifacts(repo.path);
     assertSafeRepo(repo);
@@ -171,14 +214,32 @@ async function prepare(context) {
     const pushUrls = git(repo.path, ['remote', 'get-url', '--push', '--all', 'origin']).stdout.trim().split('\n').filter(Boolean);
     if (pushUrls.length !== 1) fail(`Expected exactly one origin push URL in ${repo.name}.`);
     if (/^https?:\/\/[^/@]+@/.test(pushUrls[0])) fail(`Origin push URL embeds credentials in ${repo.name}; use a credential helper instead.`);
-    repos.push({ name: repo.name, path: repo.path, branch: repo.branch, base: repo.base,
-      head: repo.head, paths: repo.paths, target_tree: await targetTree(repo), remote, push_url: pushUrls[0], ...host });
+    const target = await targetTree(repo);
+    const entry = { name: repo.name, path: repo.path, branch: repo.branch, base: repo.base,
+      head: repo.head, paths: repo.paths, target_tree: target, remote, push_url: pushUrls[0], ...host };
+    if (full) {
+      assertFullDeliveryTree(original, full.scope, target);
+      entry.full_result = full.scope;
+    }
+    if (selection) {
+      const source = pkg.repos.find(item => item.name === repo.name);
+      const candidate = candidateScope(source, repo.paths, target);
+      if (!candidate.scope.commit_paths.length) fail(`Selection has no new commit changes in ${repo.name}. Select changed files or omit this repository; existing branch history is not removed by file selection.`);
+      const diffFile = `${path.basename(files.plan, '.json')}-candidate-${repos.length + 1}.diff`;
+      entry.selection = { ...candidate.scope, omitted_local_paths: omittedLocalPaths(source, repo.paths), branch_diff_file: diffFile };
+      candidateDiffs.push({ file: artifactJoin(path.dirname(files.plan), diffFile), bytes: candidate.branchDiff });
+    }
+    repos.push(entry);
   }
   if (!repos.length) fail('No changed repositories to deliver.');
   const disclosure = reviewDisclosure(check.review_scope, check.ui_verification, check.validation_notes);
-  const draft = { ...pkg.draft, pr_description: `${pkg.draft.pr_description}\n\n## Review and browser verification\n\n${disclosure}` };
-  const plan = { version: 1, ticket: pkg.ticket, package_sha256: check.sha256, draft, repos };
+  const sourceDraft = selection?.draft ?? pkg.draft;
+  const candidateDisclosure = selection ? selectionDisclosure(repos, selection.omitted_repos) : '## Review and browser verification\n\n';
+  const draft = { ...sourceDraft, pr_description: `${sourceDraft.pr_description}\n\n${candidateDisclosure}${disclosure}` };
+  const plan = { version: 1, ticket: pkg.ticket, package_sha256: check.sha256, draft, repos,
+    ...(selection ? { selection_version: 1, selection: { omitted_repos: selection.omitted_repos } } : { full_delivery_version: 1 }) };
   const hash = sha(JSON.stringify(plan));
+  for (const item of candidateDiffs) await writeFile(item.file, item.bytes);
   await writeFile(files.preview, preview(plan));
   await atomicWrite(files.plan, plan);
   await saveProgress(context, { version: 1, ticket: state.fields.ticket, plan_sha256: hash,
@@ -201,6 +262,36 @@ async function verifyEvidence(context, plan) {
   if (context.state.fields.autonomy === 'guided') {
     const stamp = JSON.parse(await readFile(artifactJoin(runDirectory(context.root, plan.ticket), `${plan.ticket}-final-approval.json`), 'utf8'));
     if (stamp.package_sha256 !== plan.package_sha256) fail('Final package approval changed.');
+  }
+  if (plan.full_delivery_version !== undefined) {
+    if (plan.full_delivery_version !== 1 || plan.selection_version !== undefined) fail('Unsupported full-delivery plan contract.');
+    const expected = [];
+    for (const original of pkg.repos) {
+      const full = await savedFullScope(context, original);
+      if (full.paths.length === 0) continue;
+      expected.push(original.name);
+      const repo = plan.repos[expected.length - 1];
+      if (!repo || ['name', 'path', 'branch', 'base', 'head'].some(key => original[key] !== repo[key])
+          || JSON.stringify(repo.paths) !== JSON.stringify(full.paths)
+          || JSON.stringify(repo.full_result) !== JSON.stringify(full.scope)) fail(`Full delivery scope differs from the saved package in ${original.name}.`);
+      assertFullDeliveryTree(original, full.scope, repo.target_tree);
+    }
+    if (plan.repos.length !== expected.length) fail('Full delivery repository list differs from the saved package.');
+  }
+  if (plan.selection_version !== undefined) {
+    if (plan.selection_version !== 1) fail('Unsupported delivery selection version.');
+    const selected = parseSelection({ version: 1, repos: plan.repos.map(repo => ({ name: repo.name, paths: repo.paths })), draft: plan.draft }, pkg);
+    if (JSON.stringify(selected.omitted_repos) !== JSON.stringify(plan.selection?.omitted_repos)) fail('Omitted delivery repositories changed.');
+    for (const [index, repo] of plan.repos.entries()) {
+      const original = pkg.repos.find(item => item.name === repo.name);
+      if (selected.repos[index]?.name !== repo.name || !original || ['name', 'path', 'branch', 'base', 'head'].some(key => original[key] !== repo[key])) fail('Selected delivery repository differs from the source package.');
+      const candidate = candidateScope(original, repo.paths, repo.target_tree);
+      if (!candidate.scope.commit_paths.length || Object.entries(candidate.scope).some(([key, value]) => JSON.stringify(repo.selection?.[key]) !== JSON.stringify(value))) fail(`Candidate scope changed in ${repo.name}.`);
+      const file = `${path.basename(context.files.plan, '.json')}-candidate-${index + 1}.diff`;
+      if (repo.selection.branch_diff_file !== file) fail('Candidate diff path changed.');
+      const target = artifactJoin(path.dirname(context.files.plan), file);
+      if (await realpath(target) !== target || sha(await readFile(target)) !== candidate.scope.branch_diff_sha256) fail(`Candidate diff changed in ${repo.name}.`);
+    }
   }
 }
 
@@ -256,6 +347,10 @@ export async function pullRequest(repo, draft) {
 }
 
 async function run(context, expectedHash) {
+  return withDeliveryLock(context, () => runLocked(context, expectedHash));
+}
+
+async function runLocked(context, expectedHash) {
   const { files } = context;
   let plan;
   try {
@@ -267,10 +362,6 @@ async function run(context, expectedHash) {
     await recordFailure(context, error, true).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
     throw error;
   }
-  const lock = await open(files.lock, 'wx').catch((error) => {
-    if (error.code === 'EEXIST') fail(`Delivery already running or interrupted; inspect ${files.lock} before retrying.`);
-    throw error;
-  });
   try {
     let progress = await loadProgress(context);
     const hadActions = progress && Object.keys(progress.repos).length > 0;
@@ -366,9 +457,6 @@ async function run(context, expectedHash) {
   } catch (error) {
     await recordFailure(context, error).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
     throw error;
-  } finally {
-    await lock.close();
-    await unlink(files.lock);
   }
 }
 
@@ -377,21 +465,16 @@ async function main(args) {
   const options = {};
   while (args.length) {
     const flag = args.shift();
-    if (!['--root', '--state', '--hash'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
+    if (!['--root', '--state', '--hash', '--selection'].includes(flag) || !args.length) fail(`Invalid option: ${flag}`);
     options[flag.slice(2)] = args.shift();
   }
   if (!['offer', 'decline', 'prepare', 'run', 'status'].includes(action) || !options.root || !options.state) {
-    fail('Usage: deliver.mjs offer|decline|prepare|run|status --root ROOT --state STATE [--hash PLAN_SHA256]');
+    fail('Usage: deliver.mjs offer|decline|prepare|run|status --root ROOT --state STATE [--hash PLAN_SHA256] [--selection SELECTION.json]');
   }
+  if (options.selection && action !== 'prepare') fail('--selection is only supported by prepare.');
   const context = await readContext(options.root, options.state);
-  if (action === 'offer' || action === 'decline') return lifecycle(context, action);
-  if (action === 'prepare') {
-    try { return await prepare(context); }
-    catch (error) {
-      await recordFailure(context, error, true).catch((checkpointError) => { error.message += `; could not refresh delivery status: ${checkpointError.message}`; });
-      throw error;
-    }
-  }
+  if (action === 'offer' || action === 'decline') return withDeliveryLock(context, () => lifecycle(context, action));
+  if (action === 'prepare') return prepare(context, options.selection);
   if (action === 'status') {
     try { return JSON.parse(await readFile(context.files.journal, 'utf8')); }
     catch (error) { if (error.code === 'ENOENT') return { started: false }; throw error; }

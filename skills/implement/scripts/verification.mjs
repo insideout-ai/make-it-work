@@ -2,13 +2,14 @@ import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { cli } from '../../../scripts/lib/artifacts.mjs';
 import { createHash } from 'node:crypto';
 import { runArtifact, runDirectory } from './artifact-layout.mjs';
 import { testingPolicy, validateManualEvidence } from './testing-policy.mjs';
 import { parseSteps } from '../../../scripts/lib/plan.mjs';
 import { manualScenarioNames } from './manual-waiver.mjs';
 import { checkpointResult } from './dashboard-checkpoint.mjs';
+import { planImpact, validateImpactGate } from './repo-impact.mjs';
 import { parseState } from './render-status.mjs';
 
 const fail = (message) => { throw new Error(message); };
@@ -90,7 +91,7 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
     }
   }
   if (value.gate !== null) {
-    exactKeys(value.gate, ['mode', 'result', 'note', 'full_suites'], 'verification gate');
+    exactKeys(value.gate, ['mode', 'result', 'note', 'full_suites', 'checks'], 'verification gate');
     if (!['none', 'full-suite', 'scoped', 'scoped+full'].includes(value.gate.mode) || !['pass', 'fail', 'no-result', 'manual-accepted'].includes(value.gate.result)) fail('Invalid verification gate.');
     nonempty(value.gate.note, 'verification gate note');
     if (value.gate.mode !== 'none' && value.gate.result === 'manual-accepted') fail('Manual acceptance requires gate mode none.');
@@ -109,6 +110,11 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
       }
       if (value.gate.mode === 'none' && value.gate.full_suites.some((suite) => suite.result !== 'not-run')) fail('An absent gate cannot claim executed full suites.');
     }
+  }
+  if (value.gate?.checks !== undefined) {
+    const impact = plan === null ? null : planImpact(plan);
+    if (impact) validateImpactGate(impact, value.gate);
+    else if (!Array.isArray(value.gate.checks)) fail('Required-check evidence must be an array.');
   }
   if (!Array.isArray(value.acceptance)) fail('Verification acceptance must be an array.');
   const seenAcceptance = new Set();
@@ -152,8 +158,10 @@ export function validateVerification(value, { ticket, planVersion, plan = null, 
       if (JSON.stringify(expected) !== JSON.stringify(actual)) fail('Verification acceptance rows do not match the plan AC traceability table.');
       const policy = testingPolicy(plan);
       if (outcome === 'VERIFIED_MANUALLY' && (!policy || policy.some((row) => row.Mode !== 'manual'))) fail('VERIFIED_MANUALLY requires an explicit all-manual policy.');
-      if (policy && outcome === 'PASSED' && policy.every((row) => row.Mode === 'manual')) fail('An all-manual policy cannot report an automated PASS.');
-      if (policy) {
+      if (policy && outcome === 'PASSED' && (!policy.length || policy.every((row) => row.Mode === 'manual'))) fail('An all-manual policy cannot report an automated PASS.');
+      const impact = planImpact(plan);
+      if (impact) validateImpactGate(impact, value.gate, { passing: outcome === 'PASSED' || outcome === 'VERIFIED_MANUALLY' });
+      else if (policy) {
         const automated = policy.filter((row) => row.Mode === 'automated').map((row) => row.Repo);
         const suites = value.gate.full_suites ?? [];
         if (suites.length !== automated.length || automated.some((repo) => !suites.some((suite) => suite.repo === repo))) fail('Gate evidence must name every automated product repo full suite.');
@@ -192,8 +200,9 @@ export async function readVerification(root, relative, options) {
   return validateVerification(JSON.parse(await readFile(actual, 'utf8')), options);
 }
 
-if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const args = process.argv.slice(2);
+// Finish module initialization before the CLI can refresh a dashboard that
+// imports these validators again. Awaiting it at module scope creates a cycle.
+cli(import.meta.url, async args => {
   const action = args.shift();
   const options = {};
   while (args.length) {
@@ -209,11 +218,18 @@ if (process.argv[1] && artifactResolve(process.argv[1]) === fileURLToPath(import
   if (state) {
     if (state.fields.ticket !== options.ticket || state.fields.plan_version !== options.plan_version) fail('Verification audit must belong to this ticket and plan version.');
     const hash = createHash('sha256').update(JSON.stringify(ledger)).digest('hex');
-    await checkpointResult(options.state, {
+    const note = {
       id: `verification:${hash}:${options.outcome ?? 'partial'}`,
       text: `Verification ledger validated${options.outcome ? ` for ${options.outcome}` : ' (partial check)'}. Gate: ${ledger.gate?.result ?? 'not recorded'}; acceptance: ${ledger.acceptance.filter((item) => item.status !== 'unverified').length}/${ledger.acceptance.length} verified.`,
       reference: `${options.file}; sha256:${hash}`,
-    });
+    };
+    try { await checkpointResult(options.state, note); }
+    catch (error) {
+      // Validation already completed. Reporting failure must not erase its result
+      // or force tests/verification to run again just to recover an audit note.
+      return { valid: true, checkpoint: { status: 'pending', warning: String(error?.message ?? error),
+        retry: { state: artifactResolve(options.state), input: note } } };
+    }
   }
-  console.log(JSON.stringify({ valid: true }));
-}
+  return { valid: true };
+});

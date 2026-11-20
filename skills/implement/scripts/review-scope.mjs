@@ -10,12 +10,15 @@ import { SENSITIVE_PATH, snapshotDeliveryRepo } from '../../../scripts/lib/deliv
 import { compareReviewScope } from '../../../scripts/lib/review-evidence.mjs';
 import { parseState } from './render-status.mjs';
 import { assertRunState, runArtifact } from './artifact-layout.mjs';
+import { checkRepoImpact } from './repo-impact.mjs';
 import { checkContextMaintenance } from './context-maintenance.mjs';
 import { validateReviewChecks } from './review-checks.mjs';
 import { testingPolicy } from './testing-policy.mjs';
+import { reviewBaselineEvidence } from './review-baseline.mjs';
+import { inspectScopeReconciliation, reconcileScopeDecisions, reconciliationSummary } from './review-reconciliation.mjs';
 
 async function verificationContext(root, f) {
-  const context = { mode: f.mode ?? 'legacy', retained_decisions: f.retained_verification ? JSON.parse(f.retained_verification) : null, policy: null, policy_source: null };
+  const context = { ...(f.repo_impact_version === '1' ? { repository_impact: { path: f.repo_impact, sha256: f.repo_impact_hash, definition_hash: f.repo_impact_definition_hash } } : {}), mode: f.mode ?? 'legacy', retained_decisions: f.retained_verification ? JSON.parse(f.retained_verification) : null, policy: null, policy_source: null };
   // Lightweight can retain an explicitly accepted verification limitation even
   // without a plan. These decisions are context, never acceptance evidence.
   const source = f.testing_readiness && f.testing_readiness !== 'none' ? f.testing_readiness : f.mode !== 'lightweight' && f.plan !== 'none' ? f.plan : null;
@@ -39,11 +42,12 @@ async function readState(root, statePath) {
 }
 export async function deliverySnapshots(root, state) {
   const f = state.fields;
-  const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos
+  const contract = f.workspace_version === '1' ? JSON.parse(f.workspace_contract) : null;
+  const selected = contract ? contract.repos
     : (f.workspace_snapshot ? JSON.parse(f.workspace_snapshot) : [{ root, branch: f.branch }]).map((repo) => ({ ...repo, base: f.base }));
   const repos = [];
   for (const repo of selected) {
-    const snapshot = await snapshotDeliveryRepo(repo.root, repo.base);
+    const snapshot = await snapshotDeliveryRepo(repo.root, repo.base, contract?.repo_naming_version === 1 ? { name: repo.id } : {});
     if (snapshot.branch !== repo.branch) fail('Review branch differs from the saved delivery branch.');
     if (repos.some((item) => item.name === snapshot.name)) fail(`Duplicate delivery repo name: ${snapshot.name}`);
     repos.push(snapshot);
@@ -59,39 +63,72 @@ export async function prepareReviewScope(root, statePath) {
   if (['1', '2'].includes(f.review_context_version)) {
     const entry = state.audit.findLast(row => row.to === 'review' && row.from !== 'review');
     if (!state.audit.some(row => row.number > (entry?.number ?? 0) && row.from === 'review' && row.to === 'review' &&
-        row.outcome.startsWith(`Review context prepared for cycle ${f.review_cycle}.`) && row.outcome.includes('[workflow-event:'))) {
+        (row.outcome.startsWith(`Context ready for code review — round ${f.review_cycle}.`) ||
+          row.outcome.startsWith(`Review context prepared for cycle ${f.review_cycle}.`)) && row.outcome.includes('[workflow-event:'))) {
       fail('Prepare bounded documentation/test-map context before freezing review scope; checkpoint review-context with context_updated (or []).');
     }
   }
+  await checkRepoImpact(root, f, { requireChecks: f.mode === 'lightweight' });
   await checkContextMaintenance(root, f);
   const repos = await deliverySnapshots(root, state);
+  const reconciliation = await inspectScopeReconciliation(root, state, repos);
   const target = { version: 1, ticket: f.ticket, runId: f.start_time, planVersion: Number(f.plan_version), cycle: Number(f.review_cycle), repos: manifestRepos(repos, f), verification_context: await verificationContext(root, f) };
+  if (reconciliation.enabled) target.scope_reconciliation = reconciliationContext(reconciliation);
   if (f.review_checks_version === '1') {
     const requirements = JSON.parse(f.review_requirements ?? '[]');
     if (requirements.length !== repos.length) fail('Checkpoint the required review skills and mapping scope before freezing review.');
     target.review_requirements = requirements;
   }
   const relative = runArtifact(f.ticket, targetName(f), f.artifact_naming_version);
+  let targetBytes = `${JSON.stringify(target, null, 2)}\n`;
+  try {
+    const previousBytes = await readFile(artifactJoin(root, relative), 'utf8');
+    const { scope_reconciliation: previousAdvisories, ...previousCore } = JSON.parse(previousBytes);
+    const { scope_reconciliation: currentAdvisories, ...currentCore } = target;
+    // Advisory refreshes must not force re-review of an identical delivery target.
+    if (JSON.stringify(previousCore) === JSON.stringify(currentCore)) targetBytes = previousBytes;
+  } catch { /* A missing/unreadable old target can be prepared from current evidence. */ }
   for (const [index, repo] of repos.entries()) await atomicWrite(artifactJoin(root, 'make-it-work', f.ticket, target.repos[index].diff_file), repo.diff);
-  await atomicWrite(artifactJoin(root, relative), `${JSON.stringify(target, null, 2)}\n`);
-  const preexisting = await preexistingUntracked(root, state);
-  return { review_target: relative, sha256: digest(await readFile(artifactJoin(root, relative))),
+  await atomicWrite(artifactJoin(root, relative), targetBytes);
+  const preexisting = reconciliation.enabled ? { repos: [] } : await preexistingUntracked(root, state);
+  return { ...(reconciliation.enabled ? { ready: true, reconciliation: reconciliationSummary(reconciliation) } : {}), review_target: relative, sha256: digest(await readFile(artifactJoin(root, relative))),
     repos: target.repos.map(({ name, path: repoRoot, base, merge_base, paths, diff_file }) => ({ name, root: repoRoot, base, merge_base, paths, diff_file })),
-    ...(preexisting.repos.length ? { preexisting_untracked: preexisting.repos } : {}) };
+    ...(!reconciliation.enabled && preexisting.repos.length ? { preexisting_untracked: preexisting.repos } : {}) };
 }
 
-// Untracked files that already existed, byte-identical, in the startup baseline.
-// The run did not write them, so they are not part of its delivery by default.
+const reconciliationContext = report => ({ advisory: true, available: report.available, warnings: report.warnings, assumption: report.assumption, unresolved: report.unresolved, fingerprint: report.fingerprint,
+  decisions_sha256: digest(JSON.stringify(report.candidates.map(({ id, resolution }) => ({ id, resolution })))),
+  files: report.files, inclusions: reconciliationSummary(report).candidates });
+export async function inspectReviewScope(root, statePath) {
+  root = await realpath(root);
+  const state = await readState(root, statePath);
+  return reconciliationSummary(await inspectScopeReconciliation(root, state, await deliverySnapshots(root, state)));
+}
+export async function reconcileReviewScope(root, statePath, input) {
+  root = await realpath(root);
+  const state = await readState(root, statePath);
+  return reconciliationSummary(await reconcileScopeDecisions(root, state, await deliverySnapshots(root, state), input));
+}
+
+// Unchanged untracked starting content, offered for explicit scope treatment.
+// New runs use review provenance; old runs retain their narrower baseline.
 export async function preexistingUntracked(root, state) {
   const f = state.fields;
-  if (!f.implementation_baseline || f.implementation_baseline === 'none') return { available: false, repos: [] };
-  let saved;
-  try { saved = JSON.parse(f.implementation_baseline); } catch { return { available: false, repos: [] }; }
+  const evidence = reviewBaselineEvidence(f), review = evidence.baseline;
+  if (evidence.warning) return { available: false, repos: [], warnings: [evidence.warning] };
+  if (!review && (!f.implementation_baseline || f.implementation_baseline === 'none')) return { available: false, repos: [] };
+  let saved = review;
+  if (!saved) {
+    try { saved = JSON.parse(f.implementation_baseline); } catch { return { available: false, repos: [] }; }
+  }
   if (!Array.isArray(saved.repos)) return { available: false, repos: [] };
+  const selected = f.workspace_version === '1' ? JSON.parse(f.workspace_contract).repos : f.workspace_snapshot ? JSON.parse(f.workspace_snapshot) : [{ root }];
+  if (review && selected.some(repo => !review.repos.some(prior => prior.root === repo.root))) return { available: false, repos: [], warnings: ['Review baseline is missing a selected repository; starting provenance is unknown.'] };
   const repos = [];
   for (const prior of saved.repos) {
+    if (review && !selected.some(repo => repo.root === prior.root)) continue;
     if (!Array.isArray(prior.changes)) continue;
-    const images = new Map(prior.changes.filter((entry) => entry.image).map((entry) => [entry.file, entry.image]));
+    const images = new Map(prior.changes.filter((entry) => entry.image && (!review || entry.tracked === false)).map((entry) => [entry.file, entry.image]));
     const untracked = execFileSync('git', ['-C', prior.root, 'ls-files', '--others', '--exclude-standard', '-z', '--', '.', ':(exclude)make-it-work'], { maxBuffer: 100 * 1024 * 1024 }).toString().split('\0').filter(Boolean).sort();
     const paths = [];
     for (const file of untracked) {
@@ -99,6 +136,7 @@ export async function preexistingUntracked(root, state) {
       if (!before) continue;
       const absolute = artifactJoin(prior.root, file);
       const info = await lstat(absolute);
+      if (review && before.type !== (info.isSymbolicLink() ? 'symlink' : info.isFile() ? 'file' : 'other')) continue;
       const bytes = info.isSymbolicLink() ? await readlink(absolute) : await readPlain(absolute);
       if ((info.mode & 0o111) === before.mode && digest(bytes) === before.sha256) paths.push(file);
     }
@@ -114,7 +152,20 @@ export async function excludePreexisting(root, statePath, input = {}) {
   root = await realpath(root);
   const state = await readState(root, statePath), f = state.fields;
   const found = await preexistingUntracked(root, state);
+  const warnings = [];
   if (!found.available) fail('This run has no startup baseline, so pre-existing untracked files cannot be identified.');
+  if (input.paths !== undefined && !Array.isArray(input.paths)) fail('Only pre-existing, unchanged untracked files can be excluded.');
+  if (f.review_reconciliation_version !== undefined) {
+    const report = await inspectScopeReconciliation(root, state, await deliverySnapshots(root, state));
+    if (!report.available) {
+      warnings.push(...(report.warnings ?? []));
+      if (input.paths === undefined) warnings.push('Default exclusions were not applied because prior inclusion decisions could not be checked; explicit eligible paths can still be selected.');
+    }
+    // A later explicit path choice supersedes inclusion without a separate revoke.
+    // Defaults still preserve the user's earlier inclusions, or all files if unknown.
+    if (input.paths === undefined) for (const repo of found.repos) repo.paths = report.available ? repo.paths.filter(file => !report.candidates.some(item => item.facts.repo === repo.root && item.facts.path === file && item.resolution)) : [];
+  }
+  if (input.paths !== undefined && (!Array.isArray(input.paths) || input.paths.some(file => typeof file !== 'string' || !found.repos.some(repo => repo.paths.includes(file))))) fail('Only pre-existing, unchanged untracked files can be excluded.');
   const results = [];
   for (const repo of found.repos) {
     const requested = input.paths ? input.paths.filter((file) => repo.paths.includes(file)) : repo.paths;
@@ -130,8 +181,7 @@ export async function excludePreexisting(root, statePath, input = {}) {
     await writePlain(exclude, text);
     results.push({ root: repo.root, excluded: requested, exclude_file: exclude });
   }
-  if (input.paths && input.paths.some((file) => !results.some((repo) => repo.excluded.includes(file)))) fail('Only pre-existing, unchanged untracked files can be excluded.');
-  return { repos: results };
+  return { repos: results, ...(warnings.length ? { warnings } : {}) };
 }
 
 async function readTarget(root, state, relative) {
@@ -204,12 +254,15 @@ export async function checkReviewScope(root, statePath, { requireCurrent = true 
   const result = fullCoverage(evidence, repos);
   result.covered = result.covered && sameTarget(target, repos, f);
   if (requireCurrent && !result.covered) fail('Delivery scope is not fully reviewed. Prepare and independently review the full current branch-to-base diff before final packaging.');
-  return { ...result, target: evidence.delivery_target, target_diffs: target.repos.map((repo) => runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)), repos: repos.map(({ diff, ...repo }) => repo) };
+  const reconciliation = await inspectScopeReconciliation(root, state, repos);
+  return { ...result, ...(reconciliation.enabled ? { reconciliation: reconciliationSummary(reconciliation) } : {}), target: evidence.delivery_target, target_diffs: target.repos.map((repo) => runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)), repos: repos.map(({ diff, ...repo }) => repo) };
 }
 
 cli(import.meta.url, async (argv) => {
   const o = args(argv, ['--root', '--state', '--input']);
-  if (!o.root || !o.state || !['prepare', 'check', 'preexisting', 'exclude-preexisting'].includes(o.command)) fail('Usage: review-scope.mjs prepare|check|preexisting|exclude-preexisting --root ROOT --state STATE [--input JSON]');
+  if (!o.root || !o.state || !['prepare', 'check', 'inspect', 'reconcile', 'preexisting', 'exclude-preexisting'].includes(o.command)) fail('Usage: review-scope.mjs prepare|check|inspect|reconcile|preexisting|exclude-preexisting --root ROOT --state STATE [--input JSON]');
+  if (o.command === 'inspect') return inspectReviewScope(o.root, o.state);
+  if (o.command === 'reconcile') return reconcileReviewScope(o.root, o.state, await jsonInput(o.input));
   if (o.command === 'preexisting') { const root = await realpath(o.root); return preexistingUntracked(root, await readState(root, o.state)); }
   if (o.command === 'exclude-preexisting') return excludePreexisting(o.root, o.state, o.input ? await jsonInput(o.input) : {});
   return o.command === 'prepare' ? prepareReviewScope(o.root, o.state) : checkReviewScope(o.root, o.state);

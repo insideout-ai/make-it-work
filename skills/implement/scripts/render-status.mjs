@@ -21,7 +21,8 @@ import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../.
 import { generateArtifactPreviews } from '../../../scripts/lib/artifact-preview.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
-import { summarizeAcceptance } from './acceptance-summary.mjs';
+import { summarizeAcceptance, acceptanceMarkdown } from './acceptance-summary.mjs';
+import { atomicWrite } from '../../../scripts/lib/artifacts.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -293,7 +294,7 @@ export function parseState(markdown, statePath = '') {
       fail(`State filename must match its ticket field: expected ${expected}.`);
     }
   }
-  for (const field of ['artifact_naming_version', 'activity_timing_version']) if (fields[field] !== undefined && fields[field] !== '1') fail(`Unsupported ${field}.`);
+  for (const field of ['artifact_naming_version', 'activity_timing_version', 'repo_impact_version']) if (fields[field] !== undefined && fields[field] !== '1') fail(`Unsupported ${field}.`);
   if (!STATUS_VALUES.has(fields.status)) fail(`Unsupported status: ${fields.status}`);
   if (fields.handoff_version !== undefined && fields.handoff_version !== '1') fail(`Unsupported handoff_version: ${fields.handoff_version}`);
   if (fields.review_scope_version !== undefined && fields.review_scope_version !== '1') fail('Unsupported review_scope_version.');
@@ -545,7 +546,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     const passed = dotState === 'passed';
     const symbol = passed ? '✓' : dotState === 'failed' ? '✗' : '';
     const lineClass = passed || dotState.startsWith('current') ? ' line-green' : '';
-    const label = escapeHtml(info.label) + (info.skill ? `<span class="phase-skill">(${escapeHtml(info.skill)})</span>` : '');
+    const label = escapeHtml(info.label) + (info.skill && info.skill !== 'execute' ? `<span class="phase-skill">(${escapeHtml(info.skill)})</span>` : '');
     const currentLabel = isActive && state.fields.status === 'In Progress' ? ' current-label' : '';
     const pieces = ['<div class="phase-step">'];
     if (index > 0) pieces.push(`  <div class="line${lineClass}"></div>`);
@@ -555,15 +556,18 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     pieces.push(`  <div class="phase-label${currentLabel}">${label}</div>`);
 
     let modeText = null;
+    let modeDetails = null;
     if (isActive && slot.phase === 'write-tests') modeText = 'Preparing coverage · implementation has not advanced';
     if (slot.phase === 'write-tests' && slot.preparationExempt) modeText = 'Not applicable — manual verification';
     if (isActive && slot.phase === 'plan' && state.fields.phase === 'plan-approval') modeText = 'Awaiting plan approval';
     if (isActive && slot.phase === 'execute') {
       if (!planStatus) fail('An active Execute phase requires a readable plan Execution Status.');
-      modeText = `${planStatus.mode} · Step ${planStatus.complete} of ${planStatus.total} complete`;
+      modeText = `Step ${planStatus.complete} of ${planStatus.total} complete`;
+      modeDetails = `${planStatus.mode} · ${modeText}`;
       if (state.fields.status === 'In Progress' && planStatus.activeSteps?.length) {
         const ids = planStatus.activeSteps.map((step) => step.number);
-        modeText = `${planStatus.mode} · Running ${ids.length === 1 ? 'step' : 'steps'} ${ids.join(', ')} of ${planStatus.total} · ${planStatus.complete} of ${planStatus.total} verified complete`;
+        modeText = `${ids.length === 1 ? 'Step' : 'Steps'} ${ids.join(', ')} of ${planStatus.total}`;
+        modeDetails = `${planStatus.mode} · Running ${ids.length === 1 ? 'step' : 'steps'} ${ids.join(', ')} of ${planStatus.total} · ${planStatus.complete} of ${planStatus.total} verified complete`;
       }
     } else if (isActive && slot.phase === 'fix-plan' && state.fixPlanRoundSteps !== null) {
       if (!planStatus) fail('An active Fix phase with sized steps requires a readable plan Execution Status.');
@@ -586,7 +590,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
     }
     if (dotState === 'skipped') modeText = 'Skipped';
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
-    if (modeText) pieces.push(`  <div class="phase-mode">${escapeHtml(modeText)}</div>`);
+    if (modeText) pieces.push(`  <div class="phase-mode"${modeDetails ? ` title="${escapeHtml(modeDetails)}"` : ''}>${escapeHtml(modeText)}</div>`);
 
     if ((passed || finalizingFeedback) && (slot.phase !== 'complete' || slot.finalizing)) {
       const activatedIndex = activated.indexOf(slot);
@@ -696,8 +700,52 @@ function displayOutcome(outcome) {
   return clean;
 }
 
-function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
+function renderReadinessResult(state, text) {
+  const match = text.match(/^Result: Testing readiness completed before planning\. Baselines: (.+)\.; evidence: (.+); (.+); sha256:([a-f0-9]{64})$/);
+  if (!match) return null;
+  const [, baselines, receiptPath, reportPath] = match;
+  let receipt, report;
+  try {
+    receipt = validateArtifactPath(receiptPath, 'readiness receipt', state.fields.ticket);
+    report = validateArtifactPath(reportPath, 'readiness report', state.fields.ticket);
+  } catch { return null; }
+  const version = receipt?.match(/-readiness-v([1-9]\d*)\.json$/)?.[1];
+  const names = (suffix) => [`${state.fields.ticket}-${suffix}`, `miw-${state.fields.ticket}-${suffix}`];
+  if (!version || !names(`readiness-v${version}.json`).includes(receipt) ||
+      !names(`testing-readiness${version === '1' ? '' : `-v${version}`}.md`).includes(report)) return null;
+  const rows = baselines.split(', ').map(value => value.match(/^(.+)=(pass|fail|not-run|not-applicable)$/));
+  if (rows.some(row => !row)) return null;
+  const passed = rows.every(row => row[2] === 'pass');
+  const limited = rows.some(row => ['fail', 'not-run'].includes(row[2]));
+  const title = passed ? 'Testing readiness passed' : limited ? 'Testing readiness completed with baseline limitations' : 'Testing readiness completed';
+  const summaries = rows.map(([, repo, baseline]) => {
+    const name = escapeHtml(repo);
+    return baseline === 'pass' ? `Baseline tests passed for ${name}.` :
+      baseline === 'fail' ? `Baseline tests failed for ${name}.` :
+      baseline === 'not-run' ? `Baseline tests were not run for ${name}.` :
+      `Manual verification selected for ${name}; no automated baseline was run.`;
+  });
+  const summary = rows.length === 1 ? `<p>${summaries[0]}</p>` : `<ul>${summaries.map(value => `<li>${value}</li>`).join('')}</ul>`;
+  return `<div class="readiness-result"><strong>${title}</strong>${summary}<p>${limited ? 'Review baseline limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View readiness report</a></p><details><summary>Technical details</summary><p><a href="${escapeHtml(receipt)}">Open readiness record (JSON)</a></p><p>${escapeHtml(text)}</p></details></div>`;
+}
+
+function renderAuditOutcome(state, outcome, assessment = null, auditId = null, acceptance = null) {
   const text = displayOutcome(outcome);
+  const verification = text.match(/^(Result: Verification ledger validated(?: for [A-Z_]+| \(partial check\))\. Gate: .+; acceptance: \d+\/\d+ verified\.); evidence: (.+); sha256:[a-f0-9]{64}$/);
+  if (verification && acceptance?.report && verification[2] === acceptance.source) {
+    return `${escapeHtml(verification[1].replace('Result: Verification ledger validated', 'Verification checked'))} · <a href="${escapeHtml(acceptance.report)}">View verification report</a>`;
+  }
+  const readiness = renderReadinessResult(state, text);
+  if (readiness) return readiness;
+  const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(\. Implementation remains unverified\.)?$/);
+  if (preparation) {
+    try {
+      const report = validateArtifactPath(preparation[2], 'test_preparation_report', state.fields.ticket);
+      if (report && /-plan-tests-[1-9]\d*\.md$/.test(report)) {
+        return `Test preparation ${escapeHtml(preparation[1])} · <a href="${escapeHtml(report)}">View preparation report</a>${preparation[3] ?? ''}`;
+      }
+    } catch { /* Preserve unrecognized historical entries as plain text. */ }
+  }
   if (text.startsWith('Result: Change assessment — ')) {
     const split = text.lastIndexOf('; evidence: ');
     const reference = text.slice(split + '; evidence: '.length);
@@ -729,7 +777,7 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null) {
   return escapeHtml(readable);
 }
 
-function renderAuditRows(state, invalidTimestampFrom, assessment = null) {
+function renderAuditRows(state, invalidTimestampFrom, assessment = null, acceptance = null) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
     if (row.number === state.realRowsFrom) {
@@ -742,7 +790,10 @@ function renderAuditRows(state, invalidTimestampFrom, assessment = null) {
     }
     const warning = row.number === invalidTimestampFrom
       ? ' <span class="timestamp-warning">(timestamp later than state checkpoint)</span>' : '';
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td><td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td><td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id)}${warning}${duration}</td></tr>`;
+    const phases = row.from === row.to
+      ? `<td colspan="2" title="Phase unchanged">${escapeHtml(PHASE_INFO[row.to]?.label ?? row.to)}</td>`
+      : `<td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td>${phases}<td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id, acceptance)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
@@ -757,6 +808,22 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
 }
 
+function pendingReviewLink(state, record) {
+  const binding = record.binding;
+  if (!binding || binding.kind === 'handoff') return '';
+  const reference = binding.kind === 'package'
+    ? runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version)
+    : binding.path;
+  let filename;
+  try { filename = validateArtifactPath(reference, 'pending approval', state.fields.ticket); }
+  catch { return ''; }
+  if (!filename || !filename.endsWith('.md')) return '';
+  const label = binding.kind === 'package' ? 'Review final package'
+    : record.phase === 'spec-approval' ? 'Review specification'
+      : record.phase === 'plan-approval' ? 'Review plan' : 'Review document';
+  return `<p class="pending-reference"><a href="${escapeHtml(filename)}">${label}</a></p>`;
+}
+
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
   const pending = state.pendingInputs ?? pendingInputs(state.fields);
   if (pending.length) {
@@ -765,10 +832,11 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
       const qualifier = record.blocking ? state.fields.status === 'Stopped' ? 'Workflow stopped' : 'Workflow paused' : state.fields.status === 'Complete' ? 'Implementation remains complete' : 'Does not block the workflow';
       const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
       const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
-      const reference = record.binding ? `<p class="pending-reference">${record.binding.path ? escapeHtml(record.binding.path) + ' · ' : ''}SHA-256: <code>${escapeHtml(record.binding.sha256)}</code></p>` : '';
+      const reference = pendingReviewLink(state, record);
       const queued = record.blocking && state.fields.queued_autonomy && state.fields.queued_autonomy !== 'none'
         ? `<p class="pending-qualifier">${escapeHtml(state.fields.queued_autonomy)} starts with the next phase. This question still needs an answer under ${escapeHtml(state.fields.autonomy)}.</p>` : '';
-      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">Pending since <span class="ts" data-ts="${escapeHtml(record.requested_at)}">${escapeHtml(record.requested_at)}</span> · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+      const waiting = record.waiting_for === 'pm' ? 'Waiting for the Product Manager' : record.kind === 'approval' ? 'Waiting for your approval' : 'Waiting for your input';
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">${waiting} · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
     const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
@@ -814,29 +882,21 @@ function renderModePill(state) {
   if (!isAdaptive(state)) return '';
   const { mode, mode_source: source, risk, risk_rationale: rationale } = state.fields;
   if (mode === 'none') {
-    return '<span class="pill mode-pill" title="Risk and mode are assessed after Refinement.">Mode: Not yet assessed</span>';
+    return '<span class="pill mode-pill" title="The development approach and risk are assessed after Refinement.">Approach: Not yet assessed</span>';
   }
-  const riskText = risk === 'none' ? '' : ` · ${risk[0].toUpperCase()}${risk.slice(1)} risk`;
-  const text = `Mode: ${MODE_LABELS[mode]}${source === 'user' ? ' (user)' : ''}${riskText}`;
-  const tooltip = rationale === 'none' ? 'No risk rationale recorded.' : rationale;
-  return `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">${escapeHtml(text)}</span>`;
+  const explanation = mode === 'tdd'
+    ? 'Plans the work, prepares tests, then implements and verifies each step.'
+    : 'Implements a low-risk change directly from the refined spec, with tests and independent review.';
+  const tooltip = `${explanation}${source === 'user' ? ' Selected by you.' : ''}`;
+  const approach = `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">Approach: ${escapeHtml(MODE_LABELS[mode])}</span>`;
+  const riskBadge = risk === 'none' ? '' : `<span class="pill risk-pill" title="${escapeHtml(rationale === 'none' ? 'No risk rationale recorded.' : rationale)}">Risk: ${escapeHtml(risk[0].toUpperCase() + risk.slice(1))}</span>`;
+  return approach + riskBadge;
 }
 
-function renderTddArtifactTile(state, field, label) {
+function renderTddArtifactTile(state, field, label, note = '') {
   if (isAdaptive(state) && state.fields.mode === 'lightweight') return '';
   const link = artifactLink(state.fields[field], field, state.fields.ticket);
-  return `  <div class="artifact-tile"><div class="label">${label}</div>${link}</div>`;
-}
-
-function renderPreparation(state, preparation) {
-  if (state.fields.test_writing_version !== '1' || state.fields.mode === 'lightweight') return '';
-  const label = 'Test Preparation';
-  const link = artifactLink(state.fields.test_preparation_report, 'test_preparation_report', state.fields.ticket);
-  if (!preparation) return `<section class="test-preparation"><h2>${label}</h2><p>Preparation pending. Implementation is unverified.</p></section>`;
-  const stale = preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash);
-  const status = stale ? 'Superseded — refresh preparation for the current plan' : preparation.status;
-  const rows = (Array.isArray(preparation.entries) ? preparation.entries : []).filter(entry => entry && typeof entry === 'object').map(entry => `<li>${escapeHtml(entry.scenario)}: <strong>${escapeHtml(entry.result)}</strong> — ${escapeHtml(entry.reason)}</li>`).join('');
-  return `<section class="test-preparation"><h2>${label}</h2><p>${escapeHtml(status)}</p><p>Expected red confirms missing behavior; it is successful preparation. Unavailable checks remain unverified. Preparation does not establish implementation completion.</p><ul>${rows}</ul><p>${link}</p></section>`;
+  return `  <div class="artifact-tile"><div class="label">${label}</div>${link}${note ? `<p class="artifact-note">${escapeHtml(note)}</p>` : ''}</div>`;
 }
 
 function renderImplementationTile(state) {
@@ -870,12 +930,18 @@ function renderPublicationBadge(permission) {
   return `<span class="pill ticket-updates-pill ticket-updates-${status}" title="${escapeHtml(tooltip)}">Ticket updates: ${label}</span>`;
 }
 
-function renderAcceptance(state, verification) {
-  if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return '';
+function acceptancePresentation(state, verification) {
+  if (state.fields.verification_version !== '1' || !['final-approval', 'complete'].includes(state.fields.phase) || (isAdaptive(state) && state.fields.mode === 'lightweight')) return null;
   const summary = summarizeAcceptance(verification?.acceptance);
-  if (!summary) return '<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: Not recorded</h2></section>';
-  const rows = summary.pendingCriteria.flatMap(({ criterion, scenarios }) => scenarios.map(({ scenario, clause, note }) => `<tr><td>${escapeHtml(criterion)}</td><td>${escapeHtml(clause ? `${clause} — ${scenario}` : scenario)}</td><td>${escapeHtml(note)}</td></tr>`)).join('\n');
-  return `<section class="acceptance-summary" aria-label="Acceptance verification"><h2>Acceptance verification: ${escapeHtml(summary.label)}</h2><p>${escapeHtml(summary.detail)}${summary.pendingRows ? ` · ${summary.pendingRows} unverified requirement/scenario ${summary.pendingRows === 1 ? 'row' : 'rows'} below` : ''}</p>${rows ? `<table><tr><th>Pending criterion</th><th>Requirement clause / scenario</th><th>Verification needed / recorded reason</th></tr>${rows}</table>` : ''}</section>`;
+  return { summary,
+    report: summary ? runArtifactName(runArtifact(state.fields.ticket, `${state.fields.ticket}-acceptance-v${state.fields.plan_version}.md`, state.fields.artifact_naming_version), state.fields.ticket) : null,
+    source: runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`, state.fields.artifact_naming_version) };
+}
+
+function renderAcceptance(acceptance) {
+  if (!acceptance) return '';
+  const summary = acceptance.summary;
+  return `<p class="acceptance-summary" aria-label="Acceptance verification"><strong>Acceptance checks:</strong> ${summary ? `${summary.verified} of ${summary.total} verified${summary.pending ? ` · ${summary.pending} pending` : ''} · <a href="${escapeHtml(acceptance.report)}">View verification report</a>` : 'Not recorded'}</p>`;
 }
 
 function renderAutonomyBadge(state) {
@@ -883,7 +949,7 @@ function renderAutonomyBadge(state) {
   const pending = queued && queued !== 'none';
   const title = pending ? 'The queued mode starts at the next phase boundary. The current phase and any open question keep their existing mode.'
     : autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP;
-  return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Autonomy: ${escapeHtml(autonomy)}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
+  return `<span class="pill autonomy-pill" title="${escapeHtml(title)}">Control: ${escapeHtml(autonomy[0].toUpperCase() + autonomy.slice(1))}${pending ? ` · ${escapeHtml(queued)} queued` : ''}</span>`;
 }
 
 function renderFeedbackProgress(feedback) {
@@ -907,6 +973,10 @@ function renderAssessmentBadges(state, report) {
 }
 
 export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null }) {
+  const acceptance = acceptancePresentation(state, verification);
+  const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
+    : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
+      ? 'Superseded — refresh preparation for the current plan' : '';
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -942,12 +1012,13 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     // Older templates may still contain this placeholder. Details live in artifacts.
     ASSURANCE_SUMMARY: '',
     CHANGE_ASSESSMENT: '', // Compatibility with older templates; no standalone section.
-    ACCEPTANCE_SUMMARY: renderAcceptance(state, verification),
+    ACCEPTANCE_SUMMARY: renderAcceptance(acceptance),
+    VERIFICATION_TILE: acceptance?.report ? `  <div class="artifact-tile"><div class="label">Acceptance checks</div><a href="${escapeHtml(acceptance.report)}">View verification report</a></div>` : '',
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation') : '',
-    TEST_PREPARATION: renderPreparation(state, preparation),
+    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) : '',
+    TEST_PREPARATION: '', // Compatibility with older templates; details live in artifacts.
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
     IMPLEMENTATION_TILE: renderImplementationTile(state),
@@ -956,7 +1027,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
-    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment),
+    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment, acceptance),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
     DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
@@ -1045,6 +1116,14 @@ export async function generateDashboard(statePath) {
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
   const { readFeedbackProgress } = await import('./feedback-progress.mjs');
+  const acceptance = acceptancePresentation(state, verification);
+  if (acceptance?.report) {
+    const report = artifactJoin(path.dirname(absoluteStatePath), acceptance.report);
+    const markdown = acceptanceMarkdown(verification, runArtifactName(acceptance.source, state.fields.ticket));
+    let previous = null;
+    try { previous = await readFile(report, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (previous !== markdown) await atomicWrite(report, markdown);
+  }
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   let preparation = null;

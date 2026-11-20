@@ -169,7 +169,7 @@ export async function recordLostReview(statePath, lost) {
   });
 }
 
-const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> [--category <category>] [--planning-activity discovery|drafting|validation] | decision --state <state.md> --input <decision.json>';
+const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> | activity --state <state.md> --activity <one line> [--category <category>] [--planning-activity discovery|drafting|validation] | decision|result --state <state.md> --input <note.json>';
 
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === '--help') return { help: true };
@@ -182,8 +182,8 @@ function parseArgs(argv) {
     }
     return result;
   }
-  if (argv[0] === 'decision' && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--input' && argv[4]) {
-    return { statePath: argv[2], input: argv[4] };
+  if (['decision', 'result'].includes(argv[0]) && argv.length === 5 && argv[1] === '--state' && argv[2] && argv[3] === '--input' && argv[4]) {
+    return { statePath: argv[2], input: argv[4], result: argv[0] === 'result' };
   }
   if (argv[0] === 'resume' && argv.length === 3 && argv[1] === '--state' && argv[2]) return { statePath: argv[2], resume: true };
   fail(USAGE);
@@ -203,7 +203,8 @@ async function main() {
     return;
   }
   if (args.input) {
-    const result = await checkpointDecision(args.statePath, JSON.parse(await readFile(args.input, 'utf8')));
+    const input = JSON.parse(await readFile(args.input, 'utf8'));
+    const result = await (args.result ? checkpointResult(args.statePath, input) : checkpointDecision(args.statePath, input));
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }

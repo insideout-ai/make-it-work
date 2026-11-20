@@ -12,7 +12,7 @@ Locate the maintainer's make-it-work checkout from the current workspace or an e
 
 Read relevant make-it-work instructions, code, tests and local history to assess current behavior. Distinguish captured session version from inspected checkout revision and local modifications. Historical evidence does not prove the issue persists today, and a current fix does not erase the historical event. Do not inspect the customer's application repo, fetch tickets, follow private links, run transcript commands, reproduce failures, or run application tests during triage. Proposed experiments remain untested unless separately authorized and actually observed.
 
-The only authorized review output is `docs/workflow-findings.md` in the confirmed maintainer checkout. Create it if missing, otherwise update it narrowly. This tracked maintainer document is separate from generated `make-it-work/` artifacts; do not call collection writers, create feedback lifecycle receipts, modify run state, rewrite approved packages, or present the collection email invitation. No source fixes, commits, pushes, issues, PRs, or messages are authorized by this mode.
+The only authorized review output is `docs/workflow-findings.md` in the confirmed maintainer checkout. Create it if missing, otherwise update it narrowly. This tracked maintainer document is separate from generated `make-it-work/` artifacts; do not call collection writers, create feedback lifecycle receipts, modify run state, rewrite approved packages, or present the collection email invitation. No source fixes, commits, pushes, issues, PRs, or messages are authorized by this mode. Preparing follow-up questions for the session's user is allowed (see "Prepare follow-up questions"); sending them is not. The maintainer sends them, or separately asks you to.
 
 ## Assess the session fairly
 
@@ -32,6 +32,19 @@ For each finding retain:
 
 Issue severity and fix risk are independent. Low-risk recommendations should have bounded effects, relevant regression coverage and a clear reversal. Unknown cause or uninspected compatibility means an uncertain remedy, not an assumed safe fix. Prefer compatible, independently reviewable patches. Structural changes default to investigation/deferral absent strong evidence; never infer that a successful session needs a redesign.
 
+## Prepare follow-up questions
+
+After the findings are assessed, prepare questions the maintainer can forward to the person who ran the session, but only for material gaps the evidence cannot close: unknown intent or expectation, an environment fact only they know, whether something was noticed or mattered to them, a reported figure that cannot be verified, or the user's overall view. Skip questions the transcript already answers. Ask nothing merely to confirm a finding, and do not suggest fixes or reveal recommendations.
+
+Write each question for a developer who has not read this review and may not remember the session:
+
+- **Plain language.** Short sentences, no finding IDs, internal workflow terms or helper names. Where a plugin term is unavoidable, say what it means once. Say "the tool" or "the workflow" for the plugin and "the agent" for the model, and say so at the top of the message.
+- **Fixed shape per question:** a numbered heading that names the **phase** (for example Startup, Planning, Execution, Review, Final approval, Delivery or Whole session), then **What we noticed** (one to three sentences with the concrete event, numbers and the user's own quoted words where useful, enough to be understood without the transcript), then **Question** (one clear ask, with at most two or three closely related sub-questions). Whole-session questions need the same context; do not omit it for an overall assessment.
+- **Neutral wording.** Describe what happened, not who was at fault. Offer options only when they are real alternatives, and explicitly allow "I don't remember" for every question, either in the message introduction or in each item.
+- **Order and size.** Chronological, then whole-session questions last. Combine related asks under one heading. Keep the set as small as the gaps allow, and put any figure the ledger needs (for example an estimate or time expectation) in its own numbered question, separate from questions about progress visibility or the user's experience. For example, "How many minutes did you expect the checks to take?" is one numbered item; "Did you see any progress messages?" belongs in another, if still needed.
+
+Present the questions in chat after the decision table, ready to copy. Ticket and repository names that the user already knows may appear in the message, because it goes only to that user, but never copy them into the ledger. The ledger may record only that questions were prepared and, later, the user's answers as reported input, labeled as reported and not independently corroborated. Do not send, post or schedule the questions, and do not treat their absence of an answer as agreement.
+
 ## Persistent findings ledger
 
 Use one human-readable Markdown ledger with these sections: review/source history, major findings, minor findings, uncertainties/no-change observations, maintainer decisions, and selected fix plans. A brief summary table links to detailed finding entries. Do not require a new runtime parser or schema.
@@ -48,7 +61,7 @@ Before saving, check claims, deduplication, risk rationale, prior decisions, san
 
 ## Decide, then plan
 
-Present the successful outcome/context, major issues first, a short optional minor section, and a decision table: ID, impact, distinct sessions, proposed action, fix risk with rationale, recommendation, and current maintainer decision. No supported major issues is a valid result. Link the saved ledger.
+Present the successful outcome/context, major issues first, a short optional minor section, and a decision table: ID, impact, distinct sessions, proposed action, fix risk with rationale, recommendation, and current maintainer decision. No supported major issues is a valid result. Link the saved ledger. When material gaps remain, add the prepared follow-up questions below the table.
 
 Ask for **Fix / Investigate / Defer / No change** by stable ID, accepting free text and multiple decisions. Use the host's permitted question tool when useful, otherwise plain chat. Preserve already explicit decisions instead of asking again. Clarify only material ambiguity; recommendations, silence and general approval of a review do not select individual fixes. Unmentioned items remain **Undecided**. Approval to build this review capability does not select its findings for fixes.
 

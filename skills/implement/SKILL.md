@@ -45,7 +45,15 @@ Before any startup action, read and follow the complete
 [standing rules](references/orchestration/rules.md).
 These preserve usage/flags, early context precheck, workspace/branch consent,
 autonomy selection, publication consent, existing-run detection, resume hashes,
-and legacy handling. Apply the existing [autonomy-change](references/autonomy-changes.md),
+and legacy handling. After resolving existing runs and completing the read-only
+early context precheck, fresh Guided/Autonomous runs offer **Use isolated
+worktree (Recommended)** first, then name the actual current-checkout action:
+**Create branch in current checkout** on base, or **Use current branch: <branch>**
+on a suitable feature branch. Reuse explicit checkout choices; offer optional
+branch naming in the existing selection/preview. Autopilot defaults to the current
+checkout and Resume keeps saved roots. Show the full creation preview in chat;
+keep the confirmation dialog short and plain text, without Markdown tables or
+links. Apply the existing [autonomy-change](references/autonomy-changes.md),
 [workflow-decision](references/workflow-decisions.md),
 [activity](references/activity.md), [workspace](references/workspace.md), and
 [ticket-scoped context discovery](references/context-discovery.md) contracts at
