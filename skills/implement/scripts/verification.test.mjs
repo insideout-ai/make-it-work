@@ -1,12 +1,14 @@
 import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { readVerification, traceability, validateVerification } from './verification.mjs';
 import { parseState } from './render-status.mjs';
+import { checkpointResult } from './dashboard-checkpoint.mjs';
+import { digest } from '../../../scripts/lib/artifacts.mjs';
 
 const plan = '# Plan\n\n## Steps\n\n### Step 1 — Implement\n\n## Test Plan\n\n| Scenario | Type | File / command |\n| --- | --- | --- |\n| Happy path | Unit | test.js |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 saves a record | Happy path |\n\n## Definition of Done\n';
 const ledger = () => ({ version: 1, ticket: 'DEMO', plan_version: 1,
@@ -67,6 +69,16 @@ test('checks a ledger file stays inside the run root', async (t) => {
 test('accepts a scoped+full verification gate', () => {
   const scoped = { ...ledger(), gate: { mode: 'scoped+full', result: 'pass', note: 'scoped then full suite passed' } };
   assert.equal(validateVerification(scoped, { ticket: 'DEMO', planVersion: 1, plan, outcome: 'PASSED' }).gate.mode, 'scoped+full');
+});
+
+test('documented complete gate satisfies policy and omitted suite evidence fails', async () => {
+  const doc = await readFile(new URL('../references/verification.md', import.meta.url), 'utf8');
+  const gate = JSON.parse(doc.match(/<!-- workflow-findings: full-suite-gate-example -->\s*```json\n([\s\S]*?)\n```/)[1]);
+  const policyPlan = plan.replace('## Steps', '## Verification Policy\n\n| Repo | Mode | Decision | Reason |\n| --- | --- | --- | --- |\n| api | automated | configured | Existing runner |\n\n## Steps');
+  const options = { ticket: 'DEMO', planVersion: 1, plan: policyPlan, outcome: 'PASSED' };
+  assert.equal(validateVerification({ ...ledger(), gate }, options).gate.result, 'pass');
+  delete gate.full_suites;
+  assert.throws(() => validateVerification({ ...ledger(), gate }, options), /every automated product repo/);
 });
 
 test('manual completion requires an authorized policy and observed evidence, never an automated pass', () => {
@@ -147,4 +159,105 @@ test('manual observations and multiple scenarios keep independent clause evidenc
   assert.throws(() => validateVerification(value, { ...clauseOptions, plan: otherScenario }), /Acceptance evidence is missing/);
   value.steps[0].checks.push({ ...value.steps[0].checks[0], subject: 'Cancellation' });
   assert.equal(validateVerification(value, { ...clauseOptions, plan: otherScenario }).acceptance[1].status, 'manual');
+});
+
+
+async function auditedFixture(t) {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'verification-audit-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const directory = artifactJoin(root, 'make-it-work/DEMO');
+  await mkdir(directory, { recursive: true });
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  const dashboard = artifactJoin(directory, 'DEMO-status.html');
+  const fixture = await readFile('evals/implement/feedback-clean/fixture/fixture-artifacts/DEMO-state.md', 'utf8');
+  await writeFile(statePath, fixture.replace('phase: final-sync', 'phase: final-approval').replace('real_rows_from: 1', 'real_rows_from: 1\nverification_version: 1\nfinal_package_version: 1'));
+  await writeFile(artifactJoin(directory, 'DEMO-plan.md'), plan);
+  const relative = 'make-it-work/DEMO/DEMO-verification-v1.json';
+  await writeFile(artifactJoin(root, relative), JSON.stringify(ledger()));
+  await writeFile(dashboard, 'previous dashboard');
+  const argv = [path.resolve('skills/implement/scripts/verification.mjs'), 'check', '--root', root, '--file', relative,
+    '--ticket', 'DEMO', '--plan-version', '1', '--plan', artifactJoin(directory, 'DEMO-plan.md'), '--outcome', 'PASSED', '--state', statePath];
+  return { root, directory, statePath, dashboard, argv };
+}
+
+test('audited CLI completes when the existing final dashboard imports verification again', async t => {
+  const f = await auditedFixture(t);
+  const run = spawnSync(process.execPath, f.argv, { encoding: 'utf8', timeout: 15000 });
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(run.stdout).valid, true);
+  assert.doesNotMatch(run.stderr, /unsettled top-level await/i);
+  const html = await readFile(f.dashboard, 'utf8');
+  assert.match(html, /Acceptance checks:/);
+  assert.match(html, /Verification checked for PASSED\.[^<]+<a href="DEMO-acceptance-v1.md.preview.html"[^>]*>View verification report<\/a>/);
+  const saved = await readFile(f.statePath, 'utf8');
+  assert.match(parseState(saved).audit.at(-1).outcome, /Verification ledger validated/);
+  const retry = spawnSync(process.execPath, f.argv, { encoding: 'utf8', timeout: 15000 });
+  assert.equal(retry.status, 0, retry.stderr);
+  assert.equal(await readFile(f.statePath, 'utf8'), saved);
+});
+
+
+const invoke = argv => spawnSync(process.execPath, argv, { encoding: 'utf8', timeout: 15000 });
+async function retryReporting(f, result) {
+  const input = path.join(f.root, 'retained-result-note.json');
+  await writeFile(input, JSON.stringify(result.checkpoint.retry.input));
+  return invoke([path.resolve('skills/implement/scripts/dashboard-checkpoint.mjs'), 'result', '--state', result.checkpoint.retry.state, '--input', input]);
+}
+
+test('dashboard failure returns valid evidence and a reporting-only retry without duplicate audit rows', async t => {
+  const f = await auditedFixture(t), initial = parseState(await readFile(f.statePath, 'utf8'));
+  await rm(f.dashboard); await symlink(path.join(f.root, 'absent-target'), f.dashboard);
+  const run = invoke(f.argv);
+  assert.equal(run.status, 0, run.stderr);
+  const result = JSON.parse(run.stdout);
+  assert.equal(result.valid, true); assert.equal(result.checkpoint.status, 'pending');
+  assert.match(result.checkpoint.warning, /regular file/);
+  const recorded = await readFile(f.statePath, 'utf8');
+  assert.deepEqual(parseState(recorded).fields, initial.fields);
+  assert.equal(parseState(recorded).audit.length, initial.audit.length + 1);
+  // Retry consumes the retained note, not the original verification command.
+  // Missing evidence remains visibly missing in the refreshed view.
+  await rm(f.dashboard); await writeFile(f.dashboard, 'previous dashboard');
+  await rm(artifactJoin(f.directory, 'DEMO-verification-v1.json'));
+  const retry = await retryReporting(f, result);
+  assert.equal(retry.status, 0, retry.stderr); assert.ok(JSON.parse(retry.stdout).dashboard);
+  assert.equal(await readFile(f.statePath, 'utf8'), recorded);
+  assert.equal((await retryReporting(f, result)).status, 0);
+  assert.equal(await readFile(f.statePath, 'utf8'), recorded);
+});
+
+test('audit conflict preserves the validation result and retry cannot overwrite the conflicting note', async t => {
+  const f = await auditedFixture(t), original = await readFile(f.statePath, 'utf8');
+  const id = `verification:${digest(JSON.stringify(ledger()))}:PASSED`;
+  await checkpointResult(f.statePath, { id, text: 'Different historical result', reference: 'historical.json' });
+  const conflicting = await readFile(f.statePath, 'utf8');
+  const run = invoke(f.argv), result = JSON.parse(run.stdout);
+  assert.equal(run.status, 0, run.stderr); assert.equal(result.valid, true);
+  assert.match(result.checkpoint.warning, /different result/);
+  assert.equal(await readFile(f.statePath, 'utf8'), conflicting);
+  const rejected = await retryReporting(f, result);
+  assert.equal(rejected.status, 1); assert.match(rejected.stderr, /different result/);
+  assert.equal(await readFile(f.statePath, 'utf8'), conflicting);
+  // After the actual conflict is repaired, retain the exact validated result.
+  await writeFile(f.statePath, original);
+  assert.equal((await retryReporting(f, result)).status, 0);
+  const recovered = parseState(await readFile(f.statePath, 'utf8'));
+  assert.equal(recovered.audit.at(-1).note.id, id);
+  assert.deepEqual(recovered.fields, parseState(original).fields);
+});
+
+test('invalid evidence and mismatched state remain failures without successful output or audit mutation', async t => {
+  for (const problem of ['evidence', 'ticket', 'plan-version']) {
+    const f = await auditedFixture(t);
+    if (problem === 'evidence') await writeFile(artifactJoin(f.directory, 'DEMO-verification-v1.json'), JSON.stringify({ ...ledger(), acceptance: [] }));
+    else {
+      const state = await readFile(f.statePath, 'utf8');
+      await writeFile(f.statePath, problem === 'ticket' ? state.replace('ticket: DEMO', 'ticket: OTHER') : state.replace('plan_version: 1', 'plan_version: 2'));
+    }
+    const original = await readFile(f.statePath, 'utf8'), run = invoke(f.argv);
+    assert.equal(run.status, 1, problem); assert.equal(run.stdout, '');
+    assert.ok(run.stderr.trim()); assert.doesNotMatch(run.stderr, /unsettled top-level await/i);
+    assert.equal(await readFile(f.statePath, 'utf8'), original);
+    assert.equal(await readFile(f.dashboard, 'utf8'), 'previous dashboard');
+  }
 });

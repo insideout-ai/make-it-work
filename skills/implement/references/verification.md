@@ -1,5 +1,7 @@
 # Verification evidence for new Implement runs
 
+Impact-enabled plans use [repository impact](repository-impact.md) for `gate.checks` and required-check completeness. Preserve actual full-suite records in `full_suites`; scoped evidence never counts as a full-suite pass.
+
 ## Completion presentation
 
 Workflow completion, acceptance verification and overall assurance are separate. The final package
@@ -62,6 +64,7 @@ At the completion gate, set `gate` to `{ "mode": "none | full-suite | scoped | s
 
 For an automated product repository with a concrete policy, the complete gate object includes the suite evidence in the same write:
 
+<!-- workflow-findings: full-suite-gate-example -->
 ```json
 {
   "mode": "full-suite",
@@ -117,6 +120,29 @@ After every step entry and after the terminal gate/AC update, run:
 
 Use `--plan` and `--outcome` on a terminal Execute result. In the main Implement session, also supply `--state <exact-state-path>` so a successful check records a typed Result with the ledger path/hash, gate result, and verified AC count. A partial check is labeled partial and does not claim terminal completion. The state must match the ticket and plan version; result retries for the same ledger/outcome are idempotent. Subagents omit `--state`; the parent records the validated shared ledger under its normal ownership rules.
 
-The helper validates the schema, cross-checks AC evidence against step checks and the plan's traceability table, and rejects a gate/outcome disagreement. It never runs tests or edits the ledger. Without `--state`, it remains read-only; with it, the only additional mutation is the informational audit result and an existing dashboard refresh. A nonzero check blocks Progress or handoff as applicable; repair actual evidence or rerun the check. Neither a Result note nor a partial check substitutes for terminal validation.
+The helper validates the schema, cross-checks AC evidence against step checks and the plan's traceability table, and rejects a gate/outcome disagreement. It never runs tests or edits the ledger. Without `--state`, it remains read-only; with it, the only additional mutation is the informational audit result and an existing dashboard refresh. A nonzero check means validation or its required inputs failed and blocks Progress or handoff as applicable; repair actual evidence or rerun the check. Neither a Result note nor a partial check substitutes for terminal validation.
+
+If verification succeeds but its informational audit write or existing dashboard
+refresh fails, the helper returns exit zero and `valid: true` with
+`checkpoint.status: "pending"`, a warning and `checkpoint.retry`. Disclose the
+reporting issue and retain that output; it adds no new question or workflow gate.
+The audit row may already have been saved before rendering failed. Invalid
+verification evidence or mismatched ticket/plan state still fails before this
+reporting path and never returns a successful result.
+
+To retry reporting, save the exact returned `checkpoint.retry.input` object as
+`<retained-note.json>` and use the returned `checkpoint.retry.state`:
+
+```sh
+node "<implement-base>/scripts/dashboard-checkpoint.mjs" result --state <returned-state-path> --input <retained-note.json>
+```
+
+This writes/reuses the same informational note and refreshes an existing
+dashboard, without rerunning the original verification command or tests. It
+rejects a conflicting note instead of replacing it. Keep the warning visible
+until reporting recovers; retry only after addressing its actual cause, with no
+automatic retry loop. A retained result describes the ledger hash originally
+checked; changed evidence still requires normal validation. This note never
+advances Progress, supplies a handoff or grants operation approval.
 
 The HTML dashboard links to the existing final package and review report in Artifacts. Keep assurance explanations and recorded verification limits in those artifacts rather than adding an assurance section to the dashboard. Rendering the dashboard does not run the final-package assurance check; approval and delivery retain their existing checks.

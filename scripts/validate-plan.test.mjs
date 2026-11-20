@@ -8,6 +8,15 @@ function plan() {
   return `# Plan\n\n${sections}\n## Execution Status\n\n**Mode:** Inline — execute.\n\n**Progress:** Step 0 of 1 complete.\n\n## Affected Code\n\n### \`app\`\n\n| File | Change | Summary |\n| --- | --- | --- |\n| \`src/save.js\` | Modify | Save |\n\n## Verification Policy\n\nNone\n\n## Risks\n\n| Risk | Severity | Mitigation | Residual severity |\n| --- | --- | --- | --- |\n| Existing callers | High | Regression tests | Low |\n\n**Overall risk (before mitigations):** High\n**Overall risk (after mitigations):** Low\n\n## Steps\n\n### Step 1 — Save\n\n- **Files:** \`src/save.js\`\n- **Depends on:** none\n- **Can run in parallel with:** none\n\n**What to do:** Implement save.\n\n**Verify:** Save returns success.\n\n**Tests:** app: test/save.js, node --test, progression red\n\n## Test Plan\n\n| Scenario | Type | File / command |\n| --- | --- | --- |\n| Saved | Unit | Step 1 |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Saved |\n`;
 }
 test('validates a complete execution-ready plan', () => assert.deepEqual(validatePlan(plan()).errors, []));
+test('accepts an optional Mermaid overview without changing execution steps or risk normalization', () => {
+  const diagram = '## Visual Overview\n\nOnly valid input reaches storage.\n\n```mermaid\nflowchart LR\n  A["Validate input"] --> B["Save record"]\n```\n\n';
+  const withVisual = plan().replace('## Execution Status', `${diagram}## Execution Status`);
+  assert.equal(validatePlan(withVisual).valid, true);
+  assert.equal(validatePlan(withVisual).steps, validatePlan(plan()).steps);
+  assert.ok(normalizeRisk(withVisual).includes(diagram));
+  assert.equal(validatePlan(withVisual.replace(diagram, '## Visual Overview\n\nNone — a single wording change.\n\n')).valid, true);
+  assert.equal(validatePlan(plan()).valid, true); // Legacy plans require no retrofit.
+});
 test('rejects gaps in steps, undeclared files, duplicate scenarios and dangling AC references', () => {
   assert.equal(validatePlan(plan().replace('Step 1 —', 'Step 2 —')).valid, false);
   assert.match(validatePlan(plan().replace('**Files:** `src/save.js`', '**Files:** `src/other.js`')).errors.join(' '), /Affected Code/);

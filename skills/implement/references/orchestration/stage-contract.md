@@ -1,5 +1,7 @@
 ## Stage skills
 
+For `repo_impact_version: 1`, read [repository impact](../repository-impact.md) before any stage work. Forward its saved assessment, definition and exact state path to each stage. It controls readiness, check selection and maintenance independently from approved repository roles.
+
 The stage skills are siblings of this skill in the plugin. Take the `Base directory for this skill:` path printed when this skill loaded, and resolve:
 
 - `<base>/../close-the-gaps/SKILL.md`
@@ -19,6 +21,7 @@ That inline-stage rule applies only to the pipeline skills listed above. It does
 - Pass this scope constraint to every stage and delegated agent, including nested skills: never invoke or follow `go-deep` inline during `implement`, in any autonomy mode. Defer full onboarding, repair and broad documentation audits; report the affected repo and concrete gap to the parent for Context discoveries and the completion recommendation. Ticket-scoped documentation maintenance still applies.
 - Except for the explicitly enabled refinement-worker route and the fresh test-writing worker, refinement, planning, and execution run inline in this session; while the current mode is `autopilot`, pass `--autopilot` so their own decision policies replace questions while `execute` dispatches its own per-step subagents. Recompute this from the saved mode for each dispatch, including nested regression; do not reuse the invocation's original flag after a change.
 - On workspace runs, pass the saved `workspace_contract` and artifact root through every stage and delegated agent under [the workspace contract](../workspace.md). It overrides standalone root detection and repo-relative artifact assumptions. Newly discovered repos require explicit scope/branch approval before edits.
+- For auxiliary worker reports and evidence, assign each worker an exact absolute output path before dispatch. In marked runs use `miw-<TICKET>-<repo-id>-<task>-w<N>.md`, with a short task label such as `docs` or `test-map` and a parent-assigned worker number (not a native agent ID). Structured reports and raw logs retain their required extension with the same filename identity pattern. Legacy runs keep their saved unprefixed convention. Two workers in the same repository also get distinct numbers. Pass the path in the prompt and require the worker to return it. Choose a fresh number automatically for a new worker/attempt or an occupied name, preserving earlier evidence without asking the user. Consume the returned path instead of rebuilding a generic filename. Contract-defined stage reports, shared ledgers, state and dashboards keep their existing names and designated writer; workers contributing to a shared report return separate files for its owner to combine.
 - Review runs in a fresh subagent, for an independent read of the change (see Review dispatch).
 - Lightweight implementation and its fixes run in a fresh subagent with no stage skill (see Lightweight implementation).
 

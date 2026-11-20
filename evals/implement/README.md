@@ -235,3 +235,60 @@ It starts in extended coverage; no smoke/critical membership changes. A passing
 initial-plan case does not establish every replan/amendment or unavailable-test
 branch. Existing dashboard helper tests cover persistence, retries, timestamps,
 clearing and legacy compatibility.
+
+## Repository impact
+
+`implement-repo-impact-scope` starts at Plan with an accepted synthetic API spec and four approved repos: changed API, unchanged consumer, independent context repo and shared QA. It checks that saved impact controls readiness and targeted selection without context setup or edits. `implement-repo-impact-missing` removes the consumer tooling and requires an explicit verification gap, without installation or automatic manual consent. The QA baseline in that variant checks only API total and cannot establish consumer rendering.
+
+Run `node --test evals/repo-impact-fixtures.test.mjs` for local fixture isolation, real baseline assertions, approved-scope and unchanged-input checks. Model evaluations are separate: use `node evals/run-suite.mjs full --case=implement-repo-impact-scope --case=implement-repo-impact-missing --max-cost-usd=3` under the repository's normal approval/budget process. Preparing these cases does not establish their model outcomes.
+
+Live validation on 2026-11-19 exposed a readiness overclaim: the initial agent sealed a consumer as ready while admitting that QA never exercised its renderer. The initial LLM grader accepted that caveat, and the other case omitted the readiness barrier. The original report is retained at `evals/results/full-2026-11-19T12-38-26-361Z/summary.json`; its checkout-drift flag also prevents using it as certification.
+
+Required checks now support explicit `availability: unavailable` and a concrete blocker, including a null command when no supported runner exists. Impact can be recorded, but readiness completion, execution manifests and passing verification reject that gap. Receipt regex graders independently require pending status for the missing-tooling case and complete status for the configured case; the LLM rubric also rejects partial QA coverage relabeled as consumer readiness.
+
+Both corrected cases passed against a frozen working-tree copy, with its Git state unchanged and all source/spec comparison graders passing. The missing-tooling case kept its receipt pending and rejected completion; the configured case completed begin/report/complete/check and excluded context from policy/results. Retained corrected report: `evals/results/full-2026-11-19T12-46-22-895Z/summary.json`. Combined reported usage for initial and corrected runs was **$1.88910565 of the approved $3 cap**. The nine core impact tests, readiness regressions and all 108 eval-harness tests also passed. These live cases cover Plan/readiness, not the full downstream execution/review/delivery workflow.
+
+## Interactive checkout selection
+
+`implement-worktree-offer` starts a fresh Guided request on main with autonomy
+and refinement destination already supplied, but no checkout choice. It must
+offer recommended isolated worktrees and an explicit current-checkout branch action, explain the latter's
+branch action, complete the existing read-only early context precheck before
+asking, and leave the unanswered choice pending without changing Git
+state or initializing the workflow. The source file also has an exact-byte
+unchanged check. A branch-only menu fails. This case checks presentation before
+selection; it does not establish successful worktree creation or Resume behavior.
+
+Existing branch-mismatch, dashboard-startup, repository-start and planning-progress
+probes explicitly select `--continue-here` so they reach their intended contracts.
+The new case is extended/full only; smoke membership and existing approvals stay
+unchanged.
+
+The fixture includes an uncommitted tracked `.gitignore` change, matching a
+subsequent reported recommendation reversal. Worktrees must be the first and
+only recommended checkout option; an explicit current-checkout branch action
+remains available. Both source and the local ignore-file edit must retain their exact fixture bytes.
+
+`implement-worktree-branch-preview` explicitly selects worktree isolation and
+leaves its existing creation approval unanswered. It checks a real prepared plan
+and linked preview, suggested branch/starting commit/location, and optional
+worktree-branch naming before any creation. Accepting the default name must not
+require a separate naming question. The fixture's source checkout and its repo-local session paths are disposable. This case does not answer the rename question
+or establish post-approval worktree creation; the existing helper tests cover
+plan revisions and execution. It remains outside smoke and critical.
+
+The worktree preview case also checks presentation: full labeled fields and the
+clickable HTML link belong in assistant chat before the confirmation. The dialog
+contains only a short plain-text question with branch/start details and the
+existing choices; wide tables, Markdown links and long paths there fail. The
+headless fallback still checks generated text/payloads rather than certifying
+native UI rendering.
+
+The preview case now exercises single-repo default placement with no --directory
+override. `implement-worktree-workspace-preview` adds the corresponding multi-repo
+default, assessing api/web/unrelated and proposing repo-local api/web worktrees
+with shared state under workspace .claude/miw-sessions. Only selected api/web
+receive private parent/exclusion preparation; unrelated stays untouched. Both leave exact creation approval unanswered, preserve
+source bytes and check the readable naming/approval presentation. They remain
+extended/full cases; neither is added to smoke/critical. Existing custom/legacy
+layouts and actual creation/resume are covered by helper integration tests.

@@ -97,3 +97,29 @@ Manual interactive checks before review readiness:
   the account; label optimization proposals and untested remedies accurately.
 
 These interactive and permission scenarios are not established by a headless pass.
+
+Three headless maintainer-review scenarios cover follow-up questions:
+
+- `feedback-maintainer-followup-gaps`: material unknowns produce neutral,
+  self-contained questions after the decision table, with phase/context/question
+  structure, a separate expected-time question and whole-session questions last.
+  An already-explained branch choice must not be asked again.
+- `feedback-maintainer-followup-answered`: the source already supplies intent,
+  environment, estimate, wait expectations and overall assessment; no unnecessary
+  follow-up set should be generated.
+- `feedback-maintainer-followup-reported`: later answers relayed by the maintainer
+  enter the ledger as reported input, without new session counts, invented
+  corroboration, repeated answered questions or implied fix consent.
+
+Semantic graders inspect the final chat and the trace plus saved ledger. They
+check that drafts stay in chat, questions are never sent, and only the ledger is
+written. Deterministic graders check unchanged source/input bytes and private
+identifier redaction; `feedback-followup-fixtures.test.mjs` also mutation-tests
+those graders and exercises the fixture guard. These local checks do not prove
+live question quality. Run the focused behavioral scenarios with:
+
+```sh
+node evals/run-suite.mjs full --case=feedback-maintainer-followup-gaps --case=feedback-maintainer-followup-answered --case=feedback-maintainer-followup-reported --concurrency=3 --max-cost-usd=6 --judge-model=sonnet
+```
+
+These cases remain in extended/full; smoke and critical membership is unchanged.

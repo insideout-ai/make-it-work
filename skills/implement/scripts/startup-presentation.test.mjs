@@ -1,6 +1,6 @@
 import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { appendFile, mkdtemp, mkdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -138,6 +138,84 @@ test('new planning activity checks recover through real chat and persisted bound
   assert.deepEqual(await check('Bash', validation), {});
   const saved = parseState(await readFile(run.result.state, 'utf8'));
   assert.deepEqual(saved.audit.filter(row => row.note?.id.startsWith('planning-')).map(row => row.note.id.split(':')[0]), ['planning-discovery', 'planning-drafting', 'planning-validation']);
+});
+
+test('WF-015 reproduction: narration missing from the snapshot denies once, persisted chat releases without a Stop round', async t => {
+  const run = await freshRun(t, 'guided');
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd')
+    .replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes'));
+  const sentence = 'I am inspecting the existing test boundaries.';
+  const input = { hook_event_name: 'PreToolUse', transcript_path: run.transcript, cwd: run.root, tool_name: 'Bash',
+    tool_input: { command: `node /plugin/dashboard-checkpoint.mjs activity --state "${run.result.state}" --activity "${sentence}" --planning-activity discovery` } };
+  const before = await readFile(run.result.state, 'utf8');
+  const denied = await startupHook(input);
+  assert.match(denied.hookSpecificOutput.permissionDecisionReason, /match actual assistant chat/);
+  run.events.push({ ...assistant(text(sentence)), timestamp: new Date(Date.now() + 1000).toISOString() }); await run.saveEvents();
+  assert.deepEqual(await startupHook(input), {}, 'one newly persisted announcement suffices; no duplicate chat or Stop event supplied');
+  assert.equal(await readFile(run.result.state, 'utf8'), before, 'neither check advances workflow state');
+});
+
+async function planningRun(t, phase = 'plan') {
+  const run = await freshRun(t, 'guided');
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', `phase: ${phase}`)
+    .replace('| start | context-check |', `| start | ${phase} |`).replace('mode: none', 'mode: tdd')
+    .replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes'));
+  return run;
+}
+const planningCall = (run, sentence) => ({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, cwd: run.root, tool_name: 'Bash',
+  tool_input: { command: `node /plugin/dashboard-checkpoint.mjs activity --state "${run.result.state}" --activity "${sentence}" --planning-activity discovery` } });
+
+test('delayed planning chat including a partial JSONL append releases the same hook call in plan and fix-plan', async t => {
+  for (const phase of ['plan', 'fix-plan']) {
+    const run = await planningRun(t, phase), sentence = 'I am checking the affected test boundaries.';
+    const before = await readFile(run.result.state, 'utf8');
+    const checking = startupHook(planningCall(run, sentence));
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const event = JSON.stringify({ ...assistant(text(sentence)), timestamp: new Date().toISOString() });
+    const half = Math.floor(event.length / 2);
+    await appendFile(run.transcript, event.slice(0, half));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await appendFile(run.transcript, event.slice(half) + '\n');
+    assert.deepEqual(await checking, {}, 'one persisted sentence releases the original call without a Stop event or retry');
+    const prematureWrite = await startupHook({ hook_event_name: 'PreToolUse', transcript_path: run.transcript, cwd: run.root, tool_name: 'Write',
+      tool_input: { file_path: artifactJoin(path.dirname(run.result.state), 'DEMO-plan.md') } });
+    assert.match(prematureWrite.hookSpecificOutput.permissionDecisionReason, /--planning-activity discovery/, 'chat alone does not perform the required activity checkpoint');
+    assert.equal(await readFile(run.result.state, 'utf8'), before);
+    const events = (await readFile(run.transcript, 'utf8')).trim().split('\n').map(JSON.parse);
+    assert.equal(events.filter(row => row.message?.content?.some(part => part.type === 'text' && part.text === sentence)).length, 1);
+  }
+});
+
+test('the bounded planning wait still denies fake, stale and permanently missing narration', async t => {
+  const run = await planningRun(t), sentence = 'I am inspecting the changed rule.';
+  const timestamp = new Date().toISOString();
+  run.events.push(
+    { ...assistant(text(sentence)), timestamp, isSidechain: true },
+    { ...assistant(text(sentence)), timestamp, isSynthetic: true },
+    { ...assistant(text(sentence)), timestamp, parent_tool_use_id: 'child' },
+    { ...assistant(text('```\n' + sentence + '\n```')), timestamp },
+    { ...assistant({ type: 'thinking', thinking: sentence }), timestamp },
+    { ...assistant(text(sentence)), timestamp: '2020-01-01T00:00:00Z' },
+    { type: 'user', timestamp, message: { role: 'user', content: [{ type: 'tool_result', content: sentence }] } },
+  );
+  await run.saveEvents();
+  const before = await readFile(run.result.state, 'utf8'), start = performance.now();
+  const held = await startupHook(planningCall(run, sentence));
+  assert.match(held.hookSpecificOutput.permissionDecisionReason, /match actual assistant chat/);
+  assert.ok(performance.now() - start < 5000, 'missing chat gets a finite local wait');
+  assert.equal(await readFile(run.result.state, 'utf8'), before);
+});
+
+test('planning flush retries reread the phase entry instead of accepting chat from a prior cycle', async t => {
+  const run = await planningRun(t), sentence = 'I am checking the updated tests.';
+  const checking = startupHook(planningCall(run, sentence));
+  await new Promise(resolve => setTimeout(resolve, 150));
+  const entered = new Date(Date.now() + 5000).toISOString();
+  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).trimEnd() + `\n| 2 | ${entered} | plan-approval | plan | Begin a new plan cycle |\n`);
+  await appendFile(run.transcript, JSON.stringify({ ...assistant(text(sentence)), timestamp: new Date().toISOString() }) + '\n');
+  const held = await checking;
+  assert.match(held.hookSpecificOutput.permissionDecisionReason, /match actual assistant chat/);
+  assert.equal(parseState(await readFile(run.result.state, 'utf8')).audit.length, 2, 'the wait writes no checkpoint');
 });
 
 async function sourceReview(run) {

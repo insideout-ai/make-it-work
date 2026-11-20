@@ -3,10 +3,13 @@ import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { digest, fail, requireText } from '../../../scripts/lib/artifacts.mjs';
+import { checkRepoImpact, impactEnabled } from './repo-impact.mjs';
 import { validateMap, MAP_PATH, REPORT_PATH } from '../../../scripts/test-map.mjs';
 
 // Mechanical proof of the declared scope, not proof of semantic completeness.
-export async function assessContextMaintenance(root, repoRoots, records) {
+export async function assessContextMaintenance(root, repoRoots, records, { fields = {} } = {}) {
+  const impact = await checkRepoImpact(root, fields);
+  const scope = impact ? JSON.parse(fields.workspace_contract).repos : [];
   const roots = await Promise.all(repoRoots.map(value => realpath(value)));
   if (!Array.isArray(records) || records.length !== roots.length) fail('test_map_maintenance must contain one assessment per approved repository.');
   const seen = new Set(), result = [];
@@ -17,6 +20,12 @@ export async function assessContextMaintenance(root, repoRoots, records) {
     if (!['maintained', 'blocked', 'not-applicable'].includes(record.status)) fail('Invalid test-map maintenance status.');
     requireText(record.reason, 'Maintenance result or concrete blocker');
     if (!Array.isArray(record.affected_tests) || record.affected_tests.some(file => typeof file !== 'string' || !file || path.isAbsolute(file) || file.split('/').includes('..'))) fail('affected_tests must be repository-relative test paths.');
+    const impactRow = impact?.repos.find(r => r.repo === scope.find(s => s.root === repo)?.id);
+    if (impactRow && impactRow.classification !== 'change' && record.status === 'not-applicable') {
+      if (record.affected_tests.length) fail('Unchanged maintenance cannot declare affected test edits.');
+      result.push({ repo, status: 'not-applicable', reason: record.reason, affected_tests: [], evidence: [], impact_definition_hash: fields.repo_impact_definition_hash });
+      continue;
+    }
     let strategy = '';
     try { strategy = await readFile(artifactJoin(repo, '.claude/skills/test-strategy/SKILL.md'), 'utf8'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -48,9 +57,14 @@ export async function assessContextMaintenance(root, repoRoots, records) {
 
 export async function checkContextMaintenance(root, fields) {
   if (fields.review_context_version !== '2') return [];
+  if (impactEnabled(fields)) await checkRepoImpact(root, fields);
   const records = JSON.parse(fields.test_map_maintenance ?? '[]');
   if (!records.length) fail('Test-map maintenance assessment is missing.');
   for (const record of records) {
+    if (record.impact_definition_hash) {
+      if (!impactEnabled(fields) || record.impact_definition_hash !== fields.repo_impact_definition_hash) fail('Maintenance impact assessment changed.');
+      continue;
+    }
     let strategy = '';
     try { strategy = await readFile(artifactJoin(record.repo, '.claude/skills/test-strategy/SKILL.md'), 'utf8'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }

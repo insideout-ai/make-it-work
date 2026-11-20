@@ -19,6 +19,7 @@ import { finalizeFeedback } from './feedback-finalization.mjs';
 import { feedbackReadback } from './feedback-readback.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
 import { noteCell } from './audit-notes.mjs';
+import { createPendingInput } from './pending-input.mjs';
 
 async function reportReadEvents(reportPath) {
   const timestamp = new Date(Date.now() + 1000).toISOString();
@@ -299,8 +300,8 @@ test('partial unknown overall ratings use a neutral badge without borrowing indi
 test('completion without an AC ledger never acquires a verified acceptance label', async (t) => {
   const rows = [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']];
   const current = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows }));
-  assert.match(current.html, /Acceptance verification: Not recorded/);
-  assert.doesNotMatch(current.html, /Acceptance verification: Verified/);
+  assert.match(current.html, /Acceptance checks:<\/strong> Not recorded/);
+  assert.doesNotMatch(current.html, /of \d+ verified|View verification report/);
   const legacy = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows }));
   assert.doesNotMatch(legacy.html, /class="acceptance-summary"/);
 });
@@ -542,6 +543,73 @@ test('audit results hide evidence hashes while retaining results, references and
   assert.doesNotMatch(html, /manifest sha256|result sha256|SHA-256:/);
 });
 
+test('readiness results summarize the baseline and open reports without changing saved audit evidence', async t => {
+  for (const prefix of ['', 'miw-']) {
+    const report = `make-it-work/DEMO/${prefix}DEMO-testing-readiness.md`;
+    const receipt = `make-it-work/DEMO/${prefix}DEMO-readiness-v1.json`;
+    const hash = createHash('sha256').update('readiness evidence').digest('hex');
+    const outcome = `Result: Testing readiness completed before planning. Baselines: app=pass.; evidence: ${receipt}; ${report}; sha256:${hash}`;
+    const state = stateMarkdown({ fields: { phase: 'plan' }, rows: [
+      ['2026-01-01T10:00:00Z', 'close-the-gaps', 'plan', 'Planning started'],
+      ['2026-01-01T10:00:30Z', 'plan', 'plan', outcome],
+    ] });
+    const f = await renderFixture(t, state);
+    await writeFile(artifactJoin(f.directory, `${prefix}DEMO-testing-readiness.md`), '# Testing readiness\n\nBaseline passed.\n');
+    await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
+    const html = await readFile(f.outputPath, 'utf8');
+    assert.match(html, /<strong>Testing readiness passed<\/strong>/);
+    assert.match(html, /Baseline tests passed for app\./);
+    assert.match(html, /Ready to create the implementation plan\./);
+    assert.ok(html.includes(`href="${prefix}DEMO-testing-readiness.md.preview.html"`));
+    assert.match(html, /<td colspan="2" title="Phase unchanged">Plan<\/td>/);
+    assert.match(html, /<td>close-the-gaps<\/td><td>plan<\/td>/);
+    const details = html.match(/<details><summary>Technical details<\/summary>([\s\S]*?)<\/details>/)[1];
+    assert.ok(details.includes(`href="${prefix}DEMO-readiness-v1.json"`));
+    assert.ok(details.includes(hash));
+    const visible = html.replace(/<details>[\s\S]*?<\/details>/g, '');
+    assert.doesNotMatch(visible, /Baselines:|; evidence:|make-it-work\/DEMO\/|readiness-v1\.json|sha256:/);
+    assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
+  }
+});
+
+test('readiness summaries retain each repo failure, unrun baseline and manual policy in historical results', () => {
+  const hash = 'a'.repeat(64);
+  for (const baselines of ['api=pass, web=fail, jobs=not-run, docs=not-applicable', 'docs=not-applicable']) {
+    const outcome = `Result: Testing readiness completed before planning. Baselines: ${baselines}.; evidence: make-it-work/DEMO/DEMO-readiness-v2.json; make-it-work/DEMO/DEMO-testing-readiness-v2.md; sha256:${hash}`;
+    const state = parseState(stateMarkdown({ fields: { phase: 'plan', plan_version: '3' }, rows: [
+      ['2026-01-01T10:00:00Z', 'plan', 'plan', outcome],
+    ] }));
+    const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+    assert.match(html, /href="DEMO-testing-readiness-v2.md">View readiness report/);
+    assert.match(html, /Manual verification selected for docs; no automated baseline was run\./);
+    assert.doesNotMatch(html, /<strong>Testing readiness passed<\/strong>/);
+    if (baselines.includes('fail')) {
+      assert.match(html, /<li>Baseline tests passed for api\.<\/li>/);
+      assert.match(html, /<li>Baseline tests failed for web\.<\/li>/);
+      assert.match(html, /<li>Baseline tests were not run for jobs\.<\/li>/);
+      assert.match(html, /Review baseline limitations before planning\./);
+      assert.doesNotMatch(html, /Ready to create the implementation plan\./);
+    }
+  }
+});
+
+test('readiness rendering escapes repo names and leaves unknown or unsafe evidence as plain text', () => {
+  const hash = 'a'.repeat(64);
+  const outcome = (baseline, report = 'make-it-work/DEMO/DEMO-testing-readiness.md') =>
+    `Result: Testing readiness completed before planning. Baselines: ${baseline}.; evidence: make-it-work/DEMO/DEMO-readiness-v1.json; ${report}; sha256:${hash}`;
+  const outcomes = [outcome('<img src=x>=pass'), outcome('app=unknown'),
+    outcome('app=pass', 'https://example.com/report.md'),
+    outcome('app=pass', 'make-it-work/DEMO/../OTHER/report.md'),
+    outcome('app=pass', 'make-it-work/DEMO/DEMO-testing-readiness-v2.md')];
+  const state = parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: outcomes.map((text, i) =>
+    [`2026-01-01T10:0${i}:00Z`, 'plan', 'plan', text]) }));
+  const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  assert.match(html, /Baseline tests passed for &lt;img src=x&gt;\./);
+  assert.doesNotMatch(html, /<img|href="https:|href="[^\"]*\.\.\//);
+  assert.equal((html.match(/View readiness report/g) ?? []).length, 1);
+  assert.match(html, /app=unknown/);
+});
+
 test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {
   const { directory } = await renderFixture(t, stateMarkdown({
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
@@ -619,7 +687,7 @@ test('accepts and describes fully autonomous autopilot runs', async (t) => {
   });
   const { html } = await renderFixture(t, state);
 
-  assert.match(html, /Autonomy: autopilot/);
+  assert.match(html, /Control: Autopilot/);
   assert.match(html, /resolves every documented safe default without prompting/);
 });
 test('queued autonomy is optional for older runs and rejects invalid or completed-run queues', () => {
@@ -647,7 +715,7 @@ test('ticket permission badge is independent of autonomy and shows scoped consen
   for (const autonomy of ['autopilot', 'guided']) {
     await writeFile(statePath, stateMarkdown({ fields: { ...fields, autonomy }, rows }));
     const html = await readFile(await generateDashboard(statePath), 'utf8');
-    assert.ok(html.includes(`Autonomy: ${autonomy}</span>`));
+    assert.ok(html.includes(`Control: ${autonomy[0].toUpperCase() + autonomy.slice(1)}</span>`));
     assert.match(html, /ticket-updates-allowed[^>]*>Ticket updates: Allowed<\/span>/);
     assert.match(html, /at https:\/\/tracker.example.test: comments\./);
     assert.match(html, /Artifact comments are allowed/);
@@ -658,7 +726,7 @@ test('ticket permission badge is independent of autonomy and shows scoped consen
   await writeFile(journalPath, JSON.stringify(journal));
   const revoked = await readFile(await generateDashboard(statePath), 'utf8');
   assert.match(revoked, /ticket-updates-off[^>]*>Ticket updates: Off<\/span>/);
-  assert.match(revoked, /Autonomy: guided<\/span>/);
+  assert.match(revoked, /Control: Guided<\/span>/);
 });
 
 test('unverifiable referenced permission shows Unknown without preventing dashboard rendering', async (t) => {
@@ -1251,7 +1319,7 @@ test('escalation from review inserts Plan and Execute after the active slot in o
   const durations = [...timeline.matchAll(/phase-duration">([^<]+)</g)].map((match) => match[1]);
   assert.deepEqual(durations, ['1m', '1m', '2m', '1m', '3m', '4m']);
   assert.match(timeline, /phase-dot current spinning[^>]+review:/);
-  assert.match(html, /Mode: TDD · Low risk/);
+  assert.match(html, /Approach: TDD<\/span>.*Risk: Low/);
   assert.doesNotMatch(html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
   assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
   assert.match(html, /<div class="label">Plan<\/div><a href="DEMO-plan\.md"/);
@@ -1274,20 +1342,22 @@ test('escalation from a stopped lightweight phase keeps baseline Review after th
 test('mode pill appears only for adaptive runs and cycle counters stay out of the dashboard', async (t) => {
   const rows = [['2026-01-01T10:00:00Z', 'start', 'context-check', 'New run created']];
   const legacy = await renderFixture(t, stateMarkdown({ rows }));
-  assert.doesNotMatch(legacy.html, /mode-pill|Mode: |Escalations|phase-dot skipped|Lightweight report/);
+  assert.doesNotMatch(legacy.html, /mode-pill|Approach: |Escalations|phase-dot skipped|Lightweight report/);
   assert.match(legacy.html, /<div class="label">Plan<\/div><span class="none">Not yet created<\/span>/);
   assert.match(legacy.html, /<div class="label">Execute<\/div><span class="none">Not yet created<\/span>/);
   assert.deepEqual(timelineLabels(legacy.html), ['Context Check', 'Refinement', 'Plan', 'Execute', 'Review', 'Finalizing']);
 
   const pending = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'none', mode: 'none', mode_source: 'none', risk_rationale: 'none' }, rows }));
-  assert.match(pending.html, /Mode: Not yet assessed/);
+  assert.match(pending.html, /Approach: Not yet assessed/);
   assert.doesNotMatch(pending.html, /phase-dot skipped/);
 
   const lightweight = await renderFixture(t, stateMarkdown({ fields: ADAPTIVE_FIELDS, rows }));
-  assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="Single-file &lt;copy&gt; change">Mode: Lightweight · Low risk<\/span>/);
+  assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="[^"]+">Approach: Lightweight<\/span>/);
 
   const forced = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'high', mode: 'tdd', mode_source: 'user' }, rows }));
-  assert.match(forced.html, />Mode: TDD \(user\) · High risk<\/span>/);
+  assert.match(forced.html, />Approach: TDD<\/span>.*Risk: High<\/span>/);
+  assert.match(forced.html, /Selected by you/);
+  assert.match(lightweight.html, /class="pill risk-pill" title="Single-file &lt;copy&gt; change">Risk: Low/);
   assert.doesNotMatch(forced.html, /phase-dot skipped|Skipped \(Lightweight\)/);
   for (const fixture of [legacy, pending, lightweight, forced]) {
     assert.doesNotMatch(fixture.html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
@@ -1496,30 +1566,55 @@ test('both modes name active assessment inside Finalizing without adding a stage
   }
 });
 
-test('Write Tests has independent timing, evidence and truthful approval/progress labels', () => {
+test('Write Tests keeps timing and audit evidence with its report in artifacts', () => {
   const fields = { test_writing_version: '1', test_preparation: 'make-it-work/DEMO/DEMO-plan-tests-1.json', test_preparation_report: 'make-it-work/DEMO/DEMO-plan-tests-1.md', plan_hash: 'revision', phase: 'write-tests', autonomy: 'guided' };
   const rows = [
     ['2026-01-01T10:00:00Z', 'start', 'plan', 'Draft coverage'],
     ['2026-01-01T10:01:00Z', 'plan', 'plan-approval', 'Awaiting approval'],
     ['2026-01-01T10:02:00Z', 'plan-approval', 'write-tests', 'Approved; dispatching fresh test worker'],
   ];
-  const preparation = { plan_hash: 'revision', status: 'ready', entries: [{ scenario: '<new behavior>', result: 'expected-red', reason: 'Missing behavior <expected>' }] };
-  const template = '{{PHASE_TIMELINE}} {{TEST_PREPARATION}} {{PREPARATION_TILE}}';
+  rows.push(['2026-01-01T10:02:30Z', 'write-tests', 'write-tests', `Test preparation ready: ${fields.test_preparation_report}`]);
+  const template = '{{PHASE_TIMELINE}} {{TEST_PREPARATION}} {{PREPARATION_TILE}} {{AUDIT_ROWS}}';
   const state = parseState(stateMarkdown({ fields, rows }));
-  const html = renderStatus({ state, preparation, template, logoBase64: '' });
+  const html = renderStatus({ state, template, logoBase64: '' });
   assert.match(html, /Write Tests/);
   assert.match(html, /write-the-tests/);
   assert.match(html, /implementation has not advanced/);
-  assert.match(html, /expected-red/);
-  assert.match(html, /&lt;new behavior&gt;/);
-  assert.doesNotMatch(html, /<new behavior>|Step 0 of|phase-dot failed/);
+  assert.match(html, /Test preparation ready · <a href="DEMO-plan-tests-1.md">View preparation report<\/a>/);
+  assert.equal((html.match(/class="artifact-tile"/g) ?? []).length, 1);
+  assert.doesNotMatch(html, /class="test-preparation"|Preparation pending|Expected red confirms/);
+  assert.doesNotMatch(html, /Step 0 of|phase-dot failed/);
   assert.match(html, /DEMO-plan-tests-1.md/);
-  const stale = renderStatus({ state, preparation: { ...preparation, plan_hash: 'old' }, template, logoBase64: '' });
-  assert.match(stale, /Superseded/);
+  for (const [preparation, note] of [
+    [{ plan_hash: 'old', status: 'ready' }, 'Superseded'],
+    [{ plan_hash: 'unavailable', status: 'unavailable' }, 'Preparation evidence unavailable'],
+  ]) {
+    const changed = renderStatus({ state, preparation, template, logoBase64: '' });
+    assert.match(changed, new RegExp(`class="artifact-note">${note}`));
+    assert.doesNotMatch(changed, /class="test-preparation"/);
+  }
   const approval = renderStatus({ state: parseState(stateMarkdown({ fields: { ...fields, phase: 'plan-approval' }, rows: rows.slice(0, 2) })), template, logoBase64: '' });
   assert.match(approval, /Awaiting plan approval/);
   const legacy = renderStatus({ state: parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: rows.slice(0, 1) })), template, logoBase64: '' });
   assert.doesNotMatch(legacy, /Write Tests|Test Preparation/);
+});
+
+test('preparation audit links preserve historical reports and leave unsafe references as text', () => {
+  const outcomes = [
+    'Test preparation blocked: make-it-work/DEMO/DEMO-plan-tests-1.md',
+    'Test preparation not-applicable; make-it-work/DEMO/miw-DEMO-plan-tests-2.md. Implementation remains unverified.',
+    'Test preparation ready: https://example.com/DEMO-plan-tests-1.md',
+    'Test preparation ready: make-it-work/DEMO/../OTHER-plan-tests-1.md',
+    'Test preparation ready: <invalid>',
+  ];
+  const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none', phase: 'write-tests' }, rows: outcomes.map((outcome, index) =>
+    [`2026-01-01T10:0${index}:00Z`, 'write-tests', 'write-tests', outcome]) }));
+  const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  assert.equal((html.match(/View preparation report/g) ?? []).length, 2);
+  assert.match(html, /href="DEMO-plan-tests-1.md"/);
+  assert.match(html, /href="miw-DEMO-plan-tests-2.md"[^>]*>View preparation report<\/a>\. Implementation remains unverified\./);
+  assert.doesNotMatch(html, /href="https:|href="[^"]*\.\.\//);
+  assert.match(html, /&lt;invalid&gt;/);
 });
 
 test('preparation reentries remain separate from fix execution and manual exemption is explicit', () => {
@@ -1538,4 +1633,24 @@ test('preparation reentries remain separate from fix execution and manual exempt
   assert.equal((html.match(/class="phase-skill">\(write-the-tests\)/g) ?? []).length, 2);
   assert.match(html, /Not applicable/);
   assert.match(html, /Step 1 of 2 complete/);
+});
+
+test('approval cards show readable review links without document hashes or raw paths', () => {
+  const hash = 'a'.repeat(64);
+  for (const [phase, binding, label, filename] of [
+    ['spec-approval', { kind: 'artifact', path: 'make-it-work/DEMO/DEMO-spec.md', sha256: hash, strict: true }, 'Review specification', 'DEMO-spec.md'],
+    ['plan-approval', { kind: 'artifact', path: 'make-it-work/DEMO/DEMO-plan.md', sha256: hash, strict: true }, 'Review plan', 'DEMO-plan.md'],
+    ['final-approval', { kind: 'package', sha256: hash, strict: true }, 'Review final package', 'DEMO-final-package.md'],
+  ]) {
+    const pending = createPendingInput({ id: 'approval', kind: 'approval', question: 'Approve this document?', choices: [{ id: 'approve', label: 'Approve' }, { id: 'redo', label: 'Request changes' }, { id: 'stop', label: 'Stop' }], binding }, phase, '2026-01-01T10:00:00Z');
+    const state = parseState(stateMarkdown({ fields: { phase, status: 'Paused', final_package_version: '1', pending_inputs: JSON.stringify([pending]) }, rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Awaiting approval']] }));
+    const html = renderStatus({ state, template: '{{STATUS_BANNER}}', logoBase64: '' });
+    assert.ok(html.includes(`href="${filename}">${label}</a>`));
+    assert.match(html, /Workflow paused/);
+    assert.match(html, /<li>Approve<\/li><li>Request changes<\/li><li>Stop<\/li>/);
+    assert.match(html, /Waiting for your approval · <span data-wait-since="2026-01-01T10:00:00Z">/);
+    assert.doesNotMatch(html, /SHA-256|Pending since|make-it-work\//);
+    assert.ok(!html.includes(hash));
+    assert.equal(state.pendingInputs[0].binding.sha256, hash);
+  }
 });

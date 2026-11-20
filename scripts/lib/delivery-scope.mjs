@@ -20,10 +20,11 @@ export const SENSITIVE_PATH = /(^|\/)(\.env[^/]*|\.npmrc|[^/]*\.(?:pem|key)|[^/]
 
 function uniquePaths(changed, untracked) { return [...new Set([...changed, ...untracked])].sort(); }
 
-export async function snapshotDeliveryRepo(repoPath, base) {
+export async function snapshotDeliveryRepo(repoPath, base, { name: selectedName } = {}) {
   const repo = await realpath(repoPath);
   if (!base) fail('A base branch is required.');
-  const name = path.basename(repo);
+  if (selectedName !== undefined && (typeof selectedName !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(selectedName))) fail('Invalid selected repository name.');
+  const name = selectedName ?? path.basename(repo);
   const top = git(repo, ['rev-parse', '--show-toplevel']).toString('utf8').trim();
   if (await realpath(top) !== repo) fail(`Not a repository root: ${repoPath}`);
   const branch = git(repo, ['symbolic-ref', '--quiet', '--short', 'HEAD']).toString('utf8').trim();

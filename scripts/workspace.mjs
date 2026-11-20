@@ -4,6 +4,7 @@ import { realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { repositoryInventory } from './repo-assessment.mjs';
 import { args, cli, fail } from './lib/artifacts.mjs';
+import { readSessionWorkspace, findSessionWorkspace } from './lib/session-workspace.mjs';
 
 export async function gitRoot(directory) {
   try {
@@ -17,13 +18,20 @@ export async function resolveWorkspace(cwd, { workspaceRoot, savedRoot } = {}) {
   const invocation = await realpath(cwd);
   const explicit = workspaceRoot ?? savedRoot;
   const enclosing = await gitRoot(invocation);
-  const root = explicit ? await realpath(explicit) : enclosing ?? invocation;
-  if (invocation !== root && !invocation.startsWith(`${root}${path.sep}`)) fail('Invocation is outside the workspace boundary.');
+  let root = explicit ? await realpath(explicit) : enclosing ?? invocation;
+  if (!explicit) {
+    const managed = await findSessionWorkspace(invocation, enclosing);
+    if (managed) root = managed.artifact_root;
+  }
+  const session = await readSessionWorkspace(root);
+  const sourceInvocation = session && (invocation === session.source_root || invocation.startsWith(session.source_root + path.sep));
+  const targetInvocation = session?.repositories.some(repo => invocation === repo.root || invocation.startsWith(repo.root + path.sep));
+  if (invocation !== root && !invocation.startsWith(`${root}${path.sep}`) && !sourceInvocation && !targetInvocation) fail('Invocation is outside the workspace boundary.');
   if (workspaceRoot && savedRoot && await realpath(savedRoot) !== root) fail('Explicit workspace differs from the saved workspace.');
   const inventory = await repositoryInventory(root);
-  if (!inventory.some((repo) => !repo.unavailable)) fail('No usable Git repositories in the resolved workspace.');
+  if (!inventory.some((repo) => !repo.unavailable) && !session) fail('No usable Git repositories in the resolved workspace.');
   const layout = await gitRoot(root) === root ? 'single-repo' : 'workspace';
-  return { version: 1, layout, root, artifact_root: root, invocation, boundary_source: explicit ? workspaceRoot ? 'explicit' : 'saved' : enclosing ? 'git-root' : 'invocation', repositories: inventory };
+  return { version: 1, layout, root, artifact_root: root, invocation, ...(session ? { session } : {}), boundary_source: explicit ? workspaceRoot ? 'explicit' : 'saved' : enclosing ? 'git-root' : 'invocation', repositories: inventory };
 }
 
 cli(import.meta.url, async (argv) => {

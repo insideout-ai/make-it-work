@@ -28,24 +28,29 @@ function chatContains(events, activity, entered) {
   return false;
 }
 
-/** A repairable planning check, scoped to new Implement TDD runs. */
-export function planningActivityHold(input, events, state, statePath) {
+const decision = (reason = null, pendingChat = false) => ({ reason, pendingChat });
+export const isPlanningActivityCall = input => input.tool_name === 'Bash' &&
+  /dashboard-checkpoint\.mjs["']?\s+["']?activity\b["']?/.test(input.tool_input?.command ?? '');
+
+/** Pure policy check; only pendingChat qualifies for a bounded transcript reread. */
+export function planningActivityCheck(input, events, state, statePath) {
   const f = state.fields;
   if (input.hook_event_name !== 'PreToolUse' || f.test_writing_version !== '1' || f.mode !== 'tdd' ||
-      f.status !== 'In Progress' || !['plan', 'fix-plan'].includes(f.phase)) return null;
+      f.status !== 'In Progress' || !['plan', 'fix-plan'].includes(f.phase)) return decision();
   const command = input.tool_name === 'Bash' ? input.tool_input?.command ?? '' : '';
   const activation = state.audit.findLast(row => row.to === f.phase && row.from !== row.to);
-  if (/dashboard-checkpoint\.mjs["']?\s+["']?activity\b["']?/.test(command)) {
+  if (isPlanningActivityCall(input)) {
     const activity = option(command, 'activity');
-    if (!activity || !chatContains(events, activity, activation?.epoch)) return 'Planning activity must match actual assistant chat. Send the --activity sentence literally in assistant chat before this call; do not paraphrase it. If it has already streamed, finish that response without tools so its transcript can flush, then continue without asking the user. Tool output and thinking do not count.';
+    if (!activity?.trim() || /[\x00-\x1f]/.test(activity)) return decision('Use a nonempty single-line --activity sentence.');
     const index = command.indexOf('dashboard-checkpoint.mjs');
     const invocation = command.slice(index + 'dashboard-checkpoint.mjs'.length).replace(/^["']/, '');
     // Remove quoted values before looking for additional commands/redirection.
     const shell = invocation.replace(/"(?:\\.|[^"\\])*"|'[^']*'/g, '');
-    if (/[;|<>\n]|&&/.test(shell) || (command.slice(0, index).match(/\bnode\b/g) ?? []).length > 1) return 'Run the planning activity helper in its own Bash call, without pipes, redirection or other work. Run artifact resolution, code reads and validators afterward.';
+    if (/[;|<>\n]|&&/.test(shell) || (command.slice(0, index).match(/\bnode\b/g) ?? []).length > 1) return decision('Run the planning activity helper in its own Bash call, without pipes, redirection or other work. Run artifact resolution, code reads and validators afterward.');
     const boundary = option(command, 'planning-activity');
-    if (boundary && !planningActivities.has(boundary)) return 'Use --planning-activity discovery, drafting or validation.';
-    return null;
+    if (boundary !== null && !planningActivities.has(boundary)) return decision('Use --planning-activity discovery, drafting or validation.');
+    if (!chatContains(events, activity, activation?.epoch)) return decision('Planning activity must match actual assistant chat. Send the --activity sentence literally in assistant chat before this call; do not paraphrase it. If it has already streamed, finish that response without tools so its transcript can flush, then continue without asking the user. Tool output and thinking do not count.', true);
+    return decision();
   }
   const entered = activation?.number ?? 0;
   const activities = state.audit.filter(row => row.number > entered && row.note?.kind === 'activity' && row.to === f.phase);
@@ -64,5 +69,8 @@ export function planningActivityHold(input, events, state, statePath) {
   if ((reading || writing) && !has('discovery')) needed = 'discovery';
   else if (writing && !current('drafting')) needed = 'drafting';
   else if (validating && !current('validation')) needed = 'validation';
-  return needed ? `Before planning ${needed}, send a concrete activity sentence in assistant chat, then run node "${helper}" activity --state "${statePath}" --activity "<copy that exact sentence>" --planning-activity ${needed} in its own Bash call. Only then retry the work. Keep the workflow In Progress; no user confirmation is needed.` : null;
+  return decision(needed ? `Before planning ${needed}, send a concrete activity sentence in assistant chat, then run node "${helper}" activity --state "${statePath}" --activity "<copy that exact sentence>" --planning-activity ${needed} in its own Bash call. Only then retry the work. Keep the workflow In Progress; no user confirmation is needed.` : null);
 }
+
+/** Preserve the existing reason-only policy interface. */
+export function planningActivityHold(...args) { return planningActivityCheck(...args).reason; }

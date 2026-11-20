@@ -47,7 +47,7 @@ passed to this helper are absolute or relative to the ticket directory.
    assignment/run/phase/autonomy/scope, application preservation and newest v1
    handoff. It does **not** advance state or complete refinement. The opt-in controller also requires that accepted receipt before routing a gaps handoff. Read the spec
    and a compact handback (at most roughly 1,500 characters: result, paths,
-   unresolved facts and risk factors). Assess risk and route the unchanged gaps
+   unresolved facts and risk factors). Route a draft with in-scope TBDs directly to the refinement pause without risk assessment. Otherwise assess risk and route the unchanged gaps
    handoff through the existing controller/approval logic. If the parent finds a material spec error before routing, call `revise` with a precise `reason`, then resume the same worker and require a newer gaps handoff. Earlier result hashes remain in history. A changed/consumed phase cannot be reopened by this helper. Hard stops and
    `needs_input` follow that same existing logic; never answer for the user.
 5. On interruption, inspect both assignment and actual runtime evidence. Resume

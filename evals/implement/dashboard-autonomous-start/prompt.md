@@ -6,7 +6,7 @@ timeout_seconds: 360
 runs: 1
 ---
 
-/make-it-work:implement DEMO-DASHBOARD
+/make-it-work:implement DEMO-DASHBOARD --continue-here
 
 Ticket: Let administrators proceed through the policy-protected action while
 preserving access for members and denying guests.

@@ -9,6 +9,7 @@ import { args, atomicWrite, cli, digest, fail, jsonInput, within, withLock } fro
 import { validateMap } from '../../../scripts/test-map.mjs';
 import { parseSteps } from '../../../scripts/lib/plan.mjs';
 import { parseState } from './render-status.mjs';
+import { checkRepoImpact } from './repo-impact.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
 import { assertRunState } from './artifact-layout.mjs';
 
@@ -56,6 +57,12 @@ export async function authorizePlanningTests(statePath, input) {
   assertRunState(root, statePath, f.ticket);
   if (f.status !== 'In Progress' || !(f.test_writing_version === '1' ? ['write-tests'] : ['plan', 'fix-plan']).includes(f.phase)) fail('Authorize test edits only in active TDD Plan (legacy) or Write Tests (new runs).');
   if (f.controller_version !== '1' || !f.workspace_snapshot) return { required: false, reason: 'Legacy run has no controller startup baseline scope.' };
+  const impact = await checkRepoImpact(root, state.fields);
+  if (impact) {
+    const targetRoot = await realpath(input.repo);
+    const selected = JSON.parse(state.fields.workspace_contract).repos.find(r => r.root === targetRoot);
+    if (!selected || impact.repos.find(r => r.repo === selected.id)?.classification !== 'change') fail('Test writes require reassessing this repository as change.');
+  }
   await checkTestingReadiness(root, state);
   if (state.audit.some((row) => ['execute', 'lightweight'].includes(row.to))) return { required: false, reason: 'Implementation was already authorized; the startup edit guard is released.' };
   if (f.phase !== (f.test_writing_version === '1' ? 'write-tests' : 'plan') || (f.adaptive_version === '1' && f.mode !== 'tdd')) fail('Authorize test edits only in active TDD Plan (legacy) or Write Tests (new runs).');

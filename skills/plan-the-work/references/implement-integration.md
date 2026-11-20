@@ -35,6 +35,8 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **Spec revision:** when the parent supplies `spec_previous_plan` and the explicitly accepted revised spec, use the previous plan (when not `none`) and recorded refinement resolution as the baseline/feedback. Preserve valid existing implementation/tests and identify what must change. Write a fresh `-plan-v<N>.md` for `N > 1` and emit `mode: replan`; no previous execute/review report is required when the conflict was discovered before execution. If no earlier plan existed, retain initial mode/version 1. Never revive verification from the superseded spec.
 
+**Repository impact revision:** when supplied `impact_previous_plan` and the current assessment, read that previous plan and the accepted spec as the baseline. Preserve valid implementation/tests and cover the revised edits/checks. Use the current plan version's `-plan-v<N>.md` path and emit `mode: replan`; no invented review report or repository-selection approval is needed because the approved repository set is unchanged.
+
 **Workspace scope revision:** when the parent supplies a scope-change reason and `scope_previous_plan`, use that saved plan (if not `none`) and the approved workspace selection report as the replan baseline/feedback. Preserve valid implementation/tests and cover the expanded scope. If no earlier plan exists, author an initial plan at `make-it-work/<TICKET>/<TICKET>-plan-v<N>.md` using the current working tree and any Lightweight report as baseline; do not require an invented previous plan or review report. Emit `mode: replan` for this versioned result. This explicit scope-revision route bypasses standalone filename-collision questions without overwriting earlier plans. Normal review/gate replans below keep their existing inputs.
 
 - Write `make-it-work/<TICKET>/<TICKET>-plan-v<N>.md`, without the overwrite / `-v2` / abort question.
@@ -58,6 +60,10 @@ This section applies only when `/make-it-work:implement` runs this skill; a stan
 
 **All modes:**
 
+- For `repo_impact_version: 1`, follow [repository impact](../../implement/references/repository-impact.md). Include its exact saved definition in the plan and keep Verification Policy separate from editable files. Context-only repos get no steps, tests, builds, setup or maintenance; verify repos get only required checks. Reassess before promoting one to editable scope.
+
+
+- Keep Visual Overview consistent with the final plan in initial, replan and amend modes. Amend mode may update this section when the appended fixes change what it depicts; preserve existing steps and execution status under the amendment rules above. Add a missing section only when useful for a legacy plan. Return a clickable link to the actual plan and mention Visual Overview when it contains a diagram; this presentation does not change the return report or JSON handoff schema.
 - **Actionable review scope:** address routed `fix`/`replan` findings and explicitly resolved `human` decisions. A Minor `Route: fix` is actionable; `Route: advisory` is not. Do not add correction steps for advisory nits just because they appear in the same report. They remain visibly unfixed unless explicitly promoted for correction.
 - Test preparation runs separately after planning/approval; this skill never writes tests or commits anything.
 - Retain the readiness policy through initial, replan and amend modes; newly affected repos go back to `implement` for readiness before drafting their steps. Validate a supplied policy with `node "<base>/../implement/scripts/testing-policy.mjs" check --plan <plan-path> --required` before returning. Planning never installs tooling or silently downgrades an automated row to manual.

@@ -184,6 +184,9 @@ test('dashboard updates at dispatch, verified completion and failure without tre
   await run(event);
   assert.equal(JSON.parse(await readFile(artifactJoin(path.dirname(statePath), 'activity-timing.json'), 'utf8')).events.at(-1).category, 'coding');
   assert.match(await html(), /Running step 1 of 2/); assert.match(await html(), /Running step 1 of 2 — First/);
+  const timeline = (await html()).split('<p class="timeline-scroll-hint">')[0];
+  assert.match(timeline, /class="phase-mode" title="[^"]*0 of 2 verified complete">Step 1 of 2<\/div>/);
+  assert.doesNotMatch(timeline.replace(/<[^>]+>/g, ''), /Subagent-Driven|verified complete|\(execute\)/);
   assert.match(await readFile(file, 'utf8'), /Step 0 of 2 complete/);
   const timestamp = parseState(await readFile(statePath, 'utf8')).fields.current_activity_updated_at;
   await run(event);
@@ -212,6 +215,7 @@ test('running-step display survives resume but rejects changed plans and reports
   await run({ action: 'start', id: 'parallel-batch', steps: [1, 2] });
   await generateDashboard(statePath);
   assert.match(await html(), /Running steps 1, 2 of 2/);
+  assert.match(await html(), /class="phase-mode" title="[^"]*0 of 2 verified complete">Steps 1, 2 of 2<\/div>/);
   assert.deepEqual((await run({ action: 'inspect' })).active_steps, [1, 2]);
   const original = await readFile(file, 'utf8');
   await writeFile(file, original.replace('Check A.', 'Changed check.'));

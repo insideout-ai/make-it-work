@@ -12,6 +12,12 @@ Template for `plan-the-work`'s `### Plan structure` step. Reproduce this exact s
 
 3–6 sentences, plain business/technical language a non-implementer can follow: what will be different after this plan is executed, and why it matters. No file paths, function/class/method names, or code snippets — those live in Affected Code and Steps.
 
+## Visual Overview
+
+When it helps explain the change, include one compact fenced `mermaid` diagram with a short plain-language explanation. Choose a flow, sequence, architecture, or before/after diagram to clarify the relevant behavior, interactions or dependencies. Use plain-language labels and distinguish existing behavior from proposed changes where relevant. The written plan must remain understandable without rendering the diagram. For a simple change where a visual adds no clarity, write `None — <brief reason>`.
+
+Keep the Mermaid source directly in this section; do not generate images, separate diagram files, or install rendering tools. Rendering depends on the Markdown viewer; the HTML preview shows Mermaid source.
+
 ## Execution Status
 
 _This section is owned by `execute`, not `plan-the-work` — `plan-the-work` writes it once, verbatim, as part of the initial skeleton, and never edits it again. Everything below is written for whichever session runs `execute` against this plan._
@@ -74,6 +80,9 @@ One line per product repo — `execute`'s gate reads this section:
 What is currently absent and must be added as part of this ticket (validations, tests, logging/error handling, relevant tech debt).
 
 ## Verification Policy
+
+For impact-enabled Implement runs only: add `**Repository impact contract:** 1` after the plan header and a preceding `## Repository Impact` section with a brief summary and the exact supplied JSON definition. The policy below covers change/verify product repos; Affected Code still lists actual edits only. See implement/references/repository-impact.md. Standalone/legacy plans omit this optional section/marker.
+
 
 Copy the resolved testing-readiness choices supplied by `implement`, one row per affected product repo. `Mode` is `automated` or `manual`; `Decision` is `configured`, `user`, `project-policy`, or `autonomy-default`. Manual mode permits only `user` or `project-policy`, with the decision reference in Reason. Proposed/pending tooling cannot be marked automated. When no policy was resolved (standalone or legacy planning), write `None` instead of inventing authorization; existing gate behavior then applies.
 

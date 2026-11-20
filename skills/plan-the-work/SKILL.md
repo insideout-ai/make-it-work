@@ -286,6 +286,8 @@ Write `**Test preparation contract:** 1` immediately after the plan header, outs
 
 Reproduce the exact structure in `references/plan-template.md` — keep every section (write "None" where empty rather than deleting it).
 
+**Visual overview:** after What This Changes, assess whether one compact diagram would help the user understand the proposed behavior, interactions, architecture or dependencies. Follow the template's Visual Overview guidance: choose the most useful diagram type, add a short explanation, and keep editable source in a fenced `mermaid` block in the plan itself. Diagram the actual change rather than a generic spec → plan → execute workflow. A simple change may use `None — <brief reason>` instead. Keep the written plan sufficient without rendering. Do not generate images, separate diagram artifacts, install tools or add rendering dependencies. Reassess the visual on replans and amendments; update it when the proposed approach changes. Existing plans without this section remain valid; add it when revising a plan if a visual helps.
+
 The skeleton's `## Execution Status` block starts with `Step 0 of N complete`. Once the final numbered steps are known, resolve `<base>` to this skill's directory and set the concrete total with `node "<base>/../execute/scripts/plan-status.mjs" set-total --plan "<plan path>" --total <step count>`. Use this command for the initial plan and each new replan; never hand-edit the Progress line. It preserves Mode and the completed count and rejects a shrinking total. Do not choose Mode or advance Progress here; `execute` owns those decisions and updates.
 Run `set-total` as its own Bash tool call after the plan file has been saved; do not join it with a `.claude/` decision-log write or another command. If the script fails, correct the plan and rerun it before reporting the plan ready.
 
@@ -316,11 +318,12 @@ Before handing off, run this quick self-check on the draft. It's a mechanical pa
 
 1. **Spec coverage** — for each requirement and acceptance criterion, can you point to a step that implements it? Add steps for any gaps.
 2. **Placeholder scan** — search for the anti-patterns above and fix every instance.
-3. **Name consistency** — do method/type/field names in later steps match what earlier steps define? `processRefund()` in Step 3 but `handleRefund()` in Step 7 is a bug in the plan.
+3. **Name and contract consistency** — do method/type/field names agree across steps? Trace each changed signature, result or prop through its immediate production and test callers; include required caller, callback-forwarding and type/context edits in the relevant step's Files. A dialog option needs the component that opens it to pass it; a direct dialog test alone does not prove that wiring.
 4. **Decision Log completeness** — does every question actually asked in Step 4.5 have a row in `## Decision Log`? Add any missing rows.
 5. **Readability scan** — does `## What This Changes` (and `## Approach`) stay in plain prose with no file paths, function/class/method names, or code snippets? Fix any that slipped in.
-6. **Test scope** — is `## Domains/UCs Touched` filled (or `None — <reason>`)? Is every `(test scope only)` Affected Code section referenced by at least one step's `**Tests:**` line? Drop any that isn't.
+6. **Test scope** — is `## Domains/UCs Touched` filled (or `None — <reason>`)? Is every `(test scope only)` Affected Code section referenced by at least one step's `**Tests:**` line? Drop any that isn't. For test-support edits under Implement, reconcile Files/Tests and choose compatible destinations using the existing [pre-edit eligibility rules](../implement/references/planning-tests.md) before approval; listing a path alone does not establish eligibility. Use private helpers in an already permitted test file when suitable, preserving existing authorization boundaries.
 7. **Behavior reachability** — for every test-required step, list each new method, branch and enumerated case in its instructions and point to the named test that runs it with its owning layer unstubbed (Step 5's point 3). Flag any step whose only tests stub, mock or bypass the layer that owns the new behavior, or that cover fewer cases than the instructions list, and add or redirect tests until each item is reached.
+8. **Visual consistency** — is Visual Overview either a useful, compact Mermaid diagram with a short explanation or a justified omission? Check its labels, interactions, ordering and dependencies against the accepted requirements and final steps; refresh stale visuals on replans and amendments. Keep it readable and do not invent components or behavior for the diagram. Legacy plans need no section retrofit solely to pass validation.
 
 Fix issues inline; don't re-review after fixing.
 
@@ -363,6 +366,8 @@ Context updated: <each file changed in Step 5.6, with a one-line reason | none>
 ```
 
 Under the output block, list every `Spec gap:` Assumption, and every Assumption that Step 4.5's triage turned into an assumption instead of a question, one line each, so the user can override any of them before running `execute`. Omit the list when there are none.
+
+Provide a clickable Markdown link to the actual saved plan file (an absolute local path). When it includes a diagram, point the user to its **Visual Overview** section. Do not imply the diagram is rendered in chat or the HTML preview: Mermaid rendering depends on the Markdown viewer, and the current HTML preview shows source. No separate image is needed.
 
 If Overall risk (after mitigations) is High, also print the plan's `### Phasing alternative` summary in chat here — that's where the user actually decides, not buried in the file.
 

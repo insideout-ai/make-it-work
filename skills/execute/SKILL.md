@@ -74,7 +74,7 @@ At the end of an autopilot run that reaches a terminal report (Phase 3's report,
 
 **Controller-enabled runs:** When the supplied implement state has `controller_version: 1`, read [references/step-control.md](references/step-control.md). Its required helper replaces manual retry counting, next-step/batch selection, shared evidence writes and direct Progress completion below. The orchestrator completes steps from returned actual evidence; subagents do not write shared Progress/ledger files in this path. Other step semantics, guardrail reasoning and user choices remain unchanged.
 
-For those runs, choose Mode through implement's `execution-mode` controller event (see `../implement/references/controller.md`), instead of separately calling plan-status set-mode and logging a generic decision. Supply `mode`, explicit user provenance or the permitted autonomous default, and `pause_mode` for Inline. The event persists the plan setting and state/audit decision before dispatch. Standalone execution retains plan-status mode selection.
+For those runs, follow [Blocking questions](references/implement-integration.md#blocking-questions) before every blocking `AskUserQuestion`, including the initial Mode choice and Inline pause follow-up/backfill: checkpoint `await-input` before showing the question, then `resolve-input` after the actual answer. Choose Mode through implement's `execution-mode` controller event (see `../implement/references/controller.md`), instead of separately calling plan-status set-mode and logging a generic decision. Supply `mode`, explicit user provenance or the permitted autonomous default, and `pause_mode` for Inline. The event persists the plan setting and state/audit decision before dispatch. Standalone execution retains plan-status mode selection.
 
 
 1. **Repo/workspace detection** — reuse `plan-the-work`'s Step 1a logic verbatim to decide whether this is a **single repo** or a **coordinated multi-repo workspace**, since it determines which repo's `Affected Code` table (and, later, where each repo's test commands come from — its `.claude/skills/test-strategy/SKILL.md` when present) this run applies to. The distinction is not "does the parent hold other repos" — a bare folder of unrelated clones is not a workspace. It is "are these repos documented as one system": a **workspace-root orientation file** (a top-level `CLAUDE.md` / service map describing the sibling repos and how they call each other) is the signal that turns a folder of repos into a workspace.
@@ -98,7 +98,7 @@ For those runs, choose Mode through implement's `execution-mode` controller even
 **Test-preparation gate:** before implementation or choosing execution mode, run `node "<base>/../write-the-tests/scripts/preparation.mjs" check --plan "<plan-path>"`. Plans with `**Test preparation contract:** 1` require current preparation. On missing, blocked or stale evidence, stop and direct the user to `/make-it-work:write-the-tests <plan-path>`; never invoke it automatically. Implement-owned new runs additionally enforce this gate through their state contract. Legacy plans retain their prior test evidence. On resumed execution whose implementation already changed embedded tests, use `--check-files 0` while still validating plan revision and evidence; normal scoped verification remains mandatory.
 
 3. **Resolve Execution Status → Mode** — read the plan file's `## Execution Status → Mode` line.
-   - **If it reads "Not yet chosen"**, ask the user to choose, before doing anything else — even if you were only handed this file with no memory of it being created — using the same two options `plan-the-work`'s own Step 6 offers. Call `AskUserQuestion` with `multiSelect: false` and exactly these two options (autopilot: see Autopilot Mode):
+   - **If it reads "Not yet chosen"**, resolve the user's choice before implementation or step dispatch — even if you were only handed this file with no memory of it being created — using the same two options `plan-the-work`'s own Step 6 offers. When asking interactively in a controller-enabled run, first save the blocking question through `await-input` as required above. Call `AskUserQuestion` with `multiSelect: false` and exactly these two options (autopilot: see Autopilot Mode):
 
      1. `{ label: "Subagent-Driven (Recommended)", description: "Dispatch a fresh subagent per step (via the Agent tool), reviewed between steps. Best for complex multi-repo plans; keeps each step's context clean." }`
      2. `{ label: "Inline Execution", description: "Execute steps in this session with a checkpoint after each step's Verify." }`
@@ -271,6 +271,12 @@ This call requires `skills/run-regression/SKILL.md` to not carry a `disable-mode
 ### Reading the result
 
 For a regression invocation using [the structured runner](../../docs/regression-runner.md), consume its `overall` and actual per-run evidence directly instead of parsing chat labels: `pass` → the existing success path, `fail` → gate failure, `null` → no result. Preserve policy requirements for every automated product repo and manual evidence. The prose parsing below remains compatibility behavior only.
+
+Use the runner contract's structured prerequisite example for service checks
+(`command: {bin, args}`, never a shell string). For a plan with a concrete
+verification policy, write the [complete gate object](../implement/references/verification.md),
+including `full_suites` for every automated product repo and a `note` on each
+suite, from the retained results. A gate-level note does not replace suite evidence.
 
 `run-regression`'s Phase 5 report takes one of these shapes, and which one applies is a property of the report itself — not of how many repos this plan's own `## Affected Code` table lists (a single-repo plan can still resolve, inside `run-regression`, to a detected multi-repo workspace, since `run-regression` does its own independent repo/workspace detection whenever it's given `full`):
 

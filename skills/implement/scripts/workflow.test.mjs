@@ -10,6 +10,7 @@ import { parseState } from './render-status.mjs';
 import { checkpointDashboard } from './dashboard-checkpoint.mjs';
 import { applyWorkflow, initializeWorkflow, planHash, snapshot, transition } from './workflow.mjs';
 import { prematureImplementation } from './implementation-guard.mjs';
+import { readReviewBaseline } from './review-baseline.mjs';
 import { updateLog } from '../../../scripts/decision-log.mjs';
 
 async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = false, beforeInit = async () => {} } = {}) {
@@ -39,6 +40,34 @@ async function fixture(t, { prefix = 'workflow-controller-', init = {}, dirty = 
 }
 const fields = (phase, overrides = {}) => ({ fields: { ticket: 'DEMO', phase, status: 'In Progress', autonomy: 'autonomous', plan_version: '1', review_cycle: '1', fix_cycle: '0', replans_used: '0', context_updated: 'none', current_activity: 'Working', ...overrides } });
 const review = (outcome, findings) => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'review', review_cycle: 1, status: 'done', outcome, artifacts: { report: 'make-it-work/DEMO/DEMO-review.md' }, data: { findings, context_gaps: [] } });
+
+test('initialization saves independent review provenance and resume never recaptures later notes', async t => {
+  const f = await fixture(t, { dirty: true });
+  const state = parseState(await readFile(f.statePath, 'utf8'));
+  const baseline = readReviewBaseline(state.fields);
+  const skill = '.claude/skills/domain-demo/SKILL.md';
+  assert.ok(baseline.repos[0].changes.some(entry => entry.file === skill && !entry.tracked));
+  const enforcement = JSON.parse(state.fields.implementation_baseline);
+  assert.ok(!enforcement.repos[0].changes.some(entry => entry.file === skill));
+  await writeFile(artifactJoin(f.root, 'later.md'), 'created after the run started');
+  await f.apply('pause', { reason: 'Inspect local scope' });
+  const resumed = await f.apply('resume', { blocker_resolved: true });
+  assert.equal(resumed.fields.review_baseline, state.fields.review_baseline);
+  assert.equal(resumed.fields.implementation_baseline, state.fields.implementation_baseline);
+  assert.ok(!resumed.fields.review_baseline.includes('later.md'));
+  assert.equal(await prematureImplementation(f.result, parseState(await readFile(f.statePath, 'utf8'))), null, 'notes remain exempt from the application guard');
+});
+
+test('corrupt advisory baseline does not block state rendering or pause and resume', async t => {
+  const f = await fixture(t);
+  const original = await readFile(f.statePath, 'utf8');
+  await writeFile(f.statePath, original.replace(/^review_baseline: .*$/m, 'review_baseline: {bad'));
+  const saved = parseState(await readFile(f.statePath, 'utf8'));
+  assert.equal(saved.fields.review_baseline, '{bad');
+  await f.apply('pause', { reason: 'Ordinary user pause' });
+  const resumed = await f.apply('resume', { blocker_resolved: true });
+  assert.equal(resumed.fields.review_baseline, '{bad', 'do not recapture unknown starting history');
+});
 
 test('Autopilot initialization records its verified branch guard without losing prior decisions', async t => {
   const entry = { phase: 'Start', site: 'autonomy-selection', kind: 'checkpoint', chosen: 'autopilot', rationale: 'Selected through the explicit flag.' };
@@ -209,6 +238,41 @@ test('offline init CLI preserves its genuine answer wait instead of starting Con
   assert.match(result.startup_message, /Open implementation dashboard/);
   assert.equal(parseState(await readFile(result.state, 'utf8')).fields.status, 'Paused');
 });
+test('an incomplete draft pauses refinement, survives resume, and advances only after its requirements are resolved', async t => {
+  const { root, statePath, apply } = await fixture(t);
+  await apply('context-ready');
+  const dir = artifactJoin(root, 'make-it-work/DEMO');
+  await mkdir(artifactJoin(dir, 'DEMO-handoffs'));
+  const spec = 'make-it-work/DEMO/DEMO-spec.md';
+  await writeFile(artifactJoin(root, spec), '# Spec\nPayment date only.\nTBD: Sessions table or dashboard?\n');
+  const result = n => ({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'SPEC_SAVED', artifacts: { spec }, data: { tbd_items: n, context_updated: [] } });
+  const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
+  await writeFile(artifactJoin(root, handoff), JSON.stringify(result(1)));
+  const paused = await apply('handoff', { handoff });
+  assert.equal(paused.fields.status, 'Paused');
+  assert.equal(paused.fields.phase, 'close-the-gaps');
+  assert.equal(paused.fields.spec, spec);
+  assert.notEqual(paused.fields.spec_hash, 'none');
+  assert.equal(paused.fields.current_activity, 'none');
+  assert.equal(paused.fields.plan, 'none');
+  assert.equal(paused.fields.execution, 'not-started');
+  assert.match(await readFile(paused.dashboard, 'utf8'), /Draft saved/);
+  await assert.rejects(apply('approve', { source: 'user', via: 'chat' }), /Resume/);
+  await apply('resume', { blocker_resolved: true });
+  await assert.rejects(apply('handoff', { handoff, choice: 'proceed', source: 'user', via: 'chat' }), /not valid/);
+  const repeated = await apply('handoff', { handoff });
+  assert.equal(repeated.fields.phase, 'close-the-gaps');
+  assert.equal(repeated.fields.status, 'Paused');
+  await apply('resume', { blocker_resolved: true });
+  assert.match(await readFile(artifactJoin(root, spec), 'utf8'), /Payment date only/);
+  await writeFile(artifactJoin(root, spec), '# Spec\nPayment date only in the Sessions table.\n');
+  const resolved = 'make-it-work/DEMO/DEMO-handoffs/gaps-2.json';
+  await writeFile(artifactJoin(root, resolved), JSON.stringify(result(0)));
+  await apply('mode', { risk: 'low', mode: 'lightweight', source: 'assessed', rationale: 'Defined display-only scope.' });
+  const next = await apply('handoff', { handoff: resolved });
+  assert.equal(next.fields.phase, 'lightweight');
+  assert.equal(next.fields.status, 'In Progress');
+});
 test('checkpoint clears activity, increments review once, and preserves unrelated state', async (t) => {
   const { root, statePath, apply } = await fixture(t);
   const ready = await apply('context-ready');
@@ -267,7 +331,7 @@ test('a queued Guided mode controls the next approval gate but cannot remove the
   const next = transition(start, { event: 'handoff' }, gaps);
   assert.equal(next.fields.phase, 'spec-approval'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.queued_autonomy, 'none');
   const unresolved = transition(fields('close-the-gaps', { autonomy: 'guided', queued_autonomy: 'autopilot' }), { event: 'handoff' }, { ...gaps, data: { ...gaps.data, tbd_items: 1 } });
-  assert.equal(unresolved.pending.action, 'ask'); assert.equal(unresolved.fields.autonomy, 'guided'); assert.equal(unresolved.fields.queued_autonomy, 'autopilot');
+  assert.equal(unresolved.fields.status, 'Paused'); assert.equal(unresolved.fields.phase, 'close-the-gaps'); assert.equal(unresolved.fields.autonomy, 'guided'); assert.equal(unresolved.fields.queued_autonomy, 'autopilot');
 });
 test('completion drops a queued change without relabeling the mode that validated the final package', () => {
   const result = transition(fields('final-approval', { autonomy: 'autopilot', queued_autonomy: 'guided', review: 'clean' }), { event: 'complete' });
@@ -346,7 +410,7 @@ test('queued requests survive render failure and replay, then apply once at a re
   const replay = await applyWorkflow({ root, statePath, input: request });
   assert.equal(replay.replayed, true);
   assert.equal(parseState(await readFile(statePath, 'utf8')).audit.length, saved.audit.length);
-  assert.match(await readFile(replay.dashboard, 'utf8'), /Autonomy: autonomous · guided queued/);
+  assert.match(await readFile(replay.dashboard, 'utf8'), /Control: Autonomous · guided queued/);
   const next = await apply('context-ready');
   assert.equal(next.fields.phase, 'close-the-gaps'); assert.equal(next.fields.autonomy, 'guided'); assert.equal(next.fields.queued_autonomy, 'none');
   assert.match(parseState(await readFile(statePath, 'utf8')).audit.at(-1).outcome, /Autonomy applied at phase boundary/);
@@ -589,7 +653,11 @@ test('actual controller accepts current preparation, renders its report, and ent
   await f.apply('preparation-saved', { preparation: path.relative(await realpath(f.root), saved.file) });
   const html = await readFile(f.result.dashboard, 'utf8');
   assert.match(html, /Test Preparation/);
-  assert.match(html, /expected-red/);
+  assert.doesNotMatch(html, /class="test-preparation"|expected-red/);
+  assert.match(html, /Test preparation ready · <a[^>]+>View preparation report<\/a>/);
+  const preview = await readFile(`${saved.report}.preview.html`, 'utf8');
+  assert.match(preview, /expected-red/);
+  assert.match(preview, /Open original/);
   assert.match(html, /tests-1.md.preview.html/);
   const testsHandoff = artifactJoin(handoffs, 'tests-1.json');
   await writeFile(testsHandoff, JSON.stringify({ version: 1, ticket: 'DEMO', stage: 'tests', status: 'done', plan_version: 1, outcome: 'TESTS_PREPARED', artifacts: { preparation: path.relative(await realpath(f.root), saved.file), report: path.relative(await realpath(f.root), saved.report) }, data: {} }));

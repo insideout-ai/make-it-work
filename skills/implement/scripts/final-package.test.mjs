@@ -228,10 +228,19 @@ test('a complete workflow reports partial criterion verification consistently in
   await writeFile(state, completed);
   const html = await readFile(await generateDashboard(state), 'utf8');
   assert.match(html, /Finalizing session\./);
-  assert.match(html, /Acceptance verification: Partially verified/);
-  assert.match(html, /1 of 2 acceptance criteria pending/);
-  assert.match(html, /Reference &lt;unavailable&gt;/);
-  assert.doesNotMatch(html, /Reference <unavailable>/);
+  assert.match(html, /Acceptance checks:<\/strong> 1 of 2 verified · 1 pending/);
+  assert.match(html, /href="DEMO-acceptance-v1.md.preview.html"[^>]*>View verification report/);
+  assert.match(html, /<div class="label">Acceptance checks<\/div>/);
+  assert.doesNotMatch(html, /Pending criterion|Reference.*unavailable/);
+  const acceptanceReport = await readFile(artifactJoin(dir, 'DEMO-acceptance-v1.md'), 'utf8');
+  assert.match(acceptanceReport, /\*\*1 of 2 verified · 1 pending\*\*/);
+  assert.match(acceptanceReport, /AC1 parity.*Failure path.*Pending verification.*Reference &lt;unavailable&gt;/);
+  assert.match(acceptanceReport, /AC2 display.*Observe display.*Verified manually/);
+  const preview = await readFile(artifactJoin(dir, 'DEMO-acceptance-v1.md.preview.html'), 'utf8');
+  assert.match(preview, /Reference &lt;unavailable&gt;/);
+  assert.doesNotMatch(preview, /Reference <unavailable>/);
+  assert.equal(await readFile(artifactJoin(dir, 'DEMO-verification-v1.json'), 'utf8'), JSON.stringify(ledger));
+  assert.equal(run('check', root, state).current, true);
   assert.equal(parseState(await readFile(state, 'utf8')).fields.status, 'Complete');
 });
 
@@ -448,7 +457,12 @@ test('new clause contract blocks name-only handoff/package claims and renders ea
   assert.match(md, /Source: test.js:12/);
   assert.match(md, /Expected: 100 \+ 25 = 125; Observed: 125/);
   await generateDashboard(state);
-  assert.match(await readFile(state.replace('-state.md', '-status.html'), 'utf8'), /Preserve ascending output order/);
+  const html = await readFile(state.replace('-state.md', '-status.html'), 'utf8');
+  assert.match(html, /Acceptance checks:<\/strong> 0 of 1 verified · 1 pending/);
+  assert.doesNotMatch(html, /Preserve ascending output order/);
+  const report = await readFile(artifactJoin(dir, 'DEMO-acceptance-v1.md'), 'utf8');
+  assert.match(report, /Preserve ascending output order.*Pending verification.*No ordering assertion was executed/);
+  assert.match(report, /Open saved verification record\]\(DEMO-verification-v1.json\)/);
   assert.equal(run('check', root, state).verification_summary.pending, 1);
   assert.match(run('check', root, state).assurance_summary.text, /acceptance verification pending/);
 });

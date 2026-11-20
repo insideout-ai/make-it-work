@@ -1,5 +1,8 @@
 # Execute a resolved verification policy
 
+**Impact-enabled override:** when the plan has `**Repository impact contract:** 1`, follow [repository impact](../../implement/references/repository-impact.md). Use its required-check manifest instead of requesting a full suite for every automated policy row. Record scoped/manual/full results in `gate.checks`; normal step/AC evidence and failures still apply. Standalone legacy policies retain the procedure below.
+
+
 This path applies only when the plan has a concrete `## Verification Policy` table. Use `node "<execute-base>/../implement/scripts/testing-policy.mjs" check --plan <plan-path>` to validate it and read the automated/manual repo lists. A malformed policy stops before code changes. A missing/`None` policy uses the legacy execution and gate rules unchanged.
 
 Pass the policy and repo-specific verification requirements to each step executor. Automated repos retain their named test commands. Manual repos use their corresponding `## Test Plan` rows, with actual setup/actions/observations. Never infer a manual check from reading code, a build, or another repo's passing suite. Unavailable access or unperformed checks stop execution with the concrete reason; they are not exempt checks.

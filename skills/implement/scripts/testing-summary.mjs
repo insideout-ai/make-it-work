@@ -1,6 +1,7 @@
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
+import { checkRepoImpact } from './repo-impact.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 
 const methods = new Set(['pending', 'automated', 'manual', 'mixed', 'independent-review', 'not-recorded']);
@@ -24,6 +25,7 @@ export function testingSummaryNotes(rows) {
 // New runs only. Actual selected roots are the same approved scope used by readiness.
 export async function collectTestingSummary(root, fields, { final = false } = {}) {
   if (fields.testing_summary === undefined) return null;
+  if (fields.repo_impact_version === '1' && (!fields.repo_impact || fields.repo_impact === 'none')) return [];
   const scope = fields.workspace_version === '1' ? JSON.parse(fields.workspace_contract).repos : JSON.parse(fields.workspace_snapshot);
   let policy = [], ledger = null, plan = '';
   if (final && fields.mode !== 'lightweight' && fields.verification_version === '1' && fields.plan && fields.plan !== 'none') {
@@ -36,8 +38,10 @@ export async function collectTestingSummary(root, fields, { final = false } = {}
       outcome: EXECUTION_OUTCOMES[fields.execution] ?? 'GATE_NO_RESULT',
     });
   }
+  const impact = fields.repo_impact && fields.repo_impact !== 'none' ? await checkRepoImpact(root, fields) : null;
   const rows = [];
   for (const repo of scope.filter(repo => !repo.role || repo.role === 'product')) {
+    if (impact && impact.repos.find(r => r.repo === repo.id)?.classification === 'context') continue;
     try { await readFile(artifactJoin(repo.root, '.claude/skills/test-strategy/SKILL.md')); continue; }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     const id = repo.id ?? path.basename(repo.root);

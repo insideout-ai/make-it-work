@@ -139,3 +139,404 @@ helper directory before calling the already-specified artifact resolver. Clarify
 standalone output handling to use that supplied path directly, without helper
 directory browsing/source reads. Retry only this remaining case; do not rerun
 passing cases or weaken the standalone evidence boundary.
+
+### PR #115 readiness smoke follow-up
+
+The initial complete 16-case smoke on `8803728` retained 14 passes and two
+failures, with `selectionComplete: true`, `repoUnchanged: true` and reported usage
+**$5.33503424**. Report:
+`evals/results/smoke-2026-11-19T14-39-10-252Z/summary.json`.
+
+- `drive-the-epic-autopilot`: direct inspection of the saved first slice confirms
+  that it fixes amounts/dates to their stored representation, although the epic
+  leaves date format/timezone unresolved and that slice omits the question. Both
+  semantic votes failed. Clarify the existing uncertainty-preservation rule for
+  prose/examples and values emitted by an earlier slice; raw/stored/default
+  representations are still choices. No new gate or question is added.
+- `close-the-gaps-live-autopilot`: the native harness could not find the required
+  spec and discarded its temporary trace/fixture. Preserve that failed verdict
+  and leave its cause unclassified. Move the same case to the existing headless
+  path so the retry retains the transcript/artifacts; prompt, graders, required
+  tools and suite membership remain unchanged. A headless pass will not prove
+  the native failure's cause or certify native execution.
+
+All 108 eval-harness tests, strict skill validation, 186-case inventory and diff
+checks passed after these changes. Retry only these unresolved cases through
+PR #115's existing ledger; preserve the 14 passes and initial reports. The
+requested total budget remains $12, including the initial run and grading.
+
+The unresolved-only retry on `577e860` passed both cases, with
+`selectionComplete: true` and `repoUnchanged: true`. Report:
+`evals/results/smoke-2026-11-19T14-47-46-418Z/summary.json`.
+Reported retry usage including grading was **$0.81488298**, bringing the combined
+total to **$6.14991722 of the $12 cap**. PR #115's ledger records cumulative PASS
+for all 16 cases: 14 retained from `8803728`, two from `577e860`. They were not all
+rerun on the final commit.
+
+Direct saved-artifact and grading inspection confirms the first export slice now
+keeps value representations open instead of selecting a stored form. Refinement
+created the required spec, retained the missing-admin-role decision and passed
+all unchanged checks. Both semantic checks received PASS/PASS votes. The native
+refinement failure's cause remains unknown; the passing retry establishes the
+headless path only. Initial failures and per-case source commits remain retained.
+The corrected runtime package also built and passed integrity verification. This
+evidence-only follow-up changes no tested runtime/skill/fixture content; no second
+full smoke run is needed.
+
+
+## PR #115 — Interactive worktree-offer follow-up, 2026-11-19
+
+The reported fresh Guided session omitted the existing isolated-worktree choice.
+Startup guidance now presents both checkout routes directly. No runtime gate or
+automatic migration was added; Continue here, explicit choices, Autopilot and
+saved Resume roots retain their contracts. Findings and scope are in D021.
+
+Focused report `evals/results/full-2026-11-19T15-37-24-209Z/summary.json`,
+source `c4e171e91b167dc1486a98661f3c447e27d3ec71`: 3/3 selected cases passed
+(`implement-worktree-offer`, `implement-dashboard-autonomous-start`,
+`implement-branch-ticket-mismatch`), reported usage **$0.83981963**. Direct trace
+review found that the offer case deferred the early context precheck; its
+original grader checked the checkout offer but did not require that ordering.
+That pass is scoped to its original rubric, not complete startup compliance.
+
+The entrypoint reminder and offer grader were tightened to preserve the existing
+precheck-before-question rule. Report
+`evals/results/full-2026-11-19T15-39-46-308Z/summary.json`, source
+`3153300ce9ccadc39a4a02927dfddaeba887a0d9`: the strengthened offer case passed,
+reported usage **$0.25057248**. The actual trace ran context-inventory inspection
+successfully before the checkout question, offered recommended isolation and
+current-checkout branch actions, reused Guided/chat choices, and left the answer
+pending. The exact-byte source check passed. This rerun was justified by the
+observed ordering gap and changed guidance/grader; the other two focused cases
+were not repeated. Combined follow-up usage **$1.09039211**. Both reports have
+`selectionComplete: true` and `repoUnchanged: true`. These are focused selections
+using the full-tier runner, not an archive-wide full pass.
+
+Strict skills validation, 187-case inventory and 108 eval-harness tests passed;
+the tests ran before the final prose/grader-only ordering clarification. The
+final runtime from `3153300` built, passed integrity verification and strict
+exported-skills validation. Existing broad workflow and PR smoke evidence is
+retained with its original source commits. No complete smoke was rerun. The
+new case remains outside smoke/critical; creation, Continue here execution after
+an answer, and Resume are not established by the unanswered-choice case.
+
+
+## PR #115 — Checkout recommendation follow-up, 2026-11-19
+
+A subsequent actual fresh Guided run offered isolation but recommended Continue
+here. Its loaded startup text was current. See D022; no raw customer transcript
+or screenshot was copied into the eval fixtures. The correction explicitly
+orders isolated worktrees first and makes it the only recommended checkout
+option. Local edits and the current-checkout guard's branch recommendation do
+not reverse that policy.
+
+`evals/results/full-2026-11-19T15-45-41-110Z/summary.json`, source
+`44f31be71ff3823c221ab4cef0b060e03dbc3aa0`: **1/1 selected case passed**,
+reported usage **$0.27411057**, `selectionComplete: true`, `repoUnchanged: true`.
+The fixture adds an actual tracked dirty .gitignore; both it and the source file
+passed exact-byte preservation checks. Direct trace review confirms successful
+early precheck, isolated worktrees first and Recommended, Continue here second
+without that label, and an unanswered choice with no branch/state mutations.
+The grader accepts a direct chat question when the headless harness cannot
+collect an interactive answer; this is not proof of native terminal UI behavior.
+
+Negative control: the final passing trace was copied outside the repository and
+only its checkout recommendation was deliberately changed to Continue here, in
+both assistant text and the duplicated terminal result. The semantic grader
+rejected this consistent control **FAIL/FAIL**, with unchanged-file checks still
+passing; reported grading usage **$0.00975677**. Local control report:
+`/tmp/pr115-worktree-recommend-negative.json`. A preliminary control mistakenly
+retained the correct duplicated terminal result and was not a valid negative
+control; its contradictory evidence cost **$0.01204935** and was corrected,
+not counted as rejection evidence. Total follow-up usage including both control
+trials **$0.29591669**. No implementation model or full smoke was rerun for the
+control. This is a focused development check, not an archive-wide suite pass.
+
+Strict skills validation, inventory (187 cases / 16 smoke skills) and whitespace
+checks passed. No JavaScript source or harness code changed; the existing 108
+harness and 802 workflow test results retain their earlier source qualifications.
+
+
+## PR #115 — Explicit checkout actions and worktree branch naming, 2026-11-19
+
+The approved wording replaces Continue here with an actual branch action: Create
+branch in current checkout on base, or Use current branch: <branch> on a suitable
+feature branch. The worktree route remains first and recommended, with suggested
+branch naming and optional rename in the existing creation approval. Changing a
+name uses target_branch and a fresh preview/hash in the same private session;
+accepting the default adds no mandatory name-entry question. No runtime code,
+state field or approval stage changed. See D023.
+
+Report `evals/results/full-2026-11-19T17-19-49-588Z/summary.json`, source
+`b7a1fef74a032a85005a8f9aebab440c54cbb4f0`: **2/2 selected cases passed**,
+`selectionComplete: true`, `repoUnchanged: true`, reported usage **$0.68108172**:
+
+- `implement-worktree-offer`: **$0.24892089**. Direct trace review confirmed
+  precheck before the question, isolated worktree first and uniquely recommended,
+  Create branch in current checkout with the exact proposed name and current
+  HEAD, Stop, and optional different naming for either route. It left the choice
+  pending and preserved both source and the local tracked .gitignore edit.
+- `implement-worktree-branch-preview`: **$0.43216083**. Explicit --worktree skipped
+  the checkout question. Actual allocation and workspace-scope prepare used the
+  fixture's external disposable sessions parent. The user-facing preview linked
+  the returned HTML and showed the suggested branch, starting main commit, source,
+  destination and hash, plus Create worktree and branch / Use a different branch
+  name / Back. Approval remained unanswered; no approve/run or initialization
+  occurred. Source remained on main with only its original worktree, and both
+  exact-byte unchanged checks passed.
+
+The existing 21 tests in scripts/session-workspace.test.mjs and
+skills/implement/scripts/workspace-scope.test.mjs passed on this source. Strict
+skills validation, 188-case inventory (16 smoke skills), runtime build/integrity
+and strict exported-skills validation passed. No full smoke or broad workflow
+suite was repeated for this guidance-only change. Both cases remain outside
+smoke/critical.
+
+These cases test pending choices in the headless driver, permitting equivalent
+chat questions when interactive replies cannot be collected. They do not certify
+native terminal UI, the feature-branch label, an actual rename response, Back
+execution or a complete worktree lifecycle. The separate existing helper tests
+cover revisions, exact approval and worktree execution. The case used a synthetic
+policy repository explicitly chosen by the prompt; payment/session behavior was
+not implemented or validated.
+
+
+## PR #115 — Readable worktree approval presentation, 2026-11-19
+
+A reported native approval dialog displayed a raw Markdown link and wide table
+with long local paths. The create/rename/back choices were correct, but the
+layout was hard to scan. Guidance now presents the complete exact preview in
+ordinary chat before confirmation, using compact per-repo fields and separate
+path lines. The dialog is a short plain-text question naming branch and starting
+ref/short SHA and referring to those chat details. Source state, inherited
+history and local/remote-base comparisons remain disclosed; no approval stage
+or fetch/reset behavior changed. See D024.
+
+`evals/results/full-2026-11-19T17-33-59-278Z/summary.json`, source
+`027f10fa65802c235c7aedd084737e236a5c868e`: **1/1 selected case passed**,
+reported usage **$0.42478654**, `selectionComplete: true`, `repoUnchanged: true`.
+The original source and tracked local .gitignore edit passed exact-byte checks.
+Direct trace review confirmed actual allocation/prepare, the returned HTML link,
+field lists with paths on their own lines, correct branch/start/source/destination
+and preview hash, and a clearly separate compact create/rename/back confirmation.
+Only preflight files/HTML and scratch inputs were written; branch/worktree
+creation and workflow initialization remained unapproved and unexecuted.
+
+The model used the permitted headless chat fallback and made no AskUserQuestion
+call. This validates the generated chat presentation, not native widget rendering
+or a complete interactive lifecycle. The grader rejects raw tables/links/long
+paths in a question payload when that tool is used. The changed shared workspace
+format was not separately exercised in a multi-repo live case. Strict skills
+validation, the 188-case inventory and whitespace checks passed. No JavaScript
+source or harness code changed; existing helper tests retain their earlier
+source qualifications. No smoke or broad helper suite was repeated for this
+presentation-only follow-up.
+
+
+## PR #115 — Repo/workspace-local defaults, 2026-11-19
+
+D025 moves fresh single-repo checkouts to <repo>/.claude/worktrees/<session>, with
+private preflight/reports at <repo>/.claude/miw-sessions/<session>. Multi-repo
+sessions use <workspace>/.claude/worktrees/<session>/repos/<repo-id> with sibling
+private reports. Existing saved paths and explicit external custom containers
+retain their bindings. Source files/index/branch are preserved; exact new private
+paths receive local Git exclusions rather than source .gitignore edits.
+
+Deterministic evidence:
+
+- Broad workflow run: 807 passed, zero failures/skips, before the final recorded-ID
+  edge correction and its two added tests. That full run is not attributed to
+  every byte of the final candidate. A focused recorded-ID regression then
+  reproduced Repository not found, and passed after binding lookup also recognized
+  the saved inventory ID rather than relying only on a folder or strategy ID.
+- Final affected routing/regression/workflow-integration selection: 53 passed,
+  zero failures/skips on the JavaScript committed as b604a61. It includes both
+  local layouts, actual Git worktree creation, custom-name/old-hash rejection,
+  legacy discovery, concurrent exclusions, source-byte preservation, managed
+  target resolution, subdirectory/saved-root resume, source identity drift and
+  real red-to-green workflow integrations. The new sibling layout's own dedicated
+  test initializes and pauses/resumes; the full isolated red-to-green fixture
+  retains its pre-existing custom-container setup.
+- Final eval-harness plus packaging/publication run: 113 passed, zero failures/
+  skips. Initial inventory and four catalog/dry-run tests failed because the new
+  multi-repo fixture lacked its explicit disposable-cwd guard. The guard was
+  added; inventory and the complete combined selection then passed. No failure
+  was waived. Current inventory: 189 cases / 16 smoke skills.
+- Strict skills validation and whitespace checks passed. Runtime from b604a61
+  built, passed integrity and strict exported-manifest/skills validation, and
+  clean-installed 16 skills / 201 files as 5.16.0. Source labels a894ea3 only change
+  the live prompt/guidance, not JavaScript. No full smoke was repeated.
+
+Live initial report:
+`evals/results/full-2026-11-19T18-07-59-299Z/summary.json`, source
+`b604a61de358563b9031d7e429af88e13b1b75fd`, total **$0.86788070**:
+
+- implement-worktree-workspace-preview passed (**$0.52830643**). Actual allocation
+  and prepare used the workspace-local default, selected api/web, assessed but
+  excluded unrelated, and presented their main/develop starting commits plus
+  exact paths in a readable pending creation preview. Source byte checks passed.
+- implement-worktree-branch-preview failed (**$0.33957427**). Claude Code's auto
+  permission classifier denied allocate before execution as Destructive or
+  Unwanted Actions. No preview or creation was fabricated. The prompt also
+  prohibited any checkout changes despite requesting repo-local preflight.
+  This is a permission-blocked attempt, not passing placement evidence; the
+  runner's unclassified failure is retained. The prompt conflict explains the
+  correction without claiming access to the classifier's internal reasoning.
+
+Only the blocked case was retried after a894ea3 explicitly authorized new private
+preflight paths and scoped local exclusions while protecting existing file
+contents, index, HEAD, branch and the creation gate. Product guidance also
+clarifies these bookkeeping side effects and honors explicit user prohibitions.
+No permission mode/allowlist change, denied-command disguise or grader weakening
+was used. Retry report:
+`evals/results/full-2026-11-19T18-10-58-497Z/summary.json`, source
+`a894ea360f6401092a7bedbc3c5035de4753f242`: 1/1 passed, **$0.49496416**.
+Direct inspection confirmed actual .claude/worktrees and .claude/miw-sessions
+sibling paths, pending exact preview, unchanged source branch/index/HEAD and
+source/.gitignore byte checks; only preflight files and exact exclusions changed.
+
+Combined reported usage including the blocked attempt: **$1.36284486**. Both
+reports have selectionComplete and repoUnchanged true. Coverage is cumulative
+across the two source commits, not a full archive run or a claim both cases ran
+on the final commit. The cases use headless chat confirmation, so they do not
+certify native question rendering, branch creation after a live human answer,
+setup/dependencies in a real project, or a complete live Implement lifecycle.
+
+## PR #115 — Repo-local multi-repo checkouts, 2026-11-19
+
+D026 changes fresh multi-repo defaults to
+`<workspace>/<repo>/.claude/worktrees/<session>` for each selected repo, with
+shared state/reports at
+`<workspace>/.claude/miw-sessions/<session>/make-it-work/<TICKET>`.
+Version-3 markers bind these paths;
+version-1 grouped/external and version-2 single-repo paths remain supported.
+Source-wide private changes are limited to selected repo parents/exclusions,
+with no source .gitignore rewrite, new approval stage or automatic migration.
+
+Failure/fix evidence retained locally:
+
+- A new test fixture initially lacked the required Assessment Evidence section.
+  The fixture was repaired; the test then exercised its selected-only metadata
+  and occupied-path preservation assertions successfully.
+- The actual red-to-green isolated workflow exposed Duplicate delivery repo name:
+  both physical checkout folders are named after the session. Fresh version-3
+  plans/contracts now opt into repo-ID names for review/final-package snapshots,
+  preserving earlier contracts' saved naming. The new package names are api/web.
+- The next integration attempt reached final packaging but failed on an old
+  dashboard literal, Full suite: pass, removed by the already committed dashboard
+  simplification. That assertion now checks the package's passing validation and
+  per-repo full-suite verification evidence instead of obsolete UI wording.
+
+Final deterministic checks (runtime JavaScript committed as ce2b3e8):
+
+- 76 affected routing, identity, scope, review and final-package tests passed,
+  zero failures/skips. Source redirect and ambiguous-binding tests, selected-only
+  preparation, legacy discovery, custom-name/hash behavior and resume are covered.
+- The focused real red-to-green isolated-worktree integration passed through
+  regression, reviewed-scope binding, final package and completion using the new
+  default paths. Git worktrees and Node assertions are real; the clean review
+  artifact/handoffs are synthetic, not live independent-review quality evidence.
+- Eval-harness and packaging/publication checks passed 113 tests, zero failures/
+  skips. Strict skills validation, whitespace and 189-case inventory passed.
+- The committed runtime built and passed integrity, strict exported manifest/
+  skills validation and clean installation (16 skills / 201 files, version 5.16.0).
+  The broad workflow suite was not rerun for this bounded follow-up; prior broad
+  results keep their earlier source qualifications. No complete smoke was rerun.
+
+Live report `evals/results/full-2026-11-19T21-08-03-530Z/summary.json`, source
+`ce2b3e8d1e400236d1fb020abacc107ac3be1ef0`: 1/1 selected case passed,
+reported usage **$0.57108957**, selectionComplete and repoUnchanged true. Direct
+inspection confirmed actual allocation/prepare with repo-local api/web targets
+and one shared workspace state root, source main/develop starting points, exact
+branch names, readable field lists/link, and an unanswered compact creation
+confirmation. All three source byte graders passed. Read-only postchecks found
+api/main, web/develop and unrelated/main clean; unrelated/.claude/worktrees did
+not exist. No approve/run, source edit or branch/worktree creation was performed
+by the model. Headless chat confirmation does not certify native terminal UI or
+a completed conversational multi-repo run. Existing sessions remain at saved paths.
+
+## PR #115 — Readiness dashboard readability, 2026-11-19
+
+D027 is a renderer-only follow-up to parent b65d809. The saved readiness result
+is summarized for display, while the original evidence stays in collapsed
+Technical details and the readiness report uses the existing document reader.
+Unchanged phases display once; readiness completion and state mutation do not
+change. Unknown evidence formats retain the existing escaped-text fallback.
+
+All 102 tests passed in the combined render-status, testing-readiness,
+artifact-preview and epic-dashboard selection (zero failures/skips), recorded
+locally at `/tmp/pr115-readiness-dashboard-tests.log`. New cases cover original
+state preservation, plain/prefixed report and JSON links, historical versions,
+per-repo pass/fail/not-run/manual display, escaping and rejected link targets.
+
+The synthetic preview at `/tmp/pr115-readiness-preview/dashboard.html` was
+visually inspected in Chrome. The collapsed result hid raw paths/hashes,
+expansion exposed the original evidence and the report link opened the reader.
+The first preview generation rejected the source fixture's unresolved plugin
+version; substituting 5.16.0 fixed the synthetic preview. This is browser QA of
+the synthetic readiness row, not a new live Implement lifecycle/model eval.
+No paid evaluation or full smoke was repeated for this display-only change.
+
+## PR #115 — Compact Execute timeline, 2026-11-19
+
+D028 shortens the visible active Execute label to its actual step position and
+moves execution mode/verified counts to a tooltip. The duplicate skill name is
+removed. Parallel dispatch retains multiple positions; when no step is running,
+only actual completion progress is shown. Execution journals, verified counts,
+current activity and approval/gate behavior are unchanged.
+
+The render-status, plan-status and step-control selection passed all 113 tests,
+zero failures/skips (`/tmp/pr115-execute-label-tests.log`). Existing dispatch
+and parallel integration checks additionally assert compact visible labels and
+retained tooltip detail. Chrome inspection of the synthetic preview at
+`/tmp/pr115-execute-preview/dashboard.html` confirmed the three-line active
+Execute display. No model evaluation or complete smoke was repeated. The other
+session's badge-label commit 9911aa3 was present during validation and preserved.
+
+## PR #115 — Repository location disclosure, 2026-11-19
+
+D029 removes the generic Details column from the approved repository table and
+places a collapsed Worktree/Checkout location beneath each repository name.
+Saved scope, assessment evidence, approval preview, mismatch warnings and history
+are retained. All 97 existing workspace-scope/render-status/epic-dashboard tests
+passed, zero failures/skips (`/tmp/pr115-repository-location-tests.log`). Chrome
+inspection confirmed collapsed controls and three-column tables in the synthetic
+`/tmp/pr115-repository-location-preview/dashboard.html`; user browser activity
+interrupted the expansion check, so expanded rendering is not certified.
+No paid eval or full smoke was repeated for this presentation-only follow-up.
+
+## PR #115 — Acceptance verification report, 2026-11-19
+
+D030 replaces the main dashboard's detailed acceptance table with a compact
+verified/pending count and report link. A per-plan readable companion to the
+validated ledger is available in Artifacts and linked by recognized verification
+audit results. Original JSON/audit bytes, package approvals and gates are retained.
+
+The initial four-file selection passed 110/111 tests; its remaining assertion
+expected pending-clause text in the main HTML. That check now verifies the new
+report while retaining clause/evidence safeguards. The final selection passed
+111/111 tests, zero failures/skips (`/tmp/pr115-acceptance-report-final-tests.log`),
+including report/preview links, pending/manual distinctions, preserved ledger
+bytes, package identity after report generation and audit retry idempotence.
+Artifact/preview checks passed 20/20 (`/tmp/pr115-acceptance-report-artifacts.log`).
+
+A synthetic 3-of-5 dashboard/report was generated at
+`/tmp/pr115-acceptance-preview/dashboard.html`. This is generated-artifact QA,
+without a new native browser check or live model lifecycle. No paid eval or full
+smoke was repeated. Existing passing evidence retains its source qualifications.
+
+## PR #115 — Repair stale CI assertions, 2026-11-20
+
+Hosted run 44623667682, source c822341, failed two of 820 helper tests:
+repo-impact expected removed context-only table prose and workflow replay
+expected the old Autonomy badge. Both reproduced in a focused local selection.
+The repair asserts saved context-only scope/no required checks and the current
+Control label, preserving queue/replay/boundary behavior. It changes tests only.
+
+The focused pair passed. The exact CI helper command then passed 820/820 tests,
+zero failures/skips (`/tmp/pr115-ci-helper-full-final.log`). Eval-harness and
+packaging/publication tests passed 113/113; strict manifest, skills, marketplace
+and 189-case inventory checks passed. No paid eval or full smoke rerun. The
+Node-20 warning concerns action runtimes and was separate from the two assertion
+failures. Hosted revalidation is pending the repair push; earlier focused-only
+evidence remains qualified to its original selection rather than the full suite.

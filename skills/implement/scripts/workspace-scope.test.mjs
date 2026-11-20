@@ -59,6 +59,56 @@ test('collision handling, existing branches, and a single affected workspace rep
   await approveScope(root, 'DEMO', revised.hash, consent); await runScope(root, 'DEMO', revised.hash);
   assert.equal((await approvedScope(root, 'DEMO', [artifactJoin(root, 'api')])).repos.length, 1);
 });
+test('preview binds the actual creation point and stale local base without moving dirty work', async t => {
+  const { root, input } = await fixture(t), repo = artifactJoin(root, 'api');
+  input.repos = [{ ...input.repos[0], target_branch: 'DEMO' }];
+  const base = git(repo, 'rev-parse', 'main');
+  git(repo, 'switch', '-c', 'OTHER-42');
+  await writeFile(artifactJoin(repo, 'feature.txt'), 'other ticket');
+  git(repo, 'add', '.'); git(repo, 'commit', '-m', 'Other ticket');
+  const head = git(repo, 'rev-parse', 'HEAD');
+  git(repo, 'update-ref', 'refs/remotes/origin/main', head);
+  await writeFile(artifactJoin(repo, 'source.txt'), 'uncommitted');
+  const before = git(repo, 'status', '--porcelain');
+  const preview = await prepareScope(root, input), selection = preview.plan.repos[0];
+  assert.deepEqual(selection.start_point, { sha: head, ahead: 1, behind: 0 });
+  assert.deepEqual(selection.remote_base, { ref: 'origin/main', sha: head, ahead: 0, behind: 1 });
+  const html = await readFile(preview.dashboard, 'utf8');
+  assert.match(html, /Create at current HEAD/); assert.match(html, new RegExp(head));
+  assert.match(html, /1 ahead, 0 behind main/); assert.match(html, /Local base: 0 ahead, 1 behind origin\/main/);
+  assert.match(html, /Starting commit differs from base/);
+  assert.equal(git(repo, 'status', '--porcelain'), before);
+  await approveScope(root, 'DEMO', preview.hash, consent);
+  git(repo, 'update-ref', 'refs/remotes/origin/main', base);
+  const applied = await runScope(root, 'DEMO', preview.hash);
+  assert.equal(applied.hash, preview.hash, 'remote metadata does not change the approved operation');
+  assert.equal(applied.status, 'applied');
+  assert.match(applied.warnings[0], /Remote-tracking base changed/);
+  assert.equal(git(repo, 'branch', '--show-current'), 'DEMO');
+  assert.equal(git(repo, 'rev-parse', 'HEAD'), head, 'creation still uses current HEAD');
+  assert.equal(git(repo, 'status', '--porcelain'), before);
+});
+test('existing-branch preview uses the target commit and old saved selections still apply', async t => {
+  const { root, input } = await fixture(t), repo = artifactJoin(root, 'api');
+  git(repo, 'switch', '-c', 'existing');
+  await writeFile(artifactJoin(repo, 'feature.txt'), 'existing work');
+  git(repo, 'add', '.'); git(repo, 'commit', '-m', 'Existing work');
+  const target = git(repo, 'rev-parse', 'HEAD');
+  git(repo, 'switch', 'main'); git(repo, 'update-ref', '-d', 'refs/remotes/origin/main');
+  input.repos = [{ ...input.repos[0], target_branch: 'existing' }];
+  const preview = await prepareScope(root, input);
+  assert.deepEqual(preview.plan.repos[0].start_point, { sha: target, ahead: 1, behind: 0 });
+  assert.equal(preview.plan.repos[0].remote_base, null);
+  const html = await readFile(preview.dashboard, 'utf8');
+  assert.match(html, /Switch to existing branch at/); assert.match(html, /freshness unknown/);
+  // Historical journal bytes/hashes have no preview metadata; do not migrate them.
+  const legacy = await readScope(root, 'DEMO');
+  delete legacy.plan.repos[0].start_point; delete legacy.plan.repos[0].remote_base;
+  legacy.hash = digest(JSON.stringify(legacy.plan));
+  await writeFile(preview.file, JSON.stringify(legacy));
+  await approveScope(root, 'DEMO', legacy.hash, consent); await runScope(root, 'DEMO', legacy.hash);
+  assert.equal(git(repo, 'rev-parse', 'HEAD'), target);
+});
 test('stale worktrees and changed reports invalidate approval before branch changes', async (t) => {
   const { root, input } = await fixture(t), preview = await prepareScope(root, input);
   await approveScope(root, 'DEMO', preview.hash, consent);
@@ -89,7 +139,7 @@ test('workspace initialization enforces approval and checkpoints cannot silently
   assert.equal(result.fields.workspace_version, '1');
   const stateBeforeResume = digest(await readFile(result.state, 'utf8'));
   await applyWorkflow({ root, statePath: result.state, input: { event: 'resume', id: 'matching-resume', expected_hash: stateBeforeResume, repos, blocker_resolved: true } });
-  assert.match(await readFile(result.dashboard, 'utf8'), /Scope approved by user/);
+  assert.match(await readFile(result.dashboard, 'utf8'), /<th>Working branch<\/th>/);
   assert.match(await readFile(result.dashboard, 'utf8'), /develop/);
   const apply = async (extra) => applyWorkflow({ root, statePath: result.state, input: { id: 'change', event: 'pause', reason: 'Check scope', repos,
     expected_hash: digest(await readFile(result.state, 'utf8')), ...extra } });
@@ -110,6 +160,9 @@ test('scope expansion requires renewed approval, preserves the retained spec and
   input.repos = [input.repos[0]];
   await applySelection(root, input);
   const result = await initializeWorkflow(root, { ticket: 'DEMO', autonomy: 'autopilot', repos: [artifactJoin(root, 'api')], branch_guard: 'Approved' });
+  const initialReviewBaseline = JSON.parse(result.fields.review_baseline);
+  await writeFile(artifactJoin(root, 'api/later.md'), 'created after initial selection');
+  await writeFile(artifactJoin(root, 'web/local.md'), 'pre-existing before web joins');
   let id = 0;
   const apply = async (event, extra = {}) => applyWorkflow({ root, statePath: result.state, input: { event, id: `scope-${++id}`,
     expected_hash: digest(await readFile(result.state, 'utf8')), repos: [artifactJoin(root, 'api')], ...extra } });
@@ -133,6 +186,9 @@ test('scope expansion requires renewed approval, preserves the retained spec and
   assert.equal(updated.fields.plan, 'none');
   assert.equal(updated.fields.review, 'not-started'); assert.equal(updated.fields.execution, 'not-started');
   assert.equal(JSON.parse(updated.fields.workspace_contract).repos.length, 2);
+  const expandedBaseline = JSON.parse(updated.fields.review_baseline);
+  assert.deepEqual(expandedBaseline.repos.find(repo => repo.root === artifactJoin(root, 'api')), initialReviewBaseline.repos[0], 'retained repository is never recaptured');
+  assert.ok(expandedBaseline.repos.find(repo => repo.root === artifactJoin(root, 'web')).changes.some(entry => entry.file === 'local.md' && !entry.tracked));
   html = await readFile(result.dashboard, 'utf8'); assert.doesNotMatch(html, /Proposed scope change/);
   // Mixed workspace: api needs discovery while web already has go-deep context.
   await mkdir(artifactJoin(root, 'web/.claude/rules'), { recursive: true });
@@ -145,6 +201,7 @@ test('scope expansion requires renewed approval, preserves the retained spec and
   assert.equal(ready.fields.phase, 'close-the-gaps');
   assert.match(await readFile(result.state, 'utf8'), /Context discovery required in api/);
   assert.doesNotMatch(await readFile(result.state, 'utf8'), /Context discovery required in web/);
+  assert.equal(ready.fields.review_baseline, updated.fields.review_baseline, 'stage changes retain scope-entry provenance');
 });
 test('a revised preview cannot drop a changed approved repo, including after earlier preview revisions', async (t) => {
   const { root, input } = await fixture(t);

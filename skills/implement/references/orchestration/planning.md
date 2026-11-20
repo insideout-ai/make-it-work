@@ -1,5 +1,8 @@
 ### Plan
 
+For `repo_impact_version: 1`, follow [repository impact](../repository-impact.md) before readiness. Pass its exact definition to planning and preserve the separation of editable repos, verification-only repos and context.
+
+
 Pass the exact workflow state path and resolved Implement skill directory to every planning dispatch. Follow plan-the-work's Planning progress boundaries throughout initial planning, replanning and amendments; keep meaningful activity changes visible through the existing [activity contract](../activity.md), rather than leaving one generic planning description for the whole stage. Planning defines coverage without editing tests; the separate Write Tests stage owns test preparation.
 
 Before Plan discovery/readiness inspection begins, narrate the upcoming investigation and checkpoint that exact sentence through the activity helper. When readiness returns, checkpoint the actual next planning activity before continuing; a single phase-start description must not cover the whole planning stage.
@@ -39,6 +42,8 @@ Present the conflict and obtain explicit user guidance before resuming refinemen
 ### Plan approval (Guided only)
 
 Show the plan path and ask: **Approve** / **Redo this phase** (with notes) / **Stop**. Record `plan_hash` at the moment of approval.
+
+Make the plan path a clickable Markdown link to the actual saved `.md` file. When it contains a diagram, point to **Visual Overview** so the user can inspect the Mermaid in a compatible Markdown viewer. The HTML preview shows Mermaid source; do not promise an inline chat diagram or generate an image. This also applies when presenting a replan, with no extra approval question.
 
 In this same approval presentation, call out each risk whose **Residual severity** is Medium/Med or High: name the remaining consequence, the mitigation and its evidence/verification limits, and the residual rating. Say explicitly when a mitigation leaves the rating unchanged. Make clear that **Approve** accepts these disclosed residual risks; **Redo this phase** can be used to discuss alternatives. Recommend acceptance only when the evidence supports it; never downgrade a risk to make approval easier. If all residual risks are Low (or there are no risks), omit this warning. This adds no separate question or choice ID and changes neither risk arithmetic, approval hashing nor routing. Autonomous/Autopilot retain their existing behavior without a new approval gate.
 
