@@ -3,14 +3,14 @@
   "name": "make-it-work",
   "displayName": "Make It Work",
   "description": "AI-assisted SDLC workflows for established codebases: map project context, shape and slice requirements, refine tickets, plan implementation, and review pull requests against documented intent.",
-  "version": "5.16.0",
+  "version": "5.17.0",
   "author": {
     "name": "InsideOut AI",
     "url": "https://insideoutai.io"
   },
   "homepage": "https://insideoutai.io/make-it-work",
   "repository": "https://github.com/insideout-ai/make-it-work",
-  "license": "LicenseRef-Make-It-Work-Commercial-1.0",
+  "license": "MIT",
   "keywords": [
     "claude-code",
     "software-development",

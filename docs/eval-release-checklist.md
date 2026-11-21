@@ -3,30 +3,40 @@
 Copy this checklist into the local release preparation record. Do not commit
 private transcripts or test-account data.
 
+Smoke is the only required model-evaluation tier for a release. Reuse the release
+PR's initial smoke run and targeted failed-case retries; do not start another
+full run because of a version bump or release. Existing deterministic CI checks,
+manifest validation, and packaging checks remain unchanged.
+
+## Required release evidence
+
 - Release source commit SHA, plugin version and Claude Code version:
 - Deterministic helper/controller/eval-runner checks and strict validation:
 - `node evals/validate.mjs` result:
-- Release PR smoke ledger, initial report and failed-case retry reports, per-case source commits and reported usage (reuse; do not repeat the full suite):
-- Complete `critical` report, exact source commit and reported usage:
-- Focused changed-behavior and dependent producer/consumer cases, with selection rationale:
-- All selected cases graded; no incomplete, budget-exhausted or unknown result presented as passing:
-- Every failure disposition cites requirement, fixture, artifact and/or transcript evidence:
-- Known extended-suite maintenance items and release impact assessed:
-- Disposable TDD workflow including failure/resume (cite existing critical/focused evidence rather than repeat equivalent runs):
-- Clean-install smoke:
-- Live integration smoke using existing test accounts:
+- Release PR smoke ledger, initial report and failed-case retry reports, per-case source commits and reported usage:
+- Every smoke case has passing evidence across that sequence; no incomplete, budget-exhausted or unknown result is presented as passing:
+- Every smoke failure disposition cites requirement, fixture, artifact and/or transcript evidence:
+- Packaging and clean-install results from existing CI checks:
 - Reviewer and date:
 
-Release readiness requires the maintained tiers and focused evidence above;
-`full` is optional archive-wide investigation, not a prerequisite to run all
-historical cases at once. A standalone partial smoke run does not satisfy coverage: use the initial full
-inventory plus targeted retries recorded in the PR ledger. Critical evidence
-must cover its complete tier. Cases with broken graders require repair and rerun
-before they can certify a required contract. A confirmed relevant skill defect
-requires a fix and regression evidence; tier placement cannot waive it. Record
-infrastructure, budget and grader problems separately from behavior failures,
-leaving unclassified failures unresolved until inspected.
+A standalone partial smoke run does not satisfy coverage. Use the initial full
+inventory plus targeted retries recorded in the PR ledger. Cases with broken
+graders require repair and authorized failed-case retries before their contract
+can be certified. Record infrastructure, budget and grader problems separately
+from behavior failures, leaving unclassified failures unresolved until inspected.
+A confirmed relevant behavior defect remains a blocker; it cannot be waived by
+calling its tier optional or relabeling an observed failure as passing.
 
-Extended batches can run periodically using `extended --shard=I/N`. Record the
-commit, selected cases and unresolved issues; never claim archive-wide coverage
-from a single batch. Inventory retention is not certification of reliability.
+## On-demand evaluations
+
+Run `critical`, `extended`, `full`, focused changed-behavior/dependent-skill cases,
+disposable TDD/failure-resume rehearsals, or live integration evaluations only
+when the maintainer explicitly requests them. A version bump, release, changed
+skill, or this checklist does not authorize these runs. Their absence does not
+block release readiness.
+
+For requested runs, record the request, selected cases, source commit, reports,
+reported usage, and unresolved results. A partial selection does not certify a
+complete tier. Preserve original failures and qualify interrupted or incomplete
+runs. Inventory retention is not certification of reliability. Do not install
+recurring evaluations as part of release preparation.

@@ -8,9 +8,9 @@ API key, CI credential, recurring job or live-model schedule is created here.
 | Run | Purpose | Default execution / reported-usage cap |
 | --- | --- | --- |
 | `smoke` | One representative case per public skill; once when each PR is ready | All selected cases concurrently / $12 |
-| `critical` | Explicit cross-stage and failure/resume contracts; releases and relevant changes | Up to 3 concurrently / $20 |
-| `extended` | Remaining behavioral scenarios; focused work and periodic batches | Sequential / $12 |
-| `full` | Every discovered case, including maintenance cases; optional exhaustive investigation | Sequential / $45 |
+| `critical` | On demand only: explicit cross-stage and failure/resume contracts | Up to 3 concurrently / $20 |
+| `extended` | On demand only: remaining behavioral scenarios and focused batches | Sequential / $12 |
+| `full` | On demand only: every discovered case, including maintenance cases | Sequential / $45 |
 
 Finish implementation, review fixes and deterministic checks before smoke.
 Open a draft PR first; run the complete smoke inventory once, immediately before
@@ -20,12 +20,18 @@ Ready-for-review and merge require passing evidence for every smoke case across
 the initial report plus retries. Do not demand another complete all-green run.
 Do not launch smoke on pushes, intermediate edits or review iterations.
 
-For releases, reuse the release PR's smoke sequence and add critical and focused
-changed-behavior/dependent-skill evidence on the release commit, plus
-[the release checklist](../docs/eval-release-checklist.md). Smoke evidence records
-each case's tested source commit; cumulative coverage does not mean every case
-was rerun on the final commit. `full` is optional investigation, not a blanket
-prerequisite. A confirmed relevant behavior defect remains a blocker.
+Smoke is the only required model-evaluation tier for releases. Reuse the release
+PR's smoke sequence and [the release checklist](../docs/eval-release-checklist.md);
+do not start another full smoke run because of a version bump or release.
+Smoke evidence records each case's tested source commit; cumulative coverage
+does not mean every case was rerun on the final commit.
+
+`critical`, `extended`, `full`, and focused model cases run only on an explicit
+maintainer request. A version bump, release, changed skill, or checklist does not
+authorize them. Missing results from these on-demand tiers do not block a release.
+Existing deterministic checks and packaging validation remain unchanged. An
+observed, confirmed relevant behavior defect still requires resolution; this
+policy does not turn a known failure into a pass.
 
 ```sh
 node evals/validate.mjs
@@ -80,14 +86,17 @@ promised future usage. The old 45-case archive estimate is obsolete.
 `suites.json` explicitly names critical cases and their purpose. Smoke membership
 stays one case per public skill. `extended` is the remaining inventory; `full`
 keeps every `case.yaml`, even when its grader needs repair. New cases start
-outside the blocking critical tier until their contract, evidence and baseline
-are reviewed. Adding a case does not silently add a release gate.
+outside the curated smoke/critical inventories until their contract, evidence
+and baseline are reviewed. Critical remains on-demand; adding a case to it does
+not add a release gate.
 
 The [audit record](AUDIT.md) distinguishes retention from reliability. Maintenance
 entries carry a disposition, reason, owner and follow-up. A case marked repair,
 investigate, consolidate or retire cannot be silently promoted into smoke or
-critical. A known issue already retained in a required tier must be explicitly
-marked `blocking: true`; it still runs and its failure blocks certification. Repair means fix and rerun, not accept a failing verdict. No case has
+critical. A known issue retained in one of these inventories must be explicitly
+marked `blocking: true`; its failure prevents a passing verdict for that selected
+tier. This metadata does not require running critical for a release. Repair
+means fix and rerun when authorized, not accept a failing verdict. No case has
 been deleted or declared irrelevant merely because it failed once.
 
 Reports retain the original passed/failed result and add `failureCategory`:

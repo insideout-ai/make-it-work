@@ -28,11 +28,15 @@ expanding to planning/readiness, execution or finalization. Existing unmarked
 runs and standalone skills retain their original behavior. Functional safety
 takes priority over the eventual instruction-volume target.
 
-For this patch, require complete deterministic, packaging, smoke, critical and
-change-specific evals on the final committed source. Include Guided/Autopilot,
-legacy resume, fix planning and full feedback coverage. Record scoped results
-and unresolved failures in the PR and local release record. A version bump does
-not authorize merging, publishing a release or changing a directory submission.
+The historical PR #99 validation plan required complete deterministic, packaging,
+smoke, critical and change-specific evals on its final committed source. This is
+not the current release policy: only smoke is a required model-evaluation tier;
+other tiers and focused model cases are on-demand only. See the current
+[release checklist](eval-release-checklist.md). That historical plan included
+Guided/Autopilot, legacy resume, fix planning and full feedback coverage, with
+scoped results and unresolved failures recorded in the PR and local release
+record. A version bump does not authorize merging, publishing a release or
+changing a directory submission.
 
 ## Baseline evidence and current progress
 
