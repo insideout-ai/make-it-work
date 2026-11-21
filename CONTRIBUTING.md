@@ -16,7 +16,7 @@ cd make-it-work
 git switch -c your-change
 ```
 
-Execution requires applicable rights under the snapshot's license or separate written contributor permission. The commercial agreement applies only to versions expressly released under it. Once authorized, load the working tree directly in Claude Code:
+The current working tree is available under the [MIT License](LICENSE), with no trial limit or subscription fee. Load it directly in Claude Code:
 
 ```sh
 claude --plugin-dir .
@@ -76,12 +76,15 @@ node evals/run-suite.mjs smoke --pr=NUMBER --ready --retry-failed
 Record the initial report and retry reports in the PR. Every smoke case needs
 passing evidence across this sequence before ready-for-review or merge. Never
 waive failures as unrelated or rerun the whole suite to obtain one green report.
-Do not run paid smoke on every push, edit, or review iteration. During development,
-use deterministic checks and necessary focused cases (`full --case=NAME`).
-Releases additionally need critical and change-specific/dependent-skill evidence;
-reuse the release PR's smoke sequence. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/d6160f8eed4c2f763cfcdab605349b15987fd99c/evals/README.md) for
-ledger behavior and [the release checklist](docs/eval-release-checklist.md).
-CI does not launch model evaluations.
+Do not run paid smoke on every push, edit, or review iteration. Smoke is the only
+required model-evaluation tier for PRs and releases; reuse the release PR's smoke
+sequence without starting another full run for a version bump or release.
+`critical`, `extended`, `full`, and focused model cases are on-demand only: run
+them only when explicitly requested by the maintainer, never automatically
+because of a version bump, release, or changed skill. Their absence does not
+block release readiness. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/1278c95da26f0bf6e1450d68955e00d26cef6e3b/evals/README.md) for ledger behavior
+and [the release checklist](docs/eval-release-checklist.md). Existing deterministic
+checks and packaging validation remain unchanged. CI does not launch model evaluations.
 
 ## Pull requests
 
@@ -95,8 +98,8 @@ Keep each pull request focused on one outcome. In the description, include:
 
 ## Contribution licensing policy
 
-The [commercial agreement](LICENSE) is an approved outbound customer license, not a contributor assignment or CLA. Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent.
+The current repository is available under the [MIT License](LICENSE). Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent or transfer ownership.
 
-For the initial commercial release, code and documentation changes are maintained by Erez Morabia and Yael Morabia (Rabinovitz). External code or documentation patches are deferred until a contributor agreement is ready and the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions rather than submitting an external patch. Customer rights to make internal modifications under an applicable license and GitHub platform view/fork rights remain unaffected.
+Code and documentation changes remain maintained by Erez Morabia and Yael Morabia (Rabinovitz). External patches remain deferred until the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions. This submission policy does not restrict anyone’s MIT rights to fork, modify, or distribute the repository independently.
 
-The maintainer's ownership and partner-permission confirmations are recorded in the [migration record](docs/licensing/MIGRATION.md) for legal review. Before reopening external patches, establish written contribution terms that address ownership and permission for commercial licensing and distribution (such as an appropriate CLA). No CLA execution, transfer of ownership, or relicensing consent is implied by opening an issue or PR.
+See the [MIT transition record](docs/licensing/MIT-TRANSITION.md) for the current licensing decision and the [historical migration record](docs/licensing/MIGRATION.md) for earlier ownership and partner-permission confirmations. Any future contribution policy must establish permission to distribute accepted contributions under MIT; no CLA execution or ownership assignment is implied by opening an issue or PR.

@@ -35,10 +35,13 @@ package. It lists every file/hash/mode, source version, counts, and known policy
 qualifications. Runtime bytes are preserved; public documentation links to
 omitted development files are redirected to the immutable source commit.
 
-The existing helper tests and required 14-case smoke/full release evaluations
-remain source checks. Before the first directory switch, also rehearse successful
-implementation and failure/resume using the exported plugin in disposable
-projects, as described in the source repository's end-to-end instructions.
+The existing deterministic helper tests and packaging checks remain source
+checks. Smoke is the only required model-evaluation tier for a release; reuse the
+release PR's smoke ledger and targeted failed-case retries. `critical`,
+`extended`, `full`, focused model cases, and implementation/failure-resume
+rehearsals run only when explicitly requested by the maintainer. A version bump,
+release, or directory switch does not authorize additional model evaluations.
+See the [release checklist](eval-release-checklist.md).
 
 ## Directory rollout
 

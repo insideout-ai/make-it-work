@@ -1,5 +1,7 @@
 # Commercial licensing migration record
 
+> Historical record of the 2026-11-03 commercial transition. The current repository is now MIT licensed; see the [MIT transition record](MIT-TRANSITION.md). References below to the then-current root LICENSE describe the [archived commercial agreement](COMMERCIAL-1.0.txt), not today’s license. Earlier launch instructions and restrictions are retained as history, not current guidance.
+
 Status: **Final agreement and commercial publication authorized for 2026-11-03**.
 Initial audit: 2026-11-01. Consolidation and remote recheck: 2026-11-03.
 Original preparation branch: `chore/commercial-annual-licensing` (PR #75, merged).

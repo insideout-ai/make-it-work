@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source d6160f8eed4c2f763cfcdab605349b15987fd99c](https://github.com/insideout-ai/make-it-work/tree/d6160f8eed4c2f763cfcdab605349b15987fd99c). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source 1278c95da26f0bf6e1450d68955e00d26cef6e3b](https://github.com/insideout-ai/make-it-work/tree/1278c95da26f0bf6e1450d68955e00d26cef6e3b). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -10,7 +10,7 @@ Workflow skills for Claude Code that connect project knowledge, requirements, im
 
 [Quick start](#quick-start) · [Skills](#skills) · [Detailed guide](#how-it-works) · [Example workflows](#example-workflows) · [Licensing](#licensing)
 
-> Commercial software: a 30-day organization trial, then an annual subscription. [Review the license](LICENSE) before installing.
+> Open source under the [MIT License](LICENSE). Free for individuals and organizations, including commercial use.
 
 ```text
  UNDERSTAND       DEFINE          PLAN           BUILD          VERIFY         DELIVER
@@ -54,9 +54,7 @@ After implementation, [deliver](skills/deliver/SKILL.md) can commit, push, and o
 
 Requires [Claude Code](https://code.claude.com/docs/en/overview), installed and authenticated. You can paste requirements directly; fetching ticket IDs requires a configured tracker integration.
 
-> **Commercial licensing for Make It Work 5.0.0:** one 30-day trial per organization, then an annual organization subscription with unlimited developers. Public source for commercially licensed versions is **source-available, not open-source licensed**. Version 5.0.0 is the first commercial release, effective November 3, 2026. [Licensing](#licensing) · [Product and licensing enquiries](https://insideoutai.io/make-it-work)
->
-> Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Record the organization's earliest installation or execution date as the start of its trial.
+> Available under the [MIT License](LICENSE), with no trial limit or subscription fee. Preserve InsideOut AI’s copyright and license notice when distributing copies or substantial portions.
 
 Install from the publisher's marketplace:
 
@@ -393,11 +391,11 @@ When Claude gets something wrong, don't just correct it - ask why it missed. Wha
 
 ## Install
 
-> **License notice for commercial versions:** Before running the installation commands, an individual authorized to bind your organization must review and accept the [commercial license](LICENSE) on its behalf. Each organization has one self-service 30-day trial from its first installation or execution; no registration, email approval, or credit card is required. Record that earliest date. After the trial, continued use requires an annual organization subscription. Version 5.0.0 is released under this agreement; previously published versions retain their original terms.
+> The current repository is available under the [MIT License](LICENSE). No trial registration, license purchase, or subscription is required.
 
-### InsideOut AI marketplace — commercial launch channel
+### InsideOut AI marketplace
 
-Install commercial version 5.12.0 through the publisher's marketplace:
+Install through the publisher’s marketplace:
 
 ```text
 /plugin marketplace add insideout-ai/make-it-work
@@ -406,17 +404,14 @@ Install commercial version 5.12.0 through the publisher's marketplace:
 
 ### Existing community marketplace installs
 
-The community catalog currently pins an older commit,
+At the last recorded check on 2026-11-03, the community catalog pinned
 [`aac589f`](https://github.com/insideout-ai/make-it-work/tree/aac589f62e2eded9333767a0490c0a1b1751cd0e),
-containing MIT-licensed version 1.0.0, as checked on 2026-11-03. Its listing is
-unchanged by this preparation. Commercial distribution there is deferred until
-its requirements are confirmed and a catalog update is approved. Existing users
-retain the terms of the version they received. The community channel should not
-be treated as an installation source for commercial 5.0.0.
+containing MIT-licensed version 1.0.0. This licensing change does not update that
+external listing. Use the InsideOut AI marketplace for the current publisher version.
+Existing users retain the terms of the version they received.
 
 When switching channels, select one plugin copy in `/plugin` to avoid duplicate
-workflows. Review the commercial terms before installing or upgrading to a
-commercially licensed version.
+workflows.
 
 Reload Claude Code after installation if the skills do not appear immediately:
 
@@ -426,8 +421,8 @@ Reload Claude Code after installation if the skills do not appear immediately:
 
 ## Update
 
-For the commercial channel, review the license terms, update the
-publisher's marketplace metadata, then update the plugin:
+For the InsideOut AI channel, update the publisher's marketplace metadata,
+then update the plugin:
 
 ```text
 /plugin marketplace update insideout-ai
@@ -436,7 +431,7 @@ publisher's marketplace metadata, then update the plugin:
 
 For an existing community installation, marketplace refreshes continue to use
 that catalog's pinned version until its operator changes the listing. They do
-not switch the installation to the InsideOut AI commercial channel:
+not switch the installation to the InsideOut AI channel:
 
 ```text
 /plugin marketplace update claude-community
@@ -541,25 +536,15 @@ Both dashboards show the run's starting plugin version and optional stage-bounda
 
 ## Licensing
 
-The [Make It Work Commercial Software License Agreement — Version 1.0](LICENSE) was approved by the maintainer on **2026-11-03**. Version **5.0.0**, published on **2026-11-03**, is the first version released under this agreement. The agreed business decisions, maintainer ownership confirmations, and approval record are in the [migration record](docs/licensing/MIGRATION.md). The agreement applies only to versions expressly released under it. Manifest reference `LicenseRef-Make-It-Work-Commercial-1.0` identifies the custom agreement; it is not an OSI-approved license.
+The current repository and future releases are available under the [MIT License](LICENSE), copyright 2026 InsideOut AI. Individuals and organizations may use, fork, copy, modify, merge, publish, distribute, sublicense, and sell copies, including in closed-source commercial products. There is no trial limit or subscription fee for MIT-licensed versions.
 
-For versions expressly released under the commercial agreement:
+Include InsideOut AI’s copyright notice and the MIT permission notice in all copies or substantial portions. No additional promotional credit is required, and modifications do not have to be published as open source. The software is provided “as is,” without warranty, as stated in the license. Third-party material retains its applicable licenses and notices, including the [vendored Marked notices](scripts/vendor/marked/LICENSE.md).
 
-- Each organization receives one self-service 30-day internal business evaluation, with no registration, email approval, or credit card required. It starts at first installation or execution, whichever happens first. The organization is responsible for tracking that date; reinstallation or upgrades do not restart it.
-- Continued organizational use requires a paid annual subscription. Renewal is manual, with a new quote/Order Form and annual payment upfront; there is no automatic renewal or billing. Complete renewal before expiry for uninterrupted use. The subscription covers unlimited employees and authorized contractors, internal repositories, installations, and internal modifications. Affiliates require express inclusion in the Order Form.
-- Generally available updates, improvements, bug fixes, and ongoing maintenance are included while subscribed. Support SLAs require a separate written agreement.
-- The software is provided “as is” and “as available,” without guarantees of error-free operation, accurate generated output, or suitability for a particular purpose. Express subscription obligations, agreed refund rights, and rights that cannot legally be excluded remain protected.
-- Paid fees are nonrefundable for a change of mind or non-use. If you terminate because of our material breach that remains uncured after 30 days’ written notice, unused prepaid subscription fees are refunded pro rata. Refunds required by law or separately agreed in writing remain available.
-- Redistribution, resale, sublicensing, and offering the plugin itself as a hosted commercial service are prohibited, subject to GitHub platform rights and independent third-party terms.
-- You retain ownership of your own code, requirements, documents, and generated artifacts, and can keep using them after expiration. Embedded Software and third-party materials retain their applicable terms.
+### Previously published versions and existing agreements
 
-To purchase an annual organization license, email [insideoutaitech@gmail.com](mailto:insideoutaitech@gmail.com). You and InsideOut AI agree on a quote/Order Form identifying the organization, annual price, subscription dates, and legal terms. The paid term starts only after annual payment upfront and written confirmation of the 12-month license and agreed dates. Unpaid purchases or renewals do not start or extend a paid term; there is no automatic payment grace period or right to continue after expiry. A [Order Form template](docs/licensing/ORDER-FORM-TEMPLATE.md) is available for customer-specific completion. Pricing, currency, and payment instructions are agreed in the Order Form; no public price or online checkout is defined here. See [insideoutai.io/make-it-work](https://insideoutai.io/make-it-work) for product information. Trial and subscription compliance currently relies on legal terms; no activation or technical enforcement has been added.
+Historical releases retain their recorded licenses, including earlier MIT, PolyForm Internal Use, and commercial terms. Existing rights are not revoked, and existing customer agreements are not automatically cancelled. Use a historical release’s own license to determine its terms; the current MIT grant does not rewrite old releases or tags.
 
-### Previously published versions
-
-Previously published versions retain their original terms, including **PolyForm Internal Use License 1.0.0** and earlier **MIT** grants. Existing rights are not revoked and no subscription is imposed on their exercise. The last audited PolyForm snapshot is plugin version **4.19.2**, commit [`8d57b84`](https://github.com/insideout-ai/make-it-work/tree/8d57b84fd0df8a99960bd29c2d2e1465f04ad7ea), with its [original LICENSE](https://github.com/insideout-ai/make-it-work/blob/8d57b84fd0df8a99960bd29c2d2e1465f04ad7ea/LICENSE). Existing releases `v2.0.0` and `v2.1.0` are MIT licensed; there is no published PolyForm release tag in the audited remote inventory.
-
-Use the [licensing migration record](docs/licensing/MIGRATION.md) for immutable checkout instructions, archived license texts, the proposed legacy tag, ownership questions, and commercial release gates. Do not assume the marketplace's default branch preserves an older license; review terms before upgrading. The commercial agreement applies only to versions expressly released under it, and does not retroactively apply to these snapshots.
+See the [MIT transition record](docs/licensing/MIT-TRANSITION.md) for the current decision and archived agreements, and the [historical commercial migration record](docs/licensing/MIGRATION.md) for the earlier transition.
 
 ## Development
 
