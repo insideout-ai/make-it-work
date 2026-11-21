@@ -1,0 +1,44 @@
+docs/licensing/MIT-TRANSITION.md
+  s_49fa420d25a569::t_0fff957c87f0ea 21-22
+  s_49fa420d25a569::t_2840daddcd71cc 1-20,23-50
+ticket-refined.md
+  s_49fa420d25a569::t_fa0ebf4aade6bf 1-58
+.claude-plugin/marketplace.json
+  s_49fa420d25a569::t_14338f4f8457a6 19
+CHANGELOG.md
+  s_49fa420d25a569::t_14338f4f8457a6 11-14
+  s_49fa420d25a569::t_0fff957c87f0ea 9-10
+.claude-plugin/plugin.json
+  s_49fa420d25a569::t_0fff957c87f0ea 6
+  s_49fa420d25a569::t_14338f4f8457a6 13
+LICENSE
+  s_49fa420d25a569::t_14338f4f8457a6 1-21
+CONTRIBUTING.md
+  s_49fa420d25a569::t_14338f4f8457a6 19,98,100,102
+docs/licensing/COMMERCIAL-1.0.txt
+  s_49fa420d25a569::t_14338f4f8457a6 1-264
+docs/licensing/MIGRATION.md
+  s_49fa420d25a569::t_14338f4f8457a6 3-4
+SUPPORT.md
+  s_49fa420d25a569::t_14338f4f8457a6 3,5,7,11,13,15,19
+README.md
+  s_49fa420d25a569::t_14338f4f8457a6 11,55,392,394,396,405,407-409,412,422-423,432,537,539,541,543,545
+docs/licensing/ORDER-FORM-TEMPLATE.md
+  s_49fa420d25a569::t_14338f4f8457a6 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b274a24cca6d3ad6ea23d4e6839489c20f4153dc",
+  "prompts": {},
+  "sessions": {
+    "s_49fa420d25a569": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff0b-e3a4-72a0-8972-83a4854f06d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
