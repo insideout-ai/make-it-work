@@ -1,0 +1,32 @@
+docs/implement-context-isolation.md
+  s_49fa420d25a569::t_0b527f1e299a8c 35-39
+  s_49fa420d25a569::t_c93f2a4442d4da 31-34
+CONTRIBUTING.md
+  s_49fa420d25a569::t_c93f2a4442d4da 79-87
+docs/anthropic-release.md
+  s_49fa420d25a569::t_c93f2a4442d4da 38-44
+docs/eval-release-checklist.md
+  s_49fa420d25a569::t_c93f2a4442d4da 6-12,16-19,22-42
+CHANGELOG.md
+  s_49fa420d25a569::t_c93f2a4442d4da 13
+evals/README.md
+  s_49fa420d25a569::t_c93f2a4442d4da 11-13,23-34,89-91,96-99
+evals/AUDIT.md
+  s_49fa420d25a569::t_c93f2a4442d4da 3-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ad758549067312a82275ec2bcfa53d1da93ccff1",
+  "prompts": {},
+  "sessions": {
+    "s_49fa420d25a569": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff0b-e3a4-72a0-8972-83a4854f06d4",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
