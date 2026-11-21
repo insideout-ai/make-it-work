@@ -16,7 +16,7 @@
       },
       "homepage": "https://insideoutai.io/make-it-work",
       "repository": "https://github.com/insideout-ai/make-it-work",
-      "license": "LicenseRef-Make-It-Work-Commercial-1.0",
+      "license": "MIT",
       "keywords": [
         "claude-code",
         "software-development",

@@ -16,7 +16,7 @@ cd make-it-work
 git switch -c your-change
 ```
 
-Execution requires applicable rights under the snapshot's license or separate written contributor permission. The commercial agreement applies only to versions expressly released under it. Once authorized, load the working tree directly in Claude Code:
+The current working tree is available under the [MIT License](LICENSE), with no trial limit or subscription fee. Load it directly in Claude Code:
 
 ```sh
 claude --plugin-dir .
@@ -95,8 +95,8 @@ Keep each pull request focused on one outcome. In the description, include:
 
 ## Contribution licensing policy
 
-The [commercial agreement](LICENSE) is an approved outbound customer license, not a contributor assignment or CLA. Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent.
+The current repository is available under the [MIT License](LICENSE). Contributors retain ownership of their contributions. Earlier contributions remain subject to the terms under which they were submitted; this policy does not obtain retroactive relicensing consent or transfer ownership.
 
-For the initial commercial release, code and documentation changes are maintained by Erez Morabia and Yael Morabia (Rabinovitz). External code or documentation patches are deferred until a contributor agreement is ready and the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions rather than submitting an external patch. Customer rights to make internal modifications under an applicable license and GitHub platform view/fork rights remain unaffected.
+Code and documentation changes remain maintained by Erez Morabia and Yael Morabia (Rabinovitz). External patches remain deferred until the contribution policy is explicitly reopened. Please use issues for bug reports, feature requests, and suggestions. This submission policy does not restrict anyone’s MIT rights to fork, modify, or distribute the repository independently.
 
-The maintainer's ownership and partner-permission confirmations are recorded in the [migration record](docs/licensing/MIGRATION.md) for legal review. Before reopening external patches, establish written contribution terms that address ownership and permission for commercial licensing and distribution (such as an appropriate CLA). No CLA execution, transfer of ownership, or relicensing consent is implied by opening an issue or PR.
+See the [MIT transition record](docs/licensing/MIT-TRANSITION.md) for the current licensing decision and the [historical migration record](docs/licensing/MIGRATION.md) for earlier ownership and partner-permission confirmations. Any future contribution policy must establish permission to distribute accepted contributions under MIT; no CLA execution or ownership assignment is implied by opening an issue or PR.

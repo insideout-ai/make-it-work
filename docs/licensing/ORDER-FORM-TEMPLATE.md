@@ -1,5 +1,7 @@
 # Make It Work annual organization license — Order Form template
 
+> Historical template for versions released under the [archived commercial agreement](COMMERCIAL-1.0.txt). The current repository is MIT licensed and requires no license purchase. This template does not apply to MIT-licensed versions.
+
 The commercial agreement was approved by the maintainer on 2026-11-03. Complete
 this template for a specific customer order only when the applicable commercial
 version is released.
