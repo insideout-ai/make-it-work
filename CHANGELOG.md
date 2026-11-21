@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Require only the smoke model-evaluation tier for releases, reusing the PR's initial run and targeted retries. Make critical, extended, full, and focused model evaluations on-demand only, with an explicit maintainer request. Preserve existing deterministic CI and packaging checks.
 - License the current repository and future releases under MIT, copyright 2026 InsideOut AI, replacing trial limits and subscription fees. Permit redistribution, resale, and closed-source derivatives while preserving copyright and license notices. Archive the commercial agreement and preserve historical licenses and existing customer agreements.
 
 ### Fixed

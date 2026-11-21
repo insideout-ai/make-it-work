@@ -76,12 +76,15 @@ node evals/run-suite.mjs smoke --pr=NUMBER --ready --retry-failed
 Record the initial report and retry reports in the PR. Every smoke case needs
 passing evidence across this sequence before ready-for-review or merge. Never
 waive failures as unrelated or rerun the whole suite to obtain one green report.
-Do not run paid smoke on every push, edit, or review iteration. During development,
-use deterministic checks and necessary focused cases (`full --case=NAME`).
-Releases additionally need critical and change-specific/dependent-skill evidence;
-reuse the release PR's smoke sequence. See [evals/README.md](evals/README.md) for
-ledger behavior and [the release checklist](docs/eval-release-checklist.md).
-CI does not launch model evaluations.
+Do not run paid smoke on every push, edit, or review iteration. Smoke is the only
+required model-evaluation tier for PRs and releases; reuse the release PR's smoke
+sequence without starting another full run for a version bump or release.
+`critical`, `extended`, `full`, and focused model cases are on-demand only: run
+them only when explicitly requested by the maintainer, never automatically
+because of a version bump, release, or changed skill. Their absence does not
+block release readiness. See [evals/README.md](evals/README.md) for ledger behavior
+and [the release checklist](docs/eval-release-checklist.md). Existing deterministic
+checks and packaging validation remain unchanged. CI does not launch model evaluations.
 
 ## Pull requests
 

@@ -1,5 +1,7 @@
 # Eval maintenance audit — 2026-11-13
 
+> Historical audit. The current [release policy](README.md) requires only the smoke model-evaluation tier. Critical, extended, full, and focused evaluations are on-demand only. Earlier release-certification recommendations and blocking-tier wording below record the policy at the time; they do not mandate additional release runs today.
+
 ## What this audit establishes
 
 The catalog now exposes every discovered case's actual grader requirements,
