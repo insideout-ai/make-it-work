@@ -889,7 +889,7 @@ function renderModePill(state) {
     : 'Implements a low-risk change directly from the refined spec, with tests and independent review.';
   const tooltip = `${explanation}${source === 'user' ? ' Selected by you.' : ''}`;
   const approach = `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">Approach: ${escapeHtml(MODE_LABELS[mode])}</span>`;
-  const riskBadge = risk === 'none' ? '' : `<span class="pill risk-pill" title="${escapeHtml(rationale === 'none' ? 'No risk rationale recorded.' : rationale)}">Risk: ${escapeHtml(risk[0].toUpperCase() + risk.slice(1))}</span>`;
+  const riskBadge = risk === 'none' ? '' : `<span class="pill risk-pill" title="${escapeHtml(rationale === 'none' ? 'No risk rationale recorded.' : rationale)}">Initial risk: ${escapeHtml(risk[0].toUpperCase() + risk.slice(1))}</span>`;
   return approach + riskBadge;
 }
 

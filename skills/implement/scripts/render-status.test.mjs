@@ -1319,7 +1319,7 @@ test('escalation from review inserts Plan and Execute after the active slot in o
   const durations = [...timeline.matchAll(/phase-duration">([^<]+)</g)].map((match) => match[1]);
   assert.deepEqual(durations, ['1m', '1m', '2m', '1m', '3m', '4m']);
   assert.match(timeline, /phase-dot current spinning[^>]+review:/);
-  assert.match(html, /Approach: TDD<\/span>.*Risk: Low/);
+  assert.match(html, /Approach: TDD<\/span>.*Initial risk: Low/);
   assert.doesNotMatch(html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
   assert.match(html, /Lightweight report<\/div><a href="DEMO-lightweight\.md"/);
   assert.match(html, /<div class="label">Plan<\/div><a href="DEMO-plan\.md"/);
@@ -1355,9 +1355,9 @@ test('mode pill appears only for adaptive runs and cycle counters stay out of th
   assert.match(lightweight.html, /class="pill mode-pill mode-lightweight" title="[^"]+">Approach: Lightweight<\/span>/);
 
   const forced = await renderFixture(t, stateMarkdown({ fields: { ...ADAPTIVE_FIELDS, risk: 'high', mode: 'tdd', mode_source: 'user' }, rows }));
-  assert.match(forced.html, />Approach: TDD<\/span>.*Risk: High<\/span>/);
+  assert.match(forced.html, />Approach: TDD<\/span>.*Initial risk: High<\/span>/);
   assert.match(forced.html, /Selected by you/);
-  assert.match(lightweight.html, /class="pill risk-pill" title="Single-file &lt;copy&gt; change">Risk: Low/);
+  assert.match(lightweight.html, /class="pill risk-pill" title="Single-file &lt;copy&gt; change">Initial risk: Low/);
   assert.doesNotMatch(forced.html, /phase-dot skipped|Skipped \(Lightweight\)/);
   for (const fixture of [legacy, pending, lightweight, forced]) {
     assert.doesNotMatch(fixture.html, /Cycle counters|Review cycles:|Fix cycles:|Replans used:|Escalations:/);
