@@ -1,0 +1,68 @@
+skills/implement/scripts/repo-impact.mjs
+  s_cadc58c4992f36::t_c360391a6fda72 17-31,136,146-149,157-179
+skills/implement/scripts/workflow.mjs
+  s_cadc58c4992f36::t_9e29f2232948db 13,23,37,147-148,155,160-162,503,506,508-529,552-553,555
+  s_cadc58c4992f36::t_8ee5d5aff5a73c 554
+evals/plan-the-work/behavior-boundary-coverage/case.yaml
+  s_cadc58c4992f36::t_f190ef772c4e02 1-5
+evals/implement/implementation-claim-handoff/case.yaml
+  s_cadc58c4992f36::t_f190ef772c4e02 1-5
+evals/plan-the-work/behavior-boundary-coverage/prompt.md
+  s_cadc58c4992f36::t_f190ef772c4e02 1-11
+evals/suites.json
+  s_cadc58c4992f36::t_f190ef772c4e02 179-181
+evals/wf030-fixtures.test.mjs
+  s_cadc58c4992f36::t_f190ef772c4e02 1-31
+skills/plan-the-work/references/implement-integration.md
+  s_cadc58c4992f36::t_737f36e23194eb 38-41
+evals/plan-the-work/behavior-boundary-coverage/fixture.sh
+  s_cadc58c4992f36::t_f190ef772c4e02 1-5
+docs/workflow-findings.md
+  s_cadc58c4992f36::t_2e90c68b4c0574 361-362,402-403,700-701,2696-2734
+  s_cadc58c4992f36::t_cc49ea1fa089b2 2762-2770
+  s_cadc58c4992f36::t_1c74b100ca2334 154-164,209-210,212-214,359,376-377,392-401,653-660,680-683,698,2684-2695
+  s_cadc58c4992f36::t_a261c4b8ef223f 197,199,211,363-364,378-379,404-405,702-703,2747-2761
+  s_cadc58c4992f36::t_038e73e531427a 360,406,699,2735-2746
+skills/implement/scripts/repo-impact.test.mjs
+  s_cadc58c4992f36::t_efbd0d72850be7 264-267,284-318,322
+  s_cadc58c4992f36::t_7c21204c5597c9 268-272,329
+  s_cadc58c4992f36::t_bf6d7c8dd9dfe3 9-10,211-263,273-283,319-321,323-328,330
+skills/implement/references/orchestration/fixes.md
+  s_cadc58c4992f36::t_737f36e23194eb 13-14
+evals/implement/implementation-claim-handoff/prompt.md
+  s_cadc58c4992f36::t_f190ef772c4e02 1-9
+evals/implement/implementation-claim-handoff/fixture.sh
+  s_cadc58c4992f36::t_f190ef772c4e02 1-5
+evals/implement/implementation-claim-handoff/graders/behavior.md
+  s_cadc58c4992f36::t_f190ef772c4e02 1-7
+evals/plan-the-work/behavior-boundary-coverage/graders/coverage.md
+  s_cadc58c4992f36::t_f190ef772c4e02 1-7
+skills/implement/references/orchestration/planning.md
+  s_cadc58c4992f36::t_737f36e23194eb 24-25
+evals/wf030-fixture.mjs
+  s_cadc58c4992f36::t_f190ef772c4e02 1-53
+skills/implement/references/repository-impact.md
+  s_cadc58c4992f36::t_737f36e23194eb 83-94
+skills/implement/references/orchestration/execution.md
+  s_cadc58c4992f36::t_737f36e23194eb 29-30
+.claude-plugin/plugin.json
+  s_cadc58c4992f36::t_402ea7a616373e 6
+CHANGELOG.md
+  s_cadc58c4992f36::t_0dc6fea8a9a8d1 9-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8aa08a1cd0f7eba408a8b3822fab9561b744f950",
+  "prompts": {},
+  "sessions": {
+    "s_cadc58c4992f36": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20d87-36eb-7e32-9422-cf460bbe4f96",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
