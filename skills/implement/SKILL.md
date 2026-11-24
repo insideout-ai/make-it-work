@@ -73,6 +73,8 @@ The state file is authoritative. Keep existing run markers unchanged. Read
 lacks the controller contract or its documented migration needs the old defaults;
 do not load the legacy template on an ordinary new run.
 
+For new runs at the first accepted TDD plan, follow [compaction](references/compaction.md) before authorizing or dispatching Write Tests. Guided and Autonomous offer a saved manual compaction checkpoint; Autopilot continues without asking.
+
 ## Execute the saved phase
 
 Read the complete guide for the current phase when it begins. Load another guide

@@ -152,6 +152,8 @@ Read whatever orientation docs and skills each affected repo actually has — it
 
 ## Step 4 — Investigate the codebase
 
+For substantial delegated surveys, follow the [bounded survey handback contract](../../docs/survey-handbacks.md). Keep source read-only, save detailed evidence in an artifact and return a concise decision-focused summary with pointers, uncertainty and blockers.
+
 **Under Implement:** Announce this investigation in chat, then copy that sentence unchanged into the activity helper in its own Bash call. For new Implement TDD runs, include `--planning-activity discovery`. Start code/guidance reads only after that call succeeds. Reusing a completed readiness baseline does not cover the later planning discovery activity.
 
 **Investigation discipline (read first):**

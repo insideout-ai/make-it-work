@@ -641,7 +641,7 @@ test('actual controller accepts current preparation, renders its report, and ent
     await writeFile(artifactJoin(root, 'test/change.test.js'), '// existing assertions\n');
   } });
   // This fixture isolates preparation routing from readiness and clause-ledger tests.
-  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace(/^testing_readiness(?:_version)?:.*\n/gm, '').replace(/^acceptance_evidence_version:.*\n/m, ''));
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('compaction_checkpoint: pending', 'compaction_checkpoint: declined').replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace(/^testing_readiness(?:_version)?:.*\n/gm, '').replace(/^acceptance_evidence_version:.*\n/m, ''));
   const directory = path.dirname(f.statePath), planPath = artifactJoin(directory, 'DEMO-plan.md');
   const plan = '# Plan\n\n**Test preparation contract:** 1\n\n## Execution Status\n\n**Mode:** Subagent-Driven\n\n**Progress:** Step 0 of 1 complete\n\n## Steps\n\n### Step 1 — Change\n\n**Files:** `source.txt`\n\n**Depends on:** none\n\n**Can run in parallel with:** none\n\n**Verify:** tests pass\n\n**Tests:** app: `test/change.test.js`, node --test\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| New behavior | app | Unit | step 1 |\n';
   await writeFile(planPath, plan);

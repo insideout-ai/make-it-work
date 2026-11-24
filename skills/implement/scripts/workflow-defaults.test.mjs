@@ -14,7 +14,9 @@ test('machine defaults preserve every annotated pre-refactor state value and eac
     return [match[1], match[2].trim()];
   }));
   const current = await workflowDefaults();
-  assert.deepEqual(current, legacy);
+  const { compaction_version, compaction_checkpoint, compaction_recovery, ...unchanged } = current;
+  assert.deepEqual(unchanged, legacy);
+  assert.deepEqual({ compaction_version, compaction_checkpoint, compaction_recovery }, { compaction_version: '1', compaction_checkpoint: 'pending', compaction_recovery: 'none' });
   current.status = 'Complete';
   assert.equal((await workflowDefaults()).status, 'In Progress');
 });

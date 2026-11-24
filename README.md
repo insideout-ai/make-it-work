@@ -228,7 +228,7 @@ Pass a ticket ID or a spec path, or let the skill derive the ticket from the cur
 
 Prepares the approved plan's coverage before execution: reuses adequate existing tests, writes missing tests, verifies regression baselines and expected progression failures, and saves numbered Test Preparation reports tied to the plan revision. Expected red confirms missing behavior; unavailable checks remain explicitly unverified. Test files stay uncommitted. Embedded tests and external QA repositories retain their declared placement and authorization boundaries.
 
-Pass a ticket ID or explicit plan path. In `implement`, this stage runs in a fresh worker after plan approval in Guided mode, and automatically after planning in Autonomous/Autopilot. The coordinator retains approvals and dashboard ownership. Standalone `execute` stops with guidance if required preparation is missing or stale; it never invokes test writing automatically. Manual-only plans record not-applicable preparation, while Lightweight skips the stage. Older saved runs keep their prior evidence and routing.
+Pass a ticket ID or explicit plan path. In `implement`, this stage runs in a fresh worker after plan acceptance and the optional compaction checkpoint in Guided/Autonomous; Autopilot continues automatically after planning. The coordinator retains approvals and dashboard ownership. Standalone `execute` stops with guidance if required preparation is missing or stale; it never invokes test writing automatically. Manual-only plans record not-applicable preparation, while Lightweight skips the stage. Older saved runs keep their prior evidence and routing.
 
 The HTML dashboard shows **Plan → Write Tests → Execute**, separate preparation timing/activity, and a **Test Preparation** report in Artifacts with formatted preview and original-file access. Preparation outcomes appear in the audit log with a link to the report. Preparation does not advance implementation progress or establish completion. Replans and fix amendments repeat preparation only for affected coverage, preserving report history.
 
@@ -253,6 +253,8 @@ Use it to review a pull request or diff in any repo that keeps the `go-deep` kno
 ---
 
 ### `/make-it-work:implement`
+
+New TDD runs in Guided and Autonomous offer **Compact first / Continue** once after the accepted plan is saved, before test preparation. Choosing compaction saves a recovery point: run the supplied `/compact` command, then say **continue**. Autopilot continues without asking and relies on Claude Code’s native auto-compaction. Lightweight runs skip this offer.
 
 Orchestrates the whole pipeline for one ticket: it inventories available project context, runs `close-the-gaps`, assesses the ticket's risk, implements it in the matching mode, reviews it with `review-the-code`, and finishes by syncing the project's existing documentation with what was actually built. It stays thin — each stage skill keeps owning its own reasoning; `implement` decides what runs next, reads each stage's outcome, and enforces the loop limits.
 

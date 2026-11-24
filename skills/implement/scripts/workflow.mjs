@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { prepareCompaction, resolveCompaction, checkCompactionRecovery, compactionRequired, compactionAction } from './compaction.mjs';
 import { closeActivityTiming } from './activity-timing.mjs';
 import { captureUsage } from '../../../scripts/usage.mjs';
 import { ensureArtifactIgnored } from '../../../scripts/lib/artifact-git.mjs';
@@ -173,6 +174,9 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     else explicit(input);
     if (f.phase === 'spec-approval' && input.event === 'approve' && f.spec_revision_pending === 'true') f.spec_revision_pending = 'false';
     f.phase = input.event === 'redo' ? (f.phase === 'spec-approval' ? 'close-the-gaps' : 'plan') : (f.phase === 'spec-approval' ? afterSpec(f) : f.test_writing_version === '1' ? 'write-tests' : 'execute');
+  } else if (input.event === 'compaction-checkpoint') {
+    if (f.compaction_version !== '1' || f.phase !== 'write-tests' || f.mode !== 'tdd' || f.status !== 'In Progress' || f.compaction_checkpoint !== 'pending') fail('Compaction checkpoint requires the first active TDD Write Tests boundary.');
+    if (pendingInputs(f).some(record => record.blocking)) fail('Resolve pending input before compaction.');
   } else if (input.event === 'preparation-saved') {
     if (f.phase !== 'write-tests' || f.test_writing_version !== '1' || f.status !== 'In Progress') fail('Preparation evidence requires active Write Tests.');
     f.test_preparation = requireText(input.preparation, 'Preparation artifact');
@@ -310,6 +314,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (f.status === 'Complete') fail('Completed-run delivery waits belong to the delivery journal.');
     if (f.status === 'Stopped') fail('Resolve the saved stop before requesting input.');
     requireText(input.pending?.id, 'Pending input id');
+    if (input.pending.kind === 'compaction') fail('Compaction questions are controller-owned.');
   } else if (input.event === 'input-answered') {
     // The caller already validated the saved request and response before clearing it.
   } else if (input.event === 'stop' || input.event === 'pause') {
@@ -321,6 +326,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
       const cancelled = records.filter((record) => record.blocking);
       if (cancelled.length) {
         f.pending_inputs = JSON.stringify(records.filter((record) => !record.blocking));
+        if (cancelled.some(record => record.kind === 'compaction')) f.compaction_checkpoint = 'cancelled';
         reason += ` Pending input ${cancelled.map((record) => record.id).join(', ')} cancelled without an answer.`;
       }
     }
@@ -448,7 +454,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     const prior = state.audit.find((row) => row.outcome.includes(`[workflow-event: ${input.id};`));
     if (prior) {
       if (!prior.outcome.includes(marker)) fail('Event id already records a different event.');
-      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), ...feedbackAction(statePath, state.fields), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
+      return { replayed: true, ...(input.event === 'context-ready' ? contextAction(state.fields) : reviewScopeAction(state.fields, input.event)), ...feedbackAction(statePath, state.fields), ...compactionAction(state.fields, statePath), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     }
     if (input.expected_hash !== digest(original)) fail('Workflow state changed; inspect and recompute the event.');
     let workingState = state, effective = input, resolution = null, replaced = null;
@@ -503,6 +509,20 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       effective = { ...effective, validated_impact: true, impact_definition_changed: state.fields.repo_impact_definition_hash !== 'none' && state.fields.repo_impact_definition_hash !== digest(JSON.stringify(impactDefinition(assessedImpact))) };
     }
     if (impactEnabled(state.fields) && ['review-context', 'sync-complete', 'preparation-saved', 'complete'].includes(effective.event)) await checkRepoImpact(root, state.fields);
+    if (compactionRequired(state.fields) && (effective.event === 'preparation-saved' || effective.event === 'handoff' && state.fields.phase === 'write-tests')) fail('Complete the compaction checkpoint before test preparation.');
+    if (resolution?.record.kind === 'compaction') {
+      await checkCompactionRecovery(root, statePath, state.fields);
+      await checkTestingReadiness(root, state, { plan: await readFile(await within(root, state.fields.plan), 'utf8') });
+    }
+    if (effective.event === 'compaction-checkpoint') {
+      transition(workingState, effective); // Validate eligibility before reading route-specific artifacts.
+      if (state.audit.some(row => ['execute', 'lightweight'].includes(row.to)) && state.fields.escalations !== '1') fail('Compaction checkpoint is only offered before initial preparation.');
+      await checkTestingReadiness(root, state, { plan: await readFile(await within(root, state.fields.plan), 'utf8') });
+      for (const name of ['spec', 'plan']) {
+        const content = await readFile(await within(root, state.fields[name]), 'utf8');
+        if ((name === 'plan' ? planHash(content) : digest(content)) !== state.fields[`${name}_hash`]) fail(`${name} changed since checkpoint.`);
+      }
+    }
     const handoff = await loadHandoff(root, workingState, effective);
     if (handoff?.status === 'done' && handoff.stage !== 'gaps' && impactEnabled(state.fields)) await checkRepoImpact(root, state.fields, { requireChecks: handoff.stage === 'implement', plan: ['plan', 'tests', 'execute'].includes(handoff.stage) && (handoff.artifacts.plan ?? state.fields.plan) !== 'none' ? await readFile(await within(root, handoff.artifacts.plan ?? state.fields.plan), 'utf8') : null });
     if (handoff?.stage === 'gaps') await checkRefinementWorkerHandoff(root, statePath, effective.handoff);
@@ -577,7 +597,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     }
     const next = transition(workingState, effective, handoff, { relatedFailures: effective.related_failures ?? null, previousReview });
     if (next.pending && !next.fields) return next; // Internal regression triage is work, not a question to the user.
-    if (next.unchanged) return { fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
+    if (next.unchanged) return { ...compactionAction(state.fields, statePath), fields: state.fields, pending: pendingInputs(state.fields), dashboard: await render(statePath) };
     const f = next.fields;
     if (assessedImpact) {
       assessedImpact.binding.plan_version = f.plan_version;
@@ -636,7 +656,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       || ['stop', 'pause'].includes(input.event) && pendingInputs(state.fields).some((record) => record.blocking);
     if (reposInput && !preserveBaseline) {
       const repos = await snapshot(reposInput);
-      if (['resume', 'waive-manual-verification'].includes(input.event) || resolution?.record.blocking || workingState !== state && !resolution) {
+      if (['resume', 'waive-manual-verification', 'compaction-checkpoint'].includes(input.event) || resolution?.record.blocking || workingState !== state && !resolution) {
         if (state.fields.workspace_snapshot && state.fields.workspace_snapshot !== JSON.stringify(repos)) fail('Workspace changed since checkpoint.');
         if (!state.fields.workspace_snapshot) fail('Legacy resume requires the existing fingerprint comparison; no snapshot backfill.');
       }
@@ -651,6 +671,8 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       f[`${name}_hash`] = hash;
     }
     let request = effective.event === 'await-input' ? { ...effective.pending } : null;
+    if (effective.event === 'compaction-checkpoint') request = await prepareCompaction(root, statePath, f, input);
+    if (resolution?.record.kind === 'compaction') request = resolveCompaction(f, resolution.response.value, input.id);
     if (request?.kind === 'step' && !request.questions) request.choices ??= [{ id: 'continue', label: 'Continue' }, { id: 'stop', label: 'Stop' }];
     if (effective.event === 'await-input' && request.continuation && request.continuation.event !== 'resume-stage') fail('Approval and handoff continuations are controller-owned.');
     if (request?.binding) {
@@ -726,7 +748,7 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     await atomicWrite(statePath, updated);
     if (f.phase !== state.fields.phase || effective.event === 'resume' || ['complete', 'stop'].includes(effective.event)) await captureUsage(path.dirname(statePath));
     // Keep the event on render failure. Replaying its id refreshes without recounting.
-    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
+    return { fields: f, pending: pendingInputs(f), ...(effective.event === 'context-ready' ? contextAction(f) : reviewScopeAction(f, effective.event)), ...feedbackAction(statePath, f), ...compactionAction(f, statePath), ...(resolution ? { resolved: resolution.record.id, response: resolution.response.value, continuation: resolution.record.continuation?.event ?? 'resume-stage' } : {}), dashboard: await render(statePath), event: input.id };
   });
 }
 export async function workflowDefaults() {

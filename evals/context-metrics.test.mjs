@@ -20,3 +20,21 @@ test('partial usage, diagnostic records and synthetic chunks cannot establish an
   assert.equal(value.parentRequestUsageRecords, 0);
   assert.equal(value.peakObservedParentInputTokensIncludingCache, null);
 });
+
+test('payload inventory separates instructions, shell output and real handbacks from launches and replays', () => {
+  const call = (id, name, input = {}) => ({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name, input }] } });
+  const result = (id, content, extra = {}) => ({ type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: id, content }] }, ...extra });
+  const instruction = result('read', 'rules');
+  const events = [call('read', 'Read', { file_path: '/plugin/skills/example/SKILL.md' }), instruction, instruction,
+    { ...instruction, type: 'api-request-blob' },
+    call('bash', 'Bash'), result('bash', 'logs'), call('agent', 'Agent'),
+    result('agent', 'Async agent launched successfully.', { toolUseResult: { isAsync: true } }),
+    { type: 'user', uuid: 'handback', isMeta: true, promptSource: 'system', message: { content: 'Another Claude session sent a message: <agent-message>Finding and blocker</agent-message>' } },
+    { type: 'user', message: { content: '<task-notification><summary>started</summary></task-notification>' } },
+    { type: 'user', isSidechain: true, message: { content: '<agent-message>child internal</agent-message>' } }];
+  const payloads = contextMetrics(events).payloads;
+  assert.deepEqual(payloads.totals, { 'instruction-read': 5, 'file-read': 0, 'shell-result': 4,
+    'stage-handback': events[8].message.content.length });
+  assert.equal(payloads.unit, 'characters');
+  assert.equal(payloads.largest.length, 3);
+});
