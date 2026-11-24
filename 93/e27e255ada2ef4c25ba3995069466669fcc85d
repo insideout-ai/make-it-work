@@ -1,0 +1,33 @@
+docs/workflow-findings.md
+  s_15df71fbf31fdd::t_7b25519824bfc8 108-116
+  s_15df71fbf31fdd::t_dcebad6759db4c 2459-2489,2502-2503
+  s_15df71fbf31fdd::t_e3665d4f1a5b21 2490-2501
+  s_15df71fbf31fdd::t_3731ea926f6db2 66-77,127,135,148-160,280-308,353-354,400-401,476-532,546-547,558
+  s_15df71fbf31fdd::t_c87e46a099ea51 78-107
+  s_2c86152f7ba43b::t_f32e431c25594e 2504-2511
+  s_2c86152f7ba43b::t_9808d8508cee49 559
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "93e27e255ada2ef4c25ba3995069466669fcc85d",
+  "prompts": {},
+  "sessions": {
+    "s_15df71fbf31fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209a9-5946-7b93-8d9d-fe1278b0b3ce",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_2c86152f7ba43b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20cf5-7c13-74f2-acd0-e27bf218fe97",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
