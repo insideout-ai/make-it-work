@@ -6,7 +6,8 @@ import path from 'node:path';
 import test from 'node:test';
 import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
-import { assessRepoImpact, checkRepoImpact, validateImpactDefinition, validateImpactGate, validateImpactRuns, impactRegressionManifest, impactDefinition } from './repo-impact.mjs';
+import { assessRepoImpact, checkRepoImpact, validateImpactDefinition, validateImpactGate, validateImpactRuns, impactRegressionManifest, impactDefinition, isImpactPathExtension } from './repo-impact.mjs';
+import { planHash, parseSteps } from '../../../scripts/lib/plan.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { prepareScope, approveScope, runScope } from './workspace-scope.mjs';
@@ -206,4 +207,124 @@ test('an unavailable consumer check blocks readiness completion even when a repo
   await writeFile(path.join(f.root, begun.report), `# Readiness\n\n## Verification Policy\n\n${policy}\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| api | ready | existing | pass | API baseline passed |\n| web | ready | existing | pass | QA passed but consumer was not exercised |\n`);
   await assert.rejects(testingReadiness(f.statePath, 'complete'), /Required verification unavailable/);
   assert.equal(JSON.parse(await readFile(path.join(f.root, begun.receipt), 'utf8')).status, 'pending');
+});
+
+
+const amendmentPlan = (d, count = 2) => plan(d) + `
+## Execution Status
+
+**Mode:** Subagent-Driven
+**Progress:** Step 2 of ${count} complete
+
+## Steps
+
+${Array.from({ length: count }, (_, i) => `### Step ${i + 1} — ${i < 2 ? 'Completed work' : 'Local fix'}
+
+**Files:** \`app.js\`
+**Depends on:** ${i ? `Step ${i}` : 'none'}
+**Can run in parallel with:** none
+**Verify:** Existing assertion passes.
+**Tests:** api: \`test/app.test.js\`
+`).join('\n')}`;
+
+async function updateFixture(f) {
+  await f.updateState('plan');
+  const d = definition(); d.repos[0].planned_paths.push('contract.json');
+  const state = async () => parseState(await readFile(f.statePath, 'utf8'), f.statePath);
+  const apply = async (id, extra) => applyWorkflow({ root: f.root, statePath: f.statePath, input: {
+    event: 'repo-impact', id, expected_hash: digest(await readFile(f.statePath, 'utf8')), repos: f.repos.map(r => r.root), assessment: d, ...extra,
+  } });
+  await apply('saved-old-impact');
+  const policyReport = `# Readiness\n\n## Verification Policy\n\n${policy}\n\n## Readiness results\n\n| Repo | Status | Setup | Baseline | Evidence |\n| --- | --- | --- | --- | --- |\n| api | ready | existing | pass | Original scoped baseline observed |\n| web | ready | existing | pass | Original consumer baseline observed |\n`;
+  const readiness = await testingReadiness(f.statePath, 'begin'); await writeFile(path.join(f.root, readiness.report), policyReport); await testingReadiness(f.statePath, 'complete');
+  const filename = artifactJoin(f.dir, 'DEMO-plan.md'), initial = amendmentPlan(d);
+  await writeFile(filename, initial);
+  const seed = async changes => {
+    let bytes = await readFile(f.statePath, 'utf8');
+    for (const [key, value] of Object.entries(changes)) bytes = bytes.replace(new RegExp(`^${key}:.*$`, 'm'), `${key}: ${value}`);
+    await writeFile(f.statePath, bytes);
+  };
+  await seed({ phase: 'fix-plan', plan: path.relative(f.root, filename), plan_hash: planHash(initial), execution_mode: 'subagent-driven', execution: 'passed', plugin_version: '5.17.0' });
+  await writeFile(`${filename}.execution.json`, JSON.stringify({ version: 1, plan_hash: planHash(initial), step_hashes: parseSteps(initial).map(step => digest(JSON.stringify(step))), attempts: {}, receipts: [], stopped: null }));
+  return { d, filename, initial, state, seed, apply, policyReport };
+}
+
+test('path extension never treats changed checks, evidence, rationale or removed paths as a local amendment', () => {
+  const d = definition(), added = structuredClone(d); added.repos[0].planned_paths.push('extra.js');
+  assert.equal(isImpactPathExtension(d, added), true);
+  for (const change of [x => x.repos[0].planned_paths.splice(0, 1), x => x.checks[0].command.args.push('changed'), x => x.repos[0].reason = 'Different dependency', x => x.repos[0].evidence[0].path = 'elsewhere.json', x => x.repos[2].classification = 'verify']) {
+    const modified = structuredClone(added); change(modified); assert.equal(isImpactPathExtension(d, modified), false);
+  }
+});
+
+test('saved version-1 run retains progress/mode on explicit path amendment and refreshes readiness without rerunning baselines', async t => {
+  const f = await fixture(t, true), u = await updateFixture(f);
+  const added = structuredClone(u.d); added.repos[0].planned_paths.push('extra.js'); await writeFile(u.filename, amendmentPlan(added, 3));
+  const before = (await u.state()).fields;
+  const amended = amendmentPlan(added, 3);
+  await writeFile(u.filename, amended.replace('Step 1 — Completed work', 'Step 1 — Rewritten completed work'));
+  await assert.rejects(u.apply('reject-rewrite', { assessment: added, update: 'amend-paths' }), /unchanged completed steps/);
+  await writeFile(u.filename, amended);
+  // A real amendment can follow a planned edit to evidence, without restoring it.
+  await writeFile(path.join(f.repos[0].root, 'contract.json'), '{"version":2}');
+  const result = await u.apply('local-paths', { assessment: added, update: 'amend-paths' });
+  assert.ok(await checkRepoImpact(f.root, result.fields));
+  assert.equal(await readFile(path.join(f.repos[0].root, 'contract.json'), 'utf8'), '{"version":2}');
+  for (const key of ['phase', 'plan_version', 'execution', 'execution_mode', 'replans_used', 'fix_cycle', 'review_cycle']) assert.equal(result.fields[key], before[key], key);
+  assert.match(await readFile(u.filename, 'utf8'), /Step 2 of 3 complete/);
+  await assert.rejects(testingReadiness(f.statePath, 'check'), /pending or stale/);
+  await testingReadiness(f.statePath, 'begin'); await testingReadiness(f.statePath, 'complete');
+  assert.equal((await testingReadiness(f.statePath, 'check')).ready, true);
+  assert.equal(await readFile(path.join(f.root, result.fields.testing_readiness), 'utf8'), u.policyReport);
+  // Exact retries preserve progress; a changed required command must not use this route.
+  const altered = structuredClone(added); altered.checks[0].command.args.push('other');
+  const stateBefore = await readFile(f.statePath, 'utf8');
+  await assert.rejects(u.apply('reject-check-change', { assessment: altered, update: 'amend-paths' }), /more than permitted/);
+  assert.equal(await readFile(f.statePath, 'utf8'), stateBefore);
+  const normal = await u.apply('normal-check-change', { assessment: altered });
+  assert.equal(normal.fields.phase, 'plan'); assert.equal(normal.fields.plan_version, '2');
+});
+
+test('evidence refresh is explicit, at a durable boundary, and limited to already planned evidence', async t => {
+  const f = await fixture(t, true), u = await updateFixture(f); await u.seed({ phase: 'execute' });
+  await writeFile(path.join(f.repos[0].root, 'contract.json'), '{"version":2}');
+  await assert.rejects(checkRepoImpact(f.root, (await u.state()).fields), /dependency evidence changed/);
+  await assert.rejects(u.apply('legacy-refresh'), /active planning/);
+  const journal = JSON.parse(await readFile(`${u.filename}.execution.json`, 'utf8'));
+  await writeFile(`${u.filename}.execution.json`, JSON.stringify({ ...journal, active_steps: [2] }));
+  await assert.rejects(u.apply('active-refresh', { update: 'refresh-evidence' }), /durable completion/);
+  await writeFile(`${u.filename}.execution.json`, JSON.stringify(journal));
+  const result = await u.apply('durable-refresh', { update: 'refresh-evidence' });
+  assert.equal(result.fields.phase, 'execute'); assert.equal(result.fields.plan_version, '1');
+  assert.ok(await checkRepoImpact(f.root, result.fields));
+  assert.equal((await testingReadiness(f.statePath, 'check')).ready, true);
+  await assert.rejects(u.apply('forged-proof', { update: 'refresh-evidence', verification: {} }), /cannot carry verification/);
+  // Unplanned evidence is never legitimized merely by repeating the definition.
+  const other = await fixture(t, true), v = await updateFixture(other);
+  v.d.repos[0].planned_paths = ['app.js']; await v.apply('narrow-paths'); await writeFile(v.filename, amendmentPlan(v.d)); await v.seed({ phase: 'fix-plan', plan: path.relative(other.root, v.filename), plan_hash: planHash(amendmentPlan(v.d)) });
+  await writeFile(path.join(other.repos[0].root, 'contract.json'), '{"version":2}');
+  await assert.rejects(v.apply('unplanned-refresh', { update: 'refresh-evidence' }), /not an existing planned edit/);
+});
+
+test('correctness-stop recovery survives stale impact while successful Execute still requires freshness', async t => {
+  const f = await fixture(t, true), u = await updateFixture(f); await u.seed({ phase: 'execute' });
+  const handoffs = path.join(f.dir, 'DEMO-handoffs'); await mkdir(handoffs);
+  const report = artifactJoin(f.dir, 'DEMO-execute.md'); await writeFile(report, 'Execute outcome: GUARDRAIL\nDiscoveries: none\n');
+  const h = { version: 1, ticket: 'DEMO', plan_version: 1, stage: 'execute', status: 'done', outcome: 'GUARDRAIL', artifacts: { report: path.relative(f.root, report) }, data: { gate: 'full-suite', discoveries: [], failing_tests: [] } };
+  const file = artifactJoin(handoffs, 'execute-1.json'); await writeFile(file, JSON.stringify(h));
+  await writeFile(path.join(f.repos[0].root, 'contract.json'), '{"version":2}');
+  await writeFile(report, 'Execute outcome: PASSED\nDiscoveries: none\n');
+  await writeFile(file, JSON.stringify({ ...h, outcome: 'PASSED' }));
+  await assert.rejects(applyWorkflow({ root: f.root, statePath: f.statePath, input: { event: 'handoff', id: 'stale-success', expected_hash: digest(await readFile(f.statePath, 'utf8')), repos: f.repos.map(r => r.root), handoff: path.relative(f.root, file) } }), /dependency evidence changed/);
+  const ledger = artifactJoin(f.dir, 'DEMO-verification-v1.json');
+  await writeFile(ledger, JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, steps: [], gate: null, acceptance: [] }));
+  h.artifacts.verification = path.relative(f.root, ledger);
+  await writeFile(report, 'Execute outcome: GUARDRAIL\nDiscoveries: none\n'); await writeFile(file, JSON.stringify(h));
+  await u.seed({ autonomy: 'guided' });
+  await assert.rejects(applyWorkflow({ root: f.root, statePath: f.statePath, input: { event: 'handoff', id: 'stale-edit-resume', choice: 'edit-and-resume', source: 'user', via: 'chat', expected_hash: digest(await readFile(f.statePath, 'utf8')), repos: f.repos.map(r => r.root), handoff: path.relative(f.root, file) } }), /dependency evidence changed/);
+  await u.seed({ autonomy: 'autonomous' });
+  const result = await applyWorkflow({ root: f.root, statePath: f.statePath, input: { event: 'handoff', id: 'guardrail-replan', expected_hash: digest(await readFile(f.statePath, 'utf8')), repos: f.repos.map(r => r.root), handoff: path.relative(f.root, file) } });
+  assert.equal(result.fields.phase, 'plan'); assert.equal(result.fields.plan_version, '2');
+  assert.equal(result.fields.execution, 'not-started');
+  assert.equal(await readFile(path.join(f.repos[0].root, 'contract.json'), 'utf8'), '{"version":2}');
 });

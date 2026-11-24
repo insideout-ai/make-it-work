@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.2] — 2026-11-24
+
+### Fixed
+
+- Keep completed steps and execution mode when an explicit append-only fix amendment adds paths inside existing change repositories. Refresh affected readiness/preparation evidence without restarting the whole plan; preserve ordinary replanning for changed requirements, checks or earlier steps.
+- Record correctness stops despite stale repository-impact evidence, and support explicit same-definition refreshes after planned evidence-file edits at durable execution boundaries. Preserve freshness checks before dependent work and retain historical verification limits.
+- Distinguish accepted requirements from unverified implementation claims in coordinator handoffs. Check affected sibling paths, real validation and success-after-completion behavior during existing planning coverage review.
+
 ## [5.17.1] — 2026-11-24
 
 ### Changed
