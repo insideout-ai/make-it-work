@@ -1,0 +1,32 @@
+evals/plan-the-work/happy-path/graders/final-summary-printed.md
+  s_15df71fbf31fdd::t_d8d50ccc24c35b 2-3,6-10
+CHANGELOG.md
+  s_15df71fbf31fdd::t_0e65c5c3f33fe7 9-10
+  s_15df71fbf31fdd::t_d8d50ccc24c35b 11-14
+evals/execute/execute-full-pass/graders/model-choice-preserved.md
+  s_15df71fbf31fdd::t_d8d50ccc24c35b 1-12
+.claude-plugin/plugin.json
+  s_15df71fbf31fdd::t_0e65c5c3f33fe7 6
+skills/execute/SKILL.md
+  s_15df71fbf31fdd::t_d8d50ccc24c35b 132
+evals/plan-the-work/README.md
+  s_15df71fbf31fdd::t_d8d50ccc24c35b 233-234
+skills/execute/references/dispatch.md
+  s_15df71fbf31fdd::t_d8d50ccc24c35b 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dbbb712d8bd9a494170e391c923074224d7927ee",
+  "prompts": {},
+  "sessions": {
+    "s_15df71fbf31fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209a9-5946-7b93-8d9d-fe1278b0b3ce",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
