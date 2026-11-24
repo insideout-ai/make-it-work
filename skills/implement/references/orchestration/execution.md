@@ -26,3 +26,5 @@ Classify every failing test that is not already listed under Known regressions:
 
 Append every unrelated test to Known regressions as a bullet `- <repo>: <file> — <test>`, and append the final related / unrelated split to the file `execute_report` names. Unrelated regressions are documented, never fixed in this run. A gate whose only failures are recorded this way can still be packaged; the final package marks its validation as an accepted failed gate, and Final approval lists them for explicit acceptance. In Guided, also show the final related/unrelated split and ask: **Fix the related ones** / **Treat all as unrelated and continue** / **Stop**. Autopilot follows the already-computed clear split without a second prompt.
 
+
+Planned edits to impact-evidence files can require the bounded `refresh-evidence` procedure in repository-impact.md after a durable step checkpoint. Do not restore older file bytes to satisfy freshness. A correctness-stop handoff remains recordable while evidence is stale; use its normal stop/replan route, then reassess there. Stale evidence still blocks successful dependent work.

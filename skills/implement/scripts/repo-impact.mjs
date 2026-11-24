@@ -14,6 +14,21 @@ const relative = value => typeof value === 'string' && value && !path.isAbsolute
 export const impactEnabled = f => f.repo_impact_version === '1';
 export const impactDefinition = value => ({ version: value.version, repos: value.repos, checks: value.checks });
 
+// Opt-in amendment updates retain the full saved definition/hash. Only additive
+// paths in already-changing repos may avoid the ordinary replan route.
+export function isImpactPathExtension(before, after) {
+  const stripped = value => ({ ...impactDefinition(value), repos: value.repos.map(row => {
+    const { planned_paths, ...rest } = row;
+    return rest;
+  }) });
+  return JSON.stringify(stripped(before)) === JSON.stringify(stripped(after))
+    && before.repos.every((row, i) => {
+      const next = after.repos[i];
+      return row.planned_paths.every(file => next.planned_paths.includes(file))
+        && (row.classification === 'change' || JSON.stringify(row.planned_paths) === JSON.stringify(next.planned_paths));
+    });
+}
+
 export function validateImpactDefinition(value) {
   if (value?.version !== 1 || !Array.isArray(value.repos) || !value.repos.length || !Array.isArray(value.checks)) fail('Repository impact requires version 1, repos and checks.');
   const ids = value.repos.map(r => r.repo);
@@ -118,7 +133,7 @@ export async function assessRepoImpact(root, fields, input) {
   return { ...impactDefinition(input), binding: binding(fields), observations, evidence };
 }
 
-export async function checkRepoImpact(root, fields, { plan = null, requireChecks = false } = {}) {
+async function readImpact(root, fields) {
   if (!impactEnabled(fields)) return null;
   if (!fields.repo_impact || fields.repo_impact === 'none') fail('Repository impact assessment is required before readiness/implementation.');
   const file = await within(root, fields.repo_impact);
@@ -128,6 +143,10 @@ export async function checkRepoImpact(root, fields, { plan = null, requireChecks
   validateImpactDefinition(value);
   if (JSON.stringify(value.binding) !== JSON.stringify(binding(fields))) fail('Repository impact is stale for the current spec, plan version or approved scope.');
   if (digest(await readFile(await within(root, fields.spec))) !== fields.spec_hash) fail('Impact accepted spec changed.');
+  return value;
+}
+
+async function checkImpactObservations(fields, value) {
   const current = await inspectRepoImpact(fields);
   // Edits are expected in change repos. A skipped repo must remain byte-identical;
   // evidence below separately binds dependency facts, including those in changed repos.
@@ -135,6 +154,29 @@ export async function checkRepoImpact(root, fields, { plan = null, requireChecks
     const before = value.observations.find(o => o.repo === row.repo), now = current.find(o => o.repo === row.repo);
     if (!before || before.base !== now.base || row.classification !== 'change' && (now.paths.length || before.diff_sha256 !== now.diff_sha256)) fail(`Repository impact drift in ${row.repo}; reassess before dependent work.`);
   }
+  return current;
+}
+
+export async function checkImpactUpdate(root, fields, assessed, update) {
+  const saved = await readImpact(root, fields);
+  if (!saved) fail('Impact updates require an existing saved assessment.');
+  await checkImpactObservations(fields, saved);
+  const same = JSON.stringify(impactDefinition(saved)) === JSON.stringify(impactDefinition(assessed));
+  if (update === 'refresh-evidence' ? !same : !isImpactPathExtension(saved, assessed)) fail('Impact update changes more than permitted paths/evidence; use normal reassessment and replanning.');
+  for (const item of saved.evidence) {
+    const repo = selected(fields).find(row => row.id === item.repo);
+    if (digest(await readFile(await within(repo.root, item.path))) !== item.sha256) {
+      const row = saved.repos.find(row => row.repo === item.repo);
+      if (row.classification !== 'change' || !row.planned_paths.includes(item.path)) fail('Changed impact evidence is not an existing planned edit; reconcile it before refreshing.');
+    }
+  }
+  return saved;
+}
+
+export async function checkRepoImpact(root, fields, { plan = null, requireChecks = false } = {}) {
+  const value = await readImpact(root, fields);
+  if (!value) return null;
+  const current = await checkImpactObservations(fields, value);
   for (const item of value.evidence) {
     const repo = selected(fields).find(r => r.id === item.repo);
     if (!repo || digest(await readFile(await within(repo.root, item.path))) !== item.sha256) fail('Repository impact dependency evidence changed; reassess it.');
