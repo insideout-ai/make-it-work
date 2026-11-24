@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.1] — 2026-11-24
+
+### Changed
+
+- Leave execution-worker model selection to the user and harness. Omit model overrides unless explicitly directed, remove the plan-wide executor-tier recommendation, and preserve execution verification, retries and approvals.
+- Offer a saved compaction checkpoint after accepted TDD planning and before test preparation in Guided and Autonomous runs. Preserve approvals and recovery references, validate changes before continuing, and keep Autopilot on native auto-compaction without an interactive wait.
+- Reduce context loading by separating fresh-start and resume guidance, bounding delegated survey handbacks with full evidence artifacts, and distinguishing instruction, tool-output and handback payloads in context metrics.
+- Label the dashboard's workflow rating as Initial risk to distinguish it from the final change assessment. Record additional maintainer workflow reviews and investigation findings.
+
+### Fixed
+
+- Load the accepted plan when rendering verification evidence so explicitly waived manual checks remain skipped and unverified through Execute, Review and final approval, without blocking dashboard refresh or weakening validation.
+
 ## [5.17.0] — 2026-11-21
 
 ### Changed

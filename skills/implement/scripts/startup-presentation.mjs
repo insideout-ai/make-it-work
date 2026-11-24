@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { compactionHold } from './compaction.mjs';
 import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Skill-scoped hooks: verify assistant chat, never infer it from tool output.
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
@@ -278,7 +279,7 @@ export async function startupHook(input) {
   if (input.hook_event_name === 'PreToolUse') {
     let state;
     try { state = parseState(await readFile(progress.initialized.state, 'utf8'), progress.initialized.state); } catch { /* Existing state-repair handling remains available. */ }
-    const reason = state && planningActivityHold(input, events, state, progress.initialized.state);
+    const reason = state && (compactionHold(input, state.fields, progress) || planningActivityHold(input, events, state, progress.initialized.state));
     if (reason) return observeHook(input, progress, events, { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason } }, 'active-stage');
   }
   if (input.hook_event_name === 'PreToolUse' && readinessMutationCommand(input)) {

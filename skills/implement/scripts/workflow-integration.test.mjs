@@ -135,6 +135,14 @@ for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { a
     await apply('resolve-input', { pending_id: planResult.pending[0].id, answer: 'approve', source: 'user', via: 'question' });
   }
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.phase, 'write-tests');
+  const compaction = await apply('compaction-checkpoint', { notes: 'The feature progression baseline is intentionally red; readiness records that result.' });
+  assert.equal(compaction.fields.status, 'Paused');
+  if (autonomy === 'guided') {
+    const waiting = await apply('resolve-input', { pending_id: compaction.pending[0].id, answer: 'compact', source: 'user', via: 'question' });
+    assert.match(waiting.next_action.compact_command, /^\/compact /);
+    await apply('resolve-input', { pending_id: waiting.pending[0].id, answer: 'continue', source: 'user', via: 'chat' });
+  } else await apply('resolve-input', { pending_id: compaction.pending[0].id, answer: 'continue', source: 'user', via: 'question' });
+
   const scenarios = plannedScenarios(plan), entries = [];
   for (const [index, cwd] of repos.entries()) {
     await authorizePlanningTests(statePath, { repo: cwd, file: 'test.js', kind: 'test-file', step: 1, reason: 'Assert a formal greeting function exists before checking its output' });

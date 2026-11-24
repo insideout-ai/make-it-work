@@ -52,6 +52,8 @@ On Approve, publish the accepted plan snapshot as an attachment or authorized fa
 
 ### Write Tests (new runs)
 
+Before any test-edit authorization or worker dispatch, follow [the compaction checkpoint](../compaction.md). For a new marked run at its first accepted TDD plan, finish applicable plan publication, then apply `compaction-checkpoint`; present/wait on its saved inputs in Guided/Autonomous. Autopilot applies the same event and continues without asking. A resolved or skipped checkpoint is not repeated on replans or fix rounds.
+
 Runs with `test_writing_version: 1` enter `write-tests` after Plan approval (Guided) or a completed plan (Autonomous/Autopilot). Reused plans, replans and nonempty fix amendments follow the same route. Do not dispatch Execute until current preparation is accepted. Older saved runs retain existing routing and previously prepared tests; never backfill the marker merely on Resume.
 
 The coordinator reads [the test-worker integration guide](../../../write-the-tests/references/implement-integration.md); the fresh worker reads the complete write-the-tests entrypoint and its applicable authoring guides. Keep those detailed authoring procedures out of the coordinator dispatch context. Complete/check readiness, then follow [test-edit authorization](../planning-tests.md) for exact planned test files before dispatch. Record the actual dispatch activity in chat and the activity checkpoint, then use a **fresh worker without inherited conversation history**. Pass the compact inputs specified by that guide. The coordinator alone owns state, approval, authorizations, dashboard activity and publication. Retain its dispatch description while waiting; do not fabricate worker milestones or heartbeats.

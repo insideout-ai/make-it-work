@@ -55,5 +55,8 @@
   "change_assessment_version": "1",
   "test_writing_version": "1",
   "test_preparation": "none",
-  "test_preparation_report": "none"
+  "test_preparation_report": "none",
+  "compaction_version": "1",
+  "compaction_checkpoint": "pending",
+  "compaction_recovery": "none"
 }

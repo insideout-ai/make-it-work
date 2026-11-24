@@ -230,8 +230,8 @@ a resolved, concrete `Approach` row (not the `"Proceed with the recommended assu
 the `## Approach` section is consistent with it, there are no placeholder anti-patterns, and
 `## Execution Status` is untouched from the skeleton; a trace regex confirms the run never printed
 either of the skill's two interactive-pause phrasings (`"Which do you want?"` /
-`"Want that?"`); another trace regex confirms Step 6's `Recommended executor tier` final-summary
-line was printed; three more trace-regex graders confirm the attempted decision-log entry's schema
+`"Want that?"`); a semantic grader checks the final summary identifies the saved plan, risk,
+context updates and test-preparation next step; three more trace-regex graders confirm the attempted decision-log entry's schema
 directly (filler label preserved verbatim, filler never the `chosen` value, a `(Recommended)`-suffixed
 option actually chosen).
 

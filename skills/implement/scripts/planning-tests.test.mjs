@@ -234,7 +234,8 @@ test('a marked stub for a declared New symbol is allowed; unmarked, unbounded or
 
 test('new runs permit preauthorized tests only after approval in Write Tests', async t => {
   const f = await planningFixture(t, { files: { 'test/policy.test.js': '// baseline\n' } });
-  const saved = (await readFile(f.statePath, 'utf8')).replace('phase: plan', 'phase: plan\ntest_writing_version: 1');
+  // This authorization fixture begins after the optional compaction offer was declined.
+  const saved = (await readFile(f.statePath, 'utf8')).replace('compaction_checkpoint: pending', 'compaction_checkpoint: declined').replace('phase: plan', 'phase: plan\ntest_writing_version: 1');
   await writeFile(f.statePath, saved);
   await assert.rejects(f.authorize(), /active TDD/);
   await writeFile(f.statePath, saved.replace('phase: plan\n', 'phase: plan-approval\n'));

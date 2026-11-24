@@ -81,3 +81,34 @@ from 105,641 to 75,911 tokens (28.1%). The samples used the same reported model;
 this does not establish a general reduction, total cost saving or remaining
 context capacity. The complete candidate critical gate passed 7/7 (reported usage $9.22).
 No execution placement or delegation is changed by extraction.
+
+## Targeted compaction and context loading
+
+New Implement runs save a once-per-run manual compaction boundary before initial
+Write Tests. Guided and Autonomous offer Compact first / Continue after accepted
+plan publication; Autopilot records a skip and continues. The recovery record and
+saved pending input preserve continuation, not proof that `/compact` was executed.
+Existing unmarked runs retain their behavior. See the
+[checkpoint contract](../skills/implement/references/compaction.md).
+
+Startup instructions now have shared routing, a fresh-start guide and a Resume
+guide. Measured against the preceding source, the original startup guide contained
+48,673 characters. Shared plus fresh guidance contains 42,102; shared plus Resume
+contains 17,953. These are static guide-text sizes, not runtime token or cost
+savings. The relocation preserved the original instruction lines, except for the
+legacy migration exclusion list extended to protect the new opt-in fields.
+
+Refinement/planning surveys use the [bounded return contract](survey-handbacks.md):
+detailed evidence stays in an artifact, while a summary targets 3,000 characters
+with an explicit material-information exception. This target is not truncation.
+Required project guidance, report readbacks, verification and independent review
+remain binding. Execute/controller restructuring is deferred.
+
+`contextMetrics(transcript)` in `evals/context-metrics.mjs` now also returns
+`payloads`: returned-character totals and the largest observed instruction reads,
+file reads, shell results and actual stage handbacks. It excludes diagnostic
+request replays, child-only events and asynchronous launch acknowledgements, but
+includes runtime-delivered system handbacks. External files are not counted unless
+observably loaded. Shell results can contain instructions, so path-based categories
+are an inventory aid rather than semantic attribution. Compare equivalent runs
+for repeated investigation and correctness before claiming runtime savings.

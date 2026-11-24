@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { compactionRequired } from './compaction.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 // Narrow, pre-edit authorizations for planning's test-writing sub-phase.
 import { execFileSync } from 'node:child_process';
@@ -53,6 +54,7 @@ export async function fileImage(root, file) {
 }
 export async function authorizePlanningTests(statePath, input) {
   const state = parseState(await readFile(statePath, 'utf8'), statePath), f = state.fields;
+  if (compactionRequired(f)) fail('Complete the compaction checkpoint before authorizing test preparation.');
   const root = await realpath(path.dirname(path.dirname(path.dirname(statePath))));
   assertRunState(root, statePath, f.ticket);
   if (f.status !== 'In Progress' || !(f.test_writing_version === '1' ? ['write-tests'] : ['plan', 'fix-plan']).includes(f.phase)) fail('Authorize test edits only in active TDD Plan (legacy) or Write Tests (new runs).');
