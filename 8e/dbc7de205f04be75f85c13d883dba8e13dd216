@@ -1,0 +1,21 @@
+skills/implement/scripts/render-status.mjs
+  s_15df71fbf31fdd::t_9361497a68c42d 892
+skills/implement/scripts/render-status.test.mjs
+  s_15df71fbf31fdd::t_4b3f51ef0c41f1 1322,1358,1360
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8edbc7de205f04be75f85c13d883dba8e13dd216",
+  "prompts": {},
+  "sessions": {
+    "s_15df71fbf31fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a209a9-5946-7b93-8d9d-fe1278b0b3ce",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
