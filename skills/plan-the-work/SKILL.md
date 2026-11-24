@@ -361,7 +361,6 @@ Test scope: <comma-separated test-only repos | none>
 Assumptions: <count>
 Open questions: <count>
 Overall risk: <before mitigations> → <after mitigations>
-Recommended executor tier: <low | standard | high> — <one-line reason>
 Context updated: <each file changed in Step 5.6, with a one-line reason | none>
 ```
 
@@ -370,14 +369,6 @@ Under the output block, list every `Spec gap:` Assumption, and every Assumption 
 Provide a clickable Markdown link to the actual saved plan file (an absolute local path). When it includes a diagram, point the user to its **Visual Overview** section. Do not imply the diagram is rendered in chat or the HTML preview: Mermaid rendering depends on the Markdown viewer, and the current HTML preview shows source. No separate image is needed.
 
 If Overall risk (after mitigations) is High, also print the plan's `### Phasing alternative` summary in chat here — that's where the user actually decides, not buried in the file.
-
-**Recommended executor tier** — how capable a model should execute this plan, derived purely from the plan you just wrote (no new investigation): read off the Affected Code table (repo/file count), the Risks table (risk surface), and the Steps (count + additive vs invasive):
-
-- **low** — mechanical, few files, additive, no data-migration / state-transition / security risk, steps fully specified.
-- **standard** — moderate: a few domains or repos, some risk, mostly-specified steps.
-- **high** — multiple repos with logic changes, security / state transitions / data migrations / cross-service flows, or steps that still need judgment during execution.
-
-Tier, not a model name — map it to whatever model lineup the executor uses. `execute` re-derives this same tier independently, directly from the plan file, and applies it when it runs: under Inline mode it's informational for the user to apply themselves if they want (e.g. via `/model`); under Subagent-Driven mode, `execute` passes a model matching this tier as the `model` argument on each `Agent` dispatch it makes.
 
 Then tell the user the plan is ready — this skill never drives step execution itself, so it never asks the Subagent-Driven-vs-Inline question or touches `## Execution Status` beyond the skeleton it already wrote:
 

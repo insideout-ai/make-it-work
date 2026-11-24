@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.1] — 2026-11-24
+
+### Changed
+
+- Leave execution-worker model selection to the user and harness. Omit model overrides unless explicitly directed, remove the plan-wide executor-tier recommendation, and preserve execution verification, retries and approvals.
+
 ## [5.17.0] — 2026-11-21
 
 ### Changed

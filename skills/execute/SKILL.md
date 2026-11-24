@@ -129,12 +129,7 @@ The script changes only `## Execution Status`, writes atomically, and rejects sk
 
 Invoke each status-script command in its own Bash tool call. Do not join it with an autopilot decision-log write: a denied log write must not prevent the status update from running. If the log write is denied, handle that separately; it must not suppress a valid plan-status update.
 
-5. **Re-derive the recommended executor tier** — `plan-the-work`'s own Step 6 computes a "Recommended executor tier" (low/standard/high) but only prints it in chat; it is not persisted as a field in the plan file. Re-derive it yourself, directly against the plan file Phase 0 point 2 resolved, using the exact same criteria `plan-the-work`'s Step 6 documents:
-   - **low** — mechanical, few files, additive, no data-migration / state-transition / security risk, steps fully specified.
-   - **standard** — moderate: a few domains or repos, some risk, mostly-specified steps.
-   - **high** — multiple repos with logic changes, security / state transitions / data migrations / cross-service flows, or steps that still need judgment during execution.
-
-   Read this off the plan file's own sections only — no new investigation of the target codebase: the **Affected Code** table (repo/file count), the **Risks** table (severity surface — the Overall risk values), and the **Steps** (count, and whether they read as additive or invasive). Under **Subagent-Driven** mode, pass a model matching this tier as the `model` argument on every subsequent `Agent` dispatch in Phase 2 (Work through the plan's steps), so every step runs at the recommended level. Under **Inline** mode, the current session's model can't be changed programmatically — note the tier for the user, but take no further action here.
+5. **Respect model selection** — leave model choice to the user and harness. On execution and corrective subagent dispatches, omit the `model` argument unless the user or harness explicitly directs an override; do not substitute `inherit` or infer a model from plan risk, complexity or an older executor-tier recommendation. Inline execution keeps the current session's model.
 
 ## Phase 1 — Guardrail and retry-limit policy
 
