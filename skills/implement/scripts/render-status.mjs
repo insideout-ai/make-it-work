@@ -300,6 +300,12 @@ export function parseState(markdown, statePath = '') {
   if (fields.review_scope_version !== undefined && fields.review_scope_version !== '1') fail('Unsupported review_scope_version.');
   if (fields.final_package_version !== undefined && fields.final_package_version !== '1') fail(`Unsupported final_package_version: ${fields.final_package_version}`);
   if (fields.acceptance_evidence_version !== undefined && (fields.acceptance_evidence_version !== '1' || fields.verification_version !== '1')) fail('Clause evidence requires acceptance_evidence_version: 1 and verification_version: 1.');
+  if (fields.compaction_version !== undefined && fields.compaction_version !== '1') fail('Unsupported compaction_version.');
+  if (fields.compaction_version === '1') {
+    if (!['pending', 'offered', 'awaiting-continuation', 'declined', 'continued', 'skipped', 'cancelled'].includes(fields.compaction_checkpoint)) fail('Invalid compaction checkpoint.');
+    if (typeof fields.compaction_recovery !== 'string' || !fields.compaction_recovery.trim()
+        || ['offered', 'awaiting-continuation'].includes(fields.compaction_checkpoint) && fields.compaction_recovery === 'none') fail('Compaction checkpoint needs its recovery artifact.');
+  }
   if (fields.test_writing_version !== undefined && fields.test_writing_version !== '1') fail('Unsupported test_writing_version.');
   if (fields.phase === 'write-tests' && fields.test_writing_version !== '1') fail('Write Tests requires test_writing_version: 1.');
   if (fields.test_writing_version === '1') {
@@ -889,7 +895,7 @@ function renderModePill(state) {
     : 'Implements a low-risk change directly from the refined spec, with tests and independent review.';
   const tooltip = `${explanation}${source === 'user' ? ' Selected by you.' : ''}`;
   const approach = `<span class="pill mode-pill mode-${mode}" title="${escapeHtml(tooltip)}">Approach: ${escapeHtml(MODE_LABELS[mode])}</span>`;
-  const riskBadge = risk === 'none' ? '' : `<span class="pill risk-pill" title="${escapeHtml(rationale === 'none' ? 'No risk rationale recorded.' : rationale)}">Risk: ${escapeHtml(risk[0].toUpperCase() + risk.slice(1))}</span>`;
+  const riskBadge = risk === 'none' ? '' : `<span class="pill risk-pill" title="${escapeHtml(rationale === 'none' ? 'No risk rationale recorded.' : rationale)}">Initial risk: ${escapeHtml(risk[0].toUpperCase() + risk.slice(1))}</span>`;
   return approach + riskBadge;
 }
 
@@ -1106,10 +1112,14 @@ export async function generateDashboard(statePath) {
   const finalVerification = state.fields.verification_version === '1' && ['final-approval', 'complete'].includes(state.fields.phase) && !(isAdaptive(state) && state.fields.mode === 'lightweight');
   if (scope || finalVerification) {
     const { readVerification, validateVerification } = await import('./verification.mjs');
+    // Skipped manual checks require the accepted plan even during Execute/Review.
+    // Keep plan read failures distinct from an absent, not-yet-created ledger.
+    const planPath = resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket);
+    const plan = planPath ? await readFile(planPath, 'utf8') : null;
     try {
-      const ledger = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`, state.fields.artifact_naming_version), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version) });
+      const ledger = await readVerification(path.dirname(path.dirname(path.dirname(absoluteStatePath))), runArtifact(state.fields.ticket, `${state.fields.ticket}-verification-v${state.fields.plan_version}.json`, state.fields.artifact_naming_version), { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version), plan });
       if (finalVerification) {
-        const plan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
+        if (plan === null) fail('Final verification requires the accepted plan.');
         validateVerification(ledger, { ticket: state.fields.ticket, planVersion: Number(state.fields.plan_version), plan, requireComplete: true, requireClauses: state.fields.acceptance_evidence_version === '1' });
       }
       verification = ledger;

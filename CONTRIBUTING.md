@@ -82,7 +82,7 @@ sequence without starting another full run for a version bump or release.
 `critical`, `extended`, `full`, and focused model cases are on-demand only: run
 them only when explicitly requested by the maintainer, never automatically
 because of a version bump, release, or changed skill. Their absence does not
-block release readiness. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/1278c95da26f0bf6e1450d68955e00d26cef6e3b/evals/README.md) for ledger behavior
+block release readiness. See [evals/README.md](https://github.com/insideout-ai/make-it-work/blob/589dccc4812e19895ba40bf4a775cc7b74d13ef9/evals/README.md) for ledger behavior
 and [the release checklist](docs/eval-release-checklist.md). Existing deterministic
 checks and packaging validation remain unchanged. CI does not launch model evaluations.
 

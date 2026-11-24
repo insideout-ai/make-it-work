@@ -1,6 +1,6 @@
 import { fail } from '../../../scripts/lib/artifacts.mjs';
 
-const KINDS = new Set(['question', 'approval', 'triage', 'step', 'slack', 'permission']);
+const KINDS = new Set(['question', 'approval', 'triage', 'step', 'slack', 'permission', 'compaction']);
 const PHASES = new Set(['context-check', 'close-the-gaps', 'spec-approval', 'plan', 'plan-approval', 'write-tests', 'execute', 'review', 'fix-plan', 'final-sync', 'final-approval', 'complete']);
 function text(value, name) {
   if (typeof value !== 'string' || !value.trim() || /[\x00-\x08\x0b\x0c\x0e-\x1f]/.test(value)) fail(`Pending input ${name} must be nonempty text.`);

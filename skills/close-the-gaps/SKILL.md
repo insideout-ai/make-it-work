@@ -140,6 +140,8 @@ Do not mention which skills were loaded unless the user asks. Just use them.
 
 ## Phase 3 — Targeted Code Exploration
 
+For substantial delegated surveys, follow the [bounded survey handback contract](../../docs/survey-handbacks.md). Keep source read-only, save detailed evidence in an artifact and return a concise decision-focused summary with pointers, uncertainty and blockers.
+
 Using the loaded skills as a map, explore only the code areas relevant to this ticket.
 Do not do broad exploration — be surgical.
 
