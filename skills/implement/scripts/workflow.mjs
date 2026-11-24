@@ -10,7 +10,7 @@ import { lstat, readdir, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { args, atomicWrite, cli, digest, fail, jsonInput, requireText, withLock, within } from '../../../scripts/lib/artifacts.mjs';
-import { parseState, generateDashboard } from './render-status.mjs';
+import { parseState, generateDashboard, parsePlanStatus } from './render-status.mjs';
 import { decideNext, validateArtifacts } from './handoff.mjs';
 import { approve as approveFinalPackage, checkFinalPackage } from './final-package.mjs';
 import { contextInventory } from '../../../scripts/context-inventory.mjs';
@@ -20,7 +20,7 @@ import { testingPolicy } from './testing-policy.mjs';
 import { collectTestingSummary } from './testing-summary.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
-import { planHash } from '../../../scripts/lib/plan.mjs';
+import { planHash, parseSteps } from '../../../scripts/lib/plan.mjs';
 import { approvedScope, readScope } from './workspace-scope.mjs';
 import { checkSessionRepositories } from '../../../scripts/lib/session-workspace.mjs';
 import { inspectLightweightFix } from './lightweight-fix.mjs';
@@ -34,7 +34,7 @@ import { checkRefinementWorkerHandoff } from './refinement-worker.mjs';
 import { feedbackAction } from './feedback-handoff.mjs';
 import { assessContextMaintenance, checkContextMaintenance } from './context-maintenance.mjs';
 import { reviewRequirements } from './review-checks.mjs';
-import { assessRepoImpact, checkRepoImpact, impactEnabled, impactDefinition, impactSummary, validateImpactPolicy, validateImpactGate } from './repo-impact.mjs';
+import { assessRepoImpact, checkRepoImpact, checkImpactUpdate, impactEnabled, impactDefinition, impactSummary, validateImpactPolicy, validateImpactGate, planImpact } from './repo-impact.mjs';
 import { manualWaiver } from './manual-waiver.mjs';
 import { updatePlan } from '../../execute/scripts/plan-status.mjs';
 export { snapshot } from '../../../scripts/lib/repo-state.mjs';
@@ -144,20 +144,22 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (action.action === 'stop') { f.status = 'Stopped'; f.pause_reason = reason; }
     if (action.action === 'pause') { f.status = 'Paused'; f.pause_reason = action.pause_reason; }
   } else if (input.event === 'repo-impact') {
-    if (!impactEnabled(f) || f.status !== 'In Progress' || !['plan', 'fix-plan', 'lightweight', 'review', 'final-sync', 'spec-approval'].includes(f.phase) || !input.validated_impact) fail('Impact assessment requires active planning/reconciliation and controller validation.');
-    if (input.impact_definition_changed && f.plan !== 'none') {
+    if (!impactEnabled(f) || f.status !== 'In Progress' || !(['plan', 'fix-plan', 'lightweight', 'review', 'final-sync', 'spec-approval'].includes(f.phase) || f.phase === 'execute' && input.validated_impact_update) || !input.validated_impact) fail('Impact assessment requires active planning/reconciliation and controller validation.');
+    if (input.impact_definition_changed && !input.validated_impact_update && f.plan !== 'none') {
       if (Number(f.replans_used) >= 2) fail('Replan limit reached while revising repository impact.');
       f.impact_previous_plan = f.plan; f.impact_change_reason = 'Repository impact or required verification changed.';
       f.replans_used = String(Number(f.replans_used) + 1);
       f.plan_version = String(Number(f.plan_version) + 1);
       Object.assign(f, { phase: 'plan', execution_mode: 'none', inline_pause_mode: 'none', plan: 'none', plan_hash: 'none', testing_readiness: 'none', execution: 'not-started', review: 'not-started', review_cycle: '0', fix_cycle: '0', test_preparation: 'none', test_preparation_report: 'none' });
     }
-    if (input.impact_definition_changed && f.mode === 'lightweight' && ['review', 'final-sync'].includes(f.phase)) {
+    if (input.impact_definition_changed && !input.validated_impact_update && f.mode === 'lightweight' && ['review', 'final-sync'].includes(f.phase)) {
       if (Number(f.review_cycle) >= 4) fail('Review limit reached while revising repository impact.');
       if (f.phase === 'review') f.review_cycle = String(Number(f.review_cycle) + 1);
       f.phase = 'review'; f.review = 'not-started';
     }
-    reason = 'Repository impact assessed; context-only repos require no setup or verification.';
+    reason = input.validated_impact_update
+      ? `Repository impact ${input.update}; completed progress retained. Refresh affected evidence before dependent work.`
+      : 'Repository impact assessed; context-only repos require no setup or verification.';
   } else if (input.event === 'context-ready') {
     if (f.phase !== 'context-check' || f.status !== 'In Progress') fail('Context check is not active.');
     f.phase = input.reuse_spec ? 'plan' : 'close-the-gaps';
@@ -498,10 +500,33 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       const current = await snapshot(actual);
       if (!['stop', 'pause', 'autonomy'].includes(input.event) && current.some((repo) => repo.branch !== workspaceContract.repos.find((entry) => entry.root === repo.root).branch)) fail('Branch differs from the approved repository selection.');
     }
-    if (input.validated_impact !== undefined || input.impact_definition_changed !== undefined) fail('Impact validation flags are controller-owned.');
+    if (input.validated_impact !== undefined || input.impact_definition_changed !== undefined || input.validated_impact_update !== undefined) fail('Impact validation flags are controller-owned.');
     let assessedImpact = null;
     if (effective.event === 'repo-impact') {
+      if (effective.update !== undefined && !['refresh-evidence', 'amend-paths'].includes(effective.update)) fail('Unknown impact update mode.');
       assessedImpact = await assessRepoImpact(root, state.fields, effective.assessment);
+      if (effective.update) {
+        const fields = state.fields;
+        if (fields.status !== 'In Progress' || fields.plan === 'none' || (effective.update === 'amend-paths' ? fields.phase !== 'fix-plan' : !['execute', 'fix-plan', 'review'].includes(fields.phase))) fail('Impact update requires an active plan at its supported durable boundary.');
+        if (effective.verification !== undefined) fail('Impact updates cannot carry verification results; record current checks separately.');
+        await checkImpactUpdate(root, fields, assessedImpact, effective.update);
+        const plan = await readFile(await within(root, fields.plan), 'utf8');
+        if (JSON.stringify(planImpact(plan)) !== JSON.stringify(impactDefinition(assessedImpact))) fail('Updated impact must match the current plan.');
+        if (effective.update === 'amend-paths') {
+          const journal = JSON.parse(await readFile(`${await within(root, fields.plan)}.execution.json`, 'utf8'));
+          const steps = parseSteps(plan), progress = parsePlanStatus(plan);
+          const hashes = journal.step_hashes;
+          if (journal.version !== 1 || journal.stopped || journal.active_steps?.length || !Array.isArray(hashes) || !hashes.length || progress.complete !== hashes.length || steps.length <= hashes.length || !hashes.every((hash, i) => hash === digest(JSON.stringify(steps[i])))) fail('Path amendment requires unchanged completed steps and appended fix steps.');
+          validateImpactPolicy(assessedImpact, testingPolicy(plan, { required: true }));
+        } else {
+          if (planHash(plan) !== fields.plan_hash) fail('Plan changed before evidence refresh; reconcile its amendment first.');
+          if (fields.phase === 'execute') {
+            const journal = JSON.parse(await readFile(`${await within(root, fields.plan)}.execution.json`, 'utf8'));
+            if (journal.plan_hash !== fields.plan_hash || journal.stopped || journal.active_steps?.length) fail('Refresh evidence only after the current execution step has a durable completion.');
+          }
+        }
+        effective = { ...effective, validated_impact_update: true };
+      }
       if (effective.verification !== undefined) {
         validateImpactGate(assessedImpact, effective.verification, { passing: true });
         assessedImpact.verification = effective.verification;
@@ -524,7 +549,10 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       }
     }
     const handoff = await loadHandoff(root, workingState, effective);
-    if (handoff?.status === 'done' && handoff.stage !== 'gaps' && impactEnabled(state.fields)) await checkRepoImpact(root, state.fields, { requireChecks: handoff.stage === 'implement', plan: ['plan', 'tests', 'execute'].includes(handoff.stage) && (handoff.artifacts.plan ?? state.fields.plan) !== 'none' ? await readFile(await within(root, handoff.artifacts.plan ?? state.fields.plan), 'utf8') : null });
+    // A correctness-stop report is not certification of successful dependent work.
+    // Let the existing stop/replan route record it even when impact is stale.
+    const executionStop = handoff?.stage === 'execute' && ['GUARDRAIL', 'RETRY_LIMIT', 'EXECUTE_STOPPED'].includes(handoff.outcome) && effective.choice !== 'edit-and-resume';
+    if (handoff?.status === 'done' && handoff.stage !== 'gaps' && !executionStop && impactEnabled(state.fields)) await checkRepoImpact(root, state.fields, { requireChecks: handoff.stage === 'implement', plan: ['plan', 'tests', 'execute'].includes(handoff.stage) && (handoff.artifacts.plan ?? state.fields.plan) !== 'none' ? await readFile(await within(root, handoff.artifacts.plan ?? state.fields.plan), 'utf8') : null });
     if (handoff?.stage === 'gaps') await checkRefinementWorkerHandoff(root, statePath, effective.handoff);
     if (input.validated_waiver !== undefined) fail('validated_waiver is controller-owned.');
     if (effective.event === 'waive-manual-verification') {

@@ -10,6 +10,8 @@ When proceeding to fix-plan, log the transition into it before starting amend-mo
 
 Then follow `plan-the-work` inline in amend mode, with one fix source: the review report (plus the user's decisions on any `Route: human` findings), or `execute_report` (which holds the gate report and the related failing tests).
 
+When an append-only amendment adds impact paths inside existing change repos, follow repository-impact.md's `update: "amend-paths"` route before accepting the handoff. Rebind readiness from retained applicable evidence with its existing begin/complete procedure, then validate the handoff and prepare the amended tests. Preserve prior completed steps; changes to required checks, repo classifications or earlier steps still require normal reconciliation/replanning.
+
 Immediately after amend-mode planning returns — before sizing, counting, or dispatching its steps — check the validated handoff's `recommend_replan` value in a version 1 run, or the report's `Recommend replan:` line in an older run. If present, handle it per Early replan. If the user chooses to continue patching, or the replan limit is reached, carry on below.
 
 Once amend-mode planning determines this round adds `Y` new steps, record `fix_plan_round_steps: Y` in the state file, and log it as a decision row (using the workflow-decision checkpoint above): `Decision: Fix round <N>: added <Y> steps covering <F> findings` (where `<N>` is this run's count of fix-plan rounds so far, i.e. `fix_cycle` after this round's own increment, and `<F>` is the count of findings this round addresses), then regenerate the dashboard again — this is what makes the step-progress annotation first appear.

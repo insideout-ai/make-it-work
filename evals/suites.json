@@ -176,7 +176,9 @@
     "implement-delegate-test-compromise",
     "feedback-maintainer-followup-gaps",
     "feedback-maintainer-followup-answered",
-    "feedback-maintainer-followup-reported"
+    "feedback-maintainer-followup-reported",
+    "implement-implementation-claim-handoff",
+    "plan-behavior-boundary-coverage"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",
