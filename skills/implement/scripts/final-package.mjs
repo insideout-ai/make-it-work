@@ -24,6 +24,7 @@ import { checkContextMaintenance } from './context-maintenance.mjs';
 import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../scripts/lib/review-evidence.mjs';
 
 import { readAssessment, assessmentSummary } from '../../../scripts/change-assessment.mjs';
+import { prepareFinalDraft } from './final-draft.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -315,18 +316,22 @@ async function main(args) {
     if (flag === '--require-approval') { options.requireApproval = true; continue; }
     if (!args.length) fail(`Missing value for ${flag}.`);
     const value = args.shift();
+    if (['--commit-file', '--title-file', '--description-file', '--body-width'].includes(flag) && command !== 'draft') fail(`${flag} applies only to draft preparation.`);
     if (flag === '--repo') options.repo.push(value);
     else if (flag === '--base') options.base.push(value);
-    else if (['--root', '--state', '--draft', '--hash'].includes(flag)) options[flag.slice(2)] = value;
+    else if (['--root', '--state', '--draft', '--hash', '--commit-file', '--title-file', '--description-file', '--body-width'].includes(flag)) options[flag.slice(2)] = value;
     else fail(`Unknown option: ${flag}.`);
   }
-  if (!['build', 'check', 'approve'].includes(command) || !options.root || !options.state) {
-    fail('Usage: final-package.mjs build|check|approve --root ROOT --state STATE [--repo REPO ...] [--base BASE ...] [--draft DRAFT] [--hash SHA256] [--require-approval]');
+  if (!['draft', 'build', 'check', 'approve'].includes(command) || !options.root || !options.state) {
+    fail('Usage: final-package.mjs draft|build|check|approve --root ROOT --state STATE [--repo REPO ...] [--base BASE ...] [--draft DRAFT] [--hash SHA256] [--require-approval]; draft --commit-file FILE --title-file FILE --description-file FILE [--body-width N]');
   }
   const root = await realpath(options.root);
   const state = await realpath(options.state);
   const parsed = parseState(await readFile(state, 'utf8'), state);
   assertRunState(root, state, parsed.fields.ticket);
+  if (command === 'draft') return prepareFinalDraft(root, state, {
+    commit_message: options['commit-file'], pr_title: options['title-file'], pr_description: options['description-file'],
+  }, options['body-width'] === undefined ? undefined : Number(options['body-width']));
   if (command === 'build') {
     if (!options.draft) fail('build requires --draft.');
     return build(root, state, options.repo, options.base, artifactResolve(options.draft));

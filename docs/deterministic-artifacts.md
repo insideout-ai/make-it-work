@@ -2,6 +2,14 @@
 
 These helpers own mechanical operations. Read the section for the current skill only. Semantic analysis supplies the inputs; scripts validate relationships and render derived output. None of these helpers grants permission to write to an external service. Do not switch tools/paths to bypass denied writes.
 
+## Draft and evidence inputs
+
+Worker evidence destinations are reserved by `artifact-output.mjs allocate --root <artifact-root> --directory make-it-work/<TICKET> --name worker-evidence.json`. Each call exclusively creates a new UUID-suffixed file, follows marked/legacy naming, and returns absolute `file`/`relative` paths. Allocate before dispatch and reuse that path for the same worker's continuation; an empty reservation is not completed evidence. `resolve` retains its existing non-reserving contract.
+
+`artifact-output.mjs inputs --root <artifact-root> --plan <saved-plan-reference>` returns the existing plan's absolute path. Add or use `--source-root <selected-repo> --context <repo-relative-file>` for an absolute `context_updated` entry. These read-only lookups reject escapes and do not grant repository selection/edit permissions. Implement's controller still validates approved roots.
+
+For final delivery prose, `final-package.mjs draft` reads three literal prose files from the active run directory and writes the existing final-draft JSON. Its optional explicit `--body-width` formats only commit-body prose before package build/approval; it never evaluates text or repository configuration. See [final-package procedure](../skills/implement/references/orchestration/final-package.md). Existing draft JSON/package manifests and approval hashes retain their contracts.
+
 ## Repository identity
 
 Use `repo-identity.mjs identity --root <selected-repo>` before writing a test
