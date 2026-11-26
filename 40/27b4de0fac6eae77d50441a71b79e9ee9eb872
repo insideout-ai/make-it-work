@@ -1,0 +1,31 @@
+skills/implement/references/compilation-evidence.md
+  s_0349e8b54eab42::t_19d65e79e32753 45-70
+docs/regression-runner.md
+  s_0349e8b54eab42::t_19d65e79e32753 3-6
+docs/workflow-findings.md
+  s_0349e8b54eab42::t_532ab741a6e023 2903-2966
+scripts/command-evidence.mjs
+  s_0349e8b54eab42::t_24a917b7bd6102 1-116
+scripts/command-evidence.test.mjs
+  s_0349e8b54eab42::t_7fd6b6c593c7ba 1-168
+scripts/regression.mjs
+  s_0349e8b54eab42::t_dff569cb00d3fd 31,64,67,89-91,94-102,104-105,114,118-121
+skills/implement/references/orchestration/lightweight.md
+  s_0349e8b54eab42::t_837d4f304467fb 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4027b4de0fac6eae77d50441a71b79e9ee9eb872",
+  "prompts": {},
+  "sessions": {
+    "s_0349e8b54eab42": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ee0-32ea-7aa2-8c6f-511d413ba6ab",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
