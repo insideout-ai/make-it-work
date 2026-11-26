@@ -1,0 +1,70 @@
+docs/workflow-findings.md
+  s_0349e8b54eab42::t_9d89108f0c25ca 2866-2884
+  s_0349e8b54eab42::t_6bf072217ae952 2894-2902
+  s_0349e8b54eab42::t_93ca405f9ef35d 189,197,489-491,540,542-543,769-772,2840-2865
+  s_cadc58c4992f36::t_172fd96acf5eb1 165-170,172-174,176-178,211,213,225,231-233,400-401,429-438,487,539,541,705-721,745,747
+  s_0349e8b54eab42::t_97976e0ecdf660 230
+  s_cadc58c4992f36::t_f8bbf789531344 171,175,221,687-688,746,768
+  s_0349e8b54eab42::t_37914d9826966f 200,219,228-229,2885-2893
+  s_0349e8b54eab42::t_37d7ef64c4e3cf 488
+skills/implement/references/activity.md
+  s_0349e8b54eab42::t_a3775a9acc2c0e 37-38
+CHANGELOG.md
+  s_0349e8b54eab42::t_3af33a17de8cbc 9-15
+skills/implement/scripts/final-draft.test.mjs
+  s_0349e8b54eab42::t_0d57f1a3aa0e87 1-18
+skills/implement/references/orchestration/final-package.md
+  s_0349e8b54eab42::t_a3775a9acc2c0e 12-14
+skills/implement/references/orchestration/final-sync.md
+  s_0349e8b54eab42::t_a3775a9acc2c0e 68-69
+scripts/artifact-output.test.mjs
+  s_0349e8b54eab42::t_103fb38fa173a0 6,54-59
+  s_0349e8b54eab42::t_0d57f1a3aa0e87 1-2,4-5,7-9,11-53,60-68
+  s_0349e8b54eab42::t_c89a799d977dd1 3,10
+skills/implement/scripts/final-package.test.mjs
+  s_0349e8b54eab42::t_0d57f1a3aa0e87 65,67-93,100-102
+  s_0349e8b54eab42::t_71cd75c4a098b6 94-99
+  s_0349e8b54eab42::t_c89a799d977dd1 6,66
+skills/execute/references/dispatch.md
+  s_0349e8b54eab42::t_a3775a9acc2c0e 10
+skills/execute/references/implement-integration.md
+  s_0349e8b54eab42::t_a3775a9acc2c0e 7-8
+.claude-plugin/plugin.json
+  s_0349e8b54eab42::t_3af33a17de8cbc 6
+scripts/artifact-output.mjs
+  s_0349e8b54eab42::t_d0a786b1b30362 2-3,36-71,73-78
+docs/deterministic-artifacts.md
+  s_0349e8b54eab42::t_c89a799d977dd1 5,12
+  s_0349e8b54eab42::t_a3775a9acc2c0e 7-11
+  s_0349e8b54eab42::t_0ae36dfaead46f 6
+skills/implement/scripts/final-draft.mjs
+  s_0349e8b54eab42::t_d0a786b1b30362 1-53,55-59,61-66,68-70
+  s_0349e8b54eab42::t_c89a799d977dd1 54,60,67
+skills/implement/scripts/final-package.mjs
+  s_0349e8b54eab42::t_d0a786b1b30362 27,322,325-326,332-334
+  s_0349e8b54eab42::t_71cd75c4a098b6 319
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "13f2b307c9795e9f50fae527e550c32f4232d27e",
+  "prompts": {},
+  "sessions": {
+    "s_0349e8b54eab42": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ee0-32ea-7aa2-8c6f-511d413ba6ab",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_cadc58c4992f36": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20d87-36eb-7e32-9422-cf460bbe4f96",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
