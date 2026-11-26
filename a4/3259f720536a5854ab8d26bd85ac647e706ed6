@@ -1,0 +1,47 @@
+.claude-plugin/plugin.json
+  s_0349e8b54eab42::t_6bafced8f082d2 6
+docs/workflow-findings.md
+  s_0349e8b54eab42::t_16ccdb93f3390d 230,439-440,2969-3013
+CHANGELOG.md
+  s_0349e8b54eab42::t_6bafced8f082d2 9-15
+docs/deterministic-artifacts.md
+  s_0349e8b54eab42::t_0c5334fd46733a 7-8
+docs/regression-runner.md
+  s_0349e8b54eab42::t_aa8f012005bd11 5
+scripts/command-facts.test.mjs
+  s_0349e8b54eab42::t_9a0647238d6bd2 1-72
+scripts/lib/command-facts.mjs
+  s_0349e8b54eab42::t_6901cb231692e8 1-97
+scripts/review-report.mjs
+  s_0349e8b54eab42::t_a0d3b5427ccfbd 9,110-111,128
+skills/implement/references/compilation-evidence.md
+  s_0349e8b54eab42::t_be774e92f9ae37 71-80
+skills/implement/references/orchestration/final-package.md
+  s_0349e8b54eab42::t_83f22580edb00a 33-34
+skills/implement/references/orchestration/review.md
+  s_0349e8b54eab42::t_9e9541bd2870a3 12-13
+skills/implement/scripts/final-package.mjs
+  s_0349e8b54eab42::t_ebcffcdfad9581 28,86-90,240-244,257,310
+skills/implement/scripts/review-scope.mjs
+  s_0349e8b54eab42::t_335c6babde24bb 12,17,77-94,113,206,212-226,231-244,273,297,300,303,306
+skills/implement/scripts/review-scope.test.mjs
+  s_0349e8b54eab42::t_56d4b76be17692 15-16,49-158
+skills/implement/scripts/workflow.mjs
+  s_0349e8b54eab42::t_c4ef697f6b6f29 68,74-75,209,217,586-589
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a43259f720536a5854ab8d26bd85ac647e706ed6",
+  "prompts": {},
+  "sessions": {
+    "s_0349e8b54eab42": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ee0-32ea-7aa2-8c6f-511d413ba6ab",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
