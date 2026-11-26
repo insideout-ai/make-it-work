@@ -1,0 +1,35 @@
+skills/shape-the-epic/SKILL.md
+  s_0349e8b54eab42::t_38f784361f027e 136-137
+evals/plan-the-work/happy-path/graders/recommended-option-chosen.md
+  s_0349e8b54eab42::t_ba37520e03fc77 2-6,10-13
+evals/plan-the-work/README.md
+  s_0349e8b54eab42::t_1f40e8e9a3bcb3 221,226-227,232-233
+  s_0349e8b54eab42::t_ba37520e03fc77 229-231,234-244
+  s_0349e8b54eab42::t_37e12d006c02b0 228
+evals/plan-the-work/happy-path/graders/approach-gap-resolved.md
+  s_0349e8b54eab42::t_1f40e8e9a3bcb3 23-26
+  s_0349e8b54eab42::t_ba37520e03fc77 8,15-20
+evals/grade-headless.mjs
+  s_0349e8b54eab42::t_525e95e120ba6a 206,208-209
+  s_0349e8b54eab42::t_38f784361f027e 194-205,207,210-213
+evals/grade-headless.test.mjs
+  s_0349e8b54eab42::t_525e95e120ba6a 46-83
+skills/plan-the-work/references/autopilot.md
+  s_0349e8b54eab42::t_38f784361f027e 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5a47c300c063a35dd85461aea0120a352e3e91f6",
+  "prompts": {},
+  "sessions": {
+    "s_0349e8b54eab42": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20ee0-32ea-7aa2-8c6f-511d413ba6ab",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
