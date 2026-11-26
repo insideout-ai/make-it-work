@@ -191,6 +191,26 @@ export async function gradeHeadlessLocal(grader, context) {
     if (grader.type === 'decision_log') {
       const text = await readEvidence({ source: 'file', path: grader.path }, context);
       const entries = text.split(/\r?\n/).filter(line => line.trim()).map(line => normalizeEntry(JSON.parse(line), grader.skill));
+      if (grader.choice_policy === 'recommended-or-assumption') {
+        const matching = entries.filter(entry => entry.phase === grader.phase);
+        if (!matching.length) throw new Error('Expected a saved planning resolution for the requested phase.');
+        const sites = new Set();
+        for (const entry of matching) {
+          if (sites.has(entry.site)) throw new Error('Duplicate planning resolution site.');
+          sites.add(entry.site);
+          if (entry.kind === 'open_text') {
+            if (!/^\[autopilot best-guess\]\s+\S/.test(entry.chosen ?? '')) throw new Error('Planning assumptions require the best-guess prefix and a concrete answer.');
+          } else if (entry.kind === 'askUserQuestion' && entry.multiSelect !== true) {
+            const labels = entry.options.map(option => typeof option === 'string' ? option : option.label);
+            const recommended = labels.filter(label => /\(Recommended\)$/.test(label));
+            if (recommended.length !== 1 || labels[0] !== recommended[0] || entry.chosen !== recommended[0]) throw new Error('Planning questions must choose the exact substantive Recommended option, offered first.');
+            if (entry.chosen.startsWith('Proceed with the recommended assumption')) throw new Error('The filler is not a substantive planning choice.');
+            const last = labels.at(-1);
+            if (!['Proceed with the recommended assumption', 'Needs PM — route to close-the-gaps'].includes(last)) throw new Error('Planning questions must preserve the appropriate final fallback label.');
+          } else throw new Error('Expected a planning question or an explicit assumption.');
+        }
+        return { name: grader.name, passed: true, detail: 'Saved planning resolutions validate; questions choose Recommended and assumptions remain explicit.' };
+      }
       const matching = entries.filter(entry => entry.site === grader.site);
       if (matching.length !== 1) throw new Error('Expected exactly one saved decision for the requested site.');
       const entry = matching[0];

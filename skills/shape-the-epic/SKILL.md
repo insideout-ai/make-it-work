@@ -133,6 +133,8 @@ Use `Open Items (TBD)` and `Out of Scope` subsections. Preserve the user's words
 
 List only assessed, applicable categories as checkboxes. Mark `[x]` when content is concrete, supported, and has no material unresolved decision; leave `[ ]` for unresolved content or unconfirmed assumptions that affect scope, acceptance, or verification. These boxes describe content readiness, not human approval. For a focused review, follow with a separate **Not assessed** list of unselected categories. An omitted optional category is not a blocker and needs no Not applicable approval. Report unresolved open items even when all listed boxes are checked.
 
+Before passing category readiness to the renderer, reconcile each category's prose with its `open_items` and `unconfirmed` lists. Carry material uncertainties introduced in the prose into those lists and leave that category unresolved. For example, a confirmed rollout percentage does not make the Rollout Plan ready while a required capability is only assumed to exist. Keep the uncertainty visible in the saved artifact, rather than only in the chat summary.
+
 ### Decision log
 
 Include substantive explicit decisions, proposed assumptions, open/deferred items, and epic exclusions:
