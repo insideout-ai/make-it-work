@@ -68,6 +68,16 @@ Capture is optional. It does not register a new state feature, add fields to the
 
 `source_unchanged` compares only the captured before/after boundaries. Matching snapshots do not prove that source stayed constant throughout execution, and stored hashes are not a signature or an automatic tamper/freshness check after capture.
 
+### Existing report and approval qualifications
+
+When preparing a new delivery-aligned review target, the scope helper inventories local capture records for this saved run and returns `command_facts` with safe factual notes and private record references. Pass the complete target/inventory to the reviewer, who reads the record files to identify exact commands and assess diagnostics. `review-report.mjs write` independently adds the generated facts to the reviewer-supplied `validation_notes`; omitting a model note cannot drop a captured outcome. A failed supplemental command remains disclosed without becoming an additional passing gate. Earlier failures and later passes both remain historical observations; no baseline inference or automatic supersession occurs.
+
+Final packaging verifies and binds the same captured record/log hashes, includes the generated qualifications and private record links, and returns them from `check`. Preserve every returned note in the exact approval prompt and completion summary. Existing delivery preparation carries those safe qualifications into its separately approved PR draft. Generated notes omit raw arguments, paths, error text and output; those remain private, not PR/feedback content. Records/logs are hashed with streaming reads, not rerun to regenerate a summary. Changed, added or removed bound captures follow the existing review/package consistency route and invalidate old approval as applicable.
+
+Saved review targets/packages without command facts retain their old contract; do not retrofit or rewrite them. Explicit new preparation adopts captures present at that boundary and carries already-bound record identities from the same run's prior targets. A removed known record stays disclosed as an unknown outcome rather than disappearing. This does not add a separate durable capture registry, recover records deleted before their first binding, reconstruct uncaptured Bash output or guarantee the model presents all returned text in chat. Incomplete captures stay qualified, and existing report/approval preservation rules below remain necessary. Binding preserves captured evidence, not its interpretation or current-tree freshness.
+
+If bound captures change during finalization, use the existing `refresh-review` route. Its inspection can return uncovered fact changes without certifying them, preserving execution/fix progress and the review cap. Reprepare and independently review the changed facts; do not rerun commands to repair reporting. Targets/packages containing command facts require compatible current helper paths. A downgrade must retain that reader or leave the package pending; never strip bindings or rewrite approvals to simulate legacy compatibility.
+
 Use the existing implementation check report and review `validation_notes` for
 the command/status/raw-output locators, starting-branch attribution, destination
 provenance (including unknown), runtime-only test results and unchecked impact.

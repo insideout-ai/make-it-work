@@ -9,11 +9,12 @@ import { args, atomicWrite, cli, digest, fail, jsonInput, within } from '../../.
 import { SENSITIVE_PATH, snapshotDeliveryRepo } from '../../../scripts/lib/delivery-scope.mjs';
 import { compareReviewScope } from '../../../scripts/lib/review-evidence.mjs';
 import { parseState } from './render-status.mjs';
-import { assertRunState, runArtifact } from './artifact-layout.mjs';
+import { assertRunState, runArtifact, runArtifactName } from './artifact-layout.mjs';
 import { checkRepoImpact } from './repo-impact.mjs';
 import { checkContextMaintenance } from './context-maintenance.mjs';
 import { validateReviewChecks } from './review-checks.mjs';
 import { testingPolicy } from './testing-policy.mjs';
+import { collectCommandFacts, requireCommandFacts } from '../../../scripts/lib/command-facts.mjs';
 import { reviewBaselineEvidence } from './review-baseline.mjs';
 import { inspectScopeReconciliation, reconcileScopeDecisions, reconciliationSummary } from './review-reconciliation.mjs';
 
@@ -73,13 +74,30 @@ export async function prepareReviewScope(root, statePath) {
   const repos = await deliverySnapshots(root, state);
   const reconciliation = await inspectScopeReconciliation(root, state, repos);
   const target = { version: 1, ticket: f.ticket, runId: f.start_time, planVersion: Number(f.plan_version), cycle: Number(f.review_cycle), repos: manifestRepos(repos, f), verification_context: await verificationContext(root, f) };
+  // Carry known record identities across preparations without a new registry.
+  // A removed bound record becomes an explicit unknown, never silent omission.
+  const knownRecords = [];
+  async function retainRecords(relative, hash = null) {
+    runArtifactName(relative, f.ticket, 'Previous capture target');
+    const bytes = await readFile(await within(root, relative));
+    const previous = JSON.parse(bytes);
+    if (hash && digest(bytes) !== hash) return; // Same-cycle target may already have been refreshed.
+    if (previous.version === 1 && previous.ticket === f.ticket && previous.runId === f.start_time) knownRecords.push(...(previous.verification_context?.command_facts?.records ?? []));
+  }
+  const relative = runArtifact(f.ticket, targetName(f), f.artifact_naming_version);
+  try { await retainRecords(relative); } catch { /* Existing prepare can replace an unreadable old target. */ }
+  try {
+    const evidence = JSON.parse(await readFile(artifactJoin(root, runArtifact(f.ticket, `${f.ticket}-review-evidence.json`, f.artifact_naming_version)), 'utf8'));
+    if (evidence.command_facts && evidence.delivery_target) await retainRecords(evidence.delivery_target.path, evidence.delivery_target.sha256);
+  } catch (error) { if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error; }
+  const commandFacts = await collectCommandFacts(root, f, knownRecords);
+  if (commandFacts) target.verification_context.command_facts = commandFacts;
   if (reconciliation.enabled) target.scope_reconciliation = reconciliationContext(reconciliation);
   if (f.review_checks_version === '1') {
     const requirements = JSON.parse(f.review_requirements ?? '[]');
     if (requirements.length !== repos.length) fail('Checkpoint the required review skills and mapping scope before freezing review.');
     target.review_requirements = requirements;
   }
-  const relative = runArtifact(f.ticket, targetName(f), f.artifact_naming_version);
   let targetBytes = `${JSON.stringify(target, null, 2)}\n`;
   try {
     const previousBytes = await readFile(artifactJoin(root, relative), 'utf8');
@@ -92,6 +110,7 @@ export async function prepareReviewScope(root, statePath) {
   await atomicWrite(artifactJoin(root, relative), targetBytes);
   const preexisting = reconciliation.enabled ? { repos: [] } : await preexistingUntracked(root, state);
   return { ...(reconciliation.enabled ? { ready: true, reconciliation: reconciliationSummary(reconciliation) } : {}), review_target: relative, sha256: digest(await readFile(artifactJoin(root, relative))),
+    ...(commandFacts ? { command_facts: commandFacts } : {}),
     repos: target.repos.map(({ name, path: repoRoot, base, merge_base, paths, diff_file }) => ({ name, root: repoRoot, base, merge_base, paths, diff_file })),
     ...(!reconciliation.enabled && preexisting.repos.length ? { preexisting_untracked: preexisting.repos } : {}) };
 }
@@ -184,18 +203,45 @@ export async function excludePreexisting(root, statePath, input = {}) {
   return { repos: results, ...(warnings.length ? { warnings } : {}) };
 }
 
-async function readTarget(root, state, relative) {
+async function readTarget(root, state, relative, { allowCommandFactDrift = false } = {}) {
   const f = state.fields;
   if (relative !== runArtifact(f.ticket, targetName(f), f.artifact_naming_version)) fail('Review target must match the current run and review cycle.');
   const bytes = await readFile(await within(root, relative));
   const target = JSON.parse(bytes);
   if (target.version !== 1 || target.ticket !== f.ticket || target.runId !== f.start_time || target.planVersion !== Number(f.plan_version) || target.cycle !== Number(f.review_cycle) || !Array.isArray(target.repos)) fail('Review target binding is stale. Prepare the current delivery scope again.');
-  if (target.verification_context && JSON.stringify(target.verification_context) !== JSON.stringify(await verificationContext(root, f))) fail('Verification context changed; prepare the review target and independently review the current context again.');
+  let commandFactsChanged = false;
+  if (target.verification_context) {
+    const context = await verificationContext(root, f);
+    // Saved targets without captures retain their exact historical contract.
+    if (target.verification_context.command_facts) {
+      let currentFacts;
+      try { currentFacts = await collectCommandFacts(root, f, target.verification_context.command_facts.records); }
+      catch (error) { if (!allowCommandFactDrift) throw error; commandFactsChanged = true; }
+      commandFactsChanged ||= JSON.stringify(currentFacts) !== JSON.stringify(target.verification_context.command_facts);
+      // Inspection can route to Review on fact drift; it never certifies it.
+      // Other context, target/diff integrity and report bindings remain strict.
+      context.command_facts = allowCommandFactDrift ? target.verification_context.command_facts : currentFacts;
+    }
+    if (JSON.stringify(target.verification_context) !== JSON.stringify(context)) fail('Verification context changed; prepare the review target and independently review the current context again.');
+  }
   for (const repo of target.repos) {
     const diff = await readFile(await within(root, runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)));
     if (digest(diff) !== repo.diff_sha256) fail('Review target diff changed. Prepare the current delivery scope again.');
   }
-  return { target, sha256: digest(bytes) };
+  return { target, sha256: digest(bytes), commandFactsChanged };
+}
+
+export async function reviewCommandFacts(root, input) {
+  if (!input.implement) return null;
+  const statePath = artifactJoin(root, runArtifact(input.ticket, `${input.ticket}-state.md`));
+  let text;
+  try { text = await readFile(statePath, 'utf8'); }
+  catch (error) { if (error.code === 'ENOENT') return null; throw error; }
+  if (!/^review_scope_version: 1$/m.test(text)) return null;
+  const state = parseState(text, statePath);
+  const { target, sha256 } = await readTarget(root, state, input.review_target);
+  if (sha256 !== input.review_target_sha256) fail('Review target hash differs from the dispatched snapshot.');
+  return target.verification_context?.command_facts ?? null;
 }
 
 function sameTarget(target, repos, f) {
@@ -224,6 +270,7 @@ export async function validateReviewScopeInput(root, input, evidence) {
   assertRunState(root, statePath, input.ticket);
   const { target, sha256 } = await readTarget(root, state, input.review_target);
   if (input.review_target_sha256 !== sha256) fail('Review target hash differs from the dispatched snapshot. Review the current target before writing the report.');
+  requireCommandFacts(evidence.command_facts, target.verification_context?.command_facts, evidence.validation_notes);
   if (state.fields.review_checks_version === '1') {
     validateReviewChecks(input.review_checks, target.review_requirements ?? []);
     for (const item of target.review_requirements) for (const skill of item.skills) {
@@ -247,15 +294,16 @@ export async function checkReviewScope(root, statePath, { requireCurrent = true 
   const evidence = JSON.parse(await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review-evidence.json`, f.artifact_naming_version)), 'utf8'));
   const report = await readFile(await within(root, runArtifact(f.ticket, `${f.ticket}-review.md`, f.artifact_naming_version)));
   if (evidence.version !== 1 || evidence.ticket !== f.ticket || evidence.report_sha256 !== digest(report) || !evidence.delivery_target) fail('Clean review needs delivery-bound scope evidence; rerun the independent review.');
-  const { target, sha256 } = await readTarget(root, state, evidence.delivery_target.path);
+  const { target, sha256, commandFactsChanged } = await readTarget(root, state, evidence.delivery_target.path, { allowCommandFactDrift: !requireCurrent });
   if (f.review_checks_version === '1') validateReviewChecks(evidence.review_checks, target.review_requirements ?? []);
   if (sha256 !== evidence.delivery_target.sha256) fail('Review target changed after review. Prepare and review the current delivery scope again.');
+  requireCommandFacts(evidence.command_facts, target.verification_context?.command_facts, evidence.validation_notes, report.toString('utf8'));
   const repos = await deliverySnapshots(root, state);
   const result = fullCoverage(evidence, repos);
-  result.covered = result.covered && sameTarget(target, repos, f);
+  result.covered = result.covered && sameTarget(target, repos, f) && !commandFactsChanged;
   if (requireCurrent && !result.covered) fail('Delivery scope is not fully reviewed. Prepare and independently review the full current branch-to-base diff before final packaging.');
   const reconciliation = await inspectScopeReconciliation(root, state, repos);
-  return { ...result, ...(reconciliation.enabled ? { reconciliation: reconciliationSummary(reconciliation) } : {}), target: evidence.delivery_target, target_diffs: target.repos.map((repo) => runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)), repos: repos.map(({ diff, ...repo }) => repo) };
+  return { ...result, ...(commandFactsChanged ? { command_facts_changed: true } : {}), ...(reconciliation.enabled ? { reconciliation: reconciliationSummary(reconciliation) } : {}), target: evidence.delivery_target, target_diffs: target.repos.map((repo) => runArtifact(f.ticket, repo.diff_file, f.artifact_naming_version)), repos: repos.map(({ diff, ...repo }) => repo) };
 }
 
 cli(import.meta.url, async (argv) => {

@@ -65,13 +65,14 @@ function startFix(f) {
   if (Number(f.fix_cycle) >= 3) fail('Fix round limit reached.');
   f.fix_cycle = String(Number(f.fix_cycle) + 1);
 }
-function reviewChangedScope(f) {
+function reviewChangedScope(f, commandFactsChanged = false) {
   f.phase = 'review'; f.review = 'not-started';
   if (Number(f.review_cycle) >= 4) {
     f.status = 'Stopped'; f.pause_reason = 'Review limit reached while aligning final delivery scope.';
     return f.pause_reason;
   }
-  return 'Delivery scope changed after review; independently review the final delivery diff before packaging.';
+  return commandFactsChanged ? 'Captured validation evidence changed after review; prepare and independently review the current facts and delivery scope before packaging. Do not rerun commands just to repair reporting.'
+    : 'Delivery scope changed after review; independently review the final delivery diff before packaging.';
 }
 function escalate(f, input, reason) {
   if (!adaptive(f) || f.mode !== 'lightweight' || f.escalations !== '0') fail('Escalation needs a Lightweight run with no prior escalation.');
@@ -205,7 +206,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     }
     if (f.review_scope_version === '1' && typeof input.delivery_scope_changed !== 'boolean') fail('Final sync requires a delivery-scope coverage check.');
     if (f.review_scope_version === '1' && input.delivery_scope_changed) {
-      reason = reviewChangedScope(f);
+      reason = reviewChangedScope(f, input.command_facts_changed === true);
     } else {
       f.phase = f.final_package_version === '1' ? 'final-approval' : 'complete';
       if (f.phase === 'complete') f.status = 'Complete';
@@ -213,7 +214,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
   } else if (input.event === 'refresh-review') {
     if (f.review_scope_version !== '1' || !['final-sync', 'final-approval'].includes(f.phase) || f.status !== 'In Progress') fail('Refresh review requires an active finalization phase with delivery-scope checks.');
     if (input.delivery_scope_changed !== true) fail('Delivery scope is already reviewed; no review refresh is needed.');
-    reason = reviewChangedScope(f);
+    reason = reviewChangedScope(f, input.command_facts_changed === true);
   } else if (input.event === 'complete') {
     if (f.phase !== 'final-approval' || f.review !== 'clean') fail('Completion requires final approval and clean review.');
     f.phase = 'complete'; f.status = 'Complete';
@@ -582,7 +583,10 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
     }
     if (state.fields.review_scope_version === '1') {
       if (handoff?.stage === 'review' && handoff.status === 'done' && handoff.outcome === 'CLEAN') await checkReviewScope(root, statePath);
-      if (['sync-complete', 'refresh-review'].includes(effective.event)) effective = { ...effective, delivery_scope_changed: !(await checkReviewScope(root, statePath, { requireCurrent: false })).covered };
+      if (['sync-complete', 'refresh-review'].includes(effective.event)) {
+        const scope = await checkReviewScope(root, statePath, { requireCurrent: false });
+        effective = { ...effective, delivery_scope_changed: !scope.covered, command_facts_changed: scope.command_facts_changed === true };
+      }
     }
     if (handoff?.stage === 'implement' && handoff.status === 'done' && state.fields.mode === 'lightweight' && Number(state.fields.fix_cycle) > 0) {
       await inspectLightweightFix(root, statePath, handoff.artifacts.report);

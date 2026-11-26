@@ -6,7 +6,7 @@ import { lstat, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { args, atomicWrite, cli, fail, jsonInput, requireText, withLock, within } from './lib/artifacts.mjs';
 import { validateHandoff } from '../skills/implement/scripts/handoff.mjs';
-import { validateReviewScopeInput } from '../skills/implement/scripts/review-scope.mjs';
+import { reviewCommandFacts, validateReviewScopeInput } from '../skills/implement/scripts/review-scope.mjs';
 import { captureReviewEvidence, uiVerification, validationNotes } from './lib/review-evidence.mjs';
 import { reviewChecksText } from '../skills/implement/scripts/review-checks.mjs';
 
@@ -107,6 +107,8 @@ export async function validateLocations(input) {
   }
 }
 export async function writeReview(root, input) {
+  const commandFacts = await reviewCommandFacts(root, input);
+  if (commandFacts) input = { ...input, validation_notes: [...new Set([...validationNotes(input.validation_notes), ...commandFacts.notes])] };
   const rendered = renderReview(input);
   if (input.review_limitations?.length) {
     const qualifications = input.review_limitations.map(item => `- ${item.repo}: ${item.depth} — ${item.paths.join(', ')}; ${item.reason}`).join('\n');
@@ -123,6 +125,7 @@ export async function writeReview(root, input) {
   const report = artifactOutputJoin(directory, `${input.ticket}-review.md`);
   return withLock(report, async () => {
     const evidence = await captureReviewEvidence(input, rendered.markdown);
+    if (commandFacts) evidence.command_facts = commandFacts;
     await validateReviewScopeInput(root, input, evidence);
     await atomicWrite(report, rendered.markdown);
     await atomicWrite(artifactOutputJoin(directory, `${input.ticket}-review-evidence.json`), JSON.stringify(evidence, null, 2) + '\n');
