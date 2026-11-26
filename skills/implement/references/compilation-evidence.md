@@ -42,6 +42,32 @@ authority to fix unrelated code.
 
 ## Carry qualifications forward
 
+### Optional local capture during Execute/Lightweight
+
+For an already-selected validation command during active Execute or Lightweight implementation, the parent may supply its artifact root, saved state path and approved source repo to the delegate for optional capture. Write a version-1 input JSON with `command: {bin, args}`, optional repo-relative `cwd`, and optional `timeout_ms`; use Write/Edit to keep command arguments literal. Then run:
+
+```json
+{"version":1,"command":{"bin":"npm","args":["run","typecheck"]},"timeout_ms":300000}
+```
+
+Use the already-selected project command in place of the example; capture does not select or require a typecheck.
+
+```sh
+node "<plugin-root>/scripts/command-evidence.mjs" run --root <artifact-root> --state <saved-state-path> --repo <approved-source-root> --input <command-input.json>
+```
+
+This executes the selected command once, using the existing runner, and returns a unique local record plus full stdout/stderr references. The record keeps the process exit/error/signal/timeout, before/after source snapshots and capture completeness. A wrapper exit is evidence about that wrapper, not proof of compiler startup or baseline inheritance. The capture CLI returns the child's nonzero exit (or 1 for signal/startup failure) while retaining the JSON result on stdout. A logging-only failure does not alter a passing child outcome; inspect `capture_complete`, `record_saved` and warnings separately. A setup rejection means no command ran. Never rerun a check merely to repair or re-render capture data.
+
+Capture adds disk I/O and source-snapshot work; backpressure can slow a noisy command. The existing command timeout is not extended, and filesystem completion is not itself given a hard timeout. Disclose unavailable/incomplete capture instead of treating raw-output storage as a new workflow gate.
+
+The CLI uses the runner's existing bounded progress events on stderr and keeps its final result JSON on stdout; no model polling or new heartbeat policy is added.
+
+Retain the returned record/raw-output paths in the existing check report. These helper-written artifacts are permitted when the parent supplies this capture context; delegates still do not edit workflow state or hand-author observation records. Private raw logs/argv may contain sensitive data: keep them under the run's protected artifact directory, outside product delivery and share-safe feedback. Existing artifact Git protection still applies. Full output streams to disk; interrupted or failed capture is incomplete evidence. No checks, dependencies, baseline builds or installations are added by choosing capture.
+
+Capture is optional. It does not register a new state feature, add fields to the verification ledger, certify current-tree coverage or change gate rules. A command outside this capture path is not automatically observed, and an empty capture record is not a pass.
+
+`source_unchanged` compares only the captured before/after boundaries. Matching snapshots do not prove that source stayed constant throughout execution, and stored hashes are not a signature or an automatic tamper/freshness check after capture.
+
 Use the existing implementation check report and review `validation_notes` for
 the command/status/raw-output locators, starting-branch attribution, destination
 provenance (including unknown), runtime-only test results and unchecked impact.
