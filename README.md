@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source 1ebfaf9d94d6d3799ff6e63d86bed88296e014f4](https://github.com/insideout-ai/make-it-work/tree/1ebfaf9d94d6d3799ff6e63d86bed88296e014f4). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source a8edd0ce5fde8de5547d95d97b1f1593313b7711](https://github.com/insideout-ai/make-it-work/tree/a8edd0ce5fde8de5547d95d97b1f1593313b7711). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 

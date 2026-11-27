@@ -4,7 +4,7 @@ Read this guide only at the loading point in [the skill entrypoint](../SKILL.md)
 
 ## Autopilot Mode
 
-When invoked with `--autopilot`, still **construct** every question/options payload exactly as the interactive path below would — option count, ordering, and the `(Recommended)` label rules all still apply and get exercised on every run — just don't call `AskUserQuestion` or wait at a checkpoint. Auto-resolve per the table below instead.
+When invoked with `--autopilot`, apply Step 4.5's triage and asking bar first. Construct question/options payloads only for gaps that would be asked interactively; their option count, ordering, and `(Recommended)` label rules still apply. Do not invent a question to exercise those rules. Record a low-cost choice that fails the asking bar as an explicit Assumption with its reason and an `open_text` log entry prefixed `[autopilot best-guess]`. Do not call `AskUserQuestion` or wait at a checkpoint. Auto-resolve surviving questions per the table below instead.
 
 **Hard-stop exception:** autopilot must never silently overwrite an existing plan file. If `make-it-work/<TICKET>/<TICKET>-plan.md` already exists from a previous run, autopilot writes to the next unused `-v2` (then `-v3`, `-v4`, …) suffix instead of overwriting it — "overwrite" and "abort" are never auto-selected, since a free suffix is always available as a non-destructive alternative. Step 6's final output, and the `/make-it-work:execute` hint it prints, both name the actual resolved path explicitly (e.g. `make-it-work/PROJ-123/PROJ-123-plan-v2.md`) — not the bare `<TICKET>`, since `execute <TICKET>` alone would resolve to the original file instead.
 
