@@ -15,7 +15,7 @@ This is the existing required before-work checkpoint, not a new approval. It mea
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:
 
 - give the absolute spec path and tell it, in effect, "implement this spec" — the way a developer handing it to Claude Code would: its own approach, following each affected repo's `CLAUDE.md` and rules, running whatever checks it chooses, or none;
-- forbid committing, pushing, opening a PR, asking the user anything, and editing `make-it-work/` other than its report. A missing or contradictory requirement stops it with the reason in its report;
+- forbid committing, pushing, opening a PR, asking the user anything, and editing `make-it-work/` other than its report, optional command-capture input files and helper-owned capture outputs when the parent supplies the context in [compilation evidence](../compilation-evidence.md). Never hand-author capture records or edit workflow state. A missing or contradictory requirement stops it with the reason in its report;
 - have it write `make-it-work/<TICKET>/<TICKET>-lightweight.md` with `## Summary`, `## Changed paths` (grouped per repo root), `## Checks` (each check it ran and its actual result, or `none`), `## Discoveries` (facts about the existing system for final sync), `## Risk signal` (`none`, or why the change is riskier than Low — e.g. it touched a shared contract, security, or data, or the spec implied more than it seemed), and `## Blocked` only when it could not finish;
 - ask it to return the report path.
 

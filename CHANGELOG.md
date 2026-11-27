@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.4] — 2026-11-26
+
+### Fixed
+
+- Preserve optionally captured validation results through review, final approval and delivery drafts. Record actual process outcomes, complete private stdout/stderr and source snapshots once; retain failures and unknown provenance alongside later passes without adding a compilation gate.
+- Bind captured records and logs to reviewed evidence and exact package approval. Refresh changed evidence through the existing Review route, retain known missing records as unknown, and preserve saved targets and packages without capture facts.
+
 ## [5.17.3] — 2026-11-26
 
 ### Fixed

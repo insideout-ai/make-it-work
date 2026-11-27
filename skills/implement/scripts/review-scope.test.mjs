@@ -12,6 +12,8 @@ import { implementationBaseline } from './implementation-guard.mjs';
 import { captureReviewRepos } from './review-baseline.mjs';
 import { applyWorkflow, transition } from './workflow.mjs';
 import { parseState } from './render-status.mjs';
+import { captureCommand } from '../../../scripts/command-evidence.mjs';
+import { approve, checkFinalPackage } from './final-package.mjs';
 
 const git = (root, ...args) => execFileSync('git', ['-C', root, ...args], { encoding: 'utf8' }).trim();
 async function fixture(t) {
@@ -43,6 +45,116 @@ async function fixture(t) {
   const apply = async (event, extra = {}) => applyWorkflow({ root, statePath, input: { event, id: `scope-${++id}`, repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')), ...extra } });
   return { root, dir, statePath, input, apply };
 }
+
+async function validationCapture(f, exit) {
+  const saved = await readFile(f.statePath, 'utf8');
+  await writeFile(f.statePath, saved.replace('phase: review', 'phase: execute'));
+  try {
+    return await captureCommand({ root: f.root, state: f.statePath, repo: f.root,
+      input: { version: 1, command: { bin: process.execPath, args: ['-e', `process.stdout.write('PRIVATE_VALIDATION_ARGUMENT_AND_OUTPUT');process.exitCode=${exit}`] } } });
+  } finally { await writeFile(f.statePath, saved); }
+}
+
+test('captured failure and pass survive omitted reviewer notes, exact package approval and delivery preparation', async t => {
+  const f = await fixture(t);
+  await validationCapture(f, 1); const passed = await validationCapture(f, 0);
+  const target = await prepareReviewScope(f.root, f.statePath);
+  assert.equal(target.command_facts.records.length, 2);
+  assert.equal((await prepareReviewScope(f.root, f.statePath)).sha256, target.sha256, 'unchanged facts do not refresh review or rerun commands');
+  const reviewed = await writeReview(f.root, { ...f.input(), validation_notes: ['Reviewer did not rerun typecheck.'], review_target: target.review_target, review_target_sha256: target.sha256 });
+  assert.equal(reviewed.outcome, 'CLEAN', 'a supplemental failed command is not a new test gate');
+  const evidence = JSON.parse(await readFile(artifactJoin(f.dir, 'DEMO-review-evidence.json'), 'utf8'));
+  assert.equal(evidence.command_facts.records.length, 2);
+  for (const note of target.command_facts.notes) {
+    assert.ok(evidence.validation_notes.includes(note)); assert.ok(reviewed.summary.includes(note));
+    assert.ok((await readFile(reviewed.report, 'utf8')).includes(note));
+  }
+  const draft = artifactJoin(f.dir, 'DEMO-final-draft.json');
+  await writeFile(draft, JSON.stringify({ commit_message: 'fix: preserve validation facts', pr_title: 'Preserve validation facts', pr_description: 'Implementation and recorded checks.' }));
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: review', 'phase: final-approval').replace('review: not-started', 'review: clean'));
+  const built = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/final-package.mjs'), 'build', '--root', f.root, '--state', f.statePath, '--draft', draft, '--repo', f.root], { encoding: 'utf8' }));
+  await approve(f.root, f.statePath, built.sha256);
+  const checked = await checkFinalPackage(f.root, f.statePath, true);
+  assert.equal(checked.command_facts.records.length, 2);
+  assert.match(checked.validation_notes.join('\n'), /process exited 1/);
+  assert.match(checked.validation_notes.join('\n'), /process exited 0/);
+  assert.doesNotMatch(await readFile(built.package, 'utf8'), /PRIVATE_VALIDATION_ARGUMENT_AND_OUTPUT/);
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: final-approval', 'phase: complete').replace('status: In Progress', 'status: Complete'));
+  git(f.root, 'remote', 'add', 'origin', 'https://github.com/example/demo.git');
+  git(f.root, 'update-ref', 'refs/remotes/origin/main', git(f.root, 'rev-parse', 'main'));
+  const prepared = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/deliver.mjs'), 'prepare', '--root', f.root, '--state', f.statePath], { encoding: 'utf8' }));
+  const deliveryFile = (await (await import('node:fs/promises')).readdir(f.dir)).find(file => file.endsWith('delivery-plan.json'));
+  assert.ok(prepared.sha256); assert.ok(deliveryFile);
+  const delivery = JSON.parse(await readFile(path.join(f.dir, deliveryFile), 'utf8'));
+  assert.match(delivery.draft.pr_description, /process exited 1/);
+  assert.doesNotMatch(delivery.draft.pr_description, /PRIVATE_VALIDATION_ARGUMENT_AND_OUTPUT|command-stdout|command-stderr/);
+  await writeFile(path.join(f.root, passed.streams.stdout.path), 'tampered output');
+  await assert.rejects(checkFinalPackage(f.root, f.statePath, true), /Captured validation facts|Verification context changed/);
+});
+
+test('new review targets bind command files, reject omission/tampering and retain incomplete disclosure', async t => {
+  const f = await fixture(t), capture = await validationCapture(f, 1);
+  const target = await prepareReviewScope(f.root, f.statePath);
+  const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
+  await writeReview(f.root, input);
+  await checkReviewScope(f.root, f.statePath);
+  const evidencePath = artifactJoin(f.dir, 'DEMO-review-evidence.json');
+  const saved = await readFile(evidencePath, 'utf8'), evidence = JSON.parse(saved);
+  delete evidence.command_facts; await writeFile(evidencePath, JSON.stringify(evidence));
+  await assert.rejects(checkReviewScope(f.root, f.statePath), /Captured validation facts/);
+  await writeFile(evidencePath, saved);
+  const record = await readFile(capture.record, 'utf8');
+  await rm(capture.record);
+  await assert.rejects(checkReviewScope(f.root, f.statePath), /Verification context changed/);
+  await writeFile(capture.record, record);
+  await rm(path.join(f.root, capture.streams.stderr.path));
+  await assert.rejects(writeReview(f.root, input), /Verification context changed/);
+  const refreshed = await prepareReviewScope(f.root, f.statePath);
+  assert.match(refreshed.command_facts.notes[0], /incomplete or unverified/);
+  const review = await writeReview(f.root, { ...f.input(), review_target: refreshed.review_target, review_target_sha256: refreshed.sha256 });
+  assert.equal(review.outcome, 'CLEAN');
+  await checkReviewScope(f.root, f.statePath);
+  await validationCapture(f, 0);
+  await assert.rejects(checkReviewScope(f.root, f.statePath), /Verification context changed/);
+  const stale = await checkReviewScope(f.root, f.statePath, { requireCurrent: false });
+  assert.equal(stale.covered, false); assert.equal(stale.command_facts_changed, true);
+  const manifest = JSON.parse(await readFile(artifactJoin(f.root, target.review_target), 'utf8'));
+  const diff = artifactJoin(f.dir, manifest.repos[0].diff_file), originalDiff = await readFile(diff);
+  await writeFile(diff, 'corrupted diff');
+  await assert.rejects(checkReviewScope(f.root, f.statePath, { requireCurrent: false }), /target diff changed/);
+  await writeFile(diff, originalDiff);
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: review', 'phase: final-approval').replace('review: not-started', 'review: clean'));
+  const refreshedPhase = await f.apply('refresh-review');
+  assert.equal(refreshedPhase.fields.phase, 'review');
+  assert.equal(refreshedPhase.fields.fix_cycle, '0'); assert.equal(refreshedPhase.fields.execution, 'passed');
+  assert.match(refreshedPhase.fields.pause_reason ?? '', /none/);
+  await rm(capture.record);
+  const next = await prepareReviewScope(f.root, f.statePath);
+  assert.ok(next.command_facts.notes.some(note => note.includes('process outcome is unknown')), 'a removed previously bound record cannot silently disappear after recovery');
+  await writeReview(f.root, { ...f.input(), implement: { ...f.input().implement, review_cycle: Number(refreshedPhase.fields.review_cycle) }, review_target: next.review_target, review_target_sha256: next.sha256 });
+  await checkReviewScope(f.root, f.statePath);
+  const draft = artifactJoin(f.dir, 'DEMO-final-draft.json');
+  await writeFile(draft, JSON.stringify({ commit_message: 'fix: retain incomplete evidence', pr_title: 'Retain incomplete evidence', pr_description: 'Capture remains qualified.' }));
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: review', 'phase: final-approval').replace('review: not-started', 'review: clean'));
+  const built = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/final-package.mjs'), 'build', '--root', f.root, '--state', f.statePath, '--draft', draft, '--repo', f.root], { encoding: 'utf8' }));
+  const markdown = await readFile(built.package, 'utf8');
+  assert.match(markdown, /record unavailable; outcome unknown/);
+  assert.ok(!markdown.includes(`](${path.basename(capture.record)})`));
+  await checkFinalPackage(f.root, f.statePath);
+});
+
+test('saved targets without command facts retain their contract until explicit new preparation', async t => {
+  const f = await fixture(t), legacy = await prepareReviewScope(f.root, f.statePath);
+  assert.equal(legacy.command_facts, undefined);
+  await validationCapture(f, 1);
+  await writeReview(f.root, { ...f.input(), review_target: legacy.review_target, review_target_sha256: legacy.sha256 });
+  await checkReviewScope(f.root, f.statePath);
+  const evidence = JSON.parse(await readFile(artifactJoin(f.dir, 'DEMO-review-evidence.json'), 'utf8'));
+  assert.equal(evidence.command_facts, undefined); assert.deepEqual(evidence.validation_notes, []);
+  const adopted = await prepareReviewScope(f.root, f.statePath);
+  assert.equal(adopted.command_facts.records.length, 1); assert.notEqual(adopted.sha256, legacy.sha256);
+  await assert.rejects(checkReviewScope(f.root, f.statePath), /target changed/);
+});
 
 test('review cannot silently narrow a full delivery target to HEAD or omit earlier work', async (t) => {
   const f = await fixture(t);

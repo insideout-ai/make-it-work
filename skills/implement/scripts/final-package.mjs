@@ -25,6 +25,7 @@ import { compareReviewScope, reviewDisclosure, uiVerification } from '../../../s
 
 import { readAssessment, assessmentSummary } from '../../../scripts/change-assessment.mjs';
 import { prepareFinalDraft } from './final-draft.mjs';
+import { collectCommandFacts, requireCommandFacts } from '../../../scripts/lib/command-facts.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (message) => { throw new Error(message); };
@@ -82,6 +83,11 @@ function markdown(pkg) {
   for (const note of testingSummaryNotes(pkg.testing_summary ?? [])) lines.push(`Testing: ${note}`, '');
   lines.push('## Evidence', '');
   if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification, pkg.validation_notes), '');
+  if (pkg.command_facts) {
+    lines.push('### Private captured validation records', '', 'Exact command arguments and raw outputs remain private artifacts. Recorded outcomes above do not certify the current tree.', '');
+    for (const record of pkg.command_facts.records) lines.push(record.sha256 ? `- Capture ${record.id}: [record](${path.basename(record.path)})` : `- Capture ${record.id}: record unavailable; outcome unknown.`);
+    lines.push('');
+  }
   for (const record of pkg.test_map_maintenance ?? []) lines.push(`Test-map maintenance — ${path.basename(record.repo)}: ${record.status}; ${record.reason}`, '');
   for (const [name, item] of Object.entries(pkg.evidence)) lines.push(`- ${name}: [${item.path}](${path.basename(item.path)})`);
   lines.push(`- Known unrelated regressions: ${pkg.known_regressions.length ? pkg.known_regressions.join('; ') : 'none'}`);
@@ -231,6 +237,11 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
     if (reviewEvidence.version !== 1 || reviewEvidence.ticket !== f.ticket || reviewEvidence.report_sha256 !== evidence.review.sha256 || !Array.isArray(reviewEvidence.repos)) fail('Review evidence does not match the current report; rerun review.');
     evidence.review_scope = await artifact(root, reviewEvidencePath);
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  let commandFacts = null;
+  if (reviewEvidence?.command_facts) {
+    commandFacts = await collectCommandFacts(root, f, reviewEvidence.command_facts.records);
+    requireCommandFacts(commandFacts, reviewEvidence.command_facts, reviewEvidence.validation_notes, reviewReport);
+  }
   if (f.review_scope_version === '1') {
     const checked = await checkReviewScope(root, artifactJoin(root, runArtifact(f.ticket, `${f.ticket}-state.md`, f.artifact_naming_version)));
     evidence.review_target = await artifact(root, checked.target.path);
@@ -243,6 +254,7 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   if (testingSummary !== null && JSON.stringify(parseTestingSummary(f.testing_summary)) !== JSON.stringify(testingSummary)) fail('Testing summary changed; complete final sync again before packaging.');
   const changeAssessment = f.change_assessment_version === '1' ? await readAssessment(root, f.ticket, repos) : null;
   const pkg = {
+    ...(commandFacts ? { command_facts: commandFacts } : {}),
     ...(changeAssessment ? { change_assessment: changeAssessment } : {}),
     ...(testingSummary !== null ? { testing_summary: testingSummary } : {}),
     ...(repoImpact ? { repo_impact: impactSummary(repoImpact, evidence.verification ? JSON.parse(await readFile(artifactResolve(root, evidence.verification.path), 'utf8')).gate : repoImpact.verification) } : {}),
@@ -295,7 +307,7 @@ export async function checkFinalPackage(root, statePath, requireApproval = false
     if (error.code !== 'ENOENT') throw error;
   }
   if (requireApproval && !approved) fail('Final package has no current approval.');
-  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification), validation_notes: saved.validation_notes ?? [], testing_summary: saved.testing_summary ?? [], testing_notes: testingSummaryNotes(saved.testing_summary ?? []) };
+  return { current: true, approved, sha256: hash, package: target.md, assurance_summary: summarizeAssurance(saved), verification_summary: summarizeAcceptance(saved.acceptance), review_scope: saved.review_scope ?? compareReviewScope(null, saved.repos), ui_verification: uiVerification(saved.ui_verification), validation_notes: saved.validation_notes ?? [], testing_summary: saved.testing_summary ?? [], testing_notes: testingSummaryNotes(saved.testing_summary ?? []), ...(saved.command_facts ? { command_facts: saved.command_facts } : {}) };
 }
 
 export async function approve(root, statePath, expectedHash) {
