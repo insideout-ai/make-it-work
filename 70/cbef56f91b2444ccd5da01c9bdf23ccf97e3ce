@@ -1,0 +1,23 @@
+skills/slice-the-epic/SKILL.md
+  s_474699c79cb734::t_02d0aadbbbe4a0 130
+CHANGELOG.md
+  s_474699c79cb734::t_02d0aadbbbe4a0 20-23
+docs/deterministic-artifacts.md
+  s_474699c79cb734::t_02d0aadbbbe4a0 70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "70cbef56f91b2444ccd5da01c9bdf23ccf97e3ce",
+  "prompts": {},
+  "sessions": {
+    "s_474699c79cb734": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21d90-8bda-7c92-8ad5-c4403f90db2a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
