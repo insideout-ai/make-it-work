@@ -27,7 +27,7 @@ jobs:
         run: npm install --global @anthropic-ai/claude-code@2.1.267
 
       - name: Test implement workflow helpers
-        run: node --test skills/write-the-tests/scripts/*.test.mjs skills/implement/scripts/*.test.mjs skills/execute/scripts/*.test.mjs scripts/*.test.mjs
+        run: node --test skills/write-the-tests/scripts/*.test.mjs skills/implement/scripts/*.test.mjs skills/execute/scripts/*.test.mjs scripts/*.test.mjs scripts/lib/*.test.mjs
 
       - name: Validate plugin manifest
         run: claude plugin validate .claude-plugin/plugin.json --strict
