@@ -777,6 +777,9 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null, a
   if (text === 'Result: Session feedback saved; evidence: workflow-feedback.md') {
     return 'Session feedback saved. <a href="workflow-feedback.md">Read feedback</a>';
   }
+  if (text === 'Result: Local transcript ZIP saved (raw, potentially sensitive); evidence: miw-session-debug.zip') {
+    return 'Local transcript ZIP saved (raw, potentially sensitive). <a href="miw-session-debug.zip" download>Download ZIP</a>';
+  }
   // Evidence digests belong in the saved audit/artifacts, not ordinary progress
   // prose. Approval hashes are rendered separately in the pending-input panel.
   if (!text.startsWith('Result:')) return escapeHtml(text);

@@ -9,9 +9,11 @@ import test from 'node:test';
 import { checkFeedback, inspectFeedback, inspectState, renderBlock, upsertBlock, writeFeedback, feedbackWriteReceipt } from './write-feedback.mjs';
 import { noteCell } from './audit-notes.mjs';
 import { createHash } from 'node:crypto';
+import { parseState } from './render-status.mjs';
+import { recordFeedbackArchive } from './feedback-progress.mjs';
 
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 const EVAL_ROOT = path.resolve(import.meta.dirname, '../../../evals/implement');
@@ -102,8 +104,18 @@ test('writer prepares a prefixed transcript ZIP and preserves it in compact rece
   assert.equal(result.archive.status, 'saved');
   assert.equal(path.basename(result.archive.archivePath), 'miw-session-debug.zip');
   assert.equal(result.archive.capturedTranscripts, 1);
+  assert.equal(result.archive.auditRecorded, true);
   assert.equal((await readFile(result.archive.archivePath)).readUInt32LE(0), 0x04034b50);
   assert.deepEqual(feedbackWriteReceipt(result, { compact: true }).archive, result.archive);
+  const before = parseState(await readFile(f.statePath, 'utf8'));
+  const note = before.audit.filter(row => row.note?.id.startsWith('feedback-archive-saved:'));
+  assert.equal(note.length, 1);
+  assert.match(note[0].outcome, /evidence: miw-session-debug\.zip$/);
+  const again = await writeFeedback(f.statePath, { sessionReview: sessionReview(), transcriptPath });
+  const after = parseState(await readFile(f.statePath, 'utf8'));
+  assert.deepEqual(after.fields, before.fields);
+  assert.equal(after.audit.filter(row => row.note?.id.startsWith('feedback-archive-saved:')).length, 1);
+  assert.equal(again.stateHash, result.stateHash);
 });
 
 test('archive failure cannot fail the feedback write or overwrite an unrelated target', async t => {
@@ -113,8 +125,36 @@ test('archive failure cannot fail the feedback write or overwrite an unrelated t
   const result = await writeFeedback(f.statePath, { sessionReview: sessionReview() });
   assert.equal(result.feedbackReport, 'combined');
   assert.equal(result.archive.status, 'unavailable');
+  assert.equal(result.archive.auditRecorded, true);
+  const unavailable = parseState(await readFile(f.statePath, 'utf8')).audit.find(row => row.note?.id.startsWith('feedback-archive-unavailable:'));
+  assert.match(unavailable.outcome, /Local transcript ZIP unavailable/);
+  assert.match(unavailable.outcome, /evidence: workflow-feedback\.md$/);
+  assert.doesNotMatch(unavailable.outcome, /evidence: miw-session-debug.zip/);
   assert.match(await readFile(result.sessionOutputPath, 'utf8'), /### Session review/);
   assert.equal(await readFile(target, 'utf8'), 'private');
+  await rm(path.join(path.dirname(f.statePath), 'miw-session-debug.zip'));
+  const recovered = await writeFeedback(f.statePath, { sessionReview: sessionReview() });
+  assert.equal(recovered.archive.status, 'saved');
+  const notes = parseState(await readFile(f.statePath, 'utf8')).audit.filter(row => row.note?.id.startsWith('feedback-archive-'));
+  assert.equal(notes.length, 2);
+  assert.match(notes.at(-1).outcome, /Local transcript ZIP saved/);
+  await rm(recovered.archive.archivePath);
+  await symlink(target, recovered.archive.archivePath);
+  await writeFeedback(f.statePath, { sessionReview: sessionReview() });
+  await rm(recovered.archive.archivePath);
+  await writeFeedback(f.statePath, { sessionReview: sessionReview() });
+  const later = parseState(await readFile(f.statePath, 'utf8')).audit.filter(row => row.note?.id.startsWith('feedback-archive-'));
+  assert.equal(later.length, 4, 'each changed outcome is retained, including a second recovery');
+  assert.match(later.at(-1).outcome, /Local transcript ZIP saved/);
+});
+
+test('audit logging failure preserves the saved ZIP result and reports the missing audit note', async () => {
+  const archive = { status: 'saved', archivePath: '/fixture/miw-session-debug.zip' };
+  const result = await recordFeedbackArchive('/missing-workflow-state.md', { stateHash: 'abc' }, archive);
+  assert.equal(result.status, 'saved');
+  assert.equal(result.archivePath, archive.archivePath);
+  assert.equal(result.auditRecorded, false);
+  assert.match(result.auditWarning, /could not be added/);
 });
 
 test('conversation friction on a zero-retry run shares captured provenance and updates both reports with only informational state notes', async (t) => {
@@ -160,7 +200,7 @@ test('combined review coexists with required artifact analysis and keeps legacy 
   assert.match(output, /Plugin version: not captured \(legacy run\)/);
   assert.match(output, /Extra-round analysis/);
   assert.match(output, /User declined additional input/);
-  assert.equal(await readFile(f.statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), state);
 });
 
 test('combined save derives sanitized collection notes even when model findings are empty, without extra writes or rounds', async t => {
@@ -315,7 +355,7 @@ test('a resolved guardrail receives neutral analysis while preserving a minimal 
   assert.match(original, /No workflow change recommended/);
   assert.doesNotMatch(original, /Extra-round analysis|private-example|private-source/);
   assert.equal(await readFile(first.sessionOutputPath, 'utf8'), original);
-  assert.equal(await readFile(f.statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(f.statePath, 'utf8')), state);
 });
 
 test('guardrail analysis matches actual stop/resolution rows and enforces share-safe paraphrases', async () => {
@@ -397,7 +437,7 @@ test('session export contains only current run and refreshes after clarification
   await writeFeedback(statePath, { analysis });
   assert.match(await readFile(result.sessionOutputPath, 'utf8'), /It was available before planning/);
   assert.match(await readFile(feedbackPath, 'utf8'), /User note: keep this sentence/);
-  assert.equal(await readFile(statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(statePath, 'utf8')), state);
   assert.equal((await readdir(path.dirname(statePath))).some((name) => name.endsWith('.tmp')), false);
 });
 
@@ -643,7 +683,7 @@ test('hook-only failures require analysis despite zero fix rounds, and resolved 
   assert.match(output, /Fix rounds: 0/); assert.doesNotMatch(output, /Extra-round analysis|DEMO|eventId|subject/);
   await writeFeedback(w.statePath, { analysis: hookDiagnosis(summary) });
   assert.equal(await readFile(result.sessionOutputPath, 'utf8'), output);
-  assert.equal(await readFile(w.statePath, 'utf8'), state);
+  assert.equal(withoutFeedbackNotes(await readFile(w.statePath, 'utf8')), state);
 });
 
 test('single legitimate waits are informational; repeated waits require their own diagnosis', async () => {

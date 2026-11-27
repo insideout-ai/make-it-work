@@ -348,6 +348,9 @@ be absent. It contains raw, potentially sensitive data: review it separately
 before deliberately sharing. The normal email link remains for the sanitized
 report only. Nothing is attached or uploaded automatically, and ZIP failure
 does not block feedback or implementation completion.
+Automatic feedback records the ZIP outcome in the workflow audit log; successful
+entries include a **Download ZIP** link in the dashboard. Missing ZIPs are recorded
+with a short explanation instead.
 
 For explicit maintainer triage, use `/make-it-work:feedback-on-session --maintainer-review <input...>` with transcripts (JSONL, text or Markdown), feedback Markdown, or both. This separate mode inspects relevant make-it-work sources, records sanitized findings and recurrence in `docs/workflow-findings.md`, and presents proposed fixes with their change risks for your decision. It prepares plans only for explicitly selected items and never implements them. Existing standalone collection and automatic feedback remain unchanged.
 

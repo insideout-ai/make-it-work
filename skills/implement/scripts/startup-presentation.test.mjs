@@ -19,7 +19,7 @@ import { generateDashboard } from './render-status.mjs';
 import { acceptDelegateReport } from './delegate-report.mjs';
 
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
@@ -374,7 +374,9 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   sessionReview.evidence_review = await sourceReview(run);
   assert.equal((await checkFeedback(run.result.state, { analysis, sessionReview })).valid, true);
   assert.equal((await run.check()).decision, 'block'); // Validation is not saving.
+  const inspectedDashboard = await readFile(run.result.dashboard, 'utf8');
   await writeFeedback(run.result.state, { analysis, sessionReview });
+  assert.equal(await readFile(run.result.dashboard, 'utf8'), inspectedDashboard, 'ZIP audit note must not invalidate the inspected dashboard before readback');
   assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny'); // An inline diagnosis is not the required delegate.
   run.add('Agent', 'fork-feedback', { prompt: run.prompt, subagent_type: 'fork' }, 'The fork wrote its own analysis.');
   run.events.push({ type: 'user', origin: { kind: 'task-notification', producer: 'session-task' }, promptSource: 'system', turnOrigin: 'task_notification',
@@ -394,6 +396,7 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   const directory = path.dirname(run.result.state), receiptPath = artifactJoin(directory, 'feedback-finalized.json');
   const receipt = await readFile(receiptPath, 'utf8');
   assert.equal(JSON.parse(receipt).writerId, 'feedback-written');
+  assert.match(await readFile(run.result.dashboard, 'utf8'), /href="miw-session-debug\.zip" download>Download ZIP<\/a>/);
   assert.deepEqual(await startupHook(offerInput), {});
   assert.deepEqual(await delivery(), {});
   assert.deepEqual(await run.check(), {});

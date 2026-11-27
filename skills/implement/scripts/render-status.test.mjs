@@ -30,7 +30,7 @@ async function reportReadEvents(reportPath) {
 }
 
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 const DEFAULT_FIELDS = {
@@ -129,6 +129,20 @@ async function renderFixture(t, state, plan = null) {
   const outputPath = await generateDashboard(statePath);
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
+
+test('audit ZIP outcome links the saved archive and does not link unavailable or unsafe references', () => {
+  const outcome = reference => noteCell({ kind: 'result', id: 'feedback-archive-saved:fixture',
+    text: 'Local transcript ZIP saved (raw, potentially sensitive)', reference });
+  const render = outcome => renderStatus({ state: parseState(stateMarkdown({ rows: [['2026-01-01T10:01:00Z', 'context-check', 'context-check', outcome]] })), template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  const saved = render(outcome('miw-session-debug.zip'));
+  assert.match(saved, /href="miw-session-debug\.zip" download>Download ZIP/);
+  assert.match(saved, /raw, potentially sensitive/);
+  assert.doesNotMatch(render(outcome('https://example.com/archive.zip')), /<a /);
+  const unavailable = noteCell({ kind: 'result', id: 'feedback-archive-unavailable:fixture',
+    text: 'Local transcript ZIP unavailable (EACCES); feedback report remains saved', reference: 'workflow-feedback.md' });
+  assert.match(render(unavailable), /ZIP unavailable/);
+  assert.doesNotMatch(render(unavailable), /Download ZIP/);
+});
 
 test('generated dashboard opens its spec and audit links in readable previews', async t => {
   const state = stateMarkdown({ fields: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, rows: [['2026-01-01T10:00:00Z', 'context-check', 'context-check', 'Checking context']] });

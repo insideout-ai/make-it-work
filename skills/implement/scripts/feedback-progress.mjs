@@ -2,7 +2,8 @@ import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import { lstat } from 'node:fs/promises';
 import path from 'node:path';
-import { feedbackEligible, feedbackStateHash } from './feedback-handoff.mjs';
+import { createHash } from 'node:crypto';
+import { feedbackEligible, feedbackStateHash, feedbackTerminalRow } from './feedback-handoff.mjs';
 import { readFeedbackFinalization } from './feedback-finalization.mjs';
 import { currentReadback } from './feedback-readback.mjs';
 
@@ -11,6 +12,31 @@ async function artifact(file) {
     const info = await lstat(file);
     return info.isFile() ? { text: await readFile(file, 'utf8'), modified: info.mtimeMs } : null;
   } catch { return null; }
+}
+
+// Archive notes are informational only; standalone feedback has no workflow log.
+export async function recordFeedbackArchive(statePath, summary, archive) {
+  try {
+    const { checkpointAuditNote } = await import('./dashboard-checkpoint.mjs');
+    const { parseState } = await import('./render-status.mjs');
+    const state = parseState(await readFile(statePath, 'utf8'), statePath);
+    const terminal = feedbackTerminalRow(state.fields, state.audit);
+    const previous = state.audit.findLast(row => row.number > (terminal?.number ?? 0) && row.note?.id.startsWith('feedback-archive-'));
+    const saved = archive.status === 'saved';
+    const reason = saved ? null : archive.reason ?? 'ARCHIVE_FAILED';
+    const text = saved ? 'Local transcript ZIP saved (raw, potentially sensitive)' : `Local transcript ZIP unavailable (${reason}); feedback report remains saved`;
+    const reference = saved ? path.basename(archive.archivePath) : 'workflow-feedback.md';
+    const id = createHash('sha256').update(JSON.stringify([summary.stateHash, archive.status, reason, previous?.note.id ?? null])).digest('hex');
+    // Repeated outcomes reuse their note; a later recovery after a new failure
+    // gets a fresh entry even if an older successful snapshot was recorded.
+    const same = previous?.outcome === `Result: ${text}; evidence: ${reference}`;
+    await checkpointAuditNote(statePath, { kind: 'result', id: same ? previous.note.id : `feedback-archive-${archive.status}:${id}`,
+      text, reference,
+    }, { refresh: false });
+    return { ...archive, auditRecorded: true };
+  } catch {
+    return { ...archive, auditRecorded: false, auditWarning: 'The transcript ZIP outcome could not be added to the audit log.' };
+  }
 }
 
 // Presentation only. Runtime completion still requires the parent's actual

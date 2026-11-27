@@ -31,6 +31,17 @@ package; no automatic attachment or upload. Reuse the writer result, do not
 rearchive during readback/finalization/delivery, and never let archive failure
 reopen the terminal workflow or required retrospective.
 
+The writer also appends an informational Result in the workflow audit log with
+the ZIP filename; the dashboard renders it as **Download ZIP**. A failed archive
+records unavailability with the reason and references the saved feedback report
+instead. Retries reuse the same outcome entry; later recovery records the saved
+outcome. Audit-note failure is returned as `archive.auditWarning` without changing
+the archive result, implementation status or feedback finalization. Standalone
+reviews have no workflow audit log and retain their report and chat links.
+For runs requiring analysis or source evidence, the existing verified-finalization
+refresh exposes this entry after readback; intermediate saves keep the inspected
+dashboard snapshot stable and do not invalidate the source packet on a retry.
+
 Generated dashboards show **Finalizing session** while collecting feedback, and hide optional delivery. A verified saved or unavailable outcome settles that display before delivery opens. The feedback `inspect` command records one informational **Activity: Collecting session feedback** note per terminal boundary; verified finalization records one **Result** note with the saved report link or the unavailable reason. Retries reuse those notes. The Finalizing circle shows the feedback status beneath it. The blue progress panel exists only while collecting. Once saved, the footer below Artifacts is the single feedback summary/link; unavailable outcomes use that footer for a short explanation without a download link. The footer retains the feedback lifecycle status marker for refresh. These notes do not change workflow fields, terminal status, package or approval, and never count as completion proof. HTML evidence inspection itself stays read-only; do not manually regenerate during inspection. Missing HTML and older/supplied HTML without the progress panel are left untouched.
 
 The controller returns `next_action.type: feedback` at eligible terminal checkpoints, including replay. Follow it before the terminal summary or delivery question. Run the checkpoint command on its own and keep its structured output intact; do not pipe it through a projection that prints only phase/status. The scoped Stop and PreToolUse hooks detect a missing combined report for the current run and hold the terminal summary or delivery question until feedback is saved or explicitly reported unavailable. They do not change implementation status or wait for feedback answers. A saved report is bound to the terminal workflow boundary so an older run or an earlier retry-limit report cannot satisfy a later terminal checkpoint. Subsequent delivery decisions and informational notes do not invalidate that binding or trigger another retrospective.

@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Prepare local feedback transcript ZIPs containing the report, available main and sub-agent transcripts, and a manifest of capture hashes and limitations. Keep raw archives separate from sanitized feedback sharing; archive failures do not block completion.
+- Prepare local feedback transcript ZIPs containing the report, available main and sub-agent transcripts, and a manifest of capture hashes and limitations. Record archive outcomes in the audit log with a dashboard download link. Keep raw archives separate from sanitized feedback sharing; archive failures do not block completion.
 
 ### Changed
 
