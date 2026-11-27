@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source cf5ce25ac3672ce710e7af28fb16ea6d09c2efed](https://github.com/insideout-ai/make-it-work/tree/cf5ce25ac3672ce710e7af28fb16ea6d09c2efed). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source d05b9ed6e32030819afb48998df5f93031dfc799](https://github.com/insideout-ai/make-it-work/tree/d05b9ed6e32030819afb48998df5f93031dfc799). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -576,3 +576,13 @@ Workspace artifacts stay together under `<workspace>/make-it-work/<TICKET>/`. Ea
 ### Assess completed change complexity and risk
 
 Use `/make-it-work:assess-change <explicit delivery scope or PR reference>` for revision-bound code complexity and production change risk reports. New Implement runs assess after final context sync in both Lightweight and TDD, within Finalizing and its elapsed total. Only at final approval or completion, the dashboard header shows Code complexity and Production risk badges on a second row below the workflow settings, with completeness and rationale tooltips, or a neutral Assessment: Unavailable/Stale badge. The audit log shows the ratings, rationale and report link without repeating the result on refresh or resume; reassessments get a new entry. Detailed evidence remains in the reports and final package. Older runs require an explicit request. Missing evidence is disclosed; assessment never changes gates or approvals. The old `/make-it-work:assess-complexity` command remains a deprecated alias. See [evidence contract](docs/change-assessment.md).
+
+### Integrated artifact quality reviews
+
+Refinement, planning and test writing review their artifacts before handoff, using
+a fresh read-only reviewer or a disclosed self-review when delegation is unavailable.
+One correction round and confirmation review are allowed; unresolved blockers use
+existing questions/stops. Implement applies these checks to TDD, including spec
+review after mode selection; Lightweight and final code review retain their flow.
+Reviews assess actual requirements, designs and assertions without expanding test
+commands for metadata. See [the procedure](docs/artifact-quality-review.md).

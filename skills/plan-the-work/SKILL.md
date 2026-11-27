@@ -6,6 +6,14 @@ disable-model-invocation: true
 
 # Implementation Planning Session
 
+**Completion contract:** before claiming successful plan completion, reopen the
+saved candidate and perform [bounded artifact quality review](../../docs/artifact-quality-review.md),
+then save and link its review record in the final response. This applies in
+Autopilot too; structural validation, writing the artifact and remembering its
+contents do not substitute for review. For Implement-owned refinement only, the
+parent defers spec review until TDD mode selection; Lightweight skips it. Existing
+incomplete-draft/question waits remain waits rather than completed artifacts.
+
 For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
 
 **Role:** Act as a senior engineer turning an agreed spec into an implementation plan another engineer (or a subagent) can execute step by step.
@@ -316,7 +324,7 @@ First run `node "<base>/../../scripts/validate-plan.mjs" normalize-risk --plan "
 
 **Verification feasibility.** Identify deployment, account, integration and running-app prerequisites before adding verification steps. For an automated-policy repo, supplemental checks known to be unavailable in-session belong in `## Post-delivery Verification`, not a numbered execution step. Keep their concrete Test Plan scenarios and clause traceability, mark them not performed, and name the prerequisite and responsible actor. Do not downgrade an explicitly manual verification policy or move a required release check out of execution without authorization: surface that blocker/decision. When a layer is deferred, list exactly which clauses have only static/manual evidence. Test pure logic with existing supported tooling where practical; respect platform isolation and required duplication rather than extracting an unsupported shared helper or silently activating a deferred layer.
 
-Before handing off, run this quick self-check on the draft. It's a mechanical pass you run yourself — not a substitute for the independent review offered in Step 6:
+Before handing off, use these checks in the integrated review below:
 
 1. **Spec coverage** — for each requirement and acceptance criterion, can you point to a step that implements it? Add steps for any gaps.
 2. **Placeholder scan** — search for the anti-patterns above and fix every instance.
@@ -327,7 +335,7 @@ Before handing off, run this quick self-check on the draft. It's a mechanical pa
 7. **Behavior reachability** — for every test-required step, list each new method, branch and enumerated case in its instructions and point to the named test that runs it with its owning layer unstubbed (Step 5's point 3). Flag any step whose only tests stub, mock or bypass the layer that owns the new behavior, or that cover fewer cases than the instructions list, and add or redirect tests until each item is reached.
 8. **Visual consistency** — is Visual Overview either a useful, compact Mermaid diagram with a short explanation or a justified omission? Check its labels, interactions, ordering and dependencies against the accepted requirements and final steps; refresh stale visuals on replans and amendments. Keep it readable and do not invent components or behavior for the diagram. Legacy plans need no section retrofit solely to pass validation.
 
-Fix issues inline; don't re-review after fixing.
+Follow [bounded artifact quality review](../../docs/artifact-quality-review.md) for the plan before completion/approval. Use a fresh read-only reviewer, with the documented self-review fallback, one correction round and one confirmation review. Retain existing validation and authorization. Return unresolved blockers through the existing routes; do not emit a successful plan handoff.
 
 ---
 
@@ -378,7 +386,7 @@ Then tell the user the plan is ready — this skill never drives step execution 
 
 Leave `## Execution Status` with `Mode: Not yet chosen` and `Progress: Step 0 of <final step count> complete`, set through the status script above. `execute` owns asking for Mode (once, the first time it runs against this plan) and owns updating both Mode and Progress from that point on — `plan-the-work` never edits this section after setting its initial total, except in amend mode below.
 
-**Optional — independent review:** for a high-effort or high-risk plan, offer a fresh-eyes pass that your Step 5.5 self-check can't provide: "I can dispatch a plan-reviewer subagent — fresh context, hasn't seen my reasoning — to pressure-test the plan for gaps and unstated assumptions before you start. Want that?" (autopilot: see Autopilot Mode — declined automatically) (This is the only independent review the plan itself gets; `review-the-code` later reviews the code, not the plan.)
+
 
 Do not paste the full plan in chat unless the user asks.
 

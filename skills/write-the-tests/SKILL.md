@@ -5,6 +5,14 @@ description: "Prepares the automated coverage specified by an implementation pla
 
 # Test Preparation
 
+**Completion contract:** before claiming successful tests completion, reopen the
+saved candidate and perform [bounded artifact quality review](../../docs/artifact-quality-review.md),
+then save and link its review record in the final response. This applies in
+Autopilot too; structural validation, writing the artifact and remembering its
+contents do not substitute for review. For Implement-owned refinement only, the
+parent defers spec review until TDD mode selection; Lightweight skips it. Existing
+incomplete-draft/question waits remain waits rather than completed artifacts.
+
 For impact-enabled Implement runs, read [repository impact](../implement/references/repository-impact.md). Check the saved assessment before preparation. Reuse required tests in verify repos without editing them, skip context repos, and return undeclared test edits for reassessment/replanning. Do not establish missing tooling in a verify repo.
 
 Prepare the approved plan's tests. Keep production behavior unchanged and leave all edits uncommitted. The plan defines coverage; this skill supplies observed evidence. Never treat an import/type/setup error alone as valid progression red.
@@ -32,6 +40,19 @@ Work step by step. Reuse valid existing tests, including tests from a previous r
 Standalone may create only plan-declared minimal new signatures needed for a runtime assertion failure, under the authoring guide. Implement workers receive no production-stub authorization from a test receipt: if such a stub is required and is not already present in the accepted setup baseline, return a blocker for the coordinator to resolve through the authorized execution/refinement route. Never widen an embedded-test region to include production logic.
 
 Preserve the existing baseline-failure policy: interactive standalone runs ask whether to call out an unrelated failure and continue or stop; Autopilot records it and continues only with unaffected progression coverage, recording that observed regression as `accepted-failure` with its decision reference; it remains failed/unverified. Implement returns a baseline blocker to the coordinator for its existing triage. Failures caused by accepted prior implementation are work for the plan, not unrelated baseline failures.
+
+## Integrated test review
+
+After recording candidate preparation evidence and checking it, but before a
+successful handback, follow [bounded artifact quality review](../../docs/artifact-quality-review.md)
+for tests. Inspect actual prepared assertions with the spec and plan, not just
+scenario names or metadata. Refresh affected preparation evidence after local
+corrections. The worker returns the review-record path and disposition to its
+coordinator; it does not emit TESTS_PREPARED or write workflow activity itself.
+For manual-only plans, the coordinator reviews planned observations using this
+procedure without dispatching an authoring worker. Preserve exempt/unverified
+status. Unresolved blockers prevent a successful handback even if preparation's
+structural check passes.
 
 ## Save evidence and return
 
