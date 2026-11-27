@@ -1665,3 +1665,26 @@ test('coverage display preserves purposes and never converts baseline limits int
   assert.match(stale, /Superseded/);
   assert.doesNotMatch(stale, /regression: pass/);
 });
+
+test('activity CLI diagnoses malformed arguments before touching workflow state', async t => {
+  const directory = await workspace(t);
+  const statePath = artifactJoin(directory, 'DEMO-state.md');
+  await writeFile(statePath, 'deliberately invalid state: parser must reject arguments first\n');
+  const before = await readFile(statePath, 'utf8');
+  const script = fileURLToPath(new URL('./dashboard-checkpoint.mjs', import.meta.url));
+  const prefix = ['activity', '--state', statePath, '--activity', 'Working'];
+  for (const [args, message] of [
+    [['activity', '--category', 'unclassified', '--state', statePath, '--activity', 'Working'], /expected --state.*--category/],
+    [['activity', '--state'], /Missing value for --state/],
+    [['activity', '--state', statePath], /expected --activity/],
+    [['activity', '--state', statePath, '--activity'], /Missing value for --activity/],
+    [[...prefix, '--category'], /Missing value for --category/],
+    [[...prefix, '--category', '--planning-activity', 'discovery'], /Missing value for --category/],
+    [[...prefix, '--state', statePath], /Duplicate activity option: --state/],
+    [[...prefix, '--category', 'unclassified', '--category', 'review'], /Duplicate activity option: --category/],
+    [[...prefix, '--unknown', 'value'], /Unknown activity option.*--unknown/],
+  ]) {
+    assert.throws(() => execFileSync(process.execPath, [script, ...args], { encoding: 'utf8', stdio: 'pipe' }), error => message.test(error.stderr) && /Usage:/.test(error.stderr));
+    assert.equal(await readFile(statePath, 'utf8'), before);
+  }
+});
