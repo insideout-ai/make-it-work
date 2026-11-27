@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: plan-integrated-exhausted
+tags: [plan-the-work, integrated-review]
+context:
+  scaffold_script: fixture.sh

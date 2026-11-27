@@ -47,3 +47,14 @@ Slack delivery: <draft | sent | unknown | offline>
 `Questions sent:` is the existing compatibility label for the questions artifact, not proof of a send. Report the actual delivery result in `Slack delivery:` (`unknown` includes an interrupted pending send). If Phase 5D fell back to Phase 5B because Slack couldn't be used, use `offline` — the file is pending either way, and `implement` pauses on it.
 
 **Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `gaps-<N>.json` in `make-it-work/<TICKET>/<TICKET>-handoffs/` using its schema. Use `SPEC_SAVED`, the actual spec path, the counted TBD items, and the paths updated in Phase 7 — or, after a Phase 5D export (including its Phase 5B fallback), `QUESTIONS_SENT` with the questions file's path. Do not write this file for an older run. End the chat report with `Handoff: <path>` so `implement` can validate it before advancing.
+
+## Integrated quality review ownership
+
+Follow [bounded artifact quality review](../../../docs/artifact-quality-review.md).
+Apply only to TDD under Implement; standalone skills follow their entrypoint.
+Retain existing workspace, edit and activity ownership. The parent alone handles
+questions/stops and spec-conflict transitions. Record attempts outside workflow
+counters; preserve unfinished/exhausted attempts on resume. A record is evidence
+of the inspection, not a new controller gate or schema. Never emit a successful
+handoff while quality blockers remain. For refinement the parent invokes review
+after mode selection and before spec acceptance/publication.

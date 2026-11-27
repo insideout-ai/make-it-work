@@ -1,5 +1,13 @@
 ### Plan
 
+Before TDD planning (including reused inputs and escalation), confirm refinement's
+[bounded review](../../../../docs/artifact-quality-review.md) covers the current spec.
+Planning completes its integrated plan review before successful handoff/approval.
+Keep review attempts local to skills; never increment final-review/fix counters.
+For blocked/exhausted reviews use existing pending-input/stop handling and the
+shared recovery procedure. Resume alone does not grant another attempt.
+
+
 For `repo_impact_version: 1`, follow [repository impact](../repository-impact.md) before readiness. Pass its exact definition to planning and preserve the separation of editable repos, verification-only repos and context.
 
 
@@ -59,6 +67,8 @@ Before any test-edit authorization or worker dispatch, follow [the compaction ch
 Runs with `test_writing_version: 1` enter `write-tests` after Plan approval (Guided) or a completed plan (Autonomous/Autopilot). Reused plans, replans and nonempty fix amendments follow the same route. Do not dispatch Execute until current preparation is accepted. Older saved runs retain existing routing and previously prepared tests; never backfill the marker merely on Resume.
 
 The coordinator reads [the test-worker integration guide](../../../write-the-tests/references/implement-integration.md); the fresh worker reads the complete write-the-tests entrypoint and its applicable authoring guides. Keep those detailed authoring procedures out of the coordinator dispatch context. Complete/check readiness, then follow [test-edit authorization](../planning-tests.md) for exact planned test files before dispatch. Record the actual dispatch activity in chat and the activity checkpoint, then use a **fresh worker without inherited conversation history**. Pass the compact inputs specified by that guide. The coordinator alone owns state, approval, authorizations, dashboard activity and publication. Retain its dispatch description while waiting; do not fabricate worker milestones or heartbeats.
+
+Require the test worker's integrated-review record and disposition before accepting success, following [bounded review](../../../../docs/artifact-quality-review.md). Review manual-only scenarios through the same procedure without an authoring worker.
 
 On handback, accept the native report through delegate-report.mjs. Validate `preparation.mjs check --plan <plan> --file <returned-json> --required 1`, then save the returned report paths through controller event `preparation-saved` (`preparation`: returned root-relative JSON path). This also accepts a validated blocked/partial report so the HTML links its evidence before the blocked handoff stops the run. Emit `tests`/`TESTS_PREPARED` with `report` and `preparation` artifacts only on success; otherwise return a blocked handoff and preserve the observed reason. The handoff routes to Execute only after validation. Baseline failures retain existing triage; a user-approved call-out must remain recorded as failed/unverified coverage, never a passing regression.
 

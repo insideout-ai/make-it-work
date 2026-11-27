@@ -6,6 +6,14 @@ disable-model-invocation: true
 
 # Ticket Refinement Session
 
+**Completion contract:** before claiming successful spec completion, reopen the
+saved candidate and perform [bounded artifact quality review](../../docs/artifact-quality-review.md),
+then save and link its review record in the final response. This applies in
+Autopilot too; structural validation, writing the artifact and remembering its
+contents do not substitute for review. For Implement-owned refinement only, the
+parent defers spec review until TDD mode selection; Lightweight skips it. Existing
+incomplete-draft/question waits remain waits rather than completed artifacts.
+
 For generated files under `make-it-work/`, follow the [artifact naming, Git protection, usage and timing contract](../../docs/artifact-observability.md). Use helper-returned paths; new runs use `miw-` filenames and existing runs retain their saved convention. Before manually writing a new Markdown/JSON artifact, resolve its actual output with `node "<base>/../../scripts/artifact-output.mjs" resolve --root <project-root> --directory <artifact-directory-relative-to-project> --name <logical-filename>` and write/link the returned `file`/`relative`. Literal filenames below identify logical roles; do not bypass this resolver by writing those examples directly.
 
 **Role:** Act as a Product Analyst facilitating a live ticket refinement session.
@@ -356,6 +364,18 @@ Include every applicable question actually asked here, including skipped ones â€
 - Do not include implementation notes, technical choices, or a "how" section.
 
 ---
+
+### Integrated spec review
+
+Standalone, before final completion/publication, follow the spec checklist and
+[bounded artifact quality review](../../docs/artifact-quality-review.md). Preserve
+unresolved-draft and external-answer waits; review does not answer product questions.
+Under Implement, defer this review to the caller after TDD mode selection, before
+acceptance/publication; do not add a review to Lightweight. Return the draft for
+risk assessment without claiming its integrated review passed. The caller invokes
+this same procedure with current inputs. Complete context updates before review
+so known relevant facts are available. Unresolved review blockers replace the
+normal successful completion with the existing blocked/question route.
 
 ## Phase 7 â€” Context Update
 
