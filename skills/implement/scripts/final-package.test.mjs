@@ -3,7 +3,7 @@ import { writeReview } from '../../../scripts/review-report.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -61,6 +61,44 @@ async function verifiedAcceptance(root, state, dir) {
     acceptance: [{ criterion: 'AC1 works', scenario: 'Happy path', status: 'automated', step: 1, note: 'Happy path passed' }],
   }));
 }
+
+test('draft preparation treats shell-looking prose literally and binds the formatted bytes to approval', async t => {
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'literal-draft-')));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await initRepo(root);
+  const { state, draft, dir } = await artifacts(root);
+  const commit = path.join(dir, 'commit.txt'), title = path.join(dir, 'title.txt'), description = path.join(dir, 'description.txt');
+  const sentinel = path.join(root, 'SHOULD-NOT-EXIST');
+  const prose = `Markdown \`npm test\` and $(touch ${sentinel}) remain literal.\nCompiler failed; baseline is unknown. Unit tests passed.\n`;
+  await writeFile(commit, 'fix: preserve evidence\n\nThis prose preserves compiler failure and unknown baseline qualification before final approval.\n');
+  await writeFile(title, 'Preserve `literal` text\n');
+  await writeFile(description, prose);
+  const prepared = run('draft', root, state, '--commit-file', commit, '--title-file', title, '--description-file', description, '--body-width', '45');
+  assert.equal(prepared.file, draft);
+  assert.equal(prepared.draft.pr_description, prose);
+  assert.equal(prepared.draft.pr_title, 'Preserve `literal` text');
+  assert.ok(prepared.draft.commit_message.split('\n').every(line => line.length <= 45));
+  assert.equal(await readFile(description, 'utf8'), prose);
+  await assert.rejects(readFile(sentinel), { code: 'ENOENT' });
+  await writeFile(path.join(root, 'src/existing.txt'), 'after\n');
+  const built = run('build', root, state, '--draft', prepared.file, '--repo', root);
+  run('approve', root, state, '--hash', built.sha256);
+  run('check', root, state, '--require-approval');
+  await writeFile(description, prose + 'Updated local draft.\n');
+  run('draft', root, state, '--commit-file', commit, '--title-file', title, '--description-file', description);
+  assert.throws(() => run('check', root, state, '--require-approval'), /changed|stale|differ|rebuild/i);
+  const before = await readFile(draft, 'utf8');
+  const outside = path.join(root, 'outside.txt'); await writeFile(outside, 'Outside run');
+  assert.throws(() => run('draft', root, state, '--commit-file', outside, '--title-file', title, '--description-file', description), /inside this run/);
+  assert.throws(() => run('draft', root, state, '--commit-file', commit, '--title-file', title, '--description-file', description, '--body-width', 'bad'), /Body width/);
+  assert.throws(() => run('build', root, state, '--draft', draft, '--repo', root, '--body-width', '45'), /only to draft/);
+  await writeFile(title, 'Title\nwith a second line');
+  assert.throws(() => run('draft', root, state, '--commit-file', commit, '--title-file', title, '--description-file', description), /single-line PR title/);
+  await writeFile(title, 'Title');
+  await writeFile(state, (await readFile(state, 'utf8')).replace('phase: final-approval', 'phase: execute'));
+  assert.throws(() => run('draft', root, state, '--commit-file', commit, '--title-file', title, '--description-file', description), /active final-approval/);
+  assert.equal(await readFile(draft, 'utf8'), before);
+});
 
 test('builds a binary-safe working-tree package and invalidates approval on changes', async (t) => {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'final-package-'));

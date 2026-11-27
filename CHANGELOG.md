@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.3] — 2026-11-26
+
+### Fixed
+
+- Prepare final commit and PR drafts from literal prose files, with optional explicit commit-body wrapping before approval. Preserve the existing package format and exact reapproval requirements when drafts change.
+- Reserve unique worker evidence files before dispatch and resolve plan/context inputs against explicit artifact and source roots. Preserve legacy naming, repository containment checks and ownership of shared reports.
+
 ## [5.17.2] — 2026-11-24
 
 ### Fixed

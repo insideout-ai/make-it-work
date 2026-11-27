@@ -43,6 +43,44 @@ test('saved decision grader accepts supported option forms and rejects wrong or 
   assert.equal((await grade()).passed, false);
 });
 
+test('planning choices grade saved decisions and permit triaged assumptions without inventing questions', async (t) => {
+  const root = await mkdtemp(artifactJoin(os.tmpdir(), 'planning-decisions-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = artifactJoin(root, 'make-it-work/DEMO-200/plan-the-work-autopilot-log.jsonl');
+  await mkdir(path.dirname(file), { recursive: true });
+  const grader = parseGrader(await readFile(new URL('./plan-the-work/happy-path/graders/recommended-option-chosen.md', import.meta.url), 'utf8'), 'recommended-option-chosen.md');
+  const assumption = { phase: 'Step 4.5', site: 'approach-gap', kind: 'open_text',
+    chosen: '[autopilot best-guess] Extend direct field reads.', rationale: 'Existing local pattern; inexpensive to reverse.' };
+  const labels = ['Extend direct reads (Recommended)', 'Use events', 'Proceed with the recommended assumption'];
+  const question = { ...assumption, kind: 'askUserQuestion', question: 'Which approach?',
+    options: labels, multiSelect: false, chosen: labels[0] };
+  // Trace text cannot stand in for a real saved record.
+  const grade = () => gradeHeadlessLocal(grader, { fixtureDir: root, trace: JSON.stringify(question) });
+  assert.equal((await grade()).passed, false, 'Missing saved log fails even with a correct choice in the trace');
+  const save = async entries => writeFile(file, entries.map(entry => JSON.stringify(entry, null, 0)).join('\n') + '\n');
+  for (const entries of [[assumption], [question], [{ ...question, options: labels.map(label => ({ label, description: 'Choice' })) }],
+    [{ ...question, options: [labels[0], 'Use events', 'Needs PM — route to close-the-gaps'] }]]) {
+    await save(entries);
+    assert.equal((await grade()).passed, true);
+  }
+  const invalid = [[], [assumption, assumption], [{ ...assumption, phase: 'Step 6' }],
+    [{ ...assumption, chosen: 'Unmarked guess' }], [{ ...assumption, chosen: '[autopilot best-guess] ' }],
+    [{ ...assumption, chosen: null }], [{ ...assumption, kind: 'checkpoint' }],
+    [{ ...question, chosen: labels[1] }], [{ ...question, chosen: labels[2] }],
+    [{ ...question, options: ['Direct reads', 'Use events', labels[2]], chosen: 'Direct reads' }],
+    [{ ...question, options: [labels[1], labels[0], labels[2]] }],
+    [{ ...question, options: [labels[0], labels[1]] }],
+    [{ ...question, options: [labels[0], 'Proceed with the recommended assumption (Recommended)', labels[2]] }],
+    [{ ...question, chosen: [labels[0]], multiSelect: true }],
+    [{ ...question, options: ['Proceed with the recommended assumption (Recommended)', 'Other', labels[2]], chosen: 'Proceed with the recommended assumption (Recommended)' }]];
+  for (const entries of invalid) {
+    await save(entries);
+    assert.equal((await grade()).passed, false, JSON.stringify(entries));
+  }
+  await writeFile(file, '{broken JSON}\n');
+  assert.equal((await grade()).passed, false);
+});
+
 test('judge permits a structured-output follow-up while keeping tools disabled and the usage cap', async (t) => {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'structured-judge-'));
   t.after(() => rm(root, { recursive: true, force: true }));

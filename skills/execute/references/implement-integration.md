@@ -4,6 +4,8 @@ Read this guide only at the loading point in [the skill entrypoint](../SKILL.md)
 
 ## When run by implement
 
+**Absolute helper inputs:** resolve the saved plan once with `node "<base>/../../scripts/artifact-output.mjs" inputs --root <artifact-root> --plan <saved-plan-reference>`. Pass the returned absolute `plan` unchanged to verification, preparation and worker calls regardless of their cwd. This read-only resolution preserves saved naming; it does not approve a changed plan or repository. Retain the supplied absolute workflow state path.
+
 
 **Workspace runs owned by implement:** when supplied `workspace_contract` (`workspace_version: 1`), read [the workspace contract](../../implement/references/workspace.md) before detection or artifact writes. Its artifact root and approved repository IDs/roots/branches/bases override standalone layout detection, any requirement for root `CLAUDE.md`, and repo-root artifact assumptions. Run source/Git/test operations in the explicit named repo; keep workflow artifacts under the supplied artifact root. Assess only approved scope, including selected test repos. Return newly affected repos or required branch changes before edits there so the parent obtains user confirmation. Forward the contract to nested skills and delegated agents. This override does not change standalone or legacy single-repo behavior.
 

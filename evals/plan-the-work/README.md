@@ -218,22 +218,30 @@ model's last message was:
 ### `happy-path`
 
 Fixture: a single-repo project with a `close-the-gaps`-style `make-it-work/DEMO-200/DEMO-200-spec.md`
-(`**Status:** Answered`) whose "Open implementation note" deliberately leaves an `Approach` gap
+(`**Status:** Answered`) whose "Open implementation note" leaves a pattern choice
 open — two existing cross-cutting patterns already coexist in the fixture's source
 (`src/events/taskEvents.js`'s event-based pattern vs. `src/notifications/sendReminder.js`'s direct
 field-read pattern), and the spec doesn't say which one a new "snooze" feature should extend.
 `package.json`'s `test` script is the unmodified npm placeholder (no framework configured).
-Invoked with `--autopilot`.
+Invoked with `--autopilot`. Step 4.5's asking bar decides whether this needs a
+question or a documented low-cost assumption.
 
-Graders: the plan file exists; an `llm` grader on the plan file confirms the `## Decision Log` has
-a resolved, concrete `Approach` row (not the `"Proceed with the recommended assumption"` filler),
-the `## Approach` section is consistent with it, there are no placeholder anti-patterns, and
-`## Execution Status` is untouched from the skeleton; a trace regex confirms the run never printed
-either of the skill's two interactive-pause phrasings (`"Which do you want?"` /
-`"Want that?"`); a semantic grader checks the final summary identifies the saved plan, risk,
-context updates and test-preparation next step; three more trace-regex graders confirm the attempted decision-log entry's schema
-directly (filler label preserved verbatim, filler never the `chosen` value, a `(Recommended)`-suffixed
-option actually chosen).
+Graders: the plan file exists; a semantic grader checks a concrete approach and
+rationale, recorded either as a resolved Approach decision or as a low-cost
+Assumption under the current asking bar. The Approach section must agree, contain
+no placeholder anti-patterns, and preserve unstarted Execution Status with the
+correct initial step total.
+The final summary identifies the saved plan, risk, context updates and preparation
+next step. A deterministic grader reads and validates the actual saved autopilot
+log: Step 4.5 questions select the exact substantive Recommended option, while
+unasked choices remain explicit best-guess assumptions. Missing, malformed,
+duplicate or wrong-choice records fail. Quoted skill instructions in the trace
+cannot satisfy this check. Interactive pause phrases remain forbidden.
+
+The readiness smoke on PR #119 exposed the former trace regex's assumption that
+every run must construct a question. That conflicted with Step 4.5's asking bar;
+the grader now permits the documented assumption path without requiring an
+unnecessary question. The earlier verification below records historical behavior.
 
 Verified for real: ran via plain `claude plugin eval`, **read the complete generated plan file**
 (not just the grader's pass/fail). It correctly resolved the planted `Approach` gap (chose the
