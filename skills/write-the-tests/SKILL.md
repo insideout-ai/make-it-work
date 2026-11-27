@@ -5,6 +5,14 @@ description: "Prepares the automated coverage specified by an implementation pla
 
 # Test Preparation
 
+**Completion contract:** before claiming successful tests completion, reopen the
+saved candidate and perform [bounded artifact quality review](../../docs/artifact-quality-review.md),
+then save and link its review record in the final response. This applies in
+Autopilot too; structural validation, writing the artifact and remembering its
+contents do not substitute for review. For Implement-owned refinement only, the
+parent defers spec review until TDD mode selection; Lightweight skips it. Existing
+incomplete-draft/question waits remain waits rather than completed artifacts.
+
 For impact-enabled Implement runs, read [repository impact](../implement/references/repository-impact.md). Check the saved assessment before preparation. Reuse required tests in verify repos without editing them, skip context repos, and return undeclared test edits for reassessment/replanning. Do not establish missing tooling in a verify repo.
 
 Prepare the approved plan's tests. Keep production behavior unchanged and leave all edits uncommitted. The plan defines coverage; this skill supplies observed evidence. Never treat an import/type/setup error alone as valid progression red.

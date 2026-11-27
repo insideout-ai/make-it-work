@@ -27,7 +27,9 @@ worker's dispatch) and retains that description while waiting.
 
 ## Review and one correction round
 
-1. Finish the candidate artifact and existing applicable validation. Read any
+1. Finish the candidate artifact and existing applicable validation, then reopen
+   the saved artifact and compare it with authoritative inputs (including actual
+   prepared assertions for tests). Do not review only your remembered draft. Read any
    prior record before starting: continuation/resume does not reset its allowance.
 2. Reserve a unique record before dispatch with
    `node <plugin-root>/scripts/artifact-output.mjs allocate --root <artifact-root> --directory make-it-work/<TICKET> --name <TICKET>-<stage>-quality-review.md`.
@@ -41,6 +43,9 @@ worker's dispatch) and retains that description while waiting.
    below and matching checklist. If fresh-agent tooling is unavailable (including
    unavailable nested delegation), perform the same inspection yourself and
    disclose `author self-review` and the reason. Convenience/cost is not unavailability.
+   The exposed tool inventory is valid availability evidence: if no agent tool or
+   supported discovery path exists, disclose that fact; do not invent a probe or
+   attempt a nonexistent tool. If discovery exists, check it before falling back.
 4. If no blockers remain, record CLEAN (advisories may remain) and return to the
    skill's normal completion. Otherwise correct all local blockers in one round,
    within existing edit authorization, and rerun affected existing validators or
