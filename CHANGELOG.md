@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.19.0] — 2026-11-27
+
+### Added
+
+- Prepare local feedback transcript ZIPs containing the report, available main and sub-agent transcripts, and a manifest of capture hashes and limitations. Keep raw archives separate from sanitized feedback sharing; archive failures do not block completion.
+
+### Changed
+
+- Keep detailed test coverage in the Test Preparation report and show planned progression/regression counts with its report link in the preparation audit entry.
+- Consolidate maintainer workflow findings and retain review, cost-analysis and delivery evidence with their existing decisions and verification limits.
+
 ## [5.18.0] — 2026-11-27
 
 ### Added

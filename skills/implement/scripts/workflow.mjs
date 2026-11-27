@@ -20,6 +20,7 @@ import { testingPolicy } from './testing-policy.mjs';
 import { collectTestingSummary } from './testing-summary.mjs';
 import { createPendingInput, pendingAnswer, pendingInputs } from './pending-input.mjs';
 import { resolveDecision } from '../../../scripts/autonomy-policy.mjs';
+import { coverageSummary } from '../../../scripts/lib/test-coverage.mjs';
 import { planHash, parseSteps } from '../../../scripts/lib/plan.mjs';
 import { approvedScope, readScope } from './workspace-scope.mjs';
 import { checkSessionRepositories } from '../../../scripts/lib/session-workspace.mjs';
@@ -184,7 +185,7 @@ export function transition(state, input, handoff = null, routeOptions = {}) {
     if (f.phase !== 'write-tests' || f.test_writing_version !== '1' || f.status !== 'In Progress') fail('Preparation evidence requires active Write Tests.');
     f.test_preparation = requireText(input.preparation, 'Preparation artifact');
     f.test_preparation_report = requireText(input.report, 'Preparation report');
-    reason = `Test preparation ${input.preparation_status}: ${input.report}`;
+    reason = `Test preparation ${input.preparation_status}: ${input.report}${input.coverage_note ? `; Test coverage: ${input.coverage_note}` : ''}`;
   } else if (input.event === 'review-context') {
     if (f.phase !== 'review' || f.status !== 'In Progress') fail('Review context preparation requires active Review.');
     if (!Array.isArray(input.context_updated)) fail('context_updated must be an array of paths.');
@@ -602,11 +603,14 @@ export async function applyWorkflow({ root, statePath, input, render = refresh }
       const file = await within(root, effective.preparation);
       const planPath = await within(root, state.fields.plan);
       if (path.dirname(file) !== path.dirname(planPath)) fail('Preparation must be in the plan directory.');
-      const data = validatePreparation(JSON.parse(await readFile(file, 'utf8')), await readFile(planPath, 'utf8'));
+      const plan = await readFile(planPath, 'utf8');
+      const data = validatePreparation(JSON.parse(await readFile(file, 'utf8')), plan);
+      const coverage = coverageSummary(plan);
+      const coverageNote = !coverage ? '' : coverage.unavailable ? 'unavailable' : `${coverage.progression} progression / ${coverage.regression} regression scenarios planned`;
       const { latestPreparation } = await import('../../write-the-tests/scripts/preparation.mjs');
       if (file !== await latestPreparation(planPath)) fail('Preparation artifact is stale.');
       const report = await within(path.dirname(planPath), data.report);
-      effective = { ...effective, report: path.relative(root, report), preparation_status: data.status };
+      effective = { ...effective, report: path.relative(root, report), preparation_status: data.status, coverage_note: coverageNote };
     }
     let previousReview = effective.previous_review ? JSON.parse(await readFile(await within(root, effective.previous_review), 'utf8')) : null;
     if (handoff?.stage === 'review' && handoff.review_cycle > 1) {

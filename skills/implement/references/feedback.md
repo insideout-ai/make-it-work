@@ -17,6 +17,20 @@ Do not write an entry for a pause, user-requested stop, branch/context/setup fai
 
 The terminal state-file write and dashboard regeneration happen first. Feedback failure or unanswered feedback questions never re-open, downgrade, or block the implementation run.
 
+Each successful writer save also attempts a local `miw-session-debug.zip` beside
+the session report. Its `archive` result supplies the actual path, captured and
+unavailable transcript counts, or a non-blocking failure. It contains the current
+report, raw main/sub-agent transcript snapshots and `miw-manifest.json`; every
+entry starts with `miw-`. Pass the actual `--transcript` path to include runtime
+transcripts; without one the manifest explicitly records their unavailability.
+After the required report readback, link a successfully prepared ZIP beside the
+report in the completion message as **Local transcript ZIP**. Explain that it
+contains potentially sensitive raw data, with separate deliberate review before
+sharing. Keep it separate from the sanitized-report email flow and implementation
+package; no automatic attachment or upload. Reuse the writer result, do not
+rearchive during readback/finalization/delivery, and never let archive failure
+reopen the terminal workflow or required retrospective.
+
 Generated dashboards show **Finalizing session** while collecting feedback, and hide optional delivery. A verified saved or unavailable outcome settles that display before delivery opens. The feedback `inspect` command records one informational **Activity: Collecting session feedback** note per terminal boundary; verified finalization records one **Result** note with the saved report link or the unavailable reason. Retries reuse those notes. The Finalizing circle shows the feedback status beneath it. The blue progress panel exists only while collecting. Once saved, the footer below Artifacts is the single feedback summary/link; unavailable outcomes use that footer for a short explanation without a download link. The footer retains the feedback lifecycle status marker for refresh. These notes do not change workflow fields, terminal status, package or approval, and never count as completion proof. HTML evidence inspection itself stays read-only; do not manually regenerate during inspection. Missing HTML and older/supplied HTML without the progress panel are left untouched.
 
 The controller returns `next_action.type: feedback` at eligible terminal checkpoints, including replay. Follow it before the terminal summary or delivery question. Run the checkpoint command on its own and keep its structured output intact; do not pipe it through a projection that prints only phase/status. The scoped Stop and PreToolUse hooks detect a missing combined report for the current run and hold the terminal summary or delivery question until feedback is saved or explicitly reported unavailable. They do not change implementation status or wait for feedback answers. A saved report is bound to the terminal workflow boundary so an older run or an earlier retry-limit report cannot satisfy a later terminal checkpoint. Subsequent delivery decisions and informational notes do not invalidate that binding or trigger another retrospective.

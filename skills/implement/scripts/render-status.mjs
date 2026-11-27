@@ -745,12 +745,12 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null, a
   }
   const readiness = renderReadinessResult(state, text);
   if (readiness) return readiness;
-  const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(\. Implementation remains unverified\.)?$/);
+  const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(; Test coverage: (?:\d+ progression \/ \d+ regression scenarios planned|unavailable))?(\. Implementation remains unverified\.)?$/);
   if (preparation) {
     try {
       const report = validateArtifactPath(preparation[2], 'test_preparation_report', state.fields.ticket);
       if (report && /-plan-tests-[1-9]\d*\.md$/.test(report)) {
-        return `Test preparation ${escapeHtml(preparation[1])} · <a href="${escapeHtml(report)}">View preparation report</a>${preparation[3] ?? ''}`;
+        return `Test preparation ${escapeHtml(preparation[1])}${preparation[3] ? ' · ' + escapeHtml(preparation[3].slice(2)) : ''} · <a href="${escapeHtml(report)}">View preparation report</a>${preparation[4] ?? ''}`;
       }
     } catch { /* Preserve unrecognized historical entries as plain text. */ }
   }
@@ -988,8 +988,6 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
   const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
     : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
       ? 'Superseded — refresh preparation for the current plan' : '';
-  const coverage = planStatus?.coverage;
-  const coverageHtml = coverage ? `<details class="test-coverage" style="grid-column: 1 / -1; padding: 16px; border: 1px solid #ddd; border-radius: 6px;"><summary>Test coverage — ${coverage.unavailable ? 'unavailable' : `${coverage.progression} progression / ${coverage.regression} regression scenarios`}</summary>${coverage.unavailable ? '' : coverage.scenarios.map(row => { const entry = !preparationNote && preparation?.entries?.find(e => e.scenario === row.scenario && (!row.repo || e.repo === row.repo)); return `<p>${escapeHtml(row.scenario)} · ${escapeHtml(row.purpose)}${row.protected ? ` · ${escapeHtml(row.protected)}` : ''} · ${escapeHtml(preparationNote || (entry ? `${entry.kind}: ${entry.result} — ${entry.reason}` : row.baseline))}</p>`; }).join('')}</details>` : '';
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -1030,7 +1028,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) + coverageHtml : '',
+    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) : '',
     TEST_PREPARATION: '', // Compatibility with older templates; details live in artifacts.
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),

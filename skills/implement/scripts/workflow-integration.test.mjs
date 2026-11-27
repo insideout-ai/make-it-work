@@ -168,6 +168,12 @@ for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { a
   }
   const preparation = await recordPreparation(planPath, { version: 1, plan_hash: planHash(await readFile(planPath, 'utf8')), status: 'ready', entries });
   await apply('preparation-saved', { preparation: path.relative(root, preparation.file) });
+  const preparationState = await readFile(statePath, 'utf8');
+  assert.match(preparationState, /Test coverage: 1 progression \/ 1 regression scenarios planned/);
+  const preparationHtml = await readFile(artifactJoin(directory, 'DEMO-2-status.html'), 'utf8');
+  assert.doesNotMatch(preparationHtml, /class="test-coverage"/);
+  assert.match(preparationHtml, /Test coverage: 1 progression \/ 1 regression scenarios planned · <a/);
+  assert.match(await readFile(preparation.report, 'utf8'), /Progression: 1 scenarios; Regression: 1 scenarios/);
   await apply('handoff', { handoff: await saveHandoff('tests', { outcome: 'TESTS_PREPARED', artifacts: { report: path.relative(root, preparation.report), preparation: path.relative(root, preparation.file) }, data: {} }) });
   assert.equal(parseState(await readFile(statePath, 'utf8')).fields.phase, 'execute');
   if (workspace) {

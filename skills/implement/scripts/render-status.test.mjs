@@ -1606,11 +1606,15 @@ test('preparation audit links preserve historical reports and leave unsafe refer
     'Test preparation ready: https://example.com/DEMO-plan-tests-1.md',
     'Test preparation ready: make-it-work/DEMO/../OTHER-plan-tests-1.md',
     'Test preparation ready: <invalid>',
+    'Test preparation ready: make-it-work/DEMO/DEMO-plan-tests-3.md; Test coverage: 5 progression / 1 regression scenarios planned',
+    'Test preparation blocked: make-it-work/DEMO/DEMO-plan-tests-4.md; Test coverage: unavailable',
   ];
   const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none', phase: 'write-tests' }, rows: outcomes.map((outcome, index) =>
     [`2026-01-01T10:0${index}:00Z`, 'write-tests', 'write-tests', outcome]) }));
   const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
-  assert.equal((html.match(/View preparation report/g) ?? []).length, 2);
+  assert.equal((html.match(/View preparation report/g) ?? []).length, 4);
+  assert.match(html, /Test coverage: 5 progression \/ 1 regression scenarios planned · <a href="DEMO-plan-tests-3.md"/);
+  assert.match(html, /Test coverage: unavailable · <a href="DEMO-plan-tests-4.md"/);
   assert.match(html, /href="DEMO-plan-tests-1.md"/);
   assert.match(html, /href="miw-DEMO-plan-tests-2.md"[^>]*>View preparation report<\/a>\. Implementation remains unverified\./);
   assert.doesNotMatch(html, /href="https:|href="[^"]*\.\.\//);
@@ -1654,13 +1658,12 @@ test('compact approval banners show only the waiting status and review action', 
   }
 });
 
-test('coverage display preserves purposes and never converts baseline limits into passes', async () => {
+test('coverage details stay out of the dashboard artifact grid', async () => {
   const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started']] }));
   const options = { state, template: '{{PREPARATION_TILE}}', logoBase64: '', planStatus: { coverage: { progression: 1, regression: 1, scenarios: [{ scenario: '<Cards>', purpose: 'Regression', baseline: 'Pending — no matching pre-change baseline recorded' }] } } };
   const html = renderStatus(options);
-  assert.match(html, /1 progression \/ 1 regression scenarios/);
-  assert.match(html, /&lt;Cards&gt;/);
-  assert.match(html, /no matching pre-change baseline/);
+  assert.match(html, /Test Preparation/);
+  assert.doesNotMatch(html, /test-coverage|progression|regression|Cards|pre-change baseline/);
   const stale = renderStatus({ ...options, preparation: { plan_hash: 'old', current_plan_hash: 'new', entries: [{ scenario: '<Cards>', kind: 'regression', result: 'pass' }] } });
   assert.match(stale, /Superseded/);
   assert.doesNotMatch(stale, /regression: pass/);

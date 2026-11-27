@@ -2,6 +2,7 @@
 import { artifactJoin, artifactResolve, logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
+import { prepareFeedbackArchive } from '../../../scripts/feedback-archive.mjs';
 import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
 import { lstat, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
@@ -518,7 +519,9 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
   }
   if (sessionReview && !summary.analysisRequired && !summary.evidenceRequired) await finalizeFeedback(statePath,
     { runId: summary.runId, stateHash: summary.stateHash, status: 'saved', kind: 'legacy-minimal' }, { refresh: false });
-  return { ...(sessionReview ? { feedbackReport: 'combined', readback: { tool: 'Read', file_path: sessionOutputPath, instruction: 'Read the full saved Markdown before presenting feedback or offering delivery.' } } : {}), ...summary, outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
+  const archive = await prepareFeedbackArchive({ root: path.dirname(path.dirname(path.dirname(artifactResolve(statePath)))),
+    reportPath: artifactResolve(sessionOutputPath), transcriptPath });
+  return { ...(sessionReview ? { feedbackReport: 'combined', readback: { tool: 'Read', file_path: sessionOutputPath, instruction: 'Read the full saved Markdown before presenting feedback or offering delivery.' } } : {}), ...summary, outputPath, sessionOutputPath, archive, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
 }
 
 export async function unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop = false } = {}) {

@@ -94,6 +94,29 @@ function sessionReview() {
   };
 }
 
+test('writer prepares a prefixed transcript ZIP and preserves it in compact receipts', async t => {
+  const f = await workspace(t, finish(await fixture('feedback-clean')));
+  const transcriptPath = path.join(path.dirname(f.statePath), 'source.jsonl');
+  await writeFile(transcriptPath, '{"type":"user","message":{"content":"hello"}}\n');
+  const result = await writeFeedback(f.statePath, { sessionReview: sessionReview(), transcriptPath });
+  assert.equal(result.archive.status, 'saved');
+  assert.equal(path.basename(result.archive.archivePath), 'miw-session-debug.zip');
+  assert.equal(result.archive.capturedTranscripts, 1);
+  assert.equal((await readFile(result.archive.archivePath)).readUInt32LE(0), 0x04034b50);
+  assert.deepEqual(feedbackWriteReceipt(result, { compact: true }).archive, result.archive);
+});
+
+test('archive failure cannot fail the feedback write or overwrite an unrelated target', async t => {
+  const f = await workspace(t, finish(await fixture('feedback-clean')));
+  const target = path.join(path.dirname(f.statePath), 'private.txt'); await writeFile(target, 'private');
+  await symlink(target, path.join(path.dirname(f.statePath), 'miw-session-debug.zip'));
+  const result = await writeFeedback(f.statePath, { sessionReview: sessionReview() });
+  assert.equal(result.feedbackReport, 'combined');
+  assert.equal(result.archive.status, 'unavailable');
+  assert.match(await readFile(result.sessionOutputPath, 'utf8'), /### Session review/);
+  assert.equal(await readFile(target, 'utf8'), 'private');
+});
+
 test('conversation friction on a zero-retry run shares captured provenance and updates both reports with only informational state notes', async (t) => {
   const state = finish(await fixture('feedback-clean'));
   const f = await workspace(t, state);
