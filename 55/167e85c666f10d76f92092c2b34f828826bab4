@@ -1,0 +1,31 @@
+skills/implement/scripts/render-status.mjs
+  s_2640c86f95052d::t_736e0d5649cd3c 845-847
+  s_2640c86f95052d::t_0c9b97ed9002ed 830,837-839,848
+.claude-plugin/plugin.json
+  s_2640c86f95052d::t_d135e869de3e39 6
+CHANGELOG.md
+  s_2640c86f95052d::t_d135e869de3e39 9-14
+scripts/lib/workflow-dashboard.mjs
+  s_2640c86f95052d::t_0c9b97ed9002ed 41-46,48-49,132
+  s_2640c86f95052d::t_e06a421c68a6c5 47
+skills/implement/scripts/render-status.test.mjs
+  s_2640c86f95052d::t_4f98193e582e4e 1638,1649-1650
+skills/implement/scripts/pending-input.test.mjs
+  s_2640c86f95052d::t_a9621495db6987 46-47,72,87,165-166,213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "55167e85c666f10d76f92092c2b34f828826bab4",
+  "prompts": {},
+  "sessions": {
+    "s_2640c86f95052d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21c20-f246-7c92-8322-cd3f044fedee",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
