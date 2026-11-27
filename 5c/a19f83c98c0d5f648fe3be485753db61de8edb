@@ -1,0 +1,74 @@
+scripts/feedback-archive.test.mjs
+  s_8f3f2a27ec1574::t_a9fdda88d4fffa 1-158,161,163-187
+  s_8f3f2a27ec1574::t_7dc13d672e21a2 159-160,162
+skills/implement/scripts/write-feedback.test.mjs
+  s_8f3f2a27ec1574::t_d966f05477fc7d 97-119
+skills/implement/references/controller.md
+  s_474699c79cb734::t_d49872e3f16fe9 329
+README.md
+  s_8f3f2a27ec1574::t_86c66a9c54b576 339-351
+skills/implement/scripts/workflow-integration.test.mjs
+  s_474699c79cb734::t_03016d9cb5a2d6 171-176
+CHANGELOG.md
+  s_474699c79cb734::t_7811a3d2df5b9a 9-19
+skills/implement/scripts/render-status.test.mjs
+  s_474699c79cb734::t_03016d9cb5a2d6 1609-1610,1615-1617,1661,1665-1666
+skills/implement/scripts/render-status.mjs
+  s_474699c79cb734::t_d49872e3f16fe9 753,1031
+  s_474699c79cb734::t_bc49bbb227643c 748
+scripts/feedback-archive.mjs
+  s_8f3f2a27ec1574::t_75f6fc50c56c5f 1-41,43-45,47-58,60,62-74,76-88,91-127,129-154
+  s_8f3f2a27ec1574::t_18c81daa553922 59,61
+  s_8f3f2a27ec1574::t_d966f05477fc7d 42,46,89-90
+  s_8f3f2a27ec1574::t_7259a88415654c 75
+  s_8f3f2a27ec1574::t_7dc13d672e21a2 128
+skills/implement/scripts/workflow.mjs
+  s_474699c79cb734::t_d49872e3f16fe9 23,188,606-609,613
+skills/implement/scripts/write-feedback.mjs
+  s_8f3f2a27ec1574::t_86c66a9c54b576 5,522-524
+skills/implement/references/feedback.md
+  s_8f3f2a27ec1574::t_86c66a9c54b576 20-33
+.claude-plugin/plugin.json
+  s_474699c79cb734::t_7811a3d2df5b9a 6
+skills/feedback-on-session/SKILL.md
+  s_8f3f2a27ec1574::t_86c66a9c54b576 116-153
+  s_8f3f2a27ec1574::t_5ef94c5a34b2df 108
+skills/write-the-tests/scripts/preparation.test.mjs
+  s_474699c79cb734::t_03016d9cb5a2d6 112-130
+scripts/lib/zip.mjs
+  s_8f3f2a27ec1574::t_75f6fc50c56c5f 1-51
+docs/workflow-findings.md
+  s_ff9c67d2a39fae::t_b44ce3346f12b7 5,7,9,11,13-23,25,27,29-33,35,37,39-43,45,55,57-58,68,78,80,86,90,92-107,344-347,375-376,505-511,614-672,699-712,738-933,2994-2995,3068-3069,3178-3180,3203-3205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5ca19f83c98c0d5f648fe3be485753db61de8edb",
+  "prompts": {},
+  "sessions": {
+    "s_474699c79cb734": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21d90-8bda-7c92-8ad5-c4403f90db2a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_8f3f2a27ec1574": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21d90-bac2-7201-9da6-8b39fa5938f9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_ff9c67d2a39fae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21c54-ed74-7721-9e86-4437991aa6b1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
