@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source 5c0fd6b49937ba6adb836aaa803ba707cc761f07](https://github.com/insideout-ai/make-it-work/tree/5c0fd6b49937ba6adb836aaa803ba707cc761f07). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source cf5ce25ac3672ce710e7af28fb16ea6d09c2efed](https://github.com/insideout-ai/make-it-work/tree/cf5ce25ac3672ce710e7af28fb16ea6d09c2efed). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -76,6 +76,8 @@ Then start with an epic or a ticket:
 /make-it-work:drive-the-epic path/to/brief.md
 /make-it-work:implement APP-123
 ```
+
+If you know the repository, start `implement` there. Unsure which repository owns the ticket? From your multi-repo workspace, run `/make-it-work:find-the-repos APP-123` first and review its evidence-backed shortlist before starting refinement or implementation. Use an identified workspace boundary; sibling repositories alone do not establish ownership. See [workspace usage](#implement-across-repositories) for running `implement` across repositories.
 
 Choose the skill that matches your work; these are separate entry points. [Installation details](#install) cover existing marketplace installs and plugin reloads. [Usage](#usage) lists options, and [example workflows](#example-workflows) show how the skills fit together.
 

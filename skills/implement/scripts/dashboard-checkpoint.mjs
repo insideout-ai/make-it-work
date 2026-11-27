@@ -174,10 +174,17 @@ const USAGE = 'Usage: dashboard-checkpoint.mjs render|resume --state <state.md> 
 function parseArgs(argv) {
   if (argv.length === 1 && argv[0] === '--help') return { help: true };
   if (argv[0] === 'render' && argv.length === 3 && argv[1] === '--state' && argv[2]) return { statePath: argv[2] };
-  if (argv[0] === 'activity' && [5, 7, 9].includes(argv.length) && argv[1] === '--state' && argv[2] && argv[3] === '--activity' && argv[4]) {
-    const result = { statePath: argv[2], activity: argv[4] }, seen = new Set();
+  if (argv[0] === 'activity') {
+    const invalid = message => fail(`${message}\n${USAGE}`);
+    for (const [index, flag] of [[1, '--state'], [3, '--activity']]) {
+      if (argv[index] !== flag) invalid(`Activity requires activity --state <state.md> --activity <one line> before optional flags; expected ${flag}, received ${JSON.stringify(argv[index] ?? '(missing)')}.`);
+      if (!argv[index + 1]) invalid(`Missing value for ${flag}.`);
+    }
+    const result = { statePath: argv[2], activity: argv[4] }, seen = new Set(['--state', '--activity']);
     for (let i = 5; i < argv.length; i += 2) {
-      if (!['--category', '--planning-activity'].includes(argv[i]) || seen.has(argv[i]) || !argv[i + 1]) fail(USAGE);
+      if (seen.has(argv[i])) invalid(`Duplicate activity option: ${argv[i]}.`);
+      if (!['--category', '--planning-activity'].includes(argv[i])) invalid(`Unknown activity option: ${JSON.stringify(argv[i])}.`);
+      if (!argv[i + 1] || argv[i + 1].startsWith('--')) invalid(`Missing value for ${argv[i]}.`);
       seen.add(argv[i]); result[argv[i] === '--category' ? 'category' : 'planningActivity'] = argv[i + 1];
     }
     return result;
