@@ -1,0 +1,63 @@
+scripts/lib/test-coverage.test.mjs
+  s_0e9d705d1059a6::t_61dcd248e43b5d 1-39
+  s_0e9d705d1059a6::t_f4a06769e0e1c3 40-61
+skills/implement/scripts/render-status.test.mjs
+  s_0e9d705d1059a6::t_1813ca49f41cbc 1658
+  s_0e9d705d1059a6::t_68cfdae9bf9b99 1656-1657,1659-1667
+CHANGELOG.md
+  s_0e9d705d1059a6::t_1591c333e7aef3 14
+scripts/lib/test-coverage.mjs
+  s_0e9d705d1059a6::t_cd9eca9c32efc4 1-51
+scripts/validate-plan.mjs
+  s_0e9d705d1059a6::t_14c988db345534 4,48-49
+skills/execute/SKILL.md
+  s_0e9d705d1059a6::t_94c43a1bbfbab9 309-312
+skills/implement/assets/workflow-defaults.json
+  s_0e9d705d1059a6::t_a062b633c5fedf 61-62
+skills/implement/references/controller.md
+  s_0e9d705d1059a6::t_84060b0d10293c 326-329
+skills/implement/scripts/final-package.mjs
+  s_0e9d705d1059a6::t_397d3e45c712e4 14,85,258-269,271
+skills/implement/scripts/handoff.mjs
+  s_0e9d705d1059a6::t_64fae3325031cf 2,143,186,409
+skills/implement/scripts/handoff.test.mjs
+  s_0e9d705d1059a6::t_671d653a2363a8 398-420
+skills/implement/scripts/manual-waiver.mjs
+  s_0e9d705d1059a6::t_ed28bba0f710f0 1,7
+skills/implement/scripts/render-status.mjs
+  s_0e9d705d1059a6::t_e3be17588c8731 22,310,991-992,1033,1095,1157-1162
+skills/implement/scripts/testing-policy.mjs
+  s_0e9d705d1059a6::t_d062c6db16f581 4,64
+skills/implement/scripts/workflow-integration.test.mjs
+  s_0e9d705d1059a6::t_6098d7367f9868 125-137
+skills/implement/scripts/workflow.mjs
+  s_0e9d705d1059a6::t_7be1fbbe908e06 368
+skills/implement/scripts/workflow.test.mjs
+  s_0e9d705d1059a6::t_2d3faaf27a867b 424,535,643-644
+skills/plan-the-work/SKILL.md
+  s_0e9d705d1059a6::t_1e1c7857ec2f88 390-393
+skills/plan-the-work/references/plan-template.md
+  s_0e9d705d1059a6::t_05bd32555b4304 139-148,153,155-162
+skills/review-the-code/SKILL.md
+  s_0e9d705d1059a6::t_4612f5361b710a 336-337
+skills/write-the-tests/references/authoring.md
+  s_0e9d705d1059a6::t_cd598e732482f4 36-39
+skills/write-the-tests/scripts/preparation.mjs
+  s_0e9d705d1059a6::t_7f9c4cb95f574b 4-5,20,31,106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5e0fbd8392f052f632077f021521eec0825dc47d",
+  "prompts": {},
+  "sessions": {
+    "s_0e9d705d1059a6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2180c-ff69-7171-89a8-456ffd7c5cc5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
