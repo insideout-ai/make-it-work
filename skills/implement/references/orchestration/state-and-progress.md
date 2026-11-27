@@ -13,6 +13,7 @@ For a new run, create the real directory `make-it-work/<TICKET>/` under the arti
 ticket: <TICKET>
 handoff_version: 1
 test_writing_version: 1
+test_coverage_version: 1      # fresh TDD plans require purpose and regression-impact metadata; no legacy backfill
 test_preparation: none
 test_preparation_report: none
 review_scope_version: 1       # full delivery diff required for clean review and packaging             # new runs use validated JSON handoffs; absent on older runs
