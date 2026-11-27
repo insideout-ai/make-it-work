@@ -1,0 +1,23 @@
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/integrated-quality.md
+  s_165cd8b44de4aa::t_e1b09ba71185de 1-7
+evals/write-the-tests/standalone/graders/integrated-quality.md
+  s_165cd8b44de4aa::t_e1b09ba71185de 1-7
+evals/plan-the-work/happy-path/graders/integrated-quality.md
+  s_165cd8b44de4aa::t_e1b09ba71185de 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "09f979a3c7d7049d9262e861616da560b98fec86",
+  "prompts": {},
+  "sessions": {
+    "s_165cd8b44de4aa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a217b7-107b-7f41-9f60-856e2370ae6a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
