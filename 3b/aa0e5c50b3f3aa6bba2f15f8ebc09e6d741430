@@ -1,0 +1,46 @@
+skills/implement/scripts/completion-summary.mjs
+  s_5cd48ba477f05f::t_5cf67d6a40a6ea 3,10,14-17
+  s_5cd48ba477f05f::t_17e38a243a75e2 1-2,4-9,11-13,18-50
+skills/implement/assets/status-template.html
+  s_5cd48ba477f05f::t_2d3ad5320673ad 10-17,19-25,28-29,31-32,39-44,46-48,60-63,66,69,74-75
+  s_5cd48ba477f05f::t_138f7cc522d90e 18
+skills/implement/references/orchestration/completion.md
+  s_5cd48ba477f05f::t_6ed33cb9cc8f68 5-11,13-14,25,27
+  s_5cd48ba477f05f::t_c44783eb9234ce 12
+skills/implement/scripts/render-status.mjs
+  s_5cd48ba477f05f::t_b9bebfd56b9695 917,919-920,933
+  s_5cd48ba477f05f::t_5332d59ded1fe7 896
+  s_5cd48ba477f05f::t_138f7cc522d90e 1097
+  s_5cd48ba477f05f::t_ff69ce530cd046 934,1049-1050,1098,1141,1215-1216,1219-1251
+  s_5cd48ba477f05f::t_e7d27ae90d68f6 874,913
+  s_5cd48ba477f05f::t_a65218564041c3 25-26,840,858,864,867,872,876-895,902-912,914-916,918,921-925,927-931,935-942,1039,1073-1075,1082-1084,1096
+  s_5cd48ba477f05f::t_6ed33cb9cc8f68 862,932
+  s_5cd48ba477f05f::t_43c8382d1b0e45 897-901,926
+skills/implement/scripts/completion-summary.test.mjs
+  s_5cd48ba477f05f::t_5d65bcbc20bb25 1-29,34-50
+  s_5cd48ba477f05f::t_5cf67d6a40a6ea 30-33
+skills/implement/scripts/render-status.test.mjs
+  s_5cd48ba477f05f::t_5cf67d6a40a6ea 402,404-414
+  s_5cd48ba477f05f::t_65f8276876e404 183,928
+  s_5cd48ba477f05f::t_0c9ae9b7f675de 415-423
+  s_5cd48ba477f05f::t_53afce048934bb 324-401
+  s_5cd48ba477f05f::t_07e7b875ae30c4 181,234-235,403,970-971,1579,1582-1585
+docs/artifact-observability.md
+  s_5cd48ba477f05f::t_7fe875641ef5f3 32-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3baa0e5c50b3f3aa6bba2f15f8ebc09e6d741430",
+  "prompts": {},
+  "sessions": {
+    "s_5cd48ba477f05f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21e44-c089-7cc2-a9f4-8eee4cc3dad9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
