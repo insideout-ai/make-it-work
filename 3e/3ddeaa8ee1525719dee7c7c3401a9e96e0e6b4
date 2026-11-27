@@ -1,0 +1,21 @@
+skills/implement/references/orchestration/state-and-progress.md
+  s_0e9d705d1059a6::t_a1589138dfe0b3 16
+skills/implement/scripts/testing-readiness.test.mjs
+  s_0e9d705d1059a6::t_b1303d282ae387 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3e3ddeaa8ee1525719dee7c7c3401a9e96e0e6b4",
+  "prompts": {},
+  "sessions": {
+    "s_0e9d705d1059a6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2180c-ff69-7171-89a8-456ffd7c5cc5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
