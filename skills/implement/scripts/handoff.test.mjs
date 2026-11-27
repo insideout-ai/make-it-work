@@ -395,3 +395,26 @@ test('new test-writing runs route approval and nonempty amendments through prepa
   assert.equal(decideNext(preparing, tests).phase, 'execute');
   assert.throws(() => validateHandoff({ ...tests, artifacts: { report: tests.artifacts.report } }), /preparation/);
 });
+
+test('fresh coverage enforcement permits metadata repair while legacy plans remain accepted', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'coverage-handoff-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'make-it-work/DEMO-1'), { recursive: true });
+  const file = path.join(root, plan().artifacts.plan);
+  await writeFile(file, '# Legacy plan');
+  await validateArtifacts(plan(), root);
+  await assert.rejects(validateArtifacts(plan(), root, { requireCoverage: true }), /repair in planning/);
+  const repaired = `# Plan
+**Test coverage contract:** 1
+## Regression Impact
+| Changed code | Domain | UC / behavior | Decision | Reason / evidence | Test scenarios |
+| --- | --- | --- | --- | --- | --- |
+| app/new.js | new | New flow only | Excluded | no existing consumers | None |
+## Test Plan
+| Scenario | Purpose | Type | File / command |
+| --- | --- | --- | --- |
+| New behavior | Progression | Unit | test.js |
+`;
+  await writeFile(file, repaired);
+  assert.equal((await validateArtifacts(plan(), root, { requireCoverage: true })).outcome, 'PLAN_SAVED');
+});

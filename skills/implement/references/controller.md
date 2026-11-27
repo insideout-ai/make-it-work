@@ -323,3 +323,7 @@ After a real handback, apply `preparation-saved` with `preparation: <root-relati
 ## Compaction boundary (new runs)
 
 Before initial Write Tests authorization/dispatch, follow [compaction](compaction.md). Apply `compaction-checkpoint` with the usual `id`, `expected_hash`, explicit `repos` and optional `notes` (up to 4,000 characters). New defaults include `compaction_version: 1`, `compaction_checkpoint: pending`, `compaction_recovery: none`; never backfill them. The event saves a recovery artifact and uses controller-owned `kind: compaction` questions. Resolve them through `resolve-input` with the actual user answer. Inspect `next_action` for the copyable compaction command and resume invocation. Neither that event nor an answer proves compaction occurred. Publication of the accepted plan precedes this event.
+
+## Test coverage visibility
+
+Fresh TDD states have `test_coverage_version: 1`; pass it into planning to require the plan Test coverage contract marker and purpose/impact metadata. Legacy saved runs retain prior contracts without marker backfill. Handoff validation returns metadata corrections before acceptance; preserve implementation progress and evidence when repairing metadata, and use existing replan routes for substantive changes. Display limitations never change gate outcomes. Lightweight retains its existing verification model.

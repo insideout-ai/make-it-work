@@ -136,18 +136,30 @@ Stop and flag if any fail before writing code.
 
 _Include for required manual-policy verification or runnable manual scenarios. For automated-policy repos, known unavailable supplemental checks go in Post-delivery Verification instead. Do not silently defer a manual-policy gate. This is the final numbered execution step._ Walk through the relevant Test Plan scenarios against the running behavior, including nearby regression paths, and record observed results. **Verify:** each named manual scenario was actually performed and matched its expected observation; required build/lint/type checks also pass. Missing access or an unperformed scenario stops verification. This step neither installs a runner nor claims an automated suite passed.
 
+## Regression Impact
+
+For new coverage-contract plans, assess candidate regression UCs by tracing changed code → domains → related UCs → actual affected behavior → mapped assertions. Links discover candidates; they do not automatically select tests. Use repo-qualified paths/domains/UCs. Explain exclusions and uncertain mappings. Where documentation is missing, cite traced code and the mapping limitation. A no-regression assessment still has an Excluded row with its reason and Test scenarios `None`.
+
+| Changed code | Domain | UC / behavior | Decision | Reason / evidence | Test scenarios |
+| --- | --- | --- | --- | --- | --- |
+| <repo:path> | <domain or undocumented> | <UC or concrete behavior> | Required / Excluded / Unresolved | <dependency/assertion evidence> | <exact regression scenario names separated by semicolons, or None> |
+
+This records existing selection reasoning; do not broaden selectors or run additional tests for metadata. Genuine coverage gaps retain existing planning/replan handling.
+
 ## Test Plan
 
 Define every planned automated and manual scenario here, including its expected result, originating step, intended test path, supported command and prerequisites. This is the coverage specification consumed by write-the-tests, not an observed test report.
 
-Use unique Scenario names. With an explicit verification policy, include the Repo column below. Manual repos use Type `Manual`, and File / command describes setup, actions, expected observations and the originating step. Without a policy, the older three-column `Scenario | Type | File / command` format remains valid.
+New plans carry `**Test coverage contract:** 1` after the header. Older saved runs retain their existing contract on resume/amendment; do not backfill markers. New standalone plans use the marker too. Purpose is Progression or Regression, independently of Type. Give each scenario one purpose; the same test file/command may serve separate scenarios without duplicate execution. Keep AC traceability linked to these exact names; regression protection need not invent a new-ticket AC. Before implementation, summarize purpose counts, protected UCs and unresolved gaps in chat.
 
-| Scenario | Repo | Type | File / command |
-| --- | --- | --- | --- |
-| Happy path | <repo-name> | Unit | … |
-| _(edge case)_ | <repo-name> | Unit | … |
-| _(failure scenario — DB error, downstream timeout)_ | <repo-name> | Unit | … |
-| _(regression — existing flow that must keep working)_ | <repo-name> | Manual | <setup; actions; expected observation; step> |
+Use unique Scenario names. With an explicit verification policy, include the Repo column below. Manual repos use Type `Manual`, and File / command describes setup, actions, expected observations and the originating step. Legacy plans without a policy may retain the older three-column `Scenario | Type | File / command` format.
+
+| Scenario | Repo | Purpose | Type | File / command |
+| --- | --- | --- | --- | --- |
+| Happy path | <repo-name> | Progression | Unit | … |
+| _(edge case)_ | <repo-name> | Progression | Unit | … |
+| _(failure scenario — DB error, downstream timeout)_ | <repo-name> | Progression | Unit | … |
+| _(regression — existing flow that must keep working)_ | <repo-name> | Regression | Manual | <setup; actions; expected observation; step> |
 
 **AC traceability:**
 

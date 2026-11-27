@@ -1635,7 +1635,7 @@ test('preparation reentries remain separate from fix execution and manual exempt
   assert.match(html, /Step 1 of 2 complete/);
 });
 
-test('approval cards show readable review links without document hashes or raw paths', () => {
+test('compact approval banners show only the waiting status and review action', () => {
   const hash = 'a'.repeat(64);
   for (const [phase, binding, label, filename] of [
     ['spec-approval', { kind: 'artifact', path: 'make-it-work/DEMO/DEMO-spec.md', sha256: hash, strict: true }, 'Review specification', 'DEMO-spec.md'],
@@ -1646,11 +1646,22 @@ test('approval cards show readable review links without document hashes or raw p
     const state = parseState(stateMarkdown({ fields: { phase, status: 'Paused', final_package_version: '1', pending_inputs: JSON.stringify([pending]) }, rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Awaiting approval']] }));
     const html = renderStatus({ state, template: '{{STATUS_BANNER}}', logoBase64: '' });
     assert.ok(html.includes(`href="${filename}">${label}</a>`));
-    assert.match(html, /Workflow paused/);
-    assert.match(html, /<li>Approve<\/li><li>Request changes<\/li><li>Stop<\/li>/);
-    assert.match(html, /Waiting for your approval · <span data-wait-since="2026-01-01T10:00:00Z">/);
+    assert.match(html, /<strong class="pending-title">Implementation is waiting for your input<\/strong>/);
+    assert.doesNotMatch(html, /Workflow paused|Approve this document|<li>|data-wait-since|<details/);
     assert.doesNotMatch(html, /SHA-256|Pending since|make-it-work\//);
     assert.ok(!html.includes(hash));
     assert.equal(state.pendingInputs[0].binding.sha256, hash);
   }
+});
+
+test('coverage display preserves purposes and never converts baseline limits into passes', async () => {
+  const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started']] }));
+  const options = { state, template: '{{PREPARATION_TILE}}', logoBase64: '', planStatus: { coverage: { progression: 1, regression: 1, scenarios: [{ scenario: '<Cards>', purpose: 'Regression', baseline: 'Pending — no matching pre-change baseline recorded' }] } } };
+  const html = renderStatus(options);
+  assert.match(html, /1 progression \/ 1 regression scenarios/);
+  assert.match(html, /&lt;Cards&gt;/);
+  assert.match(html, /no matching pre-change baseline/);
+  const stale = renderStatus({ ...options, preparation: { plan_hash: 'old', current_plan_hash: 'new', entries: [{ scenario: '<Cards>', kind: 'regression', result: 'pass' }] } });
+  assert.match(stale, /Superseded/);
+  assert.doesNotMatch(stale, /regression: pass/);
 });

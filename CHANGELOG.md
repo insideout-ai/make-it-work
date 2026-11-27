@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.5] — 2026-11-27
+
+### Changed
+
+- Compact implementation input waits into a subtle status banner with a direct document review link. Remove repeated pause text, approval choices and the waiting timer; keep general questions collapsed until opened.
+- Show progression and regression scenario purposes, protected use cases and recorded baseline limits in plans, preparation reports, dashboards and final packages. Validate coverage metadata for fresh TDD runs while preserving legacy plans and existing test commands, selectors and regression gates.
+
 ## [5.17.4] — 2026-11-26
 
 ### Fixed

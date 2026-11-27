@@ -421,7 +421,7 @@ test('the controller retains the existing handoff boundary requiring testing pol
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior with existing callers.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const directory = artifactJoin(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(directory);
-  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | Save record | Save |\n');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan without readiness policy\n\n**Test coverage contract:** 1\n\n## Regression Impact\n\n| Changed code | Domain | UC / behavior | Decision | Reason / evidence | Test scenarios |\n| --- | --- | --- | --- | --- | --- |\n| src/new.js | new | New flow | Excluded | Independent new code | None |\n\n## Test Plan\n\n| Scenario | Purpose | Type | File / command |\n| --- | --- | --- | --- |\n| Save | Progression | Unit | test.js |\n\n**AC traceability:**\n\n| Acceptance criterion | Requirement clause | Test scenario |\n| --- | --- | --- |\n| AC1 | Save record | Save |\n');
   await writeFile(artifactJoin(directory, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(statePath, 'utf8');
   await assert.rejects(apply('handoff', { handoff: 'make-it-work/DEMO/DEMO-handoffs/plan-1.json' }), /Verification Policy/);
@@ -532,7 +532,7 @@ test('a fresh controller rejects a scenario-only plan without advancing state', 
   await apply('mode', { risk: 'medium', mode: 'tdd', source: 'assessed', rationale: 'Touches shared behavior.' });
   await apply('context-ready', { reuse_spec: true, spec: 'make-it-work/DEMO/DEMO-spec.md', source: 'user', via: 'chat' });
   const dir = artifactJoin(root, 'make-it-work/DEMO/DEMO-handoffs'); await mkdir(dir);
-  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Total passes |\n');
+  await writeFile(artifactJoin(root, 'make-it-work/DEMO/DEMO-plan.md'), '# Plan\n\n**Test coverage contract:** 1\n\n## Regression Impact\n\n| Changed code | Domain | UC / behavior | Decision | Reason / evidence | Test scenarios |\n| --- | --- | --- | --- | --- | --- |\n| src/new.js | new | New flow | Excluded | Independent new code | None |\n\n## Test Plan\n\n| Scenario | Purpose | Type | File / command |\n| --- | --- | --- | --- |\n| Save | Progression | Unit | test.js |\n\n**AC traceability:**\n\n| Acceptance criterion | Test scenario |\n| --- | --- |\n| AC1 | Total passes |\n');
   await writeFile(artifactJoin(dir, 'plan-1.json'), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'plan', status: 'done', outcome: 'PLAN_SAVED', artifacts: { plan: 'make-it-work/DEMO/DEMO-plan.md' }, data: { mode: 'initial', steps_added: null, recommend_replan: null, context_updated: [] } }));
   const before = await readFile(statePath, 'utf8');
   assert.equal(parseState(before).fields.acceptance_evidence_version, '1');
@@ -640,8 +640,8 @@ test('actual controller accepts current preparation, renders its report, and ent
     await mkdir(artifactJoin(root, 'test'));
     await writeFile(artifactJoin(root, 'test/change.test.js'), '// existing assertions\n');
   } });
-  // This fixture isolates preparation routing from readiness and clause-ledger tests.
-  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('compaction_checkpoint: pending', 'compaction_checkpoint: declined').replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace(/^testing_readiness(?:_version)?:.*\n/gm, '').replace(/^acceptance_evidence_version:.*\n/m, ''));
+  // This legacy-format fixture isolates preparation routing from readiness, coverage and clause-ledger tests.
+  await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('compaction_checkpoint: pending', 'compaction_checkpoint: declined').replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd').replace('mode_source: none', 'mode_source: assessed').replace(/^testing_readiness(?:_version)?:.*\n/gm, '').replace(/^acceptance_evidence_version:.*\n/m, '').replace(/^test_coverage_version:.*\n/m, ''));
   const directory = path.dirname(f.statePath), planPath = artifactJoin(directory, 'DEMO-plan.md');
   const plan = '# Plan\n\n**Test preparation contract:** 1\n\n## Execution Status\n\n**Mode:** Subagent-Driven\n\n**Progress:** Step 0 of 1 complete\n\n## Steps\n\n### Step 1 — Change\n\n**Files:** `source.txt`\n\n**Depends on:** none\n\n**Can run in parallel with:** none\n\n**Verify:** tests pass\n\n**Tests:** app: `test/change.test.js`, node --test\n\n## Test Plan\n\n| Scenario | Repo | Type | File / command |\n| --- | --- | --- | --- |\n| New behavior | app | Unit | step 1 |\n';
   await writeFile(planPath, plan);

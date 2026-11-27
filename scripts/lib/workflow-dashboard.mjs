@@ -38,10 +38,17 @@ export const WORKFLOW_STYLES = `
   .repository-location p { margin: 0.4rem 0; max-width: 48ch; overflow-wrap: anywhere; }
   .timestamp-warning { color: #b54708; font-size: 0.8em; font-style: italic; white-space: nowrap; }
   .next-action { background: #fff6e0; border: 1px solid #e8d9a0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
-  .pending-input { margin: 0.75rem 0; overflow-wrap: anywhere; }
+  .pending-input { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; box-sizing: border-box; min-height: 64px; margin: 0.75rem 0; padding: 0.875rem 1rem; overflow-wrap: anywhere; background: #fffaf0; }
+  .pending-title { display: flex; align-items: center; gap: 0.625rem; font-size: 0.9rem; font-weight: 600; color: #594719; }
+  .pending-title::before { content: ''; flex: 0 0 8px; height: 8px; border-radius: 50%; background: #b78012; }
+  .pending-reference, .pending-details { margin-left: auto; font-size: 0.85rem; }
+  .pending-reference, .pending-details summary { color: #72520f; text-underline-offset: 3px; }
+  .pending-details summary { cursor: pointer; }
+  :is(.pending-reference, .pending-details summary):focus-visible { outline: 2px solid #72520f; outline-offset: 4px; }
+  .pending-details[open] { flex-basis: 100%; margin-left: 0; }
+  .pending-details p, .pending-details ul { margin: 0.75rem 0 0; }
   .pending-qualifier { display: block; font-size: 0.8rem; margin-top: 0.2rem; color: #65582d; }
   .pending-question { white-space: pre-wrap; }
-  .pending-since, .pending-reference { font-size: 0.8rem; }
   .complete { background: #e6f4ea; border: 1px solid #b7dfc0; padding: 0.75rem 1rem; border-radius: 0.4rem; }
   .session-timing { font-size: 0.75rem; color: #888; }
   .assessment-low { color: #1e6231; background: #e6f4ea; }
@@ -122,6 +129,7 @@ export const WORKFLOW_STYLES = `
   }
   @media (max-width: 540px) {
     body { padding: 1rem 0.75rem; }
+    .pending-reference, .pending-details { margin-left: 1.125rem; }
     .header-badges .pill { white-space: normal; overflow-wrap: anywhere; }
     .artifact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }

@@ -33,3 +33,7 @@ Record one preparation entry per exact Test Plan scenario, including its origina
 Standalone narrates test authoring, baseline execution and progression verification as distinct meaningful activities. Implement workers return observations and blockers to the coordinator; they never narrate/checkpoint fictitious live activity into the parent's dashboard while it waits. Neither mode advances implementation Progress.
 
 Keep full logs in local artifacts and return concise relevant evidence, preserving unresolved diagnostics. Read only the guidance/code needed for the active scenarios; store reusable findings as source references instead of carrying discovery transcripts into later stages.
+
+## Purpose and baseline visibility
+
+New coverage-contract plans name Progression or Regression per scenario. Match automated preparation kind to that purpose; manual entries retain kind manual. Reuse one observed command result across multiple named scenarios only when its assertions actually cover them; metadata never requires duplicate execution. Preparation reports derive baseline status from retained observations, not the plan. Do not run additional suites to obtain baseline labels.
