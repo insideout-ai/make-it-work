@@ -1,0 +1,26 @@
+.claude-plugin/plugin.json
+  s_ff9c67d2a39fae::t_96a95aa53a5223 6
+README.md
+  s_ff9c67d2a39fae::t_3162ee847cea38 78
+  s_ff9c67d2a39fae::t_0c896ddec7f932 79
+CHANGELOG.md
+  s_ff9c67d2a39fae::t_96a95aa53a5223 9-19
+docs/workflow-findings.md
+  s_ff9c67d2a39fae::t_a4c6a7ea5ecabd 3014-3036
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4dc071bffe67c3bda6b591e9e4eefde5724df0ca",
+  "prompts": {},
+  "sessions": {
+    "s_ff9c67d2a39fae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21c54-ed74-7721-9e86-4437991aa6b1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
