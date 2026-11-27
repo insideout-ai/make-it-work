@@ -827,22 +827,25 @@ function pendingReviewLink(state, record) {
   const label = binding.kind === 'package' ? 'Review final package'
     : record.phase === 'spec-approval' ? 'Review specification'
       : record.phase === 'plan-approval' ? 'Review plan' : 'Review document';
-  return `<p class="pending-reference"><a href="${escapeHtml(filename)}">${label}</a></p>`;
+  return `<a class="pending-reference" href="${escapeHtml(filename)}">${label}</a>`;
 }
 
 function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
   const pending = state.pendingInputs ?? pendingInputs(state.fields);
   if (pending.length) {
     const cards = pending.map((record) => {
-      const title = record.waiting_for === 'pm' ? 'Waiting for the Product Manager' : 'Waiting for your input';
-      const qualifier = record.blocking ? state.fields.status === 'Stopped' ? 'Workflow stopped' : 'Workflow paused' : state.fields.status === 'Complete' ? 'Implementation remains complete' : 'Does not block the workflow';
+      const title = record.blocking
+        ? record.waiting_for === 'pm' ? 'Implementation is waiting for the Product Manager' : 'Implementation is waiting for your input'
+        : record.waiting_for === 'pm' ? 'Product Manager input requested' : 'Your input is requested';
       const choicesFor = (choices) => choices.length ? `<ul>${choices.map((choice) => `<li>${escapeHtml(choice.label)}${choice.description ? ` — ${escapeHtml(choice.description)}` : ''}</li>`).join('')}</ul>` : '';
       const choices = record.questions ? record.questions.map((prompt) => `<div class="pending-subquestion"><p class="pending-question"><strong>${escapeHtml(prompt.id)}</strong> ${escapeHtml(prompt.question)}</p>${choicesFor(prompt.choices)}</div>`).join('') : choicesFor(record.choices);
       const reference = pendingReviewLink(state, record);
       const queued = record.blocking && state.fields.queued_autonomy && state.fields.queued_autonomy !== 'none'
         ? `<p class="pending-qualifier">${escapeHtml(state.fields.queued_autonomy)} starts with the next phase. This question still needs an answer under ${escapeHtml(state.fields.autonomy)}.</p>` : '';
-      const waiting = record.waiting_for === 'pm' ? 'Waiting for the Product Manager' : record.kind === 'approval' ? 'Waiting for your approval' : 'Waiting for your input';
-      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong>${title}</strong><span class="pending-qualifier">${qualifier}</span><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}<p class="pending-since">${waiting} · <span data-wait-since="${escapeHtml(record.requested_at)}">waiting</span></p>${reference}</section>`;
+      const action = record.kind === 'approval' && reference
+        ? reference
+        : `<details class="pending-details"><summary>View question</summary><p class="pending-question">${escapeHtml(record.question)}</p>${choices}${queued}${reference}</details>`;
+      return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong class="pending-title">${title}</strong>${action}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
     const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);

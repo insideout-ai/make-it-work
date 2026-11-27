@@ -43,8 +43,8 @@ test('a blocking question is persisted and rendered before returning, and only a
   assert.equal(waiting.fields.current_activity_updated_at, 'none');
   const saved = await state(); assert.equal(saved.fields.phase, before.fields.phase); assert.equal(saved.fields.review_cycle, before.fields.review_cycle);
   assert.equal(saved.pendingInputs[0].id, 'question-1'); assert.ok(Number.isFinite(Date.parse(saved.pendingInputs[0].requested_at)));
-  const page = await html(); assert.match(page, /Waiting for your input/); assert.match(page, /Choose &lt;script&gt;behavior&lt;\/script&gt;/);
-  assert.match(page, /<li>Continue<\/li>/); assert.match(page, /data-wait-since=/); assert.match(page, /http-equiv="refresh"/); assert.doesNotMatch(page, /class="current-activity"/);
+  const page = await html(); assert.match(page, /Implementation is waiting for your input/); assert.match(page, /Choose &lt;script&gt;behavior&lt;\/script&gt;/);
+  assert.match(page, /<li>Continue<\/li>/); assert.match(page, /<details class="pending-details"><summary>View question<\/summary>/); assert.doesNotMatch(page, /<details[^>]* open|data-wait-since=/); assert.match(page, /http-equiv="refresh"/); assert.doesNotMatch(page, /class="current-activity"/);
   await assert.rejects(apply('resolve-input', { pending_id: 'question-1', answer: 'continue' }), /explicit answer/);
   await assert.rejects(apply('resolve-input', { pending_id: 'question-1', answer: 'invented', source: 'user', via: 'chat' }), /offered/);
   const resumed = await apply('resolve-input', { pending_id: 'question-1', answer: 'continue', source: 'user', via: 'question' });
@@ -69,7 +69,7 @@ for (const pauseMode of [null, 'run-straight-through', 'stop-after-each-step']) 
   assert.equal(waiting.fields.phase, 'execute'); assert.equal(waiting.fields.status, 'Paused');
   assert.equal(waiting.fields.execution_mode, 'none');
   const page = await html();
-  assert.match(page, /Waiting for your input/); assert.match(page, /Workflow paused/);
+  assert.match(page, /Implementation is waiting for your input/); assert.doesNotMatch(page, /Workflow paused/);
   assert.match(page, /How should the 3 plan steps be executed\?/); assert.match(page, /Inline Execution/);
   assert.doesNotMatch(page, /Execute in progress|current spinning/);
   assert.equal(await readFile(artifactJoin(root, plan), 'utf8'), original);
@@ -84,7 +84,7 @@ for (const pauseMode of [null, 'run-straight-through', 'stop-after-each-step']) 
     } });
     assert.equal((await state()).fields.status, 'Paused');
     const followUp = await html();
-    assert.match(followUp, /Waiting for your input/); assert.match(followUp, /Inline mode: stop after each step/);
+    assert.match(followUp, /Implementation is waiting for your input/); assert.match(followUp, /Inline mode: stop after each step/);
     assert.equal(await readFile(artifactJoin(root, plan), 'utf8'), original);
     await apply('resolve-input', { pending_id: 'inline-pause-1', answer: pauseMode, source: 'user', via: 'question' });
   }
@@ -162,7 +162,8 @@ test('stale bound approvals cannot resolve and must be reissued with a fresh pen
   assert.equal(bound.sha256, digest('Shown version'));
   const page = await html();
   assert.match(page, /href="miw-DEMO-preview.md.preview.html"[^>]*>Review document<\/a>/);
-  assert.match(page, /Waiting for your approval · <span data-wait-since=/);
+  assert.match(page, /Implementation is waiting for your input/);
+  assert.doesNotMatch(page, /class="pending-question"|<li>Continue<\/li>|data-wait-since="/);
   assert.doesNotMatch(page, new RegExp(bound.sha256));
   assert.doesNotMatch(page, /SHA-256|Pending since|make-it-work\/DEMO\/DEMO-preview.md/);
   const preview = await readFile(artifactJoin(root, `${artifact}.preview.html`), 'utf8');
@@ -209,7 +210,7 @@ test('Slack waits identify the PM and require an actual reply reference before a
   await writeFile(artifactJoin(directory, 'DEMO-questions.md'), '# Questions\nAwaiting PM answers.');
   const handoff = 'make-it-work/DEMO/DEMO-handoffs/gaps-1.json';
   await writeFile(artifactJoin(root, handoff), JSON.stringify({ version: 1, ticket: 'DEMO', plan_version: 1, stage: 'gaps', status: 'done', outcome: 'QUESTIONS_SENT', artifacts: { questions: 'make-it-work/DEMO/DEMO-questions.md' }, data: {} }));
-  const waiting = await apply('handoff', { handoff }); assert.match(await html(), /Waiting for the Product Manager/);
+  const waiting = await apply('handoff', { handoff }); assert.match(await html(), /Implementation is waiting for the Product Manager/);
   await assert.rejects(apply('resolve-input', { pending_id: waiting.pending[0].id, answer: 'PM answered', source: 'pm', via: 'slack' }), /reply reference/);
   const result = await apply('resolve-input', { pending_id: waiting.pending[0].id, answer: 'PM answered the recorded questions.', source: 'pm', via: 'slack', reply_reference: 'recorded-thread-reply-id' });
   assert.equal(result.fields.status, 'In Progress'); assert.equal(result.fields.phase, 'close-the-gaps');

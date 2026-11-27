@@ -1635,7 +1635,7 @@ test('preparation reentries remain separate from fix execution and manual exempt
   assert.match(html, /Step 1 of 2 complete/);
 });
 
-test('approval cards show readable review links without document hashes or raw paths', () => {
+test('compact approval banners show only the waiting status and review action', () => {
   const hash = 'a'.repeat(64);
   for (const [phase, binding, label, filename] of [
     ['spec-approval', { kind: 'artifact', path: 'make-it-work/DEMO/DEMO-spec.md', sha256: hash, strict: true }, 'Review specification', 'DEMO-spec.md'],
@@ -1646,9 +1646,8 @@ test('approval cards show readable review links without document hashes or raw p
     const state = parseState(stateMarkdown({ fields: { phase, status: 'Paused', final_package_version: '1', pending_inputs: JSON.stringify([pending]) }, rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Awaiting approval']] }));
     const html = renderStatus({ state, template: '{{STATUS_BANNER}}', logoBase64: '' });
     assert.ok(html.includes(`href="${filename}">${label}</a>`));
-    assert.match(html, /Workflow paused/);
-    assert.match(html, /<li>Approve<\/li><li>Request changes<\/li><li>Stop<\/li>/);
-    assert.match(html, /Waiting for your approval · <span data-wait-since="2026-01-01T10:00:00Z">/);
+    assert.match(html, /<strong class="pending-title">Implementation is waiting for your input<\/strong>/);
+    assert.doesNotMatch(html, /Workflow paused|Approve this document|<li>|data-wait-since|<details/);
     assert.doesNotMatch(html, /SHA-256|Pending since|make-it-work\//);
     assert.ok(!html.includes(hash));
     assert.equal(state.pendingInputs[0].binding.sha256, hash);

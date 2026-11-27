@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.5] — 2026-11-27
+
+### Changed
+
+- Compact implementation input waits into a subtle status banner with a direct document review link. Remove repeated pause text, approval choices and the waiting timer; keep general questions collapsed until opened.
+
 ## [5.17.4] — 2026-11-26
 
 ### Fixed
