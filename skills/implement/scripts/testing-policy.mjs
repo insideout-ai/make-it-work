@@ -1,6 +1,7 @@
 import { artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
 import path from 'node:path';
+import { scenarios as plannedScenarios } from '../../../scripts/lib/test-coverage.mjs';
 import { fileURLToPath } from 'node:url';
 import { planImpact, validateImpactPolicy } from './repo-impact.mjs';
 
@@ -60,7 +61,7 @@ export function validateManualEvidence(plan, ledger, policy = testingPolicy(plan
   if (!manual.length) return;
   const body = section(plan, 'Test Plan');
   if (!body) fail('Manual verification requires a Test Plan.');
-  const scenarios = table(body.split(/^\*\*AC traceability:\*\*/m)[0], ['Scenario', 'Repo', 'Type', 'File / command']);
+  const scenarios = plannedScenarios(plan);
   const seen = new Set();
   for (const scenario of scenarios) {
     if (seen.has(scenario.Scenario)) fail('Test Plan scenario names must be unique.');

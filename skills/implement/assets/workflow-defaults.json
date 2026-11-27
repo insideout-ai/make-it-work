@@ -58,5 +58,6 @@
   "test_preparation_report": "none",
   "compaction_version": "1",
   "compaction_checkpoint": "pending",
-  "compaction_recovery": "none"
+  "compaction_recovery": "none",
+  "test_coverage_version": "1"
 }

@@ -333,3 +333,5 @@ Orchestrator outcome: CLEAN | FIX_REQUIRED | REPLAN_REQUIRED | HUMAN_DECISION
 ### Preserve verification qualifications
 
 Carry every failed, unrun or partially verified check from the implementation report into `validation_notes` unless inspected evidence resolves it. Baseline attribution by inspection remains “suspected baseline; not independently confirmed”; only an actual comparison or identified baseline evidence supports “confirmed pre-existing.” Put unmet acceptance behavior (including gate parity, real-service behavior and large-input claims) in those notes when unobserved. Carry the parent’s risk reassessment into the coverage discussion. Rendered `CLEAN` means no routed findings, and must not replace “Approve with nits,” verification qualifications, or partial branch coverage.
+
+For Test coverage contract plans, inspect progression/regression purpose and the changed-code → domain → candidate-UC impact reasoning, including exclusions. Shared domain membership alone does not establish required coverage. Check baseline claims against preparation evidence; missing baseline evidence is a qualification, not permission to add runs or alter gates.

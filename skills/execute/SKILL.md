@@ -306,3 +306,7 @@ The fixed report above is mandatory. Before presenting it, read and follow the c
 ## When run by implement
 
 When called by `implement`, read this guide before plan resolution, mode selection, verification, or edits. Standalone runs skip it. Its caller-owned overrides apply throughout the workflow. Read and follow the complete [Implement integration guide](references/implement-integration.md).
+
+## Coverage presentation
+
+For coverage-contract plans, report progression and regression scenarios separately using the existing plan/preparation evidence. At the completion gate identify extra suite/module coverage at its actual known granularity, not inferred UC coverage. State “No matching pre-change baseline recorded” where no retained evidence matches; do not run extra tests to fill reporting gaps. This is presentation only: preserve commands, selectors, invocation counts, gate rules and current reruns. Do not treat a passing full suite as individual scenario/AC proof.

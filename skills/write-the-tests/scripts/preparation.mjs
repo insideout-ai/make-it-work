@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Durable test-preparation evidence. It never executes commands or edits a plan.
 import path from 'node:path';
+import { scenarios as plannedScenarios, coverageSummary, coverageMarkdown, validateCoverage } from '../../../scripts/lib/test-coverage.mjs';
+export { plannedScenarios };
 import { artifactJoin } from '../../../scripts/lib/artifact-path.mjs';
 import { readdir, realpath } from 'node:fs/promises';
 import { readFile } from '../../../scripts/lib/artifact-io.mjs';
@@ -9,17 +11,13 @@ import { planImpact } from '../../implement/scripts/repo-impact.mjs';
 import { planHash, parseSteps } from '../../../scripts/lib/plan.mjs';
 
 export const requiresPreparation = plan => /^\*\*Test preparation contract:\*\* 1\s*$/m.test(plan);
-export function plannedScenarios(plan) {
-  const body = (section(plan, 'Test Plan') ?? '').split('**AC traceability:**')[0];
-  const repo = /^\|\s*Scenario\s*\|\s*Repo\s*\|/m.test(body);
-  return table(body, repo ? ['Scenario', 'Repo', 'Type', 'File / command'] : ['Scenario', 'Type', 'File / command']);
-}
 const text = (value, label) => {
   if (typeof value !== 'string' || !value.trim() || /[\r\n]/.test(value)) fail(`${label} must be a nonempty single line.`);
 };
 export function validatePreparation(data, plan) {
   if (data?.version !== 1 || data.plan_hash !== planHash(plan)) fail('Test preparation belongs to a different plan revision. Run write-the-tests.');
   if (!['ready', 'not-applicable', 'blocked'].includes(data.status) || !Array.isArray(data.entries)) fail('Invalid preparation status/entries.');
+  validateCoverage(plan);
   const impact = planImpact(plan);
   const steps = parseSteps(plan), scenarios = plannedScenarios(plan), seen = new Set();
   for (const entry of data.entries) {
@@ -30,6 +28,7 @@ export function validatePreparation(data, plan) {
     seen.add(identity);
     if (!steps.some(step => step.number === entry.step)) fail('Preparation references an unknown step.');
     const scenario = scenarios.find(row => row.Scenario === entry.scenario && (!row.Repo || row.Repo === entry.repo));
+    if (scenario?.Purpose && !/^Manual$/i.test(scenario.Type) && entry.kind !== scenario.Purpose.toLowerCase()) fail('Preparation kind disagrees with planned purpose.');
     if (!scenario) fail(`Preparation references an unknown scenario: ${entry.scenario}`);
     if (!['progression', 'regression', 'manual'].includes(entry.kind) || !['pass', 'expected-red', 'not-run', 'exempt', 'accepted-failure', 'fail'].includes(entry.result)) fail('Invalid preparation kind/result.');
     text(entry.reason, 'Preparation reason');
@@ -104,7 +103,7 @@ export async function recordPreparation(planPath, input) {
     const file = path.join(path.dirname(planPath), base + '.json'), report = base + '.md';
     const saved = { ...data, files: await images(data.entries), report };
     const lines = data.entries.map(entry => `- ${entry.scenario} (${entry.repo ?? 'manual'}, step ${entry.step}): ${entry.result} — ${entry.reason}${entry.command ? `\n  Command: ${entry.command}\n  Run from: ${entry.cwd}\n  Test: ${entry.file}\n  Evidence: ${entry.evidence}` : ''}`);
-    await atomicWrite(path.join(path.dirname(planPath), report), `# Test Preparation\n\nPlan: ${path.basename(planPath)}\n\nPlan revision: ${data.plan_hash}\n\nPreparation outcome: ${data.status}\n\nExpected red is successful preparation, not a passing implementation. Unavailable checks remain unverified. Earlier numbered preparation reports are historical.\n\n${lines.join('\n\n')}\n`);
+    await atomicWrite(path.join(path.dirname(planPath), report), `# Test Preparation\n\nPlan: ${path.basename(planPath)}\n\nPlan revision: ${data.plan_hash}\n\nPreparation outcome: ${data.status}\n\nExpected red is successful preparation, not a passing implementation. Unavailable checks remain unverified. Earlier numbered preparation reports are historical.\n\n${coverageMarkdown(coverageSummary(plan, data))}\n${lines.join('\n\n')}\n`);
     await atomicWrite(file, JSON.stringify(saved, null, 2) + '\n');
     return { file, report: path.join(path.dirname(planPath), report), status: data.status };
   });
