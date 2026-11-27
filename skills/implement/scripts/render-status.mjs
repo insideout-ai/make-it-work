@@ -19,6 +19,7 @@ import { renderWorkspacePanel } from './workspace-view.mjs';
 import { readScope } from './workspace-scope.mjs';
 import { WORKFLOW_STYLES, WORKFLOW_TIMESTAMPS, renderWorkflowHeader } from '../../../scripts/lib/workflow-dashboard.mjs';
 import { generateArtifactPreviews } from '../../../scripts/lib/artifact-preview.mjs';
+import { coverageSummary } from '../../../scripts/lib/test-coverage.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { summarizeAcceptance, acceptanceMarkdown } from './acceptance-summary.mjs';
@@ -306,6 +307,7 @@ export function parseState(markdown, statePath = '') {
     if (typeof fields.compaction_recovery !== 'string' || !fields.compaction_recovery.trim()
         || ['offered', 'awaiting-continuation'].includes(fields.compaction_checkpoint) && fields.compaction_recovery === 'none') fail('Compaction checkpoint needs its recovery artifact.');
   }
+  if (fields.test_coverage_version !== undefined && fields.test_coverage_version !== '1') fail('Unsupported test_coverage_version.');
   if (fields.test_writing_version !== undefined && fields.test_writing_version !== '1') fail('Unsupported test_writing_version.');
   if (fields.phase === 'write-tests' && fields.test_writing_version !== '1') fail('Write Tests requires test_writing_version: 1.');
   if (fields.test_writing_version === '1') {
@@ -986,6 +988,8 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
   const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
     : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
       ? 'Superseded — refresh preparation for the current plan' : '';
+  const coverage = planStatus?.coverage;
+  const coverageHtml = coverage ? `<details class="test-coverage" style="grid-column: 1 / -1; padding: 16px; border: 1px solid #ddd; border-radius: 6px;"><summary>Test coverage — ${coverage.unavailable ? 'unavailable' : `${coverage.progression} progression / ${coverage.regression} regression scenarios`}</summary>${coverage.unavailable ? '' : coverage.scenarios.map(row => { const entry = !preparationNote && preparation?.entries?.find(e => e.scenario === row.scenario && (!row.repo || e.repo === row.repo)); return `<p>${escapeHtml(row.scenario)} · ${escapeHtml(row.purpose)}${row.protected ? ` · ${escapeHtml(row.protected)}` : ''} · ${escapeHtml(preparationNote || (entry ? `${entry.kind}: ${entry.result} — ${entry.reason}` : row.baseline))}</p>`; }).join('')}</details>` : '';
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
@@ -1026,7 +1030,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
     WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) : '',
+    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) + coverageHtml : '',
     TEST_PREPARATION: '', // Compatibility with older templates; details live in artifacts.
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
@@ -1088,6 +1092,7 @@ export async function generateDashboard(statePath) {
       fail(`Could not read the plan required for timeline progress: ${error.message}`);
     }
     planStatus = parsePlanStatus(planMarkdown);
+    planStatus.coverage = coverageSummary(planMarkdown);
     if (state.fields.phase === 'execute') {
       let journal;
       try { journal = JSON.parse(await readFile(`${planPath}.execution.json`, 'utf8')); }
@@ -1148,6 +1153,12 @@ export async function generateDashboard(statePath) {
       preparation.current_plan_hash = currentPlan ? planHash(await readFile(currentPlan, 'utf8')) : state.fields.plan_hash;
     }
     catch (error) { preparation = { plan_hash: 'unavailable', status: 'unavailable', entries: [{ scenario: 'Preparation evidence unavailable', result: 'not-run', reason: error.message }] }; }
+  }
+  if (!planStatus && state.fields.plan && state.fields.plan !== 'none') {
+    try {
+      const displayPlan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
+      planStatus = { coverage: coverageSummary(displayPlan) };
+    } catch { planStatus = { coverage: { unavailable: true } }; }
   }
   const html = await generateArtifactPreviews(renderStatus({ preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;

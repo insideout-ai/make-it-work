@@ -11,6 +11,7 @@ import { parseState } from './render-status.mjs';
 import { EXECUTION_OUTCOMES, acceptedUnrelatedGate, readVerification } from './verification.mjs';
 import { checkTestingReadiness } from './testing-readiness.mjs';
 import { checkRepoImpact, impactSummary } from './repo-impact.mjs';
+import { coverageContract, coverageSummary, coverageMarkdown } from '../../../scripts/lib/test-coverage.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 import { collectTestingSummary, parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
 import { assertRunState, runArtifact, runArtifactName, runDirectory } from './artifact-layout.mjs';
@@ -81,6 +82,7 @@ function markdown(pkg) {
   }
   for (const row of pkg.repo_impact ?? []) lines.push(`Repository impact — ${row.repo}: ${row.classification}; ${row.reason}; checks: ${row.checks.map(c => `${c.id}: ${c.result}`).join(', ') || 'not required (context only)'}`, '');
   for (const note of testingSummaryNotes(pkg.testing_summary ?? [])) lines.push(`Testing: ${note}`, '');
+  if (pkg.test_coverage) lines.push('## Test coverage', '', coverageMarkdown(pkg.test_coverage), '');
   lines.push('## Evidence', '');
   if (pkg.review_scope) lines.push(reviewDisclosure(pkg.review_scope, pkg.ui_verification, pkg.validation_notes), '');
   if (pkg.command_facts) {
@@ -253,7 +255,20 @@ async function assemble(root, state, repoInputs, baseInputs, draftArtifact, draf
   const testingSummary = await collectTestingSummary(root, f, { final: true });
   if (testingSummary !== null && JSON.stringify(parseTestingSummary(f.testing_summary)) !== JSON.stringify(testingSummary)) fail('Testing summary changed; complete final sync again before packaging.');
   const changeAssessment = f.change_assessment_version === '1' ? await readAssessment(root, f.ticket, repos) : null;
+  let testCoverage = null;
+  if (f.plan && f.plan !== 'none') {
+    try {
+      const planText = await readFile(artifactResolve(root, f.plan), 'utf8');
+      let prepared = null;
+      try {
+        const { checkPreparation } = await import('../../write-the-tests/scripts/preparation.mjs');
+        prepared = await checkPreparation(artifactResolve(root, f.plan));
+      } catch { /* Report missing/stale evidence without changing the gate. */ }
+      testCoverage = coverageContract(planText) ? coverageSummary(planText, prepared) : null;
+    } catch { if (f.test_coverage_version === '1') testCoverage = { unavailable: true }; }
+  }
   const pkg = {
+    ...(testCoverage ? { test_coverage: testCoverage } : {}),
     ...(commandFacts ? { command_facts: commandFacts } : {}),
     ...(changeAssessment ? { change_assessment: changeAssessment } : {}),
     ...(testingSummary !== null ? { testing_summary: testingSummary } : {}),

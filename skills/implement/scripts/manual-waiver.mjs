@@ -1,12 +1,10 @@
+import { scenarios as plannedScenarios } from '../../../scripts/lib/test-coverage.mjs';
 import { parseSteps, planHash } from '../../../scripts/lib/plan.mjs';
 import { inspectPlan } from '../../execute/scripts/plan-status.mjs';
 import { testingPolicy } from './testing-policy.mjs';
 
 export function manualScenarioNames(plan) {
-  const body = plan.split(/^## Test Plan\s*$/m)[1]?.split(/^\*\*AC traceability:\*\*/m)[0] ?? '';
-  const rows = body.split('\n').filter(line => line.trim().startsWith('|')).map(line => line.trim().split('|').slice(1, -1).map(cell => cell.trim()));
-  const typeIndex = rows[0]?.indexOf('Type');
-  return rows.slice(2).filter(row => row[typeIndex] === 'Manual').map(row => row[0]);
+  return plannedScenarios(plan).filter(row => row.Type === 'Manual').map(row => row.Scenario);
 }
 
 export function manualWaiver(plan, input, planVersion) {

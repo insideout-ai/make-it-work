@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
 import { args, atomicWrite, cli, fail, section, table } from './lib/artifacts.mjs';
+import { scenarios as plannedScenarios, validateCoverage } from './lib/test-coverage.mjs';
 import { parseSteps } from './lib/plan.mjs';
 import { inspectPlan } from '../skills/execute/scripts/plan-status.mjs';
 import { traceability } from '../skills/implement/scripts/verification.mjs';
@@ -44,9 +45,8 @@ export function validatePlan(plan, { executionOnly = false } = {}) {
     if (!step.verify) errors.push(`Step ${step.number} has no Verify check.`);
     for (const file of step.files) if (!declared.has(file)) errors.push(`Step ${step.number} file is absent from Affected Code: ${file}`);
   }
-  const testPlan = check(() => section(plan, 'Test Plan'))?.split(/^\*\*AC traceability:\*\*/m)[0] ?? '';
-  const withRepo = /^\|\s*Scenario\s*\|\s*Repo\s*\|/m.test(testPlan);
-  const scenarios = check(() => table(testPlan, withRepo ? ['Scenario', 'Repo', 'Type', 'File / command'] : ['Scenario', 'Type', 'File / command']));
+  check(() => validateCoverage(plan));
+  const scenarios = check(() => plannedScenarios(plan));
   if (scenarios) {
     const names = scenarios.map((row) => row.Scenario);
     if (!names.length || new Set(names).size !== names.length) errors.push('Test scenario names must be unique and nonempty.');

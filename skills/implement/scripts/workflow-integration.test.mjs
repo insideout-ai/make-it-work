@@ -122,6 +122,19 @@ for (const { autonomy, workspace, worktree } of [{ autonomy: 'autonomous' }, { a
     await apply('repo-impact', { assessment: impact });
     plan = plan.replace('# Plan for', '**Repository impact contract:** 1\n\n# Plan for').replace('## Verification Policy', `## Repository Impact\n\n\`\`\`json\n${JSON.stringify(impact)}\n\`\`\`\n\n## Verification Policy`);
   }
+  const coverageRows = plannedScenarios(plan);
+  const oldHeader = '| ' + Object.keys(coverageRows[0]).join(' | ') + ' |';
+  const newHeader = '| Scenario | ' + (coverageRows[0].Repo ? 'Repo | ' : '') + 'Purpose | Type | File / command |';
+  plan = '**Test coverage contract:** 1\n\n' + plan.replace(oldHeader, newHeader);
+  // Add one separator cell to the Test Plan header only.
+  plan = plan.replace(/(## Test Plan[\s\S]*?\n\| Scenario[^\n]*\n)(\|[^\n]*)(\n)/, '$1$2 --- |$3');
+  for (const [i, row] of coverageRows.entries()) {
+    const before = '| ' + Object.values(row).join(' | ') + ' |';
+    const after = '| ' + [row.Scenario, ...(row.Repo ? [row.Repo] : []), i === 0 ? 'Progression' : 'Regression', row.Type, row['File / command']].join(' | ') + ' |';
+    plan = plan.replace(before, after);
+  }
+  plan = plan.replace('## Test Plan', '## Regression Impact\n\n| Changed code | Domain | UC / behavior | Decision | Reason / evidence | Test scenarios |\n| --- | --- | --- | --- | --- | --- |\n| src/greeting.js | greeting | Existing greeting | Required | shared module retains punctuation | Regression row above |\n| src/greeting.js | greeting | Unrelated flow | Excluded | separate implementation | None |\n\n## Test Plan');
+  plan = plan.replace(' | Regression row above |', ' | ' + coverageRows[1].Scenario + ' |');
   await writeFile(planPath, plan); await updatePlan(planPath, 'set-total', { total: 1 }); await updatePlan(planPath, 'set-mode', { mode: 'inline' });
   const regression = async (audited = false) => runRegression(impact && audited ? impactRegressionManifest(impact, parseState(await readFile(statePath, 'utf8')).fields) : { version: 1, mode: 'full', workspace: Boolean(workspace), runs: repos.map((cwd, index) => ({ repo: workspace ? index === 0 ? 'api' : 'web' : 'tiny-greeter-full', cwd, scope: 'full', command: { bin: process.execPath, args: ['test.js'] } })) }, impact && audited ? { statePath, auditId: 'final-impact-gate' } : {});
   assert.equal((await regression()).overall, 'fail');

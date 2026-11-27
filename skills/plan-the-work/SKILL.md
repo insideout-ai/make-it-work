@@ -387,3 +387,7 @@ Do not paste the full plan in chat unless the user asks.
 ## When run by implement
 
 When called by `implement`, read this guide before root/spec resolution, readiness inspection, investigation, or writes. Standalone runs skip it. Its initial/replan/amend and caller-owned overrides apply throughout the workflow. Read and follow the complete [Implement integration guide](references/implement-integration.md).
+
+## Coverage visibility
+
+For fresh standalone plans and Implement states with `test_coverage_version: 1`, follow the coverage-contract fields in the plan template. Preserve existing contracts on saved runs. Trace expected changed code through domain key-code-area mappings and UC cross-references, confirm impact against callers/contracts/assertions, and record Required/Excluded/Unresolved decisions in Regression Impact. Purpose metadata explains existing selection; do not broaden testing solely for this report. Summarize progression/regression scenario counts, protected UCs and mapping limitations before implementation. Run the existing plan validator before handoff. Metadata-only errors return precise planning corrections while preserving execution progress/evidence; substantive coverage changes use existing replan rules.

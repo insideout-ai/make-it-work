@@ -1653,3 +1653,15 @@ test('compact approval banners show only the waiting status and review action', 
     assert.equal(state.pendingInputs[0].binding.sha256, hash);
   }
 });
+
+test('coverage display preserves purposes and never converts baseline limits into passes', async () => {
+  const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started']] }));
+  const options = { state, template: '{{PREPARATION_TILE}}', logoBase64: '', planStatus: { coverage: { progression: 1, regression: 1, scenarios: [{ scenario: '<Cards>', purpose: 'Regression', baseline: 'Pending — no matching pre-change baseline recorded' }] } } };
+  const html = renderStatus(options);
+  assert.match(html, /1 progression \/ 1 regression scenarios/);
+  assert.match(html, /&lt;Cards&gt;/);
+  assert.match(html, /no matching pre-change baseline/);
+  const stale = renderStatus({ ...options, preparation: { plan_hash: 'old', current_plan_hash: 'new', entries: [{ scenario: '<Cards>', kind: 'regression', result: 'pass' }] } });
+  assert.match(stale, /Superseded/);
+  assert.doesNotMatch(stale, /regression: pass/);
+});

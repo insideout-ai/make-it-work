@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { validateCoverage } from '../../../scripts/lib/test-coverage.mjs';
 import { logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 
@@ -139,7 +140,7 @@ export function validateHandoff(input) {
   return h;
 }
 
-export async function validateArtifacts(handoff, root, { requireClauses = false } = {}) {
+export async function validateArtifacts(handoff, root, { requireClauses = false, requireCoverage = false } = {}) {
   const h = validateHandoff(handoff);
   if (h.status !== 'done') return h;
   const rootPath = await realpath(root);
@@ -182,6 +183,7 @@ export async function validateArtifacts(handoff, root, { requireClauses = false 
     const actual = await realpath(resolved);
     if (!actual.startsWith(`${directory}${path.sep}`)) fail(`Artifact symlink escapes run artifacts: ${artifact}`);
     if (!(await stat(resolved)).isFile()) fail(`Artifact is not a file: ${artifact}`);
+    if (h.stage === 'plan') validateCoverage(await readFile(actual, 'utf8'), { required: requireCoverage });
     if (h.stage === 'plan' && requireClauses) traceability(await readFile(actual, 'utf8'), { requireClauses: true });
     if (h.stage === 'execute' || h.stage === 'review') {
       const report = await readFile(actual, 'utf8');
@@ -404,7 +406,7 @@ async function main(args) {
     fail('Usage: handoff.mjs validate|next --handoff PATH --root PROJECT_ROOT [--state PATH] [--previous-review PATH] [--related-failures N] [--choice CHOICE] [--escalate REASON]');
   }
   const state = options.state ? parseState(await readFile(options.state, 'utf8'), options.state) : null;
-  const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root, { requireClauses: state?.fields.acceptance_evidence_version === '1' });
+  const h = await validateArtifacts(JSON.parse(await readFile(options.handoff, 'utf8')), options.root, { requireCoverage: state?.fields.test_coverage_version === '1', requireClauses: state?.fields.acceptance_evidence_version === '1' });
   const expectedDirectory = artifactJoin(runDirectory(artifactResolve(options.root), h.ticket), `${h.ticket}-handoffs`);
   if (path.dirname(artifactResolve(options.handoff)) !== expectedDirectory || !new RegExp(`^(?:miw-)?${h.stage}-[1-9]\\d*\\.json$`).test(path.basename(options.handoff))) {
     fail(`Handoff path must be make-it-work/${h.ticket}/${h.ticket}-handoffs/${h.stage}-<N>.json.`);
