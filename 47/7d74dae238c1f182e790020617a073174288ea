@@ -1,0 +1,66 @@
+CHANGELOG.md
+  s_165cd8b44de4aa::t_167a228cd74611 9-12
+skills/plan-the-work/references/implement-integration.md
+  s_165cd8b44de4aa::t_167a228cd74611 90-100
+skills/implement/references/orchestration/planning.md
+  s_165cd8b44de4aa::t_167a228cd74611 3-10,71
+  s_165cd8b44de4aa::t_d9acf25132ed35 72
+skills/close-the-gaps/SKILL.md
+  s_165cd8b44de4aa::t_167a228cd74611 360-371
+skills/plan-the-work/SKILL.md
+  s_165cd8b44de4aa::t_167a228cd74611 319,330,381
+evals/plan-the-work/integrated-review/case.yaml
+  s_165cd8b44de4aa::t_538c278a113fc2 1-5
+evals/plan-the-work/integrated-review/fixture.sh
+  s_165cd8b44de4aa::t_538c278a113fc2 1-33
+evals/write-the-tests/integrated-review/prompt.md
+  s_165cd8b44de4aa::t_538c278a113fc2 1-9
+README.md
+  s_165cd8b44de4aa::t_167a228cd74611 577-586
+evals/plan-the-work/integrated-exhausted/graders/behavior.md
+  s_165cd8b44de4aa::t_538c278a113fc2 1-7
+evals/suites.json
+  s_165cd8b44de4aa::t_538c278a113fc2 181-184
+evals/plan-the-work/integrated-review/graders/behavior.md
+  s_165cd8b44de4aa::t_538c278a113fc2 1-7
+evals/write-the-tests/integrated-review/graders/behavior.md
+  s_165cd8b44de4aa::t_538c278a113fc2 1-7
+evals/plan-the-work/integrated-review/prompt.md
+  s_165cd8b44de4aa::t_538c278a113fc2 1-9
+evals/plan-the-work/integrated-exhausted/case.yaml
+  s_165cd8b44de4aa::t_538c278a113fc2 1-5
+docs/artifact-quality-review.md
+  s_165cd8b44de4aa::t_167a228cd74611 1-132
+evals/plan-the-work/integrated-exhausted/fixture.sh
+  s_165cd8b44de4aa::t_538c278a113fc2 1-42
+evals/plan-the-work/integrated-exhausted/prompt.md
+  s_165cd8b44de4aa::t_538c278a113fc2 1-9
+evals/write-the-tests/integrated-review/case.yaml
+  s_165cd8b44de4aa::t_538c278a113fc2 1-5
+evals/write-the-tests/integrated-review/fixture.sh
+  s_165cd8b44de4aa::t_538c278a113fc2 1-33
+skills/implement/references/orchestration/refinement.md
+  s_165cd8b44de4aa::t_167a228cd74611 33-43
+skills/close-the-gaps/references/implement-integration.md
+  s_165cd8b44de4aa::t_167a228cd74611 50-60
+skills/write-the-tests/references/implement-integration.md
+  s_165cd8b44de4aa::t_167a228cd74611 14-24
+skills/write-the-tests/SKILL.md
+  s_165cd8b44de4aa::t_167a228cd74611 36-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "477d74dae238c1f182e790020617a073174288ea",
+  "prompts": {},
+  "sessions": {
+    "s_165cd8b44de4aa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a217b7-107b-7f41-9f60-856e2370ae6a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
