@@ -232,6 +232,10 @@ async function prepareLocked(context, selectionInput) {
     repos.push(entry);
   }
   if (!repos.length) fail('No changed repositories to deliver.');
+  try { await checkDeliveryPrerequisites(repos); }
+  catch (error) {
+    fail(`${error.message} Preparation stopped before delivery approval. Existing package draft: ${pkg.draft_path}. Fix the blocker and prepare again; no commit, push or PR write was performed.`);
+  }
   const disclosure = reviewDisclosure(check.review_scope, check.ui_verification, check.validation_notes);
   const sourceDraft = selection?.draft ?? pkg.draft;
   const candidateDisclosure = selection ? selectionDisclosure(repos, selection.omitted_repos) : '## Review and browser verification\n\n';
@@ -298,24 +302,59 @@ async function verifyEvidence(context, plan) {
 function token() {
   const raw = process.env.MAKE_IT_WORK_BITBUCKET_TOKEN_JSON;
   if (!raw) fail('Bitbucket token missing; set MAKE_IT_WORK_BITBUCKET_TOKEN_JSON for delivery.');
-  const parsed = JSON.parse(raw);
-  if (!parsed.token || !['basic', 'bearer'].includes(parsed.auth) || (parsed.auth === 'basic' && !parsed.user)) fail('Invalid Bitbucket token JSON.');
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { fail('Invalid Bitbucket token JSON.'); }
+  if (!parsed || typeof parsed !== 'object') fail('Invalid Bitbucket token JSON.');
+  if (typeof parsed.token !== 'string' || !parsed.token.trim() || !['basic', 'bearer'].includes(parsed.auth) || (parsed.auth === 'basic' && (typeof parsed.user !== 'string' || !parsed.user.trim()))) fail('Invalid Bitbucket token JSON.');
   return parsed;
 }
 
-async function bitbucketRequest(method, url, body) {
+async function bitbucketRequest(method, url, body, options = {}) {
   const credential = token();
   const authorization = credential.auth === 'basic'
     ? `Basic ${Buffer.from(`${credential.user}:${credential.token}`).toString('base64')}`
     : `Bearer ${credential.token}`;
   const response = await fetch(url, { method, headers: { Authorization: authorization, Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined });
+    body: body ? JSON.stringify(body) : undefined, ...options });
   if (!response.ok) fail(`Bitbucket ${method} failed: HTTP ${response.status}.`);
   return response.json();
 }
 
-function githubPullRequests(repo) {
-  return JSON.parse(command('gh', ['pr', 'list', '--repo', `${repo.owner}/${repo.repo}`, '--head', repo.branch, '--base', repo.base, '--state', 'open', '--json', 'number,url']).stdout);
+function githubPullRequests(repo, options = {}) {
+  return JSON.parse(command('gh', ['pr', 'list', '--repo', `${repo.owner}/${repo.repo}`, '--head', repo.branch, '--base', repo.base, '--state', 'open', '--json', 'number,url'], options).stdout);
+}
+
+// These reads establish prerequisites, not permission to publish or a promise that hooks/push will succeed.
+export async function checkDeliveryPrerequisites(repos, { timeout = 30_000 } = {}) {
+  let githubReady = false;
+  for (const repo of repos) {
+    let step = 'credentials';
+    try {
+      if (repo.provider === 'github') {
+        if (!githubReady) {
+          step = 'gh availability'; command('gh', ['--version'], { timeout });
+          step = 'gh authentication'; command('gh', ['auth', 'status'], { timeout });
+          githubReady = true;
+        }
+        step = 'repository access';
+        if (!Array.isArray(githubPullRequests(repo, { timeout }))) fail('Invalid GitHub PR listing response.');
+      } else if (repo.provider === 'bitbucket') {
+        token();
+        step = 'repository access';
+        const api = (process.env.MAKE_IT_WORK_BITBUCKET_API_BASE || 'https://api.bitbucket.org/2.0').replace(/\/$/, '');
+        await bitbucketRequest('GET', `${api}/repositories/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.repo)}`, undefined,
+          { signal: AbortSignal.timeout(timeout), redirect: 'error' });
+      } else fail('Unsupported delivery provider.');
+    } catch (error) {
+      // Provider output is untrusted and may contain credentials. Expose only actionable classifications.
+      const reason = error.code === 'ENOENT' ? 'gh is missing from PATH; install/configure it outside this workflow'
+        : error.code === 'ETIMEDOUT' || ['TimeoutError', 'AbortError'].includes(error.name) ? 'check timed out; verify connectivity and retry preparation'
+          : /SAML|SSO/i.test(error.message) ? 'repository SAML SSO authorization required'
+            : repo.provider === 'bitbucket' && step === 'credentials' ? 'set valid MAKE_IT_WORK_BITBUCKET_TOKEN_JSON outside chat'
+              : /HTTP \d+/.exec(error.message)?.[0] ?? 'check failed; verify provider authentication, repository access and connectivity';
+      fail(`${repo.provider} prerequisites for ${repo.name} (${step}): ${reason}.`);
+    }
+  }
 }
 
 export async function pullRequest(repo, draft) {
@@ -381,13 +420,7 @@ async function runLocked(context, expectedHash) {
     delete progress.stopped_at;
     await saveProgress(context, progress);
     if (!hadActions) {
-      for (const repo of plan.repos) {
-        if (repo.provider === 'github') {
-          command('gh', ['--version']);
-          command('gh', ['auth', 'status']);
-          githubPullRequests(repo);
-        } else token();
-      }
+      await checkDeliveryPrerequisites(plan.repos);
     }
     for (const repo of plan.repos) {
       const item = progress.repos[repo.name] ?? {};

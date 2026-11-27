@@ -5,11 +5,23 @@ source "$SCRIPT_DIR/../assert-disposable-cwd.sh"
 bash "$SCRIPT_DIR/seed-fixture.sh" "$SCRIPT_DIR/feedback-clean/fixture"
 node --input-type=module - "$SCRIPT_DIR/../../skills/implement/scripts" "${1:-prepare}" <<'JS'
 import { execFileSync } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 const [scripts, scenario] = process.argv.slice(2);
 if (!['prepare', 'decline', 'stale'].includes(scenario)) throw new Error('Unknown delivery scenario');
 const root = process.cwd();
+// Provider reads are local and deterministic; unexpected publication commands fail.
+const bin = path.join(root, '.git/fixture-bin');
+await mkdir(bin, { recursive: true });
+await writeFile(path.join(bin, 'gh'), '#!/bin/sh\ncase "$1" in --version|auth) exit 0;; esac\nif [ "$1 $2" = "pr list" ]; then echo "[]"; exit 0; fi\necho "Fixture refuses provider writes" >&2\nexit 91\n', { mode: 0o755 });
+const settingsPath = path.join(root, '.claude/settings.local.json');
+let settings = {};
+try { settings = JSON.parse(await readFile(settingsPath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+await mkdir(path.dirname(settingsPath), { recursive: true });
+await writeFile(path.join(root, '.git/info/exclude'), '\n/.claude/settings.local.json\n', { flag: 'a' });
+settings.env = { ...settings.env, PATH: `${bin}:${process.env.PATH}` };
+await writeFile(settingsPath, JSON.stringify(settings));
+
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();
 const statePath = path.join(root, 'make-it-work/DEMO/DEMO-state.md');
 const command = (file, action, ...args) => JSON.parse(execFileSync(process.execPath,
