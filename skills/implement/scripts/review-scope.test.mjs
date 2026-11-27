@@ -20,6 +20,11 @@ async function fixture(t) {
   const root = await realpath(await mkdtemp(artifactJoin(os.tmpdir(), 'delivery-review-')));
   t.after(() => rm(root, { recursive: true, force: true }));
   git(root, 'init', '-qb', 'main'); git(root, 'config', 'user.name', 'Test'); git(root, 'config', 'user.email', 'test@example.invalid');
+  const prepareBin = path.join(root, '.git', 'prepare-bin');
+  await mkdir(prepareBin);
+  await writeFile(path.join(prepareBin, 'gh'), '#!/bin/sh\ncase "$1" in --version|auth) exit 0;; esac\nif [ "$1 $2" = "pr list" ]; then echo "[]"; exit 0; fi\nexit 91\n', { mode: 0o755 });
+  const prepareEnv = { ...process.env, PATH: `${prepareBin}:${process.env.PATH}` };
+
   await mkdir(artifactJoin(root, 'src')); await writeFile(artifactJoin(root, 'src/code.js'), 'export const count = 0;\n');
   await writeFile(artifactJoin(root, '.gitignore'), 'make-it-work/\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'Baseline'); git(root, 'switch', '-qc', 'feature');
   await writeFile(artifactJoin(root, 'src/code.js'), 'export const count = 1;\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'Earlier branch work');
@@ -43,7 +48,7 @@ async function fixture(t) {
     implement: { handoff_version: 1, plan_version: 1, review_cycle: 1, review_scope_version: 1 } });
   let id = 0;
   const apply = async (event, extra = {}) => applyWorkflow({ root, statePath, input: { event, id: `scope-${++id}`, repos: [root], expected_hash: digest(await readFile(statePath, 'utf8')), ...extra } });
-  return { root, dir, statePath, input, apply };
+  return { prepareEnv, root, dir, statePath, input, apply };
 }
 
 async function validationCapture(f, exit) {
@@ -82,7 +87,7 @@ test('captured failure and pass survive omitted reviewer notes, exact package ap
   await writeFile(f.statePath, (await readFile(f.statePath, 'utf8')).replace('phase: final-approval', 'phase: complete').replace('status: In Progress', 'status: Complete'));
   git(f.root, 'remote', 'add', 'origin', 'https://github.com/example/demo.git');
   git(f.root, 'update-ref', 'refs/remotes/origin/main', git(f.root, 'rev-parse', 'main'));
-  const prepared = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/deliver.mjs'), 'prepare', '--root', f.root, '--state', f.statePath], { encoding: 'utf8' }));
+  const prepared = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/deliver.mjs'), 'prepare', '--root', f.root, '--state', f.statePath], { encoding: 'utf8', env: f.prepareEnv }));
   const deliveryFile = (await (await import('node:fs/promises')).readdir(f.dir)).find(file => file.endsWith('delivery-plan.json'));
   assert.ok(prepared.sha256); assert.ok(deliveryFile);
   const delivery = JSON.parse(await readFile(path.join(f.dir, deliveryFile), 'utf8'));
@@ -423,7 +428,7 @@ test('new review provenance excludes unchanged notes and skills through review, 
   await f.apply('complete');
   git(f.root, 'remote', 'add', 'origin', 'https://github.com/example/service.git');
   git(f.root, 'update-ref', 'refs/remotes/origin/main', 'main');
-  const prepared = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/deliver.mjs'), 'prepare', '--root', f.root, '--state', f.statePath], { encoding: 'utf8', stdio: 'pipe' }));
+  const prepared = JSON.parse(execFileSync(process.execPath, [path.resolve('skills/implement/scripts/deliver.mjs'), 'prepare', '--root', f.root, '--state', f.statePath], { encoding: 'utf8', stdio: 'pipe', env: f.prepareEnv }));
   const plan = JSON.parse(await readFile(artifactJoin(f.dir, 'DEMO-delivery-plan.json'), 'utf8'));
   assert.equal(prepared.sha256, digest(JSON.stringify(plan)));
   assert.deepEqual(plan.repos[0].paths, target.repos[0].paths);

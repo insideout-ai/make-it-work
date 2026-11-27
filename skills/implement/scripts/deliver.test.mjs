@@ -5,7 +5,7 @@ import { chmod, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from '
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { parseRemote, pullRequest } from './deliver.mjs';
+import { parseRemote, pullRequest, checkDeliveryPrerequisites } from './deliver.mjs';
 import { generateDashboard } from './render-status.mjs';
 import { writeReview } from '../../../scripts/review-report.mjs';
 import { summarizeAssurance } from './assurance-summary.mjs';
@@ -16,7 +16,8 @@ import { writeFeedback } from './write-feedback.mjs';
 const packageCli = path.resolve('skills/implement/scripts/final-package.mjs');
 const deliveryCli = path.resolve('skills/implement/scripts/deliver.mjs');
 function git(repo, ...args) { return execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim(); }
-function cli(file, action, root, state, extra = [], env = process.env) {
+const fixtureEnvs = new Map();
+function cli(file, action, root, state, extra = [], env = fixtureEnvs.get(root) ?? process.env) {
   return JSON.parse(execFileSync(process.execPath, [file, action, '--root', root, '--state', state, ...extra], { encoding: 'utf8', env, stdio: ['ignore', 'pipe', 'pipe'] }));
 }
 function stateMarkdown(phase = 'final-approval', status = 'In Progress', marked = false) {
@@ -36,6 +37,11 @@ function stateMarkdown(phase = 'final-approval', status = 'In Progress', marked 
 async function fixture(t, { dashboard = false, qualified = false, marked = false, initial = {}, setup } = {}) {
   const root = await mkdtemp(artifactJoin(os.tmpdir(), 'delivery-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
+  const prepareBin = artifactJoin(root, 'prepare-bin');
+  await mkdir(prepareBin);
+  await writeFile(artifactJoin(prepareBin, 'gh'), '#!/bin/sh\ncase "$1" in --version|auth) exit 0;; esac\nif [ "$1 $2" = "pr list" ]; then echo "[]"; exit 0; fi\nexit 91\n', { mode: 0o755 });
+  fixtureEnvs.set(root, { ...process.env, PATH: `${prepareBin}:${process.env.PATH}` });
+  t.after(() => fixtureEnvs.delete(root));
   const repo = artifactJoin(root, 'service');
   const bare = artifactJoin(root, 'remote.git');
   await mkdir(repo);
@@ -236,7 +242,7 @@ test('delivery commits, pushes, creates a PR, and resumes without duplication', 
   assert.equal(git(root, '--git-dir', bare, 'rev-parse', 'refs/heads/DEMO'), git(repo, 'rev-parse', 'HEAD'));
   const repeated = cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env);
   assert.equal(repeated.repos.service.commit, result.repos.service.commit);
-  assert.equal((await readFile(ghLog, 'utf8')).match(/^pr (?:list|create) /gm).length, 3);
+  assert.equal((await readFile(ghLog, 'utf8')).match(/^pr (?:list|create) /gm).length, 4);
   assert.equal(JSON.parse(await readFile(artifactJoin(artifacts, 'DEMO-delivery-progress.json'), 'utf8')).repos.service.pushed, result.repos.service.commit);
   assert.equal(cli(deliveryCli, 'status', root, state).status, 'delivered');
 });
@@ -249,10 +255,9 @@ test('repository SSO failure stops delivery before staging, committing or pushin
   await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ] || [ "$1" = "auth" ]; then exit 0; fi\necho "organization SAML SSO authorization required" >&2\nexit 1\n');
   await chmod(gh, 0o755);
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
-  const prepared = cli(deliveryCli, 'prepare', root, state, [], env);
   const before = { head: git(repo, 'rev-parse', 'HEAD'), index: git(repo, 'write-tree'),
     refs: git(repo, 'ls-remote', '--heads', 'origin'), status: git(repo, 'status', '--porcelain') };
-  assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], env), /SAML SSO/);
+  assert.throws(() => cli(deliveryCli, 'prepare', root, state, [], env), /SAML SSO/);
   assert.deepEqual({ head: git(repo, 'rev-parse', 'HEAD'), index: git(repo, 'write-tree'),
     refs: git(repo, 'ls-remote', '--heads', 'origin'), status: git(repo, 'status', '--porcelain') }, before);
   const progress = cli(deliveryCli, 'status', root, state);
@@ -421,7 +426,7 @@ test('multi-repo partial delivery shows each actual result and resumes without d
   const snapshot = target => ({ head: git(target, 'rev-parse', 'HEAD'), index: git(target, 'write-tree'),
     refs: git(target, 'ls-remote', '--heads', 'origin'), status: git(target, 'status', '--porcelain') });
   const before = [snapshot(repo), snapshot(second)];
-  assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], { ...env, FAIL_PREFLIGHT: '1' }), /second repository SSO required/);
+  assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], { ...env, FAIL_PREFLIGHT: '1' }), /service-two.*SSO/);
   assert.deepEqual([snapshot(repo), snapshot(second)], before);
   assert.deepEqual(cli(deliveryCli, 'status', root, state).repos, {});
   assert.throws(() => cli(deliveryCli, 'run', root, state, ['--hash', prepared.sha256], { ...env, FAIL_SECOND: '1' }), /second repository PR failed/);
@@ -742,4 +747,96 @@ test('an already saved legacy full plan retains its exact approved tree instead 
   assert.equal(await readFile(file, 'utf8'), saved);
   assert.equal(git(f.root, '--git-dir', f.bare, 'show', 'DEMO:setting.txt'), 'true');
   assert.equal(await readFile(path.join(f.repo, 'setting.txt'), 'utf8'), 'false\n');
+});
+
+test('preparation blockers precede approval and execution revalidates changed credentials', async t => {
+  const f = await fixture(t);
+  const env = await mockDelivery(f);
+  const gh = path.join(f.root, 'bin/gh');
+  const original = await readFile(gh, 'utf8');
+  const snapshot = () => ({ head: git(f.repo, 'rev-parse', 'HEAD'), index: git(f.repo, 'write-tree'),
+    status: git(f.repo, 'status', '--porcelain'), refs: git(f.root, '--git-dir', f.bare, 'for-each-ref') });
+  const before = snapshot();
+  await writeFile(gh, '#!/bin/sh\nif [ "$1" = "auth" ]; then echo "PRIVATE_TOKEN_DO_NOT_DISCLOSE" >&2; exit 1; fi\nexit 0\n');
+  let failure;
+  try { cli(deliveryCli, 'prepare', f.root, f.state, [], env); } catch (error) { failure = error; }
+  assert.match(String(failure), /gh authentication.*check failed/);
+  assert.match(String(failure), /Preparation stopped before delivery approval.*package draft/);
+  assert.doesNotMatch(String(failure), /PRIVATE_TOKEN_DO_NOT_DISCLOSE/);
+  await assert.rejects(readFile(path.join(f.artifacts, 'DEMO-delivery-plan.json')), { code: 'ENOENT' });
+  assert.deepEqual(snapshot(), before);
+  await writeFile(gh, original);
+  const prepared = cli(deliveryCli, 'prepare', f.root, f.state, [], env);
+  await writeFile(gh, '#!/bin/sh\nif [ "$1" = "--version" ]; then exit 0; fi\nexit 1\n');
+  assert.throws(() => cli(deliveryCli, 'run', f.root, f.state, ['--hash', prepared.sha256], env), /gh authentication/);
+  assert.deepEqual(snapshot(), before);
+  assert.deepEqual(cli(deliveryCli, 'status', f.root, f.state).repos, {});
+});
+
+test('missing CLI fails preparation without staging or replacing a saved plan', async t => {
+  const f = await fixture(t);
+  const prepared = cli(deliveryCli, 'prepare', f.root, f.state);
+  const savedPlan = await readFile(path.join(f.artifacts, 'DEMO-delivery-plan.json'), 'utf8');
+  const bin = path.join(f.root, 'missing-gh'); await mkdir(bin);
+  const { symlink } = await import('node:fs/promises');
+  await symlink(execFileSync('which', ['git'], { encoding: 'utf8' }).trim(), path.join(bin, 'git'));
+  assert.throws(() => cli(deliveryCli, 'prepare', f.root, f.state, [], { ...process.env, PATH: bin }), /gh is missing from PATH/);
+  assert.equal(await readFile(path.join(f.artifacts, 'DEMO-delivery-plan.json'), 'utf8'), savedPlan);
+  assert.equal(cli(deliveryCli, 'status', f.root, f.state).status, 'failed');
+  assert.match(prepared.sha256, /^[a-f0-9]{64}$/);
+  assert.equal(git(f.repo, 'diff', '--cached', '--name-only'), '');
+  assert.equal(git(f.repo, 'rev-list', '--count', 'HEAD'), '1');
+});
+
+test('provider preflight selects each provider, checks every repo and bounds failures without leaking credentials', async t => {
+  const f = await fixture(t);
+  const bin = path.join(f.root, 'provider-bin'); await mkdir(bin);
+  const gh = path.join(bin, 'gh');
+  const log = path.join(f.root, 'provider.log');
+  await writeFile(gh, `#!/bin/sh\necho "$*" >> '${log}'\ncase "$1" in --version|auth) exit 0;; esac\necho '[]'\n`, { mode: 0o755 });
+  const previous = { PATH: process.env.PATH, token: process.env.MAKE_IT_WORK_BITBUCKET_TOKEN_JSON, base: process.env.MAKE_IT_WORK_BITBUCKET_API_BASE, fetch: globalThis.fetch };
+  t.after(() => {
+    process.env.PATH = previous.PATH;
+    for (const [key, value] of [['MAKE_IT_WORK_BITBUCKET_TOKEN_JSON', previous.token], ['MAKE_IT_WORK_BITBUCKET_API_BASE', previous.base]]) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    globalThis.fetch = previous.fetch;
+  });
+  process.env.PATH = `${bin}:${process.env.PATH}`;
+  process.env.MAKE_IT_WORK_BITBUCKET_TOKEN_JSON = JSON.stringify({ auth: 'bearer', token: 'PRIVATE_TOKEN' });
+  process.env.MAKE_IT_WORK_BITBUCKET_API_BASE = 'https://fixture.invalid/2.0';
+  const calls = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return { ok: true, json: async () => ({ slug: 'example' }) };
+  };
+  const github = { provider: 'github', name: 'g1', owner: 'org', repo: 'one', branch: 'feature', base: 'main' };
+  const bitbucket = { provider: 'bitbucket', name: 'b1', owner: 'team', repo: 'two' };
+  await checkDeliveryPrerequisites([github, bitbucket, { ...github, name: 'g2', repo: 'three' }, { ...bitbucket, name: 'b2', repo: 'four' }]);
+  const commands = await readFile(log, 'utf8');
+  assert.equal(commands.match(/--version/g).length, 1); assert.equal(commands.match(/auth status/g).length, 1);
+  assert.equal(commands.match(/^pr list/gm).length, 2);
+  assert.match(commands, /pr list --repo org\/one/); assert.match(commands, /pr list --repo org\/three/);
+  assert.deepEqual(calls.map(call => call.url), ['https://fixture.invalid/2.0/repositories/team/two', 'https://fixture.invalid/2.0/repositories/team/four']);
+  assert.ok(calls.every(call => call.options.method === 'GET' && call.options.signal && call.options.redirect === 'error'));
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer PRIVATE_TOKEN');
+  for (const status of [401, 403, 404]) {
+    globalThis.fetch = async () => ({ ok: false, status });
+    await assert.rejects(checkDeliveryPrerequisites([bitbucket]), new RegExp(`b1.*HTTP ${status}`));
+  }
+  globalThis.fetch = async () => { throw new Error('PRIVATE_TOKEN network failure'); };
+  await assert.rejects(checkDeliveryPrerequisites([bitbucket]), error => /connectivity/.test(error.message) && !/PRIVATE_TOKEN/.test(error.message));
+  process.env.MAKE_IT_WORK_BITBUCKET_TOKEN_JSON = '{"token":"PRIVATE_TOKEN"';
+  await assert.rejects(checkDeliveryPrerequisites([bitbucket]), error => /credentials/.test(error.message) && !/PRIVATE_TOKEN/.test(error.message));
+  process.env.MAKE_IT_WORK_BITBUCKET_TOKEN_JSON = JSON.stringify({ auth: 'basic', user: 'user', token: 'PRIVATE_TOKEN' });
+  globalThis.fetch = async (_url, options) => {
+    assert.equal(options.headers.Authorization, `Basic ${Buffer.from('user:PRIVATE_TOKEN').toString('base64')}`);
+    return new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true }));
+  };
+  // Keep the event loop alive: AbortSignal.timeout's timer is deliberately unref'ed.
+  const hold = setTimeout(() => {}, 1000);
+  try { await assert.rejects(checkDeliveryPrerequisites([bitbucket], { timeout: 10 }), /timed out/); }
+  finally { clearTimeout(hold); }
+  await writeFile(gh, '#!/bin/sh\nexec sleep 2\n');
+  await assert.rejects(checkDeliveryPrerequisites([github], { timeout: 20 }), /timed out/);
 });

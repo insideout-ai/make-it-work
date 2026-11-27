@@ -17,6 +17,7 @@ for (const scenario of ['prepare', 'decline', 'stale']) {
     t.after(() => rm(root, { recursive: true, force: true }));
     const caseDir = artifactJoin(evalRoot, 'implement', `delivery-${scenario}`);
     execFileSync('bash', [artifactJoin(caseDir, 'fixture.sh')], { cwd: root });
+    const providerEnv = JSON.parse(await readFile(path.join(root, '.claude/settings.local.json'), 'utf8')).env;
     const artifacts = artifactJoin(root, 'make-it-work/DEMO');
     const state = artifactJoin(artifacts, 'DEMO-state.md');
     const originalState = await readFile(state, 'utf8');
@@ -28,7 +29,7 @@ for (const scenario of ['prepare', 'decline', 'stale']) {
     const grade = async (name) => gradeHeadlessLocal(parseGrader(
       await readFile(artifactJoin(caseDir, 'graders', name), 'utf8'), name), context);
     const run = (action) => execFileSync(process.execPath, [cli, action, '--root', root, '--state', state],
-      { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      { cwd: root, encoding: 'utf8', env: { ...process.env, ...providerEnv }, stdio: ['ignore', 'pipe', 'pipe'] });
 
     if (scenario === 'stale') {
       assert.throws(() => run('prepare'), /stale/i);
