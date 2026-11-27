@@ -1,0 +1,71 @@
+skills/implement/scripts/write-feedback.mjs
+  s_8f3f2a27ec1574::t_45151e33537e6d 16,522-523
+  s_8f3f2a27ec1574::t_b1dad35211362e 524-528
+skills/implement/scripts/startup-presentation.test.mjs
+  s_8f3f2a27ec1574::t_5cd3952044161e 22
+  s_8f3f2a27ec1574::t_ce4a7802fbb9ca 377,379,399
+docs/workflow-findings.md
+  s_84cb7af373ac17::t_e51893b1ebba49 39,47-48,59,67,94,106-109,383-384,437-438,685-694,699-705,746-749,779-780,973-980,982
+  s_84cb7af373ac17::t_6f8e22f8f99a49 695-698
+  s_84cb7af373ac17::t_656c79a5199b5e 616,981
+  s_84cb7af373ac17::t_a0e1ff49644f1d 617,983
+skills/implement/references/feedback.md
+  s_8f3f2a27ec1574::t_45151e33537e6d 34-40,44
+  s_8f3f2a27ec1574::t_b1dad35211362e 41-43
+README.md
+  s_8f3f2a27ec1574::t_45151e33537e6d 351-353
+skills/implement/scripts/render-status.test.mjs
+  s_8f3f2a27ec1574::t_4ebc21bbbab756 136
+  s_8f3f2a27ec1574::t_f5baea94240da2 133-135,137-146
+  s_8f3f2a27ec1574::t_5cd3952044161e 33
+skills/implement/scripts/feedback-evidence.test.mjs
+  s_8f3f2a27ec1574::t_5cd3952044161e 13
+skills/implement/scripts/feedback-handoff.test.mjs
+  s_8f3f2a27ec1574::t_5cd3952044161e 31
+  s_8f3f2a27ec1574::t_e901977e5f0eff 207
+CHANGELOG.md
+  s_474699c79cb734::t_f26d6ca7cf4b3b 13
+skills/implement/scripts/feedback-progress.mjs
+  s_8f3f2a27ec1574::t_45151e33537e6d 5,17-20,25-26,35-39
+  s_8f3f2a27ec1574::t_38b9750d083a1f 6,21-24,27-34
+  s_8f3f2a27ec1574::t_c3a4963eee95d3 40-41
+skills/implement/scripts/write-feedback.test.mjs
+  s_8f3f2a27ec1574::t_f5baea94240da2 12-13,107,110-118,128-132,135-140,149-157
+  s_8f3f2a27ec1574::t_38b9750d083a1f 141-148
+  s_8f3f2a27ec1574::t_5cd3952044161e 16
+  s_8f3f2a27ec1574::t_4f0b7e128e9ed3 203,358,440,686
+skills/implement/scripts/render-status.mjs
+  s_8f3f2a27ec1574::t_45151e33537e6d 780-782
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbd4120afc83cd1299300a1f58d929fb80c917e0",
+  "prompts": {},
+  "sessions": {
+    "s_474699c79cb734": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21d90-8bda-7c92-8ad5-c4403f90db2a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_84cb7af373ac17": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21d9c-1fe8-72a0-a538-49b5221e2036",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_8f3f2a27ec1574": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21d90-bac2-7201-9da6-8b39fa5938f9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
