@@ -1,5 +1,9 @@
 # Structured regression execution
 
+The exported `runCommand` also supports an optional asynchronous `onOutput(stream, bytes)` sink. It receives original stdout/stderr Buffers separately, applying per-stream backpressure while the existing combined tail stays bounded. Sink failures return `output_capture_error`, keep draining output and preserve the actual process result; callers must distinguish complete capture from execution success. Callers without a sink retain the existing result shape. This is not an additional regression/gate invocation.
+
+For optional private validation capture during active Implement Execute/Lightweight, use [command capture](../skills/implement/references/compilation-evidence.md#optional-local-capture-during-executelightweight) through `scripts/command-evidence.mjs`. It reuses this runner without classifying a supplemental command as a test gate or changing existing regression CLI behavior. New delivery-aligned review targets can bind those records and generated factual qualifications through review/package checks; raw arguments/logs remain private. Saved targets without capture facts retain their prior contract.
+
 After the skill's semantic discovery/map assessment, use `scripts/regression.mjs run --input <manifest.json>` for command execution and aggregation. The caller may keep JSON in memory or its existing verification artifact; this helper writes no result files. A standalone run must not create a project manifest file: pass a disposable input under the OS temporary directory, remove it afterward, or call exported `runRegression` directly. Use `regressionReport(result)` or `--format text` to render the existing chat labels from the same observed result; do not rerun commands just to render text.
 
 Manifest example:

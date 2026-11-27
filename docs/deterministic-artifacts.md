@@ -4,6 +4,8 @@ These helpers own mechanical operations. Read the section for the current skill 
 
 ## Draft and evidence inputs
 
+New delivery-aligned review targets inventory run-local command captures using `scripts/lib/command-facts.mjs`. The writer adds generated process qualifications alongside semantic review notes; final packaging verifies/binds the same record and raw-log hashes. Saved targets without this optional evidence retain their contract. Generated delivery qualifications contain no raw argv, logs or paths. Already-bound missing records remain unknown, and changed facts use the existing review-refresh route without command reruns or a new gate. See [compilation evidence](../skills/implement/references/compilation-evidence.md).
+
 Worker evidence destinations are reserved by `artifact-output.mjs allocate --root <artifact-root> --directory make-it-work/<TICKET> --name worker-evidence.json`. Each call exclusively creates a new UUID-suffixed file, follows marked/legacy naming, and returns absolute `file`/`relative` paths. Allocate before dispatch and reuse that path for the same worker's continuation; an empty reservation is not completed evidence. `resolve` retains its existing non-reserving contract.
 
 `artifact-output.mjs inputs --root <artifact-root> --plan <saved-plan-reference>` returns the existing plan's absolute path. Add or use `--source-root <selected-repo> --context <repo-relative-file>` for an absolute `context_updated` entry. These read-only lookups reject escapes and do not grant repository selection/edit permissions. Implement's controller still validates approved roots.

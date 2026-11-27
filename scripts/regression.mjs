@@ -28,7 +28,7 @@ export function canonicalToken(repo, token, inventory) {
   if (!found) return null;
   return `${repo}:${uc ? `UC-${found.match(/^uc-(\d+)-/i)[1]}` : found}`;
 }
-function command(value) {
+export function command(value) {
   if (!value || typeof value !== 'object') fail('Command must be structured argv.');
   requireText(value.bin, 'Command executable');
   if (!Array.isArray(value.args) || value.args.some((arg) => typeof arg !== 'string' || /\0/.test(arg))) fail('Command args must be strings.');
@@ -61,9 +61,10 @@ function progressOptions(onProgress, interval) {
   if (onProgress !== undefined && typeof onProgress !== 'function') fail('Progress observer must be a function.');
   if (!Number.isSafeInteger(interval) || interval < 10 || interval > 300000) fail('Invalid progress interval; use 10–300000 ms.');
 }
-export async function runCommand(input, cwd, { timeoutMs = 300000, env = process.env, onProgress, progressIntervalMs = 300000, progressContext = {} } = {}) {
+export async function runCommand(input, cwd, { timeoutMs = 300000, env = process.env, onProgress, progressIntervalMs = 300000, progressContext = {}, onOutput } = {}) {
   const c = command(input);
   testTimeout(timeoutMs); progressOptions(onProgress, progressIntervalMs);
+  if (onOutput !== undefined && typeof onOutput !== 'function') fail('Output observer must be a function.');
   return new Promise((resolve) => {
     const startedAt = new Date().toISOString(), started = performance.now();
     const description = displayCommand(c);
@@ -85,12 +86,23 @@ export async function runCommand(input, cwd, { timeoutMs = 300000, env = process
     };
     const grouped = process.platform !== 'win32';
     const child = spawn(c.bin, c.args, { cwd, env, detached: grouped, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
-    let tail = '', timedOut = false, startError = null;
-    const capture = (chunk) => {
+    let tail = '', timedOut = false, startError = null, outputError = null;
+    const pendingOutput = new Set();
+    const capture = (name, stream, chunk) => {
       lastOutput = performance.now(); lastOutputAt = new Date().toISOString(); outputBytes += chunk.length;
       const text = tail + chunk.toString('utf8'); truncated ||= text.length > 16000; tail = text.slice(-16000);
+      if (onOutput && !outputError) {
+        // Bound capture buffering to one write per stream. A failed observer is
+        // advisory: keep draining the child and preserve its actual exit.
+        stream.pause();
+        const pending = Promise.resolve().then(() => onOutput(name, chunk))
+          .catch(error => { outputError = String(error?.message ?? error) || 'Output observer failed.'; })
+          .finally(() => { pendingOutput.delete(pending); stream.resume(); });
+        pendingOutput.add(pending);
+      }
     };
-    child.stdout.on('data', capture); child.stderr.on('data', capture);
+    child.stdout.on('data', chunk => capture('stdout', child.stdout, chunk));
+    child.stderr.on('data', chunk => capture('stderr', child.stderr, chunk));
     emit('started');
     const heartbeat = onProgress ? setInterval(() => emit('running'), progressIntervalMs) : null;
     const timer = setTimeout(() => {
@@ -99,12 +111,14 @@ export async function runCommand(input, cwd, { timeoutMs = 300000, env = process
       catch (error) { if (error.code !== 'ESRCH') startError = error.message; }
     }, timeoutMs);
     child.on('error', (error) => { startError = error.message; });
-    child.on('close', (exitCode, signal) => {
+    child.on('close', async (exitCode, signal) => {
       clearTimeout(timer); clearInterval(heartbeat);
       const result = exitCode === 0 && !timedOut && !startError ? 'pass' : 'fail';
       emit('finished', { result, exit_code: exitCode, signal, timed_out: timedOut, error: startError });
-      resolve({ exit_code: exitCode, signal, timed_out: timedOut, error: startError,
-        result, output_tail: tail, output_truncated: truncated, ...timing(), ...(progressError ? { progress_error: progressError } : {}) });
+      const observed = { exit_code: exitCode, signal, timed_out: timedOut, error: startError,
+        result, output_tail: tail, output_truncated: truncated, ...timing(), ...(progressError ? { progress_error: progressError } : {}) };
+      await Promise.all(pendingOutput);
+      resolve({ ...observed, ...(outputError ? { output_capture_error: outputError } : {}) });
     });
   });
 }
