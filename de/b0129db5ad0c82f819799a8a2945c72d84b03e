@@ -1,0 +1,19 @@
+.github/workflows/validate-plugin.yml
+  s_0e9d705d1059a6::t_27ea3caf12983e 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "deb0129db5ad0c82f819799a8a2945c72d84b03e",
+  "prompts": {},
+  "sessions": {
+    "s_0e9d705d1059a6": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2180c-ff69-7171-89a8-456ffd7c5cc5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
