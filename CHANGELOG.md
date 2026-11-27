@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Keep detailed test coverage in the Test Preparation report and show planned progression/regression counts with its report link in the preparation audit entry.
 - Consolidate maintainer workflow findings and retain review, cost-analysis and delivery evidence with their existing decisions and verification limits.
 
+### Fixed
+
+- Require slice summaries to match their story criteria or completion evidence, retaining unresolved questions and proposal qualifications instead of overstating scope.
+
 ## [5.18.0] — 2026-11-27
 
 ### Added
