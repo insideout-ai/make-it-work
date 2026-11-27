@@ -1,0 +1,33 @@
+evals/plan-the-work/happy-path/graders/integrated-quality.md
+  s_165cd8b44de4aa::t_0567c87f43979a 8-9
+skills/close-the-gaps/SKILL.md
+  s_165cd8b44de4aa::t_0567c87f43979a 9-16
+skills/plan-the-work/references/autopilot.md
+  s_165cd8b44de4aa::t_0567c87f43979a 32
+skills/plan-the-work/SKILL.md
+  s_165cd8b44de4aa::t_0567c87f43979a 9-16
+skills/write-the-tests/SKILL.md
+  s_165cd8b44de4aa::t_0567c87f43979a 8-15
+docs/artifact-quality-review.md
+  s_165cd8b44de4aa::t_0567c87f43979a 30-32,46-48
+evals/close-the-gaps/close-the-gaps-live-autopilot/graders/integrated-quality.md
+  s_165cd8b44de4aa::t_0567c87f43979a 8-9
+evals/write-the-tests/standalone/graders/integrated-quality.md
+  s_165cd8b44de4aa::t_0567c87f43979a 8-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5bdcd728aff4f4743a47fec703d089f02446062e",
+  "prompts": {},
+  "sessions": {
+    "s_165cd8b44de4aa": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a217b7-107b-7f41-9f60-856e2370ae6a",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
