@@ -30,6 +30,17 @@ After close-the-gaps saves the spec, judge the ticket's risk yourself — judgme
 
 A mode the user forced (`--mode` or an explicit chat request) wins: set it with `mode_source: user`, still record the assessed `risk`, and note the override and any disagreement in `risk_rationale` (e.g. `…; user forced tdd, assessed low`).
 
+**TDD spec quality:** after selecting TDD and before accepting/routing the completed
+refinement handoff or publishing, invoke refinement's [integrated spec review](../../../close-the-gaps/SKILL.md#integrated-spec-review)
+with the current draft and relevant context. Keep phase ownership in refinement;
+this is not a controller event. If corrections change risk-relevant scope, reassess
+risk. Replace an outdated draft handoff with the current result before routing.
+Lightweight skips this review. If a Guided mode override selects TDD at Spec
+approval, perform the review before advancing/publishing and present corrections
+for acceptance. For reused specs or later Lightweight-to-TDD escalation, run it
+before TDD planning unless a retained record covers unchanged relevant inputs.
+Accepted-spec changes follow existing spec-conflict/reapproval rules.
+
 Log the result as a decision row (topic `Implementation mode`, per the workflow-decision audit), refresh the dashboard, then call `handoff.mjs next`. Guided shows it at Spec approval; Autonomous and Autopilot apply it without asking. On controller runs, the controller's `mode` event writes these fields and the row; apply it before the refinement handoff (or a reused spec's `context-ready`). Escalation and Lightweight fix rounds likewise use its events, never hand edits.
 
 In Autopilot, also append this assessed mode to the initialized `implement` decision log using `kind: checkpoint` and `site: implementation-mode`. This records a policy assessment, so omit `question`, `options`, and `multiSelect`; those fields are allowed only for `askUserQuestion` entries. Use the actual selected mode and rationale, including any user override. For example:

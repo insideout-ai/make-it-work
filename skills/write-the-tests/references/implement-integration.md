@@ -11,3 +11,14 @@ The coordinator narrates/checkpoints dispatch and retains that activity while wa
 The coordinator validates numbered preparation evidence, accepts the native delegate report through `delegate-report.mjs`, and emits a version-1 `tests` handoff with outcome `TESTS_PREPARED`, artifacts `report` and `preparation`, and empty data. A partial/failed preparation uses a blocked handoff. Retain baseline triage: `PRE_EXISTING_REGRESSION` may be returned by this stage. Requirements conflicts retain the existing explicit refinement route.
 
 On replan/amend/resume, pass only current approved inputs and relevant prior evidence. Reuse valid tests; update evidence for the current plan revision, preserving previous numbered reports as history. For a manual-only plan the coordinator can record exempt scenario rows and emit a not-applicable preparation result without dispatching an authoring worker. Mixed plans dispatch for automated rows and retain manual rows as exempt.
+
+## Integrated quality review ownership
+
+Follow [bounded artifact quality review](../../../docs/artifact-quality-review.md).
+Apply only to TDD under Implement; standalone skills follow their entrypoint.
+Retain existing workspace, edit and activity ownership. The parent alone handles
+questions/stops and spec-conflict transitions. Record attempts outside workflow
+counters; preserve unfinished/exhausted attempts on resume. A record is evidence
+of the inspection, not a new controller gate or schema. Never emit a successful
+handoff while quality blockers remain. For refinement the parent invokes review
+after mode selection and before spec acceptance/publication.

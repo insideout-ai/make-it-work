@@ -87,3 +87,14 @@ Recommend replan: <reason>   ← only when applicable (amend mode, repeat offend
 Then stop.
 
 **Version 1 handoff** — when the caller's workflow state contains `handoff_version: 1`, also read `../implement/references/handoffs.md` and write a new `plan-<N>.json` in `make-it-work/<TICKET>/<TICKET>-handoffs/`. Use `PLAN_SAVED` for initial/replan mode or `FIX_PLAN_READY` for amend mode. Record the actual plan path, `mode`, numeric `steps_added` in amend mode (otherwise `null`), the `Recommend replan:` reason or `null`, and updated context paths (Step 6's `Test scope:` line stays out of the JSON). For a pre-existing failing regression that stops planning, emit a `blocked` handoff with `code: PRE_EXISTING_REGRESSION` and the exact test/reason, rather than claiming a completed plan. Do not write a handoff for an older run. End the chat report with `Handoff: <path>`.
+
+## Integrated quality review ownership
+
+Follow [bounded artifact quality review](../../../docs/artifact-quality-review.md).
+Apply only to TDD under Implement; standalone skills follow their entrypoint.
+Retain existing workspace, edit and activity ownership. The parent alone handles
+questions/stops and spec-conflict transitions. Record attempts outside workflow
+counters; preserve unfinished/exhausted attempts on resume. A record is evidence
+of the inspection, not a new controller gate or schema. Never emit a successful
+handoff while quality blockers remain. For refinement the parent invokes review
+after mode selection and before spec acceptance/publication.

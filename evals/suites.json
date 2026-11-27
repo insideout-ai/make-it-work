@@ -178,7 +178,10 @@
     "feedback-maintainer-followup-answered",
     "feedback-maintainer-followup-reported",
     "implement-implementation-claim-handoff",
-    "plan-behavior-boundary-coverage"
+    "plan-behavior-boundary-coverage",
+    "plan-integrated-review",
+    "tests-integrated-review",
+    "plan-integrated-exhausted"
   ],
   "workingDirectories": {
     "implement-repo-start-dependencies": "connector-app",

@@ -357,6 +357,18 @@ Include every applicable question actually asked here, including skipped ones �
 
 ---
 
+### Integrated spec review
+
+Standalone, before final completion/publication, follow the spec checklist and
+[bounded artifact quality review](../../docs/artifact-quality-review.md). Preserve
+unresolved-draft and external-answer waits; review does not answer product questions.
+Under Implement, defer this review to the caller after TDD mode selection, before
+acceptance/publication; do not add a review to Lightweight. Return the draft for
+risk assessment without claiming its integrated review passed. The caller invokes
+this same procedure with current inputs. Complete context updates before review
+so known relevant facts are available. Unresolved review blockers replace the
+normal successful completion with the existing blocked/question route.
+
 ## Phase 7 — Context Update
 
 Run this once Phase 6 has saved the spec, in every run that reaches Phase 6 — live or offline injection. Skip it silently when the project has no `go-deep` context to update (no `uc-*` / `domain-*` skills under `.claude/skills/` and no `.claude/rules/` files).

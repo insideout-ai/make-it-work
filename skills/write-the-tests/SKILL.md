@@ -33,6 +33,19 @@ Standalone may create only plan-declared minimal new signatures needed for a run
 
 Preserve the existing baseline-failure policy: interactive standalone runs ask whether to call out an unrelated failure and continue or stop; Autopilot records it and continues only with unaffected progression coverage, recording that observed regression as `accepted-failure` with its decision reference; it remains failed/unverified. Implement returns a baseline blocker to the coordinator for its existing triage. Failures caused by accepted prior implementation are work for the plan, not unrelated baseline failures.
 
+## Integrated test review
+
+After recording candidate preparation evidence and checking it, but before a
+successful handback, follow [bounded artifact quality review](../../docs/artifact-quality-review.md)
+for tests. Inspect actual prepared assertions with the spec and plan, not just
+scenario names or metadata. Refresh affected preparation evidence after local
+corrections. The worker returns the review-record path and disposition to its
+coordinator; it does not emit TESTS_PREPARED or write workflow activity itself.
+For manual-only plans, the coordinator reviews planned observations using this
+procedure without dispatching an authoring worker. Preserve exempt/unverified
+status. Unresolved blockers prevent a successful handback even if preparation's
+structural check passes.
+
 ## Save evidence and return
 
 Use `scripts/preparation.mjs record --plan <absolute-plan> --input <json>` to create a numbered JSON evidence artifact and readable Markdown report. The helper returns actual paths and never edits the plan. Follow artifact-output resolution for manually written inputs/logs. Keep full diagnostic logs retrievable locally and return only relevant excerpts, unresolved errors and paths.

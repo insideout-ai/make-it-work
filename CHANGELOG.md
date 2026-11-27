@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Bounded integrated spec, plan and prepared-test reviews for standalone skills and TDD implementation. Reviewers inspect semantic coverage, allow one correction round and retain unresolved blockers through existing recovery; Lightweight and controller contracts remain unchanged.
+
 ## [5.17.6] — 2026-11-27
 
 ### Fixed
