@@ -1,0 +1,24 @@
+skills/implement/scripts/render-status.test.mjs
+  s_ff9c67d2a39fae::t_310256eac8770a 1682-1683
+  s_ff9c67d2a39fae::t_ff2c02ccaeac79 1668-1681,1684-1690
+skills/implement/scripts/dashboard-checkpoint.mjs
+  s_ff9c67d2a39fae::t_310256eac8770a 183,186
+  s_ff9c67d2a39fae::t_0c896ddec7f932 177-182,185
+  s_ff9c67d2a39fae::t_c3e896edef97e8 187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a29096101a9264f16dc13b0876159e323b12dfce",
+  "prompts": {},
+  "sessions": {
+    "s_ff9c67d2a39fae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21c54-ed74-7721-9e86-4437991aa6b1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
