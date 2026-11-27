@@ -22,6 +22,8 @@ import { generateArtifactPreviews } from '../../../scripts/lib/artifact-preview.
 import { coverageSummary } from '../../../scripts/lib/test-coverage.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
+import { finalScenarioResults, outcomeSentence, recordedWaiting } from './completion-summary.mjs';
+import { summarizeAssurance } from './assurance-summary.mjs';
 import { summarizeAcceptance, acceptanceMarkdown } from './acceptance-summary.mjs';
 import { atomicWrite } from '../../../scripts/lib/artifacts.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
@@ -835,7 +837,7 @@ function pendingReviewLink(state, record) {
   return `<a class="pending-reference" href="${escapeHtml(filename)}">${label}</a>`;
 }
 
-function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
+function renderStatusBanner(state, completion = '') {
   const pending = state.pendingInputs ?? pendingInputs(state.fields);
   if (pending.length) {
     const cards = pending.map((record) => {
@@ -853,43 +855,91 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
       return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong class="pending-title">${title}</strong>${action}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
-    const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
+    const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, completion);
     return `${banner}\n${cards}`;
   }
   if (state.fields.status === 'Paused' || state.fields.status === 'Stopped') {
-    return `<p class="next-action"><strong>Waiting on you:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
+    return `<p class="next-action"><strong>${state.fields.status === 'Stopped' ? 'Stopped' : 'Waiting on you'}:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
   }
-  if (state.fields.status !== 'Complete') return '';
-  const duration = Number.isFinite(invalidTimestampFrom)
-    ? 'Elapsed unavailable — an audit timestamp is later than the state checkpoint.'
-    : timing
-    ? `Elapsed time (includes waits and pauses): ${timing.total}. Active processing time is not measured.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
-    : 'Elapsed: unknown — no real start timestamp was captured for this run.';
-  const deliveryText = {
-    offered: 'Delivery decision pending. Changes remain local and uncommitted.',
-    'awaiting-approval': 'Delivery awaits approval of its exact plan. Changes remain local and uncommitted.',
-    running: 'Delivery is running; repository progress is shown below.',
-    partial: 'Delivery stopped after partial progress; see the repository results below.',
-    failed: 'Delivery failed; see the recorded error and repository progress below.',
-    delivered: 'Changes committed and pushed; pull requests opened or updated.',
-    declined: 'Delivery was not requested. Changes remain local and uncommitted.',
-    unknown: 'Delivery status is unavailable; inspect the delivery records below.',
-  }[delivery?.status] ?? 'Changes remain local and uncommitted.';
-  const testing = testingSummaryNotes(parseTestingSummary(state.fields.testing_summary)).map(note => `<br><span class="testing-note"><strong>Testing:</strong> ${escapeHtml(note)}</span>`).join('');
-  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}${testing}<br><small>Delivery status reflects actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected here.</small></p>`;
+  return state.fields.status === 'Complete' ? completion : '';
 }
 
-function renderDeliveryDetails(delivery, ticket) {
+function renderDeliveryDetails(delivery) {
   if (!delivery || ['not-started', 'offered', 'declined'].includes(delivery.status)) return '';
   const link = (url, label) => url
     ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>` : escapeHtml(label);
   const rows = delivery.repos.map((repo) => `<tr><td>${escapeHtml(repo.name)}</td><td>${repo.commit ? link(repo.commitUrl, repo.commit.slice(0, 12)) : 'Not committed'}</td><td>${repo.pushed ? 'Pushed' : 'Not pushed'}</td><td>${repo.pr ? link(repo.pr, 'View pull request') : repo.prRecorded ? 'Created (link unavailable)' : 'Not created'}</td></tr>`).join('\n');
-  return `<section class="delivery-details" aria-label="Delivery progress"><h2>Delivery — ${DELIVERY_LABELS[delivery.status]}</h2>
+  return `<section class="delivery-details" aria-label="Delivery progress"><h3>Delivery — ${DELIVERY_LABELS[delivery.status]}</h3>
 ${delivery.activity ? `<p>${escapeHtml(delivery.activity)}</p>` : ''}
-${delivery.error ? `<p class="next-action">${escapeHtml(delivery.error)}</p>` : ''}
+${delivery.error ? `<p class="delivery-error"><strong>Delivery error:</strong> ${escapeHtml(delivery.error)}</p>` : ''}
 ${delivery.updatedAt ? `<p class="delivery-updated">Last updated: <span class="ts" data-ts="${escapeHtml(delivery.updatedAt)}"></span></p>` : ''}
-${rows ? `<table><tr><th>Repository</th><th>Commit</th><th>Push</th><th>Pull request</th></tr>${rows}</table>` : ''}
-<p class="delivery-records"><a href="${encodeURIComponent(ticket)}-delivery-plan.md">Delivery plan</a> · <a href="${encodeURIComponent(ticket)}-delivery-progress.json">Progress record</a></p></section>`;
+${rows ? `<div class="table-scroll" tabindex="0" aria-label="Repository delivery"><table><tr><th>Repository</th><th>Commit</th><th>Push</th><th>Pull request</th></tr>${rows}</table></div>` : ''}
+</section>`;
+}
+
+function deliverySummary(delivery) {
+  return {
+    'not-started': 'Not started. Changes remain local and uncommitted.',
+    offered: 'Delivery decision pending. Changes remain local and uncommitted.',
+    'awaiting-approval': 'Awaiting approval of the exact delivery plan.',
+    running: 'Delivery is running; see repository progress.',
+    partial: 'Delivery stopped after partial progress; see repository results.',
+    failed: 'Delivery failed; see repository results.',
+    delivered: 'Changes committed and pushed; pull requests opened or updated.',
+    declined: 'Delivery was not requested. Changes remain local and uncommitted.',
+    unknown: 'Delivery status is unavailable; inspect delivery records.',
+  }[delivery?.status] ?? (delivery ? 'Delivery status is unavailable.' : 'Not recorded; delivery is not confirmed.');
+}
+
+function renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails }) {
+  const results = finalScenarioResults(planStatus?.coverage, verification);
+  const tests = results ? Object.entries(results).map(([purpose, counts]) => {
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    if (!total) return `${purpose}: 0 recorded`;
+    const details = ['failed', 'skipped', 'unknown'].filter(result => counts[result]).map(result => `${counts[result]} ${result}`);
+    return `${purpose} ${counts.passed}/${total} passed${details.length ? `, ${details.join(', ')}` : ''}`;
+  }).join('; ') + ' (recorded scenarios)' : 'Recorded scenario results unavailable';
+  const ac = acceptance?.summary;
+  const acceptanceText = ac ? `${ac.verified}/${ac.total} acceptance criteria verified` : 'Acceptance checks: Not recorded';
+  const elapsed = Number.isFinite(invalidTimestampFrom) ? 'Elapsed unavailable — invalid audit timestamp'
+    : timing ? `Elapsed time (includes waits and pauses): ${timing.total}${timing.feedbackCollecting ? ' (provisional)' : ''}${state.realRowsFrom > 1 ? ' (partial session)' : ''}`
+      : 'Elapsed: unknown — no real start timestamp was captured for this run';
+  const waiting = summaryDetails.waitingMs == null ? 'recorded waiting unavailable'
+    : `recorded waiting ${formatDuration(summaryDetails.waitingMs)} (partial coverage)`;
+  const attention = [...new Set([
+    ...(state.knownRegressions.length ? [`${state.knownRegressions.length} known unrelated test failure(s), documented, not fixed`] : []),
+    ...(ac?.pending ? [`${ac.pending} acceptance criteria pending`] : []),
+    ...(verification?.gate && ['fail', 'no-result'].includes(verification.gate.result) ? [`Regression gate: ${verification.gate.result}`] : []),
+    ...(verification?.gate?.result === 'manual-accepted' ? ['Manual verification completed; automated regression unavailable'] : []),
+    ...(state.fields.mode === 'lightweight' ? ['Lightweight — no regression gate; verified by independent review'] : []),
+    ...(parseTestingSummary(state.fields.testing_summary).length ? ['Test strategy missing; see verification details'] : []),
+    ...(delivery?.error ? [delivery.error] : []),
+    ...(summaryDetails.limitations ?? []),
+  ])];
+  const attentionText = attention.slice(0, 2).join('; ');
+  const attentionPreview = attentionText.length > 200 ? `${attentionText.slice(0, 197).trimEnd()}…` : attentionText;
+  const line = (label, content) => `<div><dt>${label}</dt><dd>${content}</dd></div>`;
+  const feedbackStatus = feedback?.status ?? 'unavailable';
+  const feedbackText = feedbackStatus === 'collecting' ? 'Collecting feedback'
+    : feedbackStatus === 'saved' ? 'Saved — see feedback files in Artifacts'
+      : `Unavailable${feedback?.reason ? ` — ${feedback.reason}` : ''}`;
+  return { attention, html: `<strong>Implementation complete.</strong>${feedback?.status === 'collecting' ? ' <span>Finalizing session.</span>' : ''}
+<dl class="completion-summary">
+${line('Changed', escapeHtml(summaryDetails.changed ?? 'See the implementation report in Artifacts.'))}
+${line('Time', `${elapsed}. ${escapeHtml(waiting)}.`)}
+${line('Delivery', escapeHtml(deliverySummary(delivery)))}
+${line('Testing', `${escapeHtml(tests)}; ${escapeHtml(acceptanceText)}.`)}
+${line('Feedback', `<span data-workflow-feedback-status="${escapeHtml(feedbackStatus)}">${feedbackStatus === 'saved' ? '<a href="workflow-feedback.md">Session feedback</a> · <a href="../implement-feedback.md">Cumulative feedback</a>' : escapeHtml(feedbackText)}</span>`)}
+${attention.length ? line('Attention', `${escapeHtml(attentionPreview)}${attention.length > 2 ? `; ${attention.length - 2} more qualification(s)` : ''}. <a href="#completion-details">View details</a>`) : ''}
+</dl>` };
+}
+
+function renderRepositoryLocations(state, scope) {
+  const panel = renderWorkspacePanel(state, scope);
+  if (panel) return panel;
+  const snapshots = JSON.parse(state.fields.workspace_snapshot ?? '[]');
+  if (!snapshots.length) return '<p class="muted">Repository locations not recorded.</p>';
+  return `<div class="table-scroll"><table><tr><th>Repository location</th><th>Working branch</th><th>Base</th></tr>${snapshots.map(repo => `<tr><td>${escapeHtml(repo.root)}</td><td>${escapeHtml(repo.branch ?? state.fields.branch)}</td><td>${escapeHtml(repo.base ?? state.fields.base)}</td></tr>`).join('')}</table></div>`;
 }
 
 function renderModePill(state) {
@@ -986,17 +1036,18 @@ function renderAssessmentBadges(state, report) {
   return [['Code complexity', report.complexity], ['Production risk', report.risk]].map(([label, rating]) => `<span class="pill assessment-${rating.toLowerCase()}" title="${title}">${label}: ${rating}</span>`).join('');
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null, summaryDetails = {} }) {
   const acceptance = acceptancePresentation(state, verification);
   const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
     : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
       ? 'Superseded — refresh preparation for the current plan' : '';
-  const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
   const timing = timingDetails(state, invalidTimestampFrom, feedback, now);
+  const completion = state.fields.status === 'Complete' ? renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails }) : null;
+  const banner = renderStatusBanner(state, completion?.html ?? '');
   const reviewLink = state.fields.review === 'not-started'
     ? '<span class="none">Not yet created</span>'
     : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`, state.fields.artifact_naming_version), 'review', state.fields.ticket);
@@ -1019,17 +1070,18 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback, now),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
-    STATUS_BANNER: collectingFeedback
-      ? renderStatusBanner(state, timing, invalidTimestampFrom, null).replace('<strong>Implementation complete.</strong>', '<strong>Finalizing session.</strong> Implementation checks and final approval are complete. Collecting workflow feedback before optional delivery.')
-      : renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
+    STATUS_CLASS: state.fields.status === 'Complete' ? 'complete' : '',
+    STATUS_PANEL: `${renderCurrentActivity(state, timeline)}${banner}`,
+    STATUS_BANNER: banner,
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
     // Older templates may still contain this placeholder. Details live in artifacts.
     ASSURANCE_SUMMARY: '',
     CHANGE_ASSESSMENT: '', // Compatibility with older templates; no standalone section.
     ACCEPTANCE_SUMMARY: renderAcceptance(acceptance),
     VERIFICATION_TILE: acceptance?.report ? `  <div class="artifact-tile"><div class="label">Acceptance checks</div><a href="${escapeHtml(acceptance.report)}">View verification report</a></div>` : '',
-    DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
-    WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
+    DELIVERY_STATUS: renderDeliveryDetails(delivery),
+    DELIVERY_LINKS: delivery && !['not-started', 'offered', 'declined'].includes(delivery.status) ? `<p class="delivery-records"><a href="${encodeURIComponent(state.fields.ticket)}-delivery-plan.md">Delivery plan</a> · <a href="${encodeURIComponent(state.fields.ticket)}-delivery-progress.json">Progress record</a></p>` : '',
+    WORKSPACE_PANEL: renderRepositoryLocations(state, scope),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
     PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) : '',
     TEST_PREPARATION: '', // Compatibility with older templates; details live in artifacts.
@@ -1041,6 +1093,9 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
+    FEEDBACK_ARTIFACTS: state.fields.status === 'Complete' && feedback?.status === 'saved'
+      ? `<div class="feedback-sharing"><p>Feedback files: <a href="workflow-feedback.md">Session feedback</a> · <a href="../implement-feedback.md">Cumulative feedback history</a></p><details><summary>Share feedback (optional)</summary>${renderFeedbackNote(feedback)}</details></div>` : '',
+    COMPLETION_DETAILS: `<details id="completion-details"><summary>Verification details</summary>${renderAcceptance(acceptance)}${renderListSection('Qualifications', completion?.attention ?? summaryDetails.limitations ?? [])}${renderListSection('Testing notes', testingSummaryNotes(parseTestingSummary(state.fields.testing_summary)))}<p>Delivery status reflects actions recorded by make-it-work. External commits, pushes and pull requests are not automatically reflected here.</p></details>`,
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment, acceptance),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
@@ -1083,10 +1138,10 @@ export async function generateDashboard(statePath) {
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   let planStatus = null;
+  let planMarkdown = null;
   if (needsPlan) {
     const planPath = resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket);
     if (!planPath) fail('Timeline requires plan progress, but the state plan field is none.');
-    let planMarkdown;
     try {
       planMarkdown = await readFile(planPath, 'utf8');
     } catch (error) {
@@ -1157,11 +1212,43 @@ export async function generateDashboard(statePath) {
   }
   if (!planStatus && state.fields.plan && state.fields.plan !== 'none') {
     try {
-      const displayPlan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
-      planStatus = { coverage: coverageSummary(displayPlan) };
+      planMarkdown = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
+      planStatus = { coverage: coverageSummary(planMarkdown) };
     } catch { planStatus = { coverage: { unavailable: true } }; }
   }
-  const html = await generateArtifactPreviews(renderStatus({ preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
+  const summaryDetails = {};
+  if (state.fields.status === 'Complete') {
+    summaryDetails.changed = planMarkdown ? outcomeSentence(planMarkdown, 'What This Changes') : null;
+    if (!summaryDetails.changed && state.fields.implementation_report && state.fields.implementation_report !== 'none') {
+      try {
+        const name = validateArtifactPath(state.fields.implementation_report, 'implementation report', state.fields.ticket);
+        summaryDetails.changed = outcomeSentence(await readFile(artifactJoin(path.dirname(absoluteStatePath), name), 'utf8'), 'Summary');
+      } catch { /* Missing optional narrative never establishes a successful outcome. */ }
+    }
+    if (state.fields.final_package_version === '1') {
+      try {
+        const pkg = JSON.parse(await readFile(artifactJoin(path.dirname(absoluteStatePath), `${state.fields.ticket}-final-package.json`), 'utf8'));
+        if (pkg.version !== 1 || pkg.ticket !== state.fields.ticket) throw new Error('Package mismatch');
+        // Read qualifications only; a saved package is not proof of current approval.
+        summaryDetails.limitations = summarizeAssurance(pkg).limitations;
+      } catch { summaryDetails.limitations = ['Final package qualifications unavailable']; }
+    }
+    const intervals = [];
+    let incomplete = false;
+    for (const row of state.audit) {
+      const match = row.note?.id.match(/^time-breakdown:(execute|lightweight):(\d+)$/);
+      if (!match) continue;
+      try {
+        const record = JSON.parse(await readFile(artifactJoin(path.dirname(absoluteStatePath), `time-breakdown-${match[1]}-${match[2]}.json`), 'utf8'));
+        if (record.version !== 1 || record.pass !== `${match[1]}:${match[2]}` || !Array.isArray(record.intervals)) throw new Error('Invalid timing evidence');
+        if (record.intervals.some(item => !Number.isFinite(Date.parse(item.from)) || !Number.isFinite(Date.parse(item.to)) || Date.parse(item.to) < Date.parse(item.from))) throw new Error('Invalid interval');
+        intervals.push(...record.intervals);
+      } catch { incomplete = true; }
+    }
+    const timing = timingDetails(state, invalidTimestampFrom, feedback, null);
+    if (!incomplete && timing) summaryDetails.waitingMs = recordedWaiting(intervals, timing.first.epoch, feedbackEndpoint(feedback, null, timing.last.epoch));
+  }
+  const html = await generateArtifactPreviews(renderStatus({ summaryDetails, preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporaryPath, html, { encoding: 'utf8', flag: 'wx' });

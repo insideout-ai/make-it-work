@@ -29,6 +29,12 @@ unchanged. Existing dashboards gain previews on their next regeneration. Missing
 artifacts and other file types retain their original links. Raw HTML is displayed
 as text, executable links are disabled, and remote images are not loaded.
 
+## Implementation dashboard layout
+
+Implementation dashboards contain six sections in order: title and badges, workflow circles, one status box, repositories, artifacts, and audit log. Activity, pending input and feedback progress stay inside the status box. Repository delivery outcomes stay with locations and branches; feedback and delivery records stay in Artifacts. Detailed timing and qualifications stay in the audit section or linked reports. Epic dashboards retain their existing layout.
+
+The completed status box contains concise Changed, Time, Delivery, Testing and Feedback lines, plus Attention when needed. Completion chat mirrors these facts after the latest dashboard refresh. Test counts describe distinct current-plan scenarios using final recorded evidence, not individual test cases or rerun totals. Missing evidence stays unknown; suite outcomes and preparation baselines do not establish scenario results. Acceptance counts use the existing validated distinct-criterion summary. Recorded waiting comes from retained activity intervals, deduplicated and clipped to workflow timing; it is explicitly partial coverage, and unavailable when timing records are missing or unreadable.
+
 ## Version and optional usage
 
 Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage and estimated session cost are shown independently only when available; missing values are omitted. A capture timestamp appears only when at least one usage value is shown.

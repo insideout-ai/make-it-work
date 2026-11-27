@@ -7,22 +7,45 @@
 <title>{{TICKET}} — implement status</title>
 <style>
 {{WORKFLOW_STYLES}}
+  .implementation-dashboard [data-dashboard-section] { min-width: 0; }
+  .implementation-dashboard .implementation-status { margin: .75rem 0 1rem; padding: .75rem 1rem; background: #f0f7fe; border-left: 3px solid #2196f3; border-radius: .3rem; overflow-wrap: anywhere; }
+  .implementation-dashboard .implementation-status.complete { background: #e6f4ea; border: 1px solid #b7dfc0; }
+  .implementation-dashboard .implementation-status .current-activity,
+  .implementation-dashboard .implementation-status .next-action { background: none; border: 0; padding: 0; margin: .4rem 0; }
+  .implementation-dashboard .implementation-status p { margin: .35rem 0; }
+  .implementation-dashboard .completion-summary { margin: .5rem 0 0; }
+  .implementation-dashboard .completion-summary > div { display: flex; gap: .5rem; margin: .3rem 0; }
+  .implementation-dashboard .completion-summary dt { flex: 0 0 5.5rem; font-weight: 600; white-space: nowrap; }
+  .implementation-dashboard .completion-summary dd { margin: 0; min-width: 0; }
+  .implementation-dashboard .table-scroll { overflow-x: auto; }
+  .implementation-dashboard .delivery-details { margin: .5rem 0; }
+  .implementation-dashboard .delivery-details h3 { font-size: .9rem; margin: .5rem 0; }
+  .implementation-dashboard .feedback-sharing { font-size: .8rem; color: #596773; }
+  @media (max-width: 600px) { .implementation-dashboard { padding: 1rem; } }
+
 </style>
 </head>
-<body>
+<body class="implementation-dashboard">
+<section data-dashboard-section="title" aria-label="Workflow">
 {{WORKFLOW_HEADER}}
+</section>
+<section data-dashboard-section="workflow" aria-label="Workflow phases">
 
 <div class="phase-timeline">
 {{PHASE_TIMELINE}}
 </div>
 <p class="timeline-scroll-hint">Scroll the timeline to see later steps.</p>
 
-{{CURRENT_ACTIVITY}}
-{{STATUS_BANNER}}
-{{FEEDBACK_PROGRESS}}
-{{ACCEPTANCE_SUMMARY}}
-{{DELIVERY_STATUS}}
+</section>
+<section data-dashboard-section="status" class="implementation-status {{STATUS_CLASS}}" aria-label="Workflow status" role="status">
+{{STATUS_PANEL}}
+</section>
+<section data-dashboard-section="repositories" aria-label="Repositories">
+<h2>Repositories</h2>
 {{WORKSPACE_PANEL}}
+{{DELIVERY_STATUS}}
+</section>
+<section data-dashboard-section="artifacts" aria-label="Artifacts">
 
 <h2>Artifacts</h2>
 <div class="artifact-grid">
@@ -34,17 +57,22 @@
   <div class="artifact-tile"><div class="label">Review</div>{{REVIEW_LINK}}</div>
   <div class="artifact-tile"><div class="label">Final package</div>{{FINAL_LINK}}</div>
 </div>
-{{FEEDBACK_NOTE}}
+{{DELIVERY_LINKS}}
+{{FEEDBACK_ARTIFACTS}}
+</section>
+<section data-dashboard-section="audit" aria-label="Audit log">
 
 <h2>Audit log</h2>
-<table>
+<div class="table-scroll" tabindex="0" aria-label="Audit history"><table>
 <tr><th>#</th><th>Time</th><th>From</th><th>To</th><th>Outcome / reason</th></tr>
 {{AUDIT_ROWS}}
-</table>
+</table></div>
 {{SESSION_TIMING}}
 
 {{KNOWN_REGRESSIONS}}
 {{DECIDED_FINDINGS}}
+{{COMPLETION_DETAILS}}
+</section>
 {{WORKFLOW_TIMESTAMPS}}
 </body>
 </html>
