@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [5.17.6] — 2026-11-27
+
+### Fixed
+
+- Check GitHub tooling/authentication and provider-specific repository read access before delivery approval, including authenticated Bitbucket checks. Bound prerequisite requests, keep credentials out of errors and revalidate before initial execution while preserving partial-delivery recovery.
+- Explain checkpoint activity argument-order, missing-value, duplicate-option and unknown-option errors before reading workflow state.
+
+### Changed
+
+- Point users with uncertain repository ownership to existing workspace discovery from the quick start.
+
 ## [5.17.5] — 2026-11-27
 
 ### Changed
