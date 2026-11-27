@@ -1,0 +1,32 @@
+skills/implement/scripts/deliver.mjs
+  s_ff9c67d2a39fae::t_04331ea2938e4e 237
+  s_ff9c67d2a39fae::t_2313092e188a0b 235-236,238,305-308,312,318,323-357,423
+skills/implement/scripts/deliver.test.mjs
+  s_ff9c67d2a39fae::t_3162ee847cea38 8,19-20,40-44,245,260
+  s_ff9c67d2a39fae::t_43827f140d898e 429,751-842
+skills/implement/scripts/review-scope.test.mjs
+  s_ff9c67d2a39fae::t_3162ee847cea38 23-27,51,90,431
+skills/deliver/SKILL.md
+  s_ff9c67d2a39fae::t_3162ee847cea38 20,26
+  s_ff9c67d2a39fae::t_885677305c1c2a 27
+evals/delivery-handoff.test.mjs
+  s_ff9c67d2a39fae::t_65ebab9dd60346 20,32
+evals/implement/seed-delivery-fixture.sh
+  s_ff9c67d2a39fae::t_978f5eb2988a21 8,13-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8ea80a8645abbdda4e75ffa1517cc4f932588013",
+  "prompts": {},
+  "sessions": {
+    "s_ff9c67d2a39fae": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21c54-ed74-7721-9e86-4437991aa6b1",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
