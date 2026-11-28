@@ -1,0 +1,46 @@
+skills/implement/scripts/render-status.test.mjs
+  s_afbf0b4cde7218::t_255b9a3344ca3a 313
+  s_afbf0b4cde7218::t_ca135936cf35c2 307-312,314-323
+  s_afbf0b4cde7218::t_3eac28ce53add9 296-297
+CHANGELOG.md
+  s_afbf0b4cde7218::t_07f6ce67686202 9-10,17
+  s_afbf0b4cde7218::t_649e5bf2b5883a 18
+skills/implement/references/orchestration/final-package.md
+  s_afbf0b4cde7218::t_ca135936cf35c2 21
+.claude-plugin/plugin.json
+  s_afbf0b4cde7218::t_07f6ce67686202 6
+README.md
+  s_afbf0b4cde7218::t_5725cde8e04985 592
+docs/change-assessment.md
+  s_afbf0b4cde7218::t_607404db69b81b 37
+skills/implement/scripts/assessment-audit.mjs
+  s_afbf0b4cde7218::t_d8e94ab9cd2bd2 31,35-38
+skills/implement/scripts/final-package.test.mjs
+  s_afbf0b4cde7218::t_bb9b581bfe4e91 570-571,590,593-595,599
+skills/implement/scripts/render-status.mjs
+  s_2c86d60777fa2d::t_052a98f473a241 755,787-793,818,834,1141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7220a29038707d3d27aeef0b3a7e8a5304b44489",
+  "prompts": {},
+  "sessions": {
+    "s_2c86d60777fa2d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a22243-56a8-7442-bf69-b53119c20c43",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_afbf0b4cde7218": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a22142-4629-7fa1-85d0-e496e8485ecd",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
