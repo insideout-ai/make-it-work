@@ -44,6 +44,13 @@ selection evidence, exact commands and outputs. The dashboard omits raw JSON
 links, paths and hashes. These checks do not verify the new feature or establish
 complete regression coverage; manual and unavailable results stay explicit.
 
+Completion-test audit entries describe the result, test commands run and skipped
+runs in plain language. An unmapped count is shown as requested checks for which
+the workflow could not confirm which tests to run; it does not prove tests are
+absent. Passing commands can coexist with these gaps. This display translation
+preserves the original saved audit evidence and leaves unrecognized historical
+entries unchanged.
+
 ## Version and optional usage
 
 Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage is shown when available. Epic dashboards additionally retain optional estimated session cost; implementation dashboards omit session cost and use the separate end-of-workflow estimate below. A capture timestamp appears only when a usage value is shown.

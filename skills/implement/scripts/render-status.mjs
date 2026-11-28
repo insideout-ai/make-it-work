@@ -754,6 +754,15 @@ function renderReadinessResult(state, text) {
 
 function renderAuditOutcome(state, outcome, assessment = null, auditId = null, acceptance = null) {
   const text = displayOutcome(outcome);
+  const gate = text.match(/^Result: Completion gate: (PASS|FAIL|NO RESULT)\. (\d+) run\(s\); (\d+) not run; (\d+) unmapped\.; evidence: regression [A-Za-z0-9][A-Za-z0-9._:-]*; manifest sha256:[a-f0-9]{64}; result sha256:[a-f0-9]{64}$/);
+  if (gate) {
+    const [, result, runs, skipped, unmapped] = gate;
+    const title = result === 'PASS' ? 'Completion tests passed.' : result === 'FAIL' ? 'Completion tests failed.' : 'Completion tests have no overall result.';
+    const ran = runs === '0' ? 'No test commands ran' : runs === '1' ? 'One test command ran' : `${runs} test commands ran`;
+    const notRun = skipped === '0' ? 'none were skipped' : skipped === '1' ? '1 was skipped' : `${skipped} were skipped`;
+    const gap = unmapped === '0' ? '' : ` For ${unmapped === '1' ? 'one requested check' : `${unmapped} requested checks`}, we couldn’t confirm which tests to run. See the report for details.`;
+    return escapeHtml(`${title} ${ran}; ${notRun}.${gap}`);
+  }
   const verification = text.match(/^(Result: Verification ledger validated(?: for [A-Z_]+| \(partial check\))\. Gate: .+; acceptance: \d+\/\d+ verified\.); evidence: (.+); sha256:[a-f0-9]{64}$/);
   if (verification && acceptance?.report && verification[2] === acceptance.source) {
     return `${escapeHtml(verification[1].replace('Result: Verification ledger validated', 'Verification checked'))} · <a href="${escapeHtml(acceptance.report)}">View verification report</a>`;

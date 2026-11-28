@@ -722,6 +722,26 @@ test('readiness rendering escapes repo names and leaves unknown or unsafe eviden
   assert.match(html, /app=unknown/);
 });
 
+test('completion audit summaries explain commands, skipped runs and unmatched checks without changing evidence', () => {
+  const hash = 'a'.repeat(64);
+  for (const [result, runs, skipped, unmapped, expected] of [
+    ['PASS', 1, 0, 2, 'Completion tests passed. One test command ran; none were skipped. For 2 requested checks, we couldn’t confirm which tests to run. See the report for details.'],
+    ['FAIL', 2, 1, 1, 'Completion tests failed. 2 test commands ran; 1 was skipped. For one requested check, we couldn’t confirm which tests to run. See the report for details.'],
+    ['NO RESULT', 0, 2, 0, 'Completion tests have no overall result. No test commands ran; 2 were skipped.'],
+    ['NO RESULT', 1, 1, 0, 'Completion tests have no overall result. One test command ran; 1 was skipped.'],
+    ['PASS', 1, 0, 0, 'Completion tests passed. One test command ran; none were skipped.'],
+  ]) {
+    const outcome = noteCell({ kind: 'result', id: 'regression:gate-v1-1', text: `Completion gate: ${result}. ${runs} run(s); ${skipped} not run; ${unmapped} unmapped.`,
+      reference: `regression gate-v1-1; manifest sha256:${hash}; result sha256:${hash}` });
+    const state = parseState(stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'context-check', 'context-check', outcome]] }));
+    const before = JSON.stringify(state);
+    const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+    assert.ok(html.includes(expected), html);
+    assert.doesNotMatch(html, /unmapped|run\(s\)|sha256:|gate-v1-1/);
+    assert.equal(JSON.stringify(state), before);
+  }
+});
+
 test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {
   const { directory } = await renderFixture(t, stateMarkdown({
     fields: { phase: 'execute', plan: 'make-it-work/DEMO/DEMO-plan.md' },
@@ -733,6 +753,9 @@ test('regression audits actual pass, failure and no-result without advancing the
     await runRegression({ version: 1, mode: 'tokens', runs: [{ repo: 'app', cwd: directory, scope: 'full', command: code === null ? null : { bin: process.execPath, args: ['-e', code] } }] }, { statePath, auditId: id });
     const state = parseState(await readFile(statePath, 'utf8'));
     assert.ok(state.audit.at(-1).outcome.startsWith(`Result: Completion gate: ${expected}.`));
+    const html = await readFile(artifactJoin(directory, 'DEMO-status.html'), 'utf8');
+    assert.ok(html.includes(code === null ? 'Completion tests have no overall result. No test commands ran; 1 was skipped.'
+      : code ? 'Completion tests failed. One test command ran; none were skipped.' : 'Completion tests passed. One test command ran; none were skipped.'));
     assert.deepEqual(state.fields, originalFields);
     assert.equal(lastWorkRow(state.audit).number, 1);
   }
