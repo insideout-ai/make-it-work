@@ -35,6 +35,15 @@ Implementation dashboards contain six sections in order: title and badges, workf
 
 The completed status box contains concise Changed, Time, Delivery, Testing and Feedback lines, plus Attention when needed. Completion chat mirrors these facts after the latest dashboard refresh. Test counts describe distinct current-plan scenarios using final recorded evidence, not individual test cases or rerun totals. Missing evidence stays unknown; suite outcomes and preparation baselines do not establish scenario results. Acceptance counts use the existing validated distinct-criterion summary. Recorded waiting comes from retained activity intervals, deduplicated and clipped to workflow timing; it is explicitly partial coverage, and unavailable when timing records are missing or unreadable.
 
+Readiness audit entries are titled **Tests before changes**. They explain the
+purpose (identify existing failures before implementation), the selected tests,
+why they relate to the spec, observed results and limitations, with a **View test
+report** link. Selection reasons come from the recorded readiness explanation;
+older reports disclose when that explanation was not recorded. The report holds
+selection evidence, exact commands and outputs. The dashboard omits raw JSON
+links, paths and hashes. These checks do not verify the new feature or establish
+complete regression coverage; manual and unavailable results stay explicit.
+
 ## Version and optional usage
 
 Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage is shown when available. Epic dashboards additionally retain optional estimated session cost; implementation dashboards omit session cost and use the separate end-of-workflow estimate below. A capture timestamp appears only when a usage value is shown.

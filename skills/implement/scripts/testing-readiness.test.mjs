@@ -7,7 +7,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { digest } from '../../../scripts/lib/artifacts.mjs';
 import { initializeWorkflow, applyWorkflow } from './workflow.mjs';
-import { parseState } from './render-status.mjs';
+import { parseState, renderStatus } from './render-status.mjs';
 import { authorizePlanningTests } from './planning-tests.mjs';
 import { checkTestingReadiness, readinessPaths, testingReadiness } from './testing-readiness.mjs';
 
@@ -62,6 +62,48 @@ test('completion is idempotent and accepts later progression-red tests without r
   await writeFile(artifactJoin(f.root, 'test/progression.test.js'), "const assert = require('node:assert/strict'); assert.equal(require('../app'), 2);\n");
   assert.throws(() => execFileSync(process.execPath, ['test/progression.test.js'], { cwd: f.root, stdio: 'pipe' }));
   assert.equal((await f.check(await readFile(f.planPath, 'utf8'))).results[0].Baseline, 'pass');
+});
+
+test('recorded test selection reaches the audit with results and limitations, survives resume and escapes markup', async t => {
+  const f = await fixture(t);
+  await testingReadiness(f.statePath, 'begin');
+  const explanation = `\n## Tests before changes\n\nIdentify existing failures before implementation; this does not verify the new feature.\n\n| Repo | Behavior | Tests | Why these tests | Selection evidence | Result | Limitations |\n| --- | --- | --- | --- | --- | --- | --- |\n| app | Add payment details to session rows | Whole Unit and Component suites | Row display changes; no reliable focused selector exists | Spec AC1; inspected sessions.test.js assertions | 24 passed; 1 skipped | New payment behavior needs planned tests; <img src=x> |\n`;
+  await f.save(report() + explanation);
+  const completed = await testingReadiness(f.statePath, 'complete');
+  assert.equal(completed.selection[0].Tests, 'Whole Unit and Component suites');
+  const saved = await readFile(f.statePath, 'utf8');
+  const receipt = JSON.parse(await readFile(artifactJoin(f.root, f.paths.receipt), 'utf8'));
+  assert.deepEqual(receipt.selection, completed.selection);
+  assert.deepEqual((await f.check()).selection, completed.selection);
+  await testingReadiness(f.statePath, 'complete');
+  assert.equal(await readFile(f.statePath, 'utf8'), saved);
+  const html = renderStatus({ state: await f.state(), template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  assert.match(html, /Tests before changes passed/);
+  assert.match(html, /existing failures before implementation/);
+  assert.match(html, /Whole Unit and Component suites/);
+  assert.match(html, /no reliable focused selector exists/);
+  assert.match(html, /24 passed; 1 skipped/);
+  assert.match(html, /New payment behavior needs planned tests; &lt;img src=x&gt;/);
+  assert.match(html, /does not verify the new feature or establish complete regression coverage/);
+  assert.doesNotMatch(html, /<img|sha256:|selection:|Selection evidence|Technical details/);
+  // The explanation belongs to the sealed evidence, so late edits still reject.
+  await f.save(report() + explanation.replace('24 passed', '25 passed'));
+  await assert.rejects(f.check(), /changed after completion/);
+});
+
+test('test-selection tables must cover exactly the policy repos with complete explanations', async t => {
+  const f = await fixture(t); await testingReadiness(f.statePath, 'begin');
+  const header = '\n## Tests before changes\n\n| Repo | Behavior | Tests | Why these tests | Selection evidence | Result | Limitations |\n| --- | --- | --- | --- | --- | --- | --- |\n';
+  const row = '| app | Session rows | Unit suite | Changes row display | spec; sessions.test.js | Counts not captured; passed | None |\n';
+  for (const rows of ['', row + row, row.replace('| app |', '| other |'), row.replace('Changes row display', '')]) {
+    await f.save(report() + header + rows);
+    await assert.rejects(testingReadiness(f.statePath, 'complete'), /one complete explanation/);
+  }
+  // Existing reports without the new section keep their saved-run contract.
+  await f.save(); await testingReadiness(f.statePath, 'complete');
+  const html = renderStatus({ state: await f.state(), template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  assert.match(html, /test selection reason was not recorded/);
+  assert.doesNotMatch(html, /24|Whole Unit/);
 });
 
 test('pending/blocked reports and failed new setup cannot be completed; existing baseline failures stay explicit', async (t) => {

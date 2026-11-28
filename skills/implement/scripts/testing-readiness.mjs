@@ -34,6 +34,14 @@ async function reportEvidence(root, state, { newSelection = false } = {}) {
   const bytes = await readFile(await within(root, names.report));
   const report = bytes.toString('utf8'), policy = testingPolicy(report, { required: true });
   const results = table(section(report, 'Readiness results') ?? '', ['Repo', 'Status', 'Setup', 'Baseline', 'Evidence']);
+  // Older reports remain valid; new reports record the explanation at selection
+  // time rather than asking the dashboard to infer it from a passing result.
+  const selectionSection = section(report, 'Tests before changes');
+  const selection = selectionSection === null ? null : table(selectionSection, ['Repo', 'Behavior', 'Tests', 'Why these tests', 'Selection evidence', 'Result', 'Limitations']);
+  if (selection && (selection.length !== policy.length || new Set(selection.map(row => row.Repo)).size !== selection.length ||
+      selection.some(row => !policy.some(p => p.Repo === row.Repo) || Object.values(row).some(value => !value.trim() || /[\x00-\x1f\x7f]/.test(value))))) {
+    fail('Tests before changes needs one complete explanation per verification-policy repo.');
+  }
   const defaults = policy.filter(row => row.Mode === 'manual' && row.Decision === 'autonomy-default');
   if (defaults.length) {
     const discovery = table(section(report, 'Default verification evidence') ?? '', ['Repo', 'Autonomy', 'Strategy', 'Tooling', 'Evidence']);
@@ -67,7 +75,7 @@ async function reportEvidence(root, state, { newSelection = false } = {}) {
       if (row.Setup === 'established' && row.Baseline !== 'pass') fail('Newly established setup requires an actually passing behavior baseline.');
     }
   }
-  return { report: names.report, report_sha256: digest(bytes), policy, results };
+  return { report: names.report, report_sha256: digest(bytes), policy, results, ...(selection ? { selection } : {}) };
 }
 function normalizedPolicy(rows) { return [...rows].sort((a, b) => a.Repo.localeCompare(b.Repo)); }
 export async function checkTestingReadiness(root, state, { plan = null } = {}) {
@@ -122,7 +130,7 @@ export async function testingReadiness(statePath, action, { restart = false } = 
   });
   if (action === 'complete' && result.required) await checkpointResult(resolved, {
     id: `readiness:${digest(JSON.stringify(result))}`,
-    text: `Testing readiness completed before planning. Baselines: ${result.results.map((row) => `${row.Repo}=${row.Baseline}`).join(', ')}.`,
+    text: `Testing readiness completed before planning. Baselines: ${result.results.map((row) => `${row.Repo}=${row.Baseline}`).join(', ')}.${result.selection ? `; selection: ${JSON.stringify(result.selection)}` : ''}`,
     reference: `${result.receipt}; ${result.report}; sha256:${result.report_sha256}`,
   });
   return result;

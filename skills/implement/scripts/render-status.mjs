@@ -713,9 +713,9 @@ function displayOutcome(outcome) {
 }
 
 function renderReadinessResult(state, text) {
-  const match = text.match(/^Result: Testing readiness completed before planning\. Baselines: (.+)\.; evidence: (.+); (.+); sha256:([a-f0-9]{64})$/);
+  const match = text.match(/^Result: Testing readiness completed before planning\. Baselines: (.+?)\.(?:; selection: (.+))?; evidence: (.+); (.+); sha256:([a-f0-9]{64})$/);
   if (!match) return null;
-  const [, baselines, receiptPath, reportPath] = match;
+  const [, baselines, selectionText, receiptPath, reportPath] = match;
   let receipt, report;
   try {
     receipt = validateArtifactPath(receiptPath, 'readiness receipt', state.fields.ticket);
@@ -729,16 +729,27 @@ function renderReadinessResult(state, text) {
   if (rows.some(row => !row)) return null;
   const passed = rows.every(row => row[2] === 'pass');
   const limited = rows.some(row => ['fail', 'not-run'].includes(row[2]));
-  const title = passed ? 'Testing readiness passed' : limited ? 'Testing readiness completed with baseline limitations' : 'Testing readiness completed';
+  const title = passed ? 'Tests before changes passed' : limited ? 'Tests before changes have limitations' : 'Tests before changes';
   const summaries = rows.map(([, repo, baseline]) => {
     const name = escapeHtml(repo);
-    return baseline === 'pass' ? `Baseline tests passed for ${name}.` :
-      baseline === 'fail' ? `Baseline tests failed for ${name}.` :
-      baseline === 'not-run' ? `Baseline tests were not run for ${name}.` :
-      `Manual verification selected for ${name}; no automated baseline was run.`;
+    return baseline === 'pass' ? `Existing tests passed for ${name}.` :
+      baseline === 'fail' ? `Existing tests failed for ${name}.` :
+      baseline === 'not-run' ? `Existing tests were not run for ${name}.` :
+      `Manual verification selected for ${name}; no automated tests were run.`;
   });
-  const summary = rows.length === 1 ? `<p>${summaries[0]}</p>` : `<ul>${summaries.map(value => `<li>${value}</li>`).join('')}</ul>`;
-  return `<div class="readiness-result"><strong>${title}</strong>${summary}<p>${limited ? 'Review baseline limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View readiness report</a></p><details><summary>Technical details</summary><p><a href="${escapeHtml(receipt)}">Open readiness record (JSON)</a></p><p>${escapeHtml(text)}</p></details></div>`;
+  let selection = null;
+  if (selectionText) try {
+    const data = JSON.parse(selectionText);
+    if (Array.isArray(data) && data.length === rows.length && new Set(data.map(row => row?.Repo)).size === rows.length &&
+        data.every(row => rows.some(item => item[1] === row?.Repo) && ['Repo', 'Behavior', 'Tests', 'Why these tests', 'Selection evidence', 'Result', 'Limitations'].every(key => typeof row[key] === 'string' && row[key].trim()))) selection = data;
+  } catch { /* Historical or malformed explanations never imply coverage. */ }
+  const summary = selection ? selection.map(row => {
+    const outcome = summaries[rows.findIndex(item => item[1] === row.Repo)];
+    const limitations = row.Limitations.toLowerCase() === 'none' ? '' : `<p><strong>Limitations:</strong> ${escapeHtml(row.Limitations)}</p>`;
+    return `<p><strong>${escapeHtml(row.Repo)}</strong> — ${escapeHtml(row.Behavior)}</p><p><strong>Selected tests:</strong> ${escapeHtml(row.Tests)}<br><strong>Why:</strong> ${escapeHtml(row['Why these tests'])}<br><strong>Result:</strong> ${outcome} ${escapeHtml(row.Result)}</p>${limitations}`;
+  }).join('') :
+    `${rows.length === 1 ? `<p>${summaries[0]}</p>` : `<ul>${summaries.map(value => `<li>${value}</li>`).join('')}</ul>`}<p>The test selection reason was not recorded. See the report for available commands and results.</p>`;
+  return `<div class="readiness-result"><strong>${title}</strong><p>Check for existing failures before implementation, so they can be distinguished from failures introduced by this change.</p>${summary}<p>${limited ? 'Review the test failures or limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View test report</a></p><p>This check does not verify the new feature or establish complete regression coverage.</p></div>`;
 }
 
 function renderAuditOutcome(state, outcome, assessment = null, auditId = null, acceptance = null) {

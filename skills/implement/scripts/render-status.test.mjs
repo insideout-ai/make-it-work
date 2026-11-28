@@ -672,17 +672,14 @@ test('readiness results summarize the baseline and open reports without changing
     await writeFile(artifactJoin(f.directory, `${prefix}DEMO-testing-readiness.md`), '# Testing readiness\n\nBaseline passed.\n');
     await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
     const html = await readFile(f.outputPath, 'utf8');
-    assert.match(html, /<strong>Testing readiness passed<\/strong>/);
-    assert.match(html, /Baseline tests passed for app\./);
+    assert.match(html, /<strong>Tests before changes passed<\/strong>/);
+    assert.match(html, /Existing tests passed for app\./);
     assert.match(html, /Ready to create the implementation plan\./);
     assert.ok(html.includes(`href="${prefix}DEMO-testing-readiness.md.preview.html"`));
     assert.match(html, /<td colspan="2" title="Phase unchanged">Plan<\/td>/);
     assert.match(html, /<td>close-the-gaps<\/td><td>plan<\/td>/);
-    const details = html.match(/<details><summary>Technical details<\/summary>([\s\S]*?)<\/details>/)[1];
-    assert.ok(details.includes(`href="${prefix}DEMO-readiness-v1.json"`));
-    assert.ok(details.includes(hash));
-    const visible = html.replace(/<details>[\s\S]*?<\/details>/g, '');
-    assert.doesNotMatch(visible, /Baselines:|; evidence:|make-it-work\/DEMO\/|readiness-v1\.json|sha256:/);
+    assert.doesNotMatch(html, /Technical details|Open readiness record|Baselines:|; evidence:|make-it-work\/DEMO\/|readiness-v1\.json|sha256:/);
+    assert.ok(!html.includes(hash));
     assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
   }
 });
@@ -695,14 +692,14 @@ test('readiness summaries retain each repo failure, unrun baseline and manual po
       ['2026-01-01T10:00:00Z', 'plan', 'plan', outcome],
     ] }));
     const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
-    assert.match(html, /href="DEMO-testing-readiness-v2.md">View readiness report/);
-    assert.match(html, /Manual verification selected for docs; no automated baseline was run\./);
-    assert.doesNotMatch(html, /<strong>Testing readiness passed<\/strong>/);
+    assert.match(html, /href="DEMO-testing-readiness-v2.md">View test report/);
+    assert.match(html, /Manual verification selected for docs; no automated tests were run\./);
+    assert.doesNotMatch(html, /<strong>Tests before changes passed<\/strong>/);
     if (baselines.includes('fail')) {
-      assert.match(html, /<li>Baseline tests passed for api\.<\/li>/);
-      assert.match(html, /<li>Baseline tests failed for web\.<\/li>/);
-      assert.match(html, /<li>Baseline tests were not run for jobs\.<\/li>/);
-      assert.match(html, /Review baseline limitations before planning\./);
+      assert.match(html, /<li>Existing tests passed for api\.<\/li>/);
+      assert.match(html, /<li>Existing tests failed for web\.<\/li>/);
+      assert.match(html, /<li>Existing tests were not run for jobs\.<\/li>/);
+      assert.match(html, /Review the test failures or limitations before planning\./);
       assert.doesNotMatch(html, /Ready to create the implementation plan\./);
     }
   }
@@ -719,9 +716,9 @@ test('readiness rendering escapes repo names and leaves unknown or unsafe eviden
   const state = parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: outcomes.map((text, i) =>
     [`2026-01-01T10:0${i}:00Z`, 'plan', 'plan', text]) }));
   const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
-  assert.match(html, /Baseline tests passed for &lt;img src=x&gt;\./);
+  assert.match(html, /Existing tests passed for &lt;img src=x&gt;\./);
   assert.doesNotMatch(html, /<img|href="https:|href="[^\"]*\.\.\//);
-  assert.equal((html.match(/View readiness report/g) ?? []).length, 1);
+  assert.equal((html.match(/View test report/g) ?? []).length, 1);
   assert.match(html, /app=unknown/);
 });
 

@@ -152,6 +152,15 @@ same current report/policy proof. Completion changes only the existing readiness
 pointer and records an informational Result, without new approvals or counters.
 Existing-run markers are not backfilled. See the [readiness contract](../skills/implement/references/testing-readiness.md).
 
+New reports include a `Tests before changes` table with one row per policy repo:
+`Repo`, `Behavior`, `Tests`, `Why these tests`, `Selection evidence`, `Result`,
+and `Limitations`. The parent reconciles it against commands and handbacks.
+When present, the helper validates complete rows and exact policy-repo coverage,
+seals the report as usual, and copies the explanation into the receipt and
+informational audit result. This adds no passing-test or coverage claim. Existing
+reports without the table remain valid; the dashboard discloses the missing
+selection reason instead of inferring one. No historical test rerun is required.
+
 ### Final-package assurance presentation
 
 New package builds add `assurance_version: 1` and lead with a derived assurance
