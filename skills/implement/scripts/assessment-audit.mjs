@@ -28,14 +28,14 @@ export async function checkpointAssessment(statePath, state) {
   const rated = !report.stale && report.completeness !== 'unavailable' && ratings.includes(report.complexity) && ratings.includes(report.risk);
   const label = report.stale ? 'stale' : rated ? `Code complexity: ${report.complexity}; Production risk: ${report.risk}` : 'unavailable';
   const reason = rated ? '' : `; reason: ${report.reason ?? report.rationale ?? 'Overall ratings unavailable for the assessed scope.'}`;
-  const legacyText = `Change assessment — ${label}; completeness: ${report.completeness}${reason}`.replace(/[\x00-\x1f\x7f]/g, ' ');
-  const text = rated ? `${legacyText}; rationale: ${report.rationale ?? 'No rationale recorded.'}`.replace(/[\x00-\x1f\x7f]/g, ' ') : legacyText;
+  const text = `Change assessment — ${label}; completeness: ${report.completeness}${reason}`.replace(/[\x00-\x1f\x7f]/g, ' ');
   const reference = path.basename(report.reports?.markdown ?? json);
   const existing = state.audit.find(row => row.note?.kind === 'result' && row.note.id === id);
   const { checkpointAuditNote } = await import('./dashboard-checkpoint.mjs');
-  // Older notes predate inline rationale. Preserve their ID, timestamp and bytes;
-  // the renderer adds rationale only from the exact matching current report.
-  if (text === legacyText || existing?.outcome !== `Result: ${legacyText}; evidence: ${reference}`) {
+  // Preserve previously saved verbose notes as well as concise ones. Their
+  // report-derived ID is unchanged; refreshing must not rewrite audit history.
+  const verboseText = `${text}; rationale: ${report.rationale ?? 'No rationale recorded.'}`.replace(/[\x00-\x1f\x7f]/g, ' ');
+  if (!rated || existing?.outcome !== `Result: ${verboseText}; evidence: ${reference}`) {
     await checkpointAuditNote(statePath, { kind: 'result', id, text, reference }, { refresh: false });
   }
   return { ...report, audit_id: id };

@@ -293,13 +293,31 @@ test('assessment badges appear only in final approval/completion after a recorde
       assert.ok(html.indexOf('>Code complexity: Low') > row);
       assert.ok(html.indexOf('>Production risk: Medium') > row);
       const audit = renderStatus({ ...options, template: '{{AUDIT_ROWS}}' });
-      assert.match(audit, /rationale: Missing analyzer; inspected &quot;scope&quot; &lt;boundary&gt;.*View assessment report/);
+      assert.match(audit, /Code complexity: Low · Production risk: Medium · Partial assessment · .*View assessment report/);
+      assert.doesNotMatch(audit, /rationale:|Missing analyzer/);
       assert.doesNotMatch(audit, /<boundary>/);
       assert.doesNotMatch(renderStatus({ ...options, template: '{{AUDIT_ROWS}}', assessment: { ...report, audit_id: 'another-assessment' } }), /rationale:/);
       assert.doesNotMatch(renderStatus({ ...options, assessment: { ...report, audit_id: 'not-recorded' } }), /Code complexity:|Production risk:|Assessment:/);
       delete fields.change_assessment_version;
       assert.doesNotMatch(renderStatus({ ...options, state: parseState(stateMarkdown({ fields, rows })) }), /Code complexity:|Production risk:|Assessment:/);
     } else assert.doesNotMatch(html, /Code complexity:|Production risk:|Assessment:|assessment-low|assessment-medium|assessment-badge-row/);
+  }
+});
+
+test('assessment audit summaries stay concise for current and historical reports', () => {
+  for (const suffix of ['change-assessment', 'complexity']) for (const completeness of ['complete', 'partial']) for (const verbose of [false, true]) {
+    const rationale = 'Detailed rationale <boundary> with evidence: details; '.repeat(100);
+    const reference = `DEMO-${suffix}.md`;
+    const text = `Change assessment — Code complexity: Low; Production risk: Medium; completeness: ${completeness}${verbose ? `; rationale: ${rationale}` : ''}`;
+    const rows = [['2026-01-01T10:00:00Z', 'final-approval', 'final-approval', noteCell({ kind: 'result', id: 'change-assessment:historical', text, reference })]];
+    const state = parseState(stateMarkdown({ fields: { phase: 'final-approval', final_package_version: '1' }, rows }));
+    const before = JSON.stringify(state);
+    // A later report must never replace the ratings of an earlier audit result.
+    const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '', assessment: { audit_id: 'change-assessment:later', complexity: 'High', risk: 'High', rationale: 'Later rationale' } });
+    assert.match(html, new RegExp(`Code complexity: Low · Production risk: Medium · ${completeness === 'partial' ? 'Partial' : 'Complete'} assessment · <a href="${reference}">View assessment report</a>`));
+    assert.doesNotMatch(html, /rationale|Detailed|boundary|High/);
+    assert.ok(html.length < 500, 'Verbose historical evidence must not expand the audit row.');
+    assert.equal(JSON.stringify(state), before, 'Rendering must preserve the saved audit history.');
   }
 });
 

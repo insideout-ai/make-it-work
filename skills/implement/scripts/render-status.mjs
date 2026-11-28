@@ -752,7 +752,7 @@ function renderReadinessResult(state, text) {
   return `<div class="readiness-result"><strong>${title}</strong><p>Check for existing failures before implementation, so they can be distinguished from failures introduced by this change.</p>${summary}<p>${limited ? 'Review the test failures or limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View test report</a></p><p>This check does not verify the new feature or establish complete regression coverage.</p></div>`;
 }
 
-function renderAuditOutcome(state, outcome, assessment = null, auditId = null, acceptance = null) {
+function renderAuditOutcome(state, outcome, acceptance = null) {
   const text = displayOutcome(outcome);
   const gate = text.match(/^Result: Completion gate: (PASS|FAIL|NO RESULT)\. (\d+) run\(s\); (\d+) not run; (\d+) unmapped\.; evidence: regression [A-Za-z0-9][A-Za-z0-9._:-]*; manifest sha256:[a-f0-9]{64}; result sha256:[a-f0-9]{64}$/);
   if (gate) {
@@ -784,10 +784,13 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null, a
     const files = ['change-assessment', 'complexity'].flatMap(suffix => ['md', 'json'].flatMap(extension => [`${state.fields.ticket}-${suffix}.${extension}`, `miw-${state.fields.ticket}-${suffix}.${extension}`]));
     if (split >= 0 && files.includes(reference)) {
       const label = text.slice(0, split);
-      const rationale = assessment?.audit_id && auditId === assessment.audit_id && assessment.rationale &&
-        label.startsWith('Result: Change assessment — Code complexity:') && !label.includes('; rationale:')
-        ? `; rationale: ${assessment.rationale}` : '';
-      return `${escapeHtml(label + rationale)} · <a href="${encodeURIComponent(reference)}">View assessment report</a>`;
+      // Historical notes may embed the entire rationale. Keep the row scannable;
+      // the linked report retains the detail for this result.
+      const ratings = label.match(/^Result: Change assessment — Code complexity: (Low|Medium|High); Production risk: (Low|Medium|High); completeness: (complete|partial)(?:; rationale: [\s\S]*)?$/);
+      const summary = ratings
+        ? `Code complexity: ${ratings[1]} · Production risk: ${ratings[2]} · ${ratings[3] === 'partial' ? 'Partial assessment' : 'Complete assessment'}`
+        : label;
+      return `${escapeHtml(summary)} · <a href="${encodeURIComponent(reference)}">View assessment report</a>`;
     }
   }
   const breakdown = text.match(/^(Result: (?:Execute|Lightweight) time breakdown \(elapsed estimate\): .*); evidence: ((?:miw-)?time-breakdown-(?:execute|lightweight)-[1-9]\d*\.json)$/);
@@ -812,7 +815,7 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null, a
   return escapeHtml(readable);
 }
 
-function renderAuditRows(state, invalidTimestampFrom, assessment = null, acceptance = null) {
+function renderAuditRows(state, invalidTimestampFrom, acceptance = null) {
   return [...state.audit].reverse().map((row) => {
     let duration = '';
     if (row.number === state.realRowsFrom) {
@@ -828,7 +831,7 @@ function renderAuditRows(state, invalidTimestampFrom, assessment = null, accepta
     const phases = row.from === row.to
       ? `<td colspan="2" title="Phase unchanged">${escapeHtml(PHASE_INFO[row.to]?.label ?? row.to)}</td>`
       : `<td>${escapeHtml(row.from)}</td><td>${escapeHtml(row.to)}</td>`;
-    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td>${phases}<td>${renderAuditOutcome(state, row.outcome, assessment, row.note?.id, acceptance)}${warning}${duration}</td></tr>`;
+    return `<tr><td>${row.number}</td><td class="ts" data-ts="${escapeHtml(row.time)}"></td>${phases}<td>${renderAuditOutcome(state, row.outcome, acceptance)}${warning}${duration}</td></tr>`;
   }).join('\n');
 }
 
@@ -1135,7 +1138,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     FEEDBACK_ARTIFACTS: state.fields.status === 'Complete' && feedback?.status === 'saved'
       ? `<div class="feedback-sharing"><p>Feedback files: <a href="workflow-feedback.md">Session feedback</a> · <a href="../implement-feedback.md">Cumulative feedback history</a></p><details><summary>Share feedback (optional)</summary>${renderFeedbackNote(feedback)}</details></div>` : '',
     COMPLETION_DETAILS: `<details id="completion-details"><summary>Verification details</summary>${renderAcceptance(acceptance)}${renderListSection('Qualifications', completion?.attention ?? summaryDetails.limitations ?? [])}${renderListSection('Testing notes', testingSummaryNotes(parseTestingSummary(state.fields.testing_summary)))}<p>Delivery status reflects actions recorded by make-it-work. External commits, pushes and pull requests are not automatically reflected here.</p></details>`,
-    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment, acceptance),
+    AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, acceptance),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
     DECIDED_FINDINGS: renderListSection('Review decisions', state.decidedFindings),
