@@ -2,7 +2,8 @@
 
 After feedback finalization, run the optional cost helper described in
 [Feedback retrospective](feedback.md) before reading the final dashboard or
-offering delivery. It is disabled unless `MIW_ESTIMATE_COST=1` is set. If enabled,
+offering delivery. Estimation is enabled by default; set `MIW_ESTIMATE_COST=0`
+to disable it. If enabled,
 mirror the green box's **Estimated implementation cost** and partial/unavailable
 qualification in the summary. Never infer cost from session-cost telemetry or
 reopen feedback because optional accounting failed. When cost accounting runs,

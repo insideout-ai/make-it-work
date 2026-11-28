@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { calculateImplementationCost, computeCost, readImplementationCost } from './implementation-cost.mjs';
 import { parseState, generateDashboard, renderStatus } from './render-status.mjs';
 import { feedbackStateHash } from './feedback-handoff.mjs';
@@ -38,7 +40,96 @@ async function fixture(t, { finalized = true, archived = true } = {}) {
 }
 const offlineCompute = input => computeCost({ ...input, pricing: BUNDLED_PRICING });
 
-test('opt-in is required and cost accounting does not run before feedback finalization', async t => {
+function runCostCli(statePath, setting, preload = null) {
+  const env = { ...process.env };
+  delete env.MIW_ESTIMATE_COST;
+  if (setting !== undefined) env.MIW_ESTIMATE_COST = setting;
+  const cli = fileURLToPath(new URL('./implementation-cost.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [...(preload ? ['--import', preload] : []), cli, '--state', statePath], {
+    env, encoding: 'utf8', timeout: 15000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+  return JSON.parse(result.stdout);
+}
+
+test('CLI defaults on, accepts the existing enabled setting, and handles missing state without exit 13', async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'miw-cost-cli-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const setting of [undefined, '1']) {
+    assert.equal(runCostCli(path.join(root, 'absent-state.md'), setting).status, 'unavailable');
+  }
+});
+
+test('CLI opt-out leaves a finalized run untouched; an enabled CLI saves missing-archive outcome', async t => {
+  const f = await fixture(t, { archived: false });
+  const before = await readFile(f.statePath, 'utf8');
+  const files = (await readdir(f.dir)).sort();
+  assert.deepEqual(runCostCli(f.statePath, '0'), { status: 'disabled' });
+  assert.equal(await readFile(f.statePath, 'utf8'), before);
+  assert.deepEqual((await readdir(f.dir)).sort(), files);
+  const result = runCostCli(f.statePath);
+  assert.equal(result.status, 'unavailable');
+  assert.match(result.reason, /No current saved transcript archive/);
+  assert.equal(JSON.parse(await readFile(result.resultPath, 'utf8')).status, 'unavailable');
+});
+
+test('fresh CLI calculates a real archive offline, renders the estimate, and reuses the saved outcome', async t => {
+  const f = await fixture(t);
+  await generateDashboard(f.statePath);
+  const preload = path.join(f.root, 'offline-pricing.mjs');
+  await writeFile(preload, "globalThis.fetch = async () => { throw new Error('Offline pricing fixture'); };\n");
+  const before = parseState(await readFile(f.statePath, 'utf8'), f.statePath);
+  const receipt = await readFeedbackFinalization(f.statePath, f.binding);
+  const result = runCostCli(f.statePath, undefined, preload);
+  assert.equal(result.status, 'partial');
+  assert.ok(Math.abs(result.usd - 0.0045) < 1e-10);
+  const snapshot = await readFile(result.resultPath, 'utf8');
+  assert.equal(JSON.parse(snapshot).pricing.origin, 'bundled');
+  const after = await readFile(f.statePath, 'utf8');
+  assert.deepEqual(parseState(after, f.statePath).fields, before.fields);
+  assert.deepEqual(await readFeedbackFinalization(f.statePath, f.binding), receipt);
+  assert.equal(await readFile(path.join(f.dir, 'approved-package.json'), 'utf8'), '{"approved":true}');
+  assert.match(await readFile(f.statePath.replace('-state.md', '-status.html'), 'utf8'), /Estimated implementation cost/);
+  // Reuse must work even if the original archive can no longer be read.
+  await rm(path.join(f.dir, 'miw-session-debug.zip'));
+  assert.deepEqual(runCostCli(f.statePath, '1', preload), result);
+  assert.equal(await readFile(result.resultPath, 'utf8'), snapshot);
+  assert.equal(await readFile(f.statePath, 'utf8'), after);
+  const optedOutHtml = spawnSync(process.execPath, [fileURLToPath(new URL('./render-status.mjs', import.meta.url)), '--state', f.statePath], {
+    env: { ...process.env, MIW_ESTIMATE_COST: '0' }, encoding: 'utf8', timeout: 10000,
+  });
+  assert.ifError(optedOutHtml.error);
+  assert.equal(optedOutHtml.status, 0, optedOutHtml.stderr);
+  assert.match(await readFile(f.statePath.replace('-state.md', '-status.html'), 'utf8'), /Estimated implementation cost/);
+});
+
+test('importing the cost facade and renderer in fresh processes has no CLI output or calculation', () => {
+  const cost = new URL('./implementation-cost.mjs', import.meta.url).href;
+  const renderer = new URL('./render-status.mjs', import.meta.url).href;
+  for (const imports of [[cost, renderer], [renderer, cost]]) {
+    const result = spawnSync(process.execPath, ['--input-type=module', '--eval',
+      imports.map(url => `await import(${JSON.stringify(url)});`).join('\n')], {
+      env: { ...process.env, MIW_ESTIMATE_COST: '1' }, encoding: 'utf8', timeout: 10000,
+    });
+    assert.ifError(result.error);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, '');
+  }
+});
+
+test('dashboard without a cost snapshot never promises a pending estimate or creates a cost file', async t => {
+  for (const finalized of [false, true]) {
+    const f = await fixture(t, { finalized, archived: false });
+    const html = await readFile(await generateDashboard(f.statePath), 'utf8');
+    assert.doesNotMatch(html, /Cost available after completion|Estimated implementation cost|Calculating cost/);
+    assert.ok(!(await readdir(f.dir)).some(name => /implementation-cost/.test(name)));
+  }
+});
+
+test('explicit disable is respected and cost accounting does not run before feedback finalization', async t => {
   const f = await fixture(t, { finalized: false }); let calls = 0;
   const before = await readFile(f.statePath, 'utf8');
   assert.equal((await calculateImplementationCost(f.statePath, { enabled: false })).status, 'disabled');

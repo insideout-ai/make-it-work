@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readUsage } from '../../../scripts/usage.mjs';
-import { costEnabled, readImplementationCost } from './implementation-cost.mjs';
+import { readImplementationCost } from './implementation-cost-core.mjs';
 import { artifactReference } from '../../../scripts/lib/artifact-path.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { assessmentPhase, checkpointAssessment } from './assessment-audit.mjs';
@@ -1238,7 +1238,7 @@ export async function generateDashboard(statePath) {
     if (previous !== markdown) await atomicWrite(report, markdown);
   }
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
-  const cost = await readImplementationCost(absoluteStatePath, state) ?? (costEnabled() ? { status: 'pending' } : null);
+  const cost = await readImplementationCost(absoluteStatePath, state);
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   let preparation = null;
   if (state.fields.test_writing_version === '1' && state.fields.test_preparation !== 'none') {

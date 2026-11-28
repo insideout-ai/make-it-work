@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix the implementation cost CLI's enabled-mode import deadlock by separating its entry point from reusable calculation code; preserve existing commands and saved results.
+
+### Changed
+
+- Estimate implementation cost by default after feedback finalization and before delivery is offered; disable new calculations with `MIW_ESTIMATE_COST=0`. Show cost only when a saved snapshot exists, retaining partial/unavailable qualifications and nonblocking failure behavior.
+
 ## [5.19.0] — 2026-11-27
 
 ### Added

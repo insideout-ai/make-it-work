@@ -2,8 +2,8 @@
 
 After the existing feedback finalization has settled (saved or verified unavailable),
 run `node "<base>/scripts/implementation-cost.mjs" --state "<state-path>"` once,
-before the terminal summary or delivery offer. This optional helper is a no-op
-unless the user has set `MIW_ESTIMATE_COST=1` in the host environment. It reads
+before the terminal summary or delivery offer. Cost estimation is enabled by
+default; `MIW_ESTIMATE_COST=0` in the host environment disables it. The helper reads
 the existing transcript ZIP, never collects transcripts or rewrites the archive,
 and shows calculation progress under Finalizing. A saved partial/unavailable
 outcome is reused on resume. Allow up to ten seconds; failures, disabled status,

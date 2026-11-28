@@ -76,8 +76,10 @@ Never guess among sessions. Rebind when resuming in a different Claude session. 
 
 ## Optional implementation cost estimate
 
-Set `MIW_ESTIMATE_COST=1` in the Claude Code host environment to opt in for new
-workflow completions. No status-line setup or cost API is used. After the
+Cost estimation runs by default for eligible workflow completions. Set
+`MIW_ESTIMATE_COST=0` in the Claude Code host environment to disable new
+calculations; existing `MIW_ESTIMATE_COST=1` settings remain supported. No
+status-line setup or cost API is used. After the
 existing feedback finalization, the skill calls:
 
 ```sh
@@ -96,7 +98,9 @@ informational activity note and one result note appear in the audit; the green
 completion box shows the total with expandable pricing/coverage details. The
 estimate is saved in the run's `implementation-cost.json` (with the usual `miw-`
 prefix for new runs). Refresh/resume reuse that outcome, including unavailable
-outcomes, without recalculation. Interrupted progress expires after ten seconds
+outcomes, without recalculation. Without a saved snapshot, rendering shows no
+cost placeholder and never starts a calculation. Existing saved estimates remain
+visible when new calculations are disabled. Interrupted progress expires after ten seconds
 so it cannot leave a permanent spinner. Historic runs are not backfilled
 automatically. The same helper supports eligible retry-limit stops while keeping
 their stopped presentation.
