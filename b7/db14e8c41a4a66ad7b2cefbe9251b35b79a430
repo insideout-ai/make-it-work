@@ -1,0 +1,32 @@
+skills/implement/assets/status-template.html
+  s_7173ac28d072f8::t_1c155bd8a14d1a 12
+skills/implement/scripts/render-status.test.mjs
+  s_7173ac28d072f8::t_1c155bd8a14d1a 1766-1767
+  s_06293250996020::t_584a970b935ab6 1760-1765,1768-1772,1782-1783
+skills/implement/scripts/render-status.mjs
+  s_06293250996020::t_1f7e7ce2d4df30 1092
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b7db14e8c41a4a66ad7b2cefbe9251b35b79a430",
+  "prompts": {},
+  "sessions": {
+    "s_06293250996020": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a220a1-32e3-7f23-a850-0bb76343bf8b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    },
+    "s_7173ac28d072f8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2208a-5ec5-7062-882a-dfc811e0d13c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
