@@ -1,0 +1,27 @@
+skills/implement/references/orchestration/state-and-progress.md
+  s_bad793d1eb2600::t_381cbeb9fb3ec4 146-147
+CHANGELOG.md
+  s_bad793d1eb2600::t_db3f3e82e2fe7e 19
+skills/implement/references/orchestration/planning.md
+  s_bad793d1eb2600::t_696905375f9145 74,76-77
+  s_bad793d1eb2600::t_381cbeb9fb3ec4 78
+  s_bad793d1eb2600::t_3b833a3bdf39c4 73,75
+skills/write-the-tests/references/implement-integration.md
+  s_bad793d1eb2600::t_381cbeb9fb3ec4 9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3ae052534d1a92d1983f54042a45342972c9ca49",
+  "prompts": {},
+  "sessions": {
+    "s_bad793d1eb2600": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a220db-eb11-7bd2-9f96-6b6f5a015b7f",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
