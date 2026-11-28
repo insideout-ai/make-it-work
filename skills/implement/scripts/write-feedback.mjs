@@ -2,6 +2,7 @@
 import { artifactJoin, artifactResolve, logicalArtifactName } from '../../../scripts/lib/artifact-path.mjs';
 
 import { randomUUID } from 'node:crypto';
+import { prepareFeedbackArchive } from '../../../scripts/feedback-archive.mjs';
 import { readFile, writeFile } from '../../../scripts/lib/artifact-io.mjs';
 import { lstat, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
@@ -12,7 +13,7 @@ import { parseNoteCell } from './audit-notes.mjs';
 import { readHookEvents, summarizeHookEvents } from './hook-feedback.mjs';
 import { parseState } from './render-status.mjs';
 import { feedbackEvidence, evidenceText, validateEvidenceReview } from './feedback-evidence.mjs';
-import { readFeedbackProgress, refreshFeedbackDashboard, startFeedbackCollection } from './feedback-progress.mjs';
+import { readFeedbackProgress, refreshFeedbackDashboard, startFeedbackCollection, recordFeedbackArchive } from './feedback-progress.mjs';
 import { finalizeFeedback } from './feedback-finalization.mjs';
 import { readFeedbackReceipts, recordFeedbackReceipt } from './feedback-receipts.mjs';
 import { collectFeedbackAttempts, renderCollectionNotes } from './feedback-collection.mjs';
@@ -518,7 +519,13 @@ export async function writeFeedback(statePath, { analysis = null, sessionReview 
   }
   if (sessionReview && !summary.analysisRequired && !summary.evidenceRequired) await finalizeFeedback(statePath,
     { runId: summary.runId, stateHash: summary.stateHash, status: 'saved', kind: 'legacy-minimal' }, { refresh: false });
-  return { ...(sessionReview ? { feedbackReport: 'combined', readback: { tool: 'Read', file_path: sessionOutputPath, instruction: 'Read the full saved Markdown before presenting feedback or offering delivery.' } } : {}), ...summary, outputPath, sessionOutputPath, warning: result.warning, ...await refreshFeedbackDashboard(statePath) };
+  const archive = await recordFeedbackArchive(statePath, summary, await prepareFeedbackArchive({ root: path.dirname(path.dirname(path.dirname(artifactResolve(statePath)))),
+    reportPath: artifactResolve(sessionOutputPath), transcriptPath }));
+  // Keep the inspected dashboard snapshot stable through any required repair.
+  // Verified finalization refreshes it after parent readback, including the ZIP
+  // note; this informational event must not force another source review.
+  const dashboard = summary.analysisRequired || summary.evidenceRequired ? {} : await refreshFeedbackDashboard(statePath);
+  return { ...(sessionReview ? { feedbackReport: 'combined', readback: { tool: 'Read', file_path: sessionOutputPath, instruction: 'Read the full saved Markdown before presenting feedback or offering delivery.' } } : {}), ...summary, outputPath, sessionOutputPath, archive, warning: result.warning, ...dashboard };
 }
 
 export async function unavailableFeedback(statePath, { reason, transcriptPath, failureId, limitStop = false } = {}) {

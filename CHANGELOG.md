@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix the implementation cost CLI's enabled-mode import deadlock by separating its entry point from reusable calculation code; preserve existing commands and saved results.
+
+### Changed
+
+- Estimate implementation cost by default after feedback finalization and before delivery is offered; disable new calculations with `MIW_ESTIMATE_COST=0`. Show cost only when a saved snapshot exists, retaining partial/unavailable qualifications and nonblocking failure behavior.
+
+## [5.19.0] — 2026-11-27
+
+### Added
+
+- Prepare local feedback transcript ZIPs containing the report, available main and sub-agent transcripts, and a manifest of capture hashes and limitations. Record archive outcomes in the audit log with a dashboard download link. Keep raw archives separate from sanitized feedback sharing; archive failures do not block completion.
+- Add opt-in end-of-workflow implementation cost estimates from the existing transcript ZIP (`MIW_ESTIMATE_COST=1`), using documented model rates with a bundled fallback. Show calculation progress under Finalizing, informational audit entries and the partial estimate in the completion box; accounting failures never block completion or delivery.
+
+### Changed
+
+- Keep detailed test coverage in the Test Preparation report and show planned progression/regression counts with its report link in the preparation audit entry.
+- Include planned automated scenario counts in Write Tests dispatch activity, grouped by progression/regression with test types within each group; list manual scenarios separately.
+- Consolidate maintainer workflow findings and retain review, cost-analysis and delivery evidence with their existing decisions and verification limits.
+
+### Fixed
+
+- Require slice summaries to match their story criteria or completion evidence, retaining unresolved questions and proposal qualifications instead of overstating scope.
+
 ## [5.18.0] — 2026-11-27
 
 ### Added

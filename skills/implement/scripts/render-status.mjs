@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readUsage } from '../../../scripts/usage.mjs';
+import { readImplementationCost } from './implementation-cost-core.mjs';
 import { artifactReference } from '../../../scripts/lib/artifact-path.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { assessmentPhase, checkpointAssessment } from './assessment-audit.mjs';
@@ -22,6 +23,8 @@ import { generateArtifactPreviews } from '../../../scripts/lib/artifact-preview.
 import { coverageSummary } from '../../../scripts/lib/test-coverage.mjs';
 import { parseSteps, nextBatch, planHash } from '../../../scripts/lib/plan.mjs';
 import { parseTestingSummary, testingSummaryNotes } from './testing-summary.mjs';
+import { finalScenarioResults, outcomeSentence, recordedWaiting } from './completion-summary.mjs';
+import { summarizeAssurance } from './assurance-summary.mjs';
 import { summarizeAcceptance, acceptanceMarkdown } from './acceptance-summary.mjs';
 import { atomicWrite } from '../../../scripts/lib/artifacts.mjs';
 import { FEEDBACK_EMAIL_URL, FEEDBACK_SHARING_REMINDER } from '../../../scripts/lib/feedback-sharing.mjs';
@@ -541,7 +544,7 @@ const DELIVERY_LABELS = {
 };
 const DELIVERY_PENDING = new Set(['not-started', 'offered', 'awaiting-approval', 'running']);
 
-function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null, now = null) {
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null, now = null, cost = null) {
   const { slots, activeSlot } = timeline;
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const activated = slots.filter((slot) => slot.activationRow);
@@ -596,6 +599,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       modeText = feedback.status === 'collecting' ? 'Collecting session feedback'
         : feedback.status === 'saved' ? 'Session feedback saved' : 'Session feedback unavailable';
     }
+    if (slot.finalizing && slot.completed && cost?.status === 'calculating') modeText = 'Calculating cost…';
     if (dotState === 'skipped') modeText = 'Skipped';
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
     if (modeText) pieces.push(`  <div class="phase-mode"${modeDetails ? ` title="${escapeHtml(modeDetails)}"` : ''}>${escapeHtml(modeText)}</div>`);
@@ -709,9 +713,9 @@ function displayOutcome(outcome) {
 }
 
 function renderReadinessResult(state, text) {
-  const match = text.match(/^Result: Testing readiness completed before planning\. Baselines: (.+)\.; evidence: (.+); (.+); sha256:([a-f0-9]{64})$/);
+  const match = text.match(/^Result: Testing readiness completed before planning\. Baselines: (.+?)\.(?:; selection: (.+))?; evidence: (.+); (.+); sha256:([a-f0-9]{64})$/);
   if (!match) return null;
-  const [, baselines, receiptPath, reportPath] = match;
+  const [, baselines, selectionText, receiptPath, reportPath] = match;
   let receipt, report;
   try {
     receipt = validateArtifactPath(receiptPath, 'readiness receipt', state.fields.ticket);
@@ -725,32 +729,52 @@ function renderReadinessResult(state, text) {
   if (rows.some(row => !row)) return null;
   const passed = rows.every(row => row[2] === 'pass');
   const limited = rows.some(row => ['fail', 'not-run'].includes(row[2]));
-  const title = passed ? 'Testing readiness passed' : limited ? 'Testing readiness completed with baseline limitations' : 'Testing readiness completed';
+  const title = passed ? 'Tests before changes passed' : limited ? 'Tests before changes have limitations' : 'Tests before changes';
   const summaries = rows.map(([, repo, baseline]) => {
     const name = escapeHtml(repo);
-    return baseline === 'pass' ? `Baseline tests passed for ${name}.` :
-      baseline === 'fail' ? `Baseline tests failed for ${name}.` :
-      baseline === 'not-run' ? `Baseline tests were not run for ${name}.` :
-      `Manual verification selected for ${name}; no automated baseline was run.`;
+    return baseline === 'pass' ? `Existing tests passed for ${name}.` :
+      baseline === 'fail' ? `Existing tests failed for ${name}.` :
+      baseline === 'not-run' ? `Existing tests were not run for ${name}.` :
+      `Manual verification selected for ${name}; no automated tests were run.`;
   });
-  const summary = rows.length === 1 ? `<p>${summaries[0]}</p>` : `<ul>${summaries.map(value => `<li>${value}</li>`).join('')}</ul>`;
-  return `<div class="readiness-result"><strong>${title}</strong>${summary}<p>${limited ? 'Review baseline limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View readiness report</a></p><details><summary>Technical details</summary><p><a href="${escapeHtml(receipt)}">Open readiness record (JSON)</a></p><p>${escapeHtml(text)}</p></details></div>`;
+  let selection = null;
+  if (selectionText) try {
+    const data = JSON.parse(selectionText);
+    if (Array.isArray(data) && data.length === rows.length && new Set(data.map(row => row?.Repo)).size === rows.length &&
+        data.every(row => rows.some(item => item[1] === row?.Repo) && ['Repo', 'Behavior', 'Tests', 'Why these tests', 'Selection evidence', 'Result', 'Limitations'].every(key => typeof row[key] === 'string' && row[key].trim()))) selection = data;
+  } catch { /* Historical or malformed explanations never imply coverage. */ }
+  const summary = selection ? selection.map(row => {
+    const outcome = summaries[rows.findIndex(item => item[1] === row.Repo)];
+    const limitations = row.Limitations.toLowerCase() === 'none' ? '' : `<p><strong>Limitations:</strong> ${escapeHtml(row.Limitations)}</p>`;
+    return `<p><strong>${escapeHtml(row.Repo)}</strong> — ${escapeHtml(row.Behavior)}</p><p><strong>Selected tests:</strong> ${escapeHtml(row.Tests)}<br><strong>Why:</strong> ${escapeHtml(row['Why these tests'])}<br><strong>Result:</strong> ${outcome} ${escapeHtml(row.Result)}</p>${limitations}`;
+  }).join('') :
+    `${rows.length === 1 ? `<p>${summaries[0]}</p>` : `<ul>${summaries.map(value => `<li>${value}</li>`).join('')}</ul>`}<p>The test selection reason was not recorded. See the report for available commands and results.</p>`;
+  return `<div class="readiness-result"><strong>${title}</strong><p>Check for existing failures before implementation, so they can be distinguished from failures introduced by this change.</p>${summary}<p>${limited ? 'Review the test failures or limitations before planning.' : 'Ready to create the implementation plan.'} <a href="${escapeHtml(report)}">View test report</a></p><p>This check does not verify the new feature or establish complete regression coverage.</p></div>`;
 }
 
 function renderAuditOutcome(state, outcome, assessment = null, auditId = null, acceptance = null) {
   const text = displayOutcome(outcome);
+  const gate = text.match(/^Result: Completion gate: (PASS|FAIL|NO RESULT)\. (\d+) run\(s\); (\d+) not run; (\d+) unmapped\.; evidence: regression [A-Za-z0-9][A-Za-z0-9._:-]*; manifest sha256:[a-f0-9]{64}; result sha256:[a-f0-9]{64}$/);
+  if (gate) {
+    const [, result, runs, skipped, unmapped] = gate;
+    const title = result === 'PASS' ? 'Completion tests passed.' : result === 'FAIL' ? 'Completion tests failed.' : 'Completion tests have no overall result.';
+    const ran = runs === '0' ? 'No test commands ran' : runs === '1' ? 'One test command ran' : `${runs} test commands ran`;
+    const notRun = skipped === '0' ? 'none were skipped' : skipped === '1' ? '1 was skipped' : `${skipped} were skipped`;
+    const gap = unmapped === '0' ? '' : ` For ${unmapped === '1' ? 'one requested check' : `${unmapped} requested checks`}, we couldn’t confirm which tests to run. See the report for details.`;
+    return escapeHtml(`${title} ${ran}; ${notRun}.${gap}`);
+  }
   const verification = text.match(/^(Result: Verification ledger validated(?: for [A-Z_]+| \(partial check\))\. Gate: .+; acceptance: \d+\/\d+ verified\.); evidence: (.+); sha256:[a-f0-9]{64}$/);
   if (verification && acceptance?.report && verification[2] === acceptance.source) {
     return `${escapeHtml(verification[1].replace('Result: Verification ledger validated', 'Verification checked'))} · <a href="${escapeHtml(acceptance.report)}">View verification report</a>`;
   }
   const readiness = renderReadinessResult(state, text);
   if (readiness) return readiness;
-  const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(\. Implementation remains unverified\.)?$/);
+  const preparation = text.match(/^Test preparation (ready|blocked|not-applicable)(?:: |; )(.+?)(; Test coverage: (?:\d+ progression \/ \d+ regression scenarios planned|unavailable))?(\. Implementation remains unverified\.)?$/);
   if (preparation) {
     try {
       const report = validateArtifactPath(preparation[2], 'test_preparation_report', state.fields.ticket);
       if (report && /-plan-tests-[1-9]\d*\.md$/.test(report)) {
-        return `Test preparation ${escapeHtml(preparation[1])} · <a href="${escapeHtml(report)}">View preparation report</a>${preparation[3] ?? ''}`;
+        return `Test preparation ${escapeHtml(preparation[1])}${preparation[3] ? ' · ' + escapeHtml(preparation[3].slice(2)) : ''} · <a href="${escapeHtml(report)}">View preparation report</a>${preparation[4] ?? ''}`;
       }
     } catch { /* Preserve unrecognized historical entries as plain text. */ }
   }
@@ -776,6 +800,9 @@ function renderAuditOutcome(state, outcome, assessment = null, auditId = null, a
   }
   if (text === 'Result: Session feedback saved; evidence: workflow-feedback.md') {
     return 'Session feedback saved. <a href="workflow-feedback.md">Read feedback</a>';
+  }
+  if (text === 'Result: Local transcript ZIP saved (raw, potentially sensitive); evidence: miw-session-debug.zip') {
+    return 'Local transcript ZIP saved (raw, potentially sensitive). <a href="miw-session-debug.zip" download>Download ZIP</a>';
   }
   // Evidence digests belong in the saved audit/artifacts, not ordinary progress
   // prose. Approval hashes are rendered separately in the pending-input panel.
@@ -813,7 +840,7 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   const legacy = state.realRowsFrom > 1
     ? ` This is not the full session duration — everything before row ${state.realRowsFrom} happened before any real timestamp was captured.`
     : '';
-  return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
+  return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through ${timing.costFinalization ? `cost calculation${timing.feedbackCollecting ? ' (in progress)' : ''}` : `feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'}`} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
 }
 
 function pendingReviewLink(state, record) {
@@ -832,7 +859,7 @@ function pendingReviewLink(state, record) {
   return `<a class="pending-reference" href="${escapeHtml(filename)}">${label}</a>`;
 }
 
-function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
+function renderStatusBanner(state, completion = '') {
   const pending = state.pendingInputs ?? pendingInputs(state.fields);
   if (pending.length) {
     const cards = pending.map((record) => {
@@ -850,43 +877,103 @@ function renderStatusBanner(state, timing, invalidTimestampFrom, delivery) {
       return `<section class="next-action pending-input" aria-label="Pending input" data-input-id="${escapeHtml(record.id)}"><strong class="pending-title">${title}</strong>${action}</section>`;
     }).join('\n');
     const withoutPending = { ...state, fields: { ...state.fields, pending_inputs: '[]' }, pendingInputs: [] };
-    const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, timing, invalidTimestampFrom, delivery);
+    const banner = pending.some((record) => record.blocking) && state.fields.status === 'Paused' ? '' : renderStatusBanner(withoutPending, completion);
     return `${banner}\n${cards}`;
   }
   if (state.fields.status === 'Paused' || state.fields.status === 'Stopped') {
-    return `<p class="next-action"><strong>Waiting on you:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
+    return `<p class="next-action"><strong>${state.fields.status === 'Stopped' ? 'Stopped' : 'Waiting on you'}:</strong> ${escapeHtml(state.fields.pause_reason)}</p>`;
   }
-  if (state.fields.status !== 'Complete') return '';
-  const duration = Number.isFinite(invalidTimestampFrom)
-    ? 'Elapsed unavailable — an audit timestamp is later than the state checkpoint.'
-    : timing
-    ? `Elapsed time (includes waits and pauses): ${timing.total}. Active processing time is not measured.${state.realRowsFrom > 1 ? ' (not the full session — see the Session timing note below).' : ''}`
-    : 'Elapsed: unknown — no real start timestamp was captured for this run.';
-  const deliveryText = {
-    offered: 'Delivery decision pending. Changes remain local and uncommitted.',
-    'awaiting-approval': 'Delivery awaits approval of its exact plan. Changes remain local and uncommitted.',
-    running: 'Delivery is running; repository progress is shown below.',
-    partial: 'Delivery stopped after partial progress; see the repository results below.',
-    failed: 'Delivery failed; see the recorded error and repository progress below.',
-    delivered: 'Changes committed and pushed; pull requests opened or updated.',
-    declined: 'Delivery was not requested. Changes remain local and uncommitted.',
-    unknown: 'Delivery status is unavailable; inspect the delivery records below.',
-  }[delivery?.status] ?? 'Changes remain local and uncommitted.';
-  const testing = testingSummaryNotes(parseTestingSummary(state.fields.testing_summary)).map(note => `<br><span class="testing-note"><strong>Testing:</strong> ${escapeHtml(note)}</span>`).join('');
-  return `<p class="complete"><strong>Implementation complete.</strong> ${duration} ${deliveryText}${testing}<br><small>Delivery status reflects actions recorded by make-it-work. Commits, pushes and pull requests completed outside the plugin are not automatically reflected here.</small></p>`;
+  return state.fields.status === 'Complete' ? completion : '';
 }
 
-function renderDeliveryDetails(delivery, ticket) {
+function renderDeliveryDetails(delivery) {
   if (!delivery || ['not-started', 'offered', 'declined'].includes(delivery.status)) return '';
   const link = (url, label) => url
     ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>` : escapeHtml(label);
   const rows = delivery.repos.map((repo) => `<tr><td>${escapeHtml(repo.name)}</td><td>${repo.commit ? link(repo.commitUrl, repo.commit.slice(0, 12)) : 'Not committed'}</td><td>${repo.pushed ? 'Pushed' : 'Not pushed'}</td><td>${repo.pr ? link(repo.pr, 'View pull request') : repo.prRecorded ? 'Created (link unavailable)' : 'Not created'}</td></tr>`).join('\n');
-  return `<section class="delivery-details" aria-label="Delivery progress"><h2>Delivery — ${DELIVERY_LABELS[delivery.status]}</h2>
+  return `<section class="delivery-details" aria-label="Delivery progress"><h3>Delivery — ${DELIVERY_LABELS[delivery.status]}</h3>
 ${delivery.activity ? `<p>${escapeHtml(delivery.activity)}</p>` : ''}
-${delivery.error ? `<p class="next-action">${escapeHtml(delivery.error)}</p>` : ''}
+${delivery.error ? `<p class="delivery-error"><strong>Delivery error:</strong> ${escapeHtml(delivery.error)}</p>` : ''}
 ${delivery.updatedAt ? `<p class="delivery-updated">Last updated: <span class="ts" data-ts="${escapeHtml(delivery.updatedAt)}"></span></p>` : ''}
-${rows ? `<table><tr><th>Repository</th><th>Commit</th><th>Push</th><th>Pull request</th></tr>${rows}</table>` : ''}
-<p class="delivery-records"><a href="${encodeURIComponent(ticket)}-delivery-plan.md">Delivery plan</a> · <a href="${encodeURIComponent(ticket)}-delivery-progress.json">Progress record</a></p></section>`;
+${rows ? `<div class="table-scroll" tabindex="0" aria-label="Repository delivery"><table><tr><th>Repository</th><th>Commit</th><th>Push</th><th>Pull request</th></tr>${rows}</table></div>` : ''}
+</section>`;
+}
+
+function deliverySummary(delivery) {
+  return {
+    'not-started': 'Not started. Changes remain local and uncommitted.',
+    offered: 'Delivery decision pending. Changes remain local and uncommitted.',
+    'awaiting-approval': 'Awaiting approval of the exact delivery plan.',
+    running: 'Delivery is running; see repository progress.',
+    partial: 'Delivery stopped after partial progress; see repository results.',
+    failed: 'Delivery failed; see repository results.',
+    delivered: 'Changes committed and pushed; pull requests opened or updated.',
+    declined: 'Delivery was not requested. Changes remain local and uncommitted.',
+    unknown: 'Delivery status is unavailable; inspect delivery records.',
+  }[delivery?.status] ?? (delivery ? 'Delivery status is unavailable.' : 'Not recorded; delivery is not confirmed.');
+}
+
+function renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails, cost }) {
+  const results = finalScenarioResults(planStatus?.coverage, verification);
+  const tests = results ? Object.entries(results).map(([purpose, counts]) => {
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    if (!total) return `${purpose}: 0 recorded`;
+    const details = ['failed', 'skipped', 'unknown'].filter(result => counts[result]).map(result => `${counts[result]} ${result}`);
+    return `${purpose} ${counts.passed}/${total} passed${details.length ? `, ${details.join(', ')}` : ''}`;
+  }).join('; ') + ' (recorded scenarios)' : 'Recorded scenario results unavailable';
+  const ac = acceptance?.summary;
+  const acceptanceText = ac ? `${ac.verified}/${ac.total} acceptance criteria verified` : 'Acceptance checks: Not recorded';
+  const elapsed = Number.isFinite(invalidTimestampFrom) ? 'Elapsed unavailable — invalid audit timestamp'
+    : timing ? `Elapsed time (includes waits and pauses): ${timing.total}${timing.feedbackCollecting ? ' (provisional)' : ''}${state.realRowsFrom > 1 ? ' (partial session)' : ''}`
+      : 'Elapsed: unknown — no real start timestamp was captured for this run';
+  const waiting = summaryDetails.waitingMs == null ? 'recorded waiting unavailable'
+    : `recorded waiting ${formatDuration(summaryDetails.waitingMs)} (partial coverage)`;
+  const attention = [...new Set([
+    ...(state.knownRegressions.length ? [`${state.knownRegressions.length} known unrelated test failure(s), documented, not fixed`] : []),
+    ...(ac?.pending ? [`${ac.pending} acceptance criteria pending`] : []),
+    ...(verification?.gate && ['fail', 'no-result'].includes(verification.gate.result) ? [`Regression gate: ${verification.gate.result}`] : []),
+    ...(verification?.gate?.result === 'manual-accepted' ? ['Manual verification completed; automated regression unavailable'] : []),
+    ...(state.fields.mode === 'lightweight' ? ['Lightweight — no regression gate; verified by independent review'] : []),
+    ...(parseTestingSummary(state.fields.testing_summary).length ? ['Test strategy missing; see verification details'] : []),
+    ...(delivery?.error ? [delivery.error] : []),
+    ...(summaryDetails.limitations ?? []),
+  ])];
+  const attentionText = attention.slice(0, 2).join('; ');
+  const attentionPreview = attentionText.length > 200 ? `${attentionText.slice(0, 197).trimEnd()}…` : attentionText;
+  const line = (label, content) => `<div><dt>${label}</dt><dd>${content}</dd></div>`;
+  const feedbackStatus = feedback?.status ?? 'unavailable';
+  const feedbackText = feedbackStatus === 'collecting' ? 'Collecting feedback'
+    : feedbackStatus === 'saved' ? 'Saved — see feedback files in Artifacts'
+      : `Unavailable${feedback?.reason ? ` — ${feedback.reason}` : ''}`;
+  return { attention, html: `<strong>Implementation complete.</strong>${feedback?.status === 'collecting' || cost?.status === 'calculating' ? ' <span>Finalizing session.</span>' : ''}
+<dl class="completion-summary">
+${line('Changed', escapeHtml(summaryDetails.changed ?? 'See the implementation report in Artifacts.'))}
+${line('Time', `${elapsed}. ${escapeHtml(waiting)}.`)}
+${cost ? line('Estimated implementation cost', renderCost(cost)) : ''}
+${line('Delivery', escapeHtml(deliverySummary(delivery)))}
+${line('Testing', `${escapeHtml(tests)}; ${escapeHtml(acceptanceText)}.`)}
+${line('Feedback', `<span data-workflow-feedback-status="${escapeHtml(feedbackStatus)}">${feedbackStatus === 'saved' ? '<a href="workflow-feedback.md">Session feedback</a> · <a href="../implement-feedback.md">Cumulative feedback</a>' : escapeHtml(feedbackText)}</span>`)}
+${attention.length ? line('Attention', `${escapeHtml(attentionPreview)}${attention.length > 2 ? `; ${attention.length - 2} more qualification(s)` : ''}. <a href="#completion-details">View details</a>`) : ''}
+</dl>` };
+}
+
+function renderCost(cost) {
+  if (cost.status === 'calculating') return '<span role="status">Calculating cost…</span>';
+  if (cost.status === 'pending') return 'Cost available after completion';
+  const amount = cost.status === 'partial' ? `~$${cost.usd.toFixed(2)} (partial)` : 'Unavailable';
+  const details = [cost.reason, cost.capturedAt ? `Coverage ends at transcript collection: ${cost.capturedAt}.` : null,
+    cost.pricing ? `Pricing: ${cost.pricing.origin}; verified ${cost.pricing.verifiedAt}; ${cost.pricing.source}` : null,
+    cost.pricing?.fallbackReason, ...(cost.limitations ?? [])].filter(Boolean);
+  const models = Object.entries(cost.models ?? {}).map(([model, row]) => `<li>${escapeHtml(model)}: ~$${row.usd.toFixed(4)}; ${row.requests} request(s); ${Object.entries(row.tokens).map(([kind, n]) => `${escapeHtml(kind)}: ${escapeHtml(n)}`).join(', ')} tokens. Rates per million: ${Object.entries(row.rates).map(([kind, rate]) => `${escapeHtml(kind)} $${escapeHtml(rate)}`).join(', ')}.</li>`).join('');
+  return `${escapeHtml(amount)}<details class="cost-details"><summary>Pricing and coverage</summary><ul>${details.map(value => `<li>${escapeHtml(value)}</li>`).join('')}${models}</ul></details>`;
+}
+
+function renderRepositoryLocations(state, scope) {
+  const panel = renderWorkspacePanel(state, scope);
+  if (panel) return panel;
+  const snapshots = JSON.parse(state.fields.workspace_snapshot ?? '[]');
+  if (!snapshots.length) return '<p class="muted">Repository locations not recorded.</p>';
+  return `<div class="table-scroll"><table><tr><th>Repository location</th><th>Working branch</th><th>Base</th></tr>${snapshots.map(repo => `<tr><td>${escapeHtml(repo.root)}</td><td>${escapeHtml(repo.branch ?? state.fields.branch)}</td><td>${escapeHtml(repo.base ?? state.fields.base)}</td></tr>`).join('')}</table></div>`;
 }
 
 function renderModePill(state) {
@@ -983,19 +1070,23 @@ function renderAssessmentBadges(state, report) {
   return [['Code complexity', report.complexity], ['Production risk', report.risk]].map(([label, rating]) => `<span class="pill assessment-${rating.toLowerCase()}" title="${title}">${label}: ${rating}</span>`).join('');
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, cost = null, now = null, artifactDirectory = null, preparation = null, summaryDetails = {} }) {
   const acceptance = acceptancePresentation(state, verification);
   const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
     : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
       ? 'Superseded — refresh preparation for the current plan' : '';
-  const coverage = planStatus?.coverage;
-  const coverageHtml = coverage ? `<details class="test-coverage" style="grid-column: 1 / -1; padding: 16px; border: 1px solid #ddd; border-radius: 6px;"><summary>Test coverage — ${coverage.unavailable ? 'unavailable' : `${coverage.progression} progression / ${coverage.regression} regression scenarios`}</summary>${coverage.unavailable ? '' : coverage.scenarios.map(row => { const entry = !preparationNote && preparation?.entries?.find(e => e.scenario === row.scenario && (!row.repo || e.repo === row.repo)); return `<p>${escapeHtml(row.scenario)} · ${escapeHtml(row.purpose)}${row.protected ? ` · ${escapeHtml(row.protected)}` : ''} · ${escapeHtml(preparationNote || (entry ? `${entry.kind}: ${entry.result} — ${entry.reason}` : row.baseline))}</p>`; }).join('')}</details>` : '';
-  const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
-  const timing = timingDetails(state, invalidTimestampFrom, feedback, now);
+  const timingFeedback = cost && cost.status !== 'pending' ? { ...feedback,
+    status: cost.status === 'calculating' ? 'collecting' : feedback?.status,
+    finalizedAt: [feedback?.finalizedAt, cost.finishedAt].filter(value => Number.isFinite(Date.parse(value))).sort().at(-1),
+  } : feedback;
+  const timing = timingDetails(state, invalidTimestampFrom, timingFeedback, now);
+  if (timing && cost && (cost.status === 'calculating' || Number.isFinite(Date.parse(cost.finishedAt)))) timing.costFinalization = true;
+  const completion = state.fields.status === 'Complete' ? renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails, cost }) : null;
+  const banner = renderStatusBanner(state, completion?.html ?? '');
   const reviewLink = state.fields.review === 'not-started'
     ? '<span class="none">Not yet created</span>'
     : artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-review.md`, state.fields.artifact_naming_version), 'review', state.fields.ticket);
@@ -1003,34 +1094,35 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     WORKFLOW_STYLES,
     WORKFLOW_TIMESTAMPS,
     WORKFLOW_HEADER: renderWorkflowHeader({
-      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot,
+      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot: usageSnapshot ? { ...usageSnapshot, estimated_cost_usd: null } : null,
       badges: renderAutonomyBadge(state) +
         renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
       assessmentBadges: renderAssessmentBadges(state, assessment),
     }),
     TICKET: escapeHtml(state.fields.ticket),
-    AUTO_REFRESH: feedback?.status === 'collecting' || state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
+    AUTO_REFRESH: cost?.status === 'calculating' || feedback?.status === 'collecting' || state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
       ? '<meta http-equiv="refresh" content="15">' : '',
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
     MODE_PILL: renderModePill(state),
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback, now),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, timingFeedback, now, cost),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
-    STATUS_BANNER: collectingFeedback
-      ? renderStatusBanner(state, timing, invalidTimestampFrom, null).replace('<strong>Implementation complete.</strong>', '<strong>Finalizing session.</strong> Implementation checks and final approval are complete. Collecting workflow feedback before optional delivery.')
-      : renderStatusBanner(state, timing, invalidTimestampFrom, delivery),
+    STATUS_CLASS: state.fields.status === 'Complete' ? 'complete' : state.fields.status === 'Paused' ? 'paused' : '',
+    STATUS_PANEL: `${renderCurrentActivity(state, timeline)}${banner}${cost && state.fields.status !== 'Complete' ? `<p>Estimated implementation cost: ${renderCost(cost)}</p>` : ''}`,
+    STATUS_BANNER: banner,
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
     // Older templates may still contain this placeholder. Details live in artifacts.
     ASSURANCE_SUMMARY: '',
     CHANGE_ASSESSMENT: '', // Compatibility with older templates; no standalone section.
     ACCEPTANCE_SUMMARY: renderAcceptance(acceptance),
     VERIFICATION_TILE: acceptance?.report ? `  <div class="artifact-tile"><div class="label">Acceptance checks</div><a href="${escapeHtml(acceptance.report)}">View verification report</a></div>` : '',
-    DELIVERY_STATUS: collectingFeedback ? '' : renderDeliveryDetails(delivery, state.fields.ticket),
-    WORKSPACE_PANEL: renderWorkspacePanel(state, scope, verification),
+    DELIVERY_STATUS: renderDeliveryDetails(delivery),
+    DELIVERY_LINKS: delivery && !['not-started', 'offered', 'declined'].includes(delivery.status) ? `<p class="delivery-records"><a href="${encodeURIComponent(state.fields.ticket)}-delivery-plan.md">Delivery plan</a> · <a href="${encodeURIComponent(state.fields.ticket)}-delivery-progress.json">Progress record</a></p>` : '',
+    WORKSPACE_PANEL: renderRepositoryLocations(state, scope),
     SPEC_LINK: artifactLink(state.fields.spec, 'spec', state.fields.ticket),
-    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) + coverageHtml : '',
+    PREPARATION_TILE: state.fields.test_writing_version === '1' ? renderTddArtifactTile(state, 'test_preparation_report', 'Test Preparation', preparationNote) : '',
     TEST_PREPARATION: '', // Compatibility with older templates; details live in artifacts.
     PLAN_TILE: renderTddArtifactTile(state, 'plan', 'Plan'),
     EXECUTE_TILE: renderTddArtifactTile(state, 'execute_report', 'Execute'),
@@ -1040,6 +1132,9 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
       ? artifactLink(runArtifact(state.fields.ticket, `${state.fields.ticket}-final-package.md`, state.fields.artifact_naming_version), 'final_package', state.fields.ticket)
       : '<span class="none">Not yet created</span>',
     FEEDBACK_NOTE: state.fields.status === 'Complete' ? renderFeedbackNote(feedback) : '',
+    FEEDBACK_ARTIFACTS: state.fields.status === 'Complete' && feedback?.status === 'saved'
+      ? `<div class="feedback-sharing"><p>Feedback files: <a href="workflow-feedback.md">Session feedback</a> · <a href="../implement-feedback.md">Cumulative feedback history</a></p><details><summary>Share feedback (optional)</summary>${renderFeedbackNote(feedback)}</details></div>` : '',
+    COMPLETION_DETAILS: `<details id="completion-details"><summary>Verification details</summary>${renderAcceptance(acceptance)}${renderListSection('Qualifications', completion?.attention ?? summaryDetails.limitations ?? [])}${renderListSection('Testing notes', testingSummaryNotes(parseTestingSummary(state.fields.testing_summary)))}<p>Delivery status reflects actions recorded by make-it-work. External commits, pushes and pull requests are not automatically reflected here.</p></details>`,
     AUDIT_ROWS: renderAuditRows(state, invalidTimestampFrom, assessment, acceptance),
     SESSION_TIMING: renderSessionTiming(state, timing, invalidTimestampFrom),
     KNOWN_REGRESSIONS: renderListSection('Unrelated test failures', state.knownRegressions),
@@ -1082,10 +1177,10 @@ export async function generateDashboard(statePath) {
   const timeline = groupFinalization(buildTimeline(state));
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   let planStatus = null;
+  let planMarkdown = null;
   if (needsPlan) {
     const planPath = resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket);
     if (!planPath) fail('Timeline requires plan progress, but the state plan field is none.');
-    let planMarkdown;
     try {
       planMarkdown = await readFile(planPath, 'utf8');
     } catch (error) {
@@ -1143,6 +1238,7 @@ export async function generateDashboard(statePath) {
     if (previous !== markdown) await atomicWrite(report, markdown);
   }
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
+  const cost = await readImplementationCost(absoluteStatePath, state);
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   let preparation = null;
   if (state.fields.test_writing_version === '1' && state.fields.test_preparation !== 'none') {
@@ -1156,11 +1252,43 @@ export async function generateDashboard(statePath) {
   }
   if (!planStatus && state.fields.plan && state.fields.plan !== 'none') {
     try {
-      const displayPlan = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
-      planStatus = { coverage: coverageSummary(displayPlan) };
+      planMarkdown = await readFile(resolvedPlanPath(absoluteStatePath, state.fields.plan, state.fields.ticket), 'utf8');
+      planStatus = { coverage: coverageSummary(planMarkdown) };
     } catch { planStatus = { coverage: { unavailable: true } }; }
   }
-  const html = await generateArtifactPreviews(renderStatus({ preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
+  const summaryDetails = {};
+  if (state.fields.status === 'Complete') {
+    summaryDetails.changed = planMarkdown ? outcomeSentence(planMarkdown, 'What This Changes') : null;
+    if (!summaryDetails.changed && state.fields.implementation_report && state.fields.implementation_report !== 'none') {
+      try {
+        const name = validateArtifactPath(state.fields.implementation_report, 'implementation report', state.fields.ticket);
+        summaryDetails.changed = outcomeSentence(await readFile(artifactJoin(path.dirname(absoluteStatePath), name), 'utf8'), 'Summary');
+      } catch { /* Missing optional narrative never establishes a successful outcome. */ }
+    }
+    if (state.fields.final_package_version === '1') {
+      try {
+        const pkg = JSON.parse(await readFile(artifactJoin(path.dirname(absoluteStatePath), `${state.fields.ticket}-final-package.json`), 'utf8'));
+        if (pkg.version !== 1 || pkg.ticket !== state.fields.ticket) throw new Error('Package mismatch');
+        // Read qualifications only; a saved package is not proof of current approval.
+        summaryDetails.limitations = summarizeAssurance(pkg).limitations;
+      } catch { summaryDetails.limitations = ['Final package qualifications unavailable']; }
+    }
+    const intervals = [];
+    let incomplete = false;
+    for (const row of state.audit) {
+      const match = row.note?.id.match(/^time-breakdown:(execute|lightweight):(\d+)$/);
+      if (!match) continue;
+      try {
+        const record = JSON.parse(await readFile(artifactJoin(path.dirname(absoluteStatePath), `time-breakdown-${match[1]}-${match[2]}.json`), 'utf8'));
+        if (record.version !== 1 || record.pass !== `${match[1]}:${match[2]}` || !Array.isArray(record.intervals)) throw new Error('Invalid timing evidence');
+        if (record.intervals.some(item => !Number.isFinite(Date.parse(item.from)) || !Number.isFinite(Date.parse(item.to)) || Date.parse(item.to) < Date.parse(item.from))) throw new Error('Invalid interval');
+        intervals.push(...record.intervals);
+      } catch { incomplete = true; }
+    }
+    const timing = timingDetails(state, invalidTimestampFrom, feedback, null);
+    if (!incomplete && timing) summaryDetails.waitingMs = recordedWaiting(intervals, timing.first.epoch, feedbackEndpoint(feedback, null, timing.last.epoch));
+  }
+  const html = await generateArtifactPreviews(renderStatus({ summaryDetails, cost, preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporaryPath, html, { encoding: 'utf8', flag: 'wx' });

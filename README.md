@@ -1,4 +1,4 @@
-> Anthropic runtime distribution, generated from [source d05b9ed6e32030819afb48998df5f93031dfc799](https://github.com/insideout-ai/make-it-work/tree/d05b9ed6e32030819afb48998df5f93031dfc799). Development fixtures and tooling remain in the source repository.
+> Anthropic runtime distribution, generated from [source b7c8a6ff4b3c7293bb672e4a9b6e1461954bdd27](https://github.com/insideout-ai/make-it-work/tree/b7c8a6ff4b3c7293bb672e4a9b6e1461954bdd27). Development fixtures and tooling remain in the source repository.
 
 # Make It Work
 
@@ -338,6 +338,22 @@ After final approval and completion, `implement` automatically follows `feedback
 
 The combined report is saved before a single invitation to add or correct context. Each finding includes a suggested next step, owner, verification and recommendation confidence. The controller hands off to feedback explicitly; scoped hooks require the current report and any required retrospective dispatch before a terminal summary or delivery question. A genuine technical failure can instead produce a verified unavailable outcome and a local `feedback-unavailable.json` receipt when writable. That receipt is not a saved retrospective; an unperformed review or a claim of no friction does not qualify as unavailability. An unanswered invitation leaves feedback provisional without delaying the completion summary or delivery offer; later replies update the same report. Autopilot saves the review with input not requested and questions left open. The same integration runs at exhausted fix, review or replan limits. Feedback never changes the terminal workflow result or approved package, and recommendations are not applied automatically. Standalone `/make-it-work:feedback-on-session` remains available for interrupted or abandoned sessions and supplied transcripts. Nothing is uploaded automatically.
 
+Standalone and automatic feedback also prepare a local **transcript ZIP** beside
+the report: `miw-session-debug.zip` for Implement, or
+`miw-feedback-<timestamp>-session-debug.zip` for standalone reviews. It contains
+the report, the available main and sub-agent transcripts, and `miw-manifest.json`
+with capture times, hashes, known relationships and missing-file limitations.
+All files inside the ZIP use `miw-` names. Discovery stays within the selected
+Claude session; unavailable transcripts and unsupported runtime layouts are
+disclosed. The ZIP is a snapshot, so later messages or running-agent output may
+be absent. It contains raw, potentially sensitive data: review it separately
+before deliberately sharing. The normal email link remains for the sanitized
+report only. Nothing is attached or uploaded automatically, and ZIP failure
+does not block feedback or implementation completion.
+Automatic feedback records the ZIP outcome in the workflow audit log; successful
+entries include a **Download ZIP** link in the dashboard. Missing ZIPs are recorded
+with a short explanation instead.
+
 For explicit maintainer triage, use `/make-it-work:feedback-on-session --maintainer-review <input...>` with transcripts (JSONL, text or Markdown), feedback Markdown, or both. This separate mode inspects relevant make-it-work sources, records sanitized findings and recurrence in `docs/workflow-findings.md`, and presents proposed fixes with their change risks for your decision. It prepares plans only for explicitly selected items and never implements them. Existing standalone collection and automatic feedback remain unchanged.
 
 Automatic feedback also inspects the generated workflow dashboard HTML against the saved state and audit log. New runs collect a compact numbered source packet and record inspected sections and stage-report observations. The dashboard shows recorded package assurance separately from completion and links the current session export. It records supported content/markup issues and separates CSS/layout risks from observed rendering; no browser is used. The same feedback pass handles it without another agent or review cycle, and missing HTML is an evidence limitation rather than a completion blocker.
@@ -536,7 +552,7 @@ See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report su
 
 New workflow runs prefix generated filenames with `miw-` (for example `miw-DEMO-status.html`); existing runs retain their saved paths. Artifact writes ensure the directory is Git-ignored and stop if files are already staged/tracked. Plugin-managed delivery additionally checks outgoing history.
 
-Both dashboards show the run's starting plugin version and optional stage-boundary context/cost snapshots. Implement's Finalizing and overall duration include feedback collection. Completed Lightweight/Execute passes add a category-only elapsed-time breakdown to the audit. See [setup, compatibility and metric definitions](docs/artifact-observability.md).
+Both dashboards show the run's starting plugin version and optional context snapshots; epic dashboards also retain session-cost snapshots. Implement calculates a one-time estimate from its existing transcript archive by default (disable with `MIW_ESTIMATE_COST=0`), shown in the completion box with coverage qualifications. Finalizing and overall duration include feedback collection and any cost calculation. Completed Lightweight/Execute passes add a category-only elapsed-time breakdown to the audit. See [setup, compatibility and metric definitions](docs/artifact-observability.md).
 
 ## Licensing
 

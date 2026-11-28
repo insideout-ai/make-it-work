@@ -105,13 +105,51 @@ The proposed/untested label applies to reproduction or verification scenarios wh
 
 Sanitize all report content, including user additions and reproduction scenarios: omit credentials, names, customer/project/ticket identifiers, internal URLs, absolute local paths and unnecessary proprietary details. Use consistent neutral placeholders. Preserve public skill names, controller event names and generic error codes when needed to explain the sequence; omit proprietary identifiers rather than erasing useful workflow vocabulary. Short sanitized excerpts of workflow instructions and tool messages are useful when wording matters; do not copy raw logs or application source code. Preserve the behavioral sequence and concrete generic inputs/outcomes needed to understand it. If essential evidence cannot be shared safely, mark the finding **Needs clarification: essential evidence omitted** and explain the resulting limit rather than implying it is fully established.
 
-Show a concise initial summary and the saved report link, then ask once. For a standalone report that has been successfully saved and fully read back (including a provisional report), put the **Email feedback** link and exact attachment/optional-sharing reminder from Finish beside that report link. If saving or readback is incomplete, omit the sharing links.
+Show a concise initial summary and the saved report link, then ask once. For a standalone report that has been successfully saved and fully read back (including a provisional report), first prepare the local transcript ZIP as described in Finish and include its successful link beside the report before inviting input. Archive failure is disclosed without delaying the invitation. Put the **Email feedback** link and exact attachment/optional-sharing reminder from Finish beside that report link. If saving or readback is incomplete, omit the sharing links.
 
 > Is anything missing or inaccurate? The maintainers will only receive this report, so please add any context they would need.
 
 In standalone use, wait for the user; automatic use follows the non-blocking behavior above. Do not answer for them. If they already supplied retrospective comments, incorporate them before inviting anything additional unless they explicitly declined further questions. Follow up only when a material ambiguity would change a finding. An unanswered invitation leaves the saved report provisional with input pending; silence is not a skip. An explicit skip completes it with `User declined additional input`. On a later reply, update the existing review rather than creating a duplicate.
 
 ## Finish
+
+### Local transcript ZIP
+
+Also prepare a local debugging ZIP containing this session's feedback report, the
+main transcript, all available sub-agent transcripts (including nested agents),
+and a manifest of capture times, hashes, known agent relationships and missing
+transcripts. Every new archive and every file inside it must start with `miw-`,
+including when the source session retains legacy filenames. Never rename or
+modify original runtime transcripts.
+
+Automatic `implement` writes return an `archive` result from the existing writer;
+reuse it without running another archive command. In standalone collection, after
+the report save and full readback, call the supplied helper directly:
+
+```sh
+node "<base>/../../scripts/feedback-archive.mjs" create --root "<project-root>" --report "<absolute-saved-report>" --transcript "<actual-source-session-jsonl>"
+```
+
+Use the supplied historical transcript when reviewing a historical session.
+Otherwise use the current runtime's actual transcript path when available; never
+guess a session from modification times or scan global history. For pasted or
+visible-only conversations without a transcript file, omit `--transcript`: the
+ZIP still contains the report and explicitly records unavailable transcripts.
+The helper discovers only the selected Claude session's `subagents` directory;
+unsupported layouts and missing, deleted or unreadable files remain disclosed
+limitations. Copying bytes does not count as reviewing those transcripts.
+
+Present the successful helper-returned `archivePath` beside the report as
+**Local transcript ZIP**, explaining that it contains raw, potentially sensitive
+data and requires separate deliberate review before sharing. It is separate from
+the sanitized report's email flow. Never automatically attach, upload or send it.
+On archive failure, disclose that no current ZIP was prepared; do not link an old
+ZIP or reopen feedback/implementation finalization. A snapshot excludes later
+messages and running-agent output; do not wait for agents or repeat collection
+to capture the ZIP command itself. After a user-requested report correction,
+refresh the same ZIP once using the same original transcript source.
+
+### Report verification and sharing
 
 **Required finalization gate, including an explicit skip:** the saved report must contain every finding's suggested next step, suggested owner (or ownership unknown), verification labeled proposed/untested, and recommendation confidence. Perform the one bounded closing check before the save. Reconcile every visible feedback-helper error or `valid: false` result and its recovery with the report. Collection notes assess recognized literal invocations only: when a wrapper or compound command produced a visible failed check, include that failure and recovery in findings or limitations; an empty recognized-attempt list does not establish clean collection. Each collection-friction finding's suggested next step must recommend the existing bounded pre-save check, alongside any narrower diagnostic or readback investigation, and explicitly avoid a save-review-save loop. Verify those recommendations in the draft before saving; a recommendation for a readback receipt alone does not cover the closing check. These obligations belong to every finding, not only the first.
 

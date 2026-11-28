@@ -92,6 +92,48 @@ Do not use this branch to replace an existing automated policy after failures or
 
 Write `make-it-work/<TICKET>/<TICKET>-testing-readiness.md` before setup changes. Include evidence, proposal, selected mode, decision source and reason per repo, and a setup status (`pending`, `ready`, `manual`, or `blocked`). Set the state's `testing_readiness` to this path. Checkpoint the choice as a same-phase decision row and regenerate the dashboard before installing/configuring anything. On resume, inspect actual files and the saved decision; do not repeat successful setup or silently change a recorded manual choice. Newly affected repos on replan receive their own readiness check.
 
+## Explain tests before changes
+
+For every new readiness report, including the missing-strategy and manual paths,
+start with a plain-language explanation: these checks identify existing failures
+before implementation so they can be distinguished from failures introduced by
+the change. They do not verify the new feature or establish complete regression
+coverage. Avoid using “baseline” as the only explanation to the user.
+
+Record why the tests were selected **when selecting them**, then update the
+observed result after execution. Include this table under `## Tests before changes`,
+exactly one row per verification-policy repo:
+
+| Repo | Behavior | Tests | Why these tests | Selection evidence | Result | Limitations |
+| --- | --- | --- | --- | --- | --- | --- |
+| example-ui | Add payment details to session rows | Existing Sessions-page Unit and Component tests | These tests exercise the row display that the spec changes | Spec AC1; test-strategy commands; inspected assertions in sessions.test.tsx | 24 tests passed before implementation | Payment details have no existing tests; planned coverage is still needed |
+
+The example is illustrative; use only observed scope and results. `Behavior`
+names the relevant spec behavior. `Tests` names the actual selected suites/files
+and whether selection is focused or the whole repository suite. `Why these tests`
+connects that selection to the affected behavior. If a whole suite is run because
+no reliable selector exists, say that rather than claiming it is focused.
+`Selection evidence` cites the spec and the strategy, map relationships or actual
+assertions inspected to support that choice; runner configuration alone does not
+prove behavior coverage. Keep the command, working directory, prerequisites and
+observed output in the report's detailed evidence. `Result` records actual counts
+and outcomes when available; say counts were not captured otherwise, never infer
+test counts from file counts or a successful exit. Retain failed, skipped and
+unrun checks. `Limitations` names missing coverage/access, or `None` when no
+additional limitation was observed; never claim exhaustive coverage.
+
+Use concise plain text in all cells (escape literal pipes). For manual policy,
+use `Tests: No automated tests selected`, explain the recorded policy in `Why
+these tests`, and `Result: Not run — manual verification selected`; retain the
+policy's source and future manual scenarios in the report. Missing/failed tooling
+must retain the existing failure policy. Before completing readiness, the parent
+reconciles this explanation with the actual commands and handbacks and the
+`Readiness results` table. The helper copies the recorded explanation into the
+audit entry; the dashboard shows the purpose, selection, reason, result,
+limitations and report link without JSON paths or hashes. Older reports without
+this section remain valid and disclose that the selection reason was not recorded;
+do not invent it, rerun tests or rewrite sealed history just to populate the UI.
+
 ## Establish a minimal automated setup
 
 Use the repo's package manager/runtime and lockfile conventions. Add only dependencies, runner config, scripts and a real test of relevant existing behavior needed to establish the chosen initial layer. Avoid production changes to make setup pass. Use a built-in runner when it actually fits the source/runtime, rather than choosing it solely to avoid installation.
@@ -105,6 +147,9 @@ If setup cannot be established, record the concrete reason. Guided and Autonomou
 Record manual mode from a user's choice, explicit project policy, or the missing-strategy/absent-tooling Autonomous or Autopilot default above. A failed or unavailable configured automated suite never selects this default. Outside that default branch, if the strategy is missing, generate its inventory/proposal with `define-test-strategy` inline; keep it factual (`none` where appropriate) and retain its recommendations. Planning must provide executable manual scenarios with setup, actions and expected observations for each relevant AC and regression path. Execution must perform them and record observed results; source inspection alone is not a manual behavior check. Unavailable access or an unperformed scenario stops execution with the missing evidence; it never counts as verified.
 
 ## Handoff to planning
+
+Before completing the report on any path, follow **Explain tests before changes**
+above and reconcile its selection explanation with the observed results.
 
 Pass the readiness artifact, setup baseline file paths, and this table (one row per affected product repo) to `plan-the-work`:
 

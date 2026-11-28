@@ -49,7 +49,7 @@ export function planningActivityCheck(input, events, state, statePath) {
     if (/[;|<>\n]|&&/.test(shell) || (command.slice(0, index).match(/\bnode\b/g) ?? []).length > 1) return decision('Run the planning activity helper in its own Bash call, without pipes, redirection or other work. Run artifact resolution, code reads and validators afterward.');
     const boundary = option(command, 'planning-activity');
     if (boundary !== null && !planningActivities.has(boundary)) return decision('Use --planning-activity discovery, drafting or validation.');
-    if (!chatContains(events, activity, activation?.epoch)) return decision('Planning activity must match actual assistant chat. Send the --activity sentence literally in assistant chat before this call; do not paraphrase it. If it has already streamed, finish that response without tools so its transcript can flush, then continue without asking the user. Tool output and thinking do not count.', true);
+    if (!chatContains(events, activity, activation?.epoch)) return decision('Planning activity must match actual assistant chat. If you already sent the exact --activity sentence in assistant chat during this planning cycle, do not repeat it: finish the response without tools so its transcript can flush, then retry the unchanged activity checkpoint on automatic continuation without asking the user. If the sentence is missing or different, send the --activity sentence literally in assistant chat before retrying; do not paraphrase it. The checkpoint must succeed before dependent work continues. Tool output and thinking do not count.', true);
     return decision();
   }
   const entered = activation?.number ?? 0;
