@@ -1,0 +1,24 @@
+docs/artifact-observability.md
+  s_7173ac28d072f8::t_7c1982f76f90ab 47-53
+skills/implement/scripts/render-status.mjs
+  s_7173ac28d072f8::t_777d507e8097c1 757-765
+skills/implement/scripts/render-status.test.mjs
+  s_7173ac28d072f8::t_a9a6d06545f667 756
+  s_7173ac28d072f8::t_777d507e8097c1 725-744,757-758
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ccfacde440a0dabe6d09e4934620f8d674a9cf7a",
+  "prompts": {},
+  "sessions": {
+    "s_7173ac28d072f8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2208a-5ec5-7062-882a-dfc811e0d13c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
