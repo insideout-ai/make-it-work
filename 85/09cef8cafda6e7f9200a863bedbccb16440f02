@@ -1,0 +1,38 @@
+skills/implement/scripts/testing-readiness.test.mjs
+  s_06293250996020::t_74e96f0254a501 10,67-107
+  s_06293250996020::t_378bdcd53eda50 108
+docs/artifact-observability.md
+  s_06293250996020::t_2eb83cdfe2aedb 38-45
+  s_06293250996020::t_b64a9ab69f6625 46
+skills/implement/references/testing-readiness.md
+  s_06293250996020::t_a8d3422cd75a56 95-136
+  s_06293250996020::t_f1634c872e105a 151-152
+  s_06293250996020::t_2010f62d606b00 153
+skills/implement/scripts/render-status.test.mjs
+  s_06293250996020::t_b39d5800c77e2b 675-676,695-697,699-702,719,721
+  s_06293250996020::t_f195f8320dcd35 681-682
+docs/deterministic-artifacts.md
+  s_06293250996020::t_2eb83cdfe2aedb 155-163
+skills/implement/scripts/testing-readiness.mjs
+  s_06293250996020::t_21428799a124d4 37-44,78,133
+skills/implement/scripts/render-status.mjs
+  s_06293250996020::t_f2acdd15b98a48 748-749
+  s_06293250996020::t_2eb83cdfe2aedb 746-747,750
+  s_06293250996020::t_3826146de0ba7a 716,718,732,735-738,740-745,751-752
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8509cef8cafda6e7f9200a863bedbccb16440f02",
+  "prompts": {},
+  "sessions": {
+    "s_06293250996020": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a220a1-32e3-7f23-a850-0bb76343bf8b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
