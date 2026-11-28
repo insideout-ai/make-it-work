@@ -1,0 +1,35 @@
+skills/review-the-code/SKILL.md
+  s_7173ac28d072f8::t_e8255ca3c249be 276-288
+skills/implement/references/activity.md
+  s_7173ac28d072f8::t_e8255ca3c249be 23-29
+skills/implement/references/orchestration/review.md
+  s_7173ac28d072f8::t_e8255ca3c249be 63-86
+skills/implement/scripts/planning-activity.mjs
+  s_7173ac28d072f8::t_e8255ca3c249be 52
+docs/workflow-findings.md
+  s_7173ac28d072f8::t_2a126c402a76fc 15,68,95,440,621,3273,3275-3285
+  s_7173ac28d072f8::t_5ad90df0fc8944 441,786-787,3263-3272,3274
+  s_7173ac28d072f8::t_0a752b92f92fd4 18
+  s_7173ac28d072f8::t_f46bc11a8bf9a3 3286-3288
+  s_7173ac28d072f8::t_cdbd75cd09a26a 622
+skills/implement/scripts/review-scope.test.mjs
+  s_7173ac28d072f8::t_fcb2725b7868bb 280-301
+skills/implement/scripts/startup-presentation.test.mjs
+  s_7173ac28d072f8::t_55ddf75eb94bf3 143-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d19f2ef04d1342510c5ef188477f80f92cf343d8",
+  "prompts": {},
+  "sessions": {
+    "s_7173ac28d072f8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2208a-5ec5-7062-882a-dfc811e0d13c",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
