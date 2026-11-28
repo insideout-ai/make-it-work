@@ -1,5 +1,18 @@
 ## Feedback retrospective
 
+After the existing feedback finalization has settled (saved or verified unavailable),
+run `node "<base>/scripts/implementation-cost.mjs" --state "<state-path>"` once,
+before the terminal summary or delivery offer. This optional helper is a no-op
+unless the user has set `MIW_ESTIMATE_COST=1` in the host environment. It reads
+the existing transcript ZIP, never collects transcripts or rewrites the archive,
+and shows calculation progress under Finalizing. A saved partial/unavailable
+outcome is reused on resume. Allow up to ten seconds; failures, disabled status,
+and missing telemetry never change completion or delivery eligibility. Do not
+retry collection, reopen feedback, or seek approval because cost is unavailable.
+For eligible retry-limit stops, run the same helper after feedback settles and
+retain the stopped status. If feedback could not persist its finalization receipt,
+skip cost accounting; do not add a new finalization gate to obtain it.
+
 This is part of session finalization, after final approval and before the completion summary or optional delivery. The implementation checkpoint stays terminal for artifact integrity; the HTML shows **Finalizing session** until feedback settles. It does not reopen package approval or add a review cycle.
 
 Run it only after either:

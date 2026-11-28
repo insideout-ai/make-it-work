@@ -37,9 +37,9 @@ The completed status box contains concise Changed, Time, Delivery, Testing and F
 
 ## Version and optional usage
 
-Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage and estimated session cost are shown independently only when available; missing values are omitted. A capture timestamp appears only when at least one usage value is shown.
+Both dashboards show the plugin version captured at run creation; legacy attribution remains Unknown. Upgrades do not relabel an existing run. Context usage is shown when available. Epic dashboards additionally retain optional estimated session cost; implementation dashboards omit session cost and use the separate end-of-workflow estimate below. A capture timestamp appears only when a usage value is shown.
 
-Claude Code's optional status-line integration supplies context percentage/capacity and estimated session cost. No token pricing table, network request or transcript collection is needed. Cost covers the Claude session, potentially including work outside this workflow; it is not a subscription charge or a per-ticket bill.
+Claude Code's optional status-line integration supplies context percentage/capacity and, for epic dashboards, estimated session cost. No token pricing table, network request or transcript collection is needed for these status-line metrics. Session cost can include work outside a workflow; it is not a subscription charge or a per-ticket bill.
 
 Configure a status-line command to pass its stdin JSON to:
 
@@ -58,9 +58,64 @@ node /absolute/plugin/path/scripts/usage.mjs bind --root /absolute/project/path 
 
 Never guess among sessions. Rebind when resuming in a different Claude session. Binding takes effect at the next main workflow stage boundary or resume. Usage snapshots update only at those boundaries and session finalization, not on every response or dashboard refresh. Keep the capture timestamp visible alongside available usage values. Missing/invalid telemetry is omitted from the dashboard and never blocks workflow progress. Unsupported hosts do not collect it.
 
+## Optional implementation cost estimate
+
+Set `MIW_ESTIMATE_COST=1` in the Claude Code host environment to opt in for new
+workflow completions. No status-line setup or cost API is used. After the
+existing feedback finalization, the skill calls:
+
+```sh
+node /absolute/plugin/path/skills/implement/scripts/implementation-cost.mjs --state /absolute/project/path/make-it-work/DEMO/miw-DEMO-state.md
+```
+
+The helper reads the already-saved `miw-session-debug.zip` locally and leaves it
+unchanged. It does not search session directories, collect transcripts, upload
+anything, change approval/package contents, or become a completion gate. The
+disabled helper returns immediately. Missing archives or technical failures
+leave implementation/delivery behavior unchanged and produce Unavailable where
+the result can be saved.
+
+During calculation the Finalizing subtitle reads **Calculating cost…**. One
+informational activity note and one result note appear in the audit; the green
+completion box shows the total with expandable pricing/coverage details. The
+estimate is saved in the run's `implementation-cost.json` (with the usual `miw-`
+prefix for new runs). Refresh/resume reuse that outcome, including unavailable
+outcomes, without recalculation. Interrupted progress expires after ten seconds
+so it cannot leave a permanent spinner. Historic runs are not backfilled
+automatically. The same helper supports eligible retry-limit stops while keeping
+their stopped presentation.
+
+Calculation uses per-request input/output/cache token counts, deduplicated by
+message ID, and verified child-agent relationships. It excludes usage before the
+invocation boundary (or saved run start when the invocation is missing), after
+the archive capture, and under other explicit slash commands. Unknown models,
+missing child records, unsupported pricing tiers/modifiers and malformed records
+are excluded and disclosed. Only the selected session is archived: earlier
+sessions from resumed work and unmarked interleaved conversation cannot be fully
+reconciled. Transcript output usage can be incomplete. Consequently this first
+version always labels computed totals **partial**; no priced requests means
+**Unavailable**, not zero cost. Missing cache TTL metadata assumes five-minute
+writes and is disclosed.
+
+The helper fetches the official Anthropic pricing Markdown once, validates the
+base-price table, and falls back to bundled rates verified on 2026-11-28. It saves
+the exact rates, source and date used. Conditional/tiered models without explicit
+support remain unpriced. Standard global on-demand pricing is assumed; reported
+US inference uses the documented 1.1 multiplier. External service fees,
+subscription charges, provider-specific discounts, and work after archive
+capture (including feedback readback, finalization and delivery) are excluded.
+This is a documentation-based API-equivalent token estimate, not a bill.
+
+Pricing retrieval has a five-second timeout. A worker isolates archive parsing
+and calculation with the remaining budget, reserving roughly 1.5 seconds of a
+ten-second target for saving/rendering. Filesystem stalls cannot be given a hard
+wall-clock guarantee. There are no additional model calls, polling, archive
+rewrites or changes to existing workflow hooks. A CLI failure is informational,
+never permission to repeat feedback collection.
+
 ## Finalization timing
 
-Finalizing includes final context sync, final approval and feedback collection. Overall session duration ends at the same verified feedback saved/unavailable receipt. The page-load script updates elapsed figures on the existing dashboard reload cadence while collection is active; source HTML stays stable for feedback inspection and no timer is added. both values freeze at the receipt timestamp, excluding optional delivery. Implementation completion fields remain unchanged. Legacy records without a reliable feedback endpoint disclose that feedback time is excluded.
+Finalizing includes final context sync, final approval, feedback collection and any enabled cost calculation. Overall session duration ends at the verified feedback saved/unavailable receipt, or the later saved cost outcome when accounting runs. The page-load script updates elapsed figures on the existing dashboard reload cadence while finalization is active; source HTML stays stable for feedback inspection and no timer is added. Both values freeze at the recorded endpoint, excluding optional delivery. Implementation completion fields remain unchanged. Legacy records without a reliable feedback endpoint disclose that feedback time is excluded.
 
 ## Post-coding time breakdown
 

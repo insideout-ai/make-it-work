@@ -1,11 +1,19 @@
 ## Completion
 
+After feedback finalization, run the optional cost helper described in
+[Feedback retrospective](feedback.md) before reading the final dashboard or
+offering delivery. It is disabled unless `MIW_ESTIMATE_COST=1` is set. If enabled,
+mirror the green box's **Estimated implementation cost** and partial/unavailable
+qualification in the summary. Never infer cost from session-cost telemetry or
+reopen feedback because optional accounting failed. When cost accounting runs,
+elapsed timing ends at its saved outcome rather than feedback finalization.
+
 For a run with `final_package_version: 1`, reach this section only after the Final approval package check succeeded. Set `status: Complete` and `phase: complete`, log the transition, and regenerate the dashboard. Then run Feedback retrospective, including automatic `feedback-on-session`. Save and invite input without waiting for a reply, then print a concise summary:
 
 Read the regenerated dashboard's green completion box and mirror its high-level facts in the final chat response. Keep it to a few short lines, using **Changed**, **Time**, **Delivery**, **Testing**, **Feedback**, and **Attention** only when needed. Refresh and reread the dashboard after feedback or optional delivery changes; use the latest recorded status. Do not create another summary artifact or run tests again to obtain a summary.
 
 - **Changed** — one short outcome sentence from the plan's `## What This Changes`, or the Lightweight report's `## Summary`. Link the final package for full changes, review, context updates and change-assessment details.
-- **Time** — mirror the dashboard's elapsed time, including waits and pauses, and its separately labelled recorded waiting time. The elapsed duration is provisional during feedback collection and freezes at its saved/unavailable finalization receipt, excluding optional delivery. Preserve partial-session or unavailable-timestamp disclosures. Recorded activity intervals are partial coverage, not measured active processing time; never estimate unrecorded waiting.
+- **Time** — mirror the dashboard's elapsed time, including waits and pauses, and its separately labelled recorded waiting time. The elapsed duration is provisional during finalization and freezes at the saved/unavailable feedback receipt or the later saved cost outcome when accounting runs, excluding optional delivery. Preserve partial-session or unavailable-timestamp disclosures. Recorded activity intervals are partial coverage, not measured active processing time; never estimate unrecorded waiting.
 - **Delivery** — current recorded status. Implementation completion is distinct from commits, pushes, pull requests, merge or deployment. Retain any failure, partial delivery or approval action needed. Repository details and delivery records remain linked on the dashboard.
 - **Testing** — distinct recorded progression/regression **scenarios**, with final passed, failed, skipped or unknown outcomes, plus acceptance criteria verified out of the total. Omit rerun counts. Use current-plan verification evidence, never preparation baselines or suite exit codes to infer scenario results. A criterion is verified only when all its mapped scenarios have passing automated or manual evidence; do not count traceability rows as criteria. Missing evidence remains unknown. Lightweight has no regression gate; `VERIFIED_MANUALLY` means manual verification completed with automated regression unavailable, never an automated PASS.
 - **Feedback** — link the actual saved session export and cumulative feedback file, or report pending/unavailable feedback. Follow the [feedback reference](../feedback.md): only after successful save and full readback include **Save this session's feedback**, **Email feedback**, and its exact optional-sharing/attachment reminder. Suggestions are not automatically applied. Preserve material uncertainty without repeating the retrospective.

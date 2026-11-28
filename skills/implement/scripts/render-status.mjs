@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readUsage } from '../../../scripts/usage.mjs';
+import { costEnabled, readImplementationCost } from './implementation-cost.mjs';
 import { artifactReference } from '../../../scripts/lib/artifact-path.mjs';
 import { artifactJoin, artifactResolve } from '../../../scripts/lib/artifact-path.mjs';
 import { assessmentPhase, checkpointAssessment } from './assessment-audit.mjs';
@@ -543,7 +544,7 @@ const DELIVERY_LABELS = {
 };
 const DELIVERY_PENDING = new Set(['not-started', 'offered', 'awaiting-approval', 'running']);
 
-function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null, now = null) {
+function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback = null, now = null, cost = null) {
   const { slots, activeSlot } = timeline;
   const collectingFeedback = state.fields.status === 'Complete' && feedback?.status === 'collecting';
   const activated = slots.filter((slot) => slot.activationRow);
@@ -598,6 +599,7 @@ function renderTimeline(state, timeline, planStatus, invalidTimestampFrom, deliv
       modeText = feedback.status === 'collecting' ? 'Collecting session feedback'
         : feedback.status === 'saved' ? 'Session feedback saved' : 'Session feedback unavailable';
     }
+    if (slot.finalizing && slot.completed && cost?.status === 'calculating') modeText = 'Calculating cost…';
     if (dotState === 'skipped') modeText = 'Skipped';
     else if (slot.escalation !== undefined && !modeText) modeText = 'Escalated to TDD';
     if (modeText) pieces.push(`  <div class="phase-mode"${modeDetails ? ` title="${escapeHtml(modeDetails)}"` : ''}>${escapeHtml(modeText)}</div>`);
@@ -818,7 +820,7 @@ function renderSessionTiming(state, timing, invalidTimestampFrom) {
   const legacy = state.realRowsFrom > 1
     ? ` This is not the full session duration — everything before row ${state.realRowsFrom} happened before any real timestamp was captured.`
     : '';
-  return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
+  return `<p class="session-timing">Session timing: ${timing.feedbackEndpoint ? `from row ${state.realRowsFrom} through ${timing.costFinalization ? `cost calculation${timing.feedbackCollecting ? ' (in progress)' : ''}` : `feedback ${timing.feedbackCollecting ? 'collection (in progress)' : 'finalization'}`} spans` : `rows ${state.realRowsFrom}→${timing.last.number} above span`} ${timing.total} of elapsed time (includes waits and pauses). Active processing time is not measured.${legacy}${timing.feedbackExcluded ? ' Feedback collection time is excluded because no reliable finalization timestamp is available.' : ''}</p>`;
 }
 
 function pendingReviewLink(state, record) {
@@ -891,7 +893,7 @@ function deliverySummary(delivery) {
   }[delivery?.status] ?? (delivery ? 'Delivery status is unavailable.' : 'Not recorded; delivery is not confirmed.');
 }
 
-function renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails }) {
+function renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails, cost }) {
   const results = finalScenarioResults(planStatus?.coverage, verification);
   const tests = results ? Object.entries(results).map(([purpose, counts]) => {
     const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
@@ -923,15 +925,27 @@ function renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedb
   const feedbackText = feedbackStatus === 'collecting' ? 'Collecting feedback'
     : feedbackStatus === 'saved' ? 'Saved — see feedback files in Artifacts'
       : `Unavailable${feedback?.reason ? ` — ${feedback.reason}` : ''}`;
-  return { attention, html: `<strong>Implementation complete.</strong>${feedback?.status === 'collecting' ? ' <span>Finalizing session.</span>' : ''}
+  return { attention, html: `<strong>Implementation complete.</strong>${feedback?.status === 'collecting' || cost?.status === 'calculating' ? ' <span>Finalizing session.</span>' : ''}
 <dl class="completion-summary">
 ${line('Changed', escapeHtml(summaryDetails.changed ?? 'See the implementation report in Artifacts.'))}
 ${line('Time', `${elapsed}. ${escapeHtml(waiting)}.`)}
+${cost ? line('Estimated implementation cost', renderCost(cost)) : ''}
 ${line('Delivery', escapeHtml(deliverySummary(delivery)))}
 ${line('Testing', `${escapeHtml(tests)}; ${escapeHtml(acceptanceText)}.`)}
 ${line('Feedback', `<span data-workflow-feedback-status="${escapeHtml(feedbackStatus)}">${feedbackStatus === 'saved' ? '<a href="workflow-feedback.md">Session feedback</a> · <a href="../implement-feedback.md">Cumulative feedback</a>' : escapeHtml(feedbackText)}</span>`)}
 ${attention.length ? line('Attention', `${escapeHtml(attentionPreview)}${attention.length > 2 ? `; ${attention.length - 2} more qualification(s)` : ''}. <a href="#completion-details">View details</a>`) : ''}
 </dl>` };
+}
+
+function renderCost(cost) {
+  if (cost.status === 'calculating') return '<span role="status">Calculating cost…</span>';
+  if (cost.status === 'pending') return 'Cost available after completion';
+  const amount = cost.status === 'partial' ? `~$${cost.usd.toFixed(2)} (partial)` : 'Unavailable';
+  const details = [cost.reason, cost.capturedAt ? `Coverage ends at transcript collection: ${cost.capturedAt}.` : null,
+    cost.pricing ? `Pricing: ${cost.pricing.origin}; verified ${cost.pricing.verifiedAt}; ${cost.pricing.source}` : null,
+    cost.pricing?.fallbackReason, ...(cost.limitations ?? [])].filter(Boolean);
+  const models = Object.entries(cost.models ?? {}).map(([model, row]) => `<li>${escapeHtml(model)}: ~$${row.usd.toFixed(4)}; ${row.requests} request(s); ${Object.entries(row.tokens).map(([kind, n]) => `${escapeHtml(kind)}: ${escapeHtml(n)}`).join(', ')} tokens. Rates per million: ${Object.entries(row.rates).map(([kind, rate]) => `${escapeHtml(kind)} $${escapeHtml(rate)}`).join(', ')}.</li>`).join('');
+  return `${escapeHtml(amount)}<details class="cost-details"><summary>Pricing and coverage</summary><ul>${details.map(value => `<li>${escapeHtml(value)}</li>`).join('')}${models}</ul></details>`;
 }
 
 function renderRepositoryLocations(state, scope) {
@@ -1036,7 +1050,7 @@ function renderAssessmentBadges(state, report) {
   return [['Code complexity', report.complexity], ['Production risk', report.risk]].map(([label, rating]) => `<span class="pill assessment-${rating.toLowerCase()}" title="${title}">${label}: ${rating}</span>`).join('');
 }
 
-export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, now = null, artifactDirectory = null, preparation = null, summaryDetails = {} }) {
+export function renderStatus({ state, template, logoBase64, planStatus = null, invalidTimestampFrom = Infinity, delivery = null, publication = null, scope = null, verification = null, feedback = null, assessment = null, usageSnapshot = null, cost = null, now = null, artifactDirectory = null, preparation = null, summaryDetails = {} }) {
   const acceptance = acceptancePresentation(state, verification);
   const preparationNote = preparation?.status === 'unavailable' ? 'Preparation evidence unavailable'
     : preparation && preparation.plan_hash !== (preparation.current_plan_hash ?? state.fields.plan_hash)
@@ -1045,8 +1059,13 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
   const needsPlan = timeline.activeSlot && ['execute', 'fix-plan'].includes(timeline.activeSlot.phase);
   if (needsPlan && !planStatus) fail('This timeline requires plan progress, but no plan was available.');
 
-  const timing = timingDetails(state, invalidTimestampFrom, feedback, now);
-  const completion = state.fields.status === 'Complete' ? renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails }) : null;
+  const timingFeedback = cost && cost.status !== 'pending' ? { ...feedback,
+    status: cost.status === 'calculating' ? 'collecting' : feedback?.status,
+    finalizedAt: [feedback?.finalizedAt, cost.finishedAt].filter(value => Number.isFinite(Date.parse(value))).sort().at(-1),
+  } : feedback;
+  const timing = timingDetails(state, invalidTimestampFrom, timingFeedback, now);
+  if (timing && cost && (cost.status === 'calculating' || Number.isFinite(Date.parse(cost.finishedAt)))) timing.costFinalization = true;
+  const completion = state.fields.status === 'Complete' ? renderCompletion({ state, timing, invalidTimestampFrom, delivery, feedback, verification, planStatus, acceptance, summaryDetails, cost }) : null;
   const banner = renderStatusBanner(state, completion?.html ?? '');
   const reviewLink = state.fields.review === 'not-started'
     ? '<span class="none">Not yet created</span>'
@@ -1055,23 +1074,23 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     WORKFLOW_STYLES,
     WORKFLOW_TIMESTAMPS,
     WORKFLOW_HEADER: renderWorkflowHeader({
-      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot,
+      workflow: 'Implementation Workflow', title: state.fields.ticket, logoBase64, pluginVersion: state.fields.plugin_version, usageSnapshot: usageSnapshot ? { ...usageSnapshot, estimated_cost_usd: null } : null,
       badges: renderAutonomyBadge(state) +
         renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }) + renderModePill(state),
       assessmentBadges: renderAssessmentBadges(state, assessment),
     }),
     TICKET: escapeHtml(state.fields.ticket),
-    AUTO_REFRESH: feedback?.status === 'collecting' || state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
+    AUTO_REFRESH: cost?.status === 'calculating' || feedback?.status === 'collecting' || state.fields.status === 'In Progress' || state.pendingInputs?.length > 0 || (state.fields.status === 'Complete' && state.fields.final_package_version === '1' && DELIVERY_PENDING.has(delivery?.status ?? 'not-started'))
       ? '<meta http-equiv="refresh" content="15">' : '',
     LOGO_BASE64: logoBase64,
     AUTONOMY: escapeHtml(state.fields.autonomy),
     AUTONOMY_TOOLTIP: escapeHtml(state.fields.autonomy === 'pending' ? PENDING_AUTONOMY_TOOLTIP : AUTONOMY_TOOLTIP),
     MODE_PILL: renderModePill(state),
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
-    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, feedback, now),
+    PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, timingFeedback, now, cost),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
     STATUS_CLASS: state.fields.status === 'Complete' ? 'complete' : '',
-    STATUS_PANEL: `${renderCurrentActivity(state, timeline)}${banner}`,
+    STATUS_PANEL: `${renderCurrentActivity(state, timeline)}${banner}${cost && state.fields.status !== 'Complete' ? `<p>Estimated implementation cost: ${renderCost(cost)}</p>` : ''}`,
     STATUS_BANNER: banner,
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),
     // Older templates may still contain this placeholder. Details live in artifacts.
@@ -1199,6 +1218,7 @@ export async function generateDashboard(statePath) {
     if (previous !== markdown) await atomicWrite(report, markdown);
   }
   const feedback = await readFeedbackProgress(absoluteStatePath, state);
+  const cost = await readImplementationCost(absoluteStatePath, state) ?? (costEnabled() ? { status: 'pending' } : null);
   const outputPath = absoluteStatePath.replace(/-state\.md$/, '-status.html');
   let preparation = null;
   if (state.fields.test_writing_version === '1' && state.fields.test_preparation !== 'none') {
@@ -1248,7 +1268,7 @@ export async function generateDashboard(statePath) {
     const timing = timingDetails(state, invalidTimestampFrom, feedback, null);
     if (!incomplete && timing) summaryDetails.waitingMs = recordedWaiting(intervals, timing.first.epoch, feedbackEndpoint(feedback, null, timing.last.epoch));
   }
-  const html = await generateArtifactPreviews(renderStatus({ summaryDetails, preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
+  const html = await generateArtifactPreviews(renderStatus({ summaryDetails, cost, preparation, assessment, state, template, logoBase64, planStatus, invalidTimestampFrom, delivery, publication, scope, verification, feedback, usageSnapshot: await readUsage(path.dirname(absoluteStatePath)), artifactDirectory: path.dirname(absoluteStatePath) }), { dashboardPath: outputPath });
   const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporaryPath, html, { encoding: 'utf8', flag: 'wx' });

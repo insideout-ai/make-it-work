@@ -1628,13 +1628,13 @@ test('a dispatched review with no handoff is reported as lost once and shown as 
 test('version and optional usage appear in header without changing refresh behavior', () => {
   const state = parseState(stateMarkdown({ fields: { plugin_version: '5.9.0-rc.1' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start']] }));
   const html = renderStatus({ state, template: '{{WORKFLOW_HEADER}}', logoBase64: '', usageSnapshot: { context_percent: 0, context_capacity: 200000, estimated_cost_usd: 0, captured_at: '2026-01-01T10:00:00Z' } });
-  assert.match(html, /Plugin v5.9.0-rc.1/); assert.match(html, /Context: 0% of 200K/); assert.match(html, /~\$0.00/);
+  assert.match(html, /Plugin v5.9.0-rc.1/); assert.match(html, /Context: 0% of 200K/); assert.doesNotMatch(html, /Estimated session cost|~\$0.00/);
   const legacy = renderStatus({ state: parseState(stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start']] })), template: '{{WORKFLOW_HEADER}}', logoBase64: '' });
   assert.match(legacy, /Plugin version: Unknown/);
   assert.doesNotMatch(legacy, /Context:|Estimated session cost:|Captured at| · /);
   for (const { usage, expected } of [
     { usage: { context_percent: null, estimated_cost_usd: null }, expected: '' },
-    { usage: { context_percent: null, context_capacity: 200000, estimated_cost_usd: 1.23 }, expected: ' · Estimated session cost: ~$1.23 · Captured at 2026-01-01T10:00:00Z' },
+    { usage: { context_percent: null, context_capacity: 200000, estimated_cost_usd: 1.23 }, expected: '' },
     { usage: { context_percent: 25, context_capacity: 200000, estimated_cost_usd: null }, expected: ' · Context: 25% of 200K · Captured at 2026-01-01T10:00:00Z' },
     { usage: { context_percent: 25, context_capacity: null, estimated_cost_usd: null }, expected: ' · Context: 25% · Captured at 2026-01-01T10:00:00Z' },
   ]) {

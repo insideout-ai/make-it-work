@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Prepare local feedback transcript ZIPs containing the report, available main and sub-agent transcripts, and a manifest of capture hashes and limitations. Record archive outcomes in the audit log with a dashboard download link. Keep raw archives separate from sanitized feedback sharing; archive failures do not block completion.
+- Add opt-in end-of-workflow implementation cost estimates from the existing transcript ZIP (`MIW_ESTIMATE_COST=1`), using documented model rates with a bundled fallback. Show calculation progress under Finalizing, informational audit entries and the partial estimate in the completion box; accounting failures never block completion or delivery.
 
 ### Changed
 

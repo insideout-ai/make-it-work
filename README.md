@@ -550,7 +550,7 @@ See [SUPPORT.md](SUPPORT.md) for support and feature-request guidance. Report su
 
 New workflow runs prefix generated filenames with `miw-` (for example `miw-DEMO-status.html`); existing runs retain their saved paths. Artifact writes ensure the directory is Git-ignored and stop if files are already staged/tracked. Plugin-managed delivery additionally checks outgoing history.
 
-Both dashboards show the run's starting plugin version and optional stage-boundary context/cost snapshots. Implement's Finalizing and overall duration include feedback collection. Completed Lightweight/Execute passes add a category-only elapsed-time breakdown to the audit. See [setup, compatibility and metric definitions](docs/artifact-observability.md).
+Both dashboards show the run's starting plugin version and optional context snapshots; epic dashboards also retain session-cost snapshots. Implement supports an opt-in, one-time estimate from its existing transcript archive (`MIW_ESTIMATE_COST=1`), shown in the completion box with coverage qualifications. Finalizing and overall duration include feedback collection and any cost calculation. Completed Lightweight/Execute passes add a category-only elapsed-time breakdown to the audit. See [setup, compatibility and metric definitions](docs/artifact-observability.md).
 
 ## Licensing
 
