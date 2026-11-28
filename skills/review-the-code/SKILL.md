@@ -273,7 +273,19 @@ the current accepted spec; inspect it against its available project context and
 record any material limitation honestly rather than inventing requirements.
 
 Write through `scripts/review-report.mjs` with the supplied `review_target` and
-`review_target_sha256`, plus `implement.review_scope_version: 1`. Record `scope:
+`review_target_sha256`, plus `implement.review_scope_version: 1`. Keep the target
+field artifact-relative exactly as returned by scope preparation. For example,
+`review_target: "make-it-work/DEMO/<returned-target>.json"` stays relative even
+when you resolve it against the artifact root to read the file. Copy the supplied
+hash unchanged; do not construct the target filename or replace the field with
+its absolute read path. The input file itself can use an absolute path:
+
+```sh
+node "<plugin-base>/scripts/review-report.mjs" write --root "/absolute/artifact-root" --input "/absolute/review-input.json"
+```
+
+Here `--root` is the artifact root, `--input` is the review-input JSON file,
+and its `review_target` field is the original relative target string. Record `scope:
 branch` and all actually inspected paths for every approved repo. The writer
 requires target-aligned evidence and detects scope changes during review. Do not
 hand-write a CLEAN handoff after a rejected report or imply that merely listing

@@ -60,6 +60,30 @@ report does not certify newly added paths. Do not claim inspection merely
 because a path appears in the target. Earlier branch work remains in the review
 and delivery scope; distinguish its requirement provenance from this ticket.
 
+Keep the review input file path separate from its target field. For example, if
+scope preparation returns `review_target: "make-it-work/DEMO/<returned-target>.json"`
+and `sha256: "<returned-hash>"`, copy those values unchanged into the existing
+review input's `review_target` and `review_target_sha256` fields. This is an
+example of those fields, not a complete review input:
+
+```json
+{
+  "review_target": "make-it-work/DEMO/<returned-target>.json",
+  "review_target_sha256": "<returned-hash>"
+}
+```
+
+Pass absolute paths for the artifact root and the input JSON file:
+
+```sh
+node "<plugin-base>/scripts/review-report.mjs" write --root "/absolute/artifact-root" --input "/absolute/review-input.json"
+```
+
+To read the target, resolve the returned relative path against the artifact root.
+Keep its original artifact-relative string in the JSON field; substituting the
+absolute read path fails run/cycle binding. Use the actual helper-returned name
+and hash, including any prefix/version, rather than constructing either value.
+
 Before dispatching, narrate and checkpoint that an independent background agent is reviewing the change. Keep that activity visible while awaiting the review, per [references/activity.md](../activity.md); include in the prompt that the subagent must not write workflow activity or the dashboard. After it returns, checkpoint the next activity or apply the resulting phase/stop transition.
 
 Dispatch one fresh subagent (Agent tool, `general-purpose`). Its prompt must:

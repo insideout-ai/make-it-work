@@ -277,6 +277,28 @@ test('clean handoffs require target evidence; final-sync changes route back to r
   assert.equal(refresh.fields.review_cycle, '3'); assert.equal(refresh.fields.fix_cycle, '0');
 });
 
+test('review CLI accepts an absolute input file with the returned relative target from another cwd', async t => {
+  const f = await fixture(t), target = await prepareReviewScope(f.root, f.statePath);
+  assert.equal(path.isAbsolute(target.review_target), false);
+  const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };
+  const inputFile = path.join(f.root, '.git', 'review-input.json');
+  const writer = path.resolve('scripts/review-report.mjs');
+  const write = () => JSON.parse(execFileSync(process.execPath, [writer, 'write', '--root', f.root, '--input', inputFile],
+    { cwd: os.tmpdir(), encoding: 'utf8', stdio: 'pipe' }));
+  await writeFile(inputFile, JSON.stringify(input));
+  const before = await readFile(f.statePath, 'utf8');
+  const result = write();
+  assert.equal(result.outcome, 'CLEAN');
+  const saved = await readFile(result.report, 'utf8');
+  assert.equal((await checkReviewScope(f.root, f.statePath)).covered, true);
+  for (const invalid of [artifactJoin(f.root, target.review_target), 'make-it-work/OTHER/OTHER-review-target.json', '../outside.json']) {
+    await writeFile(inputFile, JSON.stringify({ ...input, review_target: invalid }));
+    assert.throws(write, /Review target must match the current run and review cycle/);
+    assert.equal(await readFile(result.report, 'utf8'), saved, 'rejected paths preserve the saved report');
+  }
+  assert.equal(await readFile(f.statePath, 'utf8'), before);
+});
+
 test('review-target artifacts cannot be rebound or changed without another review', async (t) => {
   const f = await fixture(t), target = await prepareReviewScope(f.root, f.statePath);
   const input = { ...f.input(), review_target: target.review_target, review_target_sha256: target.sha256 };

@@ -20,9 +20,13 @@ In new TDD Plan/fix-plan stages, the hook allows a one-second transcript-flush
 budget for an otherwise-valid activity call whose literal chat sentence is not
 yet persisted. It rereads local transcript/state about every 100 ms; this adds
 no model call, repeated narration, tool invocation or workflow checkpoint.
-Continue only when the original helper call succeeds. Missing narration after
-that budget still denies the call with its existing repair instruction; hosts
-that flush only at response end may still need that fallback. Piped/combined
+Continue only when the activity checkpoint succeeds. If the call is denied for
+missing chat but you already sent the exact activity sentence during this planning
+cycle, do not repeat it: finish the response without tools, then retry the unchanged
+checkpoint on automatic continuation without asking the user. If the sentence is
+missing or different, send the exact sentence in assistant chat before retrying.
+The retry must succeed before dependent work continues. This recovery may avoid
+duplicate narration; it does not eliminate transcript-visibility delays. Piped/combined
 commands, invalid boundaries and skipped prerequisites are denied directly.
 Exact wording, current-cycle timestamps and rejection of tool/thinking/child
 messages remain required. Runs without the TDD test-writing marker and other
