@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Keep detailed test coverage in the Test Preparation report and show planned progression/regression counts with its report link in the preparation audit entry.
+- Include planned automated scenario counts in Write Tests dispatch activity, grouped by progression/regression with test types within each group; list manual scenarios separately.
 - Consolidate maintainer workflow findings and retain review, cost-analysis and delivery evidence with their existing decisions and verification limits.
 
 ### Fixed
