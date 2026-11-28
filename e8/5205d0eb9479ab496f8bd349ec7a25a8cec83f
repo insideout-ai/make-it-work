@@ -1,0 +1,42 @@
+skills/implement/scripts/implementation-cost.test.mjs
+  s_a7c4fc992b4fad::t_f3058783b7b1f0 6-7,43-79,81-132
+  s_a7c4fc992b4fad::t_83de3d2962696e 3,80
+skills/implement/references/orchestration/completion.md
+  s_a7c4fc992b4fad::t_5b5702c27fa474 5-6
+skills/implement/scripts/implementation-cost.mjs
+  s_a7c4fc992b4fad::t_5b5702c27fa474 5,7-8,10
+README.md
+  s_a7c4fc992b4fad::t_5b5702c27fa474 553
+docs/workflow-findings.md
+  s_a7c4fc992b4fad::t_0ad4b5e81b9dad 3383-3384
+  s_a7c4fc992b4fad::t_86e7f25e8f0f3b 15,119,759-760,848-849,3366-3382
+  s_a7c4fc992b4fad::t_550e240e809565 41,49-50,118,750-757,809-811,846-847,1062-1066
+  s_a7c4fc992b4fad::t_b0154eb7c67ec6 51-52,64-65,100,115-117,120-122,376-377,401-402,640-641,730-749,758,805-807,845,850,1054-1061
+  s_a7c4fc992b4fad::t_8266156e0354ab 808,1067
+skills/implement/references/orchestration/feedback.md
+  s_a7c4fc992b4fad::t_5b5702c27fa474 5-6
+docs/artifact-observability.md
+  s_a7c4fc992b4fad::t_5b5702c27fa474 79-82,101-103
+CHANGELOG.md
+  s_a7c4fc992b4fad::t_5b5702c27fa474 9-16
+skills/implement/scripts/implementation-cost-core.mjs
+  s_a7c4fc992b4fad::t_5b5702c27fa474 1-112
+skills/implement/scripts/render-status.mjs
+  s_a7c4fc992b4fad::t_5b5702c27fa474 3,1241
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e85205d0eb9479ab496f8bd349ec7a25a8cec83f",
+  "prompts": {},
+  "sessions": {
+    "s_a7c4fc992b4fad": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a220ed-9d16-7752-9a3d-f428e6499267",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
