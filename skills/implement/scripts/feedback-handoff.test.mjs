@@ -28,7 +28,7 @@ async function fixture(t) {
   return { statePath, fields, report, markdown };
 }
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 const review = { status: 'pending', context: ['Conversation visible turns 1 through 4 reviewed; earlier context unavailable'], findings: [], userInput: [], limitations: ['Client version unknown'] };
@@ -204,6 +204,7 @@ test('feedback lifecycle notes survive retries without changing workflow evidenc
   assert.equal(withoutFeedbackNotes(saved), f.markdown);
   assert.equal((await inspectFeedback(f.statePath)).analysisRequired, summary.analysisRequired);
   assert.match(await readFile(dashboard, 'utf8'), /Session feedback saved\. <a href="workflow-feedback.md.preview.html" target="_blank" rel="noopener noreferrer">Read feedback<\/a>/);
+  assert.match(await readFile(dashboard, 'utf8'), /href="miw-session-debug\.zip" download>Download ZIP<\/a>/);
   assert.equal(spawnSync(process.execPath, args, { encoding: 'utf8' }).status, 0);
   assert.equal(await readFile(f.statePath, 'utf8'), saved);
 });

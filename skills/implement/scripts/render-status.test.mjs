@@ -30,7 +30,7 @@ async function reportReadEvents(reportPath) {
 }
 
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 const DEFAULT_FIELDS = {
@@ -130,6 +130,20 @@ async function renderFixture(t, state, plan = null) {
   return { directory, outputPath, html: await readFile(outputPath, 'utf8') };
 }
 
+test('audit ZIP outcome links the saved archive and does not link unavailable or unsafe references', () => {
+  const outcome = reference => noteCell({ kind: 'result', id: 'feedback-archive-saved:fixture',
+    text: 'Local transcript ZIP saved (raw, potentially sensitive)', reference });
+  const render = outcome => renderStatus({ state: parseState(stateMarkdown({ rows: [['2026-01-01T10:01:00Z', 'context-check', 'context-check', outcome]] })), template: '{{AUDIT_ROWS}}', logoBase64: '' });
+  const saved = render(outcome('miw-session-debug.zip'));
+  assert.match(saved, /href="miw-session-debug\.zip" download>Download ZIP/);
+  assert.match(saved, /raw, potentially sensitive/);
+  assert.doesNotMatch(render(outcome('https://example.com/archive.zip')), /<a /);
+  const unavailable = noteCell({ kind: 'result', id: 'feedback-archive-unavailable:fixture',
+    text: 'Local transcript ZIP unavailable (EACCES); feedback report remains saved', reference: 'workflow-feedback.md' });
+  assert.match(render(unavailable), /ZIP unavailable/);
+  assert.doesNotMatch(render(unavailable), /Download ZIP/);
+});
+
 test('generated dashboard opens its spec and audit links in readable previews', async t => {
   const state = stateMarkdown({ fields: { spec: 'make-it-work/DEMO/DEMO-spec.md' }, rows: [['2026-01-01T10:00:00Z', 'context-check', 'context-check', 'Checking context']] });
   const f = await renderFixture(t, state);
@@ -164,9 +178,9 @@ test('terminal dashboard collects session feedback then refreshes to saved with 
   const f = await renderFixture(t, state);
   const statePath = artifactJoin(f.directory, 'DEMO-state.md');
   assert.match(f.html, /data-workflow-feedback-status="collecting"/);
-  assert.match(f.html, /Session retrospective: Collecting feedback/);
+  assert.match(f.html, /data-workflow-feedback-status="collecting"[^>]*>Collecting feedback/);
   assert.match(f.html, /Finalizing session\./);
-  assert.doesNotMatch(f.html, /<strong>Implementation complete\./);
+  assert.match(f.html, /<strong>Implementation complete\./);
   assert.match(f.html, /http-equiv="refresh"/);
   const approvalPath = artifactJoin(f.directory, 'DEMO-final-package.approval.json');
   await writeFile(approvalPath, 'Historical approval bytes');
@@ -217,7 +231,8 @@ test('completion keeps assurance details in artifacts and links only the session
   assert.match(html, /href="workflow-feedback.md"/);
   assert.match(html, /Share only this session export/);
   assert.equal(await readFile(packagePath, 'utf8'), bytes);
-  assert.doesNotMatch(await readFile(f.outputPath, 'utf8'), /Assurance:|Inherited work not fully assessed/);
+  assert.match(await readFile(f.outputPath, 'utf8'), /Inherited work not fully assessed/);
+  assert.match(await readFile(f.outputPath, 'utf8'), /id="completion-details"/);
   assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
 });
 
@@ -304,6 +319,106 @@ test('completion without an AC ledger never acquires a verified acceptance label
   assert.doesNotMatch(current.html, /of \d+ verified|View verification report/);
   const legacy = await renderFixture(t, stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows }));
   assert.doesNotMatch(legacy.html, /class="acceptance-summary"/);
+});
+
+const dashboardSection = (html, name) => html.split(`<section data-dashboard-section="${name}"`)[1]?.split('<section data-dashboard-section=')[0] ?? '';
+
+test('six ordered sections contain activity, feedback, evidence and history in every workflow state', async t => {
+  for (const status of ['In Progress', 'Paused', 'Stopped', 'Complete']) {
+    const fields = { status, phase: status === 'Complete' ? 'complete' : 'context-check', current_activity: 'Inspecting project context', pause_reason: 'Choose the next action' };
+    const { html } = await renderFixture(t, stateMarkdown({ fields, regressions: ['Known unrelated failure'], findings: ['Keep advisory'], rows: [
+      ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
+      ['2026-01-01T10:02:00Z', 'context-check', fields.phase, status],
+    ] }));
+    assert.deepEqual([...html.matchAll(/<section data-dashboard-section="([^"]+)"/g)].map(match => match[1]), ['title', 'workflow', 'status', 'repositories', 'artifacts', 'audit']);
+    assert.equal((html.match(/class="implementation-status /g) ?? []).length, 1);
+    assert.match(dashboardSection(html, 'title'), /workflow-metadata/);
+    assert.match(dashboardSection(html, 'repositories'), /Repository locations not recorded/);
+    assert.match(dashboardSection(html, 'audit'), /Known unrelated failure/);
+    assert.doesNotMatch(dashboardSection(html, 'artifacts'), /Known unrelated failure/);
+    if (status === 'Complete') {
+      const panel = dashboardSection(html, 'status');
+      assert.match(panel, /Implementation complete/);
+      assert.match(panel, /data-workflow-feedback-status="collecting"/);
+      assert.deepEqual([...panel.matchAll(/<dt>([^<]+)<\/dt>/g)].map(match => match[1]), ['Changed', 'Time', 'Delivery', 'Testing', 'Feedback', 'Attention']);
+      assert.doesNotMatch(html, /<section class="feedback-progress"/);
+    } else if (status === 'In Progress') assert.match(dashboardSection(html, 'status'), /Inspecting project context/);
+    else assert.match(dashboardSection(html, 'status'), /Choose the next action/);
+  }
+});
+
+test('completion uses final scenario outcomes and distinct criteria while repository delivery remains separate', async () => {
+  const state = parseState(stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows: [
+    ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
+    ['2026-01-01T10:10:00Z', 'final-approval', 'complete', 'Complete'],
+  ] }));
+  const template = await readFile(new URL('../assets/status-template.html', import.meta.url), 'utf8');
+  const html = renderStatus({ state, template, logoBase64: '', summaryDetails: { changed: 'Save <edits> safely.', waitingMs: 60_000 },
+    planStatus: { coverage: { scenarios: [{ scenario: 'Save', purpose: 'Progression' }, { scenario: 'Cancel', purpose: 'Regression' }] } },
+    verification: { steps: [{ number: 1, checks: [{ subject: 'Save', type: 'automated', result: 'pass' }] }], gate: { result: 'fail' }, acceptance: [
+      { criterion: 'AC1', scenario: 'Save', status: 'automated' },
+      { criterion: 'AC1', scenario: 'Cancel', status: 'unverified' },
+      { criterion: 'AC2', scenario: 'Save', status: 'automated' },
+    ] },
+    feedback: { status: 'saved', shareReady: true, finalizedAt: '2026-01-01T10:12:00Z' },
+    delivery: { status: 'partial', error: 'Push failed for web', repos: [{ name: 'app', commit: 'abc123', pushed: true }, { name: 'web', pushed: false }] },
+  });
+  const panel = dashboardSection(html, 'status');
+  assert.match(panel, /Save &lt;edits&gt; safely/);
+  assert.match(panel, /Progression 1\/1 passed; Regression 0\/1 passed, 1 unknown \(recorded scenarios\); 1\/2 acceptance criteria verified/);
+  assert.match(panel, /Elapsed time \(includes waits and pauses\): 12m/);
+  assert.match(panel, /recorded waiting 1m \(partial coverage\)/);
+  assert.match(panel, /Delivery stopped after partial progress/);
+  assert.doesNotMatch(panel, /<table>|reruns|1 failed/);
+  assert.match(dashboardSection(html, 'repositories'), /Push failed for web/);
+  assert.match(dashboardSection(html, 'repositories'), /Not committed/);
+  assert.match(dashboardSection(html, 'artifacts'), /href="DEMO-delivery-plan.md"/);
+  assert.match(dashboardSection(html, 'artifacts'), /href="\.\.\/implement-feedback.md"/);
+  assert.match(dashboardSection(html, 'artifacts'), /Sharing is optional/);
+  assert.match(dashboardSection(html, 'audit'), /Regression gate: fail/);
+});
+
+test('generated completion reads the outcome and recorded waiting without altering source evidence', async t => {
+  const state = stateMarkdown({ fields: { status: 'Complete', phase: 'complete', plan: 'make-it-work/DEMO/DEMO-plan.md' }, rows: [
+    ['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started'],
+    ['2026-01-01T10:04:00Z', 'execute', 'review', 'Checks complete'],
+    ['2026-01-01T10:04:00Z', 'review', 'review', noteCell({ kind: 'result', id: 'time-breakdown:execute:1', text: 'Recorded timing', reference: 'time-breakdown-execute-1.json' })],
+    ['2026-01-01T10:10:00Z', 'final-approval', 'complete', 'Complete'],
+  ] });
+  const plan = '# Plan\n\n## What This Changes\n\nKeep the dashboard concise.\n';
+  const f = await renderFixture(t, state, plan);
+  await writeFile(artifactJoin(f.directory, 'time-breakdown-execute-1.json'), JSON.stringify({ version: 1, pass: 'execute:1', intervals: [
+    { category: 'waiting for input', from: '2026-01-01T10:01:00Z', to: '2026-01-01T10:03:00Z' },
+  ] }));
+  await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
+  const panel = dashboardSection(await readFile(f.outputPath, 'utf8'), 'status');
+  assert.match(panel, /Keep the dashboard concise/);
+  assert.match(panel, /recorded waiting 2m \(partial coverage\)/);
+  assert.match(panel, /provisional/);
+  assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-plan.md'), 'utf8'), plan);
+  assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
+});
+
+test('manual completion retains its automated-regression limitation in the short summary', () => {
+  const state = parseState(stateMarkdown({ fields: { status: 'Complete', phase: 'complete', verification_version: '1' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
+  const html = renderStatus({ state, template: '{{STATUS_PANEL}} {{COMPLETION_DETAILS}}', logoBase64: '',
+    planStatus: { coverage: { scenarios: [{ scenario: 'Observe layout', purpose: 'Progression' }] } },
+    verification: { steps: [{ number: 1, checks: [{ subject: 'Observe layout', type: 'manual', result: 'pass' }] }],
+      acceptance: [{ criterion: 'AC1', scenario: 'Observe layout', status: 'manual' }], gate: { result: 'manual-accepted' } },
+  });
+  assert.match(html, /Progression 1\/1 passed/);
+  assert.match(html, /1\/1 acceptance criteria verified/);
+  assert.match(html, /Manual verification completed; automated regression unavailable/);
+  assert.doesNotMatch(html, /automated PASS/);
+});
+
+test('long qualifications stay concise in the status box and complete in audit details', () => {
+  const state = parseState(stateMarkdown({ fields: { status: 'Complete', phase: 'complete' }, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
+  const limitation = 'Review pending for ' + 'some/long/path.js; '.repeat(40);
+  const html = renderStatus({ state, template: '{{STATUS_PANEL}}<hr>{{COMPLETION_DETAILS}}', logoBase64: '', summaryDetails: { limitations: [limitation] } });
+  assert.ok(html.split('<hr>')[0].includes('…'));
+  assert.ok(!html.split('<hr>')[0].includes(limitation));
+  assert.ok(html.split('<hr>')[1].includes(limitation));
 });
 
 test('renders a fresh run with active Context Check and no timing paragraph', async (t) => {
@@ -557,17 +672,14 @@ test('readiness results summarize the baseline and open reports without changing
     await writeFile(artifactJoin(f.directory, `${prefix}DEMO-testing-readiness.md`), '# Testing readiness\n\nBaseline passed.\n');
     await generateDashboard(artifactJoin(f.directory, 'DEMO-state.md'));
     const html = await readFile(f.outputPath, 'utf8');
-    assert.match(html, /<strong>Testing readiness passed<\/strong>/);
-    assert.match(html, /Baseline tests passed for app\./);
+    assert.match(html, /<strong>Tests before changes passed<\/strong>/);
+    assert.match(html, /Existing tests passed for app\./);
     assert.match(html, /Ready to create the implementation plan\./);
     assert.ok(html.includes(`href="${prefix}DEMO-testing-readiness.md.preview.html"`));
     assert.match(html, /<td colspan="2" title="Phase unchanged">Plan<\/td>/);
     assert.match(html, /<td>close-the-gaps<\/td><td>plan<\/td>/);
-    const details = html.match(/<details><summary>Technical details<\/summary>([\s\S]*?)<\/details>/)[1];
-    assert.ok(details.includes(`href="${prefix}DEMO-readiness-v1.json"`));
-    assert.ok(details.includes(hash));
-    const visible = html.replace(/<details>[\s\S]*?<\/details>/g, '');
-    assert.doesNotMatch(visible, /Baselines:|; evidence:|make-it-work\/DEMO\/|readiness-v1\.json|sha256:/);
+    assert.doesNotMatch(html, /Technical details|Open readiness record|Baselines:|; evidence:|make-it-work\/DEMO\/|readiness-v1\.json|sha256:/);
+    assert.ok(!html.includes(hash));
     assert.equal(await readFile(artifactJoin(f.directory, 'DEMO-state.md'), 'utf8'), state);
   }
 });
@@ -580,14 +692,14 @@ test('readiness summaries retain each repo failure, unrun baseline and manual po
       ['2026-01-01T10:00:00Z', 'plan', 'plan', outcome],
     ] }));
     const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
-    assert.match(html, /href="DEMO-testing-readiness-v2.md">View readiness report/);
-    assert.match(html, /Manual verification selected for docs; no automated baseline was run\./);
-    assert.doesNotMatch(html, /<strong>Testing readiness passed<\/strong>/);
+    assert.match(html, /href="DEMO-testing-readiness-v2.md">View test report/);
+    assert.match(html, /Manual verification selected for docs; no automated tests were run\./);
+    assert.doesNotMatch(html, /<strong>Tests before changes passed<\/strong>/);
     if (baselines.includes('fail')) {
-      assert.match(html, /<li>Baseline tests passed for api\.<\/li>/);
-      assert.match(html, /<li>Baseline tests failed for web\.<\/li>/);
-      assert.match(html, /<li>Baseline tests were not run for jobs\.<\/li>/);
-      assert.match(html, /Review baseline limitations before planning\./);
+      assert.match(html, /<li>Existing tests passed for api\.<\/li>/);
+      assert.match(html, /<li>Existing tests failed for web\.<\/li>/);
+      assert.match(html, /<li>Existing tests were not run for jobs\.<\/li>/);
+      assert.match(html, /Review the test failures or limitations before planning\./);
       assert.doesNotMatch(html, /Ready to create the implementation plan\./);
     }
   }
@@ -604,10 +716,30 @@ test('readiness rendering escapes repo names and leaves unknown or unsafe eviden
   const state = parseState(stateMarkdown({ fields: { phase: 'plan' }, rows: outcomes.map((text, i) =>
     [`2026-01-01T10:0${i}:00Z`, 'plan', 'plan', text]) }));
   const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
-  assert.match(html, /Baseline tests passed for &lt;img src=x&gt;\./);
+  assert.match(html, /Existing tests passed for &lt;img src=x&gt;\./);
   assert.doesNotMatch(html, /<img|href="https:|href="[^\"]*\.\.\//);
-  assert.equal((html.match(/View readiness report/g) ?? []).length, 1);
+  assert.equal((html.match(/View test report/g) ?? []).length, 1);
   assert.match(html, /app=unknown/);
+});
+
+test('completion audit summaries explain commands, skipped runs and unmatched checks without changing evidence', () => {
+  const hash = 'a'.repeat(64);
+  for (const [result, runs, skipped, unmapped, expected] of [
+    ['PASS', 1, 0, 2, 'Completion tests passed. One test command ran; none were skipped. For 2 requested checks, we couldn’t confirm which tests to run. See the report for details.'],
+    ['FAIL', 2, 1, 1, 'Completion tests failed. 2 test commands ran; 1 was skipped. For one requested check, we couldn’t confirm which tests to run. See the report for details.'],
+    ['NO RESULT', 0, 2, 0, 'Completion tests have no overall result. No test commands ran; 2 were skipped.'],
+    ['NO RESULT', 1, 1, 0, 'Completion tests have no overall result. One test command ran; 1 was skipped.'],
+    ['PASS', 1, 0, 0, 'Completion tests passed. One test command ran; none were skipped.'],
+  ]) {
+    const outcome = noteCell({ kind: 'result', id: 'regression:gate-v1-1', text: `Completion gate: ${result}. ${runs} run(s); ${skipped} not run; ${unmapped} unmapped.`,
+      reference: `regression gate-v1-1; manifest sha256:${hash}; result sha256:${hash}` });
+    const state = parseState(stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'context-check', 'context-check', outcome]] }));
+    const before = JSON.stringify(state);
+    const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
+    assert.ok(html.includes(expected), html);
+    assert.doesNotMatch(html, /unmapped|run\(s\)|sha256:|gate-v1-1/);
+    assert.equal(JSON.stringify(state), before);
+  }
 });
 
 test('regression audits actual pass, failure and no-result without advancing the workflow', async (t) => {
@@ -621,6 +753,9 @@ test('regression audits actual pass, failure and no-result without advancing the
     await runRegression({ version: 1, mode: 'tokens', runs: [{ repo: 'app', cwd: directory, scope: 'full', command: code === null ? null : { bin: process.execPath, args: ['-e', code] } }] }, { statePath, auditId: id });
     const state = parseState(await readFile(statePath, 'utf8'));
     assert.ok(state.audit.at(-1).outcome.startsWith(`Result: Completion gate: ${expected}.`));
+    const html = await readFile(artifactJoin(directory, 'DEMO-status.html'), 'utf8');
+    assert.ok(html.includes(code === null ? 'Completion tests have no overall result. No test commands ran; 1 was skipped.'
+      : code ? 'Completion tests failed. One test command ran; none were skipped.' : 'Completion tests passed. One test command ran; none were skipped.'));
     assert.deepEqual(state.fields, originalFields);
     assert.equal(lastWorkRow(state.audit).number, 1);
   }
@@ -810,7 +945,7 @@ test('renders a stopped active phase as failed and static', async (t) => {
 
   assert.match(html, /phase-dot failed[^>]+context-check:[^>]*>✗<\/div>/);
   assert.doesNotMatch(html, /phase-dot current/);
-  assert.match(html, /Waiting on you:<\/strong> context is incomplete/);
+  assert.match(html, /Stopped:<\/strong> context is incomplete/);
   assert.match(html, /status-stopped">Stopped<\/div>/);
 });
 
@@ -852,7 +987,8 @@ test('keeps completed stages minimal and retains approval details and fix histor
   assert.ok(html.includes(approval));
   assert.match(html, /Decision: Fix round 1: added 2 steps covering 1 finding/);
   assert.match(completedStages, /phase-duration">2m<\/div>/);
-  assert.match(html, /class="complete"><strong>Implementation complete\.<\/strong> Elapsed time \(includes waits and pauses\): 12m\./);
+  assert.match(html, /class="implementation-status complete"/);
+  assert.match(html, /<dt>Time<\/dt><dd>Elapsed time \(includes waits and pauses\): 12m\./);
   assert.match(html, /class="phase-step optional-step"[\s\S]*class="phase-dot optional"[^>]+Optional delivery:/);
   assert.match(html, /class="phase-label">Deliver<\/div>[\s\S]*class="phase-mode">Optional<\/div>/);
   assert.doesNotMatch(html, /Optional next step:/);
@@ -1460,11 +1596,13 @@ test('final approval feedback retains separate finalization attempts', async (t)
   for (const step of finalSteps) assert.match(step, /phase-duration">2m/);
 });
 
-test('missing-strategy completion note is escaped inside the green banner before delivery guidance', () => {
+test('missing-strategy completion points to escaped verification details', () => {
   const fields = { status: 'Complete', phase: 'complete', testing_summary: JSON.stringify([{ repo: '<api>', strategy: 'missing', verification: 'manual' }]) };
   const state = parseState(stateMarkdown({ fields, rows: [['2026-01-01T10:01:00Z', 'final-approval', 'complete', 'Completed']] }));
-  const html = renderStatus({ state, template: '{{STATUS_BANNER}} {{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'saved', shareReady: true } });
-  assert.match(html, /class="complete"[\s\S]*<strong>Testing:<\/strong> Strategy missing for &lt;api&gt;; used manual verification\.[\s\S]*Delivery status reflects/);
+  const html = renderStatus({ state, template: '{{STATUS_BANNER}} {{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}} {{COMPLETION_DETAILS}}', logoBase64: '', feedback: { status: 'saved', shareReady: true } });
+  assert.match(html, /Test strategy missing; see verification details/);
+  assert.match(html, /Strategy missing for &lt;api&gt;; used manual verification\./);
+  assert.match(html, /Delivery status reflects/);
   assert.doesNotMatch(html, /class="feedback-progress"|Strategy missing for <api>/);
   assert.equal((html.match(/Save this session’s feedback/g) ?? []).length, 1);
   const unavailable = renderStatus({ state, template: '{{FEEDBACK_PROGRESS}} {{FEEDBACK_NOTE}}', logoBase64: '', feedback: { status: 'unavailable', reason: 'Could not save <report>' } });
@@ -1510,13 +1648,13 @@ test('a dispatched review with no handoff is reported as lost once and shown as 
 test('version and optional usage appear in header without changing refresh behavior', () => {
   const state = parseState(stateMarkdown({ fields: { plugin_version: '5.9.0-rc.1' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start']] }));
   const html = renderStatus({ state, template: '{{WORKFLOW_HEADER}}', logoBase64: '', usageSnapshot: { context_percent: 0, context_capacity: 200000, estimated_cost_usd: 0, captured_at: '2026-01-01T10:00:00Z' } });
-  assert.match(html, /Plugin v5.9.0-rc.1/); assert.match(html, /Context: 0% of 200K/); assert.match(html, /~\$0.00/);
+  assert.match(html, /Plugin v5.9.0-rc.1/); assert.match(html, /Context: 0% of 200K/); assert.doesNotMatch(html, /Estimated session cost|~\$0.00/);
   const legacy = renderStatus({ state: parseState(stateMarkdown({ rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Start']] })), template: '{{WORKFLOW_HEADER}}', logoBase64: '' });
   assert.match(legacy, /Plugin version: Unknown/);
   assert.doesNotMatch(legacy, /Context:|Estimated session cost:|Captured at| · /);
   for (const { usage, expected } of [
     { usage: { context_percent: null, estimated_cost_usd: null }, expected: '' },
-    { usage: { context_percent: null, context_capacity: 200000, estimated_cost_usd: 1.23 }, expected: ' · Estimated session cost: ~$1.23 · Captured at 2026-01-01T10:00:00Z' },
+    { usage: { context_percent: null, context_capacity: 200000, estimated_cost_usd: 1.23 }, expected: '' },
     { usage: { context_percent: 25, context_capacity: 200000, estimated_cost_usd: null }, expected: ' · Context: 25% of 200K · Captured at 2026-01-01T10:00:00Z' },
     { usage: { context_percent: 25, context_capacity: null, estimated_cost_usd: null }, expected: ' · Context: 25% · Captured at 2026-01-01T10:00:00Z' },
   ]) {
@@ -1606,11 +1744,15 @@ test('preparation audit links preserve historical reports and leave unsafe refer
     'Test preparation ready: https://example.com/DEMO-plan-tests-1.md',
     'Test preparation ready: make-it-work/DEMO/../OTHER-plan-tests-1.md',
     'Test preparation ready: <invalid>',
+    'Test preparation ready: make-it-work/DEMO/DEMO-plan-tests-3.md; Test coverage: 5 progression / 1 regression scenarios planned',
+    'Test preparation blocked: make-it-work/DEMO/DEMO-plan-tests-4.md; Test coverage: unavailable',
   ];
   const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none', phase: 'write-tests' }, rows: outcomes.map((outcome, index) =>
     [`2026-01-01T10:0${index}:00Z`, 'write-tests', 'write-tests', outcome]) }));
   const html = renderStatus({ state, template: '{{AUDIT_ROWS}}', logoBase64: '' });
-  assert.equal((html.match(/View preparation report/g) ?? []).length, 2);
+  assert.equal((html.match(/View preparation report/g) ?? []).length, 4);
+  assert.match(html, /Test coverage: 5 progression \/ 1 regression scenarios planned · <a href="DEMO-plan-tests-3.md"/);
+  assert.match(html, /Test coverage: unavailable · <a href="DEMO-plan-tests-4.md"/);
   assert.match(html, /href="DEMO-plan-tests-1.md"/);
   assert.match(html, /href="miw-DEMO-plan-tests-2.md"[^>]*>View preparation report<\/a>\. Implementation remains unverified\./);
   assert.doesNotMatch(html, /href="https:|href="[^"]*\.\.\//);
@@ -1635,6 +1777,19 @@ test('preparation reentries remain separate from fix execution and manual exempt
   assert.match(html, /Step 1 of 2 complete/);
 });
 
+test('status panel is amber when paused, blue while active and green when complete', async () => {
+  const template = await readFile(new URL('../assets/status-template.html', import.meta.url), 'utf8');
+  for (const [status, phase, expectedClass] of [
+    ['In Progress', 'context-check', ''], ['Paused', 'plan-approval', 'paused'], ['Complete', 'complete', 'complete'],
+  ]) {
+    const state = parseState(stateMarkdown({ fields: { status, phase, pause_reason: status === 'Paused' ? 'Review the plan' : 'none' },
+      rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Checkpoint']] }));
+    const html = renderStatus({ state, template, logoBase64: '' });
+    assert.ok(html.includes(`class="implementation-status ${expectedClass}"`));
+    assert.equal((html.match(/data-dashboard-section="status"/g) ?? []).length, 1);
+  }
+});
+
 test('compact approval banners show only the waiting status and review action', () => {
   const hash = 'a'.repeat(64);
   for (const [phase, binding, label, filename] of [
@@ -1644,7 +1799,8 @@ test('compact approval banners show only the waiting status and review action', 
   ]) {
     const pending = createPendingInput({ id: 'approval', kind: 'approval', question: 'Approve this document?', choices: [{ id: 'approve', label: 'Approve' }, { id: 'redo', label: 'Request changes' }, { id: 'stop', label: 'Stop' }], binding }, phase, '2026-01-01T10:00:00Z');
     const state = parseState(stateMarkdown({ fields: { phase, status: 'Paused', final_package_version: '1', pending_inputs: JSON.stringify([pending]) }, rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Awaiting approval']] }));
-    const html = renderStatus({ state, template: '{{STATUS_BANNER}}', logoBase64: '' });
+    const html = renderStatus({ state, template: '<section class="implementation-status {{STATUS_CLASS}}">{{STATUS_BANNER}}</section>', logoBase64: '' });
+    assert.match(html, /class="implementation-status paused"/);
     assert.ok(html.includes(`href="${filename}">${label}</a>`));
     assert.match(html, /<strong class="pending-title">Implementation is waiting for your input<\/strong>/);
     assert.doesNotMatch(html, /Workflow paused|Approve this document|<li>|data-wait-since|<details/);
@@ -1654,13 +1810,12 @@ test('compact approval banners show only the waiting status and review action', 
   }
 });
 
-test('coverage display preserves purposes and never converts baseline limits into passes', async () => {
+test('coverage details stay out of the dashboard artifact grid', async () => {
   const state = parseState(stateMarkdown({ fields: { test_writing_version: '1', test_preparation: 'none', test_preparation_report: 'none' }, rows: [['2026-01-01T10:00:00Z', 'start', 'context-check', 'Started']] }));
   const options = { state, template: '{{PREPARATION_TILE}}', logoBase64: '', planStatus: { coverage: { progression: 1, regression: 1, scenarios: [{ scenario: '<Cards>', purpose: 'Regression', baseline: 'Pending — no matching pre-change baseline recorded' }] } } };
   const html = renderStatus(options);
-  assert.match(html, /1 progression \/ 1 regression scenarios/);
-  assert.match(html, /&lt;Cards&gt;/);
-  assert.match(html, /no matching pre-change baseline/);
+  assert.match(html, /Test Preparation/);
+  assert.doesNotMatch(html, /test-coverage|progression|regression|Cards|pre-change baseline/);
   const stale = renderStatus({ ...options, preparation: { plan_hash: 'old', current_plan_hash: 'new', entries: [{ scenario: '<Cards>', kind: 'regression', result: 'pass' }] } });
   assert.match(stale, /Superseded/);
   assert.doesNotMatch(stale, /regression: pass/);

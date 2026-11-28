@@ -109,3 +109,22 @@ test('marked runs can prepare an existing legacy-named plan and discover its pre
   assert.match(path.basename(saved.file), /^miw-DEMO-plan-tests-1.json$/);
   assert.equal((await checkPreparation(file, { file: saved.file })).status, 'ready');
 });
+
+test('preparation report retains coverage purposes, protected behavior and baseline qualifications', async t => {
+  const f = await fixture(t);
+  const plan = f.plan.replace('| Repo | Type |', '| Repo | Purpose | Type |')
+    .replace('| --- | --- | --- | --- |', '| --- | --- | --- | --- | --- |')
+    .replace('| app | Unit |', '| app | Progression | Unit |')
+    + '\n| Existing behavior | app | Regression | Unit | step 1 |\n'
+    + '\n## Regression Impact\n\n| Changed code | Domain | UC / behavior | Decision | Reason / evidence | Test scenarios |\n| --- | --- | --- | --- | --- | --- |\n| app.js | app | Existing greeting | Required | Shared implementation | Existing behavior |\n';
+  await writeFile(f.file, plan);
+  const input = { ...f.input, plan_hash: planHash(plan) };
+  const ready = await recordPreparation(f.file, { ...input, entries: [f.entry, { ...f.entry, scenario: 'Existing behavior', kind: 'regression', result: 'not-run', reason: 'Database unavailable' }] });
+  const report = await readFile(ready.report, 'utf8');
+  assert.match(report, /Progression: 1 scenarios; Regression: 1 scenarios/);
+  assert.match(report, /New behavior \| Progression/);
+  assert.match(report, /Existing behavior \| Regression \| Existing greeting \| not-run — Database unavailable/);
+  assert.match(report, /Counts describe planned scenarios, not executed tests/);
+  const blocked = await recordPreparation(f.file, { ...input, status: 'blocked', entries: [] });
+  assert.match(await readFile(blocked.report, 'utf8'), /Pending — no matching pre-change baseline recorded/);
+});

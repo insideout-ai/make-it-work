@@ -10,7 +10,7 @@ import { inspectFeedback, checkFeedback, writeFeedback } from './write-feedback.
 import { feedbackHold } from './feedback-handoff.mjs';
 
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 test('numbered evidence removes embedded images; marker-only feedback is rejected and late delivery refreshes do not retrigger it', async t => {

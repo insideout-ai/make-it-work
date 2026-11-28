@@ -19,7 +19,7 @@ import { generateDashboard } from './render-status.mjs';
 import { acceptDelegateReport } from './delegate-report.mjs';
 
 function withoutFeedbackNotes(markdown) {
-  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable):[a-f0-9]{64}\] \|\n/gm, '');
+  return markdown.replace(/^\| \d+ \| [^\n]*\[audit-note: (?:activity|result); id: feedback-(?:start|saved|unavailable|archive-saved|archive-unavailable):[a-f0-9]{64}\] \|\n/gm, '');
 }
 
 const dashboard = '/tmp/project space/#run/DEMO-status.html';
@@ -140,19 +140,24 @@ test('new planning activity checks recover through real chat and persisted bound
   assert.deepEqual(saved.audit.filter(row => row.note?.id.startsWith('planning-')).map(row => row.note.id.split(':')[0]), ['planning-discovery', 'planning-drafting', 'planning-validation']);
 });
 
-test('WF-015 reproduction: narration missing from the snapshot denies once, persisted chat releases without a Stop round', async t => {
-  const run = await freshRun(t, 'guided');
-  await writeFile(run.result.state, (await readFile(run.result.state, 'utf8')).replace('phase: context-check', 'phase: plan').replace('mode: none', 'mode: tdd')
-    .replace('mode_source: none', 'mode_source: assessed').replace('risk: none', 'risk: medium').replace('risk_rationale: none', 'risk_rationale: Existing caller changes'));
-  const sentence = 'I am inspecting the existing test boundaries.';
-  const input = { hook_event_name: 'PreToolUse', transcript_path: run.transcript, cwd: run.root, tool_name: 'Bash',
-    tool_input: { command: `node /plugin/dashboard-checkpoint.mjs activity --state "${run.result.state}" --activity "${sentence}" --planning-activity discovery` } };
-  const before = await readFile(run.result.state, 'utf8');
-  const denied = await startupHook(input);
-  assert.match(denied.hookSpecificOutput.permissionDecisionReason, /match actual assistant chat/);
-  run.events.push({ ...assistant(text(sentence)), timestamp: new Date(Date.now() + 1000).toISOString() }); await run.saveEvents();
-  assert.deepEqual(await startupHook(input), {}, 'one newly persisted announcement suffices; no duplicate chat or Stop event supplied');
-  assert.equal(await readFile(run.result.state, 'utf8'), before, 'neither check advances workflow state');
+test('WF-015 recovery distinguishes already-sent narration and retries unchanged without duplicate chat', async t => {
+  for (const phase of ['plan', 'fix-plan']) {
+    const run = await planningRun(t, phase);
+    const sentence = 'I am inspecting the existing test boundaries.';
+    const input = planningCall(run, sentence);
+    const before = await readFile(run.result.state, 'utf8');
+    const denied = await startupHook(input);
+    const reason = denied.hookSpecificOutput.permissionDecisionReason;
+    assert.match(reason, /match actual assistant chat/);
+    assert.match(reason, /already sent the exact --activity sentence.*during this planning cycle.*do not repeat it/);
+    assert.match(reason, /finish the response without tools.*retry the unchanged activity checkpoint on automatic continuation without asking the user/);
+    assert.match(reason, /sentence is missing or different.*send the --activity sentence literally in assistant chat before retrying/);
+    assert.match(reason, /checkpoint must succeed before dependent work continues/);
+    run.events.push({ ...assistant(text(sentence)), timestamp: new Date(Date.now() + 1000).toISOString() }); await run.saveEvents();
+    assert.deepEqual(await startupHook(input), {}, 'one newly persisted announcement suffices; no duplicate chat or Stop event supplied');
+    assert.equal(await readFile(run.result.state, 'utf8'), before, 'neither check advances workflow state');
+    assert.equal(run.events.filter(row => row.message?.content?.some(part => part.type === 'text' && part.text === sentence)).length, 1);
+  }
 });
 
 async function planningRun(t, phase = 'plan') {
@@ -374,7 +379,9 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   sessionReview.evidence_review = await sourceReview(run);
   assert.equal((await checkFeedback(run.result.state, { analysis, sessionReview })).valid, true);
   assert.equal((await run.check()).decision, 'block'); // Validation is not saving.
+  const inspectedDashboard = await readFile(run.result.dashboard, 'utf8');
   await writeFeedback(run.result.state, { analysis, sessionReview });
+  assert.equal(await readFile(run.result.dashboard, 'utf8'), inspectedDashboard, 'ZIP audit note must not invalidate the inspected dashboard before readback');
   assert.equal((await delivery()).hookSpecificOutput.permissionDecision, 'deny'); // An inline diagnosis is not the required delegate.
   run.add('Agent', 'fork-feedback', { prompt: run.prompt, subagent_type: 'fork' }, 'The fork wrote its own analysis.');
   run.events.push({ type: 'user', origin: { kind: 'task-notification', producer: 'session-task' }, promptSource: 'system', turnOrigin: 'task_notification',
@@ -394,6 +401,7 @@ test('one fix then Complete requires retrospective dispatch and saved combined f
   const directory = path.dirname(run.result.state), receiptPath = artifactJoin(directory, 'feedback-finalized.json');
   const receipt = await readFile(receiptPath, 'utf8');
   assert.equal(JSON.parse(receipt).writerId, 'feedback-written');
+  assert.match(await readFile(run.result.dashboard, 'utf8'), /href="miw-session-debug\.zip" download>Download ZIP<\/a>/);
   assert.deepEqual(await startupHook(offerInput), {});
   assert.deepEqual(await delivery(), {});
   assert.deepEqual(await run.check(), {});
