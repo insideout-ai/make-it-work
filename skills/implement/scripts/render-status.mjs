@@ -1089,7 +1089,7 @@ export function renderStatus({ state, template, logoBase64, planStatus = null, i
     TICKET_UPDATES_BADGE: renderPublicationBadge(publication ?? { status: state.fields.ticket_publication && state.fields.ticket_publication !== 'none' ? 'unknown' : 'off' }),
     PHASE_TIMELINE: renderTimeline(state, timeline, planStatus, invalidTimestampFrom, delivery, timingFeedback, now, cost),
     CURRENT_ACTIVITY: renderCurrentActivity(state, timeline),
-    STATUS_CLASS: state.fields.status === 'Complete' ? 'complete' : '',
+    STATUS_CLASS: state.fields.status === 'Complete' ? 'complete' : state.fields.status === 'Paused' ? 'paused' : '',
     STATUS_PANEL: `${renderCurrentActivity(state, timeline)}${banner}${cost && state.fields.status !== 'Complete' ? `<p>Estimated implementation cost: ${renderCost(cost)}</p>` : ''}`,
     STATUS_BANNER: banner,
     FEEDBACK_PROGRESS: renderFeedbackProgress(feedback),

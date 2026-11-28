@@ -1757,6 +1757,19 @@ test('preparation reentries remain separate from fix execution and manual exempt
   assert.match(html, /Step 1 of 2 complete/);
 });
 
+test('status panel is amber when paused, blue while active and green when complete', async () => {
+  const template = await readFile(new URL('../assets/status-template.html', import.meta.url), 'utf8');
+  for (const [status, phase, expectedClass] of [
+    ['In Progress', 'context-check', ''], ['Paused', 'plan-approval', 'paused'], ['Complete', 'complete', 'complete'],
+  ]) {
+    const state = parseState(stateMarkdown({ fields: { status, phase, pause_reason: status === 'Paused' ? 'Review the plan' : 'none' },
+      rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Checkpoint']] }));
+    const html = renderStatus({ state, template, logoBase64: '' });
+    assert.ok(html.includes(`class="implementation-status ${expectedClass}"`));
+    assert.equal((html.match(/data-dashboard-section="status"/g) ?? []).length, 1);
+  }
+});
+
 test('compact approval banners show only the waiting status and review action', () => {
   const hash = 'a'.repeat(64);
   for (const [phase, binding, label, filename] of [
@@ -1766,7 +1779,8 @@ test('compact approval banners show only the waiting status and review action', 
   ]) {
     const pending = createPendingInput({ id: 'approval', kind: 'approval', question: 'Approve this document?', choices: [{ id: 'approve', label: 'Approve' }, { id: 'redo', label: 'Request changes' }, { id: 'stop', label: 'Stop' }], binding }, phase, '2026-01-01T10:00:00Z');
     const state = parseState(stateMarkdown({ fields: { phase, status: 'Paused', final_package_version: '1', pending_inputs: JSON.stringify([pending]) }, rows: [['2026-01-01T10:00:00Z', 'start', phase, 'Awaiting approval']] }));
-    const html = renderStatus({ state, template: '{{STATUS_BANNER}}', logoBase64: '' });
+    const html = renderStatus({ state, template: '<section class="implementation-status {{STATUS_CLASS}}">{{STATUS_BANNER}}</section>', logoBase64: '' });
+    assert.match(html, /class="implementation-status paused"/);
     assert.ok(html.includes(`href="${filename}">${label}</a>`));
     assert.match(html, /<strong class="pending-title">Implementation is waiting for your input<\/strong>/);
     assert.doesNotMatch(html, /Workflow paused|Approve this document|<li>|data-wait-since|<details/);
