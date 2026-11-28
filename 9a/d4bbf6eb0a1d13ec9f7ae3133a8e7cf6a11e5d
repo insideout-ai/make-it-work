@@ -1,0 +1,65 @@
+skills/implement/scripts/render-status.mjs
+  s_636d34bdfeea59::t_e09b5c10c0a15f 1067
+  s_636d34bdfeea59::t_aa19d6a10e2147 3,547,602,896,928,932,940-946,949-950,1053,1062-1066,1068,1077,1083,1090,1093,1221,1271
+  s_636d34bdfeea59::t_cb0aa07cf72f14 947-948
+  s_636d34bdfeea59::t_d242f737268a7c 823
+skills/implement/scripts/implementation-cost.test.mjs
+  s_636d34bdfeea59::t_9f190deb2a89b1 87-105
+  s_636d34bdfeea59::t_1a1f617753fc0a 144
+  s_636d34bdfeea59::t_6ea8e8418dcbd1 1-86,133-143,145
+  s_636d34bdfeea59::t_e09b5c10c0a15f 106-132
+README.md
+  s_636d34bdfeea59::t_2172905c134ec9 553
+skills/implement/references/orchestration/feedback.md
+  s_636d34bdfeea59::t_1a1f617753fc0a 3-15
+skills/implement/references/orchestration/completion.md
+  s_636d34bdfeea59::t_2172905c134ec9 3-10
+  s_636d34bdfeea59::t_3e5040cb4f12c0 16
+scripts/lib/cost-archive.mjs
+  s_636d34bdfeea59::t_444bc58cfa25fb 1-30
+scripts/lib/cost-estimate.mjs
+  s_636d34bdfeea59::t_aa18d1a024d06e 1-7,9,11-26,34-36,39-51,53-91,93-100,102-118
+  s_636d34bdfeea59::t_e53d73d2802c9a 10,27-33,38,52
+  s_636d34bdfeea59::t_cb0aa07cf72f14 8,37
+  s_636d34bdfeea59::t_cfbf9a49400fb6 92
+  s_636d34bdfeea59::t_1a1f617753fc0a 101
+scripts/lib/cost-worker.mjs
+  s_636d34bdfeea59::t_59357275363417 1-20,22-25
+  s_636d34bdfeea59::t_e53d73d2802c9a 21
+skills/implement/scripts/implementation-cost.mjs
+  s_636d34bdfeea59::t_1a1f617753fc0a 120-124
+  s_636d34bdfeea59::t_cb0aa07cf72f14 80-82,86-88
+  s_636d34bdfeea59::t_cfbf9a49400fb6 30
+  s_636d34bdfeea59::t_e53d73d2802c9a 95
+  s_636d34bdfeea59::t_26c227d5ecaa1a 23-28
+  s_636d34bdfeea59::t_59357275363417 1-22,29,31-79,83-85,89-94,96-119,125
+docs/artifact-observability.md
+  s_636d34bdfeea59::t_2172905c134ec9 40,42
+  s_636d34bdfeea59::t_e91315d4134f8b 118
+  s_636d34bdfeea59::t_89777213a61af9 61-115
+skills/implement/scripts/render-status.test.mjs
+  s_636d34bdfeea59::t_a1b8a54a8953eb 1631,1637
+scripts/implementation-cost.test.mjs
+  s_636d34bdfeea59::t_95c6d66df6546c 1-61,71-106
+  s_636d34bdfeea59::t_9f190deb2a89b1 62-70
+CHANGELOG.md
+  s_636d34bdfeea59::t_82efded25b931d 14
+scripts/lib/cost-pricing.mjs
+  s_636d34bdfeea59::t_444bc58cfa25fb 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9ad4bbf6eb0a1d13ec9f7ae3133a8e7cf6a11e5d",
+  "prompts": {},
+  "sessions": {
+    "s_636d34bdfeea59": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21e4e-a674-7112-a962-3f83d302f2a6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "erezmorabia <emorabia@gmail.com>"
+    }
+  }
+}
